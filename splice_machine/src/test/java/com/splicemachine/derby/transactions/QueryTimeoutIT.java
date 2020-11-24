@@ -95,7 +95,7 @@ public class QueryTimeoutIT extends SpliceUnitTest {
     @Before
     public void setUpClass() throws Exception {
         // Install the jar file of user-defined stored procedures.
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = getSqlItJarFile();
         assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
                 STORED_PROCS_JAR_FILE.endsWith("jar"));
         classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));

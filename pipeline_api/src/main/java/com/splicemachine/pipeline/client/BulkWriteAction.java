@@ -254,7 +254,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         try{
             BulkWriter writer=writerFactory.newWriter(tableName);
             writeTimer.startTiming();
-            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache);
+            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache, writeConfiguration.loadReplaceMode());
             writeTimer.stopTiming();
             Iterator<BulkWrite> bws=nextWrite.getBulkWrites().iterator();
             Collection<BulkWriteResult> results=bulkWritesResult.getBulkWriteResults();
