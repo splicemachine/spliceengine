@@ -46,8 +46,10 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -60,6 +62,8 @@ import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -850,8 +854,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 return rawTxn.getActiveStateTxn();
             else if (rawTxn instanceof  SpliceTransaction) {
                 byte [] destinationTable;
-                if (this instanceof DMLWriteOperation )
-                    destinationTable = ((DMLWriteOperation) this).getDestinationTable();
+                if (this instanceof DMLWriteOperation ) {
+                    DMLWriteOperation writeOp = ((DMLWriteOperation) this);
+                    destinationTable = writeOp.getDestinationTable();
+                    final Txn txn = ((SpliceTransaction) rawTxn).getTxn();
+
+                    if (writeOp.forFromTableStatement() &&
+                        txn instanceof ReadOnlyTxn)
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                               "FROM TABLE queries must elevate the transaction from the top-level operation.");
+                }
                 else
                     destinationTable = ((VTIOperation) this).getDestinationTable();
 

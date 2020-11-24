@@ -1437,6 +1437,11 @@ Guide.
                 <arg>tableName</arg>
             </msg>
             <msg>
+                <name>42604</name>
+                <text>FROM TABLE clause not supported in a '{0}' query.</text>
+                <arg>queryType</arg>
+            </msg>
+            <msg>
                 <name>42605</name>
                 <text>The number of arguments for function '{0}' is incorrect.</text>
                 <arg>functionName</arg>
