@@ -24,6 +24,8 @@ import org.junit.runner.Description;
 import splice.com.google.common.base.Joiner;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -1172,11 +1174,12 @@ public class SpliceUnitTest {
         throw new RuntimeException(err);
     }
 
-    protected void checkDecimalExpression(String input, String output, TestConnection conn) throws SQLException {
+    protected void checkDecfloatExpression(String input, String output, TestConnection conn) throws SQLException {
         String sql = format("select %s", input);
         try(ResultSet rs = conn.query(sql)) {
             rs.next();
-            Assert.assertEquals(output, rs.getBigDecimal(1).toString());
+            Assert.assertTrue(format("expected: %s, actual: %s", output, rs.getBigDecimal(1)),
+                    new BigDecimal(output, MathContext.DECIMAL128).compareTo(rs.getBigDecimal(1)) == 0);
         }
     }
 

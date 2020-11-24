@@ -19,7 +19,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -30,13 +29,9 @@ import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.sql.*;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
-import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
 @Category(value = {SerialTest.class})
@@ -153,15 +148,15 @@ public class DecfloatIT extends SpliceUnitTest {
     @Test
     public void testRoundDefaultHalfEven() throws Exception {
         // exactly 34 digits
-        checkDecimalExpression("decfloat('0.1234567890123456789012345678901234')", "0.1234567890123456789012345678901234", conn);
+        checkDecfloatExpression("decfloat('0.1234567890123456789012345678901234')", "0.1234567890123456789012345678901234", conn);
         // 35 digits round down
-        checkDecimalExpression("decfloat('0.12345678901234567890123456789012341')", "0.1234567890123456789012345678901234", conn);
+        checkDecfloatExpression("decfloat('0.12345678901234567890123456789012341')", "0.1234567890123456789012345678901234", conn);
         // 35 digits round up
-        checkDecimalExpression("decfloat('0.12345678901234567890123456789012348')", "0.1234567890123456789012345678901235", conn);
+        checkDecfloatExpression("decfloat('0.12345678901234567890123456789012348')", "0.1234567890123456789012345678901235", conn);
         // 35 digits half round down
-        checkDecimalExpression("decfloat('0.12345678901234567890123456789012345')", "0.1234567890123456789012345678901234", conn);
+        checkDecfloatExpression("decfloat('0.12345678901234567890123456789012345')", "0.1234567890123456789012345678901234", conn);
         // 35 digits half round up
-        checkDecimalExpression("decfloat('0.12345678901234567890123456789012335')", "0.1234567890123456789012345678901234", conn);
+        checkDecfloatExpression("decfloat('0.12345678901234567890123456789012335')", "0.1234567890123456789012345678901234", conn);
     }
 
     @Test
@@ -176,39 +171,40 @@ public class DecfloatIT extends SpliceUnitTest {
 
     @Test
     public void testBorders() throws Exception {
-        checkDecimalExpression("decfloat('-9.999999999999999999999999999999999E6144')", "-9.999999999999999999999999999999999E+6144", conn);
-        checkDecimalExpression("decfloat('-1E-6143')", "-1E-6143", conn);
-        checkDecimalExpression("decfloat('1E-6143')", "1E-6143", conn);
+        checkDecfloatExpression("decfloat('-9.999999999999999999999999999999999E6144')", "-9.999999999999999999999999999999999E+6144", conn);
+        checkDecfloatExpression("decfloat('-1E-6143')", "-1E-6143", conn);
+        checkDecfloatExpression("decfloat('1E-6143')", "1E-6143", conn);
 
         // FIXME DB-10864
-        //checkDecimalExpression("decfloat('9.999999999999999999999999999999999E6144')", "9.999999999999999999999999999999999E+6144", conn);
+        //checkDecfloatExpression("decfloat('9.999999999999999999999999999999999E6144')", "9.999999999999999999999999999999999E+6144", conn);
     }
 
     @Test
     public void testRoundFunction() throws Exception {
-        checkDecimalExpression("round(decfloat('0.123459'), 5)", "0.12346", conn);
-        checkDecimalExpression("round(decfloat('0.123459'), 5)", "0.12346", conn);
-        checkDecimalExpression("round(decfloat('0.123451'), 5)", "0.12345", conn);
-        checkDecimalExpression("round(decfloat('0.123455'), 5)", "0.12346", conn);
-        checkDecimalExpression("round(decfloat('0.123445'), 5)", "0.12345", conn);
+        checkDecfloatExpression("round(decfloat('0.123459'), 5)", "0.12346", conn);
+        checkDecfloatExpression("round(decfloat('0.123459'), 5)", "0.12346", conn);
+        checkDecfloatExpression("round(decfloat('0.123451'), 5)", "0.12345", conn);
+        checkDecfloatExpression("round(decfloat('0.123455'), 5)", "0.12346", conn);
+        checkDecfloatExpression("round(decfloat('0.123445'), 5)", "0.12345", conn);
     }
 
     @Test
     public void testCastFromOtherTypes() throws Exception {
-        checkDecimalExpression("cast( cast(1 as int) as decfloat)", "1", conn);
-        checkDecimalExpression("cast( cast(1 as bigint) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( cast(1 as int) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( cast(1 as bigint) as decfloat)", "1", conn);
 
         // FIXME DB-10866 (different toString representation between spark and control)
-        checkDecimalExpression("cast( cast(1 as double) as decfloat)", useSpark? "1": "1.0", conn);
-        checkDecimalExpression("cast( char('1.0') as decfloat)", useSpark ?"1": "1.0", conn);
-        checkDecimalExpression("cast( cast(1.0 as float) as decfloat)", useSpark?"1" : "1.0", conn);
-        checkDecimalExpression("cast( cast (1.0 as real) as decfloat)", useSpark?"1":"1.0", conn);
+        // checkDecfloatExpression uses .compareTo instead of .equals to make this right for now
+        checkDecfloatExpression("cast( cast(1 as double) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( char('1.0') as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( cast(1.0 as float) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( cast (1.0 as real) as decfloat)", "1", conn);
 
-        checkDecimalExpression("cast( smallint(1) as decfloat)", "1", conn);
-        checkDecimalExpression("cast( tinyint(1) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( smallint(1) as decfloat)", "1", conn);
+        checkDecfloatExpression("cast( tinyint(1) as decfloat)", "1", conn);
 
         try {
-            checkDecimalExpression("cast( true as decfloat)", "1", conn);
+            checkDecfloatExpression("cast( true as decfloat)", "1", conn);
             Assert.fail("bool to decfloat cast should fail");
         } catch (SQLException e) {
             Assert.assertEquals("42846", e.getSQLState());
@@ -218,9 +214,9 @@ public class DecfloatIT extends SpliceUnitTest {
     @Test
     @Ignore("DB-10868")
     public void testOverflow() throws Exception {
-        checkDecimalExpression("decfloat('-9.999999999999999999999999999999999E6144') * 10", "", conn);
-        checkDecimalExpression("decfloat('-1E-6143') / 10", "", conn);
-        checkDecimalExpression("decfloat('1E-6143') / 10", "", conn);
-        checkDecimalExpression("decfloat('9.999999999999999999999999999999999E6144') * 10", "", conn);
+        checkDecfloatExpression("decfloat('-9.999999999999999999999999999999999E6144') * 10", "", conn);
+        checkDecfloatExpression("decfloat('-1E-6143') / 10", "", conn);
+        checkDecfloatExpression("decfloat('1E-6143') / 10", "", conn);
+        checkDecfloatExpression("decfloat('9.999999999999999999999999999999999E6144') * 10", "", conn);
     }
 }
