@@ -80,6 +80,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1979), new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1987), new UpgradeScriptDropReferenceCount(sdd, tc));
     }
     public void run() throws StandardException{
 

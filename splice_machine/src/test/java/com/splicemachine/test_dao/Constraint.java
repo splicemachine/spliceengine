@@ -24,7 +24,6 @@ public class Constraint {
     private String type;
     private String schemaId;
     private String state;
-    private int referenceCount;
 
     public String getConstraintId() {
         return constraintId;
@@ -40,14 +39,6 @@ public class Constraint {
 
     public void setConstraintName(String constraintName) {
         this.constraintName = constraintName;
-    }
-
-    public int getReferenceCount() {
-        return referenceCount;
-    }
-
-    public void setReferenceCount(int referenceCount) {
-        this.referenceCount = referenceCount;
     }
 
     public String getSchemaId() {
@@ -90,8 +81,7 @@ public class Constraint {
                 ", constraintName='" + constraintName + '\'' +
                 ", type='" + type + '\'' +
                 ", schemaId='" + schemaId + '\'' +
-                ", state='" + state + '\'' +
-                ", referenceCount=" + referenceCount +
+                ", state='" + state +
                 '}';
     }
 

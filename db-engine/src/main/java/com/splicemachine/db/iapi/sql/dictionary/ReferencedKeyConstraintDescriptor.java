@@ -90,8 +90,7 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 			UUID constraintId,
 			UUID indexId,
 			SchemaDescriptor schemaDesc,
-			boolean	isEnabled,
-			int referenceCount
+			boolean	isEnabled
 			)
 	{
 		super(dataDictionary, table, constraintName, deferrable,

@@ -1904,4 +1904,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public boolean useTxnAwareCache() {
         return !SpliceClient.isRegionServer;
     }
+
+    public void updateSysConstraintTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSCONSTRAINTS", sd, tc);
+        if (td != null) {
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+
+        createNaturalNumbersTable(tc);
+    }
+
 }
