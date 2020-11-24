@@ -226,7 +226,7 @@ public class SparkTableChecker implements TableChecker {
             List<String> messages = Lists.newLinkedList();
             int i = 0;
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 
