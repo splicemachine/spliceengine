@@ -323,4 +323,9 @@ class Session
 	public void setRemoteUser(RemoteUser remoteUser) {
 		this.remoteUser = remoteUser;
 	}
+
+	@Override
+	public String toString() {
+		return "Session (" + getConnNum() + ")";
+	}
 }
