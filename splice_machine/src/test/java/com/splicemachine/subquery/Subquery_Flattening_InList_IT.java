@@ -17,8 +17,10 @@ package com.splicemachine.subquery;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.splicemachine.subquery.SubqueryITUtil.*;
@@ -260,6 +262,67 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
                         " 3 |40 |\n" +
                         " 4 |50 |"
         );
+    }
+
+    /* DB-10555 Special case
+     * When an IN/ANY subquery is uncorrelated and is known to return at maximum one row, we don't flatten it
+     * because it's likely to be more efficient by running it once and caching the result. Consequently, we
+     * turn the subquery into a scalar subquery (by marking it so) and rewrite IN/ANY to equal operator.
+     * However, it doesn't work in multi-column case because further optimization/code generation do not
+     * generally support tuple comparison like (a, b) = (c, d). For multi-column IN/ANY subquery, we have to
+     * disable this rule and force flatten it to join.
+     */
+    @Test
+    public void testMultiColumnInScalarSubqueryForceFlatten() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists V (aj DECIMAL(5,0) NOT NULL, n CHAR(8) NOT NULL, k CHAR(1) NOT NULL)");
+        methodWatcher.executeUpdate("create table if not exists S (s# CHAR(36) NOT NULL unique, aj DECIMAL(5,0) NOT NULL, n CHAR(8) NOT NULL)");
+        methodWatcher.executeUpdate("delete from V");
+        methodWatcher.executeUpdate("delete from S");
+        methodWatcher.executeUpdate("insert into V values(1, 'test1', 'J'), (1, 'test2', 'K'), (2, 'test1', 'L'), (1, 'test1', 'K'), (1, 'test1', 'L')");
+        methodWatcher.executeUpdate("insert into S values('0c21cd03-9277-11e0-aff0-00247e126b6c', 1, 'test1'), ('what', 2, 'huh')");
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from V " +
+                        "where (aj, n) in (select aj, n from S " +
+                        "                    where s# = '0c21cd03-9277-11e0-aff0-00247e126b6c') " +
+                        "  and k ^= 'J'",
+                ZERO_SUBQUERY_NODES, "" +
+                        "AJ |  N   | K |\n" +
+                        "---------------\n" +
+                        " 1 |test1 | K |\n" +
+                        " 1 |test1 | L |"
+        );
+
+        /* Fun fact note
+         * Although the following delete statement uses exactly the same where clause as the select
+         * above, it deletes more rows than expected with the first DB-10555 change. In optimizing
+         * the SelectNode (indirectly) under DeleteNode, V.aj and V.n are eventually projected away,
+         * despite that they are actually used in the query. As a result, the generated predicates
+         * "V.aj = S.aj AND V.n = S.n" contains column references pointing to result set number -1
+         * (and code generation went through!!!), rendering them useless in execution. Only K <> 'J'
+         * is evaluated, and all rows other than (1, 'test1', 'J') are deleted.
+         * Root cause is that for a delete statement, underlying select statement only wants to
+         * output one row ID column because all other columns are useless for deleting rows. Columns
+         * that are used are added to the final projection later. The select above, however, selects
+         * all columns at the very beginning. To make sure V.aj and V.n are marked as referenced
+         * correctly, ValueTupleNode must support acceptChildren() method. This is not obvious when
+         * seeing a delete statement deletes more rows than expected...
+         */
+        methodWatcher.executeUpdate("" +
+                "delete from V " +
+                "where (aj, n) in (select aj, n from S " +
+                "                    where s# = '0c21cd03-9277-11e0-aff0-00247e126b6c') " +
+                "  and k ^= 'J'");
+
+        try(ResultSet rs = methodWatcher.executeQuery("select * from V")) {
+            String expected =
+                    "AJ |  N   | K |\n" +
+                    "---------------\n" +
+                    " 1 |test1 | J |\n" +
+                    " 1 |test2 | K |\n" +
+                    " 2 |test1 | L |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
