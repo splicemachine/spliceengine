@@ -1113,10 +1113,10 @@ public class SpliceUnitTest {
     {
         Logger LOG = Logger.getLogger("SpliceUnitTest");
         try {
-            int oldest1 = getOldestActiveTransaction(methodWatcher);
+            long oldest1 = getOldestActiveTransaction(methodWatcher);
             LOG.info("checking for stale transactions");
             for (int i = 0; i < numSeconds; i++) {
-                int oldest2 = getOldestActiveTransaction(methodWatcher);
+                long oldest2 = getOldestActiveTransaction(methodWatcher);
                 if (oldest1 != oldest2)
                     return;
                 Thread.sleep(1000);
@@ -1132,11 +1132,17 @@ public class SpliceUnitTest {
             }
         } catch( SQLException e)
         {
-            if( e.getNextException().toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
-                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'."))
+            SQLException next = e.getNextException();
+            if (next != null) {
+                e = next;
+            }
+            if (e.toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
+                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'.")) {
                 return;
-            else
+            }
+            else {
                 LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
+            }
         }
         catch( Exception e)
         {
@@ -1145,11 +1151,11 @@ public class SpliceUnitTest {
         }
     }
 
-    public static int getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
+    public static long getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
         try (ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()"))
         {
             Assert.assertEquals(true, rs.next());
-            return rs.getInt(1);
+            return rs.getLong(1);
         }
     }
 
