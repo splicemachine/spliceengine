@@ -844,11 +844,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
         TxnView currentTxn = rawTxn.getActiveStateTxn();
-        if(this instanceof DMLWriteOperation) {
+        if(this instanceof DMLWriteOperation ||
+           isFromTableStatement()) {
             if (currentTxn instanceof ActiveWriteTxn)
                 return rawTxn.getActiveStateTxn();
-            else if (rawTxn instanceof  SpliceTransaction)
-                return ((SpliceTransaction) rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+            else if (rawTxn instanceof  SpliceTransaction) {
+                byte [] destinationTable;
+                if (this instanceof DMLWriteOperation )
+                    destinationTable = ((DMLWriteOperation) this).getDestinationTable();
+                else
+                    destinationTable = ((VTIOperation) this).getDestinationTable();
+
+                return ((SpliceTransaction) rawTxn).elevate(destinationTable);
+            }
             else
                 throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
         }
@@ -1130,5 +1138,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         for (int i = 0; i < ncols;i++)
             fields[i] = resultDataTypeDescriptors[i].getStructField(ValueRow.getNamedColumn(i));
         return DataTypes.createStructType(fields);
+    }
+
+    public boolean isFromTableStatement() {
+        return false;
     }
 }

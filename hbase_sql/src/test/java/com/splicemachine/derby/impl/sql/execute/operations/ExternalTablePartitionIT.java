@@ -91,7 +91,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
 
         methodWatcher.executeUpdate(String.format("insert into %1$s_number_files " +
-                "select * from %1$s_number_files_orig --splice-properties useSpark=true \n" +
+                "select * from %1$s_number_files_orig --splice-properties useSpark=true %n" +
                 "union all select * from %1$s_number_files_orig " +
                 "union all select * from %1$s_number_files_orig " +
                 "union all select * from %1$s_number_files_orig " +
@@ -114,14 +114,23 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     String[] fileFormatsText = { "PARQUET", "ORC", "AVRO", "TEXTFILE" };
 
     static public void checkPartitionInsertSelect(SpliceWatcher methodWatcher, String externalResourceDirectory,
+                                                  String schema,
                                                   String testName,
                                                   String fileFormat, String partitionedBy) throws Exception {
         String name = testName + "_" + fileFormat;
         String tablePath = externalResourceDirectory + "/" + name;
-        methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 int, col3 varchar(10)) " +
-                "partitioned by (" + partitionedBy + ") STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+        String s = String.format("create external table " + name + " " + schema + " " +
+                "partitioned by (" + partitionedBy + ") STORED AS " + fileFormat + " LOCATION '%s'", tablePath);
+        methodWatcher.executeUpdate(s);
 
         methodWatcher.executeUpdate("insert into " + name  + " values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+
+        methodWatcher.execute("drop table " + name);
+
+        methodWatcher.executeUpdate(String.format("create external table " + name + " " + schema + " " +
+                "partitioned by (" + partitionedBy + ") STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+
+
 
         ResultSet rs = methodWatcher.executeQuery("select * from " + name );
         assertEquals("COL1 |COL2 |COL3 |\n" +
@@ -188,6 +197,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     public void testPartitionFirst() throws Exception {
         for( String fileFormat : fileFormatsText) {
             checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "(col1 int, col2 int, col3 varchar(10))",
                     "partition_first", fileFormat, "col1");
         }
     }
@@ -196,6 +206,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     public void testPartitionFirstSecond() throws Exception {
         for( String fileFormat : fileFormatsText) {
             checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "(col1 varchar(10), col2 int, col3 varchar(10))",
                     "partition_first_second", fileFormat, "col1, col2");
         }
     }
@@ -204,6 +215,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     public void testPartitionSecond() throws Exception {
         for( String fileFormat : fileFormatsText) {
             checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "(col1 varchar(10), col2 varchar(10), col3 varchar(10))",
                     "partition_second", fileFormat, "col2");
         }
     }
@@ -212,6 +224,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     public void testPartitionLast() throws Exception {
         for (String fileFormat : fileFormatsText) {
             checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "(col1 int, col2 int, col3 varchar(10))",
                     "partition_last", fileFormat, "col3");
         }
     }

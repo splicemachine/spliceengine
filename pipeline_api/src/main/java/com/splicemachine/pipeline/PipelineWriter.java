@@ -61,11 +61,13 @@ public class PipelineWriter{
     }
 
 
-    public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites, long conglomId) throws IOException{
+    public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites, long conglomId, boolean loadReplaceMode) throws IOException{
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
+
         int numBulkWrites = bulkWrites.getBulkWrites().size();
         List<BulkWriteResult> result = new ArrayList<>(numBulkWrites);
-        SharedCallBufferFactory indexWriteBufferFactory = new SharedCallBufferFactory(writeCoordinator);
+        SharedCallBufferFactory indexWriteBufferFactory = new SharedCallBufferFactory(writeCoordinator, loadReplaceMode);
+
 
         if (numBulkWrites==0) {
             throw exceptionFactory.doNotRetry("Should Never Send Empty Call to Endpoint");
@@ -150,7 +152,9 @@ public class PipelineWriter{
             PartitionWritePipeline writePipeline = pair.getSecond();
             if (writePipeline != null) {
                 BulkWrite bulkWrite = entry.getKey();
-                BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrites.getToken(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
+                // get reload_mode
+                BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrites.getToken(),
+                        bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
                 if(LOG.isTraceEnabled()){
                     LOG.trace("Submission of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has submission result "+ submitResult.getGlobalResult());
                     if(!submitResult.getFailedRows().isEmpty()){

@@ -189,10 +189,10 @@ public class DecimalFunctionIT extends SpliceUnitTest {
 
     @Test
     public void createFromDecfloat() throws Exception {
-        check("(cast ('1234.5678' as decfloat))", "1234");
-        check("(cast ('1234.5678' as decfloat), 5)", "1234");
+        check("(cast ('1234.5678' as decfloat))", "1235");
+        check("(cast ('1234.5678' as decfloat), 5)", "1235");
         check("(cast ('1234.5678' as decfloat), 8, 4)", "1234.5678");
-        check("(cast ('1234.5678' as decfloat), 8, 2)", "1234.56");
+        check("(cast ('1234.5678' as decfloat), 8, 2)", "1234.57");
         check("(cast ('1234.5678' as decfloat), 9, 5)", "1234.56780");
         shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
         shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);

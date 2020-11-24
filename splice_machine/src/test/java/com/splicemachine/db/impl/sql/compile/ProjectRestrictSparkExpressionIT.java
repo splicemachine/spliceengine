@@ -604,7 +604,29 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "11/06/2020 |",
             "1    |\n" +
             "----------\n" +
-            "12:01 AM |"
+            "12:01 AM |",
+            "1  |  2   |     3     |         4          |\n" +
+            "----------------------------------------------\n" +
+            " 127 |32767 |2147483647 |9223372036854775807 |\n" +
+            "NULL |NULL  |   NULL    |       NULL         |",
+            "1  |  2   |     3     |         4          |\n" +
+            "----------------------------------------------\n" +
+            " 127 |32767 |2147483647 |9223372036854775807 |\n" +
+            "NULL |NULL  |   NULL    |       NULL         |",
+            "1      |\n" +
+            "--------------\n" +
+            "9999999999.7 |\n" +
+            "9999999999.9 |",
+            "1      |\n" +
+            "--------------\n" +
+            "9999999999.7 |\n" +
+            "9999999999.9 |",
+            "1      |\n" +
+            "-------------\n" +
+            "1.79769E308 |",
+            "1      |\n" +
+            "-------------\n" +
+            "1.79769E308 |",
         };
 
         String query[] = {
@@ -717,6 +739,12 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "select distinct char(time('00:01:00'), usa) from t1 --splice-properties useSpark=%s\n",
             "select distinct varchar(date('2020-11-06'), usa) from t1 --splice-properties useSpark=%s\n",
             "select distinct varchar(time('00:01:00'), usa) from t1 --splice-properties useSpark=%s\n",
+            "select distinct cast(t as char(3)), cast(s as char(5)), cast(i as char(10)), cast(l as char(19)) from ts_int --splice-properties useSpark=%s\n",
+            "select distinct cast(t as varchar(3)), cast(s as varchar(5)), cast(i as varchar(10)), cast(l as varchar(19)) from ts_int --splice-properties useSpark=%s\n",
+            "select distinct cast(a as char(12)) from ts_decimal --splice-properties useSpark=%s\n",
+            "select distinct cast(a as varchar(12)) from ts_decimal --splice-properties useSpark=%s\n",
+            "select distinct cast(a as char(12)) from ts_double --splice-properties useSpark=%s\n",
+            "select distinct cast(a as varchar(12)) from ts_double --splice-properties useSpark=%s\n",
         };
 
         for (int i = 0; i < query.length; i++) {

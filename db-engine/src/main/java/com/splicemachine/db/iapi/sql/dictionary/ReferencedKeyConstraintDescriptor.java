@@ -290,6 +290,7 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 * @return true/false
 	 */
 	public boolean needsToFire(int stmtType, int[] modifiedCols) throws StandardException {
+		if( stmtType == StatementType.LOAD_REPLACE ) return false;
 		/*
 		** If we are disabled, we never fire
 		*/

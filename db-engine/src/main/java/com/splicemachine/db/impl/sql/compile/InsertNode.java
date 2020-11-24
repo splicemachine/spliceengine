@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.RSUtils;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -87,7 +86,7 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
-    public enum InsertMode {INSERT,UPSERT}
+    public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
 
@@ -99,6 +98,9 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
     public static final String SKIP_WAL = "skipWAL";
     public static final String INSERT = "INSERT";
+    public static final String REPLACE = "REPLACE";
+    public static final String LOAD_REPLACE = "LOAD_REPLACE";
+    public static final String LOAD_REPLACE_PROPERTY = "--splice-properties insertMode=" + LOAD_REPLACE + "\n";
     public static final String PIN = "pin";
     public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
     public static final String SAMPLING_ONLY = "samplingOnly";
@@ -500,7 +502,7 @@ public final class InsertNode extends DMLModStatementNode {
             /* bind all generation clauses for generated columns */
             parseAndBindGenerationClauses
                 ( dataDictionary, targetTableDescriptor, sourceRCL, resultColumnList, false, null );
-            
+
             /* Get and bind all constraints on the table */
             checkConstraints = bindConstraints(dataDictionary,
                                                 getNodeFactory(),
@@ -980,8 +982,9 @@ public final class InsertNode extends DMLModStatementNode {
         String key = "insertMode";
         String value = "bulkInsert";
 
-        if ( targetProperties.getProperty( key ) == null )
-        { targetProperties.put( key, value ); }
+        if ( targetProperties.getProperty( key ) == null ) {
+            targetProperties.put( key, value );
+        }
     }
 
     /**
@@ -1054,7 +1057,7 @@ public final class InsertNode extends DMLModStatementNode {
         mb.push(skipSampling);
         mb.push(sampleFraction);
         BaseJoinStrategy.pushNullableString(mb, indexName);
-        SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+        SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
         if (fromTableTriggerSPSDescriptor == null)
             mb.pushNull("java.lang.String");
         else {
@@ -1091,9 +1094,13 @@ public final class InsertNode extends DMLModStatementNode {
         if (insertMode != null)
         {
             String upperValue = StringUtil.SQLToUpperCase(insertMode);
-            if (upperValue.equals("REPLACE"))
+            if (upperValue.equals(REPLACE))
             {
                 retval = StatementType.BULK_INSERT_REPLACE;
+            }
+            else if(upperValue.equals(LOAD_REPLACE))
+            {
+                retval = StatementType.LOAD_REPLACE;
             }
         }
         return retval;
