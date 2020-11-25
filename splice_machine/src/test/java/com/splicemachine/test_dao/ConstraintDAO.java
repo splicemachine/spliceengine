@@ -53,6 +53,7 @@ public class ConstraintDAO {
             constraint.setType(resultSet.getString(4));
             constraint.setSchemaId(resultSet.getString(5));
             constraint.setState(resultSet.getString(6));
+            constraint.setReferenceCount(resultSet.getInt(7));
             return constraint;
         }
     }

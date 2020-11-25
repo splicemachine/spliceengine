@@ -52,13 +52,14 @@ import java.util.List;
 public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     private static final String TABLENAME_STRING="SYSCONSTRAINTS";
 
-    protected static final int SYSCONSTRAINTS_COLUMN_COUNT=6;
+    protected static final int SYSCONSTRAINTS_COLUMN_COUNT=7;
     protected static final int SYSCONSTRAINTS_CONSTRAINTID=1;
     protected static final int SYSCONSTRAINTS_TABLEID=2;
     protected static final int SYSCONSTRAINTS_CONSTRAINTNAME=3;
     protected static final int SYSCONSTRAINTS_TYPE=4;
     protected static final int SYSCONSTRAINTS_SCHEMAID=5;
     protected static final int SYSCONSTRAINTS_STATE=ConstraintDescriptor.SYSCONSTRAINTS_STATE_FIELD;
+    public static final int SYSCONSTRAINTS_REFERENCECOUNT=7;
 
     protected static final int SYSCONSTRAINTS_INDEX1_ID=0;
     protected static final int SYSCONSTRAINTS_INDEX2_ID=1;
@@ -122,6 +123,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         String constraintName=null;
         String schemaID=null;
         boolean isEnabled=true;
+        int referenceCount=0;
 
         if(td!=null){
             if (!(td instanceof ConstraintDescriptor))
@@ -166,6 +168,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
             schemaID=constraint.getSchemaDescriptor().getUUID().toString();
             isEnabled=constraint.isEnabled();
+            referenceCount=constraint.getReferenceCount();
         }
 
 		/* Insert info into sysconstraints */
@@ -194,6 +197,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
 		/* 6th column is STATE (char(1)) */
         row.setColumn(SYSCONSTRAINTS_STATE,new SQLChar(isEnabled?"E":"D"));
+
+		/* 7th column is REFERENCED */
+        row.setColumn(SYSCONSTRAINTS_REFERENCECOUNT,new SQLInteger(referenceCount));
 
         return row;
     }
@@ -243,6 +249,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         String constraintSType;
         String constraintStateStr;
         boolean constraintEnabled;
+        int referenceCount;
         String constraintUUIDString;
         String schemaUUIDString;
         SubConstraintDescriptor scd = null;
@@ -396,6 +403,10 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                             +constraintStateStr+"' for constraint");
                 }
         }
+
+		/* 7th column is REFERENCECOUNT, boolean */
+        col=row.getColumn(SYSCONSTRAINTS_REFERENCECOUNT);
+        referenceCount=col.getInt();
 
 		/* now build and return the descriptor */
 
@@ -591,7 +602,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 SystemColumnImpl.getIdentifierColumn("CONSTRAINTNAME",false),
                 SystemColumnImpl.getIndicatorColumn("TYPE"),
                 SystemColumnImpl.getUUIDColumn("SCHEMAID",false),
-                SystemColumnImpl.getIndicatorColumn("STATE")
+                SystemColumnImpl.getIndicatorColumn("STATE"),
+                SystemColumnImpl.getColumn("REFERENCECOUNT",Types.INTEGER,false)
         };
     }
 
