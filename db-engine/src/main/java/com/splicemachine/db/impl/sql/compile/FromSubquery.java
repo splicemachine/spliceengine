@@ -897,4 +897,10 @@ public class FromSubquery extends FromTable
     private String getNewAnonymousCorrelationName() {
         return "_spliceinternal_anonym_subquery_" + anonymousSubqueries++;
     }
+
+    public void setLevel(int level){
+        super.setLevel(level);
+        if (subquery instanceof FromTable)
+            ((FromTable)subquery).setLevel(level);
+    }
 }
