@@ -461,10 +461,10 @@ public class DDLUtils {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
                 if (td != null) { // Table Descriptor transaction never committed
-                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
+                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
                 }
                 if (cd != null) {
-                    dm.invalidateFor(cd, DependencyManager.DROP_INDEX, transactionResource.getLcc());
+                    dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
                 }
             }
         } catch (Exception e) {
