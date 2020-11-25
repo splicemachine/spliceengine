@@ -173,7 +173,7 @@ public class ExternalTableUnitTests {
     @Test
     public void testGetSuggestedSchema()
     {
-        Assert.assertEquals( "CREATE EXTERNAL TABLE T (col0 DOUBLE, col1 INT, col2 BOOLEAN, col3 BIGINT); " +
+        Assert.assertEquals( "CREATE EXTERNAL TABLE T ( col0 DOUBLE, col1 INT, col2 BOOLEAN, col3 BIGINT ); " +
                         "(note: could not check path, so no PARTITIONED BY information available)",
                 SparkExternalTableUtil.getSuggestedSchema(structTypeSample1(), null).toString() );
 
@@ -186,7 +186,7 @@ public class ExternalTableUnitTests {
         part = part.add("col2", DataTypes.FloatType);
         Assert.assertEquals( "CREATE EXTERNAL TABLE T (col0 DOUBLE, col3 CHAR/VARCHAR(x), col1 INT, col2 REAL) " +
                         "PARTITIONED BY(col1, col2);",
-                ExternalTableUtils.getSuggestedSchema(s, part).toString() );
+                ExternalTableUtils.getSuggestedSchema(s, part, "") + ";" );
 
     }
 

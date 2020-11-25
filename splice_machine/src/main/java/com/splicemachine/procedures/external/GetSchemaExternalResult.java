@@ -24,16 +24,20 @@ import org.apache.spark.sql.types.StructType;
  * PlaceHolder for the schema information provided by Spark.
  */
 public class GetSchemaExternalResult extends AbstractOlapResult {
+    public String rootPath;
     private StructType partition_schema;
     private StructType schema;
+    public String[] foundFiles;
 
     public GetSchemaExternalResult(StructType schema) {
         this.schema = schema;
     }
 
-    public GetSchemaExternalResult(StructType partition_schema, StructType schema) {
+    public GetSchemaExternalResult(String rootPath, StructType partition_schema, StructType schema, String[] foundFiles) {
+        this.rootPath = rootPath;
         this.partition_schema = partition_schema;
         this.schema = schema;
+        this.foundFiles = foundFiles;
     }
 
     public StructType getSchema(){
@@ -48,9 +52,14 @@ public class GetSchemaExternalResult extends AbstractOlapResult {
         return true;
     }
 
-    public String getSuggestedSchema()
+    public String getSuggestedSchema(String separator)
     {
-        return ExternalTableUtils.getSuggestedSchema(schema, partition_schema);
+        String s = ExternalTableUtils.getSuggestedSchema(schema, partition_schema, separator);
+        if(foundFiles != null && foundFiles.length > 0)
+            s = s + separator + " STORED AS " + ExternalTableUtils.getExternalTableTypeFromPath(foundFiles[0]);
+        if( rootPath != null )
+            s = s + " LOCATION '" + rootPath + "';";
+        return s;
     }
 
     public StructType getFullSchema()
