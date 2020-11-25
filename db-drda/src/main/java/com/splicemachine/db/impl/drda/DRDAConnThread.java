@@ -77,6 +77,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.StringUtils;
 import com.sun.security.jgss.GSSUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import org.ietf.jgss.GSSContext;
@@ -84,8 +85,6 @@ import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.Oid;
-
-import javax.security.auth.Subject;
 
 
 /**
@@ -97,7 +96,7 @@ class DRDAConnThread extends Thread {
 
     private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
 
-    private static final Logger log = Logger.getLogger(DRDAConnThread.class);
+    private static final Logger LOG = Logger.getLogger(DRDAConnThread.class);
 
     private static final Pattern PARSE_TIMESTAMP_PATTERN =
             Pattern.compile("[-.]");
@@ -313,18 +312,14 @@ class DRDAConnThread extends Thread {
         return session == null ? "" : session.toString();
     }
 
-    private void debug(String message) {
-        if(log.isDebugEnabled()) {
-            log.debug(message);
-        }
-    }
-
     /**
      * Main routine for thread, loops until the thread is closed
      * Gets a session, does work for the session
      */
     public void run() {
-        debug(String.format("Thread %s is starting new connection", getName()));
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Thread %s is starting new connection", getName()));
+        }
 
         Session prevSession;
         while(!closed())
@@ -380,7 +375,9 @@ class DRDAConnThread extends Thread {
                         ((DRDAProtocolException)e).isDisconnectException())
                 {
                      // client went away - this is O.K. here
-                    debug("client went away");
+                    if(LOG.isDebugEnabled()) {
+                        LOG.debug("client went away");
+                    }
                     closeSession();
                 }
                 else
@@ -393,7 +390,9 @@ class DRDAConnThread extends Thread {
                 // TODO: Could make use of Throwable.addSuppressed here when
                 //       compiled as Java 7 (or newer).
                 try {
-                    debug("encountered error " + error.getMessage());
+                    if(LOG.isDebugEnabled()) {
+                        LOG.debug("encountered error", error);
+                    }
                     error.printStackTrace(server.logWriter);
                     closeSession();
                 } catch (Throwable t) {
@@ -410,7 +409,9 @@ class DRDAConnThread extends Thread {
                 }
             }
         }
-        debug(String.format("Ending connection thread %s", getName()));
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Ending connection thread %s", getName()));
+        }
         server.removeThread(this);
 
     }
@@ -1235,7 +1236,9 @@ class DRDAConnThread extends Thread {
     {
         if (reader.terminateChainOnErr() && (getExceptionSeverity(e) > CodePoint.SVRCOD_ERROR))
         {
-            debug("terminating the chain on error...");
+            if(LOG.isDebugEnabled()) {
+                LOG.debug("terminating the chain on error...");
+            }
             skipRemainder(false);
         }
     }
@@ -8704,7 +8707,9 @@ class DRDAConnThread extends Thread {
         if (session == null)
             return;
 
-        debug("attempt to close session " + getSessionName());
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("attempt to close session %s", getSessionName()));
+        }
 
         /* DERBY-2220: Rollback the current XA transaction if it is
            still associated with the connection. */
@@ -8714,21 +8719,27 @@ class DRDAConnThread extends Thread {
         server.removeFromSessionTable(session.connNum);
         try {
             session.close();
-            debug(getSessionName() + " closed");
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("%s closed", getSessionName()));
+            }
         }
         catch (SQLException se)
         {
             // If something went wrong closing down the session.
             // Print an error to the console and close this
             //thread. (6013)
-            debug("encountered exception while closing session " + getSessionName());
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("encountered exception while closing session %s", getSessionName()));
+            }
             sendUnexpectedException(se);
             close();
         }
         catch (Exception e)
         {
             // log the exception and rethrow.
-            debug("encountered exception while closing session "+ getSessionName());
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("encountered exception while closing session %s", getSessionName()));
+            }
             server.consoleExceptionPrintTrace(e);
             throw e;
         }
