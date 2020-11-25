@@ -112,7 +112,7 @@ public class ExplainNode extends DMLStatementNode {
     @Override
     public void optimizeStatement() throws StandardException {
         if (sparkExplainKind != SparkExplainKind.NONE) {
-            getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_SPARK);
+            getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_OLAP);
         }
         node.optimizeStatement();
 

@@ -79,7 +79,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     protected String userSpecifiedJoinStrategy;
 
-    protected DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    protected DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+
+    protected SparkExecutionType sparkExecutionType = SparkExecutionType.UNSPECIFIED;
 
     protected CostEstimate bestCostEstimate;
 
@@ -397,24 +399,31 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             String key=(String)e.nextElement();
             String value=(String)tableProperties.get(key);
 
-            switch(key){
-                case "joinStrategy":
+            switch(key.toLowerCase()){
+                case "joinstrategy":
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
                     if (userSpecifiedJoinStrategy.equals("CROSS")) {
-                        dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                        dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
                     }
                     break;
-                case "broadcastCrossRight": {
+                case "broadcastcrossright": {
                     // no op since parseBoolean never throw
                     break;
                 }
-                case "useSpark":
-                case "useOLAP":
+                case "usespark":
+                case "useolap":
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
-                                    DataSetProcessorType.QUERY_HINTED_SPARK:
-                                    DataSetProcessorType.QUERY_HINTED_CONTROL);
+                                    DataSetProcessorType.QUERY_HINTED_OLAP :
+                                    DataSetProcessorType.QUERY_HINTED_OLTP);
                     break;
+                case "usenativespark":
+                    sparkExecutionType = sparkExecutionType.combine(
+                            Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
+                                    SparkExecutionType.QUERY_HINTED_NATIVE :
+                                    SparkExecutionType.QUERY_HINTED_NON_NATIVE);
+                    break;
+
                 default:
                     // No other "legal" values at this time
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key, "joinStrategy");
@@ -1248,6 +1257,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public void setDataSetProcessorType(DataSetProcessorType dataSetProcessorType) {
         this.dataSetProcessorType = dataSetProcessorType;
+    }
+
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
     }
 
     @Override
