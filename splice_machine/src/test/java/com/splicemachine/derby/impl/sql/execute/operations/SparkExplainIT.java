@@ -858,4 +858,14 @@ public class SparkExplainIT extends SpliceUnitTest {
                 "        inner join big on 1=1";
         testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
     }
+
+    @Test
+    public void testNativeSparkParameter() throws Exception {
+        if (useSpark.equalsIgnoreCase("false"))
+            return; // cross join only has Spark implementation
+        String sqlText = "sparkexplain select * from sysibm.sysdummy1 --splice-properties useOlap=true %s\n";
+        testQueryContains(format(sqlText, ", useNativeSpark=true"), "NativeSparkDataSet", methodWatcher, true);
+        testQueryContains(format(sqlText, ", useNativeSpark=false"), "ScrollInsensitive", methodWatcher, true);
+        testQueryContains(format(sqlText, ""), "ScrollInsensitive", methodWatcher, true);
+    }
 }

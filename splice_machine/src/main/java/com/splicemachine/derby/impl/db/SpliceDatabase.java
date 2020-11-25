@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -139,9 +140,10 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+    public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
                                                      DataSetProcessorType dspt,
+                                                     SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
                                                      String ipAddress,
@@ -150,21 +152,10 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx = super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                drdaID, dbname, rdbIntTkn, dspt, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+
         setupASTVisitors(lctx);
         return lctx;
-    }
-
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
-                                                                       String rdbIntTkn,
-                                                                       DataSetProcessorType type,
-                                                                       boolean skipStats,
-                                                                       double defaultSelectivityFactor,
-                                                                       String ipAddress) throws StandardException {
-        return generateLanguageConnectionContext(txn, cm, user, groupuserlist, drdaID, dbname,
-                                              rdbIntTkn, type, skipStats, defaultSelectivityFactor,
-                                              ipAddress, null);
-
     }
 
     /**
@@ -172,10 +163,10 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn, ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                                        String rdbIntTkn,
                                                                        DataSetProcessorType type,
-                                                                       boolean skipStats,
+                                                                       SparkExecutionType sparkExecutionType, boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress,
                                                                        TransactionController reuseTC) throws StandardException{
@@ -183,8 +174,8 @@ public class SpliceDatabase extends BasicDatabase{
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,rdbIntTkn,type,skipStats, defaultSelectivityFactor, ipAddress,
-                null, null);
+                groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
+                ipAddress, null, null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();

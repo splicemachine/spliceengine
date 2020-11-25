@@ -44,10 +44,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
-import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -168,6 +165,9 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 
     abstract void setDataSetProcessorType(DataSetProcessorType type)
          throws StandardException;
+
+	abstract void setSparkExecutionType(SparkExecutionType type)
+			throws StandardException;
 
 	///////////////////////////////////////////////////////////////////////
 	//

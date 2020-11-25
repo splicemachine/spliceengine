@@ -85,7 +85,7 @@ public class DeleteNode extends DMLModStatementNode
     public static final String BULK_DELETE_DIRECTORY = "bulkDeleteDirectory";
     public static final String NO_TRIGGER_RI = "noTriggerRI";
     public static final String NO_TRIGGER_RI_PROPERTY = " --splice-properties " + NO_TRIGGER_RI + "=1\n";
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
     /* Filled in by bind. */
     protected boolean          deferred;
@@ -461,7 +461,7 @@ public class DeleteNode extends DMLModStatementNode
     {
         bulkDeleteDirectory = targetProperties.getProperty(BULK_DELETE_DIRECTORY);
         if (bulkDeleteDirectory != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
 
         }
     }

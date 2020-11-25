@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 
 import java.lang.reflect.Modifier;
 
@@ -85,6 +86,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
 
     private MethodBuilder closeActivationMethod;
     private DataSetProcessorType pushedType;
+    private SparkExecutionType pushedSparkExecutionType;
 
     ///////////////////////////////////////////////////////////////////////
     //
@@ -114,6 +116,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         materializationMethod = beginMaterializationMethod();
         subqueryResultSetMethod = beginSubqueryResultSetMethod();
         pushedType = null;
+        pushedSparkExecutionType = null;
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -189,6 +192,19 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
             constructor.pushThis();
             constructor.push(type.ordinal());
             constructor.putField(ClassName.BaseActivation, "datasetProcessorType", "int");
+            constructor.endStatement();
+        }
+    }
+
+    @Override
+    public void setSparkExecutionType(SparkExecutionType type) {
+        if (pushedSparkExecutionType != null) {
+            assert pushedSparkExecutionType == type;
+        } else {
+            pushedSparkExecutionType = type;
+            constructor.pushThis();
+            constructor.push(type.ordinal());
+            constructor.putField(ClassName.BaseActivation, "sparkExecutionType", "int");
             constructor.endStatement();
         }
     }
