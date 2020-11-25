@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -259,5 +260,42 @@ public class PreparedStatementIT {
         rs.next();
         Assert.assertEquals(rs.getInt(2), 1);
         rs.close();
+    }
+
+    @Test
+    public void testPrepStatementMultiProbeScanOnEqualParameter() throws Exception {
+        String tableName = "TEST_PK_MULTI_PROBE";
+        methodWatcher.executeUpdate(String.format("create table if not exists %s.%s (col1 int, col2 int, primary key(col1, col2))",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("delete from %s.%s",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values (1,1), (2,2), (3,3), (4,4), (5,5)",
+                tableSchema.schemaName, tableName));
+
+        String query = String.format("select * from %s.%s where col1=? and col2 in (?,?)", tableSchema.schemaName, tableName);
+        PreparedStatement ps = conn.prepareStatement("explain " + query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        try(ResultSet rs = ps.executeQuery()) {
+            String plan = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(plan.contains("MultiProbeTableScan"));
+            Assert.assertFalse(plan.contains("->  TableScan"));
+        }
+
+        ps = conn.prepareStatement(query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        String expected =
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |  1  |";
+
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 }
