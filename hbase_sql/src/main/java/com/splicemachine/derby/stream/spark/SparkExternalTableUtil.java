@@ -204,7 +204,7 @@ public class SparkExternalTableUtil {
                     null, null);
             partition_schema = partitionSpec.partitionColumns();
         }
-        String res = ExternalTableUtils.getSuggestedSchema(externalSchema, partition_schema);
+        String res = ExternalTableUtils.getSuggestedSchema(externalSchema, partition_schema, "") + ";";
         if( fileInfo == null ) {
             res = res + " (note: could not check path, so no PARTITIONED BY information available)";
         }

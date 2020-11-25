@@ -550,4 +550,26 @@ public class SpliceAdminIT extends SpliceUnitTest {
         SpliceUnitTest.sqlExpectException(methodWatcher, "CALL SYSCS_UTIL.LIST_DIRECTORY('/not/existing/directory')",
                 "X0X14", false);
     }
+
+
+    @Test
+    public void testAnalyzeExternalTable() throws Exception {
+        String path = getResourceDirectory() + "parquet_simple_file_test";
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.ANALYZE_EXTERNAL_TABLE('" + path + "')") ) {
+            StringBuilder sb = new StringBuilder();
+            while( rs.next() ) {
+                sb.append(rs.getString(1) + "\n");
+            }
+            String expected = "CREATE EXTERNAL TABLE T (\n" +
+                    " column1 CHAR/VARCHAR(x),\n" +
+                    " column2 CHAR/VARCHAR(x),\n" +
+                    " partition1 CHAR/VARCHAR(x) \n" +
+                    ") PARTITIONED BY(\n" +
+                    " partition1 \n" +
+                    ")\n" +
+                    " STORED AS PARQUET LOCATION '%s';\n";
+            Assert.assertEquals(String.format(expected, path),  sb.toString());
+        }
+    }
 }

@@ -60,11 +60,14 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -1924,6 +1927,30 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
         return rows;
+    }
+
+    public static String getCurrentUserId() throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        return lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+    }
+
+    public static void ANALYZE_EXTERNAL_TABLE(String location, final ResultSet[] resultSet) throws IOException, SQLException {
+
+        GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, getCurrentUserId()+"_analyze",
+                    null, false, new CsvOptions(), null, null);
+
+        String[] res = result.getSuggestedSchema("\n").split("\n");
+        int maxLen = Arrays.stream(res).map(String::length).max(Integer::compareTo).get();
+
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("SCHEMA", Math.max(maxLen, 20));
+
+        for(String s : res ) {
+            resultHelper.newRow();
+            col1.set(s);
+        }
+        resultSet[0] = resultHelper.getResultSet();
     }
 
     public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
