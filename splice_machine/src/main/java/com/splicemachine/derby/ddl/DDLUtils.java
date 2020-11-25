@@ -35,6 +35,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -53,6 +54,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -178,10 +180,11 @@ public class DDLUtils {
      * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
      *                that it be the user-level, otherwise some child transactions may be treated
      *                as active when they are not actually active.
-     * @return list of transactions still running after timeout
-     * @throws IOException
+     * @return the min. ID of active transaction. If no active transactions are found within the wait timeout, -1 is returned.
+     * @throws IOException if thread was interrupted during sleep, or an error was encountered when requesting active transactions.
      */
     public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
+        final long NO_ACTIVE_TX = -1L;
         byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
@@ -189,21 +192,37 @@ public class DDLUtils {
         Clock clock = SIDriver.driver().getClock();
         long waitTime = config.getDdlRefreshInterval(); //the initial time to wait
         long maxWait = config.getMaxDdlWait(); // the maximum time to wait
-        long scale = 2; //the scale factor for the exponential backoff
+        long scale = 2; // the scale factor for the exponential backoff
         long timeAvailable = maxWait;
-        long activeTxnId = -1l;
+        long oldestActiveTxnId = NO_ACTIVE_TX;
+        TxnView oldestActiveTxn = null;
         do{
+            try {
+                oldestActiveTxnId = SpliceAdmin.getOldestActiveTransaction();
+            } catch (SQLException e) {
+                throw new IOException(e.getCause());
+            }
+            if(oldestActiveTxnId == Long.MAX_VALUE) {
+                return NO_ACTIVE_TX;
+            }
+            if(oldestActiveTxn == null || oldestActiveTxn.getTxnId() != oldestActiveTxnId) {
+                oldestActiveTxn = SIDriver.driver().getTxnStore().getTransaction(oldestActiveTxnId);
+            }
+            if(oldestActiveTxn.descendsFrom(userTxn)) {
+
+            }
+
             try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
                 TxnView txn;
                 while((txn = activeTxns.next())!=null){
                     if(!txn.descendsFrom(userTxn)){
-                        activeTxnId = txn.getTxnId();
+                        oldestActiveTxnId = txn.getTxnId();
                     }
                 }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
             }
-            if(activeTxnId<0) return activeTxnId;
+            if(oldestActiveTxnId<0) return oldestActiveTxnId;
             /*
              * It is possible for a sleep to pick up before the
              * waitTime is expired. Therefore, we measure that actual
@@ -225,10 +244,10 @@ public class DDLUtils {
             waitTime = Math.min(timeAvailable,scale*waitTime);
         } while(timeAvailable>0);
 
-        if (activeTxnId>=0) {
-            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", activeTxnId));
+        if (oldestActiveTxnId>=0) {
+            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", oldestActiveTxnId));
         }
-        return activeTxnId;
+        return oldestActiveTxnId;
     }
 
     /**
