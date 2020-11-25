@@ -46,14 +46,13 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
@@ -65,7 +64,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -121,13 +119,13 @@ public class GenericStatement implements Statement{
         return prepare(lcc, forMetaData, null);
     }
 
-    // If BoundAndOptimizedStatement is passed in, we don't try to
+    // If boundAndOptimizedStatement is passed in, we don't try to
     // parse, bind and optimize the statement from its SQL text
     // before passing to code generation.
-    // Instead we just directly compile BoundAndOptimizedStatement.
+    // Instead we just directly compile boundAndOptimizedStatement.
     public PreparedStatement prepare(LanguageConnectionContext lcc,
                                      boolean forMetaData,
-                                     StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                     StatementNode boundAndOptimizedStatement) throws StandardException{
         /*
         ** Note: don't reset state since this might be
         ** a recompilation of an already prepared statement.
@@ -136,7 +134,7 @@ public class GenericStatement implements Statement{
         final int depth=lcc.getStatementDepth();
         boolean recompile=false;
         try{
-            return prepMinion(lcc,true,null,null,forMetaData, BoundAndOptimizedStatement);
+            return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
         } catch(StandardException se){
             // There is a chance that we didn't see the invalidation
             // request from a DDL operation in another thread because
@@ -282,7 +280,7 @@ public class GenericStatement implements Statement{
                                          Object[] paramDefaults,
                                          SchemaDescriptor spsSchema,
                                          boolean internalSQL,
-                                         StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                         StatementNode boundAndOptimizedStatement) throws StandardException{
 
         /*
          * An array holding timestamps for various points in time. The order is
@@ -444,8 +442,8 @@ public class GenericStatement implements Statement{
             ** call a noop.
             */
             CompilerContext cc = null;
-            if (BoundAndOptimizedStatement != null)
-                cc = BoundAndOptimizedStatement.getCompilerContext();
+            if (boundAndOptimizedStatement != null)
+                cc = boundAndOptimizedStatement.getCompilerContext();
             else {
                 cc = lcc.pushCompilerContext(compilationSchema);
 
@@ -533,19 +531,25 @@ public class GenericStatement implements Statement{
                 }
                 cc.setDisablePredicateSimplification(disablePredicateSimplification);
 
-                String nativeSparkAggregationModeString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
-                CompilerContext.NativeSparkModeType nativeSparkAggregationMode =
-                CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+                String nativeSparkAggregationModeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
+                CompilerContext.NativeSparkModeType nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
                 try {
                     if (nativeSparkAggregationModeString != null) {
                         nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
-                        if (nativeSparkAggregationModeString.equals("on"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
-                        else if (nativeSparkAggregationModeString.equals("off"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
-                        else if (nativeSparkAggregationModeString.equals("forced"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                        switch (nativeSparkAggregationModeString) {
+                            case "on":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+                                break;
+                            case "off":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+                                break;
+                            case "forced":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                                break;
+                            default:
+                                // use default value
+                                break;
+                        }
                     }
                 } catch (Exception e) {
                     // If the property value failed to get decoded to a valid value, don't throw an error,
@@ -676,7 +680,7 @@ public class GenericStatement implements Statement{
                 }
                 cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,BoundAndOptimizedStatement);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,boundAndOptimizedStatement);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -687,8 +691,14 @@ public class GenericStatement implements Statement{
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
             }
-            DataDictionaryCache.fromTableTriggerDescriptor.remove();
-            DataDictionaryCache.fromTableTriggerSPSDescriptor.remove();
+            TriggerReferencingStruct.fromTableTriggerDescriptor.remove();
+            TriggerReferencingStruct.fromTableTriggerSPSDescriptor.remove();
+            // Communicate to the immediate parent statement if its child
+            // contains a FROM TABLE clause.
+            if (boundAndOptimizedStatement != null)
+                TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
+            else
+                TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
         }
 
         lcc.commitNestedTransaction();
@@ -714,13 +724,13 @@ public class GenericStatement implements Statement{
                                   Timestamp beginTimestamp,
                                   boolean foundInCache,
                                   CompilerContext cc,
-                                  StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                  StatementNode boundAndOptimizedStatement) throws StandardException{
         lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
             StatementNode qt;
-            if (BoundAndOptimizedStatement == null) {
+            if (boundAndOptimizedStatement == null) {
                 qt = parse(lcc, paramDefaults, timestamps, cc);
 
                 /*
@@ -735,7 +745,7 @@ public class GenericStatement implements Statement{
             }
             else {
                 lcc.beginNestedTransaction(true);
-                qt = BoundAndOptimizedStatement;
+                qt = boundAndOptimizedStatement;
             }
             /* we need to move the commit of nested sub-transaction
              * after we mark PS valid, during compilation, we might need
@@ -746,7 +756,7 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            generate(lcc, timestamps, cc, qt, BoundAndOptimizedStatement != null);
+            generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
@@ -756,7 +766,7 @@ public class GenericStatement implements Statement{
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
-            if (BoundAndOptimizedStatement == null)
+            if (boundAndOptimizedStatement == null)
                 lcc.popCompilerContext(cc);
         }
     }
@@ -902,7 +912,8 @@ public class GenericStatement implements Statement{
             preparedStmt.setRequiredPermissionsList(cc.getRequiredPermissionsList());
             preparedStmt.incrementVersionCounter();
             preparedStmt.setActivationClass(ac);
-            preparedStmt.setNeedsSavepoint(qt.needsSavepoint());
+            preparedStmt.setNeedsSavepoint(qt.needsSavepoint() ||
+                                           TriggerReferencingStruct.isFromTableStatement.get().booleanValue());
             preparedStmt.setCursorInfo((CursorInfo)cc.getCursorInfo());
             preparedStmt.setIsAtomic(qt.isAtomic());
             preparedStmt.setExecuteStatementNameAndSchema(qt.executeStatementName(), qt.executeSchemaName());

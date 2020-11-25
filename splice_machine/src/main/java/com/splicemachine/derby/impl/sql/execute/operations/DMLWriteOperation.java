@@ -420,16 +420,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     public void close() throws StandardException {
         if (triggerHandler!=null) {
             triggerHandler.cleanup();
-
-            // If we have triggers, wrap the next operations into another transaction to prevent the next transaction from ignoring
-            // our writes, see SPLICE-1625
-            TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-            Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-            BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
-            if (rawTxn instanceof SpliceTransaction) {
-                rawTxn.setSavePoint("triggers", null);
-                ((SpliceTransaction) rawTxn).elevate(getDestinationTable());
-            }
         }
         super.close();
     }

@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -86,7 +85,7 @@ public class DeleteNode extends DMLModStatementNode
     public static final String BULK_DELETE_DIRECTORY = "bulkDeleteDirectory";
     public static final String NO_TRIGGER_RI = "noTriggerRI";
     public static final String NO_TRIGGER_RI_PROPERTY = " --splice-properties " + NO_TRIGGER_RI + "=1\n";
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
     /* Filled in by bind. */
     protected boolean          deferred;
@@ -462,7 +461,7 @@ public class DeleteNode extends DMLModStatementNode
     {
         bulkDeleteDirectory = targetProperties.getProperty(BULK_DELETE_DIRECTORY);
         if (bulkDeleteDirectory != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
 
         }
     }
@@ -739,7 +738,7 @@ public class DeleteNode extends DMLModStatementNode
             } else {
                 mb.push(-1);
             }
-            SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+            SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
             if (fromTableTriggerSPSDescriptor == null)
                 mb.pushNull("java.lang.String");
             else {

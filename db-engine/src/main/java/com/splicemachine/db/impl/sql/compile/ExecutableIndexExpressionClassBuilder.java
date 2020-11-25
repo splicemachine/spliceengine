@@ -39,111 +39,116 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.CodeGeneration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 
 import java.lang.reflect.Modifier;
 
 public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilder
 {
-	/**
-	 * By the time this is done, it has constructed the following class:
-	 * <pre>
-	 *    public class #className extends BaseExecutableIndexExpression {
-	 *	    public #className() {
-	 *	      super();
-	 *	      TO BE GENERATED...
-	 *	    }
-	 *
-	 *      public void runExpression(ExecRow, ExecIndexRow) throws StandardException {
-	 *        TO BE GENERATED...
-	 *      }
-	 *    }
-	 * </pre>
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	ExecutableIndexExpressionClassBuilder(CompilerContext cc)
-		throws StandardException
-	{
-		super(ClassName.BaseExecutableIndexExpression, null, cc);
-		executeMethod = beginRunExpressionMethod();
-	}
+    /**
+     * By the time this is done, it has constructed the following class:
+     * <pre>
+     *    public class #className extends BaseExecutableIndexExpression {
+     *        public #className() {
+     *          super();
+     *          TO BE GENERATED...
+     *        }
+     *
+     *      public void runExpression(ExecRow, ExecIndexRow) throws StandardException {
+     *        TO BE GENERATED...
+     *      }
+     *    }
+     * </pre>
+     *
+     * @exception StandardException thrown on failure
+     */
+    ExecutableIndexExpressionClassBuilder(CompilerContext cc)
+        throws StandardException
+    {
+        super(ClassName.BaseExecutableIndexExpression, null, cc);
+        executeMethod = beginRunExpressionMethod();
+    }
 
-	/**
-	 * Get the name of the package that the generated class will live in.
-	 *
-	 *	@return	name of package that the generated class will live in.
-	 */
-	public String getPackageName() {
-		return CodeGeneration.GENERATED_PACKAGE_PREFIX;
-	}
+    /**
+     * Get the name of the package that the generated class will live in.
+     *
+     *    @return    name of package that the generated class will live in.
+     */
+    public String getPackageName() {
+        return CodeGeneration.GENERATED_PACKAGE_PREFIX;
+    }
 
-	/**
-	 * Get the number of ExecRows that must be allocated
-	 *
-	 *	@return	number of ExecRows that must be allocated
-	 */
-	public int getRowCount() { return 0; }
+    /**
+     * Get the number of ExecRows that must be allocated
+     *
+     *    @return    number of ExecRows that must be allocated
+     */
+    public int getRowCount() { return 0; }
 
-	/**
-	 * Sets the number of subqueries under this expression
-	 */
-	public void setNumSubqueries() throws StandardException {}
+    /**
+     * Sets the number of subqueries under this expression
+     */
+    public void setNumSubqueries() throws StandardException {}
 
     public void setDataSetProcessorType(DataSetProcessorType type)
          throws StandardException
-	{}
+    {}
 
-	/**
-		Return the base class of the activation's hierarchy
-		(the subclass of Object).
+    public void setSparkExecutionType(SparkExecutionType type)
+            throws StandardException
+    {}
 
-		This class is expected to hold methods used by all
-		compilation code, such as datatype compilation code,
-		e.g. getDataValueFactory.
-	 */
-	public String getBaseClassName() {
-		return ClassName.BaseExecutableIndexExpression;
-	}
+    /**
+     Return the base class of the activation's hierarchy
+        (the subclass of Object).
 
-	/**
-	 * Generate a reference to a colunm in the input ExecRow.
-	 * 
-	 * @param rsNumber the result set number, not used
-	 * @param colId the column number
-	 */
-	@Override
-	void pushColumnReference(MethodBuilder mb, int rsNumber, int colId)
-	{
-		mb.getParameter(0);
-		mb.push(colId);
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn", ClassName.DataValueDescriptor, 1);
-	}
+        This class is expected to hold methods used by all
+        compilation code, such as datatype compilation code,
+        e.g. getDataValueFactory.
+     */
+    public String getBaseClassName() {
+        return ClassName.BaseExecutableIndexExpression;
+    }
 
-	private MethodBuilder beginRunExpressionMethod() {
-		MethodBuilder mb = cb.newMethodBuilder(
-				Modifier.PUBLIC,
-				"void",
-				"runExpression",
-				new String[]{ClassName.ExecRow, ClassName.ExecRow});
-		mb.addThrownException(ClassName.StandardException);
-		return mb;
-	}
+    /**
+     * Generate a reference to a colunm in the input ExecRow.
+     *
+     * @param rsNumber the result set number, not used
+     * @param colId the column number
+     */
+    @Override
+    void pushColumnReference(MethodBuilder mb, int rsNumber, int colId)
+    {
+        mb.getParameter(0);
+        mb.push(colId);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn", ClassName.DataValueDescriptor, 1);
+    }
 
-	public void finishRunExpressionMethod(int indexColumnPosition) throws StandardException {
-		// stack status when entering this function:
-		// [size = 1]: value (top)
-		executeMethod.getParameter(1);          // [size = 2]: value - indexRow (top)
-		executeMethod.swap();                      // [size = 2]: indexRow - value (top)
-		executeMethod.push(indexColumnPosition);   // [size = 3]: indexRow - value - position (top)
-		executeMethod.swap();                      // [size = 3]: indexRow - position - value (top)
-		executeMethod.upCast(ClassName.DataValueDescriptor);
-		executeMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+    private MethodBuilder beginRunExpressionMethod() {
+        MethodBuilder mb = cb.newMethodBuilder(
+                Modifier.PUBLIC,
+                "void",
+                "runExpression",
+                new String[]{ClassName.ExecRow, ClassName.ExecRow});
+        mb.addThrownException(ClassName.StandardException);
+        return mb;
+    }
 
-		// stack should be empty now
-		executeMethod.methodReturn();
-		executeMethod.complete();
+    public void finishRunExpressionMethod(int indexColumnPosition) throws StandardException {
+        // stack status when entering this function:
+        // [size = 1]: value (top)
+        executeMethod.getParameter(1);          // [size = 2]: value - indexRow (top)
+        executeMethod.swap();                      // [size = 2]: indexRow - value (top)
+        executeMethod.push(indexColumnPosition);   // [size = 3]: indexRow - value - position (top)
+        executeMethod.swap();                      // [size = 3]: indexRow - position - value (top)
+        executeMethod.upCast(ClassName.DataValueDescriptor);
+        executeMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
 
-		// don't finish constructor too early since expression builder may still add code to it
-		finishConstructor();
-	}
+        // stack should be empty now
+        executeMethod.methodReturn();
+        executeMethod.complete();
+
+        // don't finish constructor too early since expression builder may still add code to it
+        finishConstructor();
+    }
 }

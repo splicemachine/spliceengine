@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.RSUtils;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -129,7 +128,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     double             sampleFraction;
     private     String             indexName;
 
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
 
     protected   RowLocation[]         autoincRowLocation;
@@ -803,8 +802,8 @@ public final class InsertNode extends DMLModStatementNode {
                 try {
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
-                            DataSetProcessorType.QUERY_HINTED_SPARK :
-                            DataSetProcessorType.QUERY_HINTED_CONTROL);
+                            DataSetProcessorType.QUERY_HINTED_OLAP :
+                            DataSetProcessorType.QUERY_HINTED_OLTP);
                 } catch (Exception sparkE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
                             propertyStr, val);
@@ -949,7 +948,7 @@ public final class InsertNode extends DMLModStatementNode {
         resultSet.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
 
         if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
         }
         getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
 
@@ -1058,7 +1057,7 @@ public final class InsertNode extends DMLModStatementNode {
         mb.push(skipSampling);
         mb.push(sampleFraction);
         BaseJoinStrategy.pushNullableString(mb, indexName);
-        SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+        SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
         if (fromTableTriggerSPSDescriptor == null)
             mb.pushNull("java.lang.String");
         else {

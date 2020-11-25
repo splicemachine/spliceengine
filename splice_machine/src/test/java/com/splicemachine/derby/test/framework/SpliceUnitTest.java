@@ -24,6 +24,8 @@ import org.junit.runner.Description;
 import splice.com.google.common.base.Joiner;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -399,26 +401,20 @@ public class SpliceUnitTest {
     }
 
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = methodWatcher.executeQuery(sqlText);
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
-        finally {
-            if (rs != null)
-                rs.close();
         }
     }
 
     protected void testQuery(String sqlText, String expected, Statement s) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = s.executeQuery(sqlText);
+        try (ResultSet rs = s.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
-        finally {
-            if (rs != null)
-                rs.close();
+    }
+
+    protected void testQuery(String sqlText, String expected, TestConnection c) throws Exception {
+        try (ResultSet rs = c.query(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 
@@ -1113,10 +1109,10 @@ public class SpliceUnitTest {
     {
         Logger LOG = Logger.getLogger("SpliceUnitTest");
         try {
-            int oldest1 = getOldestActiveTransaction(methodWatcher);
+            long oldest1 = getOldestActiveTransaction(methodWatcher);
             LOG.info("checking for stale transactions");
             for (int i = 0; i < numSeconds; i++) {
-                int oldest2 = getOldestActiveTransaction(methodWatcher);
+                long oldest2 = getOldestActiveTransaction(methodWatcher);
                 if (oldest1 != oldest2)
                     return;
                 Thread.sleep(1000);
@@ -1132,11 +1128,17 @@ public class SpliceUnitTest {
             }
         } catch( SQLException e)
         {
-            if( e.getNextException().toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
-                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'."))
+            SQLException next = e.getNextException();
+            if (next != null) {
+                e = next;
+            }
+            if (e.toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
+                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'.")) {
                 return;
-            else
+            }
+            else {
                 LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
+            }
         }
         catch( Exception e)
         {
@@ -1145,11 +1147,11 @@ public class SpliceUnitTest {
         }
     }
 
-    public static int getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
+    public static long getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
         try (ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()"))
         {
             Assert.assertEquals(true, rs.next());
-            return rs.getInt(1);
+            return rs.getLong(1);
         }
     }
 
@@ -1176,5 +1178,23 @@ public class SpliceUnitTest {
         String err = "Couldn't find procedures jar file in either of " + Arrays.toString(paths);
         Assert.fail(err);
         throw new RuntimeException(err);
+    }
+
+    protected void checkDecfloatExpression(String input, String output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertTrue(format("expected: %s, actual: %s", output, rs.getBigDecimal(1)),
+                    new BigDecimal(output, MathContext.DECIMAL128).compareTo(rs.getBigDecimal(1)) == 0);
+        }
+    }
+
+    protected void checkBooleanExpression(String input, boolean output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(output, rs.getBoolean(1));
+        }
+
     }
 }
