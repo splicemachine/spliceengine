@@ -39,17 +39,16 @@ public class ExternalTableUtils {
 
     public static StructType getSchema(Activation activation, long conglomerateId) throws StandardException {
 
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
         Txn txn = null;
         LanguageConnectionContext lcc = null;
         try {
             if (activation == null) {
                 txn = SIDriver.driver().lifecycleManager()
                         .beginTransaction();
-                transactionResource = new SpliceTransactionResourceImpl();
-                prepared=transactionResource.marshallTransaction(txn);
-                lcc = transactionResource.getLcc();
+                try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+                    transactionResource.marshallTransaction(txn);
+                    lcc = transactionResource.getLcc();
+                }
             }
             else {
                 lcc = activation.getLanguageConnectionContext();
@@ -75,8 +74,6 @@ public class ExternalTableUtils {
             throw StandardException.plainWrapException(e);
         }
         finally {
-            if(prepared)
-                transactionResource.close();
             try {
                 if (txn != null)
                     txn.commit();
