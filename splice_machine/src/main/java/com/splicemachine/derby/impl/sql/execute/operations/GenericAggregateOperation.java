@@ -28,6 +28,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -182,4 +183,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	public ExecIndexRow getSourceExecIndexRow() {
 		return sourceExecIndexRow;
 	}
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
+    }
 }
