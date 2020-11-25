@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.utils;
 
+import com.google.common.io.Files;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -97,13 +98,13 @@ public class ExternalTableUtils {
         else return datatype.sql();
     }
 
-    private static boolean addTypes(StructType types, StringBuilder sb, boolean first)
+    private static boolean addTypes(StructType types, StringBuilder sb, boolean first, String separator)
     {
         for( int i =0 ; i < types.fields().length; i++)
         {
             StructField f = types.fields()[i];
             if( !first ) {
-                sb.append(", ");
+                sb.append("," + separator + " ");
             }
             first = false;
             sb.append( f.name() + " ");
@@ -114,27 +115,31 @@ public class ExternalTableUtils {
         return first;
     }
 
-    public static String getSuggestedSchema(StructType externalSchema, StructType partitionSchema) {
+    public static String getSuggestedSchema(StructType externalSchema, StructType partitionSchema, String separator) {
         StringBuilder sb = new StringBuilder();
-        sb.append( "CREATE EXTERNAL TABLE T (" );
-        boolean first = addTypes(externalSchema, sb, true);
+        sb.append( "CREATE EXTERNAL TABLE T (" + separator + " " );
+        boolean first = addTypes(externalSchema, sb, true, separator);
         if( partitionSchema != null && partitionSchema.size() > 0 ) {
-            addTypes(partitionSchema, sb, first);
-            sb.append( ")" );
+            addTypes(partitionSchema, sb, first, separator);
+            sb.append( " " + separator + ")" );
 
-            sb.append( " PARTITIONED BY(" );
+            sb.append( " PARTITIONED BY(" + separator + " ");
             for( int i =0 ; i < partitionSchema.fields().length; i++)
             {
-                if( i > 0 ) sb.append( ", " );
+                if( i > 0 ) sb.append( "," + separator + " ");
                 sb.append( partitionSchema.fields()[i].name());
             }
-            sb.append( ")" );
         }
-        else {
-            sb.append( ")" );
-        }
-        sb.append( ";" );
+        sb.append( " " + separator + ")" );
         return sb.toString();
     }
 
+    public static String getExternalTableTypeFromPath(String path)
+    {
+        String filetype = Files.getFileExtension(path).toUpperCase();
+        if( filetype.equals("CSV") || filetype.equals("TBL") )
+            return "TEXTFILE";
+        else
+            return filetype;
+    }
 }
