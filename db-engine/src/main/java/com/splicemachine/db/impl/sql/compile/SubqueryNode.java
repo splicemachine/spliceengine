@@ -45,11 +45,14 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.SQLGrammarImpl.*;
 
 /**
  * A SubqueryNode represents a subquery.  Subqueries return values to their
@@ -403,6 +406,106 @@ public class SubqueryNode extends ValueNode{
         return this;
     }
 
+    private void updateColumnNamesInSetQuery(SetOperatorNode setOperatorNode,
+                                             String columnName,
+                                             int columnPosition)   throws StandardException {
+        ResultColumn rc;
+        if (setOperatorNode.getLeftResultSet() instanceof SetOperatorNode) {
+            updateColumnNamesInSetQuery((SetOperatorNode)setOperatorNode.getLeftResultSet(), columnName, columnPosition);
+
+        }
+        else {
+            rc = setOperatorNode.getLeftResultSet().getResultColumns().elementAt(columnPosition);
+            rc.setName(columnName);
+        }
+        if (setOperatorNode.getRightResultSet() instanceof SetOperatorNode)
+            updateColumnNamesInSetQuery((SetOperatorNode)setOperatorNode.getRightResultSet(), columnName, columnPosition);
+        else {
+            rc = setOperatorNode.getRightResultSet().getResultColumns().elementAt(columnPosition);
+            rc.setName(columnName);
+        }
+        rc = setOperatorNode.getResultColumns().elementAt(columnPosition);
+        rc.setName(columnName);
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+            C_NodeTypes.COLUMN_REFERENCE,
+            columnName,
+            null,
+            getContextManager());
+        rc.setExpression(columnReference);
+    }
+
+    // Subquery flattening logic only knows how to flatten a SelectNode
+    // in a subquery.  Everything else must be evaluated one row-at-a-time.
+    // Let's get around the restriction by wrapping SetOp queries
+    // (UNION, EXCEPT, INTERSECT) in a derived table, which itself
+    // is represented as a SelectNode.
+    // TODO:  Enhance subquery flattening logic to not require the
+    //        the subquery expression to be a SelectNode.
+    private void wrapSetQueryInDerivedTable() throws StandardException {
+        if (!(resultSet instanceof SetOperatorNode))
+            return;
+        SetOperatorNode setOperatorNode = (SetOperatorNode)resultSet;
+        ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+        SubqueryNode derivedTable = (SubqueryNode) getNodeFactory().getNode(
+                                        C_NodeTypes.SUBQUERY_NODE,
+                                        resultSet,  // SetOperatorNode
+                                        ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
+                                        null, // leftOperand,
+                                        null, // orderCols,
+                                        offsetClauses[ OFFSET_CLAUSE ],
+                                        offsetClauses[ FETCH_FIRST_CLAUSE ],
+                                        Boolean.valueOf( true ),
+                                        getContextManager());
+
+        FromTable fromTable = (FromTable) getNodeFactory().getNode(
+                                            C_NodeTypes.FROM_SUBQUERY,
+                                            derivedTable.getResultSet(),
+                                            derivedTable.getOrderByList(),
+                                            derivedTable.getOffset(),
+                                            derivedTable.getFetchFirst(),
+                                            derivedTable.hasJDBClimitClause(),
+                                            null,   // correlationName,
+                                            null,  // derivedRCL,
+                                            null,  // optionalTableClauses
+                                            getContextManager());
+        FromList fromList = (FromList) getNodeFactory().getNode(
+                C_NodeTypes.FROM_LIST,
+                getNodeFactory().doJoinOrderOptimization(),
+                getContextManager());
+        fromList.addFromTable(fromTable);
+
+        ResultColumnList selectList = setOperatorNode.getResultColumns().copyListAndObjects();
+        String dummyColName = "###UnnamedDT_WrappedSetOpCol";
+
+        // Build a select list identical to that in the setOperatorNode,
+        // fill in exposed column names, both in our list, and the lists we're
+        // selecting from so we have a legal derived table.
+        for(int index = 0; index < selectList.size(); index++) {
+            ResultColumn rc = selectList.elementAt(index);
+            String exposedColName = dummyColName + index;
+            rc.setName(exposedColName);
+            updateColumnNamesInSetQuery(setOperatorNode, exposedColName, index);
+            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                exposedColName,
+                null,
+                getContextManager());
+            rc.setExpression(columnReference);
+        }
+
+        SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
+                            C_NodeTypes.SELECT_NODE,
+                            selectList,  //ResultColumnList
+                            null,     /* AGGREGATE list */
+                            fromList, // FromList of FromSubquery
+                            null,     // whereClause
+                            null,     // groupByList
+                            null,     // havingClause
+                            null,     // windows
+                            getContextManager());
+        resultSet = selectNode;
+    }
+
     /**
      * Bind this expression.  This means binding the sub-expressions,
      * as well as figuring out what the return type is for this expression.
@@ -424,6 +527,15 @@ public class SubqueryNode extends ValueNode{
 
         //check if subquery is allowed in expression tree
         checkReliability(CompilerContext.SUBQUERY_ILLEGAL,SQLState.LANG_SUBQUERY);
+
+        // Rewrite a set operator tree so it's wrapped in a derived table.
+        // This allows it to be flattenable, allowing for more efficient joins.
+        // Disallow multicolumn IN/NOT IN for now to be safe.
+        if (resultSet instanceof SetOperatorNode &&
+            this.subqueryType != SubqueryNode.FROM_SUBQUERY &&
+            (resultSet.getResultColumns().size() == 1 ||
+             this.subqueryType == EXISTS_SUBQUERY))
+            wrapSetQueryInDerivedTable();
 
         resultColumns=resultSet.getResultColumns();
 
