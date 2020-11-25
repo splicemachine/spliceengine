@@ -54,13 +54,13 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final String		CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
-	protected static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
 	protected static final int		    SYSCONGLOMERATES_CORE_NUM = 0;
 	protected static final int		    SYSTABLES_CORE_NUM = 1;
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
-	protected static final int CURRENT_CATALOG_SERIALIZATION_VERSION = 2;
+	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
+	public static final int CURRENT_CATALOG_SERIALIZATION_VERSION = 2;
 	public static int SPLICE_CATALOG_SERIALIZATION_VERSION;
 
 	/**

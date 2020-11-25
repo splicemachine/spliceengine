@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.catalog.CatalogMessage;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -323,21 +324,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public void writeExternal(ObjectOutput out) throws IOException{
         partitionFactory=SIDriver.driver().getTableFactory();
         opFactory=SIDriver.driver().getOperationFactory();
-        PartitionAdmin admin = partitionFactory.getAdmin();
-        try {
-            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
-            if (version == null ||  version.equals("1")) {
-                writeExternlOld(out);
-            }
-            else {
-                writeExternalNew(out);
-            }
-        } catch (StandardException e) {
-            throw new IOException(e);
-        }
-    }
-
-    private void writeExternalNew(ObjectOutput out) throws IOException {
         CatalogMessage.SpliceConglomerate spliceConglomerate = CatalogMessage.SpliceConglomerate.newBuilder()
                 .setConglomerateFormatId(conglom_format_id)
                 .setTmpFlag(tmpFlag)
@@ -350,18 +336,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ArrayUtil.writeByteArray(out, bs);
     }
 
-    private void writeExternlOld(ObjectOutput out) throws IOException {
-        FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
-        FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
-        out.writeLong(containerId);
-        out.writeInt(format_ids.length);
-        ConglomerateUtil.writeFormatIdArray(format_ids,out);
-        out.writeInt(collation_ids.length);
-        ConglomerateUtil.writeFormatIdArray(collation_ids,out);
-        out.writeInt(columnOrdering.length);
-        ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
-
-    }
     /**
      * Restore the in-memory representation from the stream.
      * <p/>
@@ -375,17 +349,12 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
         partitionFactory=SIDriver.driver().getTableFactory();
         opFactory=SIDriver.driver().getOperationFactory();
-        PartitionAdmin admin = partitionFactory.getAdmin();
-        try {
-            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
-            if (version == null ||  version.equals("1")) {
-                localReadExternalOld(in);
-            }
-            else {
-                localReadExternalNew(in);
-            }
-        } catch (StandardException e) {
-            throw new IOException(e);
+
+        if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+            localReadExternalOld(in);
+        }
+        else {
+            localReadExternalNew(in);
         }
     }
 

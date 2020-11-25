@@ -661,7 +661,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
-        upgradeIfNecessary(tc);
+        upgradeIfNecessary(tc, startParams);
     }
 
     /**
@@ -840,7 +840,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return pkTable;
     }
 
-    private void upgradeIfNecessary(TransactionController tc) throws StandardException{
+    private void upgradeIfNecessary(TransactionController tc, Properties startParams) throws StandardException{
 
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
@@ -852,7 +852,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
             SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            scripts.run(startParams);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }

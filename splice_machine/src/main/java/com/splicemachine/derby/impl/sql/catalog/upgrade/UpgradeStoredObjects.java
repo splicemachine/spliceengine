@@ -14,14 +14,18 @@
 
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
+import java.util.Properties;
 
 public class UpgradeStoredObjects extends UpgradeScriptBase {
     public UpgradeStoredObjects(SpliceDataDictionary sdd, TransactionController tc) {
@@ -29,10 +33,14 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
     }
 
     @Override
-    protected void upgradeSystemTables() throws StandardException {
+    protected void upgradeSystemTables(Properties startParams) throws StandardException {
         try {
             dropUnusedTable();
             UpgradeUtils.upgradeConglomerates(tc, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+
+            startParams.setProperty(BaseDataDictionary.CFG_CATALOG_SERIALIZATION_VERSION,
+                    Integer.toString(BaseDataDictionary.CURRENT_CATALOG_SERIALIZATION_VERSION));
+            BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION = BaseDataDictionary.CURRENT_CATALOG_SERIALIZATION_VERSION;
         } catch (IOException e) {
             throw StandardException.plainWrapException(e);
         }

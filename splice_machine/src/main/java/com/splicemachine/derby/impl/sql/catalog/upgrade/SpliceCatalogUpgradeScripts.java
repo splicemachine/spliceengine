@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import java.util.Comparator;
 import java.util.NavigableSet;
+import java.util.Properties;
 import java.util.TreeMap;
 
 /**
@@ -84,10 +85,10 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,0,1, 1979), new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,1, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,1, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,0,1, 1986), new UpgradeStoredObjects(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,0,1, 1987), new UpgradeStoredObjects(sdd, tc));
     }
 
-    public void run() throws StandardException{
+    public void run(Properties startParams) throws StandardException{
 
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
@@ -105,7 +106,7 @@ public class SpliceCatalogUpgradeScripts{
                 }
             }
             UpgradeScript script=scripts.get(version);
-            script.run();
+            script.run(startParams);
         }
 
         // Always update system procedures and stored statements

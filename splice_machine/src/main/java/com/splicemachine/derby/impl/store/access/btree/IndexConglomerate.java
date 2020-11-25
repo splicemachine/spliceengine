@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.catalog.CatalogMessage;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -471,18 +472,8 @@ public class IndexConglomerate extends SpliceConglomerate{
     public void writeExternal(ObjectOutput out) throws IOException{
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
-        PartitionAdmin admin = partitionFactory.getAdmin();
-        try {
-            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
-            if (version == null || version.equals("1")) {
-                writeExternalOld(out);
-            }
-            else {
-                writeExternalNew(out);
-            }
-        } catch (StandardException e) {
-            throw new IOException(e);
-        }
+        writeExternalNew(out);
+
     }
 
     public void writeExternalNew(ObjectOutput out) throws IOException{
@@ -543,17 +534,11 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
-        PartitionAdmin admin = partitionFactory.getAdmin();
-        try {
-            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
-            if (version == null || version.equals("1")) {
-                localReadExternalOld(in);
-            }
-            else {
-                localReadExternalNew(in);
-            }
-        } catch (StandardException e) {
-            throw new IOException(e);
+        if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+            localReadExternalOld(in);
+        }
+        else {
+            localReadExternalNew(in);
         }
     }
 
