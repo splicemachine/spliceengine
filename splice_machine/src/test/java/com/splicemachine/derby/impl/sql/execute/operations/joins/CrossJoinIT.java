@@ -707,7 +707,7 @@ public class CrossJoinIT extends SpliceUnitTest {
     public void testCharTimestampColumnsCrossJoin() throws Exception {
         String sqlText =
                 format("select count(s1.a1) from  --splice-properties joinOrder=fixed\n" + s1 +
-                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=CROSS,useSpark=%s \n" +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=CROSS,useSpark=%s, useNativeSpark=false \n" +
                 " on s1.e1 = s2.e2" , useSpark
         ) ;
         ResultSet rs = classWatcher.executeQuery(sqlText);

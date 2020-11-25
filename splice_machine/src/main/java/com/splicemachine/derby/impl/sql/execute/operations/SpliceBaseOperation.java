@@ -203,7 +203,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        if (this.activation.datasetProcessorType().isSpark())
+        if (this.activation.datasetProcessorType().isOlap())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -498,7 +498,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             throw e;
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
-        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_SPARK);
+        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_OLAP);
         openDistributed();
     }
 
