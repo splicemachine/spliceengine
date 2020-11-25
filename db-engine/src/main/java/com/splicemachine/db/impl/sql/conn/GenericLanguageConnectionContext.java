@@ -351,6 +351,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String replicationRole = "NONE";
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
+    private boolean compilingFromTableTempTrigger = false;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4031,5 +4032,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             charTypeCompiler.setDB2VarcharCompatibilityMode(false);
             charTypeCompiler = null;
         }
+    }
+
+    @Override
+    public void setCompilingFromTableTempTrigger(boolean newVal) {
+        compilingFromTableTempTrigger = newVal;
+    }
+
+    @Override
+    public boolean isCompilingFromTableTempTrigger() {
+        return compilingFromTableTempTrigger;
     }
 }

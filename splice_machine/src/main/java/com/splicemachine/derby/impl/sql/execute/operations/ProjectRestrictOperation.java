@@ -387,10 +387,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
     public TxnView getCurrentTransaction() throws StandardException{
-        if (source instanceof VTIOperation ||
-		    source instanceof ProjectRestrictOperation)
-            return source.getCurrentTransaction();
-        else
-            return super.getCurrentTransaction();
+        return source.getCurrentTransaction();
     }
 }

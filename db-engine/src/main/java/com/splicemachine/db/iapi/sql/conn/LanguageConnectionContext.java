@@ -1487,4 +1487,8 @@ public interface LanguageConnectionContext extends Context {
 
     void resetDB2VarcharCompatibilityMode();
 
+    void setCompilingFromTableTempTrigger(boolean newVal);
+
+    boolean isCompilingFromTableTempTrigger();
+
 }
