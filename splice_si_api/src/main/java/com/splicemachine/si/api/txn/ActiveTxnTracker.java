@@ -15,24 +15,26 @@
 
 package com.splicemachine.si.api.txn;
 
-import org.apache.log4j.Logger;
-
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class ActiveTxnTracker {
-    private static final Logger LOG = Logger.getLogger(ActiveTxnTracker.class);
+    private ConcurrentMap<Long, List<byte[]>> activeTxns = new ConcurrentHashMap(1024);
 
-    private ConcurrentMap<Long, Boolean> activeTxns = new ConcurrentHashMap(1024);
-
-    public void registerActiveTxn(long id) {
-        activeTxns.put(id, Boolean.TRUE);
+    public void registerActiveTxn(long id, List<byte[]> destinationTables) {
+        activeTxns.put(id, destinationTables);
     }
 
     public void unregisterActiveTxn(long id) {
         activeTxns.remove(id);
     }
 
+    public Set<Map.Entry<Long, List<byte[]>>> getActiveTransactions() {
+        return activeTxns.entrySet();
+    }
 
     public Long oldestActiveTransaction() {
         long oldest = Long.MAX_VALUE;

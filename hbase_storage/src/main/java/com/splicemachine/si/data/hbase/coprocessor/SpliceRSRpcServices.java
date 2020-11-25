@@ -158,4 +158,20 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         writeResponse.setOldestActiveTransaction(oldestActiveTransaction);
         callback.run(writeResponse.build());
     }
+
+    @Override
+    public void getActiveTransactions(RpcController controller,
+                                      SpliceMessage.SpliceActiveTransactionsRequest request,
+                                      RpcCallback<SpliceMessage.SpliceActiveTransactionsResponse> callback) {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getActiveTransactions");
+        try {
+            SpliceMessage.SpliceActiveTransactionsResponse.Builder response = SpliceMessage.SpliceActiveTransactionsResponse.newBuilder();
+            Set<Long> result = SIDriver.driver().getTxnStore().getActiveTransactionIds(request.getMinTxnId(), request.getMaxTxnId(), request.getDestinationTable().toByteArray());
+            response.addAllActiveTransactions(result);
+            callback.run(response.build());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

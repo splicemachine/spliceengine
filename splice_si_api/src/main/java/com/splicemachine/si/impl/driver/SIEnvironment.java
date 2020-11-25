@@ -88,4 +88,6 @@ public interface SIEnvironment{
     FilesystemAdmin filesystemAdmin();
 
     OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory();
+
+    ActiveTransactionsTaskFactory activeTransactionsTaskFactory();
 }

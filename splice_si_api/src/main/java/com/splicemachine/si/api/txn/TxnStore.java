@@ -19,6 +19,7 @@ import com.carrotsearch.hppc.LongHashSet;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -66,11 +67,9 @@ public interface TxnStore extends TxnSupplier{
      * will be returned.
      * @throws IOException
      */
-    long[] getActiveTransactionIds(Txn txn,byte[] table) throws IOException;
+    Set<Long> getActiveTransactionIds(Txn txn,byte[] table) throws IOException;
 
-    long[] getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] table) throws IOException;
-
-    List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException;
+    Set<Long> getActiveTransactionIds(long minTxnId, long maxTxnId, byte[] table) throws IOException;
 
     long getTxnAt(long ts) throws IOException;
 

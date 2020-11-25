@@ -60,7 +60,7 @@ public class CoprocessorTxnStore implements TxnStore {
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     private volatile long oldTransactions;
     private final boolean ignoreMissingTransactions;
-    private final ActiveTxnTracker activeTransactions;
+    private final ActiveTxnTracker activeTxnTracker;
     
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -79,7 +79,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.cache = txnCache==null?this:txnCache; // Not Used...
         this.timestampSource=timestampSource;
         this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
-        this.activeTransactions = new ActiveTxnTracker();
+        this.activeTxnTracker = new ActiveTxnTracker();
     }
 
     @Override
@@ -131,17 +131,23 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public void registerActiveTransaction(Txn txn) {
-        activeTransactions.registerActiveTxn(txn.getBeginTimestamp());
+        List<byte[]> bytes = null;
+        while(txn.getDestinationTables().hasNext()){
+            if(bytes==null)
+                bytes=Lists.newArrayList();
+            bytes.add(txn.getDestinationTables().next().getByteCopy());
+        }
+        activeTxnTracker.registerActiveTxn(txn.getBeginTimestamp(), bytes);
     }
 
     @Override
     public void unregisterActiveTransaction(long txnId) {
-        activeTransactions.unregisterActiveTxn(txnId);
+        activeTxnTracker.unregisterActiveTxn(txnId);
     }
 
     @Override
     public Long oldestActiveTransaction() {
-        return activeTransactions.oldestActiveTransaction();
+        return activeTxnTracker.oldestActiveTransaction();
     }
 
     @Override
@@ -211,59 +217,20 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
-    public long[] getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
+    public Set<Long> getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
         return getActiveTransactionIds(timestampSource.retrieveTimestamp(),txn.getTxnId(),table);
     }
 
     @Override
-    public long[] getActiveTransactionIds(final long minTxnId,final long maxTxnId,final byte[] writeTable) throws IOException{
-        TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
-                .newBuilder().setStartTxnId(minTxnId).setEndTxnId(maxTxnId);
-        if(writeTable!=null)
-            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(Encoding.encodeBytesUnsorted(writeTable)));
-
-        final TxnMessage.ActiveTxnRequest request=requestBuilder.build();
-        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-            return table.getActiveTxnIds(request);
-        }catch(Throwable throwable){
-            throw new IOException(throwable);
-        }
-    }
-
-    @Override
-    public List<TxnView> getActiveTransactions(final long minTxnid,final long maxTxnId,final byte[] activeTable) throws IOException{
-        TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
-                .newBuilder().setStartTxnId(minTxnid).setEndTxnId(maxTxnId);
-        if(activeTable!=null)
-            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(Encoding.encodeBytesUnsorted(activeTable)));
-
-        final TxnMessage.ActiveTxnRequest request=requestBuilder.build();
-        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-            Collection<TxnMessage.ActiveTxnResponse> data = table.getActiveTxns(request);
-
-            List<TxnView> txns=new ArrayList<>(data.size());
-
-            for(TxnMessage.ActiveTxnResponse response : data){
-                int size=response.getTxnsCount();
-                for(int i=0;i<size;i++){
-                    txns.add(decode(0, response.getTxns(i)));
-                }
+    public Set<Long> getActiveTransactionIds(final long minTxnId, final long maxTxnId, final byte[] writeTable) throws IOException {
+        Set<Long> result = new HashSet<>();
+        for (Map.Entry<Long, List<byte[]>> activeTxn : activeTxnTracker.getActiveTransactions()) {
+            long txnId = activeTxn.getKey();
+            if (txnId >= minTxnId && txnId <= maxTxnId && activeTxn.getValue().contains(writeTable)) {
+                result.add(activeTxn.getKey());
             }
-            Collections.sort(txns,new Comparator<TxnView>(){
-                @Override
-                public int compare(TxnView o1,TxnView o2){
-                    if(o1==null){
-                        if(o2==null) return 0;
-                        else return -1;
-                    }else if(o2==null) return 1;
-                    return Longs.compare(o1.getTxnId(),o2.getTxnId());
-                }
-            });
-            return txns;
-
-        }catch(Throwable throwable){
-            throw new IOException(throwable);
         }
+        return result;
     }
 
     @Override

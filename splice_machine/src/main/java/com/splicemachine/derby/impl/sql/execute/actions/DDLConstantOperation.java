@@ -39,6 +39,7 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -886,77 +887,6 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 	 */
     protected List<String> getBlockedTables() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Waits for concurrent transactions that started before the tentative
-     * change completed.
-     *
-     * Performs an exponential backoff until a configurable timeout triggers,
-     * then returns the list of transactions still running. The caller has to
-     * forbid those transactions to ever write to the tables subject to the DDL
-     * change.
-     *
-     * @param maximum
-     *            wait for all transactions started before this one. It should
-     *            be the transaction created just after the tentative change
-     *            committed.
-     * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
-     *                that it be the user-level, otherwise some child transactions may be treated
-     *                as active when they are not actually active.
-     * @return list of transactions still running after timeout
-     * @throws IOException
-     */
-    public long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
-        if (!waitsForConcurrentTransactions()) {
-            return -1l;
-        }
-        byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
-
-        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-		SConfiguration config =EngineDriver.driver().getConfiguration();
-        long waitTime = config.getDdlDrainingInitialWait();
-        long maxWait = config.getDdlDrainingMaximumWait();
-        long scale = 2; //the scale factor for the exponential backoff
-        long timeAvailable = maxWait;
-        long activeTxnId = -1l;
-        do{
-            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
-                TxnView txn;
-                while((txn = activeTxns.next())!=null){
-                    if(!txn.descendsFrom(userTxn)){
-                        activeTxnId = txn.getTxnId();
-                    }
-                }
-            } catch (StreamException e) {
-                throw new IOException(e.getCause());
-            }
-            if(activeTxnId<0) return activeTxnId;
-            /*
-             * It is possible for a sleep to pick up before the
-             * waitTime is expired. Therefore, we measure that actual
-             * time spent and use that for our time remaining period
-             * instead.
-             */
-            long start = System.currentTimeMillis();
-            try {
-                Thread.sleep(waitTime);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
-            long stop = System.currentTimeMillis();
-            timeAvailable-=(stop-start);
-            /*
-             * We want to exponentially back off, but only to the limit imposed on us. Once
-             * our backoff exceeds that limit, we want to just defer to that limit directly.
-             */
-            waitTime = Math.min(timeAvailable,scale*waitTime);
-        } while(timeAvailable>0);
-
-        if (activeTxnId>=0) {
-            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
-        }
-        return activeTxnId;
     }
 
 	/**

@@ -36,7 +36,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import splice.com.google.common.collect.Lists;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tests around the logic for savepoints.
@@ -132,9 +134,11 @@ public class SavepointsTest {
 
         Txn parent2=control.beginTransaction();
 
-        long[] ids=txnStore.getActiveTransactionIds(parent2,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
+        Set<Long> ids=txnStore.getActiveTransactionIds(parent2, DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        Set<Long> expected = new HashSet<>(1);
+        expected.add(parent.getTxnId());
+        Assert.assertEquals("Incorrect values",expected,ids);
 
 
         res = transaction.rollbackToSavePoint("first", null);
@@ -143,8 +147,8 @@ public class SavepointsTest {
 
 
         ids=txnStore.getActiveTransactionIds(parent2,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        Assert.assertEquals("Incorrect values",expected,ids);
     }
 
 
