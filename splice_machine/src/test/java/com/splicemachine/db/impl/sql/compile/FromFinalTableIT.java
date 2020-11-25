@@ -17,7 +17,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -29,11 +28,10 @@ import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.Collection;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_UNSUPPORTED_FROM_TABLE_QUERY;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -358,11 +356,56 @@ public class FromFinalTableIT extends SpliceUnitTest {
         testQuery(sql, expected, methodWatcher);
         testQuery(sql, expected, methodWatcher);
 
+        String errorMsg = "Current number of running operations:  %d \n" +
+                           "does not match original number of running operations:  %d";
         int currentRunningOperations = getNumberOfRunningOperations();
         assertEquals(
-          format("Current number of running operations:  %d \n" +
-                 "does not match original number of running operations:  %d",
-                 currentRunningOperations, runningOperations),
+          format(errorMsg, currentRunningOperations, runningOperations),
+           runningOperations, currentRunningOperations);
+
+        sql = "SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a=1) UNION SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n  set a=1)";
+        testFail(LANG_UNSUPPORTED_FROM_TABLE_QUERY, sql, methodWatcher);
+
+        sql = "SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a=1) EXCEPT SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n  set a=1)";
+        testFail(LANG_UNSUPPORTED_FROM_TABLE_QUERY, sql, methodWatcher);
+
+        sql = "SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a=1) INTERSECT SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n  set a=1)";
+        testFail(LANG_UNSUPPORTED_FROM_TABLE_QUERY, sql, methodWatcher);
+
+        expected =
+            "A | B |\n" +
+            "--------\n" +
+            " 1 | a |";
+        sql = "SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a=1 where b='a') ";
+
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+
+        currentRunningOperations = getNumberOfRunningOperations();
+        assertEquals(
+          format(errorMsg, currentRunningOperations, runningOperations),
+           runningOperations, currentRunningOperations);
+
+        expected = "";
+        sql = "SELECT a, b FROM OLD TABLE (DELETE FROM A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n where a=0 \n) ";
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+
+        currentRunningOperations = getNumberOfRunningOperations();
+        assertEquals(
+          format(errorMsg, currentRunningOperations, runningOperations),
            runningOperations, currentRunningOperations);
 
         methodWatcher.rollback();
