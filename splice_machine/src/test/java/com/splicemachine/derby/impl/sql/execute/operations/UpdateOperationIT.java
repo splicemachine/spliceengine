@@ -775,4 +775,19 @@ public class UpdateOperationIT {
             conn.setAutoCommit(oldAutoCommit);
         }
     }
+
+    @Test
+    public void testUpdatePrimaryKeyAfterDropAddColumn() throws Exception {
+        methodWatcher.execute("drop table if exists DB_9929");
+        methodWatcher.execute("create table DB_9929(K integer primary key, v integer)");
+        methodWatcher.execute("alter table DB_9929 DROP COLUMN V");
+        methodWatcher.execute("alter table DB_9929 ADD COLUMN V INTEGER");
+        methodWatcher.execute("insert into DB_9929 values (1, 42)");
+        methodWatcher.execute("update DB_9929 SET K = 18");
+        try (ResultSet rs = methodWatcher.executeQuery("select * from DB_9929")) {
+            rs.next();
+            Assert.assertEquals(18, rs.getInt(1));
+            Assert.assertEquals(42, rs.getInt(2));
+        }
+    }
 }
