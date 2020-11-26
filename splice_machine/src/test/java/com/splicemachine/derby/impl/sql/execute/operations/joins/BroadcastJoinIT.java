@@ -34,7 +34,6 @@ import java.util.Collection;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Scott Fines
@@ -59,6 +58,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
+
+    @Rule
+    public SpliceWatcher methodWatcher=new SpliceWatcher(schemaWatcher.schemaName);
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");
@@ -786,7 +788,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery() throws Exception {
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_1() throws Exception {
         String sqlText = "select * from tab4 where a in (select tab5.a from tab6, tab5 --splice-properties joinStrategy=broadcast\n" +
                 "where tab5.a=tab6.a and tab4.a=tab5.a)";
         String expected = "A |    B     |\n" +
@@ -795,6 +797,65 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
             String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
+        }
+    }
+
+    @Test
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_2() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists AT (auftrgeb_gf# char(36), auftrstatus char(4), auftrart char(2))");
+        methodWatcher.executeUpdate("create table if not exists DR (domname varchar(18), domregel varchar(65), domb# char(36))");
+        methodWatcher.executeUpdate("create table if not exists X3 (domwliste varchar(1900), loganwber char(8), domb# char(36))");
+
+        methodWatcher.executeUpdate("delete from AT");
+        methodWatcher.executeUpdate("delete from DR");
+        methodWatcher.executeUpdate("delete from X3");
+
+        methodWatcher.executeUpdate("insert into AT values " +
+                "('c37809fc-dbc0-11dc-bb9d-00110a38ff8a','GMST','GM'),\n" +
+                "('7ee72ba2-c983-11dc-9bb2-000bcd3dea92','GMST','GM'),\n" +
+                "('b162ede2-d38f-11d9-8000-010157aa0000','GMEO','AM'),\n" +
+                "('8ea16564-026c-11e7-bd3a-0050568766a6','GTER','BM'),\n" +
+                "('4bbcc862-0b14-11d9-8000-010157aa0000','GMST','CM'),\n" +
+                "('58c2e22b-ce73-11dc-bcfc-00110a3923a8','GMEO','DM'),\n" +
+                "('35ea068a-91cd-11dc-8ecb-001321040bb4','GMEO','EM'),\n" +
+                "('efd55af2-c38f-11d9-8000-010157aa0000','GMST','FM'),\n" +
+                "('a09c7d39-cd75-11dc-b6e8-000bcd3dea92','GMST','HM'),\n" +
+                "('c8cd5a3a-e199-11da-8000-010157aa0000','GMST','IM')");
+        methodWatcher.executeUpdate("insert into DR values " +
+                "('AUFTRAGSART',       'SCHLIESSEN_AUFTRAG' ,'1205686f-b899-11e6-9f7d-9cb654a0f4f6'),\n" +
+                "('KENNZEICHEN_JN',    'SME_BETRIEBSARTEN_KZ_HP','00a8441a-ab9e-11e8-b9d5-9cb654a0637d'),\n" +
+                "('BUCHUNGSART',       'BUCHUNGSART_SK','01006252-ebe2-11de-a13d-6f0f671c0089'),\n" +
+                "('RV_BQUEBSTEUERUNG', 'FLOTTENNR_BQUEBST', '018b9c38-7a4b-11e4-9727-9cb654a1d902'),\n" +
+                "('SPARTE_EIGEN',      'XLOB_PRODPAKET_ZU_SPARTE', '01be147b-ded6-11e5-aab4-9cb654a4c4c6'),\n" +
+                "('LSCHICHTZUSBEZ',    'LSCHZUS_ZUSBEZ', '0228b814-440f-11e6-92cf-9cb654a1cb9b'),\n" +
+                "('GBPART',            'AUFTRAGSART_ZU_GBP_ART', '02750d20-ac38-11de-b23d-6f0f671c00a3'),\n" +
+                "('XPS_PGEN_B',        'XPS_REINIT_PGEN', '02b6341a-25df-11e8-9b2d-901b0e1c176e'),\n" +
+                "('AZBZUSDART',        'ABZUEGE_SONDERZAHLUNG', '030908eb-d705-11e5-bf03-9cb654a0f4f6'),\n" +
+                "('SPARTE_EIGEN',      'PPMKFZ','0313241a-3f20-11e9-a35c-9cb654a17a67')");
+        methodWatcher.executeUpdate("insert into X3 values " +
+                "('GM','SCHADEN ','1205686f-b899-11e6-9f7d-9cb654a0f4f6')");
+
+        String query = "SELECT auftrgeb_gf#, auftrart " +
+                "FROM  AT " +
+                "WHERE " +
+                "  EXISTS (SELECT 1 " +
+                "          FROM DR, " +
+                "               X3  --splice-properties joinStrategy=%s, useSpark=%s\n" +
+                "          WHERE " +
+                "                 DR.domb# = X3.domb# AND " +
+                "     ( Locate(AT.auftrart, X3.domwliste) > 0 ) )";
+
+        String expected =
+                "AUFTRGEB_GF#             |AUFTRART |\n" +
+                "------------------------------------------------\n" +
+                "7ee72ba2-c983-11dc-9bb2-000bcd3dea92 |   GM    |\n" +
+                "c37809fc-dbc0-11dc-bb9d-00110a38ff8a |   GM    |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(String.format(query, "broadcast", useSpark.toString()))) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(String.format(query, "cross", "true"))) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 }
