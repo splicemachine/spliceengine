@@ -53,6 +53,8 @@ public class Subquery_Flattening_Aggregate_IT {
         classWatcher.executeUpdate("create table A(a1 int, a2 int, a3 int)");
         classWatcher.executeUpdate("create table B(b1 int, b2 int, b3 int)");
         classWatcher.executeUpdate("create table C(c1 int, c2 int, c3 int)");
+        classWatcher.executeUpdate("create table t1(col1 int, col2 int)");
+        classWatcher.executeUpdate("create table t2(col1 int)");
 
         classWatcher.executeUpdate("insert into A values(0,0,0),(1,10,10),(2,20,20),(3,30,30),(4,40,40),(5,50,500),(5,5,5)");
         classWatcher.executeUpdate("insert into B values" +
@@ -63,6 +65,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "(4,4,4),(4,40, 400),(4,400, 4000),(4,4000, 40000)," +
                 "(5,5000,5)");
         classWatcher.executeUpdate("insert into C values(1,1,1),(1,1,1),(3,3,3),(3,3,3),(5,5,5),(5,5,5),(7,7,7),(7,7,7)");
+        classWatcher.executeUpdate("insert into t1 values (42,43)");
     }
 
     @Test
@@ -658,6 +661,15 @@ public class Subquery_Flattening_Aggregate_IT {
                 " 3 |30 |30  |\n" +
                 " 4 |40 |40  |\n" +
                 " 5 |50 |500 |");
+    }
+
+    @Test
+    public void unsupported_correlated_countStar() throws Exception {
+        String sql = "select col1, col2 from t1 where (select count(*) from t2 where col1 = t1.col1) = 0";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
