@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -796,7 +795,6 @@ public interface ResultSetFactory {
      * @param constructor                The GeneratedMethod for the user's constructor
      * @param javaClassName              The java class name for the VTI
      * @param erdNumber                  int for referenced column BitSet (so it can be turned back into an object)
-     * @param version2                   Whether or not VTI is a version 2 VTI.
      * @param isTarget                   Whether or not VTI is a target VTI.
      * @param optimizerEstimatedRowCount Estimated total # of rows by optimizer
      * @param optimizerEstimatedCost     Estimated total cost by optimizer
@@ -1179,8 +1177,6 @@ public interface ResultSetFactory {
 		@param wasRightOuterJoin	Whether or not this was originally a right outer join
 		@param oneRowRightSide	boolean, whether or not the right side returns
 								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
@@ -1227,8 +1223,6 @@ public interface ResultSetFactory {
 		@param wasRightOuterJoin	Whether or not this was originally a right outer join
 		@param oneRowRightSide	boolean, whether or not the right side returns
 								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
@@ -1442,6 +1436,7 @@ public interface ResultSetFactory {
 										 int rightNumCols,
 										 int leftHashKeyItem,
 										 int rightHashKeyItem,
+                                         boolean noCacheBroadcastJoinRight,
 										 GeneratedMethod joinClause,
 										 int resultSetNumber,
 										 boolean oneRowRightSide,
@@ -1675,6 +1670,7 @@ NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
+            boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1902,8 +1898,6 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
      *                                       the scan
      * @param sameStartStopPosition          Re-use the startKeyGetter for the stopKeyGetter
      *                                       (Exact match search.)
-     * @param qualifiers                     the array of Qualifiers for the scan.
-     *                                       Null or an array length of zero means there are no qualifiers.
      * @param tableName                      The full name of the table
      * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
      * @param indexName                      The name of the index, if one used to access table.
