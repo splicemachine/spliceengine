@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
@@ -88,6 +89,11 @@ class AggregateSubqueryPredicate implements splice.com.google.common.base.Predic
                 (subquerySelectNode.getGroupByList() == null || subquerySelectNode.getGroupByList().isEmpty()))
             return false;
 
+        // ignore count(*) correlated subqueries since flattening the query with inner join could cause some rows to be ignored from the LHS.
+        if(!subqueryNode.isNonCorrelatedSubquery()
+                && subquerySelectNode.getSelectAggregates().stream().anyMatch( n -> n.getType() == AggregateDefinition.FunctionType.COUNT_STAR_FUNCTION)) {
+            return false;
+        }
 
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
