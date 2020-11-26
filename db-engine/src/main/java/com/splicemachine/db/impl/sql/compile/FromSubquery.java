@@ -900,7 +900,10 @@ public class FromSubquery extends FromTable
 
     public void setLevel(int level){
         super.setLevel(level);
-        if (subquery instanceof FromTable)
-            ((FromTable)subquery).setLevel(level);
+        if (subquery instanceof FromTable) {
+            if (!(subquery instanceof UnionNode) ||
+                !((UnionNode)subquery).tableConstructor())
+               ((FromTable) subquery).setLevel(level);
+        }
     }
 }

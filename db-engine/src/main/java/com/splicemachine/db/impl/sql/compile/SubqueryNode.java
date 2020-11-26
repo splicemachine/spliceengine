@@ -190,6 +190,7 @@ public class SubqueryNode extends ValueNode{
     protected int resultSetNumber=-1;
 
     private boolean hintNotFlatten=false;
+    private boolean thisSubqueryAddedToSubqueryList = false;
 
     /**
      * Initializer.
@@ -441,9 +442,11 @@ public class SubqueryNode extends ValueNode{
     // is represented as a SelectNode.
     // TODO:  Enhance subquery flattening logic to not require the
     //        the subquery expression to be a SelectNode.
-    private void wrapSetQueryInDerivedTable() throws StandardException {
+    private boolean wrapSetQueryInDerivedTable(FromList fromList,
+                                               SubqueryList subqueryList,
+                                               List<AggregateNode> aggregateVector) throws StandardException {
         if (!(resultSet instanceof SetOperatorNode))
-            return;
+            return false;
         SetOperatorNode setOperatorNode = (SetOperatorNode)resultSet;
         ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
         SubqueryNode derivedTable = (SubqueryNode) getNodeFactory().getNode(
@@ -468,11 +471,11 @@ public class SubqueryNode extends ValueNode{
                                             null,  // derivedRCL,
                                             null,  // optionalTableClauses
                                             getContextManager());
-        FromList fromList = (FromList) getNodeFactory().getNode(
+        FromList newFromList = (FromList) getNodeFactory().getNode(
                 C_NodeTypes.FROM_LIST,
                 getNodeFactory().doJoinOrderOptimization(),
                 getContextManager());
-        fromList.addFromTable(fromTable);
+        newFromList.addFromTable(fromTable);
 
         ResultColumnList selectList = setOperatorNode.getResultColumns().copyListAndObjects();
         String dummyColName = "###UnnamedDT_WrappedSetOpCol";
@@ -493,17 +496,28 @@ public class SubqueryNode extends ValueNode{
             rc.setExpression(columnReference);
         }
 
-        SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
+        ResultSetNode selectNode = (ResultSetNode) getNodeFactory().getNode(
                             C_NodeTypes.SELECT_NODE,
                             selectList,  //ResultColumnList
                             null,     /* AGGREGATE list */
-                            fromList, // FromList of FromSubquery
+                            newFromList, // FromList of FromSubquery
                             null,     // whereClause
                             null,     // groupByList
                             null,     // havingClause
                             null,     // windows
                             getContextManager());
-        resultSet = selectNode;
+        ResultSetNode savedResultSet = resultSet;
+        try {
+            resultSet = selectNode;
+            // Only perform this rewrite if it doesn't cause
+            // binding to fail (e.g. correlated predicates are not allowed in a derived table).
+            this.bindExpressionHelper(fromList, subqueryList, aggregateVector);
+        }
+        catch (StandardException e) {
+            resultSet = savedResultSet;
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -522,21 +536,29 @@ public class SubqueryNode extends ValueNode{
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
-                                    List<AggregateNode> aggregateVector) throws StandardException{
-        ResultColumnList resultColumns;
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+
 
         //check if subquery is allowed in expression tree
-        checkReliability(CompilerContext.SUBQUERY_ILLEGAL,SQLState.LANG_SUBQUERY);
+        checkReliability(CompilerContext.SUBQUERY_ILLEGAL, SQLState.LANG_SUBQUERY);
 
         // Rewrite a set operator tree so it's wrapped in a derived table.
         // This allows it to be flattenable, allowing for more efficient joins.
         // Disallow multicolumn IN/NOT IN for now to be safe.
         if (resultSet instanceof SetOperatorNode &&
             this.subqueryType != SubqueryNode.FROM_SUBQUERY &&
-            (resultSet.getResultColumns().size() == 1 ||
-             this.subqueryType == EXISTS_SUBQUERY))
-            wrapSetQueryInDerivedTable();
+            (resultSet.getResultColumns().size() == 1 &&
+             this.subqueryType != EXISTS_SUBQUERY)) {
+            if (wrapSetQueryInDerivedTable(fromList, subqueryList, aggregateVector))
+                return this;
+        }
+        return this.bindExpressionHelper(fromList, subqueryList, aggregateVector);
+    }
 
+    private ValueNode bindExpressionHelper(FromList fromList,
+                                           SubqueryList subqueryList,
+                                           List<AggregateNode> aggregateVector) throws StandardException{
+        ResultColumnList resultColumns;
         resultColumns=resultSet.getResultColumns();
 
         /* The parser does not enforce the fact that a subquery (except in the
@@ -668,7 +690,10 @@ public class SubqueryNode extends ValueNode{
         setDataTypeServices(resultColumns);
 
         /* Add this subquery to the subquery list */
-        subqueryList.addSubqueryNode(this);
+        if (!thisSubqueryAddedToSubqueryList) {
+            subqueryList.addSubqueryNode(this);
+            thisSubqueryAddedToSubqueryList = true;
+        }
 
         cc.popCurrentPrivType();
         return this;
