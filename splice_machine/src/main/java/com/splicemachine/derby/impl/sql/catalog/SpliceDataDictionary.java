@@ -129,6 +129,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
 
             row=fkkeysRF.makeRow(fkDescriptor,null);
+            fkDescriptor.getReferencedConstraint().foreignKeyConstraintUpdated();
 
         }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getNonCoreTI(SYSPRIMARYKEYS_CATALOG_NUM);

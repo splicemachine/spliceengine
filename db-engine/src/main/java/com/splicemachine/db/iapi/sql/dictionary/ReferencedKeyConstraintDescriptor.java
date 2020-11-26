@@ -216,46 +216,41 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 			checkType(type);
 		}
 
-		// optimized for this case
 		if (type == ENABLED)
 		{
-			// optimization to avoid any lookups if we know we
-			// aren't referenced.
-			if (!isReferenced())
-			{
-				return new ConstraintDescriptorList();
-			}
-			else if (fkEnabledConstraintList != null)
-			{
+			if (fkEnabledConstraintList != null) {
 				return fkEnabledConstraintList;
 			}
-			else if (fkConstraintList == null)
-			{
-				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
-			}
-			fkEnabledConstraintList = fkConstraintList.getConstraintDescriptorList(true);
+			fkEnabledConstraintList = getOrLoadFKConstraintList().getConstraintDescriptorList(true);
 			return fkEnabledConstraintList;
 		}
-
-		// not optimized for this case
 		else if (type == DISABLED)
 		{
-			if (fkConstraintList == null)
-			{
-				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
-			}
-			return fkConstraintList.getConstraintDescriptorList(false);
+			return getOrLoadFKConstraintList().getConstraintDescriptorList(false);
 		}
 		else
 		{
-			if (fkConstraintList == null)
-			{
-				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
-			}
-			return fkConstraintList;
+			return getOrLoadFKConstraintList();
 		}
 	}
-		
+
+	private ConstraintDescriptorList getOrLoadFKConstraintList() throws StandardException {
+		if (fkConstraintList == null) {
+			fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
+		}
+		return fkConstraintList;
+	}
+
+	/**
+	 * Invalidate the old descriptors on ForeignKey Constraint add or drop.
+	 */
+	public void foreignKeyConstraintUpdated() throws StandardException {
+		fkConstraintList = null;
+		fkEnabledConstraintList = null;
+		getDataDictionary().getDataDictionaryCache().constraintDescriptorListCacheRemove(getUUID());
+		getDataDictionary().getDataDictionaryCache().oidTdCacheRemove(getTableId());
+	}
+
 	/**
 	 * Is this constraint referenced? Returns
 	 * true if there are enabled fks that 
@@ -274,7 +269,7 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 * @return the number of fks
 	 */
 	public int getReferenceCount() throws StandardException {
-		return getDataDictionary().getForeignKeys(constraintId).size();
+		return getOrLoadFKConstraintList().size();
 	}
 
 	/**
