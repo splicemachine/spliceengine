@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -195,5 +196,10 @@ public class SortOperation extends SpliceBaseOperation{
 
     public String getScopeName(){
         return (distinct ? "Sort Distinct" : "Sort");
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

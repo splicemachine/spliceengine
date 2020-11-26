@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -160,5 +161,10 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
         throw e;
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

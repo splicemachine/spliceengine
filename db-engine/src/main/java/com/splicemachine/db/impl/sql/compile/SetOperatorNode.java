@@ -582,6 +582,9 @@ abstract class SetOperatorNode extends TableOperatorNode
     {
         super.bindResultColumns(fromListParam);
 
+        if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
+            throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE_QUERY,
+                                                  "set operation");
         /* Now we build our RCL */
         buildRCL();
     }
@@ -1164,13 +1167,4 @@ abstract class SetOperatorNode extends TableOperatorNode
 
         return this;
     }
-
-    public void setLevel(int level){
-        super.setLevel(level);
-        if (leftResultSet instanceof FromTable)
-            ((FromTable)leftResultSet).setLevel(level);
-        if (rightResultSet instanceof FromTable)
-            ((FromTable)rightResultSet).setLevel(level);
-    }
-
 }
