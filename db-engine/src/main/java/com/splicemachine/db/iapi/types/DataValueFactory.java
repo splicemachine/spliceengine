@@ -188,6 +188,13 @@ public interface DataValueFactory
          */
         StringDataValue getVarcharDataValue(String value, StringDataValue previous,
                 int collationType) throws StandardException;
+
+        StringDataValue getVarcharDB2CompatibleDataValue(String value);
+        StringDataValue getVarcharDB2CompatibleDataValue(String value, StringDataValue previous)
+            throws StandardException;
+        StringDataValue getVarcharDB2CompatibleDataValue(String value, StringDataValue previous,
+                int collationType) throws StandardException;
+
         /**
          * Get a SQL long varchar with the given value.  A null argument means
          * get a SQL null value.
@@ -344,8 +351,7 @@ public interface DataValueFactory
          *
          * @exception StandardException         Thrown on error
          */
-        NumberDataValue         getDecimalDataValue(Long value, NumberDataValue previous)
-                                                        throws StandardException;
+        NumberDataValue         getDecimalDataValue(Long value, NumberDataValue previous) throws StandardException;
 
 
         /**
@@ -355,10 +361,33 @@ public interface DataValueFactory
          * @exception StandardException         Thrown on error
          */
         NumberDataValue         getDecimalDataValue(String value) throws StandardException;
-        NumberDataValue         getDecimalDataValue(String value,
-                                                                                        NumberDataValue previous)
-                                                        throws StandardException;
+        NumberDataValue         getDecimalDataValue(String value, NumberDataValue previous) throws StandardException;
 
+        /**
+         * Get a SQL DECFLOAT with the given value.  The second form re-uses the
+         * previous value, if non-null, as the data holder to return.
+         *
+         * @exception StandardException         Thrown on error
+         */
+        NumberDataValue getDecfloatDataValue(Number value) throws StandardException;
+        NumberDataValue getDecfloatDataValue(Number value, NumberDataValue previous) throws StandardException;
+
+        /**
+         * Get a SQL DECFLOAT with the given value.
+         * Re-uses the * previous value, if non-null, as the data holder to return.
+         *
+         * @exception StandardException         Thrown on error
+         */
+        NumberDataValue getDecfloatDataValue(Long value, NumberDataValue previous) throws StandardException;
+
+        /**
+         * Get a SQL DECFLOAT with the given value. The second form re-uses the
+         * previous value, if non-null, as the data holder to return.
+         *
+         * @exception StandardException         Thrown on error
+         */
+        NumberDataValue         getDecfloatDataValue(String value) throws StandardException;
+        NumberDataValue         getDecfloatDataValue(String value, NumberDataValue previous) throws StandardException;
         /**
          * Get a SQL boolean with the given value.  The second arg re-uses the
          * previous value, if non-null, as the data holder to return.
@@ -588,13 +617,21 @@ public interface DataValueFactory
         NumberDataValue getNullDecimal(NumberDataValue dataValue);
 
 
-    /**
+        /**
          * Get a SQL Decimal/Numeric with  a SQL null value. If the supplied value
          * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
         NumberDataValue getNullDecimal(NumberDataValue dataValue, int precision, int scale);
+
+        /**
+         * Get a SQL Decfloat with  a SQL null value. If the supplied value
+         * is null then get a new value, otherwise set it to null and return
+         * that value.
+         *
+         */
+        NumberDataValue getNullDecfloat(NumberDataValue dataValue);
 
         /**
          * Get a SQL boolean with  a SQL null value. If the supplied value
@@ -677,19 +714,28 @@ public interface DataValueFactory
          * that value.
          *
          */
-        StringDataValue         getNullVarchar(StringDataValue dataValue);
+        StringDataValue getNullVarchar(StringDataValue dataValue);
 
         /**
          * Get a SQL VARCHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
          * otherwise set it to null and return that value.
          */
-        StringDataValue         getNullVarchar(StringDataValue dataValue,
-                int collationType)
-        throws StandardException;
+        StringDataValue getNullVarchar(StringDataValue dataValue,
+                                       int collationType)
+                        throws StandardException;
 
         StringDataValue getNullVarchar(StringDataValue previous, int collationType, int maxSize)
-        throws StandardException;
+                        throws StandardException;
+
+        StringDataValue getNullVarcharDB2Compatible(StringDataValue dataValue);
+
+        StringDataValue getNullVarcharDB2Compatible(StringDataValue dataValue,
+                                                    int collationType)
+                        throws StandardException;
+
+        StringDataValue getNullVarcharDB2Compatible(StringDataValue previous, int collationType, int maxSize)
+                        throws StandardException;
 
         /**
          * Get a SQL LONG VARCHAR (UCS_BASIC) with a SQL null value. If the supplied value

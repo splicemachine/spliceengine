@@ -45,10 +45,7 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -105,6 +102,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     protected CursorResultSet  triggeringResultSet;
     private ManagedCache<UUID, SPSDescriptor> spsCache = null;
     private boolean fromSparkExecution;
+    private TemporaryRowHolder temporaryRowHolder;
+    private SPSDescriptor fromTableDmlSpsDescriptor;
 
     /*
     ** Used to track all the result sets we have given out to
@@ -147,7 +146,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                                    String targetTableName,
                                    List<AutoincrementCounter> aiCounters,
                                    FormatableBitSet heapList,
-                                   boolean fromSparkExecution) throws StandardException {
+                                   boolean fromSparkExecution,
+                                   SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
 
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
@@ -160,10 +160,16 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.cc = cc;
 
         this.fromSparkExecution = fromSparkExecution;
-        // only use the local cache for spark execution
-        if (fromSparkExecution)
+        this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
+        // Only use the local cache for spark execution, or if we have a temporary
+        // trigger created for execution of a FROM FINAL TABLE clause, which
+        // does not store its SPS in the data dictionary, so needs to use
+        // a ManagedCache.
+        if (fromSparkExecution || fromTableDmlSpsDescriptor != null) {
             this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
-
+            if (fromTableDmlSpsDescriptor != null)
+                spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
+        }
         if (SanityManager.DEBUG) {
             if ((changedColIds == null) != (changedColNames == null)) {
                 SanityManager.THROWASSERT("bad changed cols, " +
@@ -299,7 +305,9 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (rs == null) {
             return;
         }
-
+        if (rs instanceof TemporaryRowHolderResultSet) {
+            temporaryRowHolder = ((TemporaryRowHolderResultSet) rs).getHolder();
+        }
         if (aiCounters != null) {
             if (triggerd.isRowTrigger()) {
                 // An after row trigger needs to see the "first" row inserted
@@ -333,11 +341,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     }
 
     public void clearTrigger(boolean deferCleanup) throws StandardException {
-        event = null;
         triggerd = null;
         triggeringRow = null;
-        if (!deferCleanup)
+        if (!deferCleanup) {
+            event = null;
             cleanup();
+        }
     }
 
     /////////////////////////////////////////////////////////
@@ -471,7 +480,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
 	{
 		if (triggeringResultSet == null)
 		{
-                    return null;
+                return null;
+
 		}
 		try
 		{
@@ -628,6 +638,20 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             out.writeUTF(tableVersion);
         out.writeLong(conglomId);
         out.writeBoolean(fromSparkExecution);
+
+        boolean hasTempRowHolder = temporaryRowHolder != null;
+        out.writeBoolean(hasTempRowHolder);
+        if (hasTempRowHolder) {
+            out.writeObject(temporaryRowHolder);
+        }
+        boolean hasFromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor != null;
+        out.writeBoolean(hasFromTableDmlSpsDescriptor);
+        if (hasFromTableDmlSpsDescriptor)
+            out.writeObject(fromTableDmlSpsDescriptor);
+        boolean hasSpsCache = spsCache != null;
+        out.writeBoolean(hasSpsCache);
+        if (hasSpsCache)
+            out.writeObject(spsCache);
     }
 
     @Override
@@ -655,8 +679,21 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             tableVersion = in.readUTF();
         conglomId = in.readLong();
         fromSparkExecution = in.readBoolean();
-        if (fromSparkExecution)
+        boolean hasTempRowHolder = in.readBoolean();
+        if (hasTempRowHolder) {
+            temporaryRowHolder = (TemporaryRowHolder) in.readObject();
+        }
+        boolean hasFromTableDmlSpsDescriptor = in.readBoolean();
+        if (hasFromTableDmlSpsDescriptor)
+            fromTableDmlSpsDescriptor = (SPSDescriptor) in.readObject();
+        boolean hasSpsCache = in.readBoolean();
+        if (hasSpsCache)
+            spsCache = (ManagedCache<UUID, SPSDescriptor> ) in.readObject();
+        else if (fromSparkExecution || hasFromTableDmlSpsDescriptor) {
             spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
+            if (hasFromTableDmlSpsDescriptor)
+                spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
+        }
     }
 
     /**
@@ -805,5 +842,21 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
 
     public ManagedCache<UUID, SPSDescriptor> getSpsCache() {
         return spsCache;
+    }
+
+    public TemporaryRowHolder getTemporaryRowHolder() {
+        return temporaryRowHolder;
+    }
+
+    public boolean hasSpecialFromTableTrigger() { return fromTableDmlSpsDescriptor != null; }
+
+    public SPSDescriptor getFromTableDmlSpsDescriptor() {
+        return fromTableDmlSpsDescriptor;
+    }
+
+    public String getTriggerName() {
+        if (triggerd == null)
+            return "";
+        return triggerd.getName();
     }
 }

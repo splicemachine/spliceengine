@@ -110,20 +110,20 @@ public interface LanguageConnectionFactory {
 	 */
 	LanguageConnectionContext
 	newLanguageConnectionContext(ContextManager cm,
-								TransactionController tc,
-								LanguageFactory lf,
-								InternalDatabase db,
-								String userName,
-								List<String> groupuserlist,
-								String drdaID,
-								String dbname,
-								String rdbIntTkn,
-                                DataSetProcessorType type,
-								boolean skipStats,
-								double defaultSelectivityFactor,
-								String ipAddress,
-                                String defaultSchema,
-                                Properties sessionProperties)
+								 TransactionController tc,
+								 LanguageFactory lf,
+								 InternalDatabase db,
+								 String userName,
+								 List<String> groupuserlist,
+								 String drdaID,
+								 String dbname,
+								 String rdbIntTkn,
+								 DataSetProcessorType type,
+								 SparkExecutionType sparkExecutionType, boolean skipStats,
+								 double defaultSelectivityFactor,
+								 String ipAddress,
+								 String defaultSchema,
+								 Properties sessionProperties)
 
 		throws StandardException;
 

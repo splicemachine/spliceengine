@@ -52,6 +52,17 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=10","NestedLoopJoin");
         }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n, " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=NESTEDLOOP\n " +
+                            " where upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+                    "rows=10","NestedLoopJoin");
+        }
     }
 
     @Test
@@ -61,6 +72,17 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
                     s,
                     new int[]{1,4},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",
+                    "rows=10","NestedLoopAntiJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,4},
+                    "explain select * from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n " +
+                            "where not exists (select * from  ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=NESTEDLOOP\n " +
+                            "                    where upper(ts_10_spk.c2) = upper(ts_5_spk.c2))",
                     "rows=10","NestedLoopAntiJoin");
         }
     }
@@ -74,6 +96,18 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n on ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=10","NestedLoopLeftOuterJoin");
         }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n " +
+                            "left outer join " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=NESTEDLOOP\n " +
+                            "on upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+                    "rows=10","NestedLoopLeftOuterJoin");
+        }
     }
 
     @Test
@@ -83,6 +117,17 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
                     s,
                     new int[]{1,4},
                     "explain select * from ts_10_spk --splice-properties joinStrategy=NESTEDLOOP\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=5","NestedLoopLeftOuterJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,4},
+                    "explain select * from ts_10_spk --splice-properties index=ts_10_spk_expr_idx, joinStrategy=NESTEDLOOP\n " +
+                            "right outer join " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx\n " +
+                            "on ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=5","NestedLoopLeftOuterJoin");
         }
     }

@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -162,6 +163,8 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     private boolean hasXPlainTableOrProcedure;
 
     private DataSetProcessorType datasetProcessorType;
+
+    private SparkExecutionType sparkExecutionType;
     //
     // constructors
     //
@@ -171,8 +174,10 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         ModuleFactory moduleFactory = Monitor.getMonitor();
         if (moduleFactory != null) {
             UUIDFactory uuidFactory = moduleFactory.getUUIDFactory();
-            UUIDValue = uuidFactory.createUUID();
-            UUIDString = UUIDValue.toString();
+            if(uuidFactory != null) {
+                UUIDValue = uuidFactory.createUUID();
+                UUIDString = UUIDValue.toString();
+            }
         }
         spsAction = false;
     }
@@ -297,7 +302,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      * @param activation            the activation to run.
      * @return the result set to be pawed through
      */
-    private ResultSet executeStmt(Activation activation, boolean rollbackParentContext, long timeoutMillis) throws StandardException {
+    public ResultSet executeStmt(Activation activation, boolean rollbackParentContext, long timeoutMillis) throws StandardException {
         boolean needToClearSavePoint = false;
 
         if (activation == null || activation.getPreparedStatement() != this) {
@@ -1134,5 +1139,13 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
     public void setDatasetProcessorType(DataSetProcessorType datasetProcessorType) {
         this.datasetProcessorType = datasetProcessorType;
+    }
+
+    public SparkExecutionType sparkExecutionType() {
+        return sparkExecutionType;
+    }
+
+    public void setSparkExecutionType(SparkExecutionType sparkExecutionType) {
+        this.sparkExecutionType = sparkExecutionType;
     }
 }

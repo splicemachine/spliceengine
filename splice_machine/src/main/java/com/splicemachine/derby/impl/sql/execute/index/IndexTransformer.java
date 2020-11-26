@@ -297,16 +297,7 @@ public class IndexTransformer {
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
-
-        int maxKeyBaseColumnPosition =
-                table.getColumnOrderingCount() > 0 ? Collections.max(table.getColumnOrderingList()) : 0;
-        int maxValueBaseColumnPosition = 0;
-        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
-            if (i > maxValueBaseColumnPosition)
-                maxValueBaseColumnPosition = i;
-        }
-
-        ExecRow decodedRow = new ValueRow(Math.max(maxKeyBaseColumnPosition, maxValueBaseColumnPosition) + 1);
+        ExecRow decodedRow = new ValueRow(mainColToIndexPosMap.length + 1);
 
         if (baseRowSerializers == null)
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];

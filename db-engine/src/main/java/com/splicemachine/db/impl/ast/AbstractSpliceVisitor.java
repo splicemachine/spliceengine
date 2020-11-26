@@ -657,6 +657,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(DecimalFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(SetRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -867,11 +872,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
-    public Visitable visit(BinaryExportNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
     public Visitable visit(KafkaExportNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -880,16 +880,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 	public Visitable visit(OrderByNode node) throws StandardException {
         return defaultVisit(node);
 	}
-
-    @Override
-    public Visitable visit(CreatePinNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
-    public Visitable visit(DropPinNode node) throws StandardException {
-        return defaultVisit(node);
-    }
 
     @Override
     public Visitable visit(SetSessionPropertyNode node) throws StandardException {

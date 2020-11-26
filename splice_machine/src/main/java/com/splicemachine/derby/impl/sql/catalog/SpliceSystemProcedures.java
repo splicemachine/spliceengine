@@ -28,6 +28,7 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
@@ -430,6 +431,25 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("charset",32672)
                             .build();
                     procedures.add(importWithBadRecords);
+
+
+                    Procedure loadReplaceProc = Procedure.newBuilder().name("LOAD_REPLACE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(loadReplaceProc);
 
                     Procedure importUnsafe = Procedure.newBuilder().name("IMPORT_DATA_UNSAFE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
@@ -942,6 +962,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(vacuum);
 
+
                     /*
                      * Procedure to return timestamp generator info
                      */
@@ -1053,6 +1074,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      * which only operates on a single node.
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
                             .numOutputParams(0)
                             .numResultSets(0)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
@@ -1534,6 +1569,36 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(replicationEnabled);
+
+                    Procedure beginRollingUpgrade = Procedure.newBuilder().name("BEGIN_ROLLING_UPGRADE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(beginRollingUpgrade);
+
+                    Procedure endRollingUpgrade = Procedure.newBuilder().name("END_ROLLING_UPGRADE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(endRollingUpgrade);
+
+                    Procedure unloadRegions = Procedure.newBuilder().name("UNLOAD_REGIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("hostAndPort", 32672)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(unloadRegions);
+
+                    Procedure loadRegions = Procedure.newBuilder().name("LOAD_REGIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("hostAndPort", 32672)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(loadRegions);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

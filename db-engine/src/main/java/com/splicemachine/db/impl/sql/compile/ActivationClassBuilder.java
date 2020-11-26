@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 
 import java.lang.reflect.Modifier;
 
@@ -85,7 +86,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
 
     private MethodBuilder closeActivationMethod;
     private DataSetProcessorType pushedType;
-
+    private SparkExecutionType pushedSparkExecutionType;
 
     ///////////////////////////////////////////////////////////////////////
     //
@@ -113,7 +114,9 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         super( superClass, (String) null, cc );
         executeMethod = beginExecuteMethod();
         materializationMethod = beginMaterializationMethod();
+        subqueryResultSetMethod = beginSubqueryResultSetMethod();
         pushedType = null;
+        pushedSparkExecutionType = null;
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -193,6 +196,19 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         }
     }
 
+    @Override
+    public void setSparkExecutionType(SparkExecutionType type) {
+        if (pushedSparkExecutionType != null) {
+            assert pushedSparkExecutionType == type;
+        } else {
+            pushedSparkExecutionType = type;
+            constructor.pushThis();
+            constructor.push(type.ordinal());
+            constructor.putField(ClassName.BaseActivation, "sparkExecutionType", "int");
+            constructor.endStatement();
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////
     //
     // EXECUTE METHODS
@@ -265,6 +281,21 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         mb.pushThis(); // instance
         mb.push("materialize");
         mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+
+        return mb;
+    }
+
+    private MethodBuilder beginSubqueryResultSetMethod() throws StandardException {
+        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
+                "java.util.Vector", "getSubqueryResultSets");
+        mb.addThrownException(ClassName.StandardException);
+
+        mb.pushThis(); // instance
+        mb.push("getSubqueryResultSets");
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+
+        mb.pushNewStart("java.util.Vector");
+        mb.pushNewComplete(0);
         return mb;
     }
 
@@ -275,7 +306,6 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         mb.addThrownException(ClassName.StandardException);
         mb.pushThis();
         mb.callMethod(VMOpcode.INVOKESPECIAL, ClassName.BaseActivation, "reset", "void", 0);
-
 
         return mb;
     }
@@ -321,9 +351,22 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         }
     }
 
+    void addSubqueryResultSet(MethodBuilder mb) {
+        subqueryResultSetMethod.dup();
+        subqueryResultSetMethod.pushThis();
+        subqueryResultSetMethod.callMethod(VMOpcode.INVOKEVIRTUAL, null, mb.getName(), ClassName.ResultSet, 0);
+        subqueryResultSetMethod.upCast("java.lang.Object");
+        subqueryResultSetMethod.callMethod(VMOpcode.INVOKEVIRTUAL, "java.util.Vector", "addElement", "void", 1);
+    }
+
     void finishMaterializationMethod() {
         materializationMethod.methodReturn();
         materializationMethod.complete();
+    }
+
+    void finishSubqueryResultSetMethod() {
+        subqueryResultSetMethod.methodReturn();
+        subqueryResultSetMethod.complete();
     }
     ///////////////////////////////////////////////////////////////////////
     //

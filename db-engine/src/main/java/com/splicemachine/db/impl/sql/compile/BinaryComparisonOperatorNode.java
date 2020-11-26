@@ -31,19 +31,21 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This node is the superclass  for all binary comparison operators, such as =,
@@ -202,6 +204,41 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 			}
 		}
 
+        if ((leftTypeId.isFixedBitDataTypeId() || leftTypeId.isVarBitDataTypeId()) && rightTypeId.isStringTypeId()) {
+            // pad the constant value before casting for fixed bit data type
+            if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) rightOperand, (ColumnReference) leftOperand);
+            }
+            // cast String to BitType but keep the original string's length
+            rightOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    rightOperand,
+                    new DataTypeDescriptor(
+                            leftTypeId,
+                            true,
+                            rightOperand.getTypeServices().getMaximumWidth()),
+                    getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+            rightTypeId = rightOperand.getTypeId();
+        } else if ((rightTypeId.isFixedBitDataTypeId() || rightTypeId.isVarBitDataTypeId()) && leftTypeId.isStringTypeId()) {
+            // pad the constant value before casting for fixed bit data type
+            if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
+            }
+
+            // cast String to BitType
+            leftOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    leftOperand,
+                    new DataTypeDescriptor(
+                            rightTypeId,
+                            true,
+                            leftOperand.getTypeServices().getMaximumWidth()),
+                    getContextManager());
+            ((CastNode) leftOperand).bindCastNodeOnly();
+            leftTypeId = leftOperand.getTypeId();
+        }
+
 		if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
@@ -246,6 +283,13 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
         }
 
+        // do similar padding for fixed bit data type
+        if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) rightOperand, (ColumnReference) leftOperand);
+        } else if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) leftOperand, (ColumnReference) rightOperand);
+        }
+
 		/* Test type compatibility and set type info for this node */
 		bindComparisonOperator();
 
@@ -255,9 +299,38 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
     private static void rightPadCharConstantNode(CharConstantNode constantNode, ColumnReference columnReference) throws StandardException {
         String stringConstant = constantNode.getString();
         int maxSize = columnReference.getTypeServices().getMaximumWidth();
-        constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
+        String newStringConstant = StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize);
+        constantNode.setValue(new SQLChar(newStringConstant));
+        DataTypeDescriptor updatedType = new DataTypeDescriptor(
+                constantNode.getTypeId(),
+                true,
+                newStringConstant.length());
+        constantNode.setType(updatedType);
     }
 
+    private static byte[] padBitData(byte[] value, byte padVal, int sizeWithPad) {
+        if (value == null || value.length >= sizeWithPad)
+            return value;
+
+        byte[] newVal = new byte[sizeWithPad];
+
+        System.arraycopy(value, 0, newVal, 0, value.length);
+        Arrays.fill(newVal, value.length, sizeWithPad, padVal);
+
+        return newVal;
+    }
+
+    private static void rightPadBitDataConstantNode(BitConstantNode constantNode, ColumnReference columnReference) throws StandardException {
+        byte[] bitDataConstant = (byte[])constantNode.getConstantValueAsObject();
+        int maxSize = columnReference.getTypeServices().getMaximumWidth();
+        byte[] newBitDataConstant = padBitData(bitDataConstant, (byte) 0x20, maxSize);
+        constantNode.setValue(new SQLBit(newBitDataConstant));
+        DataTypeDescriptor updatedType = new DataTypeDescriptor(
+                constantNode.getTypeId(),
+                true,
+                newBitDataConstant.length);
+        constantNode.setType(updatedType);
+    }
 
     /**
 	 * Test the type compatability of the operands and set the type info
@@ -269,25 +342,36 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	public void bindComparisonOperator()
 			throws StandardException
 	{
-		boolean				nullableResult;
+		ValueNode left = normalizeOperand(leftOperand);
+		ValueNode right = normalizeOperand(rightOperand);
 
+		boolean cmp;
+		boolean nullableResult;
 
 		/*
 		** Can the types be compared to each other?  If not, throw an
 		** exception.
 		*/
-
-        boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
+		if (left instanceof ValueTupleNode && right instanceof ValueTupleNode) {
+			cmp = ((ValueTupleNode) left).typeComparable((ValueTupleNode) right);
+			nullableResult = ((ValueTupleNode) left).containsNullableElement() ||
+					((ValueTupleNode) right).containsNullableElement();
+		} else {
+			assert !(left instanceof ValueTupleNode || right instanceof ValueTupleNode) : "value tuple compared to non-tuple";
+			cmp = left.getTypeServices().comparable(right.getTypeServices());
+			nullableResult = left.getTypeServices().isNullable() ||
+					right.getTypeServices().isNullable();
+		}
 		// Bypass the comparable check if this is a rewrite from the 
 		// optimizer.  We will assume Mr. Optimizer knows what he is doing.
-          if (!cmp && !forQueryRewrite) {
-			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE, 
-					leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
-					rightOperand.getTypeServices().getSQLTypeNameWithCollation());
-				
-		  }
+		if (!cmp && !forQueryRewrite) {
+			DataTypeDescriptor leftDTD = left.getTypeServices();
+			DataTypeDescriptor rightDTD = right.getTypeServices();
+			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
+					leftDTD == null ? "left type" : leftDTD.getSQLTypeNameWithCollation() ,
+					rightDTD == null ? "right type" : rightDTD.getSQLTypeNameWithCollation());
+		}
 
-		
 		/*
 		** Set the result type of this comparison operator based on the
 		** operands.  The result type is always SQLBoolean - the only question
@@ -295,11 +379,19 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-		nullableResult = leftOperand.getTypeServices().isNullable() ||
-							rightOperand.getTypeServices().isNullable();
 		setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
+	}
 
-
+	private static ValueNode normalizeOperand(ValueNode operand) throws StandardException {
+		if (operand instanceof ValueTupleNode) {
+			ValueTupleNode items = (ValueTupleNode) operand;
+			if (items.size() == 1) {
+				return items.get(0);
+			}
+		} else if (operand instanceof SubqueryNode) {
+			return ((SubqueryNode) operand).getRightOperand();
+		}
+		return operand;
 	}
 
 	/**
@@ -494,5 +586,31 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		}
 
 		return this;
+	}
+
+	@Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		if (childRCL == null) {
+			return this;
+		}
+		if (leftOperand != null) {
+			leftOperand = leftOperand.replaceIndexExpression(childRCL);
+		}
+		if (rightOperand != null) {
+			rightOperand = rightOperand.replaceIndexExpression(childRCL);
+		}
+		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		boolean result = true;
+		if (leftOperand != null) {
+			result = leftOperand.collectExpressions(exprMap);
+		}
+		if (rightOperand != null) {
+			result = result && rightOperand.collectExpressions(exprMap);
+		}
+		return result;
 	}
 }

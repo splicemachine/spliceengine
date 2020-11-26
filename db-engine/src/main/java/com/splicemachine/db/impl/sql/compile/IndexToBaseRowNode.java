@@ -409,4 +409,11 @@ public class IndexToBaseRowNode extends FromTable{
                 attrDelim + getFinalCostEstimate(false).prettyIndexLookupString(attrDelim) +
                 ")";
     }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (restrictionList != null) {
+            restrictionList.replaceIndexExpression(childRCL);
+        }
+    }
 }

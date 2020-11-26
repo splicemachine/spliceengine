@@ -742,6 +742,15 @@ public interface Property {
     String	LANG_PROPERTY_CACHE_SIZE = "derby.language.propertyCacheSize";
     int		LANG_PROPERTY_CACHE_SIZE_DEFAULT =128;
 
+
+    /**
+     * The size of the constraint descriptor cache which is used to build the foreign key graph.
+     * <p>
+     * Undocumented.
+     */
+    String  LANG_CONSTRAINT_CACHE_SIZE = "derby.language.constraintCacheSize";
+    int     LANG_CONSTRAINT_CACHE_SIZE_DEFAULT =1024;
+
     /**
      * Name of the implementation of SequencePreallocator which is used
      * to tune how many values Derby pre-allocates for identity columns
@@ -1352,15 +1361,15 @@ public interface Property {
     /**
      * The maximum number of IN list items the optimizer is allowed to generate by combining
      * IN lists involving index or primary key columns into a single multicolumn IN list.
+     * Default value is 5000.  The maximum value for this parameter is 10000.
      */
     String MAX_MULTICOLUMN_PROBE_VALUES =
             "derby.database.maxMulticolumnProbeValues";
 
     /**
      * If true, allow conversion of single-column IN lists into a multicolumn IN list
-     * for use as a probe predicate when executing on Spark.  By default, this
-     * optimization is only used on control because the greater number of union
-     * operations on Spark leads to worse performance.
+     * for use as a probe predicate when executing on Spark.
+     * By default, this is true.
      *
      */
     String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =
@@ -1464,12 +1473,18 @@ public interface Property {
      * Default schema for this connection
      */
     String CONNECTION_SCHEMA = "schema";
+    String CONNECTION_CURRENT_SCHEMA = "currentSchema";
 
     /**
      * True force Spark execution for this session; false forces Control execution for this connection
      */
     String CONNECTION_USE_SPARK = "useSpark";
     String CONNECTION_USE_OLAP = "useOLAP";
+
+    /**
+     * True hints native spark execution for this session; false hints non native spark execution for this connection
+     */
+    String CONNECTION_USE_NATIVE_SPARK = "useNativeSpark";
 
     /**
      * True ignores statistics for this connection
@@ -1513,5 +1528,17 @@ public interface Property {
     String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
+
+    String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
+
+    String SPLICE_NEW_MERGE_JOIN =
+            "splice.execution.newMergeJoin";
+
+    /**
+     * If enabled, disable calculation of join costs as cost per parallel task
+     * and revert to using the old units: cost per partition (cost per region).
+     */
+    String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
+            "splice.optimizer.disablePerParallelTaskJoinCosting";
 }
 

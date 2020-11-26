@@ -111,9 +111,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             + "parameter style java external name "
             + "'org.splicetest.sqlj.SqlJTestProcs.intProcedure' reads sql data");
             // If running tests in IntelliJ, use one of the commented-out versions of STORED_PROCS_JAR_FILE.
-            String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
-            //String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../platform_it/target/sql-it/sql-it.jar";
-            //String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../mem_sql/target/sql-it/sql-it.jar";
+            String STORED_PROCS_JAR_FILE = getSqlItJarFile();
             String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
             s.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
             s.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
@@ -887,6 +885,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     // Cause trigger rows to go over 1000000, causing a
     // rollback and switch to spark execution.
+    @Ignore
     @Test
     public void testNestedTriggersSwitchToSpark() throws Exception {
         try(Statement s = conn.createStatement()) {

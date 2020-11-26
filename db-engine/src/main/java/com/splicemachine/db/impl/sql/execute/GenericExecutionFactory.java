@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -275,7 +276,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                 targetTableName,
                 aiCounters,
                 null,
-                false);
+                false,
+                (SPSDescriptor) null);
     }
 
     public TriggerExecutionContext getTriggerExecutionContext(ConnectionContext cc,
@@ -287,6 +289,29 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                                               Vector<AutoincrementCounter> aiCounters,
                                                               FormatableBitSet heapList,
                                                               boolean fromSparkExecution) throws StandardException {
+        return getTriggerExecutionContext(cc,
+                                          statementText,
+                                          changedColIds,
+                                          changedColNames,
+                                          targetTableId,
+                                          targetTableName,
+                                          aiCounters,
+                                          heapList,
+                                          fromSparkExecution,
+                                          (SPSDescriptor) null);
+
+    }
+
+    public TriggerExecutionContext getTriggerExecutionContext(ConnectionContext cc,
+                                                              String statementText,
+                                                              int[] changedColIds,
+                                                              String[] changedColNames,
+                                                              UUID targetTableId,
+                                                              String targetTableName,
+                                                              Vector<AutoincrementCounter> aiCounters,
+                                                              FormatableBitSet heapList,
+                                                              boolean fromSparkExecution,
+                                                              SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         return new TriggerExecutionContext(cc,
                 statementText,
                 changedColIds,
@@ -295,7 +320,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                 targetTableName,
                 aiCounters,
                 heapList,
-                fromSparkExecution);
+                fromSparkExecution,
+                fromTableDmlSpsDescriptor);
     }
     /*
         Old RowFactory interface

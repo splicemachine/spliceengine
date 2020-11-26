@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -31,8 +30,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,36 +83,35 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     /**
      * Constructor.  Just save off the relevant probing state and pass
      * everything else up to TableScanResultSet.
-     * 
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      * @exception StandardException thrown on failure to open
      */
     public MultiProbeTableScanOperation(long conglomId,
-        StaticCompiledOpenConglomInfo scoci, Activation activation, 
-        GeneratedMethod resultRowAllocator, 
-        int resultSetNumber,
-        GeneratedMethod startKeyGetter, int startSearchOperator,
-        GeneratedMethod stopKeyGetter, int stopSearchOperator,
-        boolean sameStartStopPosition,
-        boolean rowIdKey,
-        String qualifiersField,
-        GeneratedMethod getProbingValsFunc,
-        int sortRequired,
-        int inlistPosition,
-        int inlistTypeArrayItem,
-        String tableName,
-        String userSuppliedOptimizerOverrides,
-        String indexName,
-        boolean isConstraint,
-        boolean forUpdate,
-        int colRefItem,
-        int indexColItem,
-        int lockMode,
-        boolean tableLocked,
-        int isolationLevel,
-        boolean oneRowScan,
-        double optimizerEstimatedRowCount,
-        double optimizerEstimatedCost, String tableVersion,
-                                        boolean pin,
+                                        StaticCompiledOpenConglomInfo scoci, Activation activation,
+                                        GeneratedMethod resultRowAllocator,
+                                        int resultSetNumber,
+                                        GeneratedMethod startKeyGetter, int startSearchOperator,
+                                        GeneratedMethod stopKeyGetter, int stopSearchOperator,
+                                        boolean sameStartStopPosition,
+                                        boolean rowIdKey,
+                                        String qualifiersField,
+                                        GeneratedMethod getProbingValsFunc,
+                                        int sortRequired,
+                                        int inlistPosition,
+                                        int inlistTypeArrayItem,
+                                        String tableName,
+                                        String userSuppliedOptimizerOverrides,
+                                        String indexName,
+                                        boolean isConstraint,
+                                        boolean forUpdate,
+                                        int colRefItem,
+                                        int indexColItem,
+                                        int lockMode,
+                                        boolean tableLocked,
+                                        int isolationLevel,
+                                        boolean oneRowScan,
+                                        double optimizerEstimatedRowCount,
+                                        double optimizerEstimatedCost, String tableVersion,
                                         int splits,
                                         String delimited,
                                         String escaped,
@@ -125,8 +121,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int partitionByRefItem,
                                         GeneratedMethod defaultRowFunc,
                                         int defaultValueMapItem,
-                                        GeneratedMethod pastTxFunctor
-                                        )
+                                        GeneratedMethod pastTxFunctor,
+                                        Long minRetentionPeriod)
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -158,16 +154,17 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             1, // rowsPerRead
             oneRowScan,
             optimizerEstimatedRowCount,
-            optimizerEstimatedCost,tableVersion,pin,splits,
-                delimited,
-                escaped,
-                lines,
-                storedAs,
-                location,
-                partitionByRefItem,
-                defaultRowFunc,
-                defaultValueMapItem,
-                pastTxFunctor);
+            optimizerEstimatedCost,tableVersion, splits,
+            delimited,
+            escaped,
+            lines,
+            storedAs,
+            location,
+            partitionByRefItem,
+            defaultRowFunc,
+            defaultValueMapItem,
+            pastTxFunctor,
+            minRetentionPeriod);
 
         this.inlistPosition = inlistPosition;
 
@@ -199,19 +196,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        inlistPosition = in.readInt();
-
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(inlistPosition);
-    }
-
-    @Override
     public String toString() {
         return "MultiProbe"+super.toString();
     }
@@ -223,7 +207,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         try {
             TxnView txn = getCurrentTransaction();
-            DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
@@ -248,7 +231,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .keyDecodingMap(getKeyDecodingMap())
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
-                        .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap());
 
                 datasets.add(ssb);

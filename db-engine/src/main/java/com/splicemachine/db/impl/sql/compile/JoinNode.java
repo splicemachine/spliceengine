@@ -57,6 +57,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoinExecutionType.*;
 import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.AND;
 
 /**
@@ -368,6 +369,31 @@ public class JoinNode extends TableOperatorNode{
         return true;
     }
 
+    private static void getNewResultColumns(ResultColumnList oldRCL, ResultColumnList newRCL, ResultSetNode child)
+            throws StandardException
+    {
+        ResultColumnList childRCL = child.getResultColumns();
+        if (childRCL.isFromExprIndex()) {
+            ResultColumnList childCopy = childRCL.copyListAndObjects();
+            childCopy.genVirtualColumnNodes(child, childRCL);
+            for (ResultColumn childRC : childCopy) {
+                newRCL.addResultColumn(childRC);
+            }
+            newRCL.setFromExprIndex(true);
+        } else {
+            Set<ResultColumn> childRCSet = new HashSet<>();
+            for (ResultColumn childRC : childRCL) {
+                childRCSet.add(childRC);
+            }
+            for (ResultColumn oldRC : oldRCL) {
+                ResultColumn source = oldRC.getChildResultColumn();
+                if (childRCSet.contains(source)) {
+                    newRCL.addResultColumn(oldRC);
+                }
+            }
+        }
+    }
+
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         // modify access path for On clause subqueries
@@ -375,6 +401,33 @@ public class JoinNode extends TableOperatorNode{
             subqueryList.modifyAccessPaths();
 
         super.modifyAccessPath(outerTables);
+
+        /* If any of the two children has chosen an index on expression, result
+         * columns have to be rebuilt because the number may change. Column
+         * mapping between parent node and this node is broken after reassigning
+         * resultColumns. For this reason, resultColumns of (grand-)parent nodes
+         * must be rebuilt until the top select node in the current query block.
+         *
+         * This logic handles nested JoinNode. If parent node is a PRN, its
+         * result columns are rebuilt in its modifyAccessPath() method. If
+         * parent is SelectNode, there is no need to rebuild its result columns
+         * but only replace their expressions.
+         */
+        if (leftResultSet.getResultColumns().isFromExprIndex() || rightResultSet.getResultColumns().isFromExprIndex()) {
+            ResultColumnList newResultColumns = (ResultColumnList) getNodeFactory()
+                    .getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+            newResultColumns.copyOrderBySelect(resultColumns);
+
+            getNewResultColumns(resultColumns, newResultColumns, leftResultSet);
+            getNewResultColumns(resultColumns, newResultColumns, rightResultSet);
+            resultColumns = newResultColumns;
+            assert resultColumns.size() == leftResultSet.getResultColumns().size() + rightResultSet.getResultColumns().size();
+        }
+
+        // replace join predicates pushed down to right
+        if (leftResultSet.getResultColumns().isFromExprIndex()) {
+            rightResultSet.replaceIndexExpressions(leftResultSet.getResultColumns());
+        }
 
         /* By the time we're done here, both the left and right
          * predicate lists should be empty because we pushed everything
@@ -683,7 +736,7 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList);
@@ -1165,6 +1218,12 @@ public class JoinNode extends TableOperatorNode{
         resultColumns.setResultSetNumber(getResultSetNumber());
     }
 
+    public boolean favorOldMergeJoin(CostEstimate costEstimate) {
+        double probingReductionRatio = costEstimate.singleScanRowCount() / costEstimate.getScannedBaseTableRows();
+        // Favor Old Merge Join if we estimate probing won't reduce the scanned row count much.
+        return probingReductionRatio < 2.0;
+    }
+
     /**
      * Some types of joins (e.g. outer joins) will return a different
      * number of rows than is predicted by optimizeIt() in JoinNode.
@@ -1296,19 +1355,42 @@ public class JoinNode extends TableOperatorNode{
          */
         String joinResultSetString;
 
+        AccessPath ap = ((Optimizable)rightResultSet).getTrulyTheBestAccessPath();
         if (joinType==FULLOUTERJOIN) {
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().fullOuterJoinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().fullOuterJoinResultSetMethodName();
         } else if(joinType==LEFTOUTERJOIN){
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().halfOuterJoinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().halfOuterJoinResultSetMethodName();
         }else{
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().joinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().joinResultSetMethodName();
         }
 
         acb.pushGetResultSetFactoryExpression(mb);
         int nargs=getJoinArguments(acb,mb,joinClause);
+        if (RSUtils.isMJ(ap)) {
+            nargs++;
+
+            CompilerContext.NewMergeJoinExecutionType
+                newMergeJoin = getCompilerContext().getNewMergeJoin();
+
+            // Favor Old Merge Join if we estimate probing won't reduce the scanned row count much.
+            boolean chooseOldMergeJoin = favorOldMergeJoin(ap.getCostEstimate());
+            if (chooseOldMergeJoin) {
+                if (newMergeJoin == SYSTEM)
+                    newMergeJoin = SYSTEM_OFF;
+                else if (newMergeJoin == ON)
+                    newMergeJoin = OFF;
+                else if (newMergeJoin == SYSTEM_OFF) {
+                    // SYSTEM_OFF should not be allowed as a setting of the property.
+                    // It is only used for communication from the parser to the
+                    // execution engine.
+                    if(SanityManager.DEBUG)
+                        SanityManager.THROWASSERT(
+                                "Illegal setting of newMergeJoin in "+this.getClass().getName()+this);
+                }
+            }
+            mb.push(newMergeJoin.ordinal());
+        }
+
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,joinResultSetString,ClassName.NoPutResultSet,nargs);
     }
@@ -2109,6 +2191,11 @@ public class JoinNode extends TableOperatorNode{
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+        if (joinStrategy.getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE)) {
+            if (favorOldMergeJoin(RSUtils.ap(this).getCostEstimate()) &&
+                getCompilerContext().getNewMergeJoin() != FORCED)
+                sb.append(attrDelim).append("OldMergeJoin");
+        }
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && !joinPreds.isEmpty())
@@ -2272,5 +2359,25 @@ public class JoinNode extends TableOperatorNode{
 
     public void resetOptimized() {
         optimized = false;
+    }
+
+    public ValueNode getJoinClause() { return joinClause; }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (joinClause != null) {
+            result = joinClause.collectExpressions(exprMap);
+        }
+        if (joinPredicates != null) {
+            result = result && joinPredicates.collectExpressions(exprMap);
+        }
+        if (leftPredicateList != null) {
+            result = result && leftPredicateList.collectExpressions(exprMap);
+        }
+        if (rightPredicateList != null) {
+            result = result && rightPredicateList.collectExpressions(exprMap);
+        }
+        return result && super.collectExpressions(exprMap);
     }
 }

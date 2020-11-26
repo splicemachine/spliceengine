@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Hashtable;
@@ -59,7 +60,7 @@ import java.util.Vector;
  * UPDATE or DELETE.
  *
  */
-
+@SuppressFBWarnings({"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 abstract class DMLModStatementNode extends DMLStatementNode
 {
 //    protected DataDictionary    dataDictionary;
@@ -70,7 +71,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
     protected FKInfo[]            fkInfo;            // array of FKInfo structures
                                                 // generated during bind
-    protected TriggerInfo        triggerInfo;    // generated during bind
+    protected TriggerInfo       triggerInfo;    // generated during bind
     public TableDescriptor        targetTableDescriptor;
 
 
@@ -870,6 +871,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
      *
      * @return the array of fkinfos
      */
+    @SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
     public FKInfo[] getFKInfo()
     {
         if (SanityManager.DEBUG)
@@ -1517,11 +1519,17 @@ abstract class DMLModStatementNode extends DMLStatementNode
             ** If this index doesn't contain any updated
             ** columns, then we can skip it.
             */
-            if ((updatedColumns != null) &&
-                    (!updatedColumns.updateOverlaps(
-                            cd.getIndexDescriptor().baseColumnPositions()))) {
-                continue;
-            }
+            // We must include all indexes in the update for now,
+            // because the logic to determine which indexes need to
+            // be updated is broken and needs a lot of rework.
+            // TODO: Re-enable this code once UpdateOperation is
+            //       properly trained to detect which indexes
+            //       can skip the update.
+//            if ((updatedColumns != null) &&
+//                    (!updatedColumns.updateOverlaps(
+//                            cd.getIndexDescriptor().baseColumnPositions()))) {
+//                continue;
+//            }
 
             if (conglomVector != null) {
                 int i;
@@ -1737,6 +1745,10 @@ abstract class DMLModStatementNode extends DMLStatementNode
             targetTableName.accept(v, this);
         }
     }
+
+    public TableDescriptor getTargetTableDescriptor() { return targetTableDescriptor; }
+
+    public TableName getTargetTableName() { return targetTableName; }
 }
 
 

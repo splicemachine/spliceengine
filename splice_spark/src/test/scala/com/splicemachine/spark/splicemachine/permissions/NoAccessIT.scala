@@ -23,12 +23,13 @@ class NoAccessIT extends PermissionsIT {
 
   val schemaDoesntExist = s"java.sql.SQLSyntaxErrorException: Schema '$schema' does not exist"
   val noPrimaryKey = s"java.lang.UnsupportedOperationException: Primary Key Required for the Table to Perform "
+  val noColumnA = "java.lang.Exception: No column named A found in the table. Verify column name and case sensitivity."
   
   override val msgExceptionDF = schemaDoesntExist
   override val msgExceptionTruncate = schemaDoesntExist
-  override val msgExceptionDelete = noPrimaryKey+"Deletes"
+  override val msgExceptionDelete = noColumnA
   override val msgExceptionInsert = schemaDoesntExist
   override val msgExceptionUpdate = noPrimaryKey+"Updates"
-  override val msgExceptionUpdate2 = msgExceptionUpdate
+  override val msgExceptionUpdate2 = noColumnA
   override val msgExceptionGetSchema = s"java.sql.SQLSyntaxErrorException: Schema '$schema' does not exist"
 }

@@ -153,6 +153,10 @@ public class OperatorToString {
      * references indicating column names in the source DataFrame.
      */
     public static String opToSparkString(ValueNode operand) throws StandardException {
+        if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
+            return "";
+        }
+
         String retval = "";
 
         // Do not throw any errors encountered.  An error condition
@@ -168,7 +172,7 @@ public class OperatorToString {
 
         }
         catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
+            if (!e.getSQLState().equals(SQLState.LANG_DOES_NOT_IMPLEMENT))
                 throw e;
         }
         return retval;
@@ -216,6 +220,7 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
+    // TODO(arnaud) add decfloat there
     private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
 
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
@@ -238,6 +243,7 @@ public class OperatorToString {
                 typeFormatId == INT_TYPE_ID      ||
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
+                typeFormatId == DECFLOAT_TYPE_ID ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
                 typeFormatId == REAL_TYPE_ID);
     }
@@ -245,6 +251,7 @@ public class OperatorToString {
     private static boolean isOverflowSensitive(ValueNode operand) throws StandardException {
         return (operand.getTypeId().getTypeFormatId() == LONGINT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                operand.getTypeId().getTypeFormatId() == DECFLOAT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DOUBLE_TYPE_ID);
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,
@@ -526,7 +533,7 @@ public class OperatorToString {
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
                         // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
-                        if (!(bao.getOperatorString() == "-" &&
+                        if (!(bao.getOperatorString().equals("-") &&
                                 leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
                             doCast = true;
                             targetType = bao.getTypeServices().toSparkString();
@@ -892,6 +899,13 @@ public class OperatorToString {
                 int typeFormatId = operand.getTypeId().getTypeFormatId();
                 if (!sparkSupportedType(typeFormatId, operand))
                     throwNotImplementedError();
+                if (operand.getTypeId().isCharOrVarChar()) {
+                    // Disallow cast to a string type for possible problematic cases.
+                    // CHAR and VARCHAR are mapped to the same String type in spark sql,
+                    // so char('', 2) and varchar('', 2) are resolved to the same type, with lenght 0
+                    // varchar('abc', 1) and char('abc', 1) don't truncate strings properly either
+                    throwNotImplementedError();
+                }
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
                 SparkExpressionNode childExpression = vars.sparkExpressionTree;
@@ -945,7 +959,13 @@ public class OperatorToString {
                 ValueNode vn = (ValueNode)ob;
                 if (i > 0)
                     sb.append(", ");
-                sb.append(format("%s", opToString2(vn, vars)));
+                if (operand.getTypeServices().equals(vn.getTypeServices())) {
+                    sb.append(opToString2(vn, vars));
+                } else {
+                    sb.append(format("cast(%s as %s)",
+                            opToString2(vn, vars),
+                            operand.getTypeServices().toSparkString()));
+                }
                 i++;
             }
             sb.append(") ");

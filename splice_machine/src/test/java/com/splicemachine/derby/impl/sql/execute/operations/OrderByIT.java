@@ -34,8 +34,8 @@ import static com.splicemachine.test_tools.Rows.rows;
  */
 public class OrderByIT extends SpliceUnitTest {
     public static final String CLASS_NAME = OrderByIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -388,7 +388,7 @@ public class OrderByIT extends SpliceUnitTest {
         String expected = "ALIAS |\n" +
                          "--------\n" +
                          "  15   |" ;
-        SqlExpectToString( methodWatcher, sqlText, expected, false );
+        sqlExpectToString( methodWatcher, sqlText, expected, false );
 
         sqlText = "select sqrt(a1*a1)*2 as ALIAS from t2 order by -2*ALIAS+a1";
         expected = "ALIAS |\n" +
@@ -398,7 +398,7 @@ public class OrderByIT extends SpliceUnitTest {
                   "  6.0  |\n" +
                   "  4.0  |\n" +
                   "  2.0  |";
-        SqlExpectToString( methodWatcher, sqlText, expected, false );
+        sqlExpectToString( methodWatcher, sqlText, expected, false );
     }
 
     @Test
@@ -406,7 +406,7 @@ public class OrderByIT extends SpliceUnitTest {
         // use these TWO order by to make sure ResultColumnList correctly calculates getFirstOrderByIndex.
         String sqlText = "select a1 as ALIAS from t2 order by -ALIAS, -2*ALIAS";
         String expected = "ALIAS |\n--------\n   5   |\n   4   |\n   3   |\n   2   |\n   1   |";
-        SqlExpectToString( methodWatcher, sqlText, expected, false );
+        sqlExpectToString( methodWatcher, sqlText, expected, false );
     }
 
     // make sure we disable access to alias for WHERE, HAVING and GROUP BY
@@ -416,15 +416,15 @@ public class OrderByIT extends SpliceUnitTest {
                 {       "select a1+1 as ALIAS from t2 WHERE ALIAS > 0 ORDER BY -ALIAS",
                         "select a1+1 as ALIAS from t2 GROUP BY ALIAS ORDER BY -ALIAS",
                         "select a1, sum(b1+1) as ALIAS from t1 GROUP BY a1 HAVING ALIAS > 0 ORDER BY -ALIAS"
-                        };
+                };
         for( String sqlText : sqlTexts ) {
-            SqlExpectException( methodWatcher, sqlText, "42X04" );
+            sqlExpectException( methodWatcher, sqlText, "42X04", false);
         }
     }
     // avoid that we refer an alias on the more left hand side inside the same select
     @Test
     public void testAliasNoLeftToRightReferal() throws Exception {
-        SqlExpectException( methodWatcher, "select a1*2 as ALIAS1, ALIAS1+1 as ALIAS2 from t2 order by -ALIAS2", "42X04" );
+        sqlExpectException( methodWatcher, "select a1*2 as ALIAS1, ALIAS1+1 as ALIAS2 from t2 order by -ALIAS2", "42X04", false);
     }
 
     @Test
@@ -435,7 +435,7 @@ public class OrderByIT extends SpliceUnitTest {
                         "select a1 from t2 ORDER BY 2"
                 };
         for( String sqlText : sqlTexts ) {
-            SqlExpectException( methodWatcher, sqlText, "42X77" );
+            sqlExpectException( methodWatcher, sqlText, "42X77", false);
         }
     }
 }

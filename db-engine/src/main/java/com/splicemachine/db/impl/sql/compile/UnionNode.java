@@ -307,8 +307,9 @@ public class UnionNode extends SetOperatorNode{
         costEstimate.setRowCount(outputRows);
         costEstimate.setEstimatedHeapSize((long)heapSize);
         costEstimate.setNumPartitions(partitions);
-        costEstimate.setLocalCostPerPartition(costEstimate.localCost(), costEstimate.partitionCount());
-        costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.partitionCount());
+        costEstimate.setParallelism(Math.max(leftCost.getParallelism(), rightCost.getParallelism()));
+        costEstimate.setLocalCostPerParallelTask(costEstimate.localCost(), costEstimate.getParallelism());
+        costEstimate.setRemoteCostPerParallelTask(costEstimate.remoteCost(), costEstimate.getParallelism());
 
 
         /*
@@ -517,6 +518,9 @@ public class UnionNode extends SetOperatorNode{
     public void bindExpressions(FromList fromListParam) throws StandardException{
         super.bindExpressions(fromListParam);
 
+        if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
+            throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE_QUERY,
+                                                  "set operation");
         /*
         ** Each ? parameter in a table constructor that is not in an insert
         ** statement takes its type from the first non-? in its column

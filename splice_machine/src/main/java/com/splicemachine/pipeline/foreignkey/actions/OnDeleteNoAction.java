@@ -25,16 +25,13 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 
 public class OnDeleteNoAction extends OnDeleteAbstractAction {
 
-    private final String parentTableName;
-
     public OnDeleteNoAction(Long backingIndexConglomId,
                             DDLMessage.FKConstraintInfo constraintInfo,
                             WriteContext writeContext,
                             String parentTableName,
                             TxnOperationFactory txnOperationFactory,
                             ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
-        this.parentTableName = parentTableName;
+        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor, parentTableName);
     }
 
     @Override

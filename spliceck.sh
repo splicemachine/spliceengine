@@ -5,7 +5,14 @@ platform=cdh6.3.0
 function help() {
   echo "spliceck.sh [--platform <platform>] command"
   echo "<platform> The cluster platform, default is cdh6.3.0"
+  echo "to run in interactive mode use spliceck.sh [--platform <platform>] 'interactive'"
 }
+
+if hash rlwrap 2>/dev/null; then
+    RLWRAP=rlwrap
+else
+    RLWRAP=
+fi
 
 if [ $# -eq 0 ]
 then
@@ -22,7 +29,7 @@ else
       i="${i//\\/\\\\}"
       C="$C '${i//\'/\\\"}'"
   done
-  mvn -q -Pcore,${platform} -f ./splice_ck/pom.xml exec:java -Dexec.args="${C}"
+  RLWRAP mvn -q -Pcore,${platform} -f ./splice_ck/pom.xml exec:java -Dexec.args="${C}"
 fi
 
 

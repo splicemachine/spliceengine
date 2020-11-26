@@ -58,6 +58,8 @@ public class Types {
 
     public final static int DECIMAL = java.sql.Types.DECIMAL;       // 3;
 
+    public final static int DECFLOAT = com.splicemachine.db.iapi.reference.Types.DECFLOAT; // 3000
+
     public final static int CHAR = java.sql.Types.CHAR;          // 1;
 
     public final static int VARCHAR = java.sql.Types.VARCHAR;       // 12;
@@ -85,6 +87,7 @@ public class Types {
     public final static int ARRAY = java.sql.Types.ARRAY;          // 2003;
 
     public final static int ROWID = java.sql.Types.ROWID;
+
     // hide the default constructor
     private Types() {
    }
@@ -102,6 +105,7 @@ public class Types {
             case CLOB:          return "CLOB";
             case DATE:          return "DATE";
             case DECIMAL:       return "DECIMAL";
+            case DECFLOAT:      return "DECFLOAT";
             case DOUBLE:        return "DOUBLE";
             case INTEGER:       return "INTEGER";
             case LONGVARBINARY: return "LONGVARBINARY";
@@ -149,6 +153,8 @@ public class Types {
         case DRDAConstants.DB2_SQLTYPE_DECIMAL:            // can map to either NUMERIC or DECIMAL
         case DRDAConstants.DB2_SQLTYPE_NUMERIC:            // can map to either NUMERIC or DECIMAL
             return DECIMAL;
+        case DRDAConstants.DB2_SQLTYPE_DECFLOAT:
+            return DECFLOAT;
         case DRDAConstants.DB2_SQLTYPE_CHAR:    // mixed and single byte
             if (isDescribed && (ccsid == 0xffff || ccsid == 0)) {
                 return BINARY;

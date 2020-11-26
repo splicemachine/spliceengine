@@ -310,6 +310,14 @@ public class DDLUtils {
         }
     }
 
+    public static void preDropForeignKey(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
+        try {
+            dd.getDataDictionaryCache().constraintDescriptorListCacheRemove(ProtoUtil.getDerbyUUID(change.getTentativeFK().getConstraintUuid()));
+        } catch(Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
     /**
      *
      *
