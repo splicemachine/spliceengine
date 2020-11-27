@@ -419,15 +419,19 @@ public class ResultColumn extends ValueNode
         {
             return tableName;
         }
-        if ((columnDescriptor!=null) &&
+        else if ((columnDescriptor!=null) &&
                 (columnDescriptor.getTableDescriptor() != null))
         {
             return columnDescriptor.getTableDescriptor().getName();
         }
-        else
+        else if (expression != null)
         {
             return expression.getTableName();
         }
+        else if (indexExpression != null) {
+            return indexExpression.getTableName();
+        }
+        return null;
     }
 
     /**
@@ -1935,7 +1939,7 @@ public class ResultColumn extends ValueNode
             if (other.indexExpression != null) {
                 // an index expression has at least one column reference and all column
                 // references must refer to the same table
-                List<ColumnReference> crList = other.getHashableJoinColumnReference();
+                List<ColumnReference> crList = other.indexExpression.getHashableJoinColumnReference();
                 assert(!crList.isEmpty());
                 return crList.get(0).getTableNumber();
             }
@@ -2076,7 +2080,7 @@ public class ResultColumn extends ValueNode
     }
 
     public long getCoordinates() {
-        return getExpression().getCoordinates(this);
+        return ValueNode.getCoordinates(this);
     }
 
     public LongArrayList chain() {
