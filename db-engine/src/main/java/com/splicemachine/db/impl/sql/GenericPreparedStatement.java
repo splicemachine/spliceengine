@@ -390,13 +390,17 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
             lccToUse.popStatementContext(statementContext, null);
 
-            if (activation.isSingleExecution() && resultSet.isClosed()) {
+            if (activation.isSingleExecution()) {
+
                 // if the result set is 'done', i.e. not openable,
                 // then we can also release the activation.
                 // Note that a result set with output parameters
                 // or rows to return is explicitly finished
                 // by the user.
-                activation.close();
+                if (resultSet.isClosed())
+                    activation.close();
+                else
+                    resultSet.registerCloseable(activation);
             }
 
             return resultSet;

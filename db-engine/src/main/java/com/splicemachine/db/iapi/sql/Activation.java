@@ -84,7 +84,7 @@ import java.util.Hashtable;
  *
  */
 
-public interface Activation extends Dependent
+public interface Activation extends Dependent, AutoCloseable
 {
     /**
      * Resets the activation to the "pre-execution" state -
