@@ -313,6 +313,14 @@ public class VTIOperation extends SpliceBaseOperation {
                 fromTableDML_ResultSet = null;
             }
         }
+        if (fromTableDML_SPS != null) {
+            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+            if (lcc != null) {
+                TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
+                if (tec != null)
+                    tec.clearTrigger(false);
+            }
+        }
     }
 
     @Override

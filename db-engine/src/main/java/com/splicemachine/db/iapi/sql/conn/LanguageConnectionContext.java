@@ -41,10 +41,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -1408,6 +1405,8 @@ public interface LanguageConnectionContext extends Context {
 
     DataSetProcessorType getDataSetProcessorType();
 
+    SparkExecutionType getSparkExecutionType();
+
     /**
      *
      * Setting the dynamic withDescriptors
@@ -1487,5 +1486,9 @@ public interface LanguageConnectionContext extends Context {
                                                   CharTypeCompiler charTypeCompiler);
 
     void resetDB2VarcharCompatibilityMode();
+
+    void setCompilingFromTableTempTrigger(boolean newVal);
+
+    boolean isCompilingFromTableTempTrigger();
 
 }
