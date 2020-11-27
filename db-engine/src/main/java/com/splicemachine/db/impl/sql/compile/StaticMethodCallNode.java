@@ -817,6 +817,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // if truncation occurs when stuffing a string value into a
             // VARCHAR, so make sure CAST doesn't issue warning only.
             ((CastNode)castNode).setAssignmentSemantics();
+            ((CastNode)castNode).setIsFunctionArgument();
 
             return castNode;
         }
