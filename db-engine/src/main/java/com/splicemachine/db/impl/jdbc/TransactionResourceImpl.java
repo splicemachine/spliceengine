@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
@@ -136,6 +137,7 @@ public final class TransactionResourceImpl
     private String drdaID;
     private String rdbIntTkn;
     private DataSetProcessorType useSpark;
+    private SparkExecutionType useNativeSpark;
     private boolean skipStats;
     private double defaultSelectivityFactor;
 
@@ -177,6 +179,7 @@ public final class TransactionResourceImpl
         if (defaultSchema == null)
             defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
         useSpark = getDataSetProcessorType(info);
+        useNativeSpark = getSparkExecutionType(info);
 
         String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);
         if (skipStatsString != null) {
@@ -223,15 +226,26 @@ public final class TransactionResourceImpl
                 try {
                     // return the first config found, useOLAP before useSpark
                     return Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
-                            DataSetProcessorType.SESSION_HINTED_SPARK :
-                            DataSetProcessorType.SESSION_HINTED_CONTROL;
+                            DataSetProcessorType.SESSION_HINTED_OLAP :
+                            DataSetProcessorType.SESSION_HINTED_OLTP;
                 } catch (Exception sparkE) {
                     throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
                             propertyStr, val));
                 }
             }
         }
-        return DataSetProcessorType.DEFAULT_CONTROL; // no config found, return default.
+        return DataSetProcessorType.DEFAULT_OLTP; // no config found, return default.
+    }
+
+    private SparkExecutionType getSparkExecutionType(Properties info) throws SQLException
+    {
+        String val = info.getProperty(Property.CONNECTION_USE_NATIVE_SPARK, null);
+        if (val != null) {
+            return Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
+                    SparkExecutionType.SESSION_HINTED_NATIVE :
+                    SparkExecutionType.SESSION_HINTED_NON_NATIVE;
+        }
+        return SparkExecutionType.UNSPECIFIED;
     }
 
     /**
@@ -259,7 +273,7 @@ public final class TransactionResourceImpl
     void startTransaction() throws StandardException, SQLException
     {
         // setting up local connection
-        lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark,
+        lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark, useNativeSpark,
                 skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
     }
 

@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.sql;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
@@ -646,6 +647,8 @@ public interface Activation extends Dependent
     void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps);
 
     DataSetProcessorType datasetProcessorType();
+
+    SparkExecutionType sparkExecutionType();
 
     boolean isSubStatement();
 

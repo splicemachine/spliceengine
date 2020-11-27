@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -93,6 +94,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     protected int numSubqueries;
     protected int datasetProcessorType;
+    protected int sparkExecutionType;
 
     private boolean singleExecution;
 
@@ -313,6 +315,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
             if (ps.datasetProcessorType() != null) {
                 setDatasetProcessorType(ps.datasetProcessorType().ordinal());
             }
+            if (ps.sparkExecutionType() != null) {
+                setSparkExecutionType(ps.sparkExecutionType().ordinal());
+            }
 
             // Initialize the parameter set to have allocated
             // DataValueDescriptor objects for each parameter.
@@ -510,8 +515,17 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return DataSetProcessorType.values()[datasetProcessorType];
     }
 
+    @Override
+    public SparkExecutionType sparkExecutionType() {
+        return SparkExecutionType.values()[sparkExecutionType];
+    }
+
     public void setDatasetProcessorType(int datasetProcessorType) {
         this.datasetProcessorType = datasetProcessorType;
+    }
+
+    public void setSparkExecutionType(int sparkExecutionType) {
+        this.sparkExecutionType = sparkExecutionType;
     }
 
     /**
