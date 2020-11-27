@@ -224,10 +224,13 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public Set<Long> getActiveTransactionIds(final long minTxnId, final long maxTxnId, final byte[] writeTable) throws IOException {
         Set<Long> result = new HashSet<>();
-        for (Map.Entry<Long, List<byte[]>> activeTxn : activeTxnTracker.getActiveTransactions()) {
-            long txnId = activeTxn.getKey();
-            if (txnId >= minTxnId && txnId <= maxTxnId && activeTxn.getValue().contains(writeTable)) {
-                result.add(activeTxn.getKey());
+        for (Map.Entry<Long, Optional<List<byte[]>>> activeTxn : activeTxnTracker.getActiveTransactions().entrySet()) {
+            long key = activeTxn.getKey();
+            Optional<List<byte[]>> value = activeTxn.getValue();
+            if (key >= minTxnId && key <= maxTxnId) {
+                if(writeTable == null || (value.isPresent() && value.get().contains(writeTable))) {
+                    result.add(key);
+                }
             }
         }
         return result;
@@ -272,7 +275,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
     public TxnView getOldTransaction(long txnId, boolean getDestinationTables) throws IOException {
         byte[] rowKey = getOldTransactionRowKey(txnId);
-        TxnMessage.TxnRequest request = TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).setIsOld(true).build();
+        TxnMessage.TxnRequest request = TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).setIsOld(true).setIncludeDestinationTables(getDestinationTables).build();
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);

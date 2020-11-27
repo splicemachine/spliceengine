@@ -17,23 +17,28 @@ package com.splicemachine.si.api.txn;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class ActiveTxnTracker {
-    private ConcurrentMap<Long, List<byte[]>> activeTxns = new ConcurrentHashMap(1024);
+    private ConcurrentMap<Long, Optional<List<byte[]>>> activeTxns = new ConcurrentHashMap(1024);
 
     public void registerActiveTxn(long id, List<byte[]> destinationTables) {
-        activeTxns.put(id, destinationTables);
+        if(destinationTables == null) {
+            activeTxns.put(id, Optional.empty());
+        } else {
+            activeTxns.put(id, Optional.of(destinationTables));
+        }
     }
 
     public void unregisterActiveTxn(long id) {
         activeTxns.remove(id);
     }
 
-    public Set<Map.Entry<Long, List<byte[]>>> getActiveTransactions() {
-        return activeTxns.entrySet();
+    public ConcurrentMap<Long, Optional<List<byte[]>>> getActiveTransactions() {
+        return activeTxns;
     }
 
     public Long oldestActiveTransaction() {
