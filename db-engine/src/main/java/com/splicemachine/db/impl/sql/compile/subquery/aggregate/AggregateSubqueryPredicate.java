@@ -118,7 +118,16 @@ class AggregateSubqueryPredicate implements splice.com.google.common.base.Predic
                 (subquerySelectNode.getGroupByList() == null || subquerySelectNode.getGroupByList().isEmpty()))
             return false;
 
-        /* the aggregate must not be value-producing */
+        /*
+        * the aggregate must not be value-producing, flattening such aggregates could lead to wrong results since the resulting inner join
+        * could miss some rows.
+        * For example:
+        *    select a,b from table1 where 0 = (select count(table2.a) from table2 where table2.a = table1.a)
+        *     if table2 is empty, then count() will return 0 (value-producing), causing the where condition to be satisfied.
+        *     however, if we flatten, then we end up with something like this:
+        *    select table1.a,b from table1, (select table2.a, count(table2.a) from table2 group by table2.a having count(table2.a) = 0) X where table1.a = X.a
+        *     which will return empty result since the RHS of the join is empty, and the join type is inner.
+        */
         if(isValueProducingExpr(resultColumns.elementAt(0))) {
             return false;
         }

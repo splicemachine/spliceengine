@@ -706,6 +706,14 @@ public class Subquery_Flattening_Aggregate_IT {
                 "COL1 |COL2 |\n" +
                 "------------\n" +
                 " 42  | 43  |");
+
+        // however we still do flattening for non-value-producing aggregates:
+
+        sql = "select col1, col2 from t1 where (select sum(t1.col1)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 0, "");
+
+        sql = "select col1, col2 from t1 where (select avg(t1.col1) from t2 where col1 = t1.col1) = 0";
+        assertUnorderedResult(sql, 0, "");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
