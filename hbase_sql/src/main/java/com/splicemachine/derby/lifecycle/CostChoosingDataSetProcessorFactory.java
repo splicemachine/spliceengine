@@ -76,7 +76,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         if (op.isOlapServer())
             return new SparkDataSetProcessor();
 
-        if (((BaseActivation)activation).datasetProcessorType().isSpark()) {
+        if (((BaseActivation)activation).datasetProcessorType().isOlap()) {
             return new SparkDataSetProcessor();
         } else {
             return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());

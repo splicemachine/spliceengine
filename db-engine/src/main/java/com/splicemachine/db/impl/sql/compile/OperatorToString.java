@@ -153,6 +153,10 @@ public class OperatorToString {
      * references indicating column names in the source DataFrame.
      */
     public static String opToSparkString(ValueNode operand) throws StandardException {
+        if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
+            return "";
+        }
+
         String retval = "";
 
         // Do not throw any errors encountered.  An error condition
@@ -168,7 +172,7 @@ public class OperatorToString {
 
         }
         catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
+            if (!e.getSQLState().equals(SQLState.LANG_DOES_NOT_IMPLEMENT))
                 throw e;
         }
         return retval;

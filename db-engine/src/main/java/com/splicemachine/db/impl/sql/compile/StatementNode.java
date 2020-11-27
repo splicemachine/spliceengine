@@ -227,6 +227,7 @@ public abstract class StatementNode extends QueryTreeNode{
 
         // Set Spark
         generatingClass.setDataSetProcessorType(getCompilerContext().getDataSetProcessorType());
+        generatingClass.setSparkExecutionType(getCompilerContext().getSparkExecutionType());
 
         /*
          * Generate the code to execute this statement.

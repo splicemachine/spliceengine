@@ -518,6 +518,9 @@ public class UnionNode extends SetOperatorNode{
     public void bindExpressions(FromList fromListParam) throws StandardException{
         super.bindExpressions(fromListParam);
 
+        if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
+            throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE_QUERY,
+                                                  "set operation");
         /*
         ** Each ? parameter in a table constructor that is not in an insert
         ** statement takes its type from the first non-? in its column

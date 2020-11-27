@@ -2598,6 +2598,21 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testNativeSparkDisabled() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "native_spark_disabled";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE native_spark_disabled\n" +
+                "                    (col1 INT, col2 int, col3 int)\n" +
+                "                    COMPRESSED WITH snappy\n" +
+                "                    PARTITIONED BY (col2,col3)\n" +
+                "                    STORED AS PARQUET\n" +
+                "                    LOCATION '%s'", tablePath));
+        String sql = "sparkexplain select * from native_spark_disabled --splice-properties useOlap=true %s\n";
+        testQueryContains(format(sql, ", useNativeSpark=true"), "NativeSparkDataSet", methodWatcher, true);
+        testQueryContains(format(sql, ", useNativeSpark=false"), "ScrollInsensitive", methodWatcher, true);
+        testQueryContains(format(sql, ""), "NativeSparkDataSet", methodWatcher, true);
+    }
+
+    @Test
     public void testCompactionIgnoresExternalTables() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA('%s')",SCHEMA_NAME));

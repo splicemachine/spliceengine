@@ -563,7 +563,16 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         if (tempTriggerDefinition.isFinalTable()) {
             spsd.setFinalTableConglomID(tempTriggerDefinition.getTriggerTableDescriptor().getHeapConglomerateId());
         }
-        spsd.prepareAndRelease(lcc, null);
+        try {
+            // Set a flag so we can bypass pushing of a new
+            // writable transaction.  That only is applicable
+            // if we're writing to the data dictionary.
+            lcc.setCompilingFromTableTempTrigger(true);
+            spsd.prepareAndRelease(lcc, null);
+        }
+        finally {
+            lcc.setCompilingFromTableTempTrigger(false);
+        }
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
         List<UUID> actionSPSIdList = new ArrayList<>();
         actionSPSIdList.add(tmpTriggerId);
