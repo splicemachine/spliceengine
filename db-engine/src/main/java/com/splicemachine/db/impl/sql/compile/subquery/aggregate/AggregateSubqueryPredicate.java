@@ -31,8 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Predicates;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
@@ -53,6 +56,32 @@ class AggregateSubqueryPredicate implements splice.com.google.common.base.Predic
             LOG.error("unexpected exception while considering aggregate subquery flattening", e);
             return false;
         }
+    }
+
+    public static final Function<Visitable, Object> valueProducingCheckerFn = visitable -> {
+        if(visitable == null) {
+            return null;
+        }
+        if(visitable instanceof AggregateNode) {
+            AggregateNode aggregateNode = (AggregateNode)visitable;
+            switch(aggregateNode.getType()) {
+                case COUNT_STAR_FUNCTION: // fallthrough
+                case COUNT_FUNCTION:
+                    return visitable;
+            }
+        }
+        return null;
+    };
+
+    private boolean isValueProducingExpr(ValueNode expr) throws StandardException {
+        CollectingVisitor<QueryTreeNode> valueProducingFnVisitor = new CollectingVisitor<>(
+                Predicates.or(
+                        Predicates.instanceOf(CoalesceFunctionNode.class),
+                        Predicates.compose(Predicates.instanceOf(Visitable.class), valueProducingCheckerFn)
+                )
+        );
+        expr.accept(valueProducingFnVisitor);
+        return !valueProducingFnVisitor.getCollected().isEmpty();
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
@@ -89,9 +118,8 @@ class AggregateSubqueryPredicate implements splice.com.google.common.base.Predic
                 (subquerySelectNode.getGroupByList() == null || subquerySelectNode.getGroupByList().isEmpty()))
             return false;
 
-        // ignore count(*) correlated subqueries since flattening the query with inner join could cause some rows to be ignored from the LHS.
-        if(!subqueryNode.isNonCorrelatedSubquery()
-                && subquerySelectNode.getSelectAggregates().stream().anyMatch( n -> n.getType() == AggregateDefinition.FunctionType.COUNT_STAR_FUNCTION)) {
+        /* the aggregate must not be value-producing */
+        if(isValueProducingExpr(resultColumns.elementAt(0))) {
             return false;
         }
 
