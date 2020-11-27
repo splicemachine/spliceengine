@@ -664,8 +664,44 @@ public class Subquery_Flattening_Aggregate_IT {
     }
 
     @Test
-    public void unsupported_correlated_countStar() throws Exception {
+    public void unsupported_value_producing_aggregate() throws Exception {
         String sql = "select col1, col2 from t1 where (select count(*) from t2 where col1 = t1.col1) = 0";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select count(*)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select count(t1.col1)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select count(t2.col1)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select coalesce(sum(t1.col1), 0)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select nvl(sum(t1.col1), 0)+10 from t2 where col1 = t1.col1) = 10";
+        assertUnorderedResult(sql, 1, "" +
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                " 42  | 43  |");
+
+        sql = "select col1, col2 from t1 where (select value(sum(t1.col1), 0)+10 from t2 where col1 = t1.col1) = 10";
         assertUnorderedResult(sql, 1, "" +
                 "COL1 |COL2 |\n" +
                 "------------\n" +
