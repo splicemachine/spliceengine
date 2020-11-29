@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.db.BasicDatabase;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -847,6 +848,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         newPred.setOriginalInListPredList(origList);
     }
 
+    private boolean isMemPlatform() {
+        return "true".equals(System.getProperty("com.splicemachine.isMemPlatform"));
+    }
+
     private void orderUsefulPredicates(Optimizable optTable,
                                        ConglomerateDescriptor cd,
                                        boolean pushPreds,
@@ -1111,15 +1116,28 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ArrayList<Predicate> predsForNewInList = null;
     
         if (inlistQualified) {
-          // Only combine multiple IN lists if not using Spark.
-          // Adding extra RDDs and unioning them together hinders performance.
-          if (inlistPreds.size() > 1) {
+          // In DB2 mode, probe keys can be overlapping with eachother.
+          // On HBase the overlapping keys are merged together, but on
+          // mem they aren't causing duplicate rows.  So here we avoid
+          // constructing the overlapping keys on mem.
+          boolean varcharDB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
+          if (varcharDB2CompatibilityMode && isMemPlatform()) {
+              BinaryRelationalOperatorNode bron =
+                  (BinaryRelationalOperatorNode) usefulPredicates[0].getRelop();
+              boolean isVarChar =
+                  bron.getLeftOperand().getTypeServices().
+                         getTypeName().equals(TypeId.VARCHAR_NAME);
+              if (isVarChar)
+                  usefulCount = 1;
+          }
+          if (inlistPreds.size() > 1 && usefulCount > 1) {
             predsForNewInList = new ArrayList<>();
             int firstPred = -1, lastPred = -1, lastIndexPos = -1, firstInListPred = -1;
 
             boolean foundPred[] = new boolean[usefulCount];
             int numConstants = 1;
             int maxMulticolumnProbeValues = getCompilerContext().getMaxMulticolumnProbeValues();
+
             for (int i = 0; i < usefulCount; i++) {
                 final Predicate pred = usefulPredicates[i];
 
@@ -1148,6 +1166,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         predsForNewInList.add(usefulPredicates[i]);
                         lastIndexPos = pred.getIndexPosition();
                         foundPred[i] = true;
+
+                        if (varcharDB2CompatibilityMode && isMemPlatform()) {
+                            boolean isVarChar =
+                            bron.getLeftOperand().getTypeServices().
+                                   getTypeName().equals(TypeId.VARCHAR_NAME);
+                            if (isVarChar)
+                                break;
+                        }
                     }
                 }
                 // Can't have any gaps in index position.
@@ -3501,7 +3527,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             assert inlistPosition >= 0: "inlistPosition of " + inlistPosition + " for MultiProbeScan is not expected";
             mb.push(inlistPosition);
 
-            /* genereate an array of type descriptors for the inlist columns */
+            /* generate an array of type descriptors for the inlist columns */
             DataTypeDescriptor[] typeArray = new DataTypeDescriptor[ilon.getLeftOperandList().size()];
             for (int i = 0; i < ilon.getLeftOperandList().size(); i++) {
                 typeArray[i] = ((ValueNode)(ilon.getLeftOperandList().elementAt(i))).getTypeServices();
