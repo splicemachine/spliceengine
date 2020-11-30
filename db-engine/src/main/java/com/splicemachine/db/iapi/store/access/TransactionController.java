@@ -804,6 +804,52 @@ conglomerates are removed.
 			boolean flush_log_on_xact_end)
         throws StandardException;
 
+    /**
+     * Get a nested internal transaction.
+     * <p>
+     * A nested internal transaction is used in place of a user transaction
+	 * when a DML statement is executing its operation tree and a new writable
+	 * child transaction needs to be created with the possibility that within
+	 * that statement another substatement may be run, requiring a nested transaction.
+	 *
+	 * @param readOnly True to begin a readOnly transaction, otherwise false.
+	 * @param destinationTable The byte representation of the conglomerate
+	 *                         number of the target table as a String.
+	 * @param inMemoryTxn If true, attempt to begin the child transaction
+	 *                    as an in-memory transaction.  This is only
+	 *                    applicable to non-Spark queries.
+	 * @return SpliceInternalTransactionManager object for tracking the latest child transaction.
+	 *
+	 * @notes The purpose of this method is to produce a new SpliceInternalTransactionManager
+	 * in the current context which will return the most recent child transaction upon
+	 * call to LanguageConnectionContext.getTransactionExecute().  This is the main method
+	 * which is used to determine which parent transaction to use when beginning a new
+	 * child transaction.  Previously, triggers nested inside triggers did not create the
+	 * inside trigger's transaction as a child of the outer trigger's transaction, but instead
+	 * as a child of the top-level DMLWriteOperation.  Having triggers use sibling transactions
+	 * adds the need to do early committing of transactions so that one trigger's written rows
+	 * are visible to the other trigger, and causes problems if we need to roll back.
+	 * With fully nested triggers, a child trigger can see a parent trigger's written rows
+	 * while the parent transaction is still active, so we never have to get in a situation
+	 * where we need to roll back a committed transaction.
+	 * Once this TransactionController is created, it should be pushed to the context via
+	 * LanguageConnectionContext.pushNestedTransaction, and popped via popNestedTransaction
+	 * once the executing operation is finished.
+	 * Once the initial TransactionController is pushed, subsequent child transactions can
+	 * be pushed to the transaction stack via:
+	 *   lcc.getTransactionExecute().getRawStoreXact().pushInternalTransaction(childTxn);
+	 *
+	 * SpliceInternalTransactionManager cannot be used to set or release savepoints or commit
+	 * transactions.  It is merely used for providing a means to pick the proper parent
+	 * transaction for any new internally-created child transactions.
+	 *
+	 */
+	TransactionController startNestedInternalTransaction(
+	        boolean readOnly,
+            byte[] destinationTable,
+			boolean inMemoryTxn)
+	    throws StandardException;
+
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
 
     /**

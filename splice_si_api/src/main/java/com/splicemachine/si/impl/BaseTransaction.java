@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -148,5 +149,15 @@ public abstract class BaseTransaction implements Transaction {
 
     public boolean isRestoreMode() {
         return false;
+    }
+
+    @Override
+    public void pushInternalTransaction(Txn txn) throws StandardException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void popInternalTransaction() throws StandardException {
+        throw new UnsupportedOperationException();
     }
 }
