@@ -234,10 +234,26 @@ public abstract class BinaryListOperatorNode extends ValueNode{
          */
         rightOperandList.genSQLJavaSQLTrees();
 
+        addCastOnRightOperandForStringToNonStringComparison();
+
         /* Test type compatability and set type info for this node */
         bindComparisonOperator();
 
         return this;
+    }
+
+    private void addCastOnRightOperandForStringToNonStringComparison() throws StandardException {
+        if (singleLeftOperand) {
+            TypeId leftTypeId = getLeftOperand().getTypeId();
+            for (int i = 0; i < rightOperandList.size(); ++i) {
+                ValueNode rightOperand = (ValueNode) rightOperandList.elementAt(i);
+                TypeId rightTypeId = rightOperand.getTypeId();
+                if (!leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId()) {
+                    rightOperand = addCastNodeForStringToNonStringComparison(getLeftOperand(), rightOperand);
+                }
+                rightOperandList.setElementAt(rightOperand, i);
+            }
+        }
     }
 
     /**
