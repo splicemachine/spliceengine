@@ -824,4 +824,45 @@ public class TimestampIT extends SpliceUnitTest {
             assertEquals(new Timestamp(2020 - 1900, 0, 1, 0, 2, 30, 0), rs.getTimestamp(1));
         }
     }
+
+    @Test
+    public void testTimestampAutoConversionDB_10914() throws Exception {
+        methodWatcher.executeUpdate("drop table DB_10914 if exists");
+        methodWatcher.executeUpdate("create table DB_10914(t timestamp)");
+        methodWatcher.executeUpdate("insert into DB_10914 values ('2020-01-01 10:00:00.123456'), ('2020-01-02 10:00:00.123456')");
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select * from DB_10914 where t = ? || ' 10:00:00.123456'")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+            ps.setString(1, "2020-01-05");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertFalse(rs.next());
+            }
+        }
+        try (PreparedStatement ps = methodWatcher.prepareStatement(
+                "select * from DB_10914 where t between '2020-01-01' || '-00.00.00.000000' and ? || '-23.59.59.999999'")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+            ps.setString(1, "2020-01-02");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |\n" +
+                        "2020-01-02 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
 }
