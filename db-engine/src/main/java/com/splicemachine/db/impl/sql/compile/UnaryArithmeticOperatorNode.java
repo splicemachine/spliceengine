@@ -118,6 +118,15 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
         return null;
     }
 
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if(operatorType == UNARY_MINUS || operatorType == UNARY_PLUS) {
+            return (operand instanceof UntypedNullConstantNode) ? operand : this;
+        }
+        return this;
+    }
+
     /**
      * For SQRT and ABS the parameter becomes a DOUBLE.
      * For unary + and - no change is made to the
