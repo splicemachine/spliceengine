@@ -183,6 +183,7 @@ public interface CompilerContext extends Context
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
+    int DEFAULT_TIMESTAMP_PRECISION = 6;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
@@ -684,61 +685,65 @@ public interface CompilerContext extends Context
 
     Vector<Integer> getSkipStatsTableList();
 
-    public boolean getSelectivityEstimationIncludingSkewedDefault();
+    boolean getSelectivityEstimationIncludingSkewedDefault();
 
-    public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
+    void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
 
-    public boolean isProjectionPruningEnabled();
+    boolean isProjectionPruningEnabled();
 
-    public void setProjectionPruningEnabled(boolean onOff);
+    void setProjectionPruningEnabled(boolean onOff);
 
-    public int getMaxMulticolumnProbeValues();
+    int getMaxMulticolumnProbeValues();
 
-    public void setMaxMulticolumnProbeValues(int newValue);
+    void setMaxMulticolumnProbeValues(int newValue);
 
-    public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
+    void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
 
-    public boolean getMulticolumnInlistProbeOnSparkEnabled();
+    boolean getMulticolumnInlistProbeOnSparkEnabled();
 
-    public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
+    void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
 
-    public boolean getConvertMultiColumnDNFPredicatesToInList();
+    boolean getConvertMultiColumnDNFPredicatesToInList();
 
-    public void setDisablePredicateSimplification(boolean newValue);
+    void setDisablePredicateSimplification(boolean newValue);
 
-    public boolean getDisablePredicateSimplification();
+    boolean getDisablePredicateSimplification();
 
-    public void setSparkVersion(SparkVersion newValue);
+    void setSparkVersion(SparkVersion newValue);
 
-    public SparkVersion getSparkVersion();
+    SparkVersion getSparkVersion();
 
-    public boolean isSparkVersionInitialized();
+    boolean isSparkVersionInitialized();
 
-    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
+    void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
-    public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+    CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
 
-    public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
+    void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
 
-    public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+    boolean getAllowOverflowSensitiveNativeSparkExpressions();
 
-    public void setCurrentTimestampPrecision(int newValue);
+    void setCurrentTimestampPrecision(int newValue);
 
-    public int getCurrentTimestampPrecision();
+    void setTimestampPrecision(int newValue);
 
-    public int getNextOJLevel();
+    int getCurrentTimestampPrecision();
 
-    public boolean isOuterJoinFlatteningDisabled();
+    int getTimestampPrecision();
 
-    public void setOuterJoinFlatteningDisabled(boolean onOff);
+    int getNextOJLevel();
 
-    public boolean isSSQFlatteningForUpdateDisabled();
+    boolean isOuterJoinFlatteningDisabled();
 
-    public void setSSQFlatteningForUpdateDisabled(boolean onOff);
+    void setOuterJoinFlatteningDisabled(boolean onOff);
 
-    public NewMergeJoinExecutionType getNewMergeJoin();
+    boolean isSSQFlatteningForUpdateDisabled();
 
-    public void setNewMergeJoin(NewMergeJoinExecutionType newValue);
+    void setSSQFlatteningForUpdateDisabled(boolean onOff);
+
+    NewMergeJoinExecutionType getNewMergeJoin();
+
+    void setNewMergeJoin(NewMergeJoinExecutionType newValue);
 
     void setDisablePerParallelTaskJoinCosting(boolean newValue);
 
