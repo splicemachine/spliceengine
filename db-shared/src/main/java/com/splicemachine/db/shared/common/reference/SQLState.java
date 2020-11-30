@@ -820,7 +820,8 @@ public interface SQLState {
     String LANG_NO_SUCH_RUNNING_OPERATION                     = "4251P";
     String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT           = "42601";
     String LANG_UNSUPPORTED_FROM_TABLE                        = "42602";
-    String LANG_MODIFIED_FINAL_TABLE                          = "42603";  
+    String LANG_MODIFIED_FINAL_TABLE                          = "42603";
+    String LANG_UNSUPPORTED_FROM_TABLE_QUERY                  = "42604";
     String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT              = "42606";
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE = "51045";
     String LANG_DB2_STRING_CONSTANT_TOO_LONG                  = "54002";
@@ -1184,7 +1185,7 @@ public interface SQLState {
 
     String LANG_RESUBMIT_DISTRIBUTED = "42ZD0";
 
-    String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
+    String LANG_INVALID_OLAP_AND_OLTP = "42ZD1";
 
     String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
 
@@ -1195,6 +1196,8 @@ public interface SQLState {
     String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX       = "42ZD6";
     String LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD  = "42ZD7";
     String LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID   = "42ZD8";
+
+    String LANG_INVALID_NATIVE_AND_NON_NATIVE_SPARK       = "42ZD9";
 
     String LANG_INVALID_DECIMAL_CHARACTER                 = "42ZE0";
     String LANG_INVALID_DECIMAL_ARGUMENT                  = "42ZE1";
