@@ -154,11 +154,11 @@ public class CurrentDatetime {
         currentTimestamp = null;
     }
 
-    public int getTimestampPrecision() {
+    public int getCurrentTimestampPrecision() {
         return timestampPrecision;
     }
 
-    public void setTimestampPrecision(int timestampPrecision) {
+    public void setCurrentTimestampPrecision(int timestampPrecision) {
         assert timestampPrecision >= 0 && timestampPrecision <= 9;
         this.timestampPrecision = timestampPrecision;
         currentTimestamp = null;
