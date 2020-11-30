@@ -34,7 +34,6 @@ import java.util.Collection;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Scott Fines
@@ -60,6 +59,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
 
+    @Rule
+    public SpliceWatcher methodWatcher=new SpliceWatcher(schemaWatcher.schemaName);
+
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");
     public static final SpliceTableWatcher date_dim= new SpliceTableWatcher("date_dim",schemaWatcher.schemaName,"(d_year int, d_qoy int)");
@@ -69,6 +71,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher s2= new SpliceTableWatcher("s2",schemaWatcher.schemaName,"(a2 int, b2 boolean, c2 date, d2 time, e2 timestamp)");
     public static final SpliceTableWatcher s3 = new SpliceTableWatcher("s3", schemaWatcher.schemaName, "(num1 dec(31,1), num2 double, num3 float, num4 real, num5 int)");
 
+    public static final SpliceTableWatcher at = new SpliceTableWatcher("AT", schemaWatcher.schemaName, "(auftrgeb_gf# char(36), auftrstatus char(4), auftrart char(2))");
+    public static final SpliceTableWatcher dr = new SpliceTableWatcher("DR", schemaWatcher.schemaName, "(domname varchar(18), domregel varchar(65), domb# char(36))");
+    public static final SpliceTableWatcher x3 = new SpliceTableWatcher("X3", schemaWatcher.schemaName, "(domwliste varchar(1900), loganwber char(8), domb# char(36))");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
     @ClassRule
@@ -82,6 +87,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             .around(s1)
             .around(s2)
             .around(s3)
+            .around(at)
+            .around(dr)
+            .around(x3)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -182,7 +190,52 @@ public class BroadcastJoinIT extends SpliceUnitTest {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                }})
+            }}).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + at + " values (?,?,?)")) {
+                        ps.setString(1,"c37809fc-dbc0-11dc-bb9d-00110a38ff8a");ps.setString(2,"GMST");ps.setString(3, "GM");ps.execute();
+                        ps.setString(1,"7ee72ba2-c983-11dc-9bb2-000bcd3dea92");ps.setString(2,"GMEO");ps.setString(3, "GM");ps.execute();
+                        ps.setString(1,"b162ede2-d38f-11d9-8000-010157aa0000");ps.setString(2,"GMEO");ps.setString(3, "AM");ps.execute();
+                        ps.setString(1,"8ea16564-026c-11e7-bd3a-0050568766a6");ps.setString(2,"GTER");ps.setString(3, "BM");ps.execute();
+                        ps.setString(1,"4bbcc862-0b14-11d9-8000-010157aa0000");ps.setString(2,"GMEO");ps.setString(3, "CM");ps.execute();
+                        ps.setString(1,"58c2e22b-ce73-11dc-bcfc-00110a3923a8");ps.setString(2,"GMEO");ps.setString(3, "DM");ps.execute();
+                        ps.setString(1,"35ea068a-91cd-11dc-8ecb-001321040bb4");ps.setString(2,"GMST");ps.setString(3, "EM");ps.execute();
+                        ps.setString(1,"efd55af2-c38f-11d9-8000-010157aa0000");ps.setString(2,"GMST");ps.setString(3, "FM");ps.execute();
+                        ps.setString(1,"a09c7d39-cd75-11dc-b6e8-000bcd3dea92");ps.setString(2,"GMST");ps.setString(3, "HM");ps.execute();
+                        ps.setString(1,"c8cd5a3a-e199-11da-8000-010157aa0000");ps.setString(2,"GMST");ps.setString(3, "IM");ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + dr + " values (?,?,?)")) {
+                        ps.setString(1,"AUFTRAGSART");ps.setString(2,"SCHLIESSEN_AUFTRAG");ps.setString(3, "1205686f-b899-11e6-9f7d-9cb654a0f4f6");ps.execute();
+                        ps.setString(1,"KENNZEICHEN_JN");ps.setString(2,"SME_BETRIEBSARTEN_KZ_HP");ps.setString(3, "00a8441a-ab9e-11e8-b9d5-9cb654a0637d");ps.execute();
+                        ps.setString(1,"BUCHUNGSART");ps.setString(2,"BUCHUNGSART_SK");ps.setString(3, "01006252-ebe2-11de-a13d-6f0f671c0089");ps.execute();
+                        ps.setString(1,"RV_BQUEBSTEUERUNG");ps.setString(2,"FLOTTENNR_BQUEBST");ps.setString(3, "018b9c38-7a4b-11e4-9727-9cb654a1d902");ps.execute();
+                        ps.setString(1,"SPARTE_EIGEN");ps.setString(2,"XLOB_PRODPAKET_ZU_SPARTE");ps.setString(3, "01be147b-ded6-11e5-aab4-9cb654a4c4c6");ps.execute();
+                        ps.setString(1,"LSCHICHTZUSBEZ");ps.setString(2,"LSCHZUS_ZUSBEZ");ps.setString(3, "0228b814-440f-11e6-92cf-9cb654a1cb9b");ps.execute();
+                        ps.setString(1,"GBPART");ps.setString(2,"AUFTRAGSART_ZU_GBP_ART");ps.setString(3, "02750d20-ac38-11de-b23d-6f0f671c00a3");ps.execute();
+                        ps.setString(1,"XPS_PGEN_B");ps.setString(2,"XPS_REINIT_PGEN");ps.setString(3, "02b6341a-25df-11e8-9b2d-901b0e1c176e");ps.execute();
+                        ps.setString(1,"AZBZUSDART");ps.setString(2,"ABZUEGE_SONDERZAHLUNG");ps.setString(3, "030908eb-d705-11e5-bf03-9cb654a0f4f6");ps.execute();
+                        ps.setString(1,"SPARTE_EIGEN");ps.setString(2,"PPMKFZ");ps.setString(3, "0313241a-3f20-11e9-a35c-9cb654a17a67");ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + x3 + " values (?,?,?)")) {
+                        ps.setString(1,"GM");ps.setString(2,"SCHADEN ");ps.setString(3, "1205686f-b899-11e6-9f7d-9cb654a0f4f6");ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
             ;
 
     private static TestConnection conn;
@@ -786,7 +839,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery() throws Exception {
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_1() throws Exception {
         String sqlText = "select * from tab4 where a in (select tab5.a from tab6, tab5 --splice-properties joinStrategy=broadcast\n" +
                 "where tab5.a=tab6.a and tab4.a=tab5.a)";
         String expected = "A |    B     |\n" +
@@ -795,6 +848,33 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
             String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
+        }
+    }
+
+    @Test
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_2() throws Exception {
+        String query = "SELECT auftrgeb_gf#, auftrart " +
+                " FROM " + at +
+                " WHERE " +
+                "   EXISTS (SELECT 1 " +
+                "           FROM " + dr + ", " + x3 + " --splice-properties joinStrategy=%s, useSpark=%s\n" +
+                "           WHERE " +
+                "                  " + dr + ".domb# = " + x3 + ".domb# AND " +
+                "      ( Locate(" + at + ".auftrart, " + x3 + ".domwliste) > 0 ) )";
+
+        String expected =
+                "AUFTRGEB_GF#             |AUFTRART |\n" +
+                "------------------------------------------------\n" +
+                "7ee72ba2-c983-11dc-9bb2-000bcd3dea92 |   GM    |\n" +
+                "c37809fc-dbc0-11dc-bb9d-00110a38ff8a |   GM    |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(String.format(query, "broadcast", useSpark.toString()))) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertEquals("expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(String.format(query, "cross", "true"))) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertEquals("expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
         }
     }
 }

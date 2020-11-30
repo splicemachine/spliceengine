@@ -2019,8 +2019,10 @@ public class JoinNode extends TableOperatorNode{
                 numArgs++;
             }
 
-            if (isBroadcastJoin()) {
-                boolean noCacheBroadcastJoinRight = ((Optimizable)rightResultSet).hasJoinPredicatePushedDownFromOuter();
+            if (isBroadcastJoin() || isCrossJoin()) {
+                HasCorrelatedCRsVisitor visitor = new HasCorrelatedCRsVisitor();
+                rightResultSet.accept(visitor);
+                boolean noCacheBroadcastJoinRight = visitor.hasCorrelatedCRs();
                 mb.push(noCacheBroadcastJoinRight);
                 numArgs++;
             }
