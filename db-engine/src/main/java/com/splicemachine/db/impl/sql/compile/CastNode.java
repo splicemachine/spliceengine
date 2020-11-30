@@ -267,6 +267,7 @@ public class CastNode extends ValueNode
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
+
         castOperand = castOperand.bindExpression(
                 fromList, subqueryList,
                 aggregateVector);
@@ -300,11 +301,17 @@ public class CastNode extends ValueNode
                 else if (this.targetCharType == Types.VARCHAR)
                     length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
             }
+            else if(srcTypeId.isDateTimeTimeStampTypeId() && opndType.getJDBCTypeId() == Types.TIMESTAMP) {
+                int precision = getCompilerContext().getTimestampPrecision();
+                if(SanityManager.DEBUG) {
+                    SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
+                }
+                length = precision == 0 ? Limits.MIN_TIMESTAMP_LENGTH : Limits.MIN_TIMESTAMP_LENGTH /* the trailing dot */ + 1 + precision;
+            }
             else
             {
                 TypeId typeid = opndType.getTypeId();
                 length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(),-1);
-
             }
             if (length < 0)
                 length = 1;  // same default as in parser
@@ -404,6 +411,13 @@ public class CastNode extends ValueNode
                             castValue = dvd.getString();
                         } else {
                             castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
+                        }
+                        if (dvd instanceof SQLTimestamp) {
+                            int precision = getCompilerContext().getTimestampPrecision();
+                            if(SanityManager.DEBUG) {
+                                SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
+                            }
+                            ((SQLTimestamp) dvd).setPrecision(precision);
                         }
                         retNode = (ValueNode) getNodeFactory().getNode(
                                 C_NodeTypes.CHAR_CONSTANT_NODE,
@@ -1040,6 +1054,14 @@ public class CastNode extends ValueNode
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DateTimeDataValue,
                         "setStringFormat", "void", 1);
             }
+            if (sourceCTI.isDateTimeTimeStampTypeId() && sourceCTI.getJDBCTypeId() == Types.TIMESTAMP) {
+                int precision = getCompilerContext().getTimestampPrecision();
+                mb.dup();
+                mb.cast("com.splicemachine.db.iapi.types.SQLTimestamp");
+                mb.push(precision);
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL, "com.splicemachine.db.iapi.types.SQLTimestamp",
+                              "setPrecision", "void", 1);
+            }
             if (isForSbcsData()) {
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
                         "setValueForSbcsData", "void", 1);
@@ -1101,6 +1123,7 @@ public class CastNode extends ValueNode
              * of VSDV.
              */
 
+            // not sure if this is important
             mb.push(isNumber ? getTypeServices().getPrecision() : getTypeServices().getMaximumWidth());
             mb.push(getTypeServices().getScale());
             mb.push(!sourceCTI.variableLength() ||
