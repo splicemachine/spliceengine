@@ -14991,6 +14991,7 @@ caseInnerExpression(ValueNode compareTo) throws StandardException :
                                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
                                         getContextManager());
         ((CastNode) value).setForExternallyGeneratedCASTnode();
+        ((CastNode) value).setForNullsInConditionalNode();
         return value;
     }
 |
