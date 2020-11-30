@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
@@ -1698,7 +1697,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1709,6 +1708,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftResultSet,  leftNumCols,
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,
+             noCacheBroadcastJoinRight,
              joinClause,  resultSetNumber,
              oneRowRightSide, semiJoinType,
              rightFromSSQ, broadcastRightSide,
@@ -1722,7 +1722,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1736,6 +1736,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new CrossJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                    noCacheBroadcastJoinRight,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
                     oneRowRightSide, semiJoinType, rightFromSSQ, broadcastRightSide, optimizerEstimatedRowCount,

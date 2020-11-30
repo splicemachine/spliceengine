@@ -2100,7 +2100,7 @@ public class FromBaseTable extends FromTable {
                 ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
                         indexColumnTypes[i],
-                        exprAsts[i],
+                        null,
                         getContextManager());
                 rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();

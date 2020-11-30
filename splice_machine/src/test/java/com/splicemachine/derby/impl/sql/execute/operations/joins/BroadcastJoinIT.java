@@ -86,6 +86,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             .around(s1)
             .around(s2)
             .around(s3)
+            .around(at)
+            .around(dr)
+            .around(x3)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -186,7 +189,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                }}).around(new SpliceDataWatcher() {
+            }}).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + at + " values (?,?,?)")) {
@@ -835,7 +838,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery() throws Exception {
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_1() throws Exception {
         String sqlText = "select * from tab4 where a in (select tab5.a from tab6, tab5 --splice-properties joinStrategy=broadcast\n" +
                 "where tab5.a=tab6.a and tab4.a=tab5.a)";
         String expected = "A |    B     |\n" +
@@ -846,6 +849,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
         }
     }
+
     @Test
     public void testBroadcastJoinInNonFlattenedCorrelatedSubquery_2() throws Exception {
         String query = "SELECT auftrgeb_gf#, auftrart " +
