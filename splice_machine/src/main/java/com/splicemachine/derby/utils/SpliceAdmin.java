@@ -103,7 +103,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
 public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
         List<HostAndPort> servers;
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
@@ -150,6 +151,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0]=executeStatement(sb);
     }
 
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
         List<String> loggerLevels = new ArrayList<>();
 
@@ -1216,7 +1218,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     }
 
-
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
         List<HostAndPort> servers;
@@ -1299,10 +1301,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement s = connection.createStatement()) {
+                    s.execute("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
             }
         }
     }
