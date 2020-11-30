@@ -46,11 +46,11 @@ import static org.junit.Assert.assertTrue;
  */
 @SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE")
 public class SpliceAdminIT extends SpliceUnitTest {
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    final protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1", CLASS_NAME, "(a int)");
-    protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict", CLASS_NAME, "(a int)");
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    final protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1", CLASS_NAME, "(a int)");
+    final protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict", CLASS_NAME, "(a int)");
+    final protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
@@ -116,8 +116,7 @@ public class SpliceAdminIT extends SpliceUnitTest {
     public void testCreateResultSetNonPrintableChars() throws Exception {
         String sql = "select * from (values ('ROWCOUNTOPERATIONIT','A','false','(1328,,1390605409509.0e0464ea3aae5b6eb559fd45e98d4ced. 0 MB)(1328,'ï¿½<hï¿½�,1390605409509.96302cceac907a55f22d48da10ca3392. 0 MB)')) foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)";
 
-        try {
-            PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql);
+        try (PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql)) {
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Lexical error at line 1, column 127"));
             return;
@@ -256,48 +255,53 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
     @Test
     public void testGetCacheInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()");
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            double hitRate = rs.getDouble("HitRate");
-            double missRate = rs.getDouble("MissRate");
-            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-            assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
+        try( CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()") ) {
+            ResultSet rs = cs.executeQuery();
+            while (rs.next()) {
+                double hitRate = rs.getDouble("HitRate");
+                double missRate = rs.getDouble("MissRate");
+                assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+                assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
+            }
+            DbUtils.closeQuietly(rs);
         }
-        DbUtils.closeQuietly(rs);
     }
 
     @Test
     public void testGetTotalCacheInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TOTAL_CACHE_INFO()");
-        ResultSet rs = cs.executeQuery();
-        rs.next();
-        double hitRate = rs.getDouble("HitRate");
-        double missRate = rs.getDouble("MissRate");
-        assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-        assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
-        DbUtils.closeQuietly(rs);
+        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TOTAL_CACHE_INFO()");
+            ResultSet rs = cs.executeQuery() ) {
+            rs.next();
+            double hitRate = rs.getDouble("HitRate");
+            double missRate = rs.getDouble("MissRate");
+            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+            assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
     public void testGetSessionInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
-        ResultSet rs = cs.executeQuery();
-        rs.next();
-        String hostname = rs.getString("HOSTNAME");
-        int session = rs.getInt("SESSION");
-        DbUtils.closeQuietly(rs);
+        String hostname = ""; int session = 0;
+        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()") ) {
+            ResultSet rs = cs.executeQuery();
+            rs.next();
+            hostname = rs.getString("HOSTNAME");
+            session = rs.getInt("SESSION");
+            DbUtils.closeQuietly(rs);
+        }
 
-        CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
-        ResultSet rs2 = cs2.executeQuery();
-        rs2.next();
-        String hostname2 = rs2.getString("HOSTNAME");
-        int session2 = rs2.getInt("SESSION");
+        try(CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+        ResultSet rs2 = cs2.executeQuery() ) {
+            rs2.next();
+            String hostname2 = rs2.getString("HOSTNAME");
+            int session2 = rs2.getInt("SESSION");
 
-        Assert.assertEquals(hostname, hostname2);
-        Assert.assertNotEquals(session, session2);
+            Assert.assertEquals(hostname, hostname2);
+            Assert.assertNotEquals(session, session2);
 
-        DbUtils.closeQuietly(rs2);
+            DbUtils.closeQuietly(rs2);
+        }
     }
 
     @Test
@@ -337,9 +341,10 @@ public class SpliceAdminIT extends SpliceUnitTest {
         String newLogLevel = "INFO";
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
         cs.setString(1, logger);
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            origLevel = rs.getString(1);
+        try(ResultSet rs = cs.executeQuery()) {
+            while (rs.next()) {
+                origLevel = rs.getString(1);
+            }
         }
 
         try {
@@ -350,10 +355,11 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
             cs.setString(1, logger);
-            rs = cs.executeQuery();
             String currentLogLevel = "FRED";
-            while (rs.next()) {
-                currentLogLevel = rs.getString(1);
+            try( ResultSet rs = cs.executeQuery() ) {
+                while (rs.next()) {
+                    currentLogLevel = rs.getString(1);
+                }
             }
             Assert.assertNotEquals("FRED", currentLogLevel);
             Assert.assertEquals(newLogLevel, currentLogLevel);
@@ -364,9 +370,6 @@ public class SpliceAdminIT extends SpliceUnitTest {
             cs.setString(2, origLevel);
             cs.execute();
         }
-
-        DbUtils.closeQuietly(rs);
-
     }
 
     @Test
@@ -461,7 +464,7 @@ public class SpliceAdminIT extends SpliceUnitTest {
             ResultSet rs = methodWatcher.executeQuery(query);
             assertTrue(rs.next());
             String rowId = rs.getString(1);
-            String tableId = rs.getString(2);
+            //String tableId = rs.getString(2);
             assertFalse(rs.next());
 
             rs = methodWatcher.executeQuery("select c.conglomeratenumber from sys.systables t, sys.sysconglomerates c where t.tableid = c.tableid and " +
