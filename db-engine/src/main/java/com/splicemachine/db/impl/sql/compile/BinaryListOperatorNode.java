@@ -234,8 +234,6 @@ public abstract class BinaryListOperatorNode extends ValueNode{
          */
         rightOperandList.genSQLJavaSQLTrees();
 
-        addCastOnRightOperandForStringToNonStringComparison();
-
         /* Test type compatability and set type info for this node */
         bindComparisonOperator();
 
@@ -268,8 +266,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
         /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
-        if (singleLeftOperand)
-            rightOperandList.comparable(getLeftOperand());
+        if (singleLeftOperand) {
+            if (!rightOperandList.comparable(getLeftOperand(), false)) {
+                addCastOnRightOperandForStringToNonStringComparison();
+            }
+            rightOperandList.comparable(getLeftOperand(), true);
+        }
+
 
         /*
         ** Set the result type of this comparison operator based on the
