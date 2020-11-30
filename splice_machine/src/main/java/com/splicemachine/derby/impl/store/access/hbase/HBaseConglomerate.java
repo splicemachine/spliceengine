@@ -261,7 +261,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
             throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,
-                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory);
+                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory, xact_manager);
     }
 
     public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
