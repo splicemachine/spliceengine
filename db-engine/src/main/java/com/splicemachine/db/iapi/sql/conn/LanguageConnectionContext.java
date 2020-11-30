@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
@@ -439,6 +440,9 @@ public interface LanguageConnectionContext extends Context {
     void pushNestedTransaction(TransactionController trans);
 
     TransactionController popNestedTransaction();
+
+    boolean hasNestedTransaction();
+
     /**
         Get the data dictionary
 
@@ -1491,4 +1495,5 @@ public interface LanguageConnectionContext extends Context {
 
     boolean isCompilingFromTableTempTrigger();
 
+    AccessFactory getSpliceAccessManager();
 }

@@ -48,6 +48,8 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {
     private static Logger LOG = Logger
@@ -135,8 +137,8 @@ public class SpliceTransactionManager implements XATransactionController,
         init(myaccessmanager, theRawTran, parent_transaction);
     }
 
-    private SpliceTransactionManager(SpliceAccessManager myaccessmanager, Transaction theRawTran,
-                                     SpliceTransactionManager parent_transaction, ContextManager cm) {
+    protected SpliceTransactionManager(SpliceAccessManager myaccessmanager, Transaction theRawTran,
+                                       SpliceTransactionManager parent_transaction, ContextManager cm) {
         contextManager = cm;
         init(myaccessmanager, theRawTran, parent_transaction);
     }
@@ -1626,9 +1628,9 @@ public class SpliceTransactionManager implements XATransactionController,
 
         Transaction childTxn;
         if(rawtran instanceof SpliceTransaction)
-            childTxn=getChildTransaction(readOnly, cm, (SpliceTransaction)rawtran);
+            childTxn=getChildTransaction(readOnly, cm, (SpliceTransaction)rawtran, null, false, false);
         else
-            childTxn = getChildTransactionFromView(readOnly, cm, (SpliceTransactionView)rawtran);
+            childTxn = getChildTransactionFromView(readOnly, cm, (SpliceTransactionView)rawtran, null, false, false);
 
         if(!readOnly)
             ((SpliceTransaction)childTxn).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
@@ -1645,22 +1647,76 @@ public class SpliceTransactionManager implements XATransactionController,
         return (rt);
     }
 
-    private Transaction getChildTransaction(boolean readOnly,ContextManager cm,SpliceTransaction spliceTxn) throws StandardException{
+    public TransactionController startNestedInternalTransaction(boolean readOnly,
+                                                                byte[] destinationTable,
+                                                                boolean inMemoryTxn) throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("startNestedInternalTransaction ");
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "Before startNestedInternalTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
+        // Get the context manager.
+        ContextManager cm = ContextService.getCurrentContextManager();
+
+        if(rawtran instanceof PastTransaction) {
+            if (!readOnly)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                        "Attempting to elevate transaction in time travel query.");
+            SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, ((PastTransaction)rawtran).getClone(), this);
+
+            //this actually does some work, so don't remove it
+            @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+                    cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+            return rt;
+        }
+
+        // Force the current transaction at the top of the txnStack to be the parent transaction.
+        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, rawtran, this, cm);
+
+        Transaction childTxn;
+        if(rawtran instanceof SpliceTransaction)
+            childTxn=rt.getChildTransaction(readOnly, cm,
+                                            (SpliceTransaction)rawtran, destinationTable, inMemoryTxn, true);
+        else
+            childTxn = rt.getChildTransactionFromView(readOnly, cm,
+                                                      (SpliceTransactionView)rawtran, destinationTable, inMemoryTxn, true);
+
+        // The new transaction manager should include the child transaction so that
+        // a subsequent child transaction uses this child as its parent, therefore
+        // we have to create a new one.  Make it "internal" so it will error out
+        // if it tries to commit transactions or work with savepoints.
+        rt = new SpliceInternalTransactionManager(accessmanager, childTxn, this, cm);
+        SpliceTransactionManagerContext spliceTransactionManagerContext =
+            (SpliceTransactionManagerContext)cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+        rt.setContext(spliceTransactionManagerContext);
+
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "After startNestedInternalTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
+
+        return (rt);
+    }
+
+    private Transaction getChildTransaction(boolean readOnly,ContextManager cm,SpliceTransaction spliceTxn,
+                                            byte[] destinationTable, boolean inMemoryTxn,
+			                                boolean skipTransactionContextPush) throws StandardException{
         String txnName;
         Txn txn = spliceTxn.getActiveStateTxn();
         if(!readOnly){
-            if(parent_tran!=null)
-                parent_tran.elevate(txn,"unknown");
+            String tableName = destinationTable != null ? Bytes.toString(destinationTable) : "unknown";
+            if(parent_tran!=null) {
+                parent_tran.elevate(txn, tableName);
+            }
             txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            elevate("unknown");
+            elevate(tableName);
             txn = ((SpliceTransaction)rawtran).getTxn();
         }else
             txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
 
-        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn,destinationTable,inMemoryTxn,skipTransactionContextPush);
     }
 
-    private Transaction getChildTransactionFromView(boolean readOnly,ContextManager cm,SpliceTransactionView spliceTxn) throws StandardException{
+    private Transaction getChildTransactionFromView(boolean readOnly,ContextManager cm,SpliceTransactionView spliceTxn,
+                                                    byte[] destinationTable, boolean inMemoryTxn,
+                                                    boolean skipTransactionContextPush) throws StandardException{
         String txnName;
         TxnView txn = spliceTxn.getActiveStateTxn();
         if(!readOnly){
@@ -1671,7 +1727,7 @@ public class SpliceTransactionManager implements XATransactionController,
         }else
             txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
 
-        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn,destinationTable,inMemoryTxn,skipTransactionContextPush);
     }
 
     private void elevate(Txn knownChild,String tableName) throws StandardException{

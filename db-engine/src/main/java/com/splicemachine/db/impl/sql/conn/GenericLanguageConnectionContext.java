@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -62,6 +63,7 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
@@ -1983,6 +1985,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public TransactionController popNestedTransaction(){
         return nestedTransactions.remove(0);
     }
+
+    @Override
+    public boolean hasNestedTransaction() { return !nestedTransactions.isEmpty(); }
 
     /**
      * Get the data value factory to use with this language connection context.
@@ -4042,5 +4047,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean isCompilingFromTableTempTrigger() {
         return compilingFromTableTempTrigger;
+    }
+
+    @Override
+    public AccessFactory getSpliceAccessManager() {
+        if (db instanceof BasicDatabase) {
+            BasicDatabase basicDatabase = (BasicDatabase)db;
+            return basicDatabase.getAccessFactory();
+        }
+        return null;
     }
 }
