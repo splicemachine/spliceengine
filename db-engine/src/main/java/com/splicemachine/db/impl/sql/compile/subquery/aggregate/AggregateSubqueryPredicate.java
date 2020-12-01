@@ -31,7 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Predicates;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
@@ -52,6 +56,32 @@ class AggregateSubqueryPredicate implements org.spark_project.guava.base.Predica
             LOG.error("unexpected exception while considering aggregate subquery flattening", e);
             return false;
         }
+    }
+
+    public static final Function<Visitable, Object> valueProducingCheckerFn = visitable -> {
+        if(visitable == null) {
+            return null;
+        }
+        if(visitable instanceof AggregateNode) {
+            AggregateNode aggregateNode = (AggregateNode)visitable;
+            switch(aggregateNode.getType()) {
+                case COUNT_STAR_FUNCTION: // fallthrough
+                case COUNT_FUNCTION:
+                    return visitable;
+            }
+        }
+        return null;
+    };
+
+    private boolean isValueProducingExpr(ValueNode expr) throws StandardException {
+        CollectingVisitor<QueryTreeNode> valueProducingFnVisitor = new CollectingVisitor<>(
+                Predicates.or(
+                        Predicates.instanceOf(CoalesceFunctionNode.class),
+                        Predicates.compose(Predicates.instanceOf(Visitable.class), valueProducingCheckerFn)
+                )
+        );
+        expr.accept(valueProducingFnVisitor);
+        return !valueProducingFnVisitor.getCollected().isEmpty();
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
@@ -88,6 +118,19 @@ class AggregateSubqueryPredicate implements org.spark_project.guava.base.Predica
                 (subquerySelectNode.getGroupByList() == null || subquerySelectNode.getGroupByList().isEmpty()))
             return false;
 
+        /*
+        * the aggregate must not be value-producing, flattening such aggregates could lead to wrong results since the resulting inner join
+        * could miss some rows.
+        * For example:
+        *    select a,b from table1 where 0 = (select count(table2.a) from table2 where table2.a = table1.a)
+        *     if table2 is empty, then count() will return 0 (value-producing), causing the where condition to be satisfied.
+        *     however, if we flatten, then we end up with something like this:
+        *    select table1.a,b from table1, (select table2.a, count(table2.a) from table2 group by table2.a having count(table2.a) = 0) X where table1.a = X.a
+        *     which will return empty result since the RHS of the join is empty, and the join type is inner.
+        */
+        if(isValueProducingExpr(resultColumns.elementAt(0))) {
+            return false;
+        }
 
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
