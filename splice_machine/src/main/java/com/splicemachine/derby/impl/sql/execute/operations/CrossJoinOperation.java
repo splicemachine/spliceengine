@@ -40,6 +40,7 @@ public class CrossJoinOperation extends JoinOperation{
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
     protected boolean broadcastRightSide;
+    protected boolean noCacheBroadcastJoinRight;
     protected long sequenceId;
     protected static final String NAME = CrossJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -58,6 +59,7 @@ public class CrossJoinOperation extends JoinOperation{
                               int rightNumCols,
                               int leftHashKeyItem,
                               int rightHashKeyItem,
+                              boolean noCacheBroadcastJoinRight,
                               Activation activation,
                               GeneratedMethod restriction,
                               int resultSetNumber,
@@ -77,6 +79,7 @@ public class CrossJoinOperation extends JoinOperation{
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
         this.broadcastRightSide=broadcastRightSide;
+        this.noCacheBroadcastJoinRight=noCacheBroadcastJoinRight;
         this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
@@ -134,7 +137,7 @@ public class CrossJoinOperation extends JoinOperation{
             }
             if (this.leftHashKeys.length != 0)
                 leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, false))
+            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, noCacheBroadcastJoinRight))
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

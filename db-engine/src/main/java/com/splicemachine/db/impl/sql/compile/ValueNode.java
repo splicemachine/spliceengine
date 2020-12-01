@@ -1546,7 +1546,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @param resultColumn
      * @return
      */
-    public long getCoordinates(ResultColumn resultColumn) {
+    public static long getCoordinates(ResultColumn resultColumn) {
         return (((long)resultColumn.getResultSetNumber()) << 32) | (resultColumn.getVirtualColumnId() & 0xffffffffL);
     }
 
