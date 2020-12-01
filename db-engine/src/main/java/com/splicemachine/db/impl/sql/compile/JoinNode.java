@@ -1655,6 +1655,11 @@ public class JoinNode extends TableOperatorNode{
 
                     joinClause = (ValueNode) joinClause.accept(predSimplVisitor);
                 }
+
+                if (joinClause instanceof UntypedNullConstantNode) {
+                    joinClause = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+                }
             }
 
             /* Create a new fromList with only left and right children before
