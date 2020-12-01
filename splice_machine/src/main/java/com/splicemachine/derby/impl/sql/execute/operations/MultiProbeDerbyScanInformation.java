@@ -249,6 +249,56 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				isMemPlatform = in.readBoolean();
 		}
 
+    private void fixupDVD(boolean isSQLVarcharDB2Compatible,
+                          boolean targetIsSQLVarcharDB2Compatible,
+                          ListDataType listData,
+                          boolean isVarCharType,
+                          int position,
+                          boolean[] toRemove,
+                          int index,
+                          DataValueDescriptor dvd,
+                          DataValueDescriptor[] probingVals,
+                          int maxSize) throws StandardException {
+
+        if (isSQLVarcharDB2Compatible) {
+            DataValueDescriptor newDVD =
+                QualifierUtils.convertChar((SQLChar) dvd, dvd.getLength(),
+                                           inlistDataTypes[position].getMaximumWidth());
+            if (listData != null)
+                listData.setDVD(position, newDVD);
+            else
+                probingVals[index] = newDVD;
+        }
+        else if (dvd instanceof SQLChar) {
+            // we may prune some probe value based on the string length
+            if (isVarCharType && dvd.getLength() > maxSize &&
+                !targetIsSQLVarcharDB2Compatible)
+            {
+                toRemove[index] = true;
+                return;
+            }
+            if (isVarCharType) {
+                if (targetIsSQLVarcharDB2Compatible) {
+                    if (dvd.getClass().equals(SQLVarchar.class)) {
+                        DataValueDescriptor newDVD =
+                            new SQLVarcharDB2Compatible(dvd.getString());
+                        if (listData != null)
+                            listData.setDVD(position, newDVD);
+                        else
+                            probingVals[index] = newDVD;
+                    }
+                }
+                else if (!(dvd instanceof SQLVarchar)) {
+                    DataValueDescriptor newDVD = new SQLVarchar(dvd.getString());
+                    if (listData != null)
+                        listData.setDVD(position, newDVD);
+                    else
+                        probingVals[index] = newDVD;
+                }
+            }
+        }
+    }
+
     public DataValueDescriptor[]
     getProbeValues(int[]   keyDecodingMap,
                    int[]   keyTablePositionMap,
@@ -309,57 +359,18 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 						 ListDataType listData = (ListDataType) dvd;
 						 DataValueDescriptor dvd1 = listData.getDVD(position);
 						 boolean isSQLVarcharDB2Compatible = dvd1 instanceof SQLVarcharDB2Compatible;
-						 if (isSQLVarcharDB2Compatible) {
-							DataValueDescriptor newDVD =
-								QualifierUtils.convertChar((SQLChar) dvd1, dvd1.getLength(),
-								                           inlistDataTypes[position].getMaximumWidth());
-							listData.setDVD(position, newDVD);
-						 }
-						 else if (dvd1 instanceof SQLChar) {
-						 	// we may prune some probe value based on the string length
-						 	if (isVarCharType && dvd1.getLength() > maxSize &&
-							    !targetIsSQLVarcharDB2Compatible) {
-								toRemove[index] = true;
-								continue;
-							}
-							 // if column is of varchar type, we need to change the probe values from SQLChar to SQLVarchar,
-							 // so that duplicate removal won't ignore the trailing spaces,
-							 // unless we're in DB2 varchar compatibility mode.
-							 if (isVarCharType) {
-							 	if (targetIsSQLVarcharDB2Compatible) {
-							 		if (dvd1.getClass().equals(SQLVarchar.class))
-							 			listData.setDVD(position,
-										                new SQLVarcharDB2Compatible(dvd1.getString()));
-								}
-							 	else if (!(dvd1 instanceof SQLVarchar))
-								     listData.setDVD(position, new SQLVarchar(dvd1.getString()));
-							 }
-						 }
-
+						 fixupDVD(isSQLVarcharDB2Compatible,
+							      targetIsSQLVarcharDB2Compatible,
+							      listData,
+							      isVarCharType, position, toRemove,
+							      index, dvd1, probingVals, maxSize);
 					 } else {
-					 	boolean isSQLVarcharDB2Compatible = dvd instanceof SQLVarcharDB2Compatible;
-					 	if (isSQLVarcharDB2Compatible)
-					 	    probingVals[index] =
-							QualifierUtils.convertChar((SQLChar)dvd, dvd.getLength(),
-							                           inlistDataTypes[position].getMaximumWidth());
-					 	else if (dvd instanceof SQLChar) {
-							// we may prune some probe value based on the string length
-							if (isVarCharType && dvd.getLength() > maxSize &&
-							    !targetIsSQLVarcharDB2Compatible)
-							{
-								toRemove[index] = true;
-								continue;
-							}
-							if (isVarCharType) {
-								if (targetIsSQLVarcharDB2Compatible) {
-									if (dvd.getClass().equals(SQLVarchar.class))
-										probingVals[index] =
-										    new SQLVarcharDB2Compatible(dvd.getString());
-								}
-								else if (!(dvd instanceof SQLVarchar))
-									probingVals[index] = new SQLVarchar(dvd.getString());
-							}
-						}
+					 	 boolean isSQLVarcharDB2Compatible = dvd instanceof SQLVarcharDB2Compatible;
+						 fixupDVD(isSQLVarcharDB2Compatible,
+							      targetIsSQLVarcharDB2Compatible,
+							      null,  // listData
+							      isVarCharType, position, toRemove,
+							      index, dvd, probingVals, maxSize);
 					 }
 				}
 			}

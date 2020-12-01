@@ -97,6 +97,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 .withInsert("insert into t values(?, ?)")
                 .withRows(rows(
                         row("SBVGCCC", "  "),
+                        row("SBVGCCC ", "B "),
                         row("SBVGCCC C", "  "),
                         row("SBVGCCC", "A ")))
                 .create();
@@ -344,15 +345,15 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     @Test
     public void testMultiProbeScan() throws Exception {
         String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v in ('SBVGCCC    ', 'G')\n" +
-        "and c in ( ' ', CAST('A' AS CHAR(2)))";
+                            ", index=%s\n" +
+                            "where v in ('SBVGCCC    ', 'G')\n" +
+                            "and c in ( ' ', CAST('A' AS CHAR(2)))";
 
         String expected =
-        "V    | C |\n" +
-        "-------------\n" +
-        "SBVGCCC |   |\n" +
-        "SBVGCCC | A |";
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC |   |\n" +
+            "SBVGCCC | A |";
 
         String sqlText = format(sqlTemplate, "ti");
         testQuery(sqlText, expected, methodWatcher);
@@ -360,9 +361,9 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v = 'SBVGCCC    ' \n" +
-        "and c in ( ' ', CAST('A' AS CHAR(2)))";
+                        ", index=%s\n" +
+                        "where v = 'SBVGCCC    ' \n" +
+                        "and c in ( ' ', CAST('A' AS CHAR(2)))";
 
         sqlText = format(sqlTemplate, "ti");
         testQuery(sqlText, expected, methodWatcher);
@@ -370,14 +371,14 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v in ('SBVGCCC    ', 'G')\n" +
-        "and c = CAST('A' AS CHAR(3))";
+                        ", index=%s\n" +
+                        "where v in ('SBVGCCC    ', 'G')\n" +
+                        "and c = CAST('A' AS CHAR(3))";
 
         expected =
-        "V    | C |\n" +
-        "-------------\n" +
-        "SBVGCCC | A |";
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC | A |";
 
         sqlText = format(sqlTemplate, "ti");
         testQuery(sqlText, expected, methodWatcher);
@@ -385,15 +386,15 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where c in ( ' ', CAST('A' AS CHAR(3)))";
+                        ", index=%s\n" +
+                        "where c in ( ' ', CAST('A' AS CHAR(3)))";
 
         expected =
-        "V     | C |\n" +
-        "---------------\n" +
-        " SBVGCCC  |   |\n" +
-        " SBVGCCC  | A |\n" +
-        "SBVGCCC C |   |";
+            "V     | C |\n" +
+            "---------------\n" +
+            " SBVGCCC  |   |\n" +
+            " SBVGCCC  | A |\n" +
+            "SBVGCCC C |   |";
 
         sqlText = format(sqlTemplate, "ti");
         testQuery(sqlText, expected, methodWatcher);
@@ -437,41 +438,41 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     @Test
     public void testParameterizedMultiProbeScan() throws Exception {
         String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v in (?, ?)\n" +
-        "and c in (?, CAST(? AS CHAR(2)))";
+                                ", index=%s\n" +
+                                "where v in (?, ?)\n" +
+                                "and c in (?, CAST(? AS CHAR(2)))";
 
         String expected =
-        "V    | C |\n" +
-        "-------------\n" +
-        "SBVGCCC |   |\n" +
-        "SBVGCCC | A |";
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC |   |\n" +
+            "SBVGCCC | A |";
 
         testPreparedQuery1(sqlTemplate, expected, false, false);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v in (?, ?)\n" +
-        "and c in (?, CAST(? AS CHAR(3)))";
+                        ", index=%s\n" +
+                        "where v in (?, ?)\n" +
+                        "and c in (?, CAST(? AS CHAR(3)))";
 
         testPreparedQuery1(sqlTemplate, expected, false, false);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v = ? \n" +
-        "and c in (?, CAST(? AS CHAR(2)))";
+                        ", index=%s\n" +
+                        "where v = ? \n" +
+                        "and c in (?, CAST(? AS CHAR(2)))";
 
         testPreparedQuery1(sqlTemplate, expected, true, false);
 
         sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
-        ", index=%s\n" +
-        "where v in (?, ?)\n" +
-        "and c = CAST(? AS CHAR(3))";
+                        ", index=%s\n" +
+                        "where v in (?, ?)\n" +
+                        "and c = CAST(? AS CHAR(3))";
 
         expected =
-        "V    | C |\n" +
-        "-------------\n" +
-        "SBVGCCC | A |";
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC | A |";
 
         testPreparedQuery1(sqlTemplate, expected, false, true);
 
