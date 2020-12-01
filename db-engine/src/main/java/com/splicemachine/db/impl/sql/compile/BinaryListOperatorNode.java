@@ -267,10 +267,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
         if (singleLeftOperand) {
-            if (!rightOperandList.comparable(getLeftOperand(), false)) {
+            if (!rightOperandList.comparable(getLeftOperand())) {
                 addCastOnRightOperandForStringToNonStringComparison();
             }
-            rightOperandList.comparable(getLeftOperand(), true);
+            rightOperandList.throwIfNotComparable(getLeftOperand());
         }
 
 
