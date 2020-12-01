@@ -257,4 +257,14 @@ public class AutoCastIT  extends SpliceUnitTest {
             "where tab1.num2='-.1234567890123456789012345678901' ", useSpark), expected);
     }
 
+    @Test
+    public void testVarcharOnLeftSide() throws Exception {
+        String expected = "CHAR1 |\n" +
+                "--------\n" +
+                "   1   |\n" +
+                "  -1   |";
+        testQuery(format("select char1 from t1 --splice-properties useSpark=%s\n where char2 = num6", useSpark),
+                expected);
+    }
+
 }
