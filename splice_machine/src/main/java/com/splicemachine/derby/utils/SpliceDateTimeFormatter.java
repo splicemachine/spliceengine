@@ -15,8 +15,6 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.SQLTime;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -40,7 +38,7 @@ public class SpliceDateTimeFormatter {
 
     public static final String defaultDateFormatString = "yyyy-MM-dd";
     public static final String defaultTimeFormatString = "HH:mm:ss";
-    public static final String defaultTimestampFormatString = SQLTimestamp.defaultTimestampFormatString;
+    public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
 
     public static SpliceDateTimeFormatter DEFAULT_DATE_FORMATTER =
                   SpliceDateTimeFormatter.of(FormatterType.DATE);
