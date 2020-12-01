@@ -325,53 +325,42 @@ public class ValueNodeList extends QueryTreeNodeVector
 
     /**
      * Determine whether or not the leftOperand is comparable() with all of
-     * the elements in the list. Throw an exception if any of them are not
-     * comparable.
-     *
-     * @param leftOperand    The left side of the expression
-     *
-     * @exception StandardException        Thrown on error
-     */
-    public void comparable(ValueNode leftOperand) throws StandardException
-    {
-        comparable(leftOperand, true);
-    }
-
-    /**
-     * Determine whether or not the leftOperand is comparable() with all of
      * the elements in the list.
      *
-     * @param leftOperand    The left side of the expression
-     * @param throwIfNot     When set to true, throw an exception if not comparable. When false, returns false if not comparable
-     *
-     * @exception StandardException        Thrown on error
+     * @param leftOperand the left side of the expression
      */
-    public boolean comparable(ValueNode leftOperand, boolean throwIfNot) throws StandardException
+    public boolean comparable(ValueNode leftOperand)
     {
-        int             size = size();
-        ValueNode        valueNode;
-
+        int size = size();
         for (int index = 0; index < size; index++)
         {
-            valueNode = (ValueNode) elementAt(index);
-
-            /*
-             ** Can the types be compared to each other?  If not, throw an
-             ** exception.
-             */
-            if (! leftOperand.getTypeServices().comparable(valueNode.getTypeServices()))
-            {
-                if (throwIfNot) {
-                    throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
-                            leftOperand.getTypeServices().getSQLTypeNameWithCollation(),
-                            valueNode.getTypeServices().getSQLTypeNameWithCollation()
-                    );
-                } else {
-                    return false;
-                }
+            ValueNode valueNode = (ValueNode) elementAt(index);
+            if (! leftOperand.getTypeServices().comparable(valueNode.getTypeServices())) {
+                return false;
             }
         }
         return true;
+    }
+
+    /**
+     * Throws an exception if the leftOperand is not comparable() with all of
+     * the elements in the list.
+     *
+     * @param leftOperand    the left side of the expression
+     *
+     * @exception StandardException thrown on error
+     */
+    public void throwIfNotComparable(ValueNode leftOperand) throws StandardException {
+        int size = size();
+        for (int index = 0; index < size; index++)
+        {
+            ValueNode valueNode = (ValueNode) elementAt(index);
+            if (! leftOperand.getTypeServices().comparable(valueNode.getTypeServices())) {
+                throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
+                        leftOperand.getTypeServices().getSQLTypeNameWithCollation(),
+                        valueNode.getTypeServices().getSQLTypeNameWithCollation());
+            }
+        }
     }
 
     /**
