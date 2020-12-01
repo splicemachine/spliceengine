@@ -80,6 +80,15 @@ public class CastNode extends ValueNode
      */
     private boolean externallyGeneratedCastNode = false;
 
+    /**
+     * For omitted clauses in case ... when ... then ... end, parser
+     * generates NULL nodes with a cast node on top. These cast nodes cast
+     * the NULLs to char(1), despite of the actual common type of all "then"
+     * and "else" branches. This flag indicates whether this cast node is
+     * for this purpose.
+     */
+    private boolean forNullsInConditionalNode = false;
+
     /*
     ** Static array of valid casts.  Dimentions
     ** produce a single boolean which indicates
@@ -928,6 +937,16 @@ public class CastNode extends ValueNode
         return castOperand.constantExpression(whereClause);
     }
 
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if (castOperand instanceof UntypedNullConstantNode && !forNullsInConditionalNode) {
+            castOperand.setType(getTypeServices());
+            return castOperand;
+        }
+        return this;
+    }
+
     /**
      * Return an Object representing the bind time value of this
      * expression tree.  If the expression tree does not evaluate to
@@ -1170,6 +1189,9 @@ public class CastNode extends ValueNode
         isFunctionArgument = true;
     }
 
+    void setForNullsInConditionalNode() {
+        forNullsInConditionalNode = true;
+    }
 
     /**
      * {@inheritDoc}
