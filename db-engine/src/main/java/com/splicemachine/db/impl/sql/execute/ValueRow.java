@@ -62,6 +62,7 @@ import java.util.List;
  Basic implementation of ExecRow.
 
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public class ValueRow implements ExecRow, Externalizable {
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -481,8 +482,10 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
-		for (int i = 0; i < ncols;i++)
+		for (int i = 0; i < ncols;i++) {
+			assert column[i] != null;
 			fields[i] = column[i].getStructField(getNamedColumn(i));
+		}
 		return DataTypes.createStructType(fields);
 	}
 
