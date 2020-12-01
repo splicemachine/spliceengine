@@ -1456,14 +1456,14 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
-     * The ScanManager.close() method has been called on "scan".
+     * The ScanController.close() method has been called on "scan".
      * <p>
      * Take whatever cleanup action is appropriate to a closed scan. It is
      * likely this routine will remove references to the scan object that it was
      * maintaining for cleanup purposes.
      *
      **/
-    public void closeMe(ScanManager scan) {
+    public void closeMe(ScanController scan) {
         if (LOG.isTraceEnabled())
             LOG.trace("closeMe " + scan);
         scanControllers.remove(scan);
