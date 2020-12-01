@@ -58,7 +58,8 @@ import java.io.ObjectOutput;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
@@ -101,8 +102,7 @@ public final class SQLTimestamp extends DataType
 
     private static boolean skipDBContext = false;
 
-    // The
-    private int precision;
+    private String formatWithPrecision = defaultTimestampFormatString;
 
     public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
@@ -129,7 +129,10 @@ public final class SQLTimestamp extends DataType
         if(SanityManager.DEBUG) {
             SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
         }
-        this.precision = precision;
+        formatWithPrecision = defaultTimestampFormatString;
+        if(precision > 0) {
+            formatWithPrecision += "." +  String.join("", Collections.nCopies(precision, "S"));
+        }
     }
 
     // Check for a version 2.0 timestamp out of bounds.
@@ -172,45 +175,19 @@ public final class SQLTimestamp extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-
-    private SimpleDateFormat getDateFormat() throws StandardException {
+    public String getString() throws StandardException {
         if(stringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
             throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
         }
-        String format = defaultTimestampFormatString;
-        if(precision > 0) {
-            format += "." +  String.join("", Collections.nCopies(precision, "S"));
-        }
-        return new SimpleDateFormat(format);
-    }
-
-    public String getString() throws StandardException
-    {
-        if (!isNull())
-        {
-            String valueString = getDateFormat().format(getTimestamp(calendar));
-            /* The java.sql.Timestamp.toString() method is supposed to return a string in
-             * the JDBC escape format. However the JDK 1.3 libraries truncate leading zeros from
-             * the year. This is not acceptable to DB2. So add leading zeros if necessary.
-             */
-            int separatorIdx = valueString.indexOf('-');
-            if (separatorIdx >= 0 && separatorIdx < 4)
-            {
-                StringBuilder sb = new StringBuilder();
-                for( ; separatorIdx < 4; separatorIdx++)
-                    sb.append('0');
-                sb.append(valueString);
-                valueString = sb.toString();
-            }
-
-            return valueString;
-        }
-        else
-        {
+        if (!isNull()) {
+            return DateTimeFormatter
+                    .ofPattern(formatWithPrecision)
+                    .withZone(ZoneId.systemDefault())
+                    .format(getTimestamp(calendar).toInstant());
+        } else {
             return null;
         }
     }
-
 
     /**
         getDate returns the date portion of the timestamp
@@ -999,7 +976,11 @@ public final class SQLTimestamp extends DataType
         }
         else
         {
-            return getTimestamp(calendar).toString();
+            try {
+                return getString();
+            } catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

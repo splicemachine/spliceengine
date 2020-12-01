@@ -406,18 +406,18 @@ public class CastNode extends ValueNode
                     {
                         DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
                         String castValue;
-                        if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
-                            ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
-                            castValue = dvd.getString();
-                        } else {
-                            castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
-                        }
                         if (dvd instanceof SQLTimestamp) {
                             int precision = getCompilerContext().getTimestampPrecision();
                             if(SanityManager.DEBUG) {
                                 SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
                             }
                             ((SQLTimestamp) dvd).setPrecision(precision);
+                        }
+                        if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
+                            ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
+                            castValue = dvd.getString();
+                        } else {
+                            castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
                         }
                         retNode = (ValueNode) getNodeFactory().getNode(
                                 C_NodeTypes.CHAR_CONSTANT_NODE,
