@@ -31,16 +31,26 @@ public class DatabaseMetaDataTestIT {
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("t1test", spliceSchemaWatcher.schemaName, "(t1n numeric(10,2) default null, t1c char(10))");
+    private static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("a_b", spliceSchemaWatcher.schemaName, "(correct int)");
+    private static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("aXb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("aYb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("aZb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("\"A%B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("\"A\\B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher1);
-
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
-
 
     @Test
     public void testVersionAndProductName() throws Exception {
@@ -80,4 +90,14 @@ public class DatabaseMetaDataTestIT {
         Assert.assertTrue("Query Did not return, decimal serde issue",rs.next());
     }
 
+    @Test
+    public void testDescribeTable() throws Exception {
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        DatabaseMetaData dmd=conn.getMetaData();
+        try(ResultSet rs = dmd.getColumns(null, spliceSchemaWatcher.schemaName, "A\\_B" /* simulating what ij.jj would do */, null)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("CORRECT", rs.getString(4));
+            Assert.assertFalse(rs.next());
+        }
+    }
 }
