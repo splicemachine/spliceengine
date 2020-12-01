@@ -123,6 +123,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
 
             case Types.CHAR:
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:
                 break;
 
             case Types.DATE:
