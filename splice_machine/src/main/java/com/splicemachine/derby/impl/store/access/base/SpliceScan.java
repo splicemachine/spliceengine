@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -69,6 +70,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     private TxnOperationFactory opFactory;
     private PartitionFactory partitionFactory;
     private DescriptorSerializer[] serializers;
+    private TransactionController transactionController;
 
     public SpliceScan(){
         if(LOG.isTraceEnabled())
@@ -86,7 +88,8 @@ public class SpliceScan implements ScanManager, LazyScan{
                       Transaction trans,
                       boolean isKeyed,
                       TxnOperationFactory operationFactory,
-                      PartitionFactory partitionFactory) throws StandardException {
+                      PartitionFactory partitionFactory,
+                      TransactionController transactionController) throws StandardException {
         this.spliceConglomerate=spliceConglomerate;
         this.isKeyed=isKeyed;
         this.scanColumnList=scanColumnList;
@@ -98,6 +101,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.trans=(BaseSpliceTransaction)trans;
         this.opFactory = operationFactory;
         this.partitionFactory = partitionFactory;
+        this.transactionController = transactionController;
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
         // Hack for Indexes...
         if (dvdArray[dvdArray.length-1] == null)
@@ -125,6 +129,10 @@ public class SpliceScan implements ScanManager, LazyScan{
         try{
             if(scanner!=null) scanner.close();
         }catch(IOException ignored){ }
+
+        if (transactionController != null) {
+            transactionController.closeMe(this);
+        }
     }
 
     protected void attachFilter(){
