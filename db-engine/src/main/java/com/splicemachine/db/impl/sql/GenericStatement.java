@@ -604,10 +604,6 @@ public class GenericStatement implements Statement{
                 }
                 cc.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
 
-                /**
-                 * Deprecated, we should remove this configuration parameter and only use SPLICE_TIMESTAMP_PRECISION
-                 * instead.
-                 */
                 String currentTimestampPrecisionString =
                 PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
                 int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
