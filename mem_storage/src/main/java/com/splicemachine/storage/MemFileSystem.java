@@ -182,7 +182,7 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long fileCount(){
+        public long recursiveFileCount(){
             if(!isDirectory()) return 1l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -246,7 +246,7 @@ public class MemFileSystem extends DistributedFileSystem{
         public String toSummary() {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(this.fileCount());
+            sb.append("\nFile Count = ").append(this.recursiveFileCount());
             sb.append("\nSize = ").append(size());
             return sb.toString();
         }
@@ -257,8 +257,30 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listRecursive(){
+        public FileInfo[] listFilesRecursive(){
             throw new UnsupportedOperationException("IMPLEMENT");
+        }
+        @Override
+        public FileInfo[] listDir(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public String getPermissionStr(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+        @Override
+        public long getModificationTime(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public long recursiveSize(){
+            try{
+                return Files.size(p);
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
         }
     }
 }
