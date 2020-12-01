@@ -2300,6 +2300,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return ResultSet - each row is a column description
      * @see #getSearchStringEscape
      * @exception SQLException thrown on failure.
+     * @implNote if you intend to use this API with exact schema, table, and column names make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getColumns(String catalog, String schemaPattern,
         String tableNamePattern, String columnNamePattern)
@@ -2313,6 +2316,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * Get a description of table columns available in a catalog.
      * Same as getColumns() above, except that the result set
      * will conform to ODBC specifications.
+     * @implNote if you intend to use this API with exact schema, table, and column names make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getColumnsForODBC(String catalog, String schemaPattern,
         String tableNamePattern, String columnNamePattern)
