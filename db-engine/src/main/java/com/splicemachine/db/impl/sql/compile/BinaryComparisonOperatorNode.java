@@ -147,7 +147,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         }
         else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
         {
-            leftOperand.addCastNodeForStringToNonStringComparison(rightOperand, leftOperand);
+            leftOperand = addCastNodeForStringToNonStringComparison(rightOperand, leftOperand);
             leftTypeId = leftOperand.getTypeId();
         }
 
