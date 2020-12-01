@@ -6703,7 +6703,7 @@ typeOfFunction() throws StandardException :
     ValueNode    value;
 }
 {
-    <TYPEOF> <LEFT_PAREN> value = additiveExpression(null, 0) <RIGHT_PAREN>
+    <TYPEOF> <LEFT_PAREN> value = orExpression(null) <RIGHT_PAREN>
     {
         return (ValueNode) nodeFactory.getNode(
             C_NodeTypes.TYPEOF_OPERATOR_NODE,
