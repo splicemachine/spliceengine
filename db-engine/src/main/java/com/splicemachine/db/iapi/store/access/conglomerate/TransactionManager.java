@@ -110,16 +110,6 @@ public interface TransactionManager extends TransactionController
         throws StandardException;
 
     /**
-     * The ScanManager.close() method has been called on "scan".
-     * <p>
-     * Take whatever cleanup action is appropriate to a closed scan.  It is
-     * likely this routine will remove references to the scan object that it
-     * was maintaining for cleanup purposes.
-     *
-     **/
-    void closeMe(ScanManager scan);
-
-    /**
      * The ConglomerateController.close() method has been called on 
      * "conglom_control".
      * <p>

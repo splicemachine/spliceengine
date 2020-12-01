@@ -97,6 +97,14 @@ public class CastNode extends ValueNode
     private boolean assignmentSemantics = false;
 
     /**
+     * Whether this cast is applied on a function argument.
+     * Some type conversions are disabled if it's implicitly applied on a
+     * function argument because it might change the semantic of calling the
+     * function.
+     */
+    private boolean isFunctionArgument = false;
+
+    /**
      * Constructor for a CastNode
      *
      * @param castOperand    The operand of the node
@@ -529,7 +537,7 @@ public class CastNode extends ValueNode
              * hex(2.5) == hex(varchar(2.5)) == hex('2.5') = 0x322E35.
              * But if user writes hex(cast(2.5 as varchar(3))), it should be accepted.
              */
-            if (tc instanceof NumericTypeCompiler && getTypeId().isCharOrVarChar() && assignmentSemantics) {
+            if (tc instanceof NumericTypeCompiler && getTypeId().isCharOrVarChar() && isFunctionArgument) {
                 throw StandardException.newException(SQLState.LANG_INVALID_CAST,
                         sourceCTI.getSQLTypeName(),
                         getTypeId().getSQLTypeName());
@@ -1123,7 +1131,6 @@ public class CastNode extends ValueNode
              * of VSDV.
              */
 
-            // not sure if this is important
             mb.push(isNumber ? getTypeServices().getPrecision() : getTypeServices().getMaximumWidth());
             mb.push(getTypeServices().getScale());
             mb.push(!sourceCTI.variableLength() ||
@@ -1179,6 +1186,10 @@ public class CastNode extends ValueNode
     void setAssignmentSemantics()
     {
         assignmentSemantics = true;
+    }
+
+    void setIsFunctionArgument() {
+        isFunctionArgument = true;
     }
 
 

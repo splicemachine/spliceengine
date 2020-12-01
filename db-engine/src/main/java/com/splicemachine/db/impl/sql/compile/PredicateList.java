@@ -1060,8 +1060,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     int pos = pred.getIndexPosition();
                     if (pos <= inlistPosition && pos >= 0 && !isEquality[pos]) {
                         RelationalOperator relop = pred.getRelop();
-                        if (relop != null && relop.getOperator() == RelationalOperator.EQUALS_RELOP &&
-                                pred.compareWithKnownConstant(optTable, true))
+                        if (relop != null && pred.equalsComparisonWithConstantExpression(optTable))
                             isEquality[pos] = true;
                     }
                 }
