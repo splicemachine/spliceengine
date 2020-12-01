@@ -39,6 +39,7 @@ import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.shared.common.sql.Utils;
 
 import java.lang.reflect.*;
 import java.security.AccessController;
@@ -1197,15 +1198,13 @@ class ij {
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
-            String getSynonymAliasInfo = "SELECT BASETABLE \n" +
-                    " FROM \n" +
-                    " SYSVW.SYSALIASTOTABLEVIEW V \n" +
-                    " WHERE \n" +
-                    " (V.SCHEMANAME LIKE ?) AND (V.ALIAS LIKE ?)";
+            String getSynonymAliasInfo = String.format(
+                    "SELECT BASETABLE FROM SYSVW.SYSALIASTOTABLEVIEW V WHERE (V.SCHEMANAME LIKE ? ESCAPE '%s') AND (V.ALIAS LIKE ? ESCAPE '%s')",
+                    Utils.defaultEscapeCharacter, Utils.defaultEscapeCharacter);
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
-            s.setString(1, schema);
-            s.setString(2, table);
+            s.setString(1, Utils.escape(schema));
+            s.setString(2, Utils.escape(table));
             rs = s.executeQuery();
 
             if (rs.next()){
@@ -1216,7 +1215,7 @@ class ij {
                 }
             }
 
-            rs = dbmd.getColumns(null,schema,table,null);
+            rs = dbmd.getColumns(null, Utils.escape(schema), Utils.escape(table), null);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_SCHEM"),
