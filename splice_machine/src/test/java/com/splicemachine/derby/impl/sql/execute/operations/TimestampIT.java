@@ -865,4 +865,17 @@ public class TimestampIT extends SpliceUnitTest {
             }
         }
     }
+    @Test
+    public void testTimestampFunctionFromLongVarchar_10926() throws Exception {
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select timestamp(? || '-23.59.59.999999')")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "1             |\n" +
+                                "----------------------------\n" +
+                                "2020-01-01 23:59:59.999999 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
 }
