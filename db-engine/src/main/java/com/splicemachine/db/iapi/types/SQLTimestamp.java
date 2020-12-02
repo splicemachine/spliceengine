@@ -33,7 +33,6 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -58,8 +57,6 @@ import java.io.ObjectOutput;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
@@ -102,7 +99,7 @@ public final class SQLTimestamp extends DataType
 
     private static boolean skipDBContext = false;
 
-    private String formatWithPrecision = defaultTimestampFormatString;
+    private int precision = 0;
 
     public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
@@ -126,13 +123,7 @@ public final class SQLTimestamp extends DataType
     }
 
     public void setPrecision(int precision) {
-        if(SanityManager.DEBUG) {
-            SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
-        }
-        formatWithPrecision = defaultTimestampFormatString;
-        if(precision > 0) {
-            formatWithPrecision += "." +  String.join("", Collections.nCopies(precision, "S"));
-        }
+        this.precision = precision;
     }
 
     // Check for a version 2.0 timestamp out of bounds.
@@ -175,15 +166,32 @@ public final class SQLTimestamp extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
+    private static String format(Timestamp timestamp, int precision) {
+        assert timestamp != null;
+        String ts = timestamp.toString();
+        String result = ts.substring(0, ts.indexOf('.'));
+        if(precision <= 0) {
+            return result;
+        }
+        String nanosString = ts.substring(ts.indexOf('.') + 1);
+        if(nanosString.length() == precision) {
+            return result + "." + nanosString;
+        } else if(nanosString.length() > precision) {
+            return result + "." + nanosString.substring(0, precision);
+        } else {
+            int paddingZeros = precision - nanosString.length();
+            return result + "." + nanosString + String.join("", Collections.nCopies(paddingZeros, "0"));
+        }
+    }
+
     public String getString() throws StandardException {
         if(stringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
             throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
         }
         if (!isNull()) {
-            return DateTimeFormatter
-                    .ofPattern(formatWithPrecision)
-                    .withZone(ZoneId.systemDefault())
-                    .format(getTimestamp(calendar).toInstant());
+            Timestamp timestamp = getTimestamp(calendar);
+            assert timestamp != null;
+            return format(timestamp, precision);
         } else {
             return null;
         }
