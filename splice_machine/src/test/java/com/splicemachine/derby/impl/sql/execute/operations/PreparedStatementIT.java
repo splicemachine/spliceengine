@@ -21,6 +21,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -296,6 +297,38 @@ public class PreparedStatementIT {
 
         try(ResultSet rs = ps.executeQuery()) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterInConstantRestriction() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where 1 = ? order by customerid {limit 1}");
+
+        ps.setInt(1, 1);
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(1, SpliceUnitTest.resultSetSize(rs));
+        }
+
+        ps.setInt(1, 2);
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(0, SpliceUnitTest.resultSetSize(rs));
+        }
+
+        ps.setDouble(1, 1.0);
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(1, SpliceUnitTest.resultSetSize(rs));
+        }
+
+        ps.setString(1, "2");
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(0, SpliceUnitTest.resultSetSize(rs));
+        }
+
+        try {
+            ps.setDate(1, Date.valueOf("2020-01-01"));
+            Assert.fail("Expect failure in converting date to integer");
+        } catch (Exception e) {
+            Assert.assertEquals("An attempt was made to get a data value of type 'INTEGER' from a data value of type 'DATE'.", e.getMessage());
         }
     }
 }
