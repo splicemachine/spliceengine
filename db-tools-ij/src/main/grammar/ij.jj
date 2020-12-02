@@ -636,12 +636,12 @@ class ij {
         try {
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
-            rs = dbmd.getSchemas(null,schema);
+            rs = dbmd.getSchemas(null,Utils.escape(schema));
             if (!rs.next())
                 throw ijException.noSuchSchema(schema);
             rs.close();
 
-            rs = dbmd.getTables(null,schema,table,null);
+            rs = dbmd.getTables(null,Utils.escape(schema), Utils.escape(table),null);
             if(!rs.next())
                 throw ijException.noSuchTable(table);
         } finally {
@@ -668,7 +668,7 @@ class ij {
         ResultSet rs = null;
         try {
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,proc);
+            rs = dbmd.getProcedures(null,Utils.escape(schema),Utils.escape(proc));
             if(!rs.next())
                 throw ijException.noSuchProcedure(proc);
         } finally {
@@ -694,7 +694,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getTables(null,schema,null,tableType);
+            rs = dbmd.getTables(null,Utils.escape(schema),null,tableType);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_SCHEM"),
@@ -732,7 +732,7 @@ class ij {
         haveConnection();
 
         DatabaseMetaData dbmd = theConnection.getMetaData();
-        return dbmd.getIndexInfo(null, schema, table, false, true);
+        return dbmd.getIndexInfo(null, Utils.escape(schema), Utils.escape(table), false, true);
     }
 
     /**
@@ -821,7 +821,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,null);
+            rs = dbmd.getProcedures(null,Utils.escape(schema),null);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("PROCEDURE_SCHEM"),
@@ -890,7 +890,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getPrimaryKeys(null,schema,table);
+            rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_NAME"),
@@ -936,7 +936,7 @@ class ij {
                                                     new Class[] { String.class,
                                                                String.class,
                                                                String.class});
-                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, schema, null});
+                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, Utils.escape(schema), null});
             } catch(NoSuchMethodException nsme) {
                 throw ijException.notAvailableForDriver(dbmd.getDriverName());
             } catch(IllegalAccessException iae) {
