@@ -50,7 +50,9 @@ public class SessionPropertiesImpl implements SessionProperties {
 
         switch (property) {
             case USESPARK:
-                boolean useSparkVal = Boolean.valueOf(valString);
+            case USEOLAP:
+                assert USESPARK.getId() == USEOLAP.getId();
+                boolean useSparkVal = Boolean.parseBoolean(valString);
                 properties[USESPARK.getId()] = useSparkVal;
                 break;
             case DEFAULTSELECTIVITYFACTOR:
@@ -58,7 +60,7 @@ public class SessionPropertiesImpl implements SessionProperties {
                 properties[DEFAULTSELECTIVITYFACTOR.getId()] = defaultSelectivityFactor;
                 break;
             case SKIPSTATS:
-                boolean skipStatsVal = Boolean.valueOf(valString);
+                boolean skipStatsVal = Boolean.parseBoolean(valString);
                 properties[SKIPSTATS.getId()] = skipStatsVal;
                 break;
             case OLAPQUEUE:
@@ -81,7 +83,7 @@ public class SessionPropertiesImpl implements SessionProperties {
                 properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
                 break;
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
-                boolean disabled = Boolean.valueOf(valString);
+                boolean disabled = Boolean.parseBoolean(valString);
                 properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
                 break;
             case SPARK_RESULT_STREAMING_BATCHES:
@@ -97,13 +99,16 @@ public class SessionPropertiesImpl implements SessionProperties {
                 properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
                 break;
             case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
-                boolean disablePushDown = Boolean.valueOf(valString);
+                boolean disablePushDown = Boolean.parseBoolean(valString);
                 properties[DISABLE_NLJ_PREDICATE_PUSH_DOWN.getId()] = disablePushDown;
                 break;
-            default:
+            case USE_NATIVE_SPARK:
+                boolean useNativeSpark = Boolean.parseBoolean(valString);
+                properties[USE_NATIVE_SPARK.getId()] = useNativeSpark;
                 break;
+            default:
+                assert false;
         }
-        return;
     }
 
     public Object getProperty(PROPERTYNAME property) {
