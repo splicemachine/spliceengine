@@ -1722,9 +1722,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
 
-            CollectNodesVisitor cnv = new CollectNodesVisitor(ParameterNode.class);
-            constantRestriction.accept(cnv);
-            mb.push(!cnv.getList().isEmpty());
+            HasNodeVisitor hnv = new HasNodeVisitor(ParameterNode.class);
+            constantRestriction.accept(hnv);
+            mb.push(hnv.hasNode());
         }
 
         mb.push(mapArrayItem);
