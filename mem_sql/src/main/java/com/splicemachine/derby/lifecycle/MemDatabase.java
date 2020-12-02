@@ -59,7 +59,6 @@ public class MemDatabase{
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpOptimizedTree");
         }
-        System.setProperty("com.splicemachine.isMemPlatform",Boolean.TRUE.toString());
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
