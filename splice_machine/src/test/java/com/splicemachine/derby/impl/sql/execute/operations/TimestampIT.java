@@ -878,6 +878,8 @@ public class TimestampIT extends SpliceUnitTest {
                         TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
         }
+    }
+
     private void withPrecision(int precision) throws Exception {
         methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampPrecision', '%d' )", precision));
     }

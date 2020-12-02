@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,11 +39,11 @@ public class SpliceDateTimeFormatter {
     public static final String defaultTimeFormatString = "HH:mm:ss";
     public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
 
-    public static SpliceDateTimeFormatter DEFAULT_DATE_FORMATTER =
+    public static final SpliceDateTimeFormatter DEFAULT_DATE_FORMATTER =
                   SpliceDateTimeFormatter.of(FormatterType.DATE);
-    public static SpliceDateTimeFormatter DEFAULT_TIME_FORMATTER =
+    public static final SpliceDateTimeFormatter DEFAULT_TIME_FORMATTER =
                   SpliceDateTimeFormatter.of(FormatterType.TIME);
-    public static SpliceDateTimeFormatter DEFAULT_TIMESTAMP_FORMATTER =
+    public static final SpliceDateTimeFormatter DEFAULT_TIMESTAMP_FORMATTER =
                   SpliceDateTimeFormatter.of(FormatterType.TIMESTAMP);
 
     private FormatterType formatterType;
