@@ -158,7 +158,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // drop files
         ArrayList<FileInfoDescriptor> fileList = dd.getFilesInSchema(sd.getUUID().toString());
         for (FileInfoDescriptor fileDescriptor: fileList) {
-            executeUpdate(lcc, String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",sd.getSchemaName()+"."+fileDescriptor.getDescriptorName()));
+            executeUpdate(lcc, String.format("CALL SQLJ.REMOVE_JAR('\"%s\".\"%s\"', 0)", sd.getSchemaName(), fileDescriptor.getDescriptorName()));
         }
 
     }

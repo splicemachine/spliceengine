@@ -164,9 +164,9 @@ public class DropSchemaIT extends SpliceUnitTest {
     public void testDropSchemaWithUDF() throws Exception {
         adminConn.execute("create schema " + SCHEMA_A);
         // Install the jar file of user-defined stored procedures.
-        adminConn.execute(format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)",STORED_PROCS_JAR_FILE,SCHEMA_A+".SQLJ_IT_PROCS_JAR"));
+        adminConn.execute(format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, SCHEMA_A + ".\"SQLJ_IT_procs_JAR\""));
         // Add the jar file into the local DB class path.
-        adminConn.execute(format("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')", SCHEMA_A+".SQLJ_IT_PROCS_JAR"));
+        adminConn.execute(format("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')", SCHEMA_A+".\"SQLJ_IT_procs_JAR\""));
         // Create the user-defined stored procedure.
         adminConn.execute(format("CREATE PROCEDURE %s.SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'", SCHEMA_A));
 
