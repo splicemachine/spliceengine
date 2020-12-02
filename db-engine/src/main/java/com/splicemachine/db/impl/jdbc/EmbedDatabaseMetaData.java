@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
+import com.splicemachine.db.shared.common.sql.Utils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -499,14 +500,15 @@ public class EmbedDatabaseMetaData extends ConnectionChild
     /**
      * This is the string that can be used to escape '_' or '%' in
      * the string pattern style catalog search parameters.
-        we have no default escape value, so = is the end of the next line
+     * The default escape character is determined by
+     * <code>com.splicemachine.db.shared.common.sql.Utils#defaultEscapeCharacter</code>
      * <P>The '_' character represents any single character.
      * <P>The '%' character represents any sequence of zero or
      * more characters.
      * @return the string used to escape wildcard characters
      */
     public String getSearchStringEscape()  {
-        return "";
+        return Character.toString(Utils.defaultEscapeCharacter);
     }
 
     /**
