@@ -322,6 +322,31 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
+    protected void bindParameters() throws StandardException {
+        /* Is there a ? parameter on the left? */
+        if (leftOperand.requiresTypeFromContext()) {
+            /* Default Splice behavior:
+             * It's an error if both operands are ? parameters.
+             * This is overridden is some of the derived classes to be DB2 compatible.
+             * DB2 doc on this:
+             * https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html
+             */
+            if (rightOperand.requiresTypeFromContext()) {
+                throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
+                        operator);
+            }
+
+            /* Set the left operand to the type of right parameter. */
+            leftOperand.setType(rightOperand.getTypeServices());
+        }
+
+        /* Is there a ? parameter on the right? */
+        if (rightOperand.requiresTypeFromContext()) {
+            /* Set the right operand to the type of the left parameter. */
+            rightOperand.setType(leftOperand.getTypeServices());
+        }
+    }
+
     /**
      * Bind this expression.  This means binding the sub-expressions,
      * as well as figuring out what the return type is for this expression.
@@ -349,28 +374,7 @@ public class BinaryOperatorNode extends OperatorNode
         else if (operatorType == REPEAT)
             return bindRepeat();
 
-        /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext())
-        {
-            /*
-            ** It's an error if both operands are ? parameters.
-            */
-            if (rightOperand.requiresTypeFromContext())
-            {
-                throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
-                                                                    operator);
-            }
-
-            /* Set the left operand to the type of right parameter. */
-            leftOperand.setType(rightOperand.getTypeServices());
-        }
-
-        /* Is there a ? parameter on the right? */
-        if (rightOperand.requiresTypeFromContext())
-        {
-            /* Set the right operand to the type of the left parameter. */
-            rightOperand.setType(leftOperand.getTypeServices());
-        }
+        bindParameters();
 
         // Simple date/time arithmetic
         if ("+".equals(operator) || "-".equals(operator)) {
