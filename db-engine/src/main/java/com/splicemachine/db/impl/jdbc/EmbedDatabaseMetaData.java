@@ -1580,6 +1580,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      *      column description
      * @see #getSearchStringEscape
      * @exception SQLException thrown on failure.
+     * @implNote if you intend to use this API with exact schema and procedure make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getProcedureColumns(String catalog,
             String schemaPattern,
@@ -1598,6 +1601,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * Get a description of a catalog's stored procedure parameters
      * and result columns.  Same as getProcedureColumns() above,
      * except that the result set will conform to ODBC specifications.
+     * @implNote if you intend to use this API with exact schema and procedure make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getProcedureColumnsForODBC(String catalog,
             String schemaPattern, String procedureNamePattern,
