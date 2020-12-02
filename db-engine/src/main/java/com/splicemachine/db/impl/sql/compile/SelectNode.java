@@ -548,6 +548,13 @@ public class SelectNode extends ResultSetNode{
                 havingClause = (ValueNode)havingClause.accept(predSimplVisitor);
         }
 
+        if (whereClause instanceof UntypedNullConstantNode) {
+            whereClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+        }
+        if (havingClause instanceof UntypedNullConstantNode) {
+            havingClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+        }
+
         whereAggregates=new LinkedList<>();
         whereSubquerys=(SubqueryList)getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
 

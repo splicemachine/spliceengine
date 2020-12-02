@@ -64,6 +64,9 @@ class PredicateSimplificationVisitor implements Visitor {
         }
         return false;
     }
+    public static boolean isConstantNull(Visitable node) {
+        return node instanceof UntypedNullConstantNode;
+    }
 
     // Eliminating expressions with ParameterNodes before binding can cause
     // queries to fail.  All parameters must be bound.
@@ -102,32 +105,75 @@ class PredicateSimplificationVisitor implements Visitor {
             if (isBooleanTrue(an.getLeftOperand())) {
                 return an.getRightOperand();
             }
-            else if (isBooleanFalse(an.getLeftOperand())) {
+            else if (isBooleanFalse(an.getLeftOperand()) || isConstantNull(an.getLeftOperand())) {
                 bindExpressionsWithParametersBeforeEliminating(an.getRightOperand());
                 return an.getLeftOperand();
             }
             if (isBooleanTrue(an.getRightOperand())) {
                 return an.getLeftOperand();
             }
-            else if (isBooleanFalse(an.getRightOperand())) {
+            else if (isBooleanFalse(an.getRightOperand()) || isConstantNull(an.getRightOperand())) {
                 bindExpressionsWithParametersBeforeEliminating(an.getLeftOperand());
                 return an.getRightOperand();
             }
         } else if (node instanceof OrNode) {
             OrNode on = (OrNode)node;
-            if (isBooleanTrue(on.getLeftOperand())) {
+            if (isBooleanTrue(on.getLeftOperand()) || isConstantNull(on.getLeftOperand())) {
                 bindExpressionsWithParametersBeforeEliminating(on.getRightOperand());
                 return on.getLeftOperand();
             }
             else if (isBooleanFalse(on.getLeftOperand())) {
                 return on.getRightOperand();
             }
-            if (isBooleanTrue(on.getRightOperand())) {
+            if (isBooleanTrue(on.getRightOperand()) || isConstantNull(on.getRightOperand())) {
                 bindExpressionsWithParametersBeforeEliminating(on.getLeftOperand());
                 return on.getRightOperand();
             }
             else if (isBooleanFalse(on.getRightOperand())) {
                 return on.getLeftOperand();
+            }
+        } else if (node instanceof BinaryOperatorNode) {
+            BinaryOperatorNode bon = (BinaryOperatorNode)node;
+            if (isConstantNull(bon.getLeftOperand())) {
+                bindExpressionsWithParametersBeforeEliminating(bon.getRightOperand());
+                return bon.getLeftOperand();
+            } else if (isConstantNull(bon.getRightOperand())) {
+                bindExpressionsWithParametersBeforeEliminating(bon.getLeftOperand());
+                return bon.getRightOperand();
+            }
+        } else if (node instanceof BinaryListOperatorNode) {
+            BinaryListOperatorNode blon = (BinaryListOperatorNode)node;
+            ValueNodeList leftOperands = blon.getLeftOperandList();
+            ValueNodeList rightOperands = blon.getRightOperandList();
+            for (Object operand : leftOperands) {
+                if (operand instanceof UntypedNullConstantNode) {
+                    if (leftOperands.containsParameterNode()) {
+                        bindExpressionsWithParametersBeforeEliminating(leftOperands);
+                    }
+                    if (rightOperands.containsParameterNode()) {
+                        bindExpressionsWithParametersBeforeEliminating(rightOperands);
+                    }
+                    return (ValueNode) operand;
+                }
+            }
+            if (node instanceof InListOperatorNode) {
+                for (int i = rightOperands.size() - 1; i >= 0; i--) {
+                    if (rightOperands.elementAt(i) instanceof UntypedNullConstantNode) {
+                        rightOperands.removeElementAt(i);
+                    }
+                }
+            }
+        } else if (node instanceof TernaryOperatorNode) {
+            TernaryOperatorNode ton = (TernaryOperatorNode)node;
+            if (ton.getOperator().equals("like")) {
+                ValueNode receiver = ton.getReceiver();
+                if (isConstantNull(receiver)) {
+                    bindExpressionsWithParametersBeforeEliminating(ton.getLeftOperand());
+                    if (ton.getRightOperand() != null) {
+                        bindExpressionsWithParametersBeforeEliminating(ton.getRightOperand());
+                    }
+                    return receiver;
+                }
             }
         }
         return node;
