@@ -124,13 +124,10 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
                 DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 254);
                 leftOperand.setType(dtd);
                 rightOperand.setType(dtd);
-                return;
             } else {
                 leftOperand.setType(rightOperand.getTypeServices());
             }
-        }
-
-        if (rightOperand.requiresTypeFromContext()) {
+        } else if (rightOperand.requiresTypeFromContext()) {
             rightOperand.setType(leftOperand.getTypeServices());
         }
     }

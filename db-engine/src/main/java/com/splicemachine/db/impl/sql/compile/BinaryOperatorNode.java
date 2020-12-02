@@ -339,9 +339,8 @@ public class BinaryOperatorNode extends OperatorNode
             /* Set the left operand to the type of right parameter. */
             leftOperand.setType(rightOperand.getTypeServices());
         }
-
         /* Is there a ? parameter on the right? */
-        if (rightOperand.requiresTypeFromContext()) {
+        else if (rightOperand.requiresTypeFromContext()) {
             /* Set the right operand to the type of the left parameter. */
             rightOperand.setType(leftOperand.getTypeServices());
         }
