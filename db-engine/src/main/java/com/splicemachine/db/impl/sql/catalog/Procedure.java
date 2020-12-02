@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
+import java.lang.reflect.Method;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -258,7 +259,7 @@ public class Procedure {
             return this;
         }
 
-        public Procedure build(){
+        public Procedure build() throws StandardException {
             assert name !=null;
             assert numberOutputParameters>=0;
             assert numResultSets>=0;
@@ -267,6 +268,25 @@ public class Procedure {
                     (routineSqlControl==RoutineAliasInfo.MODIFIES_SQL_DATA)||
                     (routineSqlControl==RoutineAliasInfo.CONTAINS_SQL)||
                     (routineSqlControl==RoutineAliasInfo.NO_SQL));
+
+            Class c = null;
+            try {
+                c = Class.forName(ownerClass);
+            } catch (ClassNotFoundException e) {
+                throw StandardException.plainWrapException(e);
+            }
+            Method methods[] = c.getDeclaredMethods();
+            boolean found = false;
+            for(Method m : methods) {
+                if(m.getName().equals(name) && m.getParameterCount() == numResultSets+ args.size() )
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                throw StandardException.plainWrapException( new RuntimeException("couldn't find matching function " + ownerClass + "." + name));
+            }
 
             Arg[] argsToPut = new Arg[args.size()];
             args.toArray(argsToPut);
