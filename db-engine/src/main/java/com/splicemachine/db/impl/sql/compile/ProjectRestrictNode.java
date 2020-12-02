@@ -1600,14 +1600,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          *  arg5: resultSetNumber
          *  arg6: constantExpress - Expression for constant restriction
          *            (for example, where 1 = 2)
-         *  arg7: mapArrayItem - item # for mapping of source columns
-         *  arg8: cloneMapItem - item # for mapping of columns that need cloning
-         *  arg9: reuseResult - whether or not the result row can be reused
+         *  arg7: paramInCr - whether constantExpress contains parameters or not
+         *  arg8: mapArrayItem - item # for mapping of source columns
+         *  arg9: cloneMapItem - item # for mapping of columns that need cloning
+         *  arg10: reuseResult - whether or not the result row can be reused
          *                      (ie, will it always be the same)
-         *  arg10: doesProjection - does this node do a projection
-         *  arg11: estimated row count
-         *  arg12: estimated cost
-         *  arg13: close method
+         *  arg11: doesProjection - does this node do a projection
+         *  arg12: estimated row count
+         *  arg13: estimated cost
+         *  arg14: close method
          */
 
         acb.pushGetResultSetFactoryExpression(mb);
@@ -1689,6 +1690,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // if there is no constant restriction, we just want to pass null.
         if(constantRestriction==null){
             mb.pushNull(ClassName.GeneratedMethod);
+            mb.push(false);
         }else{
             // this sets up the method and the static field.
             // generates:
@@ -1719,6 +1721,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // which is the static field that "points" to the userExprFun
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
+
+            CollectNodesVisitor cnv = new CollectNodesVisitor(ParameterNode.class);
+            constantRestriction.accept(cnv);
+            mb.push(!cnv.getList().isEmpty());
         }
 
         mb.push(mapArrayItem);
@@ -1735,7 +1741,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
         mb.push(subqueryText);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,17);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,18);
     }
 
     /**
