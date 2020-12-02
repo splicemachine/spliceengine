@@ -173,7 +173,7 @@ public interface C_NodeNames
 
     String GET_NEAREST_TRANSACTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetNearestTransactionNode";
 
-	String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
+    String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
 
     String GRANT_ROLE_NODE_NAME =
         "com.splicemachine.db.impl.sql.compile.GrantRoleNode";
@@ -344,7 +344,7 @@ public interface C_NodeNames
 
     String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
 
-	String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
+    String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
@@ -370,9 +370,7 @@ public interface C_NodeNames
 
     String TO_INSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToInstantOperatorNode";
 
-	String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
+    String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
 
-	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
-    // THEM TO tools/jar/DBMSnodes.properties
-
+    String TYPEOF_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TypeofOperatorNode";
 }
