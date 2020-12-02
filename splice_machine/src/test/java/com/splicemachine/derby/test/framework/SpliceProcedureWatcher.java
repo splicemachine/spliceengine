@@ -18,23 +18,23 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class SpliceFunctionWatcher extends AbstractSpliceFunctionWatcher {
+public class SpliceProcedureWatcher extends AbstractSpliceFunctionWatcher {
 
-    public SpliceFunctionWatcher(String functionName,String schemaName, String createString) {
-        super(functionName, schemaName, createString);
+    public SpliceProcedureWatcher(String procedureName,String schemaName, String createString) {
+        super(procedureName, schemaName, createString);
     }
-    public SpliceFunctionWatcher(String functionName,String schemaName, String createString, String userName, String password) {
-        super(functionName, schemaName, createString, userName, password);
+    public SpliceProcedureWatcher(String procedureName,String schemaName, String createString, String userName, String password) {
+        super(procedureName, schemaName, createString, userName, password);
     }
 
     @Override
     protected String functionType() {
-        return "function";
+        return "procedure";
     }
 
     @Override
     protected void dropIfExists(Connection connection) throws SQLException {
-        try(ResultSet rs = connection.getMetaData().getFunctions(null, schemaName, functionName)) {
+        try(ResultSet rs = connection.getMetaData().getProcedures(null, schemaName, functionName)) {
             if (rs.next()) {
                 executeDrop(schemaName,functionName);
             }
