@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -94,7 +95,7 @@ public class PropertyConglomerate {
                     null,
 						null, // use default collation for property conglom.
                     conglomProperties, 
-                    TransactionController.IS_DEFAULT);
+                    TransactionController.IS_DEFAULT, Conglomerate.Priority.HIGH);
 
 			//
 			// IMPORTANT: Hey, you!  Yeah, you!  Before you think about adding another "service" property default here,

@@ -41,6 +41,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DEFAULT_BACKUP_PATH = "/backup";
     public static final String DEFAULT_BACKUP_LOCK_PATH = "/backup_lock";
 
+    public static final String ROLLING_RESTART_PATH = "splice.rolling.restart.path";
+    public static final String DEFAULT_ROLLING_RESTART_PATH = "/rollingRestart";
+
     public static final String REPLICATION_PATH = "splice.replication.path";
     public static final String DEFAULT_REPLICATION_PATH = "/replication";
     public static final String DEFAULT_REPLICATION_SOURCE_PATH = "/source";
@@ -128,6 +131,12 @@ public class HBaseConfiguration implements ConfigurationDefault {
      * Path in ZooKeeper for registering servers
      */
     public static final String SERVERS_PATH = "/servers";
+
+    /**
+     * Path in ZooKeeper for registering the number or spark nodes
+     */
+    public static final String SPARK_NUM_NODES_PATH = "/sparkNumNodes";
+
 
     public static final String DDL_PATH="/ddl";
     public static final String DDL_CHANGE_PATH="/ddlChange";
@@ -235,17 +244,19 @@ public class HBaseConfiguration implements ConfigurationDefault {
     ));
 
     // Splice Internal Tables
-    public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-    public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
-    public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String IGNORE_TXN_TABLE_NAME = "SPLICE_IGNORE_TXN";
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
-    public static final String REPLICATION_PROGRESS_ROWKEY = "ReplicationProgress";
+
+    public static final String[] internalTablesArr = {
+            TRANSACTION_TABLE, TENTATIVE_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME,
+            DROPPED_CONGLOMERATES_TABLE_NAME, MASTER_SNAPSHOTS_TABLE_NAME, REPLICA_REPLICATION_PROGRESS_TABLE_NAME
+    };
+
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
     public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
     public static final byte[] REPLICATION_SNAPSHOT_TSCOL_BYTES = Bytes.toBytes("Timestamp");
@@ -275,6 +286,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
         builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
         builder.replicationPath = configurationSource.getString(REPLICATION_PATH, DEFAULT_REPLICATION_PATH);
+        builder.rollingRestartPath = configurationSource.getString(ROLLING_RESTART_PATH, DEFAULT_ROLLING_RESTART_PATH);
 
         builder.hbaseSecurityAuthentication = configurationSource.getBoolean(HBASE_SECURITY_AUTHENTICATION, false);
         builder.hbaseSecurityAuthorization = configurationSource.getString(HBASE_SECURITY_AUTHORIZATION,

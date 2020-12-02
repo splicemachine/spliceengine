@@ -432,7 +432,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 double optimizerEstimatedCost,
                                                 String tableVersion,
                                                 String explainPlan,
-                                                boolean pin,
                                                 int splits,
                                                 String delimited,
                                                 String escaped,
@@ -442,7 +441,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor )
+                                                GeneratedMethod pastTxFunctor,
+                                                long minRetentionPeriod)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -476,7 +476,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,
@@ -486,7 +485,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor );
+                    pastTxFunctor,
+                    minRetentionPeriod );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -723,7 +723,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            boolean pin,
             int splits,
             String delimited,
             String escaped,
@@ -732,8 +731,70 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String location,
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem
-            ) throws StandardException {
+            int defaultValueMapItem) throws StandardException {
+        return getDistinctScanResultSet(
+            activation,
+            conglomId,
+            scociItem,
+            resultRowAllocator,
+            resultSetNumber,
+            hashKeyColumn,
+            tableName,
+            userSuppliedOptimizerOverrides,
+            indexName,
+            isConstraint,
+            colRefItem,
+            lockMode,
+            tableLocked,
+            isolationLevel,
+            optimizerEstimatedRowCount,
+            optimizerEstimatedCost,
+            tableVersion,
+            explainPlan,
+            splits,
+            delimited,
+            escaped,
+            lines,
+            storedAs,
+            location,
+            partitionByRefItem,
+            defaultRowFunc,
+            defaultValueMapItem,
+            null,
+            -1);
+    }
+
+    @Override
+    public NoPutResultSet getDistinctScanResultSet(
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            int hashKeyColumn,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -754,7 +815,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,
@@ -763,7 +823,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     location,
                     partitionByRefItem,
                     defaultRowFunc,
-                    defaultValueMapItem);
+                    defaultValueMapItem,
+                    pastTxFunctor,
+                    minRetentionPeriod);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -796,6 +858,63 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           int vtiResultDescriptionNumber,
                                           String explainPlan) throws StandardException {
 
+        return getVTIResultSet(activation,
+                               row, resultSetNumber,
+                               constructor, javaClassName,
+                               pushedQualifiersField, erdNumber,
+                               ctcNumber, isTarget,
+                               scanIsolationLevel, optimizerEstimatedRowCount,
+                               optimizerEstimatedCost, isDerbyStyleTableFunction,
+                               returnTypeNumber, vtiProjectionNumber,
+                               vtiRestrictionNumber,
+                               vtiResultDescriptionNumber,
+                               explainPlan, false);
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(Activation activation,
+                                          GeneratedMethod row, int resultSetNumber,
+                                          GeneratedMethod constructor, String javaClassName,
+                                          String pushedQualifiersField, int erdNumber,
+                                          int ctcNumber, boolean isTarget,
+                                          int scanIsolationLevel, double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber, int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull) throws StandardException {
+        return getVTIResultSet(activation,
+                               row, resultSetNumber,
+                               constructor, javaClassName,
+                               pushedQualifiersField, erdNumber,
+                               ctcNumber, isTarget,
+                               scanIsolationLevel, optimizerEstimatedRowCount,
+                               optimizerEstimatedCost, isDerbyStyleTableFunction,
+                               returnTypeNumber, vtiProjectionNumber,
+                               vtiRestrictionNumber,
+                               vtiResultDescriptionNumber,
+                               explainPlan,
+                               quotedEmptyIsNull,
+                               (String) null);
+
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(Activation activation,
+                                          GeneratedMethod row, int resultSetNumber,
+                                          GeneratedMethod constructor, String javaClassName,
+                                          String pushedQualifiersField, int erdNumber,
+                                          int ctcNumber, boolean isTarget,
+                                          int scanIsolationLevel, double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber, int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull,
+                                          String fromTableDmlSpsAsString) throws StandardException {
+
         VTIOperation op =  new VTIOperation(activation, row, resultSetNumber,
                 constructor,
                 javaClassName,
@@ -810,9 +929,55 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 returnTypeNumber,
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
-                vtiResultDescriptionNumber);
+                vtiResultDescriptionNumber,
+                quotedEmptyIsNull,
+                fromTableDmlSpsAsString);
         op.setExplainPlan(explainPlan);
         return op;
+    }
+
+   @Override
+    public NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan)
+            throws StandardException {
+
+        return getVTIResultSet(
+            activation,
+            row,
+            resultSetNumber,
+            constructor,
+            javaClassName,
+            pushedQualifiersField,
+            erdNumber,
+            ctcNumber,
+            isTarget,
+            scanIsolationLevel,
+            optimizerEstimatedRowCount,
+            optimizerEstimatedCost,
+            isDerbyStyleTableFunction,
+            returnTypeNumber,
+            vtiProjectionNumber,
+            vtiRestrictionNumber,
+            vtiResultDescriptionNumber,
+            explainPlan,
+            false);
     }
 
     @Override
@@ -834,7 +999,54 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int vtiProjectionNumber,
             int vtiRestrictionNumber,
             int vtiResultDescriptionNumber,
-            String explainPlan)
+            String explainPlan,
+            boolean quotedEmptyIsNull)
+                          throws StandardException {
+        return getVTIResultSet(
+                    activation,
+                    row,
+                    resultSetNumber,
+                    constructor,
+                    javaClassName,
+                    pushedQualifiersField,
+                    erdNumber,
+                    ctcNumber,
+                    isTarget,
+                    scanIsolationLevel,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    isDerbyStyleTableFunction,
+                    returnTypeNumber,
+                    vtiProjectionNumber,
+                    vtiRestrictionNumber,
+                    vtiResultDescriptionNumber,
+                    explainPlan,
+                    quotedEmptyIsNull,
+                    (String) null);
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull,
+            String fromTableDmlSpsAsString)
             throws StandardException {
         
         return getVTIResultSet(
@@ -855,7 +1067,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
                 vtiResultDescriptionNumber,
-                explainPlan
+                explainPlan,
+                quotedEmptyIsNull,
+                fromTableDmlSpsAsString
         );
     }
 
@@ -874,7 +1088,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int colRefItem, int indexColItem, int lockMode,
             boolean tableLocked, int isolationLevel, boolean oneRowScan,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
-            String explainPlan, boolean pin, int splits,
+            String explainPlan, int splits,
             String delimited,
             String escaped,
             String lines,
@@ -883,7 +1097,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor )
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod)
 
             throws StandardException {
         try{
@@ -921,7 +1136,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,
@@ -931,7 +1145,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor
+                    pastTxFunctor,
+                    minRetentionPeriod
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -1151,7 +1366,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
-             null);
+             (String)null);
+             
     }
 
     @Override
@@ -1169,6 +1385,41 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String userSuppliedOptimizerOverrides,
             String explainPlan,
             String sparkExpressionTreeAsString) throws StandardException {
+
+        return getMergeLeftOuterJoinResultSet(
+             leftResultSet,  leftNumCols,
+             rightResultSet,  rightNumCols,
+             leftHashKeyItem,  rightHashKeyItem,
+             rightHashKeyToBaseTableMapItem,
+             rightHashKeySortOrderItem,
+             joinClause,  resultSetNumber,
+             emptyRowFun,  wasRightOuterJoin,
+             oneRowRightSide,  semiJoinType,
+             rightFromSSQ,
+             optimizerEstimatedRowCount,  optimizerEstimatedCost,
+             userSuppliedOptimizerOverrides,
+             explainPlan,
+             sparkExpressionTreeAsString,
+             CompilerContext.NewMergeJoinExecutionType.SYSTEM.ordinal());
+    }
+
+
+    @Override
+    public NoPutResultSet getMergeLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString,
+            int encodedNewMergeJoin) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1187,7 +1438,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    sparkExpressionTreeAsString,
+                    encodedNewMergeJoin);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1445,7 +1697,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1456,6 +1708,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftResultSet,  leftNumCols,
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,
+             noCacheBroadcastJoinRight,
              joinClause,  resultSetNumber,
              oneRowRightSide, semiJoinType,
              rightFromSSQ, broadcastRightSide,
@@ -1469,7 +1722,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1483,6 +1736,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new CrossJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                    noCacheBroadcastJoinRight,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
                     oneRowRightSide, semiJoinType, rightFromSSQ, broadcastRightSide, optimizerEstimatedRowCount,
@@ -1552,7 +1806,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String sparkExpressionTreeAsString,
+            int encodedNewMergeJoin) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1593,8 +1848,39 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
-             null);
+             null,
+             CompilerContext.NewMergeJoinExecutionType.SYSTEM.ordinal());
     }
+
+    public NoPutResultSet getMergeJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException {
+        return getMergeJoinResultSet(
+             leftResultSet,  leftNumCols,
+             rightResultSet,  rightNumCols,
+             leftHashKeyItem,  rightHashKeyItem,
+             rightHashKeyToBaseTableMapItem,
+             rightHashKeySortOrderItem,
+             joinClause,
+             resultSetNumber,  oneRowRightSide,
+                semiJoinType,  rightFromSSQ,  optimizerEstimatedRowCount,
+             optimizerEstimatedCost,
+             userSuppliedOptimizerOverrides,
+             explainPlan,
+             sparkExpressionTreeAsString,
+             CompilerContext.NewMergeJoinExecutionType.SYSTEM.ordinal());
+    }
+
 
     @Override
     public NoPutResultSet getMergeJoinResultSet(
@@ -1609,16 +1895,19 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String sparkExpressionTreeAsString,
+            int encodedNewMergeJoin) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            CompilerContext.NewMergeJoinExecutionType newMergeJoin =
+                CompilerContext.NewMergeJoinExecutionType.values()[encodedNewMergeJoin];
             JoinOperation op = new MergeJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString, newMergeJoin);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1765,7 +2054,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              boolean outputKeysOnly,
                                              boolean skipSampling,
                                              double sampleFraction,
-                                             String indexName)
+                                             String indexName,
+                                             String fromTableDmlSpsDescriptorAsString)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -1773,7 +2063,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
                     delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
-            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName);
+            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName, fromTableDmlSpsDescriptorAsString);
 
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
@@ -1791,10 +2081,14 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
-                                             String explainPlan) throws StandardException {
+                                             String explainPlan,
+                                             String fromTableDmlSpsDescriptorAsString) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount,tableVersion);
+            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM,
+                                                      source.getActivation(),optimizerEstimatedCost,
+                                                      optimizerEstimatedRowCount,tableVersion,
+                                                      fromTableDmlSpsDescriptorAsString);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);
@@ -1817,13 +2111,16 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
-                                             int colMapRefItem)
+                                             int colMapRefItem,
+                                             String fromTableDmlSpsDescriptorAsString,
+                                             boolean noTriggerRI)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem);
+                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem,
+                            fromTableDmlSpsDescriptorAsString, noTriggerRI);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);
@@ -1854,7 +2151,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getRowCountResultSet");
-        ConvertedResultSet below = (ConvertedResultSet)source;
+        ConvertedResultSet below = (ConvertedResultSet) source;
         RowCountOperation op = new RowCountOperation(below.getOperation(),
                 activation,
                 resultSetNumber,
@@ -1865,45 +2162,49 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 optimizerEstimatedCost);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
 
-	public NoPutResultSet getLastIndexKeyResultSet
-	(
-		Activation 			activation,
-		int 				resultSetNumber,
-		GeneratedMethod 	resultRowAllocator,
-		long 				conglomId,
-		String 				tableName,
-		String 				userSuppliedOptimizerOverrides,
-		String 				indexName,
-		int 				colRefItem,
-		int 				lockMode,
-		boolean				tableLocked,
-		int					isolationLevel,
-		double				optimizerEstimatedRowCount,
-		double 				optimizerEstimatedCost,
-        String              tableVersion,
-        String              explainPlan
-	) throws StandardException
-	{
-		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
-		ScanOperation op = new LastIndexKeyOperation(
-					activation,
-					resultSetNumber,
-					resultRowAllocator,
-					conglomId,
-					tableName,
-					userSuppliedOptimizerOverrides,
-					indexName,
-					colRefItem,
-					lockMode,
-					tableLocked,
-					isolationLevel,
-					optimizerEstimatedRowCount,
-					optimizerEstimatedCost, tableVersion);
+    @Override
+    public NoPutResultSet getLastIndexKeyResultSet
+            (
+                    Activation activation,
+                    int resultSetNumber,
+                    GeneratedMethod resultRowAllocator,
+                    long conglomId,
+                    String tableName,
+                    String userSuppliedOptimizerOverrides,
+                    String indexName,
+                    int colRefItem,
+                    int lockMode,
+                    boolean tableLocked,
+                    int isolationLevel,
+                    double optimizerEstimatedRowCount,
+                    double optimizerEstimatedCost,
+                    String tableVersion,
+                    String explainPlan,
+                    GeneratedMethod pastTxFunctor,
+                    long minRetentionPeriod
+            ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
+        ScanOperation op = new LastIndexKeyOperation(
+                activation,
+                resultSetNumber,
+                resultRowAllocator,
+                conglomId,
+                tableName,
+                userSuppliedOptimizerOverrides,
+                indexName,
+                colRefItem,
+                lockMode,
+                tableLocked,
+                isolationLevel,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost, tableVersion, pastTxFunctor, minRetentionPeriod);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
+
+
 
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,
                                              boolean isInSortedOrder,
@@ -1955,40 +2256,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
 
     @Override
-    public NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                                   Activation activation,
-                                                   int resultSetNumber,
-                                                   String exportPath,
-                                                   String compression,
-                                                   String format,
-                                                   int srcResultDescriptionSavedObjectNum) throws StandardException {
-        // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
-        // export operation returns (exported row count, and export time) not the columns of the source operation.
-        // Not what we need to format the rows during export.  So ExportNode now saves the source
-        // ResultColumnDescriptors and we retrieve them here.
-        Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
-        ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
-
-        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
-        SpliceBaseOperation op = new ExportOperation(
-                convertedResultSet.getOperation(),
-                columnDescriptors,
-                activation,
-                resultSetNumber,
-                exportPath,
-                compression,
-                format,
-                1,
-                "",
-                "",
-                ""
-        );
-        op.markAsTopResultSet();
-        return op;
-
-    }
-
-    @Override
     public NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
                                                    Activation activation,
                                                    int resultSetNumber,
@@ -2024,6 +2291,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String encoding,
                                              String fieldSeparator,
                                              String quoteChar,
+                                             String quoteMode,
+                                             String format,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -2041,11 +2310,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 resultSetNumber,
                 exportPath,
                 compression,
-                "csv",
+                format,
                 replicationCount,
                 encoding,
                 fieldSeparator,
-                quoteChar
+                quoteChar,
+                quoteMode
         );
         op.markAsTopResultSet();
         return op;

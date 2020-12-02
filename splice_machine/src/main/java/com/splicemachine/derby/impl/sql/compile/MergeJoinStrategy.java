@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.utils.Pair;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -131,27 +132,38 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             return;
         }
         //preserve the underlying CostEstimate for the inner table
-        innerCost.setBase(innerCost.cloneMe());
+        CostEstimate baseInnerCost = innerCost.cloneMe();
+        innerCost.setBase(baseInnerCost);
         double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setParallelism(outerCost.getParallelism());
         boolean empty = isOuterTableEmpty(innerTable, predList);
         /* totalJoinedRows is different from totalOutputRows
          * totalJoinedRows: the number of joined rows constructed just based on the merge join search conditions, that is, the equality join conditions on the leading index columns.
          * totalOutputRows: the number of final output rows, this is the result after applying any restrictive conditions, e.g., the inequality join conditions, conditions not on index columns.
          * totalJoinedRows is always equal or larger than totalOutputRows */
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
+
+        double innerTableScaleFactor = Math.min(1.0, joinSelectivity * outerCost.rowCount());
+        innerTableScaleFactor = Math.min(innerTableScaleFactor, scanSelectivity);
+
+        // Adjust the scanned rows so we can possibly avoid spark execution.
+        double rightRowCount = innerTableScaleFactor * innerCost.rowCount();
+        baseInnerCost.setScannedBaseTableRows(rightRowCount);
+        //innerCost.setRowCount(rightRowCount);
+
+        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
-        innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setLocalCostPerParallelTask(joinCost);
+        double remoteCostPerPartition =
+               SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer, innerTableScaleFactor);
         innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
+        innerCost.setRowCount(totalOutputRows);
     }
 
     /**
@@ -165,21 +177,22 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
      * @return
      */
 
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows) {
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows, double innerTableScaleFactor) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount();
+        assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
+        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask() * innerTableScaleFactor *
+                                 innerCost.getParallelism();
         if (outerTableEmpty) {
-            return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
+            return (outerCost.getLocalCostPerParallelTask())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
-                innerRemoteCost/outerCost.partitionCount() +
+            return outerCost.getLocalCostPerParallelTask()+innerCost.getLocalCostPerParallelTask() * innerTableScaleFactor +
+                innerRemoteCost/outerCost.getParallelism() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
-                        + joiningRowCost/outerCost.partitionCount();
+                        + joiningRowCost/outerCost.getParallelism();
     }
 
     /* ****************************************************************************************************************/
@@ -218,33 +231,35 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                                 IndexRowGenerator innerRowGenerator,
                                 OptimizablePredicateList predList,
                                 Optimizable innerTable) throws StandardException{
-        int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
+        boolean isIndexOnExpr = innerRowGenerator.isOnExpression();
+        int[] keyColumnPositionMap = isIndexOnExpr ? null : innerRowGenerator.baseColumnPositions();
         boolean[] keyAscending = innerRowGenerator.isAscending();
 
-        BitSet innerColumns = new BitSet(keyColumnPositionMap.length);
-        BitSet outerColumns = new BitSet(keyColumnPositionMap.length);
+        BitSet innerColumns = new BitSet(keyAscending.length);
+        BitSet outerColumns = new BitSet(keyAscending.length);
         for(int p = 0;p<predList.size();p++){
             Predicate pred = (Predicate)predList.getOptPredicate(p);
             if(pred.isJoinPredicate()) continue; //we'll deal with these later
             RelationalOperator relop=pred.getRelop();
             if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
             if(relop.getOperator()==RelationalOperator.EQUALS_RELOP) {
-                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
-                if (innerEquals >= 0) innerColumns.set(innerEquals);
-                else {
-
+                int innerEquals = isIndexOnExpr ? pred.hasEqualOnIndexExpression(innerTable)
+                                                : pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
+                if (innerEquals >= 0) {
+                    innerColumns.set(innerEquals);
+                } else {
                     BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
-                    ValueNode vn = bron.getLeftOperand();
-                    if (!(vn instanceof ColumnReference))
-                        vn = bron.getRightOperand();
-                    if (!(vn instanceof ColumnReference)) continue;
-                    ColumnReference outerColumn = (ColumnReference) vn;
                     /*
                      * We are still sortable if we have constant predicates on the first N keys on the outer
                      * side of the join, as long as we match the inner columns
                      */
-                    int outerTableNum = outerColumn.getTableNumber();
-                    int outerColNum = outerColumn.getColumnNumber();
+                    Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, null);
+                    if (outerColumnInfo == null) {
+                        continue;
+                    }
+                    int outerTableNum = outerColumnInfo.getFirst();
+                    int outerColNum = outerColumnInfo.getSecond();
+
                     //we don't care what the sort order for this column is, since it's an equals predicate anyway
                     int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
                     if (pos >= 0) {
@@ -259,14 +274,14 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             }
         }
 
-        int[] innerToOuterJoinColumnMap = new int[keyColumnPositionMap.length];
+        int[] innerToOuterJoinColumnMap = new int[keyAscending.length];
         Arrays.fill(innerToOuterJoinColumnMap,-1);
-        for(int i=0;i<keyColumnPositionMap.length;i++){
+        for(int i=0;i<keyAscending.length;i++){
             /*
              * If we have equals predicates on the inner and outer columns already, then we don't
              * care about this position
              */
-            int innerColumnPosition = keyColumnPositionMap[i];
+            int innerColumnPosition = isIndexOnExpr ? i : keyColumnPositionMap[i];
             boolean ascending = keyAscending[i];
 
             for(int p=0;p<predList.size();p++){
@@ -277,29 +292,34 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                         "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
                 if (bron.getOperator() == RelationalOperator.EQUALS_RELOP) {
-                    ColumnReference innerColumn = relop.getColumnOperand(innerTable);
-                    ColumnReference outerColumn = getOuterColumn(bron, innerColumn);
-                    if (innerColumn == null || outerColumn == null) continue;
-                    int innerColumnNumber = innerColumn.getColumnNumber();
+                    ColumnReference innerColumn = null;
+                    int innerColumnNumber;
+                    if (isIndexOnExpr) {
+                        innerColumnNumber = pred.hasEqualOnIndexExpression(innerTable);
+                    } else {
+                        innerColumn = relop.getColumnOperand(innerTable);
+                        if (innerColumn == null) {
+                            continue;
+                        }
+                        innerColumnNumber = innerColumn.getColumnNumber();
+                    }
+
+                    Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, innerColumn);
+                    if (outerColumnInfo == null) {
+                        continue;
+                    }
+
+                    int outerTableNum = outerColumnInfo.getFirst();
+                    int outerColNum = outerColumnInfo.getSecond();
                     if (innerColumnNumber == innerColumnPosition) {
                         innerColumns.set(i);
-                        int outerTableNum = outerColumn.getTableNumber();
-                        int outerColNum = outerColumn.getColumnNumber();
-                        if (ascending) {
-                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
-                            if (outerPos >= 0) {
-                                outerColumns.set(outerPos);
-                                innerToOuterJoinColumnMap[i] = outerPos;
-                            } else
-                                return false;
-                        } else {
-                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING, outerTableNum, outerColNum);
-                            if (outerPos >= 0) {
-                                outerColumns.set(outerPos);
-                                innerToOuterJoinColumnMap[i] = outerPos;
-                            } else
-                                return false;
-                        }
+                        int rowOrdering = ascending ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                        int outerPos = outerRowOrdering.orderedPositionForColumn(rowOrdering, outerTableNum, outerColNum);
+                        if (outerPos >= 0) {
+                            outerColumns.set(outerPos);
+                            innerToOuterJoinColumnMap[i] = outerPos;
+                        } else
+                            return false;
                     }
                 }
             }
@@ -366,18 +386,35 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         return true;
     }
 
-    private ColumnReference getOuterColumn(BinaryRelationalOperatorNode bron,ColumnReference innerColumn){
-        if (! (bron.getRightOperand() instanceof ColumnReference)) { // Not A Column, return null
-            return null;
-        }
-        ColumnReference outerColumn = (ColumnReference)bron.getRightOperand();
-        if(outerColumn==innerColumn) {
-            if (! (bron.getLeftOperand() instanceof ColumnReference)) { // Not A Column, return null
+    private Pair<Integer, Integer> getOuterColumnInfo(BinaryRelationalOperatorNode bron, Optimizable innerTable,
+                                                      ColumnReference innerColumn) {
+        Pair<Integer, Integer> outerColumnInfo = getOuterIndexExpressionColumnInfo(bron, innerTable);
+        if (outerColumnInfo != null) {
+            return outerColumnInfo;
+        } else {
+            ValueNode vn = bron.getLeftOperand();
+            if (!(vn instanceof ColumnReference) || (innerColumn != null && vn == innerColumn) || vn.getTableNumber() == innerTable.getTableNumber()) {
+                vn = bron.getRightOperand();
+            }
+            if (!(vn instanceof ColumnReference) || (innerColumn != null && vn == innerColumn) || vn.getTableNumber() == innerTable.getTableNumber()) {
                 return null;
             }
-            outerColumn = (ColumnReference) bron.getLeftOperand();
+            ColumnReference outerColumn = (ColumnReference) vn;
+            return new Pair<>(outerColumn.getTableNumber(), outerColumn.getColumnNumber());
         }
-        return outerColumn;
+    }
+
+    private Pair<Integer, Integer> getOuterIndexExpressionColumnInfo(BinaryRelationalOperatorNode bron, Optimizable innerTable) {
+        int leftMatchTableNumber = bron.getLeftMatchIndexExprTableNumber();
+        int rightMatchTableNumber = bron.getRightMatchIndexExprTableNumber();
+        int innerTableNumber = innerTable.getTableNumber();
+        if (leftMatchTableNumber >= 0 && leftMatchTableNumber != innerTableNumber) {
+            return new Pair<>(leftMatchTableNumber, bron.getMatchingExprIndexColumnPosition(leftMatchTableNumber));
+        } else if (rightMatchTableNumber >= 0 && rightMatchTableNumber != innerTableNumber) {
+            return new Pair<>(rightMatchTableNumber, bron.getMatchingExprIndexColumnPosition(rightMatchTableNumber));
+        } else {
+            return null;
+        }
     }
 
     @Override

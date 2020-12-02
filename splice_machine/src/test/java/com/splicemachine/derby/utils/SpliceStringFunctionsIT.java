@@ -28,19 +28,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.*;
-
-import java.sql.*;
-
 import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.*;
 
 /**
  * Tests associated with the String functions as defined in
@@ -322,7 +318,7 @@ public class SpliceStringFunctionsIT {
 	    String sCell1 = null;
 	    String sCell2 = null;
 	    ResultSet rs;
-	    
+
 	    rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB);
 	    count = 0;
 	    while (rs.next()) {
@@ -453,6 +449,26 @@ public class SpliceStringFunctionsIT {
         }
     }
 
+    @Test
+    public void testRepeatWithNULLArguments() throws Exception {
+
+        String sqlText = "select repeat(b, case when 1=0 then 1 end) from A order by 1";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "1  |\n" +
+                        "------\n" +
+                        "NULL |\n" +
+                        "NULL |\n" +
+                        "NULL |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select repeat(case when 1=0 then 'a' end, a) from A order by 1";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
     @Test
     public void testCHR() throws Exception {
         String sCell1 = null;
@@ -686,40 +702,37 @@ public class SpliceStringFunctionsIT {
 
     @Test
     public void testHEX() throws Exception {
-        String sqlText = "values hex('B')";
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "42", rs.getString(1) );
 
-        sqlText = "values hex('000020')";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "303030303230", rs.getString(1) );
+        // note that HEX is using getBytes("UTF-8") to get a fixed representation
 
-        sqlText = "values hex(concat('a','b'))";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "6162", rs.getString(1) );
+        String tests[] = {
+                "'B'",              "42",
+                "'000020'",         "303030303230",
+                "'000020'" ,        "303030303230",
+                "'ß'",              "C39F",
+                "'\u00E4'",         "C3A4",     // ä  https://www.compart.com/de/unicode/U+00E4
+                "'\uD83D\uDE02'",   "F09F9882", // 😂 https://www.compart.com/de/unicode/U+1F602
+                "'Hello, World!'",    "48656C6C6F2C20576F726C6421",
 
-        sqlText = "values hex(null)";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+                "''",               "",
+                "null",             null,
+                "concat('a','b')",  "6162"
+        };
 
-        sqlText = "values hex('')";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value","", rs.getString(1) );
+        for(int i=0; i<tests.length; i+=2)
+        {
+            String sql = "values hex(" + tests[i] + ")", expected = tests[i+1];
+            Assert.assertEquals( "when executing " + sql,
+                    expected, methodWatcher.executeGetString(sql, 1) );
+        }
 
         try {
-            sqlText = "values hex(1.2)";
+            String sqlText = "values hex(1.2)";
             methodWatcher.executeQuery(sqlText);
-            Assert.fail("Cannot convert types 'DECIMAL' to 'VARCHAR'");
+            Assert.fail("Exception not thrown: Cannot convert types 'DECIMAL' to 'VARCHAR'");
         } catch (SQLSyntaxErrorException e) {
             Assert.assertEquals("42846", e.getSQLState());
         }
-
-        rs.close();
     }
 
     @Test(timeout=1000) //Time out after 1 second
@@ -760,7 +773,7 @@ public class SpliceStringFunctionsIT {
 
             // Group by aggregate
             try (ResultSet rs = methodWatcher.executeQuery(String.format("select a, STRING_AGG(b, '# ') " +
-                    "from I --splice-properties useSpark=%s \n group by a", useSpark))) {
+                    "from I --splice-properties useSpark=%s %n group by a", useSpark))) {
                 for (int i = 0; i < 2; ++i) {
                     assertTrue(rs.next());
                     int group = rs.getInt(1);
@@ -807,7 +820,7 @@ public class SpliceStringFunctionsIT {
                     "select a, agg from (select a, " +
                             "lead(a) over (partition by a order by b asc) as l, " +
                             "string_agg(b, ' - ') over (partition by a order by b asc) as agg " +
-                            "from I --splice-properties useSpark=%s \n) b where l is null", useSpark))) {
+                            "from I --splice-properties useSpark=%s %n) b where l is null", useSpark))) {
                 String expected =
                         "A |     AGG      |\n" +
                         "-------------------\n" +

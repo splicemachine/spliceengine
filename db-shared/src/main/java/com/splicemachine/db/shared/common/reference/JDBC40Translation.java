@@ -77,4 +77,7 @@ public interface JDBC40Translation {
     int NCLOB = 2011;
     int ROWID = -8;
     int SQLXML = 2009;
+
+    // Extra field for decfloat. Probably needs to be moved somewhere else
+    int DECFLOAT = 10000;
 }

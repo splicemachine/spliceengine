@@ -16,10 +16,10 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.google.protobuf.RpcController;
+import com.splicemachine.access.hbase.HBaseTableDescriptor;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import com.splicemachine.ipc.SpliceRpcController;
@@ -39,7 +39,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<>());
         dealWithError(controller);
     }
@@ -48,7 +49,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.ActionResponse lifecycleAction(byte[] rowKey,TxnMessage.TxnLifecycleMessage lifecycleMessage) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<>();
         service.lifecycleAction(controller,lifecycleMessage,done);
         dealWithError(controller);
@@ -58,8 +60,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public void elevate(byte[] rowKey,TxnMessage.ElevateRequest elevateRequest) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         service.elevateTransaction(controller,elevateRequest,new BlockingRpcCallback<TxnMessage.VoidResponse>());
         dealWithError(controller);
     }
@@ -113,7 +115,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
         SpliceRpcController controller = new SpliceRpcController();
-        controller.setPriority(HConstants.HIGH_QOS);
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
@@ -123,7 +125,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.TaskId getTaskId(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         BlockingRpcCallback<TxnMessage.TaskId> done=new BlockingRpcCallback<>();
         service.getTaskId(controller,request,done);
         dealWithError(controller);

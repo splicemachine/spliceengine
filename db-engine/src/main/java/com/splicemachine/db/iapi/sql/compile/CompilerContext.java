@@ -82,7 +82,24 @@ public interface CompilerContext extends Context
         ON,     // Process the operation using UnSafeRows if the source operation produces them.
         OFF,    // Process the operation using Derby rows.
         FORCED  // Convert the source operation's rows into UnSafeRows,
-            // then process the current operation using UnSafeRows, if possible.
+                // then process the current operation using UnSafeRows, if possible.
+    }
+
+    enum NewMergeJoinExecutionType {
+        SYSTEM, // Use the system-level setting (currently defaults to ON).  A null
+                // property setting is the same as specifying SYSTEM.
+        ON,     // New merge join execution is enabled, but may not be picked
+                // due to costing.
+        OFF,    // New merge join is disabled.  All merge joins will use the old merge join
+                // implementation, which neither buffers the left rows,
+                // nor uses a MultiRowRangeFilter to access the right rows.
+        FORCED,  // New merge join will be used for every merge join.
+                // However, merge joins run on the mem platform will not use
+                // the MultiRowRangeFilter because HBase is not used there.
+        SYSTEM_OFF // The system-level setting was chosen during query compilation,
+                   // but costing decided to use old merge join.  We need to check
+                   // the system setting at query execution time to see whether
+                   // merge join is forced.
     }
 
     /**
@@ -157,8 +174,9 @@ public interface CompilerContext extends Context
     int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-    int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 10000;
-    boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
+    int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 5000;
+    int MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE = 15000;
+    boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
     boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
     boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
     SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
@@ -167,6 +185,9 @@ public interface CompilerContext extends Context
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
+    NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
+    boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
+    boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -483,12 +504,12 @@ public interface CompilerContext extends Context
      * @param conglomerateDescriptor    The conglomerate for which to get a StoreCostController.
      * @param skipStats do not fetch the stats from dictionary if true
      * @param defaultRowCount it only take effect when skipStats is true, and forces the fake stats' rowcount to be the specified value
-     *
+     * @param requestedSplits The requested number of input splits, if run on Spark.
      * @return    The appropriate StoreCostController.
      *
      * @exception StandardException        Thrown on error
      */
-    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount) throws StandardException;
+    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException;
 
     /**
      * Get a SortCostController.
@@ -655,6 +676,10 @@ public interface CompilerContext extends Context
 
     DataSetProcessorType getDataSetProcessorType();
 
+    SparkExecutionType getSparkExecutionType();
+
+    void setSparkExecutionType(SparkExecutionType type) throws StandardException;
+
     boolean skipStats(int tableNumber);
 
     Vector<Integer> getSkipStatsTableList();
@@ -710,4 +735,16 @@ public interface CompilerContext extends Context
     public boolean isSSQFlatteningForUpdateDisabled();
 
     public void setSSQFlatteningForUpdateDisabled(boolean onOff);
+
+    public NewMergeJoinExecutionType getNewMergeJoin();
+
+    public void setNewMergeJoin(NewMergeJoinExecutionType newValue);
+
+    void setDisablePerParallelTaskJoinCosting(boolean newValue);
+
+    boolean getDisablePerParallelTaskJoinCosting();
+
+    void setVarcharDB2CompatibilityMode(boolean newValue);
+
+    boolean getVarcharDB2CompatibilityMode();
 }

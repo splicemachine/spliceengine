@@ -31,7 +31,8 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import	com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
@@ -115,5 +116,9 @@ public class TupleDescriptor
 	public String getDescriptorName() {
 		if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
 		return null; 
+	}
+
+	public UUID getUUID() {
+		return null;
 	}
 }

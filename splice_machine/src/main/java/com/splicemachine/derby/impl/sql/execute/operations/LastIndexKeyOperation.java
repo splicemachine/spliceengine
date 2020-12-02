@@ -14,6 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
@@ -21,20 +25,13 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
+
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class LastIndexKeyOperation extends ScanOperation {
-        private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
 	    private int[] baseColumnMap;
 	    protected static final String NAME = LastIndexKeyOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -61,13 +58,14 @@ public class LastIndexKeyOperation extends ScanOperation {
         int isolationLevel,
         double optimizerEstimatedRowCount,
         double optimizerEstimatedCost,
-        String tableVersion) throws StandardException {
+        String tableVersion,
+        GeneratedMethod pastTxFunctor,
+        long minRetentionPeriod) throws StandardException {
 
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
-            true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-
-        colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion,false,
-                0, null,null,null,null,null,-1,null,-1);
+                true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
+                colRefItem, -1, false, optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion,
+                0, null, null, null, null, null, -1, null, -1, pastTxFunctor, minRetentionPeriod);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
@@ -89,23 +87,6 @@ public class LastIndexKeyOperation extends ScanOperation {
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        tableName = in.readUTF();
-        if (in.readBoolean())
-            indexName = in.readUTF();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(tableName);
-        out.writeBoolean(indexName != null);
-        if (indexName != null)
-            out.writeUTF(indexName);
     }
 
     @Override

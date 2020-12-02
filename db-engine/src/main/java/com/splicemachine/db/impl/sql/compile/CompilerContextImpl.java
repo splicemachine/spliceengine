@@ -133,7 +133,8 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
         defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+        dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+        sparkExecutionType = SparkExecutionType.UNSPECIFIED;
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
         projectionPruningEnabled = false;
@@ -260,7 +261,7 @@ public class CompilerContextImpl extends ContextImpl
         return sparkVersionInitialized;
     }
 
-        public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
         nativeSparkAggregationMode = newValue;
     }
 
@@ -275,6 +276,26 @@ public class CompilerContextImpl extends ContextImpl
     public boolean getAllowOverflowSensitiveNativeSparkExpressions() {
         return allowOverflowSensitiveNativeSparkExpressions;
     }
+
+    public NewMergeJoinExecutionType getNewMergeJoin() {
+        return newMergeJoin;
+    }
+
+    public void setNewMergeJoin(NewMergeJoinExecutionType newValue) {
+        newMergeJoin = newValue;
+    }
+
+    public void setDisablePerParallelTaskJoinCosting(boolean newValue) {
+        disablePerParallelTaskJoinCosting = newValue;
+    }
+
+    public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
+
+    public void setVarcharDB2CompatibilityMode(boolean newValue) {
+        varcharDB2CompatibilityMode = newValue;
+    }
+
+    public boolean getVarcharDB2CompatibilityMode() { return varcharDB2CompatibilityMode; }
 
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
@@ -550,7 +571,7 @@ public class CompilerContextImpl extends ContextImpl
      * @exception StandardException        Thrown on error
      */
     @Override
-    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
+    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException {
           long conglomerateNumber = cd.getConglomerateNumber();
         /*
         ** Try to find the given conglomerate number in the array of
@@ -564,7 +585,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);
@@ -1112,7 +1133,6 @@ public class CompilerContextImpl extends ContextImpl
      */
     public boolean isReferenced( SequenceDescriptor sd ) {
         return referencedSequences != null && referencedSequences.containsKey(sd.getUUID());
-
     }
 
     public int getNextOJLevel() {
@@ -1159,6 +1179,9 @@ public class CompilerContextImpl extends ContextImpl
     private int                 nextOJLevel = 1;
     private boolean             outerJoinFlatteningDisabled;
     private boolean             ssqFlatteningForUpdateDisabled;
+    private NewMergeJoinExecutionType newMergeJoin = DEFAULT_SPLICE_NEW_MERGE_JOIN;
+    private boolean disablePerParallelTaskJoinCosting = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private boolean varcharDB2CompatibilityMode = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
@@ -1191,7 +1214,17 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap requiredUsagePrivileges;
     private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
+    }
+
+    public void setSparkExecutionType(SparkExecutionType type) throws StandardException {
+        this.sparkExecutionType = sparkExecutionType.combine(type);
+    }
+
+    private SparkExecutionType sparkExecutionType = SparkExecutionType.UNSPECIFIED;
 
     @Override
     public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {

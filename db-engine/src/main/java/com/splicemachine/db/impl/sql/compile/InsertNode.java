@@ -56,6 +56,8 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.vti.DeferModification;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.sql.Types;
 import java.util.List;
@@ -84,7 +86,7 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
-    public enum InsertMode {INSERT,UPSERT}
+    public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
 
@@ -96,6 +98,9 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
     public static final String SKIP_WAL = "skipWAL";
     public static final String INSERT = "INSERT";
+    public static final String REPLACE = "REPLACE";
+    public static final String LOAD_REPLACE = "LOAD_REPLACE";
+    public static final String LOAD_REPLACE_PROPERTY = "--splice-properties insertMode=" + LOAD_REPLACE + "\n";
     public static final String PIN = "pin";
     public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
     public static final String SAMPLING_ONLY = "samplingOnly";
@@ -123,7 +128,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     double             sampleFraction;
     private     String             indexName;
 
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
 
     protected   RowLocation[]         autoincRowLocation;
@@ -497,7 +502,7 @@ public final class InsertNode extends DMLModStatementNode {
             /* bind all generation clauses for generated columns */
             parseAndBindGenerationClauses
                 ( dataDictionary, targetTableDescriptor, sourceRCL, resultColumnList, false, null );
-            
+
             /* Get and bind all constraints on the table */
             checkConstraints = bindConstraints(dataDictionary,
                                                 getNodeFactory(),
@@ -797,8 +802,8 @@ public final class InsertNode extends DMLModStatementNode {
                 try {
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
-                            DataSetProcessorType.QUERY_HINTED_SPARK :
-                            DataSetProcessorType.QUERY_HINTED_CONTROL);
+                            DataSetProcessorType.QUERY_HINTED_OLAP :
+                            DataSetProcessorType.QUERY_HINTED_OLTP);
                 } catch (Exception sparkE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
                             propertyStr, val);
@@ -943,7 +948,7 @@ public final class InsertNode extends DMLModStatementNode {
         resultSet.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
 
         if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
         }
         getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
 
@@ -977,8 +982,9 @@ public final class InsertNode extends DMLModStatementNode {
         String key = "insertMode";
         String value = "bulkInsert";
 
-        if ( targetProperties.getProperty( key ) == null )
-        { targetProperties.put( key, value ); }
+        if ( targetProperties.getProperty( key ) == null ) {
+            targetProperties.put( key, value );
+        }
     }
 
     /**
@@ -1051,7 +1057,14 @@ public final class InsertNode extends DMLModStatementNode {
         mb.push(skipSampling);
         mb.push(sampleFraction);
         BaseJoinStrategy.pushNullableString(mb, indexName);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
+        SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
+        if (fromTableTriggerSPSDescriptor == null)
+            mb.pushNull("java.lang.String");
+        else {
+            String spsAsString = Base64.encodeBase64String(SerializationUtils.serialize(fromTableTriggerSPSDescriptor));
+                mb.push(spsAsString);
+        }
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 26);
     }
 
     /**
@@ -1081,9 +1094,13 @@ public final class InsertNode extends DMLModStatementNode {
         if (insertMode != null)
         {
             String upperValue = StringUtil.SQLToUpperCase(insertMode);
-            if (upperValue.equals("REPLACE"))
+            if (upperValue.equals(REPLACE))
             {
                 retval = StatementType.BULK_INSERT_REPLACE;
+            }
+            else if(upperValue.equals(LOAD_REPLACE))
+            {
+                retval = StatementType.LOAD_REPLACE;
             }
         }
         return retval;

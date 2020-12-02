@@ -14,6 +14,17 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -27,7 +38,6 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -35,11 +45,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
-public abstract class ScanOperation extends SpliceBaseOperation{
+import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
+
+public abstract class ScanOperation extends SpliceBaseOperation {
     private static final Logger LOG=Logger.getLogger(ScanOperation.class);
     private static final long serialVersionUID=7l;
     public int lockMode;
@@ -59,7 +70,6 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String scanQualifiersField;
     protected String tableVersion;
     protected boolean rowIdKey;
-    protected boolean pin;
     protected int splits;
     protected String delimited;
     protected String escaped;
@@ -67,6 +77,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String storedAs;
     protected String location;
     int partitionRefItem;
+    protected long pastTx;
     protected int[] partitionColumnMap;
     protected ExecRow defaultRow;
     public static final int SCAN_CACHE_SIZE = 1000;
@@ -75,22 +86,22 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         super();
     }
 
-    public ScanOperation(long conglomId,Activation activation,int resultSetNumber,
-                         GeneratedMethod startKeyGetter,int startSearchOperator,
-                         GeneratedMethod stopKeyGetter,int stopSearchOperator,
+    public ScanOperation(long conglomId, Activation activation, int resultSetNumber,
+                         GeneratedMethod startKeyGetter, int startSearchOperator,
+                         GeneratedMethod stopKeyGetter, int stopSearchOperator,
                          boolean sameStartStopPosition,
                          boolean rowIdKey,
                          String scanQualifiersField,
                          GeneratedMethod resultRowAllocator,
-                         int lockMode,boolean tableLocked,int isolationLevel,
+                         int lockMode, boolean tableLocked, int isolationLevel,
                          int colRefItem,
                          int indexColItem,
                          boolean oneRowScan,
                          double optimizerEstimatedRowCount,
-                         double optimizerEstimatedCost,String tableVersion,
-                         boolean pin, int splits, String delimited, String escaped, String lines,
-                         String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc, int defaultValueMapItem
-
+                         double optimizerEstimatedCost, String tableVersion,
+                         int splits, String delimited, String escaped, String lines,
+                         String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc,
+                         int defaultValueMapItem, GeneratedMethod pastTxFunctor, long minRetentionPeriod
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -99,7 +110,6 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.scanQualifiersField=scanQualifiersField;
         this.tableVersion=tableVersion;
         this.rowIdKey = rowIdKey;
-        this.pin = pin;
         this.splits = splits;
         this.delimited = delimited;
         this.escaped = escaped;
@@ -122,6 +132,14 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 defaultRowFunc!=null?defaultRowFunc.getMethodName():null,
                 defaultValueMapItem
         );
+        if(pastTxFunctor != null) {
+            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation), minRetentionPeriod);
+            if(pastTx == -1){
+                pastTx = OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
+            }
+        } else {
+            this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
+        }
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
@@ -130,55 +148,6 @@ public abstract class ScanOperation extends SpliceBaseOperation{
             columnOrdering=scanInformation.getColumnOrdering();
         }
         return columnOrdering;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        super.readExternal(in);
-        oneRowScan=in.readBoolean();
-        lockMode=in.readInt();
-        isolationLevel=in.readInt();
-        scanInformation=(ScanInformation<ExecRow>)in.readObject();
-        tableVersion=in.readUTF();
-        rowIdKey = in.readBoolean();
-        pin = in.readBoolean();
-        delimited = in.readBoolean()?in.readUTF():null;
-        escaped = in.readBoolean()?in.readUTF():null;
-        lines = in.readBoolean()?in.readUTF():null;
-        storedAs = in.readBoolean()?in.readUTF():null;
-        location = in.readBoolean()?in.readUTF():null;
-        partitionRefItem = in.readInt();
-        splits = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeBoolean(oneRowScan);
-        out.writeInt(lockMode);
-        out.writeInt(isolationLevel);
-        out.writeObject(scanInformation);
-        out.writeUTF(tableVersion);
-        out.writeBoolean(rowIdKey);
-        out.writeBoolean(pin);
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
-        out.writeBoolean(storedAs!=null);
-        if (storedAs!=null)
-            out.writeUTF(storedAs);
-        out.writeBoolean(location!=null);
-        if (location!=null)
-            out.writeUTF(location);
-        out.writeInt(partitionRefItem);
-        out.writeInt(splits);
     }
 
     @Override
@@ -337,7 +306,8 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
-                ((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanStopOverride(),
+                ((BaseActivation)activation).getKeyRows());
     }
 
     @Override
@@ -397,6 +367,16 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return scanInformation.getStartPosition();
     }
 
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        return scanInformation.getStopPosition();
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        return scanInformation.getSameStartStopPosition();
+    }
+
     public String getTableVersion(){
         return tableVersion;
     }
@@ -449,5 +429,77 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     @Override
     public FormatableBitSet getAccessedColumns() throws StandardException{
         return scanInformation.getAccessedColumns();
+    }
+
+    private long mapToTxId(DataValueDescriptor dataValue, long minRetentionPeriod) throws StandardException {
+        try {
+            if (dataValue instanceof SQLTimestamp) {
+                Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
+                SpliceLogUtils.trace(LOG, "time travel ts=%s", ts.toString());
+                if (minRetentionPeriod != -1) {
+                    if (within(minRetentionPeriod, ts)) {
+                        return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+                    } else {
+                        throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD, minRetentionPeriod);
+                    }
+                } else {
+                    return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+                }
+            } else if (dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
+                if(dataValue.isNull()) {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, "null");
+                }
+                long pastTx = dataValue.getLong();
+                if(minRetentionPeriod != -1) {
+                    if(within(minRetentionPeriod, pastTx)) {
+                        return pastTx;
+                    } else {
+                        throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, minRetentionPeriod);
+                    }
+                }
+                return dataValue.getLong();
+            } else {
+                throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
+            }
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    private static boolean within(long period, long pastTx) throws IOException {
+        if(pastTx < OLDEST_TIME_TRAVEL_TX) {
+            return false;
+        }
+        long mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
+        return mrpTx <= pastTx;
+    }
+
+    private static boolean within(long period, Timestamp ts) {
+        // should we handle different calendars?
+        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
+        if(ts.after(currentTs)) { // future time travel is no-op anyway
+            return true;
+        }
+        return ((System.currentTimeMillis() - ts.getTime()) / 1000) <= period;
+    }
+
+    /**
+     * @param pastTx The ID of the past transaction.
+     * @return a view of a past transaction.
+     */
+    protected TxnView getPastTransaction(long pastTx) throws StandardException {
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        ContextManager cm = ContextService.getFactory().newContextManager();
+        TransactionController pastTC = transactionExecute.getAccessManager().getReadOnlyTransaction(cm, pastTx);
+        Transaction rawStoreXact=((TransactionManager)pastTC).getRawStoreXact();
+        return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
+    }
+
+    /**
+     * @return either current transaction or a committed transaction in the past.
+     */
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
     }
 }

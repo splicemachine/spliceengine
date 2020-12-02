@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1979-SNAPSHOT</version>
+        <version>3.2.0.1988-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -31,11 +31,6 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_storage</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>

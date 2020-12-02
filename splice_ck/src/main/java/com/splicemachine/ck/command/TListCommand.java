@@ -24,10 +24,27 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "tlist", description = "list SpliceMachine tables (similar to systables)" )
 public class TListCommand extends CommonOptions implements Callable<Integer>
 {
+    @CommandLine.Parameters(index = "0", description = "a filter applied on schemaname.tablename. supported is * or ?, e.g. *SYS????S",
+            defaultValue = "") String filter;
+
+    public static String getJavaRegexpFilterFromAsterixFilter(String asterixFilter)
+    {
+        String filter = asterixFilter;
+        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "-", "=", "$", "!", "|", "]", "}", ")", "+", ".", ">"};
+            for(String s : toEscape) {
+                filter = filter.replaceAll("\\" + s, "\\" + s);
+            }
+
+        filter = filter.replaceAll("\\*", ".*");
+        return filter.replaceAll("\\?", ".");
+    }
+
     @Override
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
-        System.out.println(hbaseInspector.listTables());
+
+        String javaFilter = getJavaRegexpFilterFromAsterixFilter(filter);
+        System.out.println(hbaseInspector.listTables(javaFilter.toUpperCase()));
         return 0;
     }
 }

@@ -14,11 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import org.apache.spark.sql.types.StructField;
 import org.junit.Test;
 import org.supercsv.io.CsvListWriter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.Types;
 
 import static org.junit.Assert.assertEquals;
 
@@ -26,34 +31,108 @@ public class ExportCSVWriterBuilderTest {
 
     private ExportCSVWriterBuilder csvWriterBuilder = new ExportCSVWriterBuilder();
 
-    @Test
-    public void buildCVSWriter() throws IOException {
+    private void initColumn(ResultColumnDescriptor[] columns, int index, int type) {
+        columns[index] = new ResultColumnDescriptor() {
+            @Override
+            public DataTypeDescriptor getType() {
+                return DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, true);
+            }
 
-        // given
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ExportParams exportParams = ExportParams.withDirectory("/tmp");
+            @Override
+            public StructField getStructField() {
+                return null;
+            }
+
+            @Override
+            public String getName() {
+                return null;
+            }
+
+            @Override
+            public String getSourceSchemaName() {
+                return null;
+            }
+
+            @Override
+            public String getSourceTableName() {
+                return null;
+            }
+
+            @Override
+            public boolean updatableByCursor() {
+                return false;
+            }
+
+            @Override
+            public int getColumnPosition() {
+                return 0;
+            }
+
+            @Override
+            public boolean isAutoincrement() {
+                return false;
+            }
+
+            @Override
+            public boolean hasGenerationClause() {
+                return false;
+            }
+        };
+    }
+
+    public void writeToCsv(ByteArrayOutputStream byteStream, ExportParams exportParams) throws IOException {
+        ResultColumnDescriptor[] columns = new ResultColumnDescriptor[5];
+        initColumn(columns, 0, Types.VARCHAR);
+        initColumn(columns, 1, Types.CHAR);
+        initColumn(columns, 2, Types.CHAR);
+        initColumn(columns, 3, Types.CHAR);
+        initColumn(columns, 4, Types.INTEGER);
 
         // when
-        CsvListWriter csvWriter = csvWriterBuilder.build(byteStream, exportParams);
-        csvWriter.write(new String[]{"a1", "b1", "c1", "d1"});
-        csvWriter.write(new String[]{"a2", "b 2", "c2", "d2"});      // space in field
-        csvWriter.write(new String[]{"a3", "b3", "c3", "d,3"});      // comma in field
-        csvWriter.write(new String[]{"a\n4", "b4", "c4", "d4"});     // newline in field
-        csvWriter.write(new String[]{"a5", "b\"5", "c5", "d5"});     // quote in field
-        csvWriter.write(new String[]{"a5", "b5", "c5\u1272", "d5"}); // multi-byte unicode char in field
+        CsvListWriter csvWriter = csvWriterBuilder.build(byteStream, exportParams, columns);
+        csvWriter.write("a1", "b1", "c1", "d1", 1);
+        csvWriter.write("a2", "b 2", "c2", "d2", 2);      // space in field
+        csvWriter.write("a3", "b3", "c3", "d,3", 3);      // comma in field
+        csvWriter.write("a\n4", "b4", "c4", "d4", 4);     // newline in field
+        csvWriter.write("a5", "b\"5", "c5", "d5", 5);     // quote in field
+        csvWriter.write("a6", "b6", "c6\u1272", "d6", 6); // multi-byte unicode char in field
         csvWriter.close();
+    }
+
+    @Test
+    public void buildCVSWriter() throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ExportParams exportParams = ExportParams.withDirectory("/tmp");
+        writeToCsv(byteStream, exportParams);
 
         // then
         assertEquals("" +
-                        "a1,b1,c1,d1\n" +
-                        "a2,b 2,c2,d2\n" +
-                        "a3,b3,c3,\"d,3\"\n" +
+                        "a1,b1,c1,d1,1\n" +
+                        "a2,b 2,c2,d2,2\n" +
+                        "a3,b3,c3,\"d,3\",3\n" +
                         "\"a\n" +
-                        "4\",b4,c4,d4\n" +
-                        "a5,\"b\"\"5\",c5,d5\n" +
-                        "a5,b5,c5ቲ,d5\n",
+                        "4\",b4,c4,d4,4\n" +
+                        "a5,\"b\"\"5\",c5,d5,5\n" +
+                        "a6,b6,c6ቲ,d6,6\n",
                 new String(byteStream.toByteArray(), "UTF-8"));
-
     }
 
+    @Test
+    public void buildCSVWriterAllQuotes() throws IOException, StandardException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ExportParams exportParams = ExportParams.withDirectory("/tmp");
+        exportParams.setQuoteMode("always");
+        writeToCsv(byteStream, exportParams);
+
+        // then
+        assertEquals("" +
+                        "\"a1\",\"b1\",\"c1\",\"d1\",1\n" +
+                        "\"a2\",\"b 2\",\"c2\",\"d2\",2\n" +
+                        "\"a3\",\"b3\",\"c3\",\"d,3\",3\n" +
+                        "\"a\n" +
+                        "4\",\"b4\",\"c4\",\"d4\",4\n" +
+                        "\"a5\",\"b\"\"5\",\"c5\",\"d5\",5\n" +
+                        "\"a6\",\"b6\",\"c6ቲ\",\"d6\",6\n",
+                new String(byteStream.toByteArray(), "UTF-8"));
+    }
 }

@@ -78,10 +78,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         else // this call works even if activation is null
             operationContext = dsp.createOperationContext(activation);
 
-        if (pin) {
-            ScanOperation operation = (ScanOperation) op;
-            return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).filter(new TableScanPredicateFunction(operationContext));
-        }
         if (storedAs!= null) {
             StructType schema = ExternalTableUtils.getSchema(activation, Long.parseLong(tableName));
 
@@ -101,14 +97,15 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
-
-                locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
+                locatedRows = dsp.readORCFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            if (hasVariantQualifiers(qualifiers) || storedAs.equals("O")) {
-                // The predicates have variant qualifiers (or we are reading ORC with our own reader), we couldn't push them down to the scan, process them here
+            if (hasVariantQualifiers(qualifiers)) {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
+            }
+            if (activation != null && activation.sparkExecutionType().isNonNative() && locatedRows instanceof NativeSparkDataSet) {
+                locatedRows = new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(((NativeSparkDataSet) locatedRows).getDataset(), operationContext));
             }
             return locatedRows;
         }
@@ -155,8 +152,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SparkSpliceFunctionWrapper pred = new SparkSpliceFunctionWrapper(new TableScanPredicateFunction<>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(rawRDD.map(f).filter(pred),
+            SparkDataSet dataSet = new SparkDataSet<>(rawRDD.map(f).filter(pred),
                     op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+            if (activation != null && activation.sparkExecutionType().isNative()) {
+                return dataSet.upgradeToSparkNativeDataSet(operationContext);
+            } else {
+                return dataSet;
+            }
         } finally {
             SpliceSpark.popScope();
         }

@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.api.PipelineTooBusy;
 import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.server.FailedServerException;
@@ -647,6 +648,7 @@ public enum ErrorState{
     LANG_INVALID_ROW_COUNT_FIRST("2201W"),
     LANG_INVALID_ROW_COUNT_OFFSET("2201X"),
     LANG_ROW_COUNT_OFFSET_FIRST_IS_NULL("2201Z"),
+    LANG_FIELD_POSITION_ZERO("22030"),
 
     /*
     ** Integrity violations.
@@ -690,6 +692,22 @@ public enum ErrorState{
         }
     },
     LANG_CHECK_CONSTRAINT_VIOLATED("23513"),
+
+    LANG_FK_SET_NULL_TO_NON_NULL("23514") {
+        @Override
+        public boolean accepts(Throwable t){
+            return super.accepts(t) || t instanceof NotNullConstraintViolation;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof NotNullConstraintViolation))
+                return super.newException(rootCause);
+            NotNullConstraintViolation cause=(NotNullConstraintViolation)rootCause;
+            ConstraintContext context=cause.getContext();
+            return StandardException.newException(getSqlState(),context.getMessages());
+        }
+    },
 
     // From SQL/XML[2006] spec), there are others, but
     // these are the ones we actually use with our
@@ -1094,6 +1112,9 @@ public enum ErrorState{
     LANG_INVALID_INTERNAL_TEMP_TABLE_NAME("42ZD3"),
     LANG_NAME_CLASH_WITH_LOCAL_TEMP_TABLE("42ZD4"),
 
+    LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD("42ZD7"),
+    LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID("42ZD8"),
+
     //following 3 matches the DB2 sql states
     LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA("428EK"),
     LANG_NOT_ALLOWED_FOR_TEMP_TABLE("42995"),
@@ -1283,6 +1304,7 @@ public enum ErrorState{
     LANG_STOP_AFTER_BINDING("42Z56.U"),
     LANG_STOP_AFTER_OPTIMIZING("42Z57.U"),
     LANG_STOP_AFTER_GENERATING("42Z58.U"),
+    LANG_INTERNAL_ERROR("42Z59.U"),
 
     // PARSER EXCEPTIONS
     LANG_UNBINDABLE_REWRITE("X0A00.S"),
@@ -1324,7 +1346,9 @@ public enum ErrorState{
     LANG_CREATE_SYSTEM_INDEX_ATTEMPTED("X0Y28.S"),
     LANG_PROVIDER_HAS_DEPENDENT_TABLE("X0Y29.S"),
     LANG_PROVIDER_HAS_DEPENDENT_ALIAS("X0Y30.S"),
+    LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY("X0Y31.S"),
     LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT("X0Y32.S"),
+    LANG_CYCLIC_DEPENDENCY_DETECTED("X0Y33.S"),
     LANG_CREATE_INDEX_NO_TABLE("X0Y38.S"),
     LANG_INVALID_FK_NO_PK("X0Y41.S"),
     LANG_INVALID_FK_COL_TYPES_DO_NOT_MATCH("X0Y42.S"),

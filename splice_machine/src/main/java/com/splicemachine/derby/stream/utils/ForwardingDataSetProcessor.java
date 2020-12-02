@@ -174,9 +174,12 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob);
+    public <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
+        return delegate.readORCFile(schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
@@ -189,16 +192,6 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
         return delegate.readTextFile(csvOptions,
                 schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
                 probeValue,execRow, useSample, sampleFraction);
-    }
-
-    @Override
-    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
-        return delegate.readPinnedTable(conglomerateId, baseColumnMap, location, context, qualifiers, probeValue, execRow);
-    }
-
-    @Override
-    public void dropPinnedTable(long conglomerateId) throws StandardException {
-        delegate.dropPinnedTable(conglomerateId);
     }
 
     @Override
@@ -235,5 +228,18 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         return delegate.readKafkaTopic(topicName, context);
+    }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() { return delegate.isSparkDB2CompatibilityMode(); }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        delegate.setTempTriggerConglomerate(conglomID);
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        return delegate.getTempTriggerConglomerate();
     }
 }

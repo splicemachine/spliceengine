@@ -19,14 +19,17 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.protobuf.ProtoUtil;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -118,14 +121,22 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
                       DataDictionary dd,
                       LanguageConnectionContext lcc) throws StandardException {
         /*
-         * Manage the metadata changes necessary to drop a table. Will execute
+         * Manage the metadata changes necessary to drop an index. Will execute
          * within a child transaction, and will commit that child transaction when completed.
          * If a failure for any reason occurs, this will rollback the child transaction,
-         * then throw an exception
+         * then throw an exception.
          */
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
         dd.dropConglomerateDescriptor(cd,userTxnManager);
         td.removeConglomerateDescriptor(cd);
+        dd.deletePartitionStatistics(cd.getConglomerateNumber(), userTxnManager);
+
+        /* Dropping index statistics affects the choice of best plan for queries on this table.
+         * Broadcast a message to invalidate the related plans.
+         */
+        List<TableDescriptor> tds = Collections.singletonList(td);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds);
+        userTxnManager.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
     public String getScopeName() {

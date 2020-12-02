@@ -41,9 +41,10 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
         super();
     }
 
-    public TriggerRowsMapFunction(OperationContext<Op> operationContext, boolean isOld) {
+    public TriggerRowsMapFunction(OperationContext<Op> operationContext, boolean isOld, TriggerExecutionContext tec) {
         super(operationContext);
         this.isOld = isOld;
+        this.tec = tec;
     }
 
 
@@ -51,7 +52,8 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
     public ExecRow call(ExecRow from) throws Exception {
         if (!initialized) {
             initialized = true;
-            tec = operationContext.getActivation().getLanguageConnectionContext().getTriggerExecutionContext();
+            if (tec == null)
+                tec = operationContext.getActivation().getLanguageConnectionContext().getTriggerExecutionContext();
             operation = operationContext.getOperation();
             execRowDefinition = operation.getExecRowDefinition();
             nCols = execRowDefinition.nColumns();
@@ -81,11 +83,18 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeBoolean(isOld);
+        boolean hasTEC = tec != null;
+        out.writeBoolean(hasTEC);
+        if (hasTEC)
+            out.writeObject(tec);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
         isOld = in.readBoolean();
+        boolean hasTEC = in.readBoolean();
+        if (hasTEC)
+            tec = (TriggerExecutionContext) in.readObject();
     }
 }

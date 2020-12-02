@@ -40,6 +40,8 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -48,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
@@ -567,6 +570,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     @Override
     public String[] getExprTexts() { return id.getExprTexts(); }
 
+	/** @see IndexDescriptor#getExprTexts */
+	@Override
+	public String getExprText(Integer keyColumnPosition) { return id.getExprText(keyColumnPosition); }
+
     /** @see IndexDescriptor#getExprBytecode */
     @Override
     public ByteArray[] getExprBytecode() { return id.getExprBytecode(); }
@@ -585,6 +592,14 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
             throws StandardException
     {
         return id.getExecutableIndexExpression(indexColumnPosition);
+    }
+
+    /** @see IndexDescriptor#getParsedIndexExpressions */
+    @Override
+    public ValueNode[] getParsedIndexExpressions(LanguageConnectionContext context, Optimizable optTable)
+			throws StandardException
+	{
+        return id.getParsedIndexExpressions(context, optTable);
     }
 
     private int getMaxBaseColumnPosition() {

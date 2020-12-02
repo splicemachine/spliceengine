@@ -14,6 +14,7 @@
 
 package com.splicemachine.protobuf;
 
+import com.google.common.primitives.Booleans;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -248,7 +249,9 @@ public class ProtoUtil {
     }
 
 
-    public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor) {
+    public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor,
+                                                          TableDescriptor td,
+                                                          LanguageConnectionContext lcc) {
         try {
             String version = fKConstraintDescriptor.getTableDescriptor().getVersion();
             ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
@@ -256,7 +259,13 @@ public class ProtoUtil {
                 .addAllFormatIds(Ints.asList(columnDescriptors.getFormatIds()))
                 .setParentTableVersion(version!=null?version: SYSTABLESRowFactory.CURRENT_TABLE_VERSION)
                 .setConstraintName(fKConstraintDescriptor.getConstraintName())
-                .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()))).build();
+                .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction())))
+                .setDeleteRule(fKConstraintDescriptor.getRaDeleteRule())
+                .setChildTable(createTable(td.getHeapConglomerateId(),td,lcc))
+                .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
+                .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
+                .addAllNullFlags(Booleans.asList(columnDescriptors.getNullabilityFlags()))
+                .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);
         }
@@ -445,7 +454,8 @@ public class ProtoUtil {
 
     public static DDLChange createTentativeFKConstraint(ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
                                                         long baseConglomerate, String tableName, String tableVersion,
-                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType) {
+                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType,
+                                                        TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
         return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(changeType)
                 .setTentativeFK(TentativeFK.newBuilder()
@@ -453,10 +463,11 @@ public class ProtoUtil {
                                 .setBaseConglomerate(baseConglomerate)
                                 .setReferencedTableName(tableName)
                                 .setReferencedTableVersion(tableVersion)
-                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
+                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor, td, lcc))
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
                                 .setReferencedConglomerateNumber(baseConglomerate)
                                 .setReferencingConglomerateNumber(backingIndexConglomerateId)
+                                .setConstraintUuid(transferDerbyUUID((BasicUUID)foreignKeyConstraintDescriptor.getReferencedConstraint().getUUID()))
                 ).build();
     }
 
@@ -605,6 +616,14 @@ public class ProtoUtil {
                 .setDdlChangeType(DDLChangeType.UPDATE_SYSTEM_PROCEDURES)
                 .setTxnId(txnId)
                 .setUpdateSystemProcedures(UpdateSystemProcedures.newBuilder())
+                .build();
+    }
+
+    public static DDLChange createRollingUpgrade(long txnId, RollingUpgrade.OperationType op) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRollingUpgrade(RollingUpgrade.newBuilder()
+                .setType(op)
+                .build())
+                .setDdlChangeType(DDLChangeType.ROLLING_UPGRADE)
                 .build();
     }
 }

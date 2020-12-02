@@ -25,8 +25,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * Created by yxia on 12/1/19.
@@ -99,19 +97,5 @@ public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
         if (leftEmptyRow == null)
             leftEmptyRow = leftEmptyRowFun.invoke();
         return leftEmptyRow;
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        SpliceLogUtils.trace(LOG, "readExternal");
-        super.readExternal(in);
-        leftEmptyRowFunMethodName = readNullableString(in);
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        SpliceLogUtils.trace(LOG, "writeExternal");
-        super.writeExternal(out);
-        writeNullableString(leftEmptyRowFunMethodName, out);
     }
 }

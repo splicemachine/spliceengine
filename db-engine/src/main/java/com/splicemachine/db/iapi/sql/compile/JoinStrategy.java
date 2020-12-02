@@ -285,7 +285,6 @@ public interface JoinStrategy {
                     int maxMemoryPerTable,
                     boolean genInListVals,
                     String tableVersion,
-                    boolean pin,
                     int splits,
                     String delimited,
                     String escaped,

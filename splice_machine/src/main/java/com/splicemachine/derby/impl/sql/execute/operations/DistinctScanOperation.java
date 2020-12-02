@@ -32,8 +32,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -110,7 +108,6 @@ public class DistinctScanOperation extends ScanOperation {
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
                                  String tableVersion,
-                                 boolean pin,
                                  int splits,
                                  String delimited,
                                  String escaped,
@@ -119,7 +116,9 @@ public class DistinctScanOperation extends ScanOperation {
                                  String location,
                                  int partitionByRefItem,
                                  GeneratedMethod defaultRowFunc,
-                                 int defaultValueMapItem) throws StandardException {
+                                 int defaultValueMapItem,
+                                 GeneratedMethod pastTxFunctor,
+                                 Long minRetentionPeriod) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -140,46 +139,14 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
+                splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                pastTxFunctor,
+                minRetentionPeriod);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
         init();
-    }
-
-    /**
-     *
-     * Serde
-     *
-     * @param in
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        tableName = in.readUTF();
-        if(in.readBoolean())
-            indexName = in.readUTF();
-        hashKeyItem = in.readInt();
-    }
-
-    /**
-     *
-     * Serde
-     *
-     * @param out
-     * @throws IOException
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(tableName);
-        out.writeBoolean(indexName!=null);
-        if(indexName!=null)
-            out.writeUTF(indexName);
-        out.writeInt(hashKeyItem);
     }
 
     /**
@@ -253,10 +220,6 @@ public class DistinctScanOperation extends ScanOperation {
 
         dsp.prependSpliceExplainString(this.explainPlan);
         assert currentTemplate != null: "Current Template Cannot Be Null";
-        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
-        for (int i = 0; i< currentTemplate.nColumns(); i++) {
-            execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
-        }
         FormatableBitSet cols = scanInformation.getAccessedColumns();
         int[] colMap;
         if(cols!=null){
@@ -284,7 +247,6 @@ public class DistinctScanOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap)
-                .pin(pin)
                 .delimited(delimited)
                 .escaped(escaped)
                 .lines(lines)

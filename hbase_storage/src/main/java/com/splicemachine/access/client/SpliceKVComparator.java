@@ -15,6 +15,7 @@
 package com.splicemachine.access.client;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.io.RawComparator;
@@ -39,17 +40,28 @@ public class SpliceKVComparator extends KeyValue.KVComparator implements RawComp
         return kvComparator.compare(bytes,i,i2,bytes2,i3,i4);
     }
 
+    // Used to distinguish between special cells created by the MemstoreFlushAwareScanner,
+    // and cells created by MultiRowRangeFilter.getNextCellHint, which also has
+    // a timestamp of HConstants.LATEST_TIMESTAMP.
+    public static boolean isSpecialTimestamp(Cell cell) {
+        if  (CellUtil.matchingFamily(cell, ClientRegionConstants.HOLD) ||
+             CellUtil.matchingFamily(cell, ClientRegionConstants.FLUSH))
+            return true;
+        return false;
+    }
+
     @Override
     public int compare(Cell o1, Cell o2) {
         // Generated Timestamp Check
-        if (o1.getTimestamp() == 0l)
+        if (o1.getTimestamp() == 0l && isSpecialTimestamp(o1))
             return -1;
-        else if (o2.getTimestamp() == 0l)
+        else if (o2.getTimestamp() == 0l && isSpecialTimestamp(o2))
             return 1;
-        else if (o1.getTimestamp() == HConstants.LATEST_TIMESTAMP)
+        else if (o1.getTimestamp() == HConstants.LATEST_TIMESTAMP && isSpecialTimestamp(o1))
             return 1;
-        else if (o2.getTimestamp() == HConstants.LATEST_TIMESTAMP)
+        else if (o2.getTimestamp() == HConstants.LATEST_TIMESTAMP && isSpecialTimestamp(o2))
             return -1;
+
         return kvComparator.compare(o1,o2);
     }
 

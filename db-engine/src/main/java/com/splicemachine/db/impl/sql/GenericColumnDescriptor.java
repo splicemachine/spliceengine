@@ -54,6 +54,10 @@ import java.io.IOException;
 public final class GenericColumnDescriptor
 	implements ResultColumnDescriptor, Formatable
 {
+	// DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
+	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
+	public static final long serialVersionUID = -7718734896813275598l;
+
 
 	/********************************************************
 	**
@@ -90,7 +94,7 @@ public final class GenericColumnDescriptor
 		this.type = type;
 	}
 
-	/** 
+	/**
 	 * This constructor is used to build a generic (and
 	 * formatable) ColumnDescriptor.  The idea is that
 	 * it can be passed a ColumnDescriptor from a query
@@ -202,21 +206,38 @@ public final class GenericColumnDescriptor
 
     public boolean hasGenerationClause() { return hasGenerationClause; }
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
-	/**
-	 * Write this object out
-	 *
-	 * @param out write bytes here
-	 *
- 	 * @exception IOException thrown on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(name);
-		if (tableName != null) {
+    public static void writeNullableUTF(ObjectOutput out, String str) throws IOException {
+        out.writeBoolean(str != null);
+        if (str != null)
+            out.writeUTF(str);
+    }
+
+    public static String readNullableUTF(ObjectInput in) throws IOException {
+        if (in.readBoolean()) {
+            return in.readUTF();
+        }
+        else {
+            return null;
+        }
+    }
+
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
+    /**
+     * Write this object out
+     *
+     * @param out write bytes here
+     *
+     * @exception IOException thrown on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException {
+
+        // DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
+        out.writeUTF(name == null ? "" : name);
+        if (tableName != null) {
             out.writeBoolean(true);
             out.writeUTF(tableName);
         } else {
@@ -228,35 +249,35 @@ public final class GenericColumnDescriptor
         } else {
             out.writeBoolean(false);
         }
-		out.writeInt(columnPos);
-		out.writeObject(type);
-		out.writeBoolean(isAutoincrement);
-		out.writeBoolean(updatableByCursor);		
-	}
+        out.writeInt(columnPos);
+        out.writeObject(type);
+        out.writeBoolean(isAutoincrement);
+        out.writeBoolean(updatableByCursor);
+    }
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException {
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException             thrown on error
+     * @exception ClassNotFoundException  thrown on error
+     */
+    public void readExternal(ObjectInput in)
+            throws IOException, ClassNotFoundException {
         name = in.readUTF();
-		if (in.readBoolean()) {
+        if (in.readBoolean()) {
             tableName = in.readUTF();
         }
         if (in.readBoolean()) {
-		    schemaName = in.readUTF();
+            schemaName = in.readUTF();
         }
-		columnPos = in.readInt();
-		type = getStoredDataTypeDescriptor(in.readObject());
-		isAutoincrement = in.readBoolean();
-		updatableByCursor = in.readBoolean();
-	}
-	
+        columnPos = in.readInt();
+        type = getStoredDataTypeDescriptor(in.readObject());
+        isAutoincrement = in.readBoolean();
+        updatableByCursor = in.readBoolean();
+    }
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *
@@ -287,7 +308,7 @@ public final class GenericColumnDescriptor
      * parameters and return values prior to DERBY-2775. If it is not a regular
      * DataTypeDescriptor, it must be an OldRoutineType, so convert it to a
      * DataTypeDescriptor DERBY-4913
-     * 
+     *
      * @param o
      *            object as obtained by fh.get("type") in readExternal
      * @return DataTypeDescriptor

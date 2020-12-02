@@ -31,12 +31,19 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -44,6 +51,11 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
 import com.splicemachine.db.iapi.reference.ClassName;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+
+import java.sql.Types;
+
+import static com.splicemachine.db.iapi.services.context.ContextService.getContext;
 
 /**
  * This class implements TypeCompiler for the SQL char datatypes.
@@ -52,6 +64,21 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public final class CharTypeCompiler extends BaseTypeCompiler
 {
+        protected ThreadLocal<MutableBoolean> db2VarcharCompatibilityMode =
+             new ThreadLocal<MutableBoolean>() {
+                 @Override public MutableBoolean initialValue() {
+                     return new MutableBoolean(false);
+             }
+        };
+
+        public void setDB2VarcharCompatibilityMode (boolean newValue) {
+            db2VarcharCompatibilityMode.get().setValue(newValue);
+        }
+
+        public boolean getDB2CompatibilityMode () {
+            return db2VarcharCompatibilityMode.get().booleanValue();
+        }
+
 	   /**
          * Tell whether this type (char) can be converted to the given type.
          *
@@ -62,10 +89,10 @@ public final class CharTypeCompiler extends BaseTypeCompiler
             if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
             
 			// LONGVARCHAR can only be converted from  character types
-			// or CLOB or boolean.
+			// or CLOB or boolean or date / time timestamps.
 			if (getTypeId().isLongVarcharTypeId())
 			{
-				return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
+				return (otherType.isStringTypeId() || otherType.isBooleanTypeId() || otherType.isDateTimeTimeStampTypeId());
 			}
 			// The double function and CAST can convert CHAR and VARCHAR to double
 			if (otherType.isDoubleTypeId())
@@ -140,6 +167,35 @@ public final class CharTypeCompiler extends BaseTypeCompiler
                 return dts.getMaximumWidth();
         }
 
+        public static CharTypeCompiler getCurrentCharTypeCompiler(LanguageConnectionContext lcc) {
+            if (lcc == null)
+                return null;
+            ContextManager cm = lcc.getContextManager();
+            if (cm == null)
+                return null;
+            CompilerContext cc = (CompilerContext)cm.getContext(CompilerContext.CONTEXT_ID);
+            if (cc == null)
+                return null;
+            TypeCompilerFactory typeCompilerFactory =  cc.getTypeCompilerFactory();
+            if (typeCompilerFactory == null)
+                return null;
+            CharTypeCompiler charTypeCompiler =
+              (CharTypeCompiler)typeCompilerFactory.getTypeCompiler(TypeId.getBuiltInTypeId(Types.VARCHAR));
+            return charTypeCompiler;
+        }
+
+        public static boolean getDB2CompatibilityModeStatic() {
+            LanguageConnectionContext lcc =
+                (LanguageConnectionContext) getContext(LanguageConnectionContext.CONTEXT_ID);
+            if (lcc == null)
+                return false;
+            CharTypeCompiler charTC = getCurrentCharTypeCompiler(lcc);
+            if (charTC != null)
+                return charTC.getDB2CompatibilityMode();
+            else
+                return false;
+        }
+
         String nullMethodName()
         {
                 int formatId = getStoredFormatIdFromTypeId();
@@ -152,6 +208,11 @@ public final class CharTypeCompiler extends BaseTypeCompiler
                                 return "getNullLongvarchar";
 
                         case StoredFormatIds.VARCHAR_TYPE_ID:
+                            boolean DB2CompatibilityMode = getDB2CompatibilityMode();
+
+                            if (DB2CompatibilityMode)
+                                return "getNullVarcharDB2Compatible";
+                            else
                                 return "getNullVarchar";
 
                         default:
@@ -187,7 +248,12 @@ public final class CharTypeCompiler extends BaseTypeCompiler
                                 return "getLongvarcharDataValue";
 
                         case StoredFormatIds.VARCHAR_TYPE_ID:
-                                return "getVarcharDataValue";
+                                boolean DB2CompatibilityMode = getDB2CompatibilityMode();
+
+                                if (DB2CompatibilityMode)
+                                    return "getVarcharDB2CompatibleDataValue";
+                                else
+                                    return "getVarcharDataValue";
 
                         default:
                                 if (SanityManager.DEBUG)

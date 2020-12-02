@@ -59,7 +59,8 @@ public class BitTypeCompiler extends BaseTypeCompiler
          */
         public boolean convertible(TypeId otherType, 
 								   boolean forDataTypeFunction) {
-            return !otherType.getBaseTypeId().isAnsiUDT() && (otherType.isBitTypeId() || otherType.isBlobTypeId() || otherType.userType());
+            return !otherType.getBaseTypeId().isAnsiUDT() &&
+                    (otherType.isBitTypeId() || otherType.isBlobTypeId() || otherType.userType() || otherType.isCharOrVarChar());
 
 
         }
@@ -83,9 +84,9 @@ public class BitTypeCompiler extends BaseTypeCompiler
 
         public boolean storable(TypeId otherType, ClassFactory cf)
         {
-        if (otherType.isBlobTypeId())
-          return false;
-				if (otherType.isBitTypeId())
+                if (otherType.isBlobTypeId())
+                    return false;
+				if (otherType.streamStorable())
 				{
 						return true;
 				}

@@ -470,7 +470,7 @@ public class SpliceTableMapReduceUtil{
             addDependencyJars(job.getConfiguration(),
                     org.apache.zookeeper.ZooKeeper.class,
                     com.google.protobuf.Message.class,
-                    com.google.common.collect.ImmutableSet.class,
+                    splice.com.google.common.collect.ImmutableSet.class,
                     job.getMapOutputKeyClass(),
                     job.getMapOutputValueClass(),
                     job.getInputFormatClass(),
