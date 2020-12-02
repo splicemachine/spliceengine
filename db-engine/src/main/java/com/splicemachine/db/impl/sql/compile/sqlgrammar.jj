@@ -1954,6 +1954,7 @@ TOKEN [IGNORE_CASE] :
 |    <TRUNC: "trunc">
 |    <TRUNCATE: "truncate">
 |    <TYPE: "type">
+|    <TYPEOF: "typeof">
 |    <UNCOMMITTED: "uncommitted">
 |    <USAGE: "usage">
 |    <WEEK: "week">
@@ -6559,7 +6560,7 @@ escapedValueFunction() throws StandardException :
 }
 
 /*
- * <A NAME="numericValueFunction">numericValueFunction</A>
+ * <A NAME="escapedSYSFUNFunctions">escapedSYSFUNFunctions</A>
  */
 ValueNode
 escapedSYSFUNFunction() throws StandardException :
@@ -6690,6 +6691,24 @@ ValueNode jdbcIntervalType() throws StandardException :
     <SQL_TSI_YEAR>
     {
         return getJdbcIntervalNode( DateTimeDataValue.YEAR_INTERVAL);
+    }
+}
+
+/*
+ * <A NAME="typeOfFunction">typeOfFunction</A>
+ */
+ValueNode
+typeOfFunction() throws StandardException :
+{
+    ValueNode    value;
+}
+{
+    <TYPEOF> <LEFT_PAREN> value = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.TYPEOF_OPERATOR_NODE,
+            value,
+            getContextManager());
     }
 }
 
@@ -7450,6 +7469,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TIMESTAMP ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
+                getToken(1).kind == TYPEOF ||
                 getToken(1).kind == DOUBLE ||
                 getToken(1).kind == CHAR ||
                 getToken(1).kind == VARCHAR ||
@@ -7547,6 +7567,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.GET_CURRENT_CONNECTION_NODE,
                                     getContextManager()),
                                 getContextManager());
+    }
+|
+    value = typeOfFunction()
+    {
+        return value;
     }
 |
     value = numericValueFunction()
@@ -17488,6 +17513,7 @@ nonReservedKeyword()  :
     |    tok = <TRUNCATE_END>
     |    tok = <TS>
     |    tok = <TYPE>
+    |    tok = <TYPEOF>
     |   tok = <UCASE>
     |    tok = <UNCOMMITTED>
     |   tok = <UR>
