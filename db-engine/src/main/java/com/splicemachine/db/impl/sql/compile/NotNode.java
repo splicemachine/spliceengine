@@ -91,6 +91,12 @@ public final class NotNode extends UnaryLogicalOperatorNode
 	 * @exception StandardException		Thrown on error
 	 */
 
+	/** @see ValueNode#evaluateConstantExpressions */
+	@Override
+	ValueNode evaluateConstantExpressions() throws StandardException {
+		return (operand instanceof UntypedNullConstantNode) ? operand : this;
+	}
+
 	public void generateExpression(ExpressionClassBuilder acb,
 											MethodBuilder mb)
 									throws StandardException
