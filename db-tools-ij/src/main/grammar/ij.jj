@@ -855,7 +855,7 @@ class ij {
             verifyProcedureExists(schema,proc);
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedureColumns(null,schema,proc,null);
+            rs = dbmd.getProcedureColumns(null,Utils.escape(schema),Utils.escape(proc),null);
 
             // Small subset of the result set fields available
             int[] displayColumns = new int[] {
