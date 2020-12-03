@@ -118,13 +118,18 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 }
                 // Remove the ones that are already marked as compacted
                 compactedFiles.removeAll(SpliceCompaction.storeFilesToNames(store.getCompactedFiles()));
-                if (!compactedFiles.isEmpty()) {
-                    // From name to HStoreFile
-                    List<HStoreFile> toRemove = store.getStorefiles().stream()
-                            .filter(sf -> compactedFiles.contains(sf.getPath().getName()))
-                            .collect(Collectors.toList());
-                    store.getStoreEngine().getStoreFileManager().addCompactionResults(toRemove, Collections.emptyList());
-                }
+                if (compactedFiles.isEmpty())
+                    return;
+
+                // From name to HStoreFile
+                List<HStoreFile> toRemove = store.getStorefiles().stream()
+                        .filter(sf -> compactedFiles.contains(sf.getPath().getName()))
+                        .collect(Collectors.toList());
+                if (toRemove.isEmpty())
+                    return;
+
+                store.getStoreEngine().getStoreFileManager().addCompactionResults(toRemove, Collections.emptyList());
+                store.closeAndArchiveCompactedFiles();
             }
         } catch (IOException ioe) {
             LOG.error("Exception while trying to mark compacted files, this could lead to inconsistencies", ioe);
