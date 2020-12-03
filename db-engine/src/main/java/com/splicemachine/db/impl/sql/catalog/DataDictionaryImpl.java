@@ -5440,7 +5440,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
             ReferencedKeyConstraintDescriptor referencedKeyConstraintDescriptor =
                     (ReferencedKeyConstraintDescriptor)this.getConstraintDescriptor(((ForeignKeyConstraintDescriptor)constraint).getReferencedConstraintId());
-            referencedKeyConstraintDescriptor.foreignKeyConstraintUpdated();
             ti = getNonCoreTI(baseNum);
         } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();

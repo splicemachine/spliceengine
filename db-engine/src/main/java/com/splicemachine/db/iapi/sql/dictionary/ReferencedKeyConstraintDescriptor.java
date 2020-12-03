@@ -242,16 +242,6 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	}
 
 	/**
-	 * Invalidate the old descriptors on ForeignKey Constraint add or drop.
-	 */
-	public void foreignKeyConstraintUpdated() throws StandardException {
-		fkConstraintList = null;
-		fkEnabledConstraintList = null;
-		getDataDictionary().getDataDictionaryCache().constraintDescriptorListCacheRemove(getUUID());
-		getDataDictionary().getDataDictionaryCache().oidTdCacheRemove(getTableId());
-	}
-
-	/**
 	 * Is this constraint referenced? Returns
 	 * true if there are enabled fks that 
 	 * reference this constraint.
