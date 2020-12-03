@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -37,6 +38,8 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     private boolean compactionCountIncremented = false;
 
     private PurgeConfig purgeConfig = null;
+
+    private Set<String> compactedFiles;
 
     public SpliceCompactionRequest(Collection<HStoreFile> files) {
         super(files);
@@ -131,5 +134,13 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
 
     public void setPurgeConfig(PurgeConfig purgeConfig) {
         this.purgeConfig = purgeConfig;
+    }
+
+    public void setCompactedFiles(Set<String> compactedFiles) {
+        this.compactedFiles = compactedFiles;
+    }
+
+    public Set<String> getCompactedFiles() {
+        return compactedFiles;
     }
 }
