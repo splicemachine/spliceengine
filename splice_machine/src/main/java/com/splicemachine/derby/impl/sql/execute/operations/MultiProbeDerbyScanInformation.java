@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
@@ -138,7 +139,11 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         List<DataScan> scans = new ArrayList<DataScan>();
         DataScan scan;
 
-        DataValueDescriptor[] probeValues = getProbeValues();
+        DataValueDescriptor[] probeValues =
+		    getProbeValues(keyDecodingMap,
+		                   FormatableBitSetUtils.
+		                   toCompactedIntArray(getAccessedColumns()),
+			               getResultRow());
 
         // Mem platform does not support the HBase MultiRangeRowFilter,
         // so we still need one scan per probe value on mem.
@@ -244,7 +249,60 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				isMemPlatform = in.readBoolean();
 		}
 
-	public DataValueDescriptor[] getProbeValues() throws StandardException {
+    private void fixupDVD(boolean isSQLVarcharDB2Compatible,
+                          boolean targetIsSQLVarcharDB2Compatible,
+                          ListDataType listData,
+                          boolean isVarCharType,
+                          int position,
+                          boolean[] toRemove,
+                          int index,
+                          DataValueDescriptor dvd,
+                          DataValueDescriptor[] probingVals,
+                          int maxSize) throws StandardException {
+
+        if (isSQLVarcharDB2Compatible) {
+            DataValueDescriptor newDVD =
+                QualifierUtils.convertChar((SQLChar) dvd, dvd.getLength(),
+                                           inlistDataTypes[position].getMaximumWidth());
+            if (listData != null)
+                listData.setDVD(position, newDVD);
+            else
+                probingVals[index] = newDVD;
+        }
+        else if (dvd instanceof SQLChar) {
+            // we may prune some probe value based on the string length
+            if (isVarCharType && dvd.getLength() > maxSize &&
+                !targetIsSQLVarcharDB2Compatible)
+            {
+                toRemove[index] = true;
+                return;
+            }
+            if (isVarCharType) {
+                if (targetIsSQLVarcharDB2Compatible) {
+                    if (dvd.getClass().equals(SQLVarchar.class)) {
+                        DataValueDescriptor newDVD =
+                            new SQLVarcharDB2Compatible(dvd.getString());
+                        if (listData != null)
+                            listData.setDVD(position, newDVD);
+                        else
+                            probingVals[index] = newDVD;
+                    }
+                }
+                else if (!(dvd instanceof SQLVarchar)) {
+                    DataValueDescriptor newDVD = new SQLVarchar(dvd.getString());
+                    if (listData != null)
+                        listData.setDVD(position, newDVD);
+                    else
+                        probingVals[index] = newDVD;
+                }
+            }
+        }
+    }
+
+    public DataValueDescriptor[]
+    getProbeValues(int[]   keyDecodingMap,
+                   int[]   keyTablePositionMap,
+                   ExecRow templateRow) throws StandardException {
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(
@@ -293,40 +351,26 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 					continue;
 
 				int maxSize = dtd.getMaximumWidth();
+				DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[position]] + 1);
+				boolean targetIsSQLVarcharDB2Compatible = targetDesc instanceof SQLVarcharDB2Compatible;
 				for (int index = 0; index < probingVals.length; index++) {
 					 DataValueDescriptor dvd = probingVals[index];
 					 if (dvd instanceof ListDataType) {
 						 ListDataType listData = (ListDataType) dvd;
 						 DataValueDescriptor dvd1 = listData.getDVD(position);
-						 if (dvd1 instanceof SQLChar) {
-						 	// we may prune some probe value based on the string length
-						 	if (isFixedCharType && dvd1.getLength() != maxSize) {
-								toRemove[index] = true;
-								continue;
-							} else if (isVarCharType && dvd1.getLength() > maxSize) {
-								toRemove[index] = true;
-								continue;
-							}
-							 // if column is of varchar type, we need to change the probe values from SQLChar to SQLVarchar,
-							 // so that duplicate removal won't ignore the trailing spaces
-							 if (isVarCharType && !(dvd1 instanceof SQLVarchar))
-								 listData.setDVD(position, new SQLVarchar(dvd1.getString()));
-						 }
-
+						 boolean isSQLVarcharDB2Compatible = dvd1 instanceof SQLVarcharDB2Compatible;
+						 fixupDVD(isSQLVarcharDB2Compatible,
+							      targetIsSQLVarcharDB2Compatible,
+							      listData,
+							      isVarCharType, position, toRemove,
+							      index, dvd1, probingVals, maxSize);
 					 } else {
-					 	if (dvd instanceof SQLChar) {
-							// we may prune some probe value based on the string length
-							if (isFixedCharType && dvd.getLength() != maxSize) {
-								toRemove[index] = true;
-								continue;
-							} else if (isVarCharType && dvd.getLength() > maxSize) {
-								toRemove[index] = true;
-								continue;
-							}
-
-							if (isVarCharType && !(dvd instanceof SQLVarchar))
-								probingVals[index] = new SQLVarchar(dvd.getString());
-						}
+					 	 boolean isSQLVarcharDB2Compatible = dvd instanceof SQLVarcharDB2Compatible;
+						 fixupDVD(isSQLVarcharDB2Compatible,
+							      targetIsSQLVarcharDB2Compatible,
+							      null,  // listData
+							      isVarCharType, position, toRemove,
+							      index, dvd, probingVals, maxSize);
 					 }
 				}
 			}
