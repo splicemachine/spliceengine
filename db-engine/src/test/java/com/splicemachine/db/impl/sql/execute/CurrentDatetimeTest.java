@@ -75,11 +75,11 @@ public class CurrentDatetimeTest {
     @Test
     public void testPrecision() {
         Timestamp timestamp = cut.getCurrentTimestamp();
-        assertEquals(3, cut.getTimestampPrecision());
+        assertEquals(3, cut.getCurrentTimestampPrecision());
 
         for (int i = 0; i <= 9; ++i) {
-            cut.setTimestampPrecision(i);
-            assertEquals(i, cut.getTimestampPrecision());
+            cut.setCurrentTimestampPrecision(i);
+            assertEquals(i, cut.getCurrentTimestampPrecision());
             assertEquals(0, cut.getCurrentTimestamp().getNanos() % CurrentDatetime.POWERS_OF_10[9 - i]);
         }
     }
