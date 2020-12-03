@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -618,6 +619,22 @@ public class GenericStatement implements Statement{
                     // just use the default setting.
                 }
                 cc.setCurrentTimestampPrecision(currentTimestampPrecision);
+
+                String timestampPrecisionString =
+                        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_PRECISION);
+                int timestampPrecision = CompilerContext.DEFAULT_TIMESTAMP_PRECISION;
+                try {
+                    if (timestampPrecisionString != null)
+                        timestampPrecision = Integer.parseInt(timestampPrecisionString);
+                    if (timestampPrecision < Limits.MIN_TIMESTAMP_PRECISION)
+                        timestampPrecision = Limits.MIN_TIMESTAMP_PRECISION;
+                    if (timestampPrecision > Limits.MAX_TIMESTAMP_PRECISION)
+                        timestampPrecision = Limits.MAX_TIMESTAMP_PRECISION;
+                } catch (Exception e) {
+                    // If the property value failed to convert to a boolean, don't throw an error,
+                    // just use the default setting.
+                }
+                cc.setTimestampPrecision(timestampPrecision);
 
                 String outerJoinFlatteningDisabledString =
                 PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);

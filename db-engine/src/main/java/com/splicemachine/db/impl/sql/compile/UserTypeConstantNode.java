@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -282,7 +284,10 @@ public class UserTypeConstantNode extends ConstantNode {
                 or a runtime error may result due to valueOf failing.
              */
             String typeName = getTypeId().getCorrespondingJavaTypeName();
-
+            if(getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
+                int precision = getCompilerContext().getTimestampPrecision();
+                ((SQLTimestamp) value).setPrecision(precision);
+            }
             mb.push(value.toString());
             mb.callMethod(VMOpcode.INVOKESTATIC, typeName, "valueOf", typeName, 1);
 

@@ -58,7 +58,7 @@ public class TimestampIT extends SpliceUnitTest {
                                             .around(spliceSchemaWatcher)
                                             .around(methodWatcher);
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "useSpark = {0}")
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         params.add(new Object[]{true});
@@ -865,6 +865,7 @@ public class TimestampIT extends SpliceUnitTest {
             }
         }
     }
+
     @Test
     public void testTimestampFunctionFromLongVarchar_10926() throws Exception {
         try (PreparedStatement ps = methodWatcher.prepareStatement("select timestamp(? || '-23.59.59.999999')")) {
@@ -877,5 +878,34 @@ public class TimestampIT extends SpliceUnitTest {
                         TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
         }
+    }
+
+    private void withPrecision(int precision) throws Exception {
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampPrecision', '%d' )", precision));
+    }
+
+    private void shouldEqual(String inputTimestamp, String expectedTimestamp) throws SQLException {
+        try(ResultSet rs = methodWatcher.executeQuery(String.format("select char(timestamp('%s')), length(char(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(expectedTimestamp, rs.getString(1));
+            Assert.assertEquals(expectedTimestamp.length(), rs.getInt(2));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testConfigurableTimestampPrecision() throws Exception {
+        withPrecision(-100); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withPrecision(-100); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withPrecision(0); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12");
+        withPrecision(0); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withPrecision(3); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000");
+        withPrecision(3); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123");
+        withPrecision(6); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000");
+        withPrecision(6); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456");
+        withPrecision(9); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
+        withPrecision(9); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
+        withPrecision(100); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
+        withPrecision(100); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
     }
 }
