@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -1549,4 +1550,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void setOriginalInListPredList (PredicateList predList) { originalInListPredList = predList; }
 
+    public boolean isVarcharBinaryRelationalOperator() {
+        RelationalOperator relOp = getRelop();
+        if (!(relOp instanceof BinaryRelationalOperatorNode))
+            return false;
+        BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relOp;
+        return bron.getLeftOperand().getTypeServices().
+                                     getTypeName().equals(TypeId.VARCHAR_NAME);
+    }
 }

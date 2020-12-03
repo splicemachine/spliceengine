@@ -180,10 +180,12 @@ public class UpdateOperation extends DMLWriteOperation{
         if (heapListStorage==null) {
             FormatableBitSet heapList = getHeapList();
             int[] storagePositionIds = ((UpdateConstantOperation)writeInfo.getConstantAction()).getStoragePositionIds();
-            heapListStorage = new FormatableBitSet(heapList.getLength());
+            int heapListStorageSize = storagePositionIds[storagePositionIds.length - 1] // largest 0-based storagePosition
+                                      + 1 // to make it 1-based
+                                      + 1; // to get the size of the new container
+            heapListStorage = new FormatableBitSet(heapListStorageSize);
             for(int i=heapList.anySetBit();i>=0;i=heapList.anySetBit(i)) {
                 int storagePos = storagePositionIds[i-1]+1;
-                heapListStorage.grow(storagePos+1);
                 heapListStorage.set(storagePos);
             }
         }

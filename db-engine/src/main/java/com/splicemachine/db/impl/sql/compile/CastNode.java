@@ -80,6 +80,15 @@ public class CastNode extends ValueNode
      */
     private boolean externallyGeneratedCastNode = false;
 
+    /**
+     * For omitted clauses in case ... when ... then ... end, parser
+     * generates NULL nodes with a cast node on top. These cast nodes cast
+     * the NULLs to char(1), despite of the actual common type of all "then"
+     * and "else" branches. This flag indicates whether this cast node is
+     * for this purpose.
+     */
+    private boolean forNullsInConditionalNode = false;
+
     /*
     ** Static array of valid casts.  Dimentions
     ** produce a single boolean which indicates
@@ -95,6 +104,14 @@ public class CastNode extends ValueNode
      * VARCHAR, so make sure CAST doesn't issue warning only.
      */
     private boolean assignmentSemantics = false;
+
+    /**
+     * Whether this cast is applied on a function argument.
+     * Some type conversions are disabled if it's implicitly applied on a
+     * function argument because it might change the semantic of calling the
+     * function.
+     */
+    private boolean isFunctionArgument = false;
 
     /**
      * Constructor for a CastNode
@@ -182,7 +199,7 @@ public class CastNode extends ValueNode
     }
 
     /**
-     * Initializer for a CastNode
+     * Initializer for a CastNode. Used exclusively by the functions char() and varchar()
      *
      * @param castOperand    The operand of the node
      * @param charType        CHAR or VARCHAR JDBC type as target
@@ -201,7 +218,6 @@ public class CastNode extends ValueNode
         if (charLen < 0)    // unknown, figure out later
             return;
         requestedStringLength = charLen;
-        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
     }
 
     /**
@@ -271,45 +287,9 @@ public class CastNode extends ValueNode
                 fromList, subqueryList,
                 aggregateVector);
 
-        if (getTypeServices() == null)   //CHAR or VARCHAR function without specifying target length
+        if (getTypeServices() == null)   //CHAR or VARCHAR function
         {
-            DataTypeDescriptor opndType = castOperand.getTypeServices();
-            int length = -1;
-            TypeId srcTypeId = opndType.getTypeId();
-            if (srcTypeId.isNumericTypeId())
-            {
-                length = opndType.getPrecision() + 1; // 1 for the sign
-                if (opndType.getScale() > 0)
-                    length += 1;               // 1 for the decimal .
-
-            }
-            /*
-             * Derby-1132 : The length for the target type was calculated
-             * incorrectly while Char & Varchar functions were used. Thus
-             * adding the check for Char & Varchar and calculating the
-             * length based on the operand type.
-             */
-            else if(srcTypeId.isStringTypeId())
-            {
-                length = opndType.getMaximumWidth();
-
-                // Truncate the target type width to the max width of the
-                // data type
-                if (this.targetCharType == Types.CHAR)
-                    length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
-                else if (this.targetCharType == Types.VARCHAR)
-                    length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
-            }
-            else
-            {
-                TypeId typeid = opndType.getTypeId();
-                length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(),-1);
-
-            }
-            if (length < 0)
-                length = 1;  // same default as in parser
-            setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, length));
-
+            setTypeForCharVarcharFunction();
         }
 
         /*
@@ -323,8 +303,8 @@ public class CastNode extends ValueNode
 
         bindCastNodeOnly();
 
-        if (getTypeId().isCharOrVarChar()) {
-            if (requestedStringLength != -1 && sourceCTI != null && !sourceCTI.isCharOrVarChar()) {
+        if (getTypeId().isCharOrVarChar() || getTypeId().isBitTypeId()) {
+            if (requestedStringLength != -1 && sourceCTI != null && !(sourceCTI.isCharOrVarChar() || sourceCTI.isBitTypeId())) {
                 throw StandardException.newException(
                         SQLState.LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR,
                         sourceCTI.getSQLTypeName(),
@@ -515,7 +495,7 @@ public class CastNode extends ValueNode
              * hex(2.5) == hex(varchar(2.5)) == hex('2.5') = 0x322E35.
              * But if user writes hex(cast(2.5 as varchar(3))), it should be accepted.
              */
-            if (tc instanceof NumericTypeCompiler && getTypeId().isCharOrVarChar() && assignmentSemantics) {
+            if (tc instanceof NumericTypeCompiler && getTypeId().isCharOrVarChar() && isFunctionArgument) {
                 throw StandardException.newException(SQLState.LANG_INVALID_CAST,
                         sourceCTI.getSQLTypeName(),
                         getTypeId().getSQLTypeName());
@@ -920,6 +900,16 @@ public class CastNode extends ValueNode
         return castOperand.constantExpression(whereClause);
     }
 
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if (castOperand instanceof UntypedNullConstantNode && !forNullsInConditionalNode) {
+            castOperand.setType(getTypeServices());
+            return castOperand;
+        }
+        return this;
+    }
+
     /**
      * Return an Object representing the bind time value of this
      * expression tree.  If the expression tree does not evaluate to
@@ -1112,6 +1102,56 @@ public class CastNode extends ValueNode
         }
     }
 
+    private void setTypeForCharVarcharFunction() throws StandardException {
+        DataTypeDescriptor opndType = castOperand.getTypeServices();
+        int length = requestedStringLength;
+        if (length == -1) {
+            TypeId srcTypeId = opndType.getTypeId();
+            if (srcTypeId.isNumericTypeId()) {
+                length = opndType.getPrecision() + 1; // 1 for the sign
+                if (opndType.getScale() > 0)
+                    length += 1;               // 1 for the decimal .
+            }
+            /*
+             * Derby-1132 : The length for the target type was calculated
+             * incorrectly while Char & Varchar functions were used. Thus
+             * adding the check for Char & Varchar and calculating the
+             * length based on the operand type.
+             */
+            else if (srcTypeId.isStringTypeId() || srcTypeId.isBitTypeId()) {
+                length = opndType.getMaximumWidth();
+
+                // Truncate the target type width to the max width of the
+                // data type
+                if (this.targetCharType == Types.CHAR)
+                    length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
+                else if (this.targetCharType == Types.VARCHAR)
+                    length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
+            } else {
+                TypeId typeid = opndType.getTypeId();
+                length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(), -1);
+
+            }
+            if (length < 0)
+                length = 1;  // same default as in parser
+        }
+        if (castOperand.getTypeServices().getTypeId().isBitTypeId()) {
+            switch (targetCharType) {
+                case Types.CHAR:
+                    setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BINARY, length));
+                    break;
+                case Types.VARCHAR:
+                    setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARBINARY, length));
+                    break;
+                default:
+                    assert false;
+            }
+        } else {
+            setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, length));
+        }
+
+    }
+
     /**
      * Accept the visitor for all visitable children of this node.
      *
@@ -1158,6 +1198,13 @@ public class CastNode extends ValueNode
         assignmentSemantics = true;
     }
 
+    void setIsFunctionArgument() {
+        isFunctionArgument = true;
+    }
+
+    void setForNullsInConditionalNode() {
+        forNullsInConditionalNode = true;
+    }
 
     /**
      * {@inheritDoc}
