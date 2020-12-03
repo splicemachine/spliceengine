@@ -14,33 +14,84 @@
 
 package com.splicemachine.derby.test;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
+import org.apache.commons.dbutils.DbUtils;
+import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 
 public class DatabaseMetaDataTestIT {
+
+    // This class exists because relying on SpliceProcedureWatcher to maintain the procedure (mainly drop-if-exists part) would
+    // use the same code path we want to test which defeats the purpose of the test itself. Therefore we add this class with
+    // custom drop-if-exists logic that doesn't access the code paths we want to test.
+    static class SpliceProcedureWatcherWithCustomDrop extends SpliceProcedureWatcher {
+        private static final Logger LOG = Logger.getLogger(SpliceProcedureWatcherWithCustomDrop.class);
+        public SpliceProcedureWatcherWithCustomDrop(String procedureName, String schemaName, String createString) {
+            super(procedureName, schemaName, createString);
+        }
+
+        public SpliceProcedureWatcherWithCustomDrop(String procedureName,String schemaName, String createString, String userName, String password) {
+            super(procedureName, schemaName, createString, userName, password);
+        }
+
+        @Override
+        protected void dropIfExists(Connection connection) throws SQLException {
+            String metadataQuery = String.format("SELECT COUNT(*) FROM SYS.SYSALIASES A, SYSVW.SYSSCHEMASVIEW S WHERE A.ALIASTYPE = 'P' AND S.SCHEMANAME  LIKE '%s' AND A.ALIAS LIKE '%s' ESCAPE '\\' AND A.SCHEMAID = S.SCHEMAID", schemaName.toUpperCase(), functionName.toUpperCase());
+            Statement statement = connection.createStatement();
+            try (ResultSet rs = statement.executeQuery(metadataQuery)) {
+                rs.next();
+                boolean exists = rs.getInt(1) == 1;
+                if (exists) {
+                    executeDrop(schemaName, functionName);
+                }
+            } catch (Exception e) {
+                LOG.error("error Dropping " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     private static final String CLASS_NAME = DatabaseMetaDataTestIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("t1test", spliceSchemaWatcher.schemaName, "(t1n numeric(10,2) default null, t1c char(10))");
+    private static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("a_b", spliceSchemaWatcher.schemaName, "(correct int)");
+    private static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("aXb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("aYb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("aZb", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("\"A%B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("\"A\\B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceProcedureWatcher spliceProcedureWatcher1 = new SpliceProcedureWatcherWithCustomDrop("a_b", spliceSchemaWatcher.schemaName, "(correct varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
+    private static SpliceProcedureWatcher spliceProcedureWatcher2 = new SpliceProcedureWatcherWithCustomDrop("aXb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
+    private static SpliceProcedureWatcher spliceProcedureWatcher3 = new SpliceProcedureWatcherWithCustomDrop("aYb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
+    private static SpliceProcedureWatcher spliceProcedureWatcher4 = new SpliceProcedureWatcherWithCustomDrop("aZb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
+    private static SpliceProcedureWatcher spliceProcedureWatcher5 = new SpliceProcedureWatcherWithCustomDrop("\"A%B\"", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
+    private static SpliceProcedureWatcher spliceProcedureWatcher6 = new SpliceProcedureWatcherWithCustomDrop("\"A\\B\"", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher1);
-
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7)
+            .around(spliceProcedureWatcher1)
+            .around(spliceProcedureWatcher2)
+            .around(spliceProcedureWatcher3)
+            .around(spliceProcedureWatcher4)
+            .around(spliceProcedureWatcher5)
+            .around(spliceProcedureWatcher6);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
-
 
     @Test
     public void testVersionAndProductName() throws Exception {
@@ -80,4 +131,25 @@ public class DatabaseMetaDataTestIT {
         Assert.assertTrue("Query Did not return, decimal serde issue",rs.next());
     }
 
+    @Test
+    public void testDescribeTable() throws Exception {
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        DatabaseMetaData dmd=conn.getMetaData();
+        try(ResultSet rs = dmd.getColumns(null, spliceSchemaWatcher.schemaName, "A\\_B" /* simulating what ij.jj would do */, null)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("CORRECT", rs.getString(4));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testDescribeProcedure() throws Exception {
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        DatabaseMetaData dmd=conn.getMetaData();
+        try(ResultSet rs = dmd.getProcedureColumns(null, spliceSchemaWatcher.schemaName, "A\\_B" /* simulating what ij.jj would do */, null)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("CORRECT", rs.getString(4));
+            Assert.assertFalse(rs.next());
+        }
+    }
 }
