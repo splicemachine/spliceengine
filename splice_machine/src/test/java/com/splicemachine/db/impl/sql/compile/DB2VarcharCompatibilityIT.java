@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -28,10 +29,14 @@ import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Collection;
 
+import static com.splicemachine.derby.utils.SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test DB2 Varchar compatibility mode (ignore trailing spaces in comparisons).
@@ -85,17 +90,31 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         String sqlText = "insert into t11 select * from t1";
 		spliceClassWatcher.executeUpdate(sqlText);
+
+        new TableCreator(conn)
+                .withCreate("create table t (v varchar(10), c char(2))")
+                .withIndex("create index ti on t (v,c)")
+                .withIndex("create index ti2 on t (c,v)")
+                .withInsert("insert into t values(?, ?)")
+                .withRows(rows(
+                        row("SBVGCCC", "  "),
+                        row("SBVGCCC ", "B "),
+                        row("SBVGCCC C", "  "),
+                        row("SBVGCCC", "A ")))
+                .create();
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+        spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
         spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
     }
 
     @AfterClass
     public static void exitDB2CompatibilityMode() throws Exception {
         spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
     }
 
     @Test
@@ -324,5 +343,141 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         // Restore the flag setting to the value when this test started.
         methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+    }
+
+    @Test
+    public void testMultiProbeScan() throws Exception {
+        String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                            ", index=%s\n" +
+                            "where v in ('SBVGCCC    ', 'G')\n" +
+                            "and c in ( ' ', CAST('A' AS CHAR(2)))";
+
+        String expected =
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC |   |\n" +
+            "SBVGCCC | A |";
+
+        String sqlText = format(sqlTemplate, "ti");
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "ti2");
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where v = 'SBVGCCC    ' \n" +
+                        "and c in ( ' ', CAST('A' AS CHAR(2)))";
+
+        sqlText = format(sqlTemplate, "ti");
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "ti2");
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where v in ('SBVGCCC    ', 'G')\n" +
+                        "and c = CAST('A' AS CHAR(3))";
+
+        expected =
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC | A |";
+
+        sqlText = format(sqlTemplate, "ti");
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "ti2");
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where c in ( ' ', CAST('A' AS CHAR(3)))";
+
+        expected =
+            "V     | C |\n" +
+            "---------------\n" +
+            " SBVGCCC  |   |\n" +
+            " SBVGCCC  | A |\n" +
+            "SBVGCCC C |   |";
+
+        sqlText = format(sqlTemplate, "ti");
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "ti2");
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    private void loadParamsAndRun(PreparedStatement ps,
+                                  boolean skipParamTwo,
+                                  boolean skipParamThree,
+                                  String sqlText,
+                                  String expected) throws Exception {
+            int i = 1;
+            ps.setString(i++, "SBVGCCC    ");
+            if (!skipParamTwo)
+                ps.setString(i++, "SBVGCCC ");
+            if (!skipParamThree)
+                ps.setString(i++, " ");
+            ps.setString(i++, "A");
+            try (ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+    }
+    private void testPreparedQuery1(String sqlTemplate,
+                                    String expected,
+                                    boolean skipParamTwo,
+                                    boolean skipParamThree) throws Exception  {
+        String sqlText = format(sqlTemplate, "ti");
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun(ps, skipParamTwo, skipParamThree, sqlText, expected);
+        }
+
+        sqlText = format(sqlTemplate, "ti2");
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun(ps, skipParamTwo, skipParamThree, sqlText, expected);
+        }
+    }
+
+    @Test
+    public void testParameterizedMultiProbeScan() throws Exception {
+        String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                                ", index=%s\n" +
+                                "where v in (?, ?)\n" +
+                                "and c in (?, CAST(? AS CHAR(2)))";
+
+        String expected =
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC |   |\n" +
+            "SBVGCCC | A |";
+
+        testPreparedQuery1(sqlTemplate, expected, false, false);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where v in (?, ?)\n" +
+                        "and c in (?, CAST(? AS CHAR(3)))";
+
+        testPreparedQuery1(sqlTemplate, expected, false, false);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where v = ? \n" +
+                        "and c in (?, CAST(? AS CHAR(2)))";
+
+        testPreparedQuery1(sqlTemplate, expected, true, false);
+
+        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+                        ", index=%s\n" +
+                        "where v in (?, ?)\n" +
+                        "and c = CAST(? AS CHAR(3))";
+
+        expected =
+            "V    | C |\n" +
+            "-------------\n" +
+            "SBVGCCC | A |";
+
+        testPreparedQuery1(sqlTemplate, expected, false, true);
+
     }
 }
