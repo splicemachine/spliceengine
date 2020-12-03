@@ -98,6 +98,11 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     protected boolean authTokenEnabled;
     protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
+    /**
+     * We need to keep track of compacted files in HFiles in order to avoid forgetting about any of them when
+     * recovering from a crash, since the compaction marker might have been lost due to a WAL roll or another crash
+     * See DB-10896 and HBASE-20724 for more details
+     */
     @Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> c) {
         try {
