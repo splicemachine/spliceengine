@@ -19,6 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.SpliceCompactionUtils;
@@ -70,6 +71,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static com.splicemachine.compactions.SpliceCompaction.SPLICE_COMPACTION_EVENT_KEY;
 import static org.apache.hadoop.hbase.regionserver.HStoreFile.EARLIEST_PUT_TS;
 import static org.apache.hadoop.hbase.regionserver.HStoreFile.TIMERANGE_KEY;
 import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_DROP_DELETES;
@@ -81,6 +83,7 @@ import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELET
  *
  */
 public class SpliceDefaultCompactor extends DefaultCompactor {
+
     private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
@@ -112,6 +115,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public SpliceDefaultCompactor(final Configuration conf, final Store store, long smallestReadPoint) {
         this(conf, store);
         this.smallestReadPoint = smallestReadPoint;
+    }
+
+    @Override
+    /* This function gets used both when we run the compaction in HBase and when we run it in Spark */
+    protected List<Path> commitWriter(StoreFileWriter writer, FileDetails fd, CompactionRequestImpl request) throws IOException {
+        if (request instanceof SpliceCompactionRequest) {
+            writer.appendFileInfo(SPLICE_COMPACTION_EVENT_KEY, filesToBytes((SpliceCompactionRequest) request));
+        }
+        return super.commitWriter(writer, fd, request);
     }
 
     @Override
@@ -210,7 +222,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 store.getColumnFamilyDescriptor().getName(),
                 isMajor,
                 SpliceCompactionUtils.getTxnLowWatermark(store),
-                favoredNodes);
+                favoredNodes,
+                SpliceCompaction.storeFilesToNames(store.getCompactedFiles()));
     }
 
     private String getCompactionQueue() {
@@ -315,7 +328,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
 
         StoreFileWriter writer = null;
-        List<Path> newFiles =new ArrayList<>();
         boolean cleanSeqId = false;
         IOException e = null;
         try {
@@ -365,20 +377,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     scanner.close();
                 }
             }
+            return commitWriter(writer, fd, (CompactionRequestImpl) request);
         } catch (IOException ioe) {
             e = ioe;
             throw ioe;
-        }
-        finally {
+        } finally {
             try {
-                if (writer != null) {
-                    if (e != null) {
-                        writer.close();
-                    } else {
-                        writer.appendMetadata(fd.maxSeqId, request.isAllFiles());
-                        writer.close();
-                        newFiles.add(writer.getPath());
-                    }
+                if (writer != null && e != null) {
+                    writer.close();
                 }
             } finally {
                 for (HStoreFile f : readersToClose) {
@@ -390,7 +396,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
             }
         }
-        return newFiles;
+    }
+
+    private byte[] filesToBytes(SpliceCompactionRequest request) {
+        SpliceMessage.CompactedFiles message = SpliceMessage.CompactedFiles.newBuilder()
+                .addAllCompactedFile(SpliceCompaction.storeFilesToNames(request.getFiles()))
+                .addAllCompactedFile(request.getCompactedFiles())
+                .build();
+        return message.toByteArray();
     }
 
     @Override
