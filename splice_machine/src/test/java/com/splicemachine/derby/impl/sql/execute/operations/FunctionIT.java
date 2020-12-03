@@ -952,7 +952,7 @@ public class FunctionIT extends SpliceUnitTest {
         // Datetime
         scalarFunctionExpectSuccess("datetime1", true, "", "VARCHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", true, "", "VARCHAR(8)", "16:30:30");
-        scalarFunctionExpectSuccess("datetime3", true, "", "VARCHAR(29)", "2020-01-01 16:30:30.123456");
+        scalarFunctionExpectSuccess("datetime3", true, "", "VARCHAR(29)", "2020-01-01 16:30:30.123456000");
         scalarFunctionExpectSuccess("datetime1", true, "ISO", "VARCHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", true, "ISO", "VARCHAR(8)", "16.30.30");
         scalarFunctionExpectSuccess("datetime1", true, "JIS", "VARCHAR(10)", "2020-01-02");
@@ -964,7 +964,7 @@ public class FunctionIT extends SpliceUnitTest {
 
         scalarFunctionExpectSuccess("datetime1", false, "", "CHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", false, "", "CHAR(8)", "16:30:30");
-        scalarFunctionExpectSuccess("datetime3", false, "", "CHAR(29)", "2020-01-01 16:30:30.123456   ");
+        scalarFunctionExpectSuccess("datetime3", false, "", "CHAR(29)", "2020-01-01 16:30:30.123456000");
         scalarFunctionExpectSuccess("datetime1", false, "ISO", "CHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", false, "ISO", "CHAR(8)", "16.30.30");
         scalarFunctionExpectSuccess("datetime1", false, "JIS", "CHAR(10)", "2020-01-02");
