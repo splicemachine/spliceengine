@@ -10327,7 +10327,7 @@ FromTable tableFactor() throws StandardException :
         newNode = (QueryTreeNode) nodeFactory.getNode(
                                C_NodeTypes.NEW_INVOCATION_NODE,
                                javaClassName,
-                               parameterList,
+                               new Vector(), // empty parameterList
                                getContextManager());
 
         javaToSQLNode = (JavaToSQLValueNode) nodeFactory.getNode(
@@ -10393,6 +10393,8 @@ FromTable tableFactor() throws StandardException :
                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
                             (Properties) null),
                         typeDescriptor,
+                        parameterList,
+                        new Boolean(true),
                         getContextManager());
         fromVTI.setFromTableDMLStmt(dmlStatement);
         fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
