@@ -299,7 +299,7 @@ public class QualifierUtils {
         return (columnFormat == StoredFormatIds.SQL_VARCHAR_ID);
     }
 
-    private static DataValueDescriptor convertChar(SQLChar source, int sourceCharSize, int targetCharSize) throws StandardException {
+    public static DataValueDescriptor convertChar(SQLChar source, int sourceCharSize, int targetCharSize) throws StandardException {
         SQLChar correctedSource;
         if (targetCharSize > sourceCharSize) {
             correctedSource = new SQLChar(StringUtil.padRight(source.getString(), SQLChar.PAD, targetCharSize));
