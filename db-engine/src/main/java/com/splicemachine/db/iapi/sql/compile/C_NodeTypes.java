@@ -291,8 +291,10 @@ public interface C_NodeTypes
 
     int SPLIT_PART_OPERATOR_NODE = 280;
 
+    int TYPEOF_OPERATOR_NODE = 281;
+
     // Final value in set, keep up to date!
-    int FINAL_VALUE = SPLIT_PART_OPERATOR_NODE;
+    int FINAL_VALUE = TYPEOF_OPERATOR_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
