@@ -89,8 +89,8 @@ import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELET
  *
  */
 public class SpliceDefaultCompactor extends DefaultCompactor {
+    public static boolean allowSpark = true;
 
-    private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId;
@@ -901,7 +901,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private PurgeConfig buildPurgeConfig(CompactionRequest request, long transactionLowWatermark) throws IOException {
         SConfiguration config = HConfiguration.getConfiguration();
         PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-        if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
+        boolean engineStarted = SIDriver.driver() != null && SIDriver.driver().isEngineStarted();
+        if (engineStarted && SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
             purgeConfig.forcePurgeDeletes();
         } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
             purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
