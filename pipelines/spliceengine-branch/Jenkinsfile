@@ -62,9 +62,9 @@ node('spliceengine'){
                 sudo yum install curl epel-release git wget nmap rlwrap patch openssh-server openssh-clients openssh ntp nscd nc ftp -y
                 sudo sed -i '/requiretty/ s/^/#/' /etc/sudoers
                 sudo service nscd start  && sudo service ntpd start  && sudo service sshd start
-                wget https://archive.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz -P /tmp
-                sudo tar xf /tmp/apache-maven-3.3.9-bin.tar.gz -C /opt
-                sudo ln -sfn /opt/apache-maven-3.3.9 /opt/maven
+                wget https://downloads.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz -P /tmp 
+                sudo tar xf /tmp/apache-maven-3.6.3-bin.tar.gz -C /opt
+                sudo ln -sfn /opt/apache-maven-3.6.3 /opt/maven
                 wget https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.9-bin.tar.gz -P /tmp
                 sudo tar xf /tmp/apache-ant-1.9.9-bin.tar.gz -C /opt
                 sudo ln -sfn /opt/apache-ant-1.9.9 /opt/ant
