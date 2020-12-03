@@ -21,6 +21,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -297,5 +298,99 @@ public class PreparedStatementIT {
         try(ResultSet rs = ps.executeQuery()) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+    }
+
+    private void testReturnRowCount(PreparedStatement ps, int expectedCount) throws Exception {
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expectedCount, SpliceUnitTest.resultSetSize(rs));
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterInConstantRestriction() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where 1 = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 2);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2");
+        testReturnRowCount(ps, 0);
+
+        try {
+            ps.setDate(1, Date.valueOf("2020-01-01"));
+            Assert.fail("Expect failure in converting date to integer");
+        } catch (Exception e) {
+            Assert.assertEquals("An attempt was made to get a data value of type 'INTEGER' from a data value of type 'DATE'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterOnBothSidesOfBinaryComparison() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where ? = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 0);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.5);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "aa");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "ab");
+        testReturnRowCount(ps, 0);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-02-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 12);
+        ps.setString(2, "12");
+        testReturnRowCount(ps, 1);
+
+        // DB2 returns 0 row in this case. But
+        // '1.0' = cast(1.0 as varchar(254))
+        // does evaluated to true in DB2.
+        ps.setDouble(1, 1.0);
+        ps.setString(2, "1.0");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2020-01-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "2020-02-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 1577836800);
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
     }
 }

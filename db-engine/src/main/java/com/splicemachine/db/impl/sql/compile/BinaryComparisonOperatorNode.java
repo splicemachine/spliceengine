@@ -116,6 +116,21 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         return betweenSelectivity;
     }
 
+    @Override
+    protected void bindParameters() throws StandardException {
+        if (leftOperand.requiresTypeFromContext()) {
+            if (rightOperand.requiresTypeFromContext()) {
+                // DB2 compatible behavior
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 254);
+                leftOperand.setType(dtd);
+                rightOperand.setType(dtd);
+            } else {
+                leftOperand.setType(rightOperand.getTypeServices());
+            }
+        } else if (rightOperand.requiresTypeFromContext()) {
+            rightOperand.setType(leftOperand.getTypeServices());
+        }
+    }
 
     /**
      * Bind this comparison operator.  All that has to be done for binding
