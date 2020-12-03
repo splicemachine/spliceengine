@@ -13,7 +13,37 @@ properties([
                      tagFilter: '*',
                      type: 'PT_BRANCH'),
         choice(name: 'PLATFORM', 
-                choices: ['cdh6.3.0', 'hdp.3.1.0', 'cdh5.16.1'], 
+                choices: [
+                    'cdh5.8.3',
+                    'cdh5.8.5',
+                    'cdh5.12.0',
+                    'cdh5.12.2',
+                    'cdh5.12.2-2.3',
+                    'cdh5.13.0',
+                    'cdh5.13.2',
+                    'cdh5.13.3',
+                    'cdh5.14.0',
+                    'cdh5.14.2',
+                    'cdh5.16.1',
+                    'cdh6.3.0',
+                    'hdp2.4.2',
+                    'hdp2.4.3',
+                    'hdp2.5.0',
+                    'hdp2.5.3',
+                    'hdp2.5.5',
+                    'hdp2.6.1',
+                    'hdp2.6.3',
+                    'hdp2.6.4',
+                    'hdp2.6.5',
+                    'hdp3.1.0',
+                    'hdp3.1.0-2.4',
+                    'hdp3.1.5',
+                    'mapr5.1.0',
+                    'mapr5.2.0',
+                    'mapr6.0.0',
+                    'mapr6.1.0',
+                    'mem'
+                    ], 
                 description: ''
                 )
     ]),
@@ -27,12 +57,18 @@ node('spliceengine'){
     ]
     try{
         stage('Prep Node') {
-                sh '''
-                sudo yum install java-1.8.0-openjdk java-1.8.0-openjdk-devel git wget nmap -y
-                wget https://downloads.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz -P /tmp
-                sudo tar xf /tmp/apache-maven-3.6.3-bin.tar.gz -C /opt
-                sudo ln -sfn /opt/apache-maven-3.6.3 /opt/maven
-                '''
+                sh"""
+                wget http://download.oracle.com/otn-pub/java/jdk/8u121-b13/e9e7ea248e2c4826b92b3f075a80e441/jdk-8u121-linux-x64.rpm; sudo yum localinstall jdk-8u121-linux-x64.rpm
+                sudo yum install curl epel-release git wget nmap rlwrap patch openssh-server openssh-clients openssh ntp nscd nc ftp -y
+                sudo sed -i '/requiretty/ s/^/#/' /etc/sudoers
+                sudo service nscd start  && sudo service ntpd start  && sudo service sshd start
+                wget https://archive.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz -P /tmp
+                sudo tar xf /tmp/apache-maven-3.3.9-bin.tar.gz -C /opt
+                sudo ln -sfn /opt/apache-maven-3.3.9 /opt/maven
+                wget https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.9-bin.tar.gz -P /tmp
+                sudo tar xf /tmp/apache-ant-1.9.9-bin.tar.gz -C /opt
+                sudo ln -sfn /opt/apache-ant-1.9.9 /opt/ant
+                """
         } 
         stage('Checkout') {
                 // Get some code from a GitHub repository
@@ -57,27 +93,51 @@ node('spliceengine'){
             // Run Maven on a Unix agent.
             wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                 dir('spliceengine'){
-                    sh """
-                    export shortbranch="\$(echo ${params.BRANCH} | awk -F/ '{print $NF}')"
-                    echo "Git branch ${params.BRANCH} short name is ${shortbranch}"
+                    sh"""
+                    export shortbranch="\$(echo ${ghprbSourceBranch} | awk -F/ '{print \$NF}')"
+                    echo "Git branch ${ghprbSourceBranch} short name is \${shortbranch}"
                     export srcver="\$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
-                    echo "Maven project version is ${srcver}"
-                    export newsrcver="${srcver}-${BUILD_NUMBER}-${shortbranch}"
-                    echo "New Maven version is ${newsrcver}"
-                    echo "Using Maven versions plugin and in-line sed to set version to ${newsrcver}" 
-                    mvn versions:set -DnewVersion="${newsrcver}" -Pcore,${params.PLATFORM},ee -l /dev/null
+                    echo "Maven project version is \${srcver}"
+                    export newsrcver="\${srcver}-${BUILD_NUMBER}-\${shortbranch}"
+                    echo "New Maven version is \${newsrcver}"
+                    echo "Using Maven versions plugin and in-line sed to set version to \${newsrcver}" 
+                    mvn versions:set -DnewVersion="\${newsrcver}" -Pcore,\${platform},ee -l /dev/null
                     mvn versions:commit
-                    popd 
                     echo "Saving branch and version info to branch.env"
-                    echo "export shortbranch=${shortbranch}" > branch.env
-                    echo "export srcver=${srcver}" >> branch.env
-                    echo "export newsrcver=${newsrcver}" >> branch.env
-                    echo "${newsrcver}" > version.txt
+                    echo "export shortbranch=\${shortbranch}" > branch.env
+                    echo "export srcver=\${srcver}" >> branch.env
+                    echo "export newsrcver=\${newsrcver}" >> branch.env
+                    echo "\${newsrcver}" > version.txt
                     mvn -B -e --fail-at-end clean -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                    mvn -B -e --fail-at-end verify -Pmem,core,${params.PLATFORM},ee
+
+                    if [[ "\$platform" =~ ^mem ]] ; then
+                        profiles="core,mem"
+                    elif [[ "\$platform" =~ ^cdh ]] ; then
+                        profiles="core,\$platform,ee,parcel"
+                    elif [[ "\$platform" =~ ^hdp ]] ; then
+                        profiles="core,\$platform,ee,hdp_service"
+                    elif [[ "\$platform" =~ ^hdp ]] ; then
+                        profiles="core,\$platform,ee,hdp_service"
+                    else
+                        profiles="mem,core,\${platform},ee,installer"
+                    fi
+
+                    echo "building \${profiles} for \$platform"
+
+                    MAVEN_OPTS="-Xmx2048m -Djava.awt.headless=true -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30 -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=YYYY-MM-dd|HH:mm:ss,SSS"
+
+                    mvn \
+                    -B \
+                    -f pom.xml \
+                    -P\$profiles \
+                    -D\$platform \
+                    -Djenkins.build.number=${BUILD_NUMBER} \
+                    -Dexcluded.categories=com.splicemachine.test.SlowTest \
+                    -Dmaven.test.redirectTestOutputToFile=true \
+                    clean install
                     """
                 }
             }
