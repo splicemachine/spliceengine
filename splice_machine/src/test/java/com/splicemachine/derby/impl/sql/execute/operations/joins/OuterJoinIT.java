@@ -73,6 +73,9 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static SpliceTableWatcher tab_c = new SpliceTableWatcher("tab_c", CLASS_NAME, "(id int)");
     private static SpliceTableWatcher t5 = new SpliceTableWatcher("t5", CLASS_NAME, "(a5 int, b5 int, c5 int)");
     private static SpliceTableWatcher t6 = new SpliceTableWatcher("t6", CLASS_NAME, "(a6 int, b6 int, c6 int)");
+    private static SpliceTableWatcher j1 = new SpliceTableWatcher("j1", CLASS_NAME, "(a int, b int, c int)");
+    private static SpliceTableWatcher j2 = new SpliceTableWatcher("j2", CLASS_NAME, "(a int, b int, c int)");
+    private static SpliceTableWatcher j3 = new SpliceTableWatcher("j3", CLASS_NAME, "(a int, b int, c int)");
 
 
     @ClassRule
@@ -97,6 +100,9 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(tab_c)
             .around(t5)
             .around(t6)
+            .around(j1)
+            .around(j2)
+            .around(j3)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -201,6 +207,21 @@ public class OuterJoinIT extends SpliceUnitTest {
                         Statement statement = spliceClassWatcher.getStatement();
                         statement.execute(String.format("insert into %s values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5)", t5));
                         statement.execute(String.format("insert into %s values (3,3,3), (4,4,4), (5,5,5), (6,6,6), (7,7,7)", t6));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            })
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement statement = spliceClassWatcher.getStatement();
+                        statement.execute(String.format("insert into %s values (1,1,1), (2,2,2), (3,3,3), (4,4,4)", j1));
+                        statement.execute(String.format("insert into %s values (2,2,2), (3,3,3), (4,4,4), (5,5,5)", j2));
+                        statement.execute(String.format("insert into %s values (3,3,3), (4,4,4), (5,5,5)", j3));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -530,6 +551,33 @@ public class OuterJoinIT extends SpliceUnitTest {
                   "right join t6 on t5.a5 = t6.a6+1 order by 1,2,3";
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals(EXPECTED, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testNonFlattenedOuterJoinColumnNotReferencedByOuterBlock() throws Exception {
+        String query = "select count(*) from ( " +
+                "select * from" +
+                "  j1 full join j2 on j1.c = j2.c " +  // full outer join is not flattenable
+                "  left join j3 on j2.c = j3.c )";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    " 5 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        query = "select count(*) from ( " +
+                "select * from" +
+                "  j1 left join j2 on j1.c = j2.c " +
+                "  right join j3 on j2.c = j3.c )";  // no null-rejecting predicate, right outer join mark left child not flattenable
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    " 3 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     /* ****************************************************************************************************************/
