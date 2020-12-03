@@ -219,7 +219,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param dd                    dataDictionary
      * @throws StandardException thrown on failure
      */
-    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH")
+    @SuppressFBWarnings(value={"SF_SWITCH_FALLTHROUGH", "DLS_DEAD_LOCAL_STORE"}, justification = "DB-10654")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
