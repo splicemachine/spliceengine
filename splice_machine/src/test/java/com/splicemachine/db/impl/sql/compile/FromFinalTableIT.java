@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -28,6 +29,8 @@ import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.List;
 
@@ -411,4 +414,126 @@ public class FromFinalTableIT extends SpliceUnitTest {
         methodWatcher.rollback();
         methodWatcher.commit();
         methodWatcher.setAutoCommit(true);
-}}
+    }
+
+    private void loadParamsAndRun(PreparedStatement ps,
+                                  Integer paramOneValue,
+                                  String paramTwoValue,
+                                  String paramThreeValue,
+                                  Integer paramFourValue,
+                                  String sqlText,
+                                  String expected) throws Exception {
+            int i = 1;
+            if (paramOneValue != null)
+                ps.setInt(i++, paramOneValue);
+            if (paramTwoValue != null)
+                ps.setString(i++, paramTwoValue);
+            if (paramThreeValue != null)
+                ps.setString(i++, paramThreeValue);
+            if (paramFourValue != null)
+                ps.setInt(i++, paramFourValue);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+    }
+    private void testPreparedQuery(String sqlTemplate,
+                                   String expected,
+                                   Integer paramOneValue,
+                                   String paramTwoValue,
+                                   String paramThreeValue,
+                                   Integer paramFourValue) throws Exception  {
+        String sqlText = sqlTemplate;
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun(ps, paramOneValue, paramTwoValue, paramThreeValue, paramFourValue, sqlText, expected);
+        }
+    }
+
+
+
+    @Test
+    public void testParameterizedFromTableQueries() throws Exception {
+        methodWatcher.setAutoCommit(false);
+
+        String expected =
+            "B  | A |\n" +
+            "----------\n" +
+            "  a  | 1 |\n" +
+            "  a  | 2 |\n" +
+            " a b | 5 |\n" +
+            " ab  | 3 |\n" +
+            " abc | 4 |\n" +
+            "abcd | 6 |";
+
+        String sqlTemplate = "SELECT b,a FROM OLD TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = a+? where b >= ?) WHERE b < ? and a < ?";
+
+        testPreparedQuery(sqlTemplate,  expected, 2, " a", "d", 99);
+
+
+        sqlTemplate = "SELECT b,a FROM NEW TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = a+? where b >= ?) WHERE b < ? and a < ?";
+
+        expected =
+            "B  | A |\n" +
+            "----------\n" +
+            " ab  |17 |\n" +
+            " abc |18 |\n" +
+            "abcd |20 |";
+
+        testPreparedQuery(sqlTemplate,  expected, 12, "ab", "d", 22);
+
+        sqlTemplate = "SELECT a, b FROM OLD TABLE (DELETE FROM t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n WHERE a > ? and ? in (select a from t1 b where t1.a = b.a)) ";
+
+        expected =
+            "A | B  |\n" +
+            "---------\n" +
+            "18 |abc |";
+
+        testPreparedQuery(sqlTemplate,  expected, 17, null, null, 18);
+
+        sqlTemplate = "SELECT a, b FROM FINAL TABLE (insert into t1 --splice-properties useSpark=" + useSpark.toString()  +
+                      "\n select * from t11 where a != ? and b >= ?)" +
+        " WHERE b != ? and a < ? ";
+
+        expected =
+            "A |  B  |\n" +
+            "----------\n" +
+            " 1 |  a  |\n" +
+            "11 |  z  |\n" +
+            "12 | xyz |\n" +
+            " 2 |  a  |\n" +
+            " 3 | ab  |\n" +
+            " 4 | abc |\n" +
+            " 5 | a b |\n" +
+            " 6 |abcd |";
+
+        testPreparedQuery(sqlTemplate,  expected, 0, " ", "def", 99);
+
+        sqlTemplate = "SELECT b,a FROM NEW TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = ?, b = ? WHERE b < ? and a < ?)";
+
+        expected =
+            "B     | A |\n" +
+            "----------------\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |";
+
+        testPreparedQuery(sqlTemplate,  expected, 0, "Alles klar", "x", 99);
+
+        methodWatcher.rollback();
+        methodWatcher.commit();
+        methodWatcher.setAutoCommit(true);
+    }
+
+}
