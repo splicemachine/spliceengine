@@ -886,9 +886,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             param = new Vector(1);
         }
 
-        StaticMethodCallNode methodCall = (StaticMethodCallNode)
-            getNodeFactory().getNode(
-                C_NodeTypes.STATIC_METHOD_CALL_NODE,
+        StaticMethodCallNode methodCall = new StaticMethodCallNode(
                 methodName,
                 "com.splicemachine.db.iapi.types.Like",
                 getContextManager());
@@ -908,14 +906,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         methodCall.addParms(param);
 
-
-        ValueNode java2SQL = 
-            (ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                methodCall,
-                getContextManager());
-
-
+        ValueNode java2SQL = new JavaToSQLValueNode(methodCall, getContextManager());
         java2SQL = (ValueNode) java2SQL.bindExpression(null, null, null);
 
         CastNode likeOpt = (CastNode)

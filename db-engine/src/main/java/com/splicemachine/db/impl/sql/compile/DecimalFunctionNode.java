@@ -19,7 +19,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -43,12 +45,14 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
     int scale = -1;
     String decimalChar;
 
-    public void init(Object functionName, Object operand, Object precision, Object scale, Object decimalChar) {
-        this.functionName = (String)functionName;
-        this.operand = (ValueNode)operand;
-        this.precision = precision == null ? -1 : (int)precision;
-        this.scale = scale == null ? -1 : (int)scale;
-        this.decimalChar = decimalChar == null ? "" : (String)decimalChar;
+    public DecimalFunctionNode(String functionName, ValueNode operand, Integer precision, Integer scale, String decimalChar, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.DECIMAL_FUNCTION_NODE);
+        this.functionName = functionName;
+        this.operand = operand;
+        this.precision = precision == null ? -1 : precision.intValue();
+        this.scale = scale == null ? -1 : scale.intValue();
+        this.decimalChar = decimalChar == null ? "" : decimalChar;
     }
 
     /**
