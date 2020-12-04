@@ -75,6 +75,7 @@ def generateStage(platform,slackResponse) {
                 }
             }
         }
+        }
     }
 }
 
@@ -86,8 +87,8 @@ node('splice-standalone'){
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
     ]
     try{
-        stage("Deploy"){
-                parallel stages
+        stage("Initiate Parallel Stages"){
+                parallel parallelStagesMap
         }
     } catch (any) {
         // if there was an exception thrown, the build failed
