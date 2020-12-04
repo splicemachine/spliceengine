@@ -43,33 +43,6 @@ node('splice-standalone'){
                     userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
                 ])
         }
-        slackSend(channel: slackResponse.threadId, message: "Build hdp3.1.5...")
-        stage("Build hdp3.1.5"){
-                // Run Maven on a Unix agent.
-                dir('spliceengine'){
-                    sh '''
-                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
-                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
-                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
-                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                    mvn -B -e --fail-at-end install -Pcore,hdp3.1.5,nsds2jar
-                    '''
-                }
-        }
-        slackSend(channel: slackResponse.threadId, message: "Deploy hdp3.1.5...")
-        stage("Deploy hdp3.1.5"){
-                // Run Maven on a Unix agent.
-                dir('spliceengine'){
-                    sh '''
-                    export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
-                    cd splice_spark2/target
-                    export JAR=$(echo $SRCVER | grep '\-SNAPSHOT')
-                    if [ -z "$JAR" ]; then
-                        aws s3 cp *-shaded.jar s3://splice-releases/$SRCVER/cluster/nsds/ --acl public-read
-                    fi
-                    '''
-                }
-        }
         slackSend(channel: slackResponse.threadId, message: "Build cdh6.3.0...")
         stage("Build cdh6.3.0"){
                 // Run Maven on a Unix agent.
@@ -79,7 +52,7 @@ node('splice-standalone'){
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                    mvn -B -e --fail-at-end install -Pcore,cdh3.0,nsds2jar
+                    mvn -B -e --fail-at-end install -Pcore,cdh3.0,sqlshell
                     '''
                 }
         }
@@ -89,10 +62,11 @@ node('splice-standalone'){
                 dir('spliceengine'){
                     sh '''
                     export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
-                    cd splice_spark2/target
+                    cd assembly/target
                     export JAR=$(echo $SRCVER | grep '\-SNAPSHOT')
                     if [ -z "$JAR" ]; then
-                        aws s3 cp *-shaded.jar s3://splice-releases/$SRCVER/cluster/nsds/ --acl public-read
+                        tar cvzf sqlshell-$SRCVER.tar.gz sqlshell
+                        aws s3 cp sqlshell-$SRCVER.tar.gz s3://splice-releases/$SRCVER/cluster/sqlshell/ --acl public-read
                     fi
                     '''
                 }
@@ -101,8 +75,9 @@ node('splice-standalone'){
         // if there was an exception thrown, the build failed
         currentBuild.result = "FAILED"
         throw any
+
     } finally {
-        archiveArtifacts artifacts: 'spliceengine/splice_spark2/target/*jar', allowEmptyArchive: true
+        archiveArtifacts artifacts: 'spliceengine/assembly/target/*jar', allowEmptyArchive: true
         // success or failure, always send notifications
         notifyBuild(currentBuild.result)
     }

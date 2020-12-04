@@ -1,6 +1,6 @@
 @Library('jenkins-shared-library')_
 
-def releases = ["cdh6.3.0", "hdp3.1.0"]
+def releases = ["mem","cdh6.3.0", "hdp3.1.5"]
 def stages = [failFast: true]
 
 for (int i = 0; i < releases.size(); i++) {

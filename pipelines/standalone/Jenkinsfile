@@ -13,14 +13,13 @@ properties([
 
 // Define params
 def BUILD_NUM = "${params.BUILD_NUM}"
-
-def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching splice standalone pipeline")
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
 slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 
 node('spliceengine') {
   // run tests
   try {
-    def artifact_values  = [
+    def vaultSecrets  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],
@@ -101,10 +100,7 @@ node('spliceengine') {
     stage('Push to S3') {
       dir('infrastructure-support/build-support/scripts/standalone/'){
         sh'''
-        ./standalone.sh
-        tar xvf *.tar.gz
-        export PYTHONPATH=$WORKSPACE:$PYTHONPATH
-        python3 unit_test.py
+        sh "aws s3 cp *.tar.gz s3://splice-releases/standalone/ --acl public-read"
         '''
       }
     }
@@ -114,9 +110,7 @@ node('spliceengine') {
     throw any
   } finally {
     archiveArtifacts artifacts: 'infrastructure-support/build-support/scripts/standalone/*.tar.gz'
-    archiveArtifacts artifacts: 'build-support/scripts/standalone/*.tar.gz'
-    sh "aws s3 cp build-support/scripts/standalone/*.tar.gz s3://splice-releases/standalone/ --acl public-read"
-    // success or failure, always send notifications
+    slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
     // success or failure, always send notifications
     notifyBuild(currentBuild.result)
   }

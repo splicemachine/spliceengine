@@ -1,12 +1,22 @@
 @Library('jenkins-shared-library')_
 
-def releases = ["cdh6.3.0", "dbaas3.0"]
-def stages = [failFast: true]
+// Define params
+def BUILD_NUM = "${params.BUILD_NUM}"
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 
-for (int i = 0; i < releases.size(); i++) {
-    def platform = releases[i] //alias the loop variable to refer it in the closure
-    stages["""Deploy: ${platform}"""] = {
-        node('splice-standalone'){
+def releases = ["cdh6.3.0","dbaas3.0"]
+
+def parallelStagesMap = releases.collectEntries {
+    ["${it}" : generateStage(it,slackResponse)]
+}
+
+
+def generateStage(platform,slackResponse) {
+    return {
+        stage("stage: ${platform}") {
+            node('splice-standalone'){
+            slackSend(channel: slackResponse.threadId, message: "Checking out code...")
             stage("Checkout") {
                 // Get some code from a GitHub repository
                 checkout([  
@@ -26,6 +36,7 @@ for (int i = 0; i < releases.size(); i++) {
                     userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
                 ])
             }
+            slackSend(channel: slackResponse.threadId, message: "Deploying Core $platform...")
             stage("Deploy") {
                 dir('spliceengine'){
                     sh '''
@@ -34,12 +45,14 @@ for (int i = 0; i < releases.size(); i++) {
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
                     '''
-                    sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,parcel -DskipTests"""
+                    sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,parcel,splicemachine-internal,splicemachine-external -DskipTests"""
                 }
+            }
             }
         }
     }
 }
+
 
 
 node('splice-standalone'){
@@ -48,9 +61,10 @@ node('splice-standalone'){
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
     ]
+    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
     try{
-        stage("Deploy"){
-                parallel stages
+        stage("Initiate Parallel Stages"){
+                parallel parallelStagesMap
         }
     } catch (any) {
         // if there was an exception thrown, the build failed
@@ -59,6 +73,7 @@ node('splice-standalone'){
 
     } finally {
         archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
         // success or failure, always send notifications
         notifyBuild(currentBuild.result)
     }

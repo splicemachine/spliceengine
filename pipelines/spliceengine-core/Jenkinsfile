@@ -1,10 +1,19 @@
+@Library('jenkins-shared-library')_
+
+// Define params
+def BUILD_NUM = "${params.BUILD_NUM}"
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
 node('splice-standalone'){
     def artifact_values  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
     ]
+    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
     try{
+        slackSend(channel: slackResponse.threadId, message: "Checking out code...")
         stage('Checkout') {
                 // Get some code from a GitHub repository
                 checkout([  
@@ -24,6 +33,7 @@ node('splice-standalone'){
                     userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
                 ])
         }
+        slackSend(channel: slackResponse.threadId, message: "Deploying Core...")
         stage("Deploy Core"){
                 // Run Maven on a Unix agent.
                 dir('spliceengine'){
@@ -36,6 +46,7 @@ node('splice-standalone'){
                     '''
                 }
         }
+        slackSend(channel: slackResponse.threadId, message: "Deploying ee...")
         stage("Deploy EE Core"){
                 // Run Maven on a Unix agent.
                 dir('spliceengine-ee'){
@@ -51,7 +62,7 @@ node('splice-standalone'){
 
     } finally {
         archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
-        // success or failure, always send notifications
+        slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
         notifyBuild(currentBuild.result)
     }
 }
