@@ -450,8 +450,9 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
                     if (token != null) {
                         InterruptionToken it = new InterruptionToken(token);
                         ClientConnection sideConnection = getSideConnection();
-                        try (java.sql.Statement s = sideConnection.createStatement()) {
-                            s.execute("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION('" + it.toString() +"')");
+                        try (java.sql.PreparedStatement ps = sideConnection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION(?)")) {
+                            ps.setString(1, it.toString());
+                            ps.execute();
                         }
                         // try closing again
                         close();
