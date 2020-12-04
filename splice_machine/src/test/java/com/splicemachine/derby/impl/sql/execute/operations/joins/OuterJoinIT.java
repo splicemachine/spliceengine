@@ -73,9 +73,12 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static SpliceTableWatcher tab_c = new SpliceTableWatcher("tab_c", CLASS_NAME, "(id int)");
     private static SpliceTableWatcher t5 = new SpliceTableWatcher("t5", CLASS_NAME, "(a5 int, b5 int, c5 int)");
     private static SpliceTableWatcher t6 = new SpliceTableWatcher("t6", CLASS_NAME, "(a6 int, b6 int, c6 int)");
-    private static SpliceTableWatcher j1 = new SpliceTableWatcher("j1", CLASS_NAME, "(a int, b int, c int)");
-    private static SpliceTableWatcher j2 = new SpliceTableWatcher("j2", CLASS_NAME, "(a int, b int, c int)");
-    private static SpliceTableWatcher j3 = new SpliceTableWatcher("j3", CLASS_NAME, "(a int, b int, c int)");
+    private static SpliceTableWatcher j1 = new SpliceTableWatcher("j1", CLASS_NAME, "(a int, b int, c int, d int)");
+    private static SpliceTableWatcher j2 = new SpliceTableWatcher("j2", CLASS_NAME, "(a int, b int, c int, d int)");
+    private static SpliceTableWatcher j3 = new SpliceTableWatcher("j3", CLASS_NAME, "(a int, b int, c int, d int)");
+    private static SpliceTableWatcher j4 = new SpliceTableWatcher("j4", CLASS_NAME, "(a int, b int, c int, d int)");
+    private static SpliceTableWatcher j5 = new SpliceTableWatcher("j5", CLASS_NAME, "(a int, b int, c int, d int)");
+    private static SpliceTableWatcher j6 = new SpliceTableWatcher("j6", CLASS_NAME, "(a int, b int, c int, d int)");
 
 
     @ClassRule
@@ -103,6 +106,9 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(j1)
             .around(j2)
             .around(j3)
+            .around(j4)
+            .around(j5)
+            .around(j6)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -219,9 +225,12 @@ public class OuterJoinIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     try {
                         Statement statement = spliceClassWatcher.getStatement();
-                        statement.execute(String.format("insert into %s values (1,1,1), (2,2,2), (3,3,3), (4,4,4)", j1));
-                        statement.execute(String.format("insert into %s values (2,2,2), (3,3,3), (4,4,4), (5,5,5)", j2));
-                        statement.execute(String.format("insert into %s values (3,3,3), (4,4,4), (5,5,5)", j3));
+                        statement.execute(String.format("insert into %s values (1,1,1,1), (2,2,2,2), (3,3,3,3), (4,4,4,4)", j1));
+                        statement.execute(String.format("insert into %s values (2,2,2,2), (3,3,3,3), (4,4,4,4), (5,5,5,5)", j2));
+                        statement.execute(String.format("insert into %s values (3,3,3,3), (4,4,4,4), (5,5,5,5)", j3));
+                        statement.execute(String.format("insert into %s values (4,4,4,4), (5,5,5,5)", j4));
+                        statement.execute(String.format("insert into %s values (5,5,5,5)", j5));
+                        statement.execute(String.format("insert into %s values (1,1,1,1), (2,2,2,2), (3,3,3,3), (4,4,4,4), (5,5,5,5)", j6));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -577,6 +586,50 @@ public class OuterJoinIT extends SpliceUnitTest {
                     "----\n" +
                     " 3 |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testNonFlattenedNestedOuterJoinWithExpressionsAsHashKeys() throws Exception {
+        String query = "select j1.a from \n" +
+                "J1 \n" +
+                "inner join \n" +
+                "J2 \n" +
+                "on mod(J1.a , 2) / 3 = mod(J2.a , 2) / 3 \n" +  // a cartesian product because 0/3 = ceil(1/3) = 0
+                "left outer join \n" +
+                "J3 \n" +
+                "on J2.b + 3 / 5 = J3.b + 3 / 5 \n" +
+                "left outer join \n" +
+                "J4 \n" +
+                "on J3.c - 3 = J4.c - 3 \n" +
+                "full outer join\n" +
+                "J5 \n" +
+                "on J4.d / 2 = J5.d - 2 \n" +  // number of rows + 1 because 1 <= d <= 5 never satisfies
+                "left outer join \n" +
+                "J6 \n" +
+                "on J5.d / 2 = J6.d - 2";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(17, SpliceUnitTest.resultSetSize(rs));
+        }
+
+        query = "select j1.a from \n" +
+                "J1 \n" +
+                "inner join \n" +
+                "J2 \n" +
+                "on mod(J1.a , 2) / 3 = mod(J2.a , 2) / 3 \n" +
+                "left outer join \n" +
+                "J3 \n" +
+                "on J2.b + 3 / 5 = J3.b + 3 / 5 \n" +
+                "full outer join\n" +
+                "J5 \n" +
+                "on J3.d / 2 = J5.d - 2 \n" +
+                "left outer join \n" +
+                "J6 \n" +
+                "on J5.d / 2 = J6.d - 2";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(17, SpliceUnitTest.resultSetSize(rs));
         }
     }
 
