@@ -56,6 +56,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		protected String restrictionMethodName;
 		protected String projectionMethodName;
 		protected String constantRestrictionMethodName;
+		protected boolean parameterInConstantRestriction;
 		protected int mapRefItem;
 		protected int cloneMapItem;
 		protected boolean reuseResult;
@@ -115,6 +116,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         int resultColumnTypeArrayItem,
                                         int resultSetNumber,
                                         GeneratedMethod cr,
+                                        boolean paramInCr,
                                         int mapRefItem,
                                         int cloneMapItem,
                                         boolean reuseResult,
@@ -129,6 +131,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
 				this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
+				this.parameterInConstantRestriction = paramInCr;
 				this.mapRefItem = mapRefItem;
 				this.cloneMapItem = cloneMapItem;
 				this.reuseResult = reuseResult;
@@ -160,14 +163,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
 				}
 				cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
-				if (this.constantRestrictionMethodName != null) {
-						SpliceMethod<DataValueDescriptor> constantRestriction =new SpliceMethod<>(constantRestrictionMethodName,activation);
-						DataValueDescriptor restrictBoolean = constantRestriction.invoke();
-						shortCircuitOpen  = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+				evaluateConstantRestriction();
 
-						alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
-
-				}
 				if (restrictionMethodName != null)
 						restriction =new SpliceMethod<>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
@@ -310,11 +307,23 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return mergeRestriction;
     }
 
+    private void evaluateConstantRestriction() throws StandardException {
+		if (constantRestrictionMethodName != null) {
+			SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<>(constantRestrictionMethodName, activation);
+			DataValueDescriptor restrictBoolean = constantRestriction.invoke();
+			shortCircuitOpen = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+			alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
+		}
+	}
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		if (!isOpen)
 			throw new IllegalStateException("Operation is not open");
 
+		if (parameterInConstantRestriction) {
+			evaluateConstantRestriction();
+		}
 		if (alwaysFalse) {
             return dsp.getEmpty();
         }

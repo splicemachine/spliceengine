@@ -89,10 +89,10 @@ public final class CharTypeCompiler extends BaseTypeCompiler
             if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
             
 			// LONGVARCHAR can only be converted from  character types
-			// or CLOB or boolean.
+			// or CLOB or boolean or date / time timestamps.
 			if (getTypeId().isLongVarcharTypeId())
 			{
-				return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
+				return (otherType.isStringTypeId() || otherType.isBooleanTypeId() || otherType.isDateTimeTimeStampTypeId());
 			}
 			// The double function and CAST can convert CHAR and VARCHAR to double
 			if (otherType.isDoubleTypeId())
