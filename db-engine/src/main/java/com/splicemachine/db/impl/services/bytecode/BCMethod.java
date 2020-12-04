@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.classfile.VMDescriptor;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Vector;
 import java.io.IOException;
@@ -692,10 +693,45 @@ class BCMethod implements MethodBuilder {
 		return cpi;
 	}
 
+	void check(String declaringClass, String methodName,
+			   Type returnType, int numArgs) throws Exception {
+		Class c = Class.forName(declaringClass);
+
+		if(methodName.equals("<init>")) return;
+		Method methods[] = c.getDeclaredMethods();
+
+		boolean foundName = false;
+		boolean found = false;
+		for (Method m : methods) {
+			if (!m.getName().equals(methodName))
+				continue;
+			foundName = true;
+			if (m.getParameterCount() != numArgs) {
+				continue;
+			}
+			if( m.getReturnType().getName() != returnType.getClass().getName())
+				continue;
+			found = true;
+		}
+
+		if (!foundName) {
+			throw new NoSuchMethodException("couldn't find function with name " + declaringClass + "." + methodName);
+		}
+        if (foundName && !found) {
+			throw new NoSuchMethodException("could not find correct function with signature for " + declaringClass + "." + methodName);
+		}
+	}
+
 	public int callMethod(short opcode, String declaringClass, String methodName,
 		String returnType, int numArgs) {
 
 		Type rt = cb.factory.type(returnType);
+		try {
+			check(declaringClass, methodName, rt, numArgs);
+		} catch (Exception e) {
+			e.printStackTrace();
+			assert(false);
+		}
 
 		int initialStackDepth = stackDepth;
 

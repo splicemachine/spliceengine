@@ -1,16 +1,29 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.compiler.ClassBuilder;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.services.bytecode.BCJava;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
+import com.splicemachine.derby.impl.services.reflect.SpliceReflectClasses;
 import com.splicemachine.derby.impl.sql.catalog.SpliceSystemProcedures;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class ProcedureUnitTest {
     final static String CLASS_NAME = ProcedureUnitTest.class.getCanonicalName();
@@ -177,4 +190,31 @@ public class ProcedureUnitTest {
         testProcedures(SpliceSystemProcedures.getSYSCSMProcedures());
     }
 
+    // ignore since this fails at some point, not clear how to fix
+    @Ignore
+    @Test
+    public void BCtest() throws StandardException, IOException {
+        InputStream stream = new FileInputStream("/Users/martinrupp/spliceengine/hbase_sql/src/main/resources/com/splicemachine/db/modules.properties");
+
+        Properties bootProperties = new Properties();
+        bootProperties.load(stream);
+
+        LazyDataValueFactory dvf = new LazyDataValueFactory();
+        SpliceReflectClasses cf = new SpliceReflectClasses();
+
+        Monitor.startMonitor(bootProperties, System.err);
+        //Monitor.setMonitor(new com.splicemachine.db.impl.services.monitor.FileMonitor(bootProperties, System.err));
+
+//        dvf.boot(true, new Properties());
+//        cf.boot(true, new Properties());
+
+//        SpliceReflectClasses cf = new SpliceReflectClasses();
+//        cf.boot(true, new Properties());
+
+
+        BCJava b = new BCJava();
+        b.boot(false, bootProperties);
+        ClassBuilder cb = b.newClassBuilder(cf, "bla", Modifier.PUBLIC, "myclass", null);
+        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC, "int", "hi");
+    }
 }
