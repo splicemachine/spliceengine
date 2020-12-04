@@ -69,7 +69,7 @@ def generateStage(platform,slackResponse) {
                         cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                         sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                         sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                        mvn -B -e --fail-at-end install -Pcore,cdh6.3.0,ee -Dexcluded.categories=com.splicemachine.test.SlowTest -Dmaven.test.redirectTestOutputToFile=true
+                        mvn -B -e --fail-at-end install -Pcore,${platform},ee -Dexcluded.categories=com.splicemachine.test.SlowTest -Dmaven.test.redirectTestOutputToFile=true
                         """
                     }
                 }
