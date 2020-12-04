@@ -504,15 +504,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
             generatedRef.setSource(resultColumn);
             if (brop.getLeftOperand() == operand) {
-                List<ColumnReference> columnReferences = brop.getLeftOperand().getHashableJoinColumnReference();
-                assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
-                generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
+                setColumnReferenceFields(generatedRef, brop.getLeftOperand());
                 brop.setLeftOperand(generatedRef);
             }
             else {
-                List<ColumnReference> columnReferences = brop.getRightOperand().getHashableJoinColumnReference();
-                assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
-                generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
+                setColumnReferenceFields(generatedRef, brop.getRightOperand());
                 brop.setRightOperand(generatedRef);
             }
             return resultColumn;
@@ -520,6 +516,15 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         catch (SQLException e) {
             throw StandardException.newException(e.getSQLState());
         }
+    }
+
+    private static void setColumnReferenceFields(ColumnReference crToSet, ValueNode exprToExtract) {
+        List<ColumnReference> columnReferences = exprToExtract.getHashableJoinColumnReference();
+        assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
+        ColumnReference hashCr = columnReferences.get(0);
+        crToSet.setTableNumber(hashCr.getTableNumber());
+        crToSet.setSourceLevel(hashCr.getSourceLevel());
+        crToSet.setNestingLevel(hashCr.getNestingLevel());
     }
 
     private static ResultColumn addResultColumnToChild(ColumnReference cr,
@@ -547,9 +552,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             assert rc.getExpression() instanceof VirtualColumnNode;
             vn = (VirtualColumnNode) rc.getExpression();
             generatedRef.setSource(vn.getSourceColumn());
-            List<ColumnReference> columnReferences = operand.getHashableJoinColumnReference();
-            assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
-            generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
+            setColumnReferenceFields(generatedRef, operand);
             operand.setHashableJoinColumnReference(generatedRef);
 
             ResultColumn resultColumn =

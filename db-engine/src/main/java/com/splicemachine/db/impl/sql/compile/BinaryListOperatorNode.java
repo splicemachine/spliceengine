@@ -240,6 +240,20 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         return this;
     }
 
+    private void addCastOnRightOperandForStringToNonStringComparison() throws StandardException {
+        if (singleLeftOperand) {
+            TypeId leftTypeId = getLeftOperand().getTypeId();
+            for (int i = 0; i < rightOperandList.size(); ++i) {
+                ValueNode rightOperand = (ValueNode) rightOperandList.elementAt(i);
+                TypeId rightTypeId = rightOperand.getTypeId();
+                if (!leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId()) {
+                    rightOperand = addCastNodeForStringToNonStringComparison(getLeftOperand(), rightOperand);
+                }
+                rightOperandList.setElementAt(rightOperand, i);
+            }
+        }
+    }
+
     /**
      * Test the type compatability of the operands and set the type info
      * for this node.  This method is useful both during binding and
@@ -252,8 +266,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
         /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
-        if (singleLeftOperand)
-            rightOperandList.comparable(getLeftOperand());
+        if (singleLeftOperand) {
+            if (!rightOperandList.comparable(getLeftOperand())) {
+                addCastOnRightOperandForStringToNonStringComparison();
+            }
+            rightOperandList.throwIfNotComparable(getLeftOperand());
+        }
+
 
         /*
         ** Set the result type of this comparison operator based on the

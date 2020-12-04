@@ -1680,6 +1680,9 @@ public class BinaryRelationalOperatorNode
         boolean retval=false;
 
         int side=columnOnOneSide(optTable);
+        if (side == NEITHER) {
+            side = indexExprOnOneSide(optTable);
+        }
         if(side==LEFT){
             retval=rightOperand.isConstantExpression();
         }else if(side==RIGHT){

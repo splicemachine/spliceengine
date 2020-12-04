@@ -319,7 +319,8 @@ public class IndexConglomerate extends SpliceConglomerate{
                 rawtran,
                 true,
                 opFactory,
-                partitionFactory);
+                partitionFactory,
+                xact_manager);
     }
 
     private DataValueDescriptor[] rowKeyForUniqueFields(DataValueDescriptor[] rowKey){

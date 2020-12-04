@@ -42,7 +42,7 @@ public interface DecimalUtil {
                                              int scale,
                                              String decimalCharacter) throws StandardException {
         if (dvd == null || dvd.isNull()) {
-            return null;
+            return new SQLDecimal((BigDecimal)null);
         }
         BigDecimal bigDecimal = null;
         Calendar cal = null;

@@ -377,4 +377,6 @@ public interface ResultSet
 	 * @return UUID of the underlying operation.
 	 */
 	default UUID getUuid() { return null; }
+
+	default void registerCloseable(AutoCloseable closeable) throws StandardException { }
 }
