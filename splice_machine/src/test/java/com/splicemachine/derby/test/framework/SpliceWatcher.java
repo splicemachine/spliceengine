@@ -20,11 +20,24 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import splice.com.google.common.collect.Lists;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
-import java.util.Properties;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -150,7 +163,7 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
     /**
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
-    public TestConnection createConnection() throws Exception {
+    public synchronized TestConnection createConnection() throws Exception {
         return connectionBuilder().build();
     }
 
@@ -160,21 +173,61 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         return ps;
     }
 
+    /**
+     * Try closing connections gracefully from different threads, if that takes long it could be some queries are stuck,
+     * so abort the connections forcefully instead
+     */
     private void closeConnections() {
+        int numThreads = connections.size() + 2; // two extra for the .abort() call
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads,
+                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
+        CompletionService<Void> completionService =
+                new ExecutorCompletionService<>(executor);
         try {
-            for (Connection connection : connections) {
-                if (connection != null && !connection.isClosed()) {
-                    try {
+            connections.stream().forEach(connection -> completionService.submit(() -> {
+                try {
+                    if (connection != null && !connection.isClosed())
                         connection.close();
-                    } catch (SQLException e) {
-                        connection.rollback();
-                        connection.close();
+                } catch (SQLException e) {
+                }
+                return null;
+            }));
+
+            int futures = 0;
+            while(futures++ < connections.size()) {
+                Future<Void> future = completionService.poll(10, TimeUnit.SECONDS);
+                if (future == null)
+                    throw new TimeoutException();
+                future.get();
+            }
+            return;
+        } catch (InterruptedException e) {
+            LOG.error("Interrupted while closing", e);
+            Thread.currentThread().interrupt();
+        } catch (TimeoutException | ExecutionException e) {
+            LOG.warn("Couldn't close gracefully", e);
+
+            for(Connection connection : connections) {
+                try {
+                    if (connection != null && !connection.isClosed()) {
+                        LOG.info("Aborting " + connection);
+                        connection.abort(executor);
                     }
+                } catch (SQLException sqle) {
+                    LOG.error("Couldn't abort connection", sqle);
                 }
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                // ignore
+            }
         }
+
     }
 
     private void closeStatements() {
