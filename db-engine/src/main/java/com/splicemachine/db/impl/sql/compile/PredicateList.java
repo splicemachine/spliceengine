@@ -862,6 +862,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int usefulCount=0;
         Predicate predicate;
         boolean rowIdScan;
+        final boolean varcharDB2CompatibilityMode =
+                      getCompilerContext().getVarcharDB2CompatibilityMode();
+        int varcharRangeKeyPos = Integer.MAX_VALUE;
 
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();
@@ -1009,6 +1012,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,cd);
             if(!pred.isFullJoinPredicate() && position!=null){
+                if (varcharDB2CompatibilityMode &&
+                    pred.isVarcharBinaryRelationalOperator()) {
+                    if (position < varcharRangeKeyPos)
+                        varcharRangeKeyPos = position;
+                }
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
                     if (position >= 0 && multiColumnMultiProbeEnabled)
@@ -1060,8 +1068,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     int pos = pred.getIndexPosition();
                     if (pos <= inlistPosition && pos >= 0 && !isEquality[pos]) {
                         RelationalOperator relop = pred.getRelop();
-                        if (relop != null && relop.getOperator() == RelationalOperator.EQUALS_RELOP &&
-                                pred.compareWithKnownConstant(optTable, true))
+                        if (relop != null && pred.equalsComparisonWithConstantExpression(optTable))
                             isEquality[pos] = true;
                     }
                 }
@@ -1076,7 +1083,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
             TreeMap<Integer, Predicate> inlistPredsCopy = (TreeMap < Integer, Predicate>)inlistPreds.clone();
             for (Map.Entry<Integer, Predicate> p : inlistPredsCopy.entrySet()) {
-                if (isEquality[p.getKey()]) {
+                if (p.getKey() <= varcharRangeKeyPos && isEquality[p.getKey()]) {
                     p.getValue().setIndexPosition(p.getKey());
                     inlistQualified = true;
                     /* Remember the useful predicate */
@@ -1112,8 +1119,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ArrayList<Predicate> predsForNewInList = null;
     
         if (inlistQualified) {
-          // Only combine multiple IN lists if not using Spark.
-          // Adding extra RDDs and unioning them together hinders performance.
           if (inlistPreds.size() > 1) {
             predsForNewInList = new ArrayList<>();
             int firstPred = -1, lastPred = -1, lastIndexPos = -1, firstInListPred = -1;
@@ -1127,6 +1132,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 if (pred.getIndexPosition() == lastIndexPos + 1) {
                     BinaryRelationalOperatorNode bron =
                         (BinaryRelationalOperatorNode) pred.getRelop();
+
                     boolean inList = pred.isInListProbePredicate();
                     if (inList ||
                         (bron != null && bron.getOperator() == RelationalOperator.EQUALS_RELOP)) {
@@ -3502,7 +3508,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             assert inlistPosition >= 0: "inlistPosition of " + inlistPosition + " for MultiProbeScan is not expected";
             mb.push(inlistPosition);
 
-            /* genereate an array of type descriptors for the inlist columns */
+            /* generate an array of type descriptors for the inlist columns */
             DataTypeDescriptor[] typeArray = new DataTypeDescriptor[ilon.getLeftOperandList().size()];
             for (int i = 0; i < ilon.getLeftOperandList().size(); i++) {
                 typeArray[i] = ((ValueNode)(ilon.getLeftOperandList().elementAt(i))).getTypeServices();

@@ -1655,6 +1655,11 @@ public class JoinNode extends TableOperatorNode{
 
                     joinClause = (ValueNode) joinClause.accept(predSimplVisitor);
                 }
+
+                if (joinClause instanceof UntypedNullConstantNode) {
+                    joinClause = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+                }
             }
 
             /* Create a new fromList with only left and right children before
@@ -2019,8 +2024,10 @@ public class JoinNode extends TableOperatorNode{
                 numArgs++;
             }
 
-            if (isBroadcastJoin()) {
-                boolean noCacheBroadcastJoinRight = ((Optimizable)rightResultSet).hasJoinPredicatePushedDownFromOuter();
+            if (isBroadcastJoin() || isCrossJoin()) {
+                HasCorrelatedCRsVisitor visitor = new HasCorrelatedCRsVisitor();
+                rightResultSet.accept(visitor);
+                boolean noCacheBroadcastJoinRight = visitor.hasCorrelatedCRs();
                 mb.push(noCacheBroadcastJoinRight);
                 numArgs++;
             }

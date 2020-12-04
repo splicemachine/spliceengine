@@ -192,6 +192,37 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
 
         testHelper(expected, "df", "0.000001", 11);
     }
+
+    @Test
+    public void testImplicitCastOnFunctionArgumentFails() throws Exception {
+        try {
+            methodWatcher.executeQuery("select hex(dc) from test");
+        } catch (SQLException e) {
+            assertEquals("42846", e.getSQLState());  // unsupported cast
+        }
+
+        String expected = "1      |\n" +
+                "--------------\n" +
+                "2D31312E3335 |\n" +
+                "   392E32    |\n" +
+                "    NULL     |";
+        try(ResultSet rs = methodWatcher.executeQuery("select hex(cast(dc as varchar(12))) from test")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testImplicitCastInGenerationClauseValid() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE if not exists char_alter ( VAL1 CHAR(10), VAL2 CHAR(10) GENERATED ALWAYS AS (VAL1+1))");
+        methodWatcher.executeUpdate("insert into char_alter(VAL1) select * from (values('111'),('222'),('333')) char_alter order by 1");
+
+        String expected = "VAL1 |VAL2 |\n" +
+                "------------\n" +
+                " 111 | 112 |";
+        try(ResultSet rs = methodWatcher.executeQuery("select * from char_alter order by val1 {limit 1}")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }
 
 

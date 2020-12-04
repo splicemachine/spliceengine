@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -355,6 +354,7 @@ public interface ResultSetFactory {
                                                int resultColumnTypeArrayItem,
                                                int resultSetNumber,
                                                GeneratedMethod constantRestriction,
+                                               boolean paramInConstantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
                                                boolean reuseResult,
@@ -373,6 +373,7 @@ public interface ResultSetFactory {
                                                int resultColumnTypeArrayItem,
                                                int resultSetNumber,
                                                GeneratedMethod constantRestriction,
+                                               boolean paramInConstantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
                                                boolean reuseResult,
@@ -1430,6 +1431,7 @@ public interface ResultSetFactory {
                                          int rightNumCols,
                                          int leftHashKeyItem,
                                          int rightHashKeyItem,
+                                         boolean noCacheBroadcastJoinRight,
                                          GeneratedMethod joinClause,
                                          int resultSetNumber,
                                          boolean oneRowRightSide,
@@ -1814,6 +1816,7 @@ public interface ResultSetFactory {
                                          int rightNumCols,
                                          int leftHashKeyItem,
                                          int rightHashKeyItem,
+                                         boolean noCacheBroadcastJoinRight,
                                          GeneratedMethod joinClause,
                                          int resultSetNumber,
                                          boolean oneRowRightSide,
