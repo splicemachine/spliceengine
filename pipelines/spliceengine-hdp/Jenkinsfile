@@ -1,7 +1,6 @@
 @Library('jenkins-shared-library')_
 
 // Define params
-def BUILD_NUM = "${params.BUILD_NUM}"
 def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
 slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 
@@ -39,12 +38,12 @@ def generateStage(platform,slackResponse) {
             slackSend(channel: slackResponse.threadId, message: "Deploying Core $platform...")
             stage("Deploy") {
                 dir('spliceengine'){
-                    sh '''
+                    sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
-                    '''
+                    """
                     sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,hdp_service,splicemachine-internal,splicemachine-external -DskipTests"""
                 }
             }

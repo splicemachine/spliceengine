@@ -19,7 +19,7 @@ slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 node('spliceengine') {
   // run tests
   try {
-    def vaultSecrets  = [
+    def artifact_values  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],

@@ -2,7 +2,6 @@
 
 
 // Define params
-def BUILD_NUM = "${params.BUILD_NUM}"
 def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
 slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 

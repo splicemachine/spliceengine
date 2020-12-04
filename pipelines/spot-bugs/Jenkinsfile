@@ -85,11 +85,11 @@ node('splice-standalone') {
                             branch = "master"
                         }
                 sh "mvn -B clean install -Pcore -DskipTests"
-                sh '''
+                sh """
                 cp pipelines/template/settings.xml ~/.m2/settings.xml
                 sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                 sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                '''
+                """
                 sh "mvn -B clean install -Pmem,$platforms,ee -DskipTests"
             }
         }
