@@ -15,6 +15,12 @@ def stages = [failFast: true]
 
 def generateStage(platform,slackResponse) { 
     return {
+        def artifact_values  = [
+            [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+        ]
+        slackSend(channel: slackResponse.threadId, message: "Assembling Secrets...")
         stage("stage: ${platform}") {
         node('spliceengine'){
             slackSend(channel: slackResponse.threadId, message: "Prep Node...")
@@ -80,11 +86,6 @@ def generateStage(platform,slackResponse) {
 
 
 node('splice-standalone'){
-    def artifact_values  = [
-        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
-            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
-            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
-    ]
     try{
         stage("Initiate Parallel Stages"){
                 parallel parallelStagesMap
