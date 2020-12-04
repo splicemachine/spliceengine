@@ -71,7 +71,7 @@ node('spliceengine') {
             dir('infrastructure-support/build-support/scripts/standalone/spliceengine'){
                 sh """
                     mkdir -p  ~/.m2/
-                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end  clean install -Pcore,cdh6.3.0 -DskipTests -Dmaven.artifact.threads=30 -Dhbase.version=2.1.0-cdh6.3.0 -DenvClassifier=cdh6.3.0
