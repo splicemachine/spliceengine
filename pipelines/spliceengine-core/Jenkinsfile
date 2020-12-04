@@ -37,6 +37,7 @@ node('splice-standalone'){
         stage("Deploy Core"){
                 // Run Maven on a Unix agent.
                 dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                     sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
@@ -44,6 +45,7 @@ node('splice-standalone'){
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
                     """
+                    }
                 }
         }
         slackSend(channel: slackResponse.threadId, message: "Deploying ee...")

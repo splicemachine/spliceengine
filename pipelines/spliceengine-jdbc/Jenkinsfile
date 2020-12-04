@@ -5,7 +5,7 @@ def slackResponse = slackSend(channel: "db-automated-testing", message: "Launchi
 slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 
 node('splice-standalone'){
-    def vaultSecrets  = [
+    def artifact_values  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],
@@ -15,7 +15,7 @@ node('splice-standalone'){
     ]
     slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
     stage('Build Login') {
-        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             sh "aws configure set aws_access_key_id $build_secret_key_id"
             sh "aws configure set aws_secret_access_key $build_secret_key"
             sh "aws configure set region us-east-1"
@@ -46,6 +46,7 @@ node('splice-standalone'){
         stage("Build cdh6.3.0"){
                 // Run Maven on a Unix agent.
                 dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                     sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
@@ -53,6 +54,7 @@ node('splice-standalone'){
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end install -Pcore,cdh3.0,ee,parcel
                     """
+                }
                 }
         }
         slackSend(channel: slackResponse.threadId, message: "Deploy cdh6.3.0...")

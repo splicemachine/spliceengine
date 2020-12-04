@@ -13,6 +13,12 @@ def parallelStagesMap = releases.collectEntries {
 
 def generateStage(platform,slackResponse) {
     return {
+        def artifact_values  = [
+            [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+        ]
+        slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
         stage("stage: ${platform}") {
             node('splice-standalone'){
             slackSend(channel: slackResponse.threadId, message: "Checking out code...")
@@ -38,6 +44,7 @@ def generateStage(platform,slackResponse) {
             slackSend(channel: slackResponse.threadId, message: "Deploying Core $platform...")
             stage("Deploy") {
                 dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                     sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
@@ -45,6 +52,7 @@ def generateStage(platform,slackResponse) {
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
                     """
                     sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,maprpm,splicemachine-internal,splicemachine-external -DskipTests"""
+                }
                 }
             }
             }
@@ -55,12 +63,6 @@ def generateStage(platform,slackResponse) {
 
 
 node('splice-standalone'){
-    def artifact_values  = [
-        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
-            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
-            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
-    ]
-    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
     try{
         stage("Initiate Parallel Stages"){
                 parallel parallelStagesMap
