@@ -529,6 +529,10 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (!isFlattenableJoinNode()) {
+            leftResultSet.notFlattenableJoin();
+            rightResultSet.notFlattenableJoin();
+        }
         leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList);
         /* If leftResultSet is a FromSubquery, then we must explicitly extract
          * out the subquery (flatten it).  (SelectNodes have their own
