@@ -31,6 +31,7 @@ import splice.com.google.common.collect.Lists;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
@@ -47,6 +48,7 @@ import static org.junit.Assert.assertEquals;
 public class FromFinalTableIT extends SpliceUnitTest {
     
     private Boolean useSpark;
+    private static int numTables = 0;
     
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -69,8 +71,8 @@ public class FromFinalTableIT extends SpliceUnitTest {
     public FromFinalTableIT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
-    
-    public static void createData(Connection conn, String schemaName) throws Exception {
+
+    public static void dropObjects() throws Exception {
         String sqlText = "drop trigger trig1";
         try {
             spliceClassWatcher.executeUpdate(sqlText);
@@ -95,6 +97,10 @@ public class FromFinalTableIT extends SpliceUnitTest {
         sqlText = "drop table if exists t11";
 		spliceClassWatcher.executeUpdate(sqlText);
 
+    }
+
+    public static void createData(Connection conn, String schemaName) throws Exception {
+        dropObjects();
         new TableCreator(conn)
                 .withCreate("create table t1 (a int, b varchar(10))")
                 .withInsert("insert into t1 values(?, ?)")
@@ -115,7 +121,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
                         row(12, "xyz")))
                 .create();
 
-        sqlText = "insert into t11 select * from t1";
+        String sqlText = "insert into t11 select * from t1";
 		spliceClassWatcher.executeUpdate(sqlText);
 
         new TableCreator(conn)
@@ -124,6 +130,22 @@ public class FromFinalTableIT extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create synonym a11 for t11")
                 .create();
+    }
+
+    @BeforeClass
+    public static void recordNumTables() throws Exception {
+        dropObjects();
+        vacuum();
+        numTables = getNumTables();
+    }
+
+    @AfterClass
+    public static void checkNumTables() throws Exception {
+        dropObjects();
+        vacuum();
+        int newNumTables = getNumTables();
+        assertEquals("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                     numTables, newNumTables);
     }
 
     @Before
@@ -136,6 +158,25 @@ public class FromFinalTableIT extends SpliceUnitTest {
     getNumberOfRunningOperations() throws Exception{
         List results = methodWatcher.queryList("CALL SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
         return results.size();
+    }
+
+    public static void
+    vacuum() throws Exception{
+        try {
+            spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.VACUUM()");
+        }
+        catch (SQLException e) {
+            // Don't fail on the mem platform.
+        }
+        return;
+    }
+
+    public static int
+    getNumTables() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
+            rs.next();
+            return ((Integer)rs.getObject(1));
+        }
     }
 
     @Test
@@ -449,6 +490,21 @@ public class FromFinalTableIT extends SpliceUnitTest {
         }
     }
 
+    private void testPreparedQueryX(String sqlTemplate,
+                                    String[] expected,
+                                    Integer[] paramOneValue,
+                                    String[] paramTwoValue,
+                                    String[] paramThreeValue,
+                                    Integer[] paramFourValue) throws Exception  {
+        String sqlText = sqlTemplate;
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            for (int i = 0; i < expected.length; i++)
+                loadParamsAndRun(ps, paramOneValue[i], paramTwoValue[i],
+                                     paramThreeValue[i], paramFourValue[i],
+                                     sqlText, expected[i]);
+        }
+    }
 
 
     @Test
@@ -530,6 +586,24 @@ public class FromFinalTableIT extends SpliceUnitTest {
             "Alles klar | 0 |";
 
         testPreparedQuery(sqlTemplate,  expected, 0, "Alles klar", "x", 99);
+
+        sqlTemplate = "SELECT a, b FROM FINAL TABLE (insert into t1 --splice-properties useSpark=" + useSpark.toString()  +
+                      "\n values(?,?))";
+        String []
+            expectedArray = {"A | B |\n" +
+                             "--------\n" +
+                             " 1 | a |",
+                             "A | B |\n" +
+                             "--------\n" +
+                             " 2 | b |",
+                             "A | B |\n" +
+                             "--------\n" +
+                             " 3 | c |"};
+        Integer [] param1 = {1, 2, 3};
+        String [] param2 = {"a", "b", "c"};
+        String [] param3 = {null, null, null};
+        Integer [] param4 = {null, null, null};
+        testPreparedQueryX(sqlTemplate, expectedArray, param1, param2, param3, param4);
 
         methodWatcher.rollback();
         methodWatcher.commit();
