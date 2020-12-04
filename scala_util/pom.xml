@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1988-SNAPSHOT</version>
+        <version>3.1.0-1988</version>
     </parent>
     <artifactId>scala_util</artifactId>
     <name>Splicemachine Scala Utils</name>
