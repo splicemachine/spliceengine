@@ -24,6 +24,8 @@ import java.util.*;
 
 public class DictionaryGraphBuilder implements GraphBuilder {
 
+    private static final Map<UUID, ConstraintDescriptorList> localConstraintCache = new HashMap<>();
+
     private final TableDescriptor referencingTableDescriptor;
     private final DataDictionary dd;
     private final ConsInfo newConstraintInfo;
@@ -108,6 +110,39 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         return result;
     }
 
+    private void updateDataDictionaryCache() throws StandardException {
+        List<UUID> addedConstraint = new ArrayList<>();
+        for (UUID localConstraintId : localConstraintCache.keySet()) {
+            if (dd.getDataDictionaryCache().constraintDescriptorListCacheFind(localConstraintId) == null) {
+                dd.getDataDictionaryCache().constraintDescriptorListCacheAdd(localConstraintId, localConstraintCache.get(localConstraintId));
+                if (dd.getDataDictionaryCache().constraintDescriptorListCacheFind(localConstraintId) != null) {
+                    addedConstraint.add(localConstraintId);
+                }
+            }
+        }
+        for (UUID uuidToRemove : addedConstraint) {
+            localConstraintCache.remove(uuidToRemove);
+        }
+    }
+
+    private ConstraintDescriptorList retrieveFromCacheNew(UUID constraintId) throws StandardException {
+        ConstraintDescriptorList result = dd.getDataDictionaryCache().constraintDescriptorListCacheFind(constraintId);
+        if(result == null) {
+            result = localConstraintCache.get(constraintId);
+            if(result == null) {
+                result = dd.getForeignKeys(constraintId);
+                if (!dd.canWriteCache(null)) {
+                    localConstraintCache.put(constraintId, result);
+                } else {
+                    dd.getDataDictionaryCache().constraintDescriptorListCacheAdd(constraintId, result);
+                    updateDataDictionaryCache();
+                }
+            }
+        }
+        return result;
+        // return dd.getForeignKeys(constraintId);
+    }
+
     private ConstraintDescriptorList retrieveFromCache(UUID constraintId) throws StandardException {
         ConstraintDescriptorList result = dd.getDataDictionaryCache().constraintDescriptorListCacheFind(constraintId);
         if(result == null) {
@@ -123,7 +158,7 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(tableDescriptor);
         for (ConstraintDescriptor cd : constraintDescriptorList) {
             if ((cd instanceof ReferencedKeyConstraintDescriptor)) {
-                ConstraintDescriptorList fkcdl = retrieveFromCache(cd.getUUID());
+                ConstraintDescriptorList fkcdl = retrieveFromCacheNew(cd.getUUID());
                 for (int inner = 0; inner < fkcdl.size(); inner++) {
                     ForeignKeyConstraintDescriptor fkcd = (ForeignKeyConstraintDescriptor) fkcdl.elementAt(inner);
                     // take care of cases where the FK is self-referencing, for now ignore.
