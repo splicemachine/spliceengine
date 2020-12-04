@@ -505,6 +505,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         if(triggerTempPartition!=null){
             try{
                 triggerTempPartition.close();
+                triggerTempPartition = null;
             }catch(IOException e){
                 throw Exceptions.parseException(e);
             }

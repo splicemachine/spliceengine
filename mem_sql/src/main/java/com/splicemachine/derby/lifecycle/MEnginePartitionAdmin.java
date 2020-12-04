@@ -152,7 +152,10 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void markDropped(long conglomId, long txn) throws IOException {
-        // no op
+        // Actually drop the table on mem when marked as dropped.
+        // Mem has no vacuum, so this is the only way to free up space.
+        Long conglom = new Long(conglomId);
+        deleteTable(conglom.toString());
     }
 
     @Override
@@ -185,5 +188,10 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     @Override
     public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+
+    @Override
+    public int getTableCount() throws IOException {
+        return admin.getTableCount();
     }
 }

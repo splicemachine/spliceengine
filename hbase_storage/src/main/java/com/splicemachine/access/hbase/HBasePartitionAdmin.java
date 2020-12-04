@@ -793,4 +793,17 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                         .collect(Collectors.toList());
         return upgradeTablePrioritiesFromList( admin, tableDescriptorList );
     }
+
+    @Override
+    public int getTableCount() throws IOException{
+
+        try {
+            TableName[] tableNames =  admin.listTableNames();
+            return tableNames.length;
+        }
+        catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "Could not find the table count.");
+            throw e;
+        }
+    }
 }

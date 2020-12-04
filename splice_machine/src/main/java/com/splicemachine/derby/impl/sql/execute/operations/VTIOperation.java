@@ -292,7 +292,6 @@ public class VTIOperation extends SpliceBaseOperation {
             Activation parentActivation = getActivation();
             LanguageConnectionContext lcc = parentActivation.getLanguageConnectionContext();
             fromTableDML_SPS.setValid();
-            getActivation().setSingleExecution();
             Activation activation = fromTableDML_SPS.getActivation(lcc, false);
             activation.setSingleExecution();
 
