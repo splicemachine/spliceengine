@@ -26,8 +26,10 @@
 package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.client.am.FailedProperties40;
+import com.splicemachine.db.client.am.InterruptionToken;
 import com.splicemachine.db.client.am.SQLExceptionFactory;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -35,7 +37,9 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnection {
     /**
@@ -427,15 +431,39 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         //
         // Now pass the Executor a Runnable which does the real work.
         //
-        executor.execute
-            (
-                    () -> {
-                        try {
-                            rollback();
-                            close();
-                        } catch (SQLException se) { se.printStackTrace( agent_.getLogWriter() ); }
+        CountDownLatch latch = new CountDownLatch(1);
+        executor.execute(() -> {
+            try {
+                rollback();
+                close();
+                // let the other task know we were able to close gracefully
+                latch.countDown();
+            } catch (SQLException se) {
+                se.printStackTrace(agent_.getLogWriter());
+            }
+        });
+        executor.execute(() -> {
+            try {
+                if (!latch.await(10, TimeUnit.SECONDS)) {
+                    // Couldn't close gracefully, let's close abruptly
+                    byte[] token = getInterruptToken();
+                    if (token != null) {
+                        InterruptionToken it = new InterruptionToken(token);
+                        ClientConnection sideConnection = getSideConnection();
+                        try (java.sql.Statement s = sideConnection.createStatement()) {
+                            s.execute("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION('" + it.toString() +"')");
+                        }
+                        // try closing again
+                        close();
+                    } else {
+                        // we don't have the token, just close the socket
+                        agent_.close();
                     }
-            );
+                }
+            } catch (InterruptedException | SqlException | SQLException e) {
+                // ignore
+            }
+        });
     }
 
     public int getNetworkTimeout() throws SQLException
