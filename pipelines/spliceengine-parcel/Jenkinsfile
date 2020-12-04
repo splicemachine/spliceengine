@@ -34,7 +34,7 @@ for (int i = 0; i < releases.size(); i++) {
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
                     '''
-                    sh """mvn -B --fail-at-end install -Pcore,${platform},ee,parcel -DskipTests"""
+                    sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,parcel -DskipTests"""
                 }
             }
         }

@@ -86,7 +86,7 @@ node('splice-standalone') {
                         }
                 sh "mvn -B clean install -Pcore -DskipTests"
                 sh '''
-                cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                cp pipelines/template/settings.xml ~/.m2/settings.xml
                 sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                 sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                 '''

@@ -94,21 +94,24 @@ node('spliceengine'){
             wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                 dir('spliceengine'){
                     sh """
-                    export shortbranch="\$(echo ${params.BRANCH} | awk -F/ '{print $NF}')"
-                    echo "Git branch ${params.BRANCH} short name is ${shortbranch}"
+                    mvn -B clean install -Pcore -DskipTests
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                    export shortbranch="\$(echo ${params.BRANCH} | awk -F/ '{print \$NF}')"
+                    echo "Git branch ${params.BRANCH} short name is \${shortbranch}"
                     export srcver="\$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
-                    echo "Maven project version is ${srcver}"
-                    export newsrcver="${srcver}-${BUILD_NUMBER}-${shortbranch}"
-                    echo "New Maven version is ${newsrcver}"
-                    echo "Using Maven versions plugin and in-line sed to set version to ${newsrcver}" 
-                    mvn versions:set -DnewVersion="${newsrcver}" -Pcore,${params.PLATFORM},ee -l /dev/null
+                    echo "Maven project version is \${srcver}"
+                    export newsrcver="\${srcver}-${BUILD_NUMBER}-\${shortbranch}"
+                    echo "New Maven version is \${newsrcver}"
+                    echo "Using Maven versions plugin and in-line sed to set version to \${newsrcver}" 
+                    mvn versions:set -DnewVersion="\${newsrcver}" -Pcore,${params.PLATFORM},ee -l /dev/null
                     mvn versions:commit
-                    popd 
                     echo "Saving branch and version info to branch.env"
-                    echo "export shortbranch=${shortbranch}" > branch.env
-                    echo "export srcver=${srcver}" >> branch.env
-                    echo "export newsrcver=${newsrcver}" >> branch.env
-                    echo "${newsrcver}" > version.txt
+                    echo "export shortbranch=\${shortbranch}" > branch.env
+                    echo "export srcver=\${srcver}" >> branch.env
+                    echo "export newsrcver=\${newsrcver}" >> branch.env
+                    echo "\${newsrcver}" > version.txt
                     mvn -B -e --fail-at-end clean -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml

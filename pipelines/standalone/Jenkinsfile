@@ -14,15 +14,29 @@ properties([
 // Define params
 def BUILD_NUM = "${params.BUILD_NUM}"
 
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching splice standalone pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
 node('spliceengine') {
   // run tests
   try {
     def artifact_values  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
-            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],
+        [$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key_id', vaultKey: 'access_key_id'],
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key', vaultKey: 'access_key']]],
     ]
-    // Mark the code checkout 'stage'....
+    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
+    stage('Build Login') {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+            sh "aws configure set aws_access_key_id $build_secret_key_id"
+            sh "aws configure set aws_secret_access_key $build_secret_key"
+            sh "aws configure set region us-east-1"
+        }
+    }
+    slackSend(channel: slackResponse.threadId, message: "Checking out code...")
     stage('Checkout') {
       checkout([  
             $class: 'GitSCM', 
@@ -51,6 +65,7 @@ node('spliceengine') {
     }
 
 
+    slackSend(channel: slackResponse.threadId, message: "Inject Env Variables...")
     stage('Inject Env Variables') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('infrastructure-support/build-support/scripts/standalone/spliceengine'){
@@ -67,26 +82,42 @@ node('spliceengine') {
       dir('infrastructure-support/build-support/scripts/standalone/'){
         sh "sed -i 's/buildNum=/buildNum=${BUILD_NUM}/' standalone.sh"
       }
+      currentBuild.result = "SUCCESS"
     }
 
+    slackSend(channel: slackResponse.threadId, message: "Building standalone package...")
     stage('Run Build') {
-    dir('infrastructure-support/build-support/scripts/standalone/'){
-      sh'''
-      ./standalone.sh
-      tar xvf *.tar.gz
-      export PYTHONPATH=$WORKSPACE:$PYTHONPATH
-      python3 unit_test.py
-      '''
+      dir('infrastructure-support/build-support/scripts/standalone/'){
+        sh'''
+        ./standalone.sh
+        tar xvf *.tar.gz
+        export PYTHONPATH=$WORKSPACE:$PYTHONPATH
+        python3 unit_test.py
+        '''
+      }
+    }
 
-     }
-   }
+    slackSend(channel: slackResponse.threadId, message: "Pushing to S3...")
+    stage('Push to S3') {
+      dir('infrastructure-support/build-support/scripts/standalone/'){
+        sh'''
+        ./standalone.sh
+        tar xvf *.tar.gz
+        export PYTHONPATH=$WORKSPACE:$PYTHONPATH
+        python3 unit_test.py
+        '''
+      }
+    }
   } catch (any) {
     // if there was an exception thrown, the build failed
     currentBuild.result = "FAILED"
     throw any
   } finally {
     archiveArtifacts artifacts: 'infrastructure-support/build-support/scripts/standalone/*.tar.gz'
+    archiveArtifacts artifacts: 'build-support/scripts/standalone/*.tar.gz'
+    sh "aws s3 cp build-support/scripts/standalone/*.tar.gz s3://splice-releases/standalone/ --acl public-read"
     // success or failure, always send notifications
-    currentBuild.result = "SUCCESS"
+    // success or failure, always send notifications
+    notifyBuild(currentBuild.result)
   }
 }
