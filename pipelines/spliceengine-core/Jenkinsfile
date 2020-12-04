@@ -42,7 +42,7 @@ node('splice-standalone'){
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-                    mvn -B -e --fail-at-end deploy -Pcore
+                    mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
                     '''
                 }
         }
@@ -51,7 +51,7 @@ node('splice-standalone'){
                 // Run Maven on a Unix agent.
                 dir('spliceengine-ee'){
                     sh '''
-                    mvn -B -e --fail-at-end deploy -Pcore
+                    mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
                     '''
                 }
         }
