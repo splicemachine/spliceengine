@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -55,13 +56,18 @@ import java.util.List;
 
 public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 {
+    public BinaryArithmeticOperatorNode() {}
+    public BinaryArithmeticOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(nodeType);
+        init(leftOperand, rightOperand);
+    }
     /**
      * Initializer for a BinaryArithmeticOperatorNode
      *
      * @param leftOperand	The left operand
      * @param rightOperand	The right operand
      */
-
     public void init(
             Object leftOperand,
             Object rightOperand)

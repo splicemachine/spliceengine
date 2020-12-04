@@ -36,7 +36,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -59,13 +61,13 @@ public class JavaToSQLValueNode extends ValueNode
     JavaValueNode    javaNode;
 
     /**
-     * Initializer for a JavaToSQLValueNode
-     *
-     * @param value        The Java value to convert to the SQL domain
+     * Constructor for a JavaToSQLValueNode
+     * @param value The Java value to convert to the SQL domain
      */
-    public void init(Object value)
-    {
-        this.javaNode = (JavaValueNode) value;
+    public JavaToSQLValueNode(Object value, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.JAVA_TO_SQL_VALUE_NODE);
+        this.javaNode = (JavaValueNode)value;
     }
 
     /**

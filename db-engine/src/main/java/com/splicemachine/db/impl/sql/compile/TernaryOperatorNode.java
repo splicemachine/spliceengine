@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -118,6 +119,16 @@ public class TernaryOperatorNode extends OperatorNode
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
     };
 
+    public TernaryOperatorNode() {}
+    public TernaryOperatorNode( int nodeType, // todo: nodeType is not really used, only operatorType
+                                ValueNode receiver, ValueNode leftOperand,
+                         ValueNode rightOperand, Integer operatorType, Integer trimType, ContextManager cm )
+    {
+        setNodeType(nodeType);
+        setContextManager(cm);
+        init(receiver, leftOperand, rightOperand, operatorType, trimType);
+    }
+
     /**
      * Initializer for a TernaryOperatorNode
      *
@@ -126,7 +137,6 @@ public class TernaryOperatorNode extends OperatorNode
      * @param rightOperand    The right operand of the node
      * @param operatorType    The type of the operand
      */
-
     public void init(
                     Object receiver,
                     Object leftOperand,

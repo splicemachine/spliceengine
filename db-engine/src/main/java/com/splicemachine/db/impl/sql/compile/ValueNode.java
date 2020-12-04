@@ -463,10 +463,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
                                     this,
                                     getContextManager());
 
-        ValueNode jtsvn = (ValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                    stjvn,
-                                    getContextManager());
+        ValueNode jtsvn = new JavaToSQLValueNode(stjvn, getContextManager());
         DataTypeDescriptor  resultType;
         if ( (getTypeServices() != null) && getTypeId().userType() ) { resultType = getTypeServices(); }
         else { resultType = DataTypeDescriptor.getSQLDataTypeDescriptor(stjvn.getJavaTypeName()); }

@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -150,6 +151,14 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 	private AggregateNode   resolvedAggregate;
 	private boolean appearsInGroupBy = false;
+
+	public StaticMethodCallNode() {}
+	public StaticMethodCallNode(Object methodName, String javaClassName, ContextManager cm) {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.STATIC_METHOD_CALL_NODE);
+		init(methodName, javaClassName);
+	}
+
 	/**
 	 * Intializer for a NonStaticMethodCallNode
 	 *
@@ -168,6 +177,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 		this.javaClassName = (String) javaClassName;
 	}
 	/**
+
      * Get the aggregate, if any, which this method call resolves to.
      */
     public  AggregateNode   getResolvedAggregate() { return resolvedAggregate; }
@@ -345,11 +355,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 								returnType.getMaximumWidth()
 							);
 
-
-					ValueNode returnValueToSQL = (ValueNode) getNodeFactory().getNode(
-								C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-								this,
-								getContextManager());
+                    ValueNode returnValueToSQL = new JavaToSQLValueNode(this, getContextManager());
 
 					ValueNode returnValueCastNode = (ValueNode) getNodeFactory().getNode(
 									C_NodeTypes.CAST_NODE,

@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -125,6 +127,13 @@ public class ParameterNode extends ValueNode
     {
     }
 
+    public ParameterNode(ContextManager cm, Integer parameterNumber, DataValueDescriptor defaultValue)
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.PARAMETER_NODE);
+        init(parameterNumber, defaultValue);
+    }
+
     /**
      * Initializer for a ParameterNode.
      *
@@ -133,7 +142,6 @@ public class ParameterNode extends ValueNode
      * @param defaultValue                The default value for this parameter
      *
      */
-
     public void init(Object parameterNumber, Object defaultValue)
     {
         this.defaultValue = (DataValueDescriptor) defaultValue;

@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 
@@ -73,11 +74,11 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	 * @param receiver		A JavaValueNode representing the receiving object
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-							Object methodName,
-							Object receiver)
+	public NonStaticMethodCallNode(Object methodName, Object receiver, ContextManager cm)
 			throws StandardException
 	{
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.NON_STATIC_METHOD_CALL_NODE);
 		super.init(methodName);
 
 		/*

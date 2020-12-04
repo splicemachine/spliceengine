@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableProperties;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -95,6 +96,20 @@ public class DeleteNode extends DMLModStatementNode
     private Properties targetProperties;
     private String     bulkDeleteDirectory;
     private int[] colMap;
+
+    public DeleteNode() {}
+
+    public DeleteNode(ContextManager cm, TableName targetTableName,
+               SelectNode queryExpression,
+               Properties targetProperties)
+    {
+        super.init(queryExpression);
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.DELETE_NODE);
+        this.targetTableName = targetTableName;
+        this.targetProperties = targetProperties;
+    }
+
     /**
      * Initializer for a DeleteNode.
      *
@@ -102,7 +117,6 @@ public class DeleteNode extends DMLModStatementNode
      * @param queryExpression    The query expression that will generate
      *                the rows to delete from the given table
      */
-
     public void init(Object targetTableName,
                      Object queryExpression,
                      Object targetProperties)
@@ -852,9 +866,7 @@ public class DeleteNode extends DMLModStatementNode
         ((FromBaseTable) fromTable).setTableProperties(targetProperties);
 
         fromList.addFromTable(fromTable);
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                                     C_NodeTypes.SELECT_NODE,
-                                                     null,
+        SelectNode resultSet = new SelectNode( null,
                                                      null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
@@ -903,9 +915,7 @@ public class DeleteNode extends DMLModStatementNode
 
         fromList.addFromTable(fromTable);
 
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                                     C_NodeTypes.SELECT_NODE,
-                                                     getSetClause(tableName, cdl),
+        SelectNode resultSet = new SelectNode(getSetClause(tableName, cdl),
                                                      null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
@@ -914,12 +924,7 @@ public class DeleteNode extends DMLModStatementNode
                                                      null, /* windows */
                                                      getContextManager());
 
-        return (StatementNode) nodeFactory.getNode(
-                                                    C_NodeTypes.UPDATE_NODE,
-                                                    tableName,
-                                                    resultSet,
-                                                    getContextManager());
-
+        return new UpdateNode( tableName, resultSet, getContextManager());
     }
 
 

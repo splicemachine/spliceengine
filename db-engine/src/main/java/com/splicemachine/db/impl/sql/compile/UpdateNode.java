@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -91,6 +92,13 @@ public final class UpdateNode extends DMLModStatementNode
     /* Subquery name for updating from multi-column subquery case */
     public static final String SUBQ_NAME = "UPDSBQ";
 
+    public UpdateNode() {}
+    public UpdateNode(TableName tableName, SelectNode resultSet, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.UPDATE_NODE);
+        this.init(tableName, resultSet);
+    }
+
     /**
      * Initializer for an UpdateNode.
      *
@@ -98,7 +106,6 @@ public final class UpdateNode extends DMLModStatementNode
      * @param resultSet        The ResultSet that will generate
      *                the rows to update from the given table
      */
-
     public void init(
                Object targetTableName,
                Object resultSet)

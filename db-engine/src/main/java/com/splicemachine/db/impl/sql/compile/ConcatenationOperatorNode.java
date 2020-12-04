@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -70,7 +71,9 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 	 * @param rightOperand
 	 *            The right operand of the concatenation
 	 */
-	public void init(Object leftOperand, Object rightOperand) {
+	public ConcatenationOperatorNode(Object leftOperand, Object rightOperand, ContextManager cm) {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.CONCATENATION_OPERATOR_NODE);
 		super.init(leftOperand, rightOperand, "||", "concatenate",
 				ClassName.ConcatableDataValue, ClassName.ConcatableDataValue);
 	}
