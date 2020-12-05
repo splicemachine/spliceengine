@@ -49,6 +49,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
     
     private Boolean useSpark;
     private static int numTables = 0;
+    private static boolean isMemPlatform = false;
     
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -134,6 +135,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void recordNumTables() throws Exception {
+        isMemPlatform = isMemPlatform();
         dropObjects();
         vacuum();
         numTables = getNumTables();
@@ -144,8 +146,11 @@ public class FromFinalTableIT extends SpliceUnitTest {
         dropObjects();
         vacuum();
         int newNumTables = getNumTables();
-        assertEquals("\nStarted with " + numTables + " tables and ended with " + newNumTables,
-                     numTables, newNumTables);
+        // Mem platform doesn't physically remove dropped tables, so
+        // this is an HBase-only check.
+        if (!isMemPlatform)
+            assertEquals("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                         numTables, newNumTables);
     }
 
     @Before
@@ -162,13 +167,9 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
     public static void
     vacuum() throws Exception{
-        try {
+        // Mem doesn't have vacuum.
+        if (!isMemPlatform)
             spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.VACUUM()");
-        }
-        catch (SQLException e) {
-            // Don't fail on the mem platform.
-        }
-        return;
     }
 
     public static int
@@ -176,6 +177,14 @@ public class FromFinalTableIT extends SpliceUnitTest {
         try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
             rs.next();
             return ((Integer)rs.getObject(1));
+        }
+    }
+
+    public static boolean
+    isMemPlatform() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
         }
     }
 

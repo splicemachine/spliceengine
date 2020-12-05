@@ -152,10 +152,7 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void markDropped(long conglomId, long txn) throws IOException {
-        // Actually drop the table on mem when marked as dropped.
-        // Mem has no vacuum, so this is the only way to free up space.
-        Long conglom = Long.valueOf(conglomId);
-        deleteTable(conglom.toString());
+        // no op
     }
 
     @Override
