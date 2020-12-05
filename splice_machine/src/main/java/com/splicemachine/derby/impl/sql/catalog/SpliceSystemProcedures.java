@@ -1128,6 +1128,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(null).isDeterministic(false)
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("SYSCS_IS_MEM_PLATFORM")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .returnType(null).isDeterministic(false)
+                            .build());
+
                     procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_BACKUP")
                             .numOutputParams(0)
                             .bigint("backupId")
