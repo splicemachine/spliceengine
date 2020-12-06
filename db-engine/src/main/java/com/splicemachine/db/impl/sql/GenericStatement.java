@@ -65,6 +65,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -619,6 +621,21 @@ public class GenericStatement implements Statement{
                     // just use the default setting.
                 }
                 cc.setCurrentTimestampPrecision(currentTimestampPrecision);
+
+                String timestampFormatString =
+                        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_FORMAT);
+                if(timestampFormatString == null)
+                    cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
+                else {
+                    try {
+                        // DB-10968 we shouldn't even allow setting this to the wrong value
+                        DateTimeFormatter.ofPattern(timestampFormatString);
+                    } catch(Exception e)
+                    {
+                        timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
+                    }
+                    cc.setTimestampFormat(timestampFormatString);
+                }
 
                 String timestampPrecisionString =
                         PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_PRECISION);
