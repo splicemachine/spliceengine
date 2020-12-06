@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -57,6 +58,8 @@ import java.io.ObjectOutput;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
@@ -108,6 +111,8 @@ public final class SQLTimestamp extends DataType
     private int nanos;
 
     private int stringFormat = -1;
+
+    private String timestampFormat;
     /*
     ** DataValueDescriptor interface
     ** (mostly implemented in DataType)
@@ -120,6 +125,10 @@ public final class SQLTimestamp extends DataType
     @Override
     public void setStringFormat(int format) {
         stringFormat = format;
+    }
+
+    public void setTimestampFormat(String format) {
+        timestampFormat = format;
     }
 
     public void setPrecision(int precision) {
@@ -184,6 +193,15 @@ public final class SQLTimestamp extends DataType
         }
     }
 
+    private static String format2(Timestamp timestamp, String timeStampFormat) {
+        if(timeStampFormat == null) timeStampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
+        return DateTimeFormatter
+                .ofPattern(timeStampFormat)
+                .withZone(ZoneId.systemDefault())
+                .format(timestamp.toLocalDateTime());
+    }
+
+
     public String getString() throws StandardException {
         if(stringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
             throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
@@ -191,7 +209,7 @@ public final class SQLTimestamp extends DataType
         if (!isNull()) {
             Timestamp timestamp = getTimestamp(calendar);
             assert timestamp != null;
-            return format(timestamp, precision);
+            return format2(timestamp, timestampFormat);
         } else {
             return null;
         }
