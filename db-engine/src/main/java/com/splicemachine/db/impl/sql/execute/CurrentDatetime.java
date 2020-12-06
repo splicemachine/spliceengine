@@ -31,12 +31,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-/* can't import due to name overlap:
-import java.util.Date;
-*/
-import com.splicemachine.concurrent.TickingClock;
-import org.glassfish.jersey.spi.Contract;
-
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
