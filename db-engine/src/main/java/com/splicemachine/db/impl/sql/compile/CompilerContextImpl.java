@@ -305,12 +305,20 @@ public class CompilerContextImpl extends ContextImpl
         timestampPrecision = newValue;
     }
 
+    public void setTimestampFormat(String value) {
+        timestampFormat = value;
+    }
+
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
     }
 
     public int getTimestampPrecision() {
         return timestampPrecision;
+    }
+
+    public String getTimestampFormat() {
+        return timestampFormat;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -1184,6 +1192,8 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
     private       int                                 currentTimestampPrecision                    = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
     private       int                                 timestampPrecision                           = DEFAULT_TIMESTAMP_PRECISION;
+
+    private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;

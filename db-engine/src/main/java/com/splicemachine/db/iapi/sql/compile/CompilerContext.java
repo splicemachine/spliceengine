@@ -184,6 +184,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     int DEFAULT_TIMESTAMP_PRECISION = 9;
+    String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
@@ -730,6 +731,9 @@ public interface CompilerContext extends Context
     int getCurrentTimestampPrecision();
 
     int getTimestampPrecision();
+    void setTimestampFormat(String timestampFormat);
+
+    String getTimestampFormat();
 
     int getNextOJLevel();
 
