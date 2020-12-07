@@ -102,8 +102,6 @@ public final class SQLTimestamp extends DataType
 
     private static boolean skipDBContext = false;
 
-    private int precision = 0;
-
     public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
     private int encodedDate;
@@ -129,10 +127,6 @@ public final class SQLTimestamp extends DataType
 
     public void setTimestampFormat(String format) {
         timestampFormat = format;
-    }
-
-    public void setPrecision(int precision) {
-        this.precision = precision;
     }
 
     // Check for a version 2.0 timestamp out of bounds.
@@ -175,25 +169,7 @@ public final class SQLTimestamp extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-    private static String format(Timestamp timestamp, int precision) {
-        assert timestamp != null;
-        String ts = timestamp.toString();
-        String result = ts.substring(0, ts.indexOf('.'));
-        if(precision <= 0) {
-            return result;
-        }
-        String nanosString = ts.substring(ts.indexOf('.') + 1);
-        if(nanosString.length() == precision) {
-            return result + "." + nanosString;
-        } else if(nanosString.length() > precision) {
-            return result + "." + nanosString.substring(0, precision);
-        } else {
-            int paddingZeros = precision - nanosString.length();
-            return result + "." + nanosString + String.join("", Collections.nCopies(paddingZeros, "0"));
-        }
-    }
-
-    private static String format2(Timestamp timestamp, String timeStampFormat) {
+    private static String format(Timestamp timestamp, String timeStampFormat) {
         if(timeStampFormat == null) timeStampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
         return DateTimeFormatter
                 .ofPattern(timeStampFormat)
@@ -209,7 +185,7 @@ public final class SQLTimestamp extends DataType
         if (!isNull()) {
             Timestamp timestamp = getTimestamp(calendar);
             assert timestamp != null;
-            return format2(timestamp, timestampFormat);
+            return format(timestamp, timestampFormat);
         } else {
             return null;
         }

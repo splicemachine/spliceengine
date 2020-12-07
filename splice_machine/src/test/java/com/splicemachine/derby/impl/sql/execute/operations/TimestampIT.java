@@ -13,7 +13,9 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -936,6 +938,5 @@ public class TimestampIT extends SpliceUnitTest {
             if(bOK) return;
         }
         Assert.fail("current timestamp precision didn't work");
-
     }
 }
