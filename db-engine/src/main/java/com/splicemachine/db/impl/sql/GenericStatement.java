@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -466,6 +467,7 @@ public class GenericStatement implements Statement{
                 setNewMergeJoin(lcc, cc);
                 setDisableParallelTaskJoinCosting(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
+                setTimestampFormat(lcc, cc);
                 setOuterJoinFlatteningDisabled(lcc, cc);
 
                 if (!cc.isSparkVersionInitialized()) {
@@ -751,15 +753,18 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setCurrentTimestampPrecision(currentTimestampPrecision);
+    }
 
+    private void setTimestampFormat(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String timestampFormatString =
                 PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_FORMAT);
         if(timestampFormatString == null)
             cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
         else {
             try {
+                // the following code checks if the timestampFormatString is valid
                 // DB-10968 we shouldn't even allow setting this to the wrong value
-                DateTimeFormatter.ofPattern(timestampFormatString);
+                SQLTimestamp.getFormatLength(timestampFormatString);
             } catch(Exception e)
             {
                 timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
