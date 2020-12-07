@@ -183,7 +183,6 @@ public interface CompilerContext extends Context
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
-    int DEFAULT_TIMESTAMP_PRECISION = 9;
     String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
@@ -726,11 +725,8 @@ public interface CompilerContext extends Context
 
     void setCurrentTimestampPrecision(int newValue);
 
-    void setTimestampPrecision(int newValue);
-
     int getCurrentTimestampPrecision();
 
-    int getTimestampPrecision();
     void setTimestampFormat(String timestampFormat);
 
     String getTimestampFormat();
