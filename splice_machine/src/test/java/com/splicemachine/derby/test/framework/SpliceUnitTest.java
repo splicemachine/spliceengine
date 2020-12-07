@@ -1083,6 +1083,15 @@ public class SpliceUnitTest {
         }
     }
 
+    public static void assertThrows(Runnable r, String expectedExceptionStr) {
+        try {
+            r.run();
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            Assert.assertEquals(expectedExceptionStr, e.toString());
+        }
+    }
+
     /// execute sql query 'sqlText' and expect a certain formatted result
     public static void sqlExpectToString(SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
     {

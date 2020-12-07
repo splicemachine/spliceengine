@@ -838,7 +838,7 @@ public class TernaryOperatorNode extends OperatorNode
         {
             DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true,
                     vnTC.getCastToCharWidth(
-                            vn.getTypeServices()));
+                            vn.getTypeServices(), getCompilerContext()));
 
             ValueNode newNode = (ValueNode)
                         getNodeFactory().getNode(

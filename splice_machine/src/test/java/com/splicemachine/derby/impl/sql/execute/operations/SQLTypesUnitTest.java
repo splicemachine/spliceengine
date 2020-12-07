@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.homeless.SerializationTest;
 import com.splicemachine.primitives.Bytes;
 import org.joda.time.DateTime;
@@ -107,17 +108,17 @@ public class SQLTypesUnitTest {
     @Test
     public void testTimestampLengthFixed() throws StandardException {
         Assert.assertEquals(SQLTimestamp.getFormatLength(CompilerContext.DEFAULT_TIMESTAMP_FORMAT), CompilerContext.DEFAULT_TIMESTAMP_FORMAT.length());
-        Assert.assertEquals(SQLTimestamp.getFormatLength("yyyy-MM-dd-HH.mm.ss.SSSSSSSSS"), "yyyy-MM-dd-HH.mm.ss.SSSSSSSSS".length());
+        Assert.assertEquals(SQLTimestamp.getFormatLength("yyyy-MM-dd  HH.mm.ss.SSSSSSSSS"), "yyyy-MM-dd  HH.mm.ss.SSSSSSSSS".length());
         Assert.assertEquals(SQLTimestamp.getFormatLength("MM/dd/yyyy HH:mm:ss.SSSSS"), "MM/dd/yyyy HH:mm:ss.SSSSS".length());
         Assert.assertEquals(SQLTimestamp.getFormatLength("yyyy.MM.dd HH mm ss.SSSSS"), "yyyy-MM-dd-HH.mm.ss.SSSSS".length());
         Assert.assertEquals(SQLTimestamp.getFormatLength("hh:mm:ss a"), "12:34:56 PM".length());
-        try {
-            SQLTimestamp.getFormatLength("h:mm:ss a");
-            Assert.fail("expected exception");
-        } catch(RuntimeException e)
-        {
-            Assert.assertEquals("not supported format \"h:mm:ss a\": 'h' can't be repeated 1 times", e.getMessage());
-        }
+
+        SpliceUnitTest.assertThrows( () -> { SQLTimestamp.getFormatLength("h:mm:ss a") ; },
+                "java.lang.IllegalArgumentException: not supported format \"h:mm:ss a\": 'h' can't be repeated 1 times");
+        SpliceUnitTest.assertThrows( () -> { SQLTimestamp.getFormatLength("mm:ss:h"); },
+                "java.lang.IllegalArgumentException: not supported format \"mm:ss:h\": 'h' can't be repeated 1 times");
+        SpliceUnitTest.assertThrows( () -> { SQLTimestamp.getFormatLength("yyyy-MM-dd  HH.mm.ss.SSSSSSSSSS"); },
+                "java.lang.IllegalArgumentException: not supported format \"yyyy-MM-dd  HH.mm.ss.SSSSSSSSSS\": 'S' can't be repeated 10 times");
     }
 
     @Test
