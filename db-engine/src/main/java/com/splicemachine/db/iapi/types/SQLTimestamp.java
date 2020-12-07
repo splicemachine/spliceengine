@@ -177,7 +177,7 @@ public final class SQLTimestamp extends DataType
      * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
      * we support:
      * yyyy, yy, uuuu, uu, eee, EEE, MM, mm, dd, HH, hh, ss, a
-     * an arbitrary number of S, and other characters " ,.-/:"
+     * up to 9x S (nanoseconds), and other characters " ,.-/:"
      * @param format
      * @throws IllegalArgumentException if format is not supported
      * @return length of format
@@ -201,14 +201,12 @@ public final class SQLTimestamp extends DataType
             if ((l == 'y' || l == 'u') && (r == 4 || r == 2)) continue;
             else if (r == 2 &&  "MmdHhs".indexOf(l) != -1 ) continue;
             else if (r == 3 && (l == 'e' || l == 'E')) continue;
-            else if (l == 'S') continue;
-            else if (r == 1) {
-                if (l == 'a') {
-                    length++;
-                    continue;
-                }
-                if(" ,.-/:".indexOf(l) != -1) continue;
+            else if (l == 'S' && r <= 9) continue; // s fraction max 9
+            else if (r == 1 && l == 'a') {
+                length++;
+                continue;
             }
+            else if(" ,.-/:".indexOf(l) != -1) continue;
             throw new IllegalArgumentException("not supported format \"" + format + "\": '" + l + "' can't be repeated " + r + " times");
         }
         return length;

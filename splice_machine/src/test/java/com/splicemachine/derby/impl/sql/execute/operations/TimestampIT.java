@@ -47,7 +47,7 @@ import static org.junit.Assert.*;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category(SerialTest.class) // maybe not run in parallel since it is changing global DB configs
 public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;
@@ -890,10 +890,20 @@ public class TimestampIT extends SpliceUnitTest {
     }
 
     private void shouldEqual(String inputTimestamp, String expectedTimestamp) throws SQLException {
-        try(ResultSet rs = methodWatcher.executeQuery(String.format("select char(timestamp('%s')), length(char(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
+        try(ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select char(timestamp('%s')), length(char(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(expectedTimestamp, rs.getString(1));
             Assert.assertEquals(expectedTimestamp.length(), rs.getInt(2));
+            Assert.assertFalse(rs.next());
+        }
+
+        // make sure when upper/lower is used we are constructing the right cast node with the correct size
+        try(ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select upper(timestamp('%s')), typeof(upper(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(expectedTimestamp, rs.getString(1));
+            Assert.assertEquals(String.format("VARCHAR(%d) NOT NULL", expectedTimestamp.length()), rs.getString(2));
             Assert.assertFalse(rs.next());
         }
     }
