@@ -219,8 +219,12 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	}
 
 	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition)
+	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
 	{
+	    if (isOnExpression()) {
+	        throw new IllegalArgumentException("Cannot retrieve ordinal position of a base table column in an index " +
+                    "defined on expressions because it may appear in multiple expressions.");
+        }
 		/* Return 0 if column is not in the key */
 		int keyPosition = 0;
 
