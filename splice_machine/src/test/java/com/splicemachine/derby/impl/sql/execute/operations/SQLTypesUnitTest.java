@@ -100,9 +100,6 @@ public class SQLTypesUnitTest {
         Assert.assertEquals( ts.getWeekDay(i).getInt(), 4);
         Assert.assertEquals( ts.getWeekDayName(null).toString(), "Thursday");
         Assert.assertEquals( ts.getDayOfYear(i).getInt(), 59);
-
-        DateTime dt = ts.getDateTime();
-        Assert.assertEquals( dt.toString(), "1867-02-28T04:38:01.042+00:53:28");
     }
 
     @Test
