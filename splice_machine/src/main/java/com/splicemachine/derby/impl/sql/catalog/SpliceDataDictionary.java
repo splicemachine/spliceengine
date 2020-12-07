@@ -393,7 +393,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
