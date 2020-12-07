@@ -1139,7 +1139,14 @@ public class CastNode extends ValueNode
                 else if (this.targetCharType == Types.VARCHAR)
                     length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
             } else if(srcTypeId.isDateTimeTimeStampTypeId() && opndType.getJDBCTypeId() == Types.TIMESTAMP) {
-                length = getCompilerContext().getTimestampFormat().length();
+                try {
+                    length = SQLTimestamp.getFormatLength(getCompilerContext().getTimestampFormat());
+                } catch(IllegalArgumentException e)
+                {
+                    // we shouldn't get here as GenericStatement should've checked that, but let's be defensive
+                    // and not throw
+                    length = getCompilerContext().getTimestampFormat().length() + 10;
+                }
             } else {
                 TypeId typeid = opndType.getTypeId();
                 length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(), -1);

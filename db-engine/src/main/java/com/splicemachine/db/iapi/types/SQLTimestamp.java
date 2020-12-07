@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.primitives.Bytes;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
@@ -101,6 +102,7 @@ public final class SQLTimestamp extends DataType
     public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
 
     private static boolean skipDBContext = false;
+    private DateTimeFormatter formatter = null;
 
     public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
@@ -127,6 +129,7 @@ public final class SQLTimestamp extends DataType
 
     public void setTimestampFormat(String format) {
         timestampFormat = format;
+        formatter = null; // recreate on demand
     }
 
     // Check for a version 2.0 timestamp out of bounds.
@@ -169,12 +172,57 @@ public final class SQLTimestamp extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-    private static String format(Timestamp timestamp, String timeStampFormat) {
+    /**
+     * this also checks if the format is a valid fixed-size timestamp format
+     * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+     * we support:
+     * yyyy, yy, uuuu, uu, eee, EEE, MM, mm, dd, HH, hh, ss, a
+     * an arbitrary number of S, and other characters " ,.-/:"
+     * @param format
+     * @throws IllegalArgumentException if format is not supported
+     * @return length of format
+     */
+    public static int getFormatLength(String format) throws IllegalArgumentException
+    {
+        byte[] b = format.getBytes(Bytes.UTF8_CHARSET);
+        int repeat = 0;
+        char last = (char)b[0];
+        int length = b.length;
+        for(int i=0; i<b.length+1; i++) {
+            if (i != b.length && (char) b[i] == last) {
+                repeat++;
+                continue;
+            }
+            int r = repeat;
+            char l = last;
+            repeat = 1;
+            if( i != b.length)
+                last = (char) b[i];
+            if ((l == 'y' || l == 'u') && (r == 4 || r == 2)) continue;
+            else if (r == 2 &&  "MmdHhs".indexOf(l) != -1 ) continue;
+            else if (r == 3 && (l == 'e' || l == 'E')) continue;
+            else if (l == 'S') continue;
+            else if (r == 1) {
+                if (l == 'a') {
+                    length++;
+                    continue;
+                }
+                if(" ,.-/:".indexOf(l) != -1) continue;
+            }
+            throw new IllegalArgumentException("not supported format \"" + format + "\": '" + l + "' can't be repeated " + r + " times");
+        }
+        return length;
+    }
+
+    /**
+     * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+     */
+    private String format(Timestamp timestamp, String timeStampFormat) {
         if(timeStampFormat == null) timeStampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
-        return DateTimeFormatter
-                .ofPattern(timeStampFormat)
-                .withZone(ZoneId.systemDefault())
-                .format(timestamp.toLocalDateTime());
+        if(formatter == null ) {
+            formatter = DateTimeFormatter.ofPattern(timeStampFormat).withZone(ZoneId.systemDefault());
+        }
+        return formatter.format(timestamp.toLocalDateTime());
     }
 
 
@@ -1385,6 +1433,9 @@ public final class SQLTimestamp extends DataType
         }
         DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
         resultHolder.setValue(dateAdd);
+        // take care of nanos (DateTime only has millis)
+        if(leftOperand instanceof SQLTimestamp && resultHolder instanceof SQLTimestamp)
+            ((SQLTimestamp) resultHolder).nanos = ((SQLTimestamp) leftOperand).nanos;
         return resultHolder;
     }
 
@@ -1398,6 +1449,9 @@ public final class SQLTimestamp extends DataType
         }
         DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
         resultHolder.setValue(diff);
+        // take care of nanos (DateTime only has millis)
+        if(leftOperand instanceof SQLTimestamp && resultHolder instanceof SQLTimestamp)
+            ((SQLTimestamp) resultHolder).nanos = ((SQLTimestamp) leftOperand).nanos;
         return resultHolder;
     }
 

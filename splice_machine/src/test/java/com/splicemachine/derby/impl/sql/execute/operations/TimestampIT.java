@@ -908,6 +908,8 @@ public class TimestampIT extends SpliceUnitTest {
         withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
         withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
 
+        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456789", "11/30/2020, 07:11:12.12 PM");
+
         withFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSS"/*8*/);
         shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30-19.11.12.12345678");
 
