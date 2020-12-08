@@ -884,9 +884,15 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
                        "(c1 || '.test', initcap(c1), lcase(c1), length(c1), " +
-                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), rtrim(c1), " +
-                       "substr(c1, 2), trim(c1), ucase(c1))",
+                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), " +
+                       "substr(c1, 2), ucase(c1))",
                         tableName, tableName));
+
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (rtrim(c1))", tableName, tableName));
+
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_3 ON %s (trim(c1))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 'xyz')", tableName));
         methodWatcher.executeUpdate(format("update %s set c1 = 'this' where c2 = 'world'", tableName));
@@ -920,13 +926,16 @@ public class IndexIT extends SpliceUnitTest{
                        "('2014-01-28', '22:00:05', '2014-01-31 22:00:05')," +
                        "('2016-05-04', '12:04:30', '2016-05-01 12:04:30')"
                         , tableName));
+
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
-                       "(add_months(d, 5), date(ts), day(d), extract(Week FROM d), hour(t), day(d), minute(t), " +
+                       "(add_months(d, 5), date(ts), day(d), extract(Week FROM d), hour(t), minute(t), " +
                        "month(d), month_between(d, '2018-01-01'), monthname(d), quarter(d), second(t), " +
                        "time(ts), timestamp(d, t), timestampadd(SQL_TSI_DAY, 2, ts), " +
-                       "timestampdiff(SQL_TSI_DAY, timestamp(d, t), ts), trunc(d, 'month'), week(d), year(d))",
+                       "timestampdiff(SQL_TSI_DAY, timestamp(d, t), ts), trunc(d, 'month'), year(d))",
                         tableName, tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (day(d), week(d))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('2017-09-10', '08:55:06', '2017-09-12 08:45:06')", tableName));
         methodWatcher.executeUpdate(format("update %s set d = '2016-05-05' where t = '12:04:30'", tableName));
@@ -939,11 +948,14 @@ public class IndexIT extends SpliceUnitTest{
         String tableName = "TEST_IDX_CONVERSION_FN";
         methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
         methodWatcher.executeUpdate(format("insert into %s values ('50', 10), ('100', 20)", tableName));
+
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
-                       "(bigint(vc), cast(vc as integer), char(i), double(vc), integer(vc), smallint(vc), " +
+                       "(bigint(vc), cast(vc as integer), char(i), double(vc), smallint(vc), " +
                        "tinyint(vc), to_char(date(i),'yy'), to_date(date(i), 'yyyy-MM-dd'), varchar(vc || 'x'))",
                         tableName, tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (integer(vc))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('120', 30)", tableName));
         methodWatcher.executeUpdate(format("update %s set vc = '80' where i = 10", tableName));
@@ -1302,6 +1314,36 @@ public class IndexIT extends SpliceUnitTest{
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
             Assert.assertTrue(e.getMessage().contains("2 + 4"));
+        }
+    }
+
+    @Test
+    public void testCreateIndexOnDuplicateExpressions() throws Exception {
+        String tableName = "TEST_IDX_DUPLICATE_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lower(vc), lower(vc))", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("lower(vc)"));
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + 2, i+2)", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("i+2"));
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + 2, 2 + i)", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("2 + i"));
         }
     }
 
