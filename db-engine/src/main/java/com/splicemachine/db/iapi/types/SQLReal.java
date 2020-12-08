@@ -177,7 +177,7 @@ public final class SQLReal
 		if (isNull())
 			return null;
 		else
-			return Float.toString(value);
+			return toDB2String(value);
 	}
 
 	/** 

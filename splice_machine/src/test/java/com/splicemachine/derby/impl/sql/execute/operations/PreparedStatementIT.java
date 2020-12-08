@@ -370,11 +370,12 @@ public class PreparedStatementIT {
         ps.setString(2, "12");
         testReturnRowCount(ps, 1);
 
-        // DB2 returns 0 row in this case. But
-        // '1.0' = cast(1.0 as varchar(254))
-        // does evaluated to true in DB2.
         ps.setDouble(1, 1.0);
         ps.setString(2, "1.0");
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        ps.setString(2, "1.0E0");
         testReturnRowCount(ps, 1);
 
         ps.setString(1, "2020-01-01");
