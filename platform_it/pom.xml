@@ -1062,7 +1062,6 @@
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
                                 <argument>-XX:+UseG1GC</argument>
                                 <argument>-enableassertions</argument>
-                                <argument>-agentpath:/home/msirek/jprofiler11/bin/linux-x64/libjprofilerti.so=port=8849,nowait,id=106,config=/home/msirek/.jprofiler11/jprofiler_config.xml </argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
