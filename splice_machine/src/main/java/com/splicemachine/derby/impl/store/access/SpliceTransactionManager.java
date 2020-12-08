@@ -1664,7 +1664,7 @@ public class SpliceTransactionManager implements XATransactionController,
             SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, ((PastTransaction)rawtran).getClone(), this);
 
             //this actually does some work, so don't remove it
-            @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+            new SpliceTransactionManagerContext(
                     cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
             return rt;
         }
