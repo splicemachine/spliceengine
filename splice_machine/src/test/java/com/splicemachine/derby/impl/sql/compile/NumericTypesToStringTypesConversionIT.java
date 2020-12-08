@@ -140,32 +140,33 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
 
     @Test
     public void testFloatToCharacterString() throws Exception {
-        String expected = "1   |  2  |  3   |  4  |\n" +
-                "--------------------------\n" +
-                "-0.35 |12.7 |-0.35 |12.7 |\n" +
-                " 2.5  |12.7 | 2.5  |12.7 |\n" +
-                "NULL  |12.7 |NULL  |12.7 |";
+        String expected = "1    |   2   |   3    |   4   |\n" +
+                "----------------------------------\n" +
+                "-3.5E-1 |1.27E1 |-3.5E-1 |1.27E1 |\n" +
+                " 2.5E0  |1.27E1 | 2.5E0  |1.27E1 |\n" +
+                " NULL   |1.27E1 | NULL   |1.27E1 |";
 
-        testHelper(expected, "f", "1.27E1", 5);
+        testHelper(expected, "f", "1.27E1", 7);
     }
 
+    // losing accuracy on 0.02, same in DB2
     @Test
     public void testRealToCharacterString() throws Exception {
-        String expected = "1    |  2  |   3    |  4  |\n" +
-                "------------------------------\n" +
-                "-1500.0 |-0.7 |-1500.0 |-0.7 |\n" +
-                " 0.02   |-0.7 | 0.02   |-0.7 |\n" +
-                " NULL   |-0.7 | NULL   |-0.7 |";
+        String expected = "1          |    2     |         3          |    4     |\n" +
+                "----------------------------------------------------------------\n" +
+                "      -1.5E3        |1.175E-37 |      -1.5E3        |1.175E-37 |\n" +
+                "1.99999995529652E-2 |1.175E-37 |1.99999995529652E-2 |1.175E-37 |\n" +
+                "       NULL         |1.175E-37 |       NULL         |1.175E-37 |";
 
-        testHelper(expected, "r", "-7E-1", 7);
+        testHelper(expected, "r", "1.175E-37", 24);
     }
 
     @Test
     public void testDoubleToCharacterString() throws Exception {
         String expected = "1   |     2      |   3   |     4      |\n" +
                 "------------------------------------------\n" +
-                "-200.0 |1.79769E308 |-200.0 |1.79769E308 |\n" +
-                " 20.0  |1.79769E308 | 20.0  |1.79769E308 |\n" +
+                "-2.0E2 |1.79769E308 |-2.0E2 |1.79769E308 |\n" +
+                " 2.0E1 |1.79769E308 | 2.0E1 |1.79769E308 |\n" +
                 " NULL  |1.79769E308 | NULL  |1.79769E308 |";
 
         testHelper(expected, "d", "1.79769E+308", 12);
@@ -220,6 +221,84 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
                 "------------\n" +
                 " 111 | 112 |";
         try(ResultSet rs = methodWatcher.executeQuery("select * from char_alter order by val1 {limit 1}")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testFloatNumbersZeroDB2Format() throws Exception {
+        // DB2 outputs at least one decimal digit for all floating point numbers except zero
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(0.0)), varchar(cast(0.0 as real))")) {
+            String expected =
+                    "1  | 2  |\n" +
+                    "----------\n" +
+                    "0E0 |0E0 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testFloatNumbersRounding() throws Exception {
+        // In converting floating-point values to string, rounding policy in DB2 is half-even.
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(123456789012344.5)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012344E14 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(123456789012344.6)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012345E14 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(123456789012345.5)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012346E14 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(123456789012345.4)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012345E14 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testFloatNumbersTruncate() throws Exception {
+        // This time the value is actual an integer but in double type. In output format, there is not enough
+        // decimal digits to hold the value. In DB2, it's the same behavior as rounding (half-even). But Java
+        // seems to have half-up. The rounding option settings has no effect in this situation.
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123445)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012345E15 |";   // 1.23456789012344E15 in DB2
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123446)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012345E15 |";   // 1.23456789012344E15 in DB2
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123455)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012346E15 |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123454)) from sysibm.sysdummy1")) {
+            String expected = "1          |\n" +
+                    "---------------------\n" +
+                    "1.23456789012345E15 |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
