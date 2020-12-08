@@ -75,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -1968,22 +1969,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
 
             FileInfo files[] = fi1.listDir();
-            Arrays.sort(files, (a, b) -> a.fileName().compareTo(b.fileName()) );
+            Arrays.sort(files, Comparator.comparing(FileInfo::fileName));
 
             int maxLen = Arrays.stream(files).map(f -> f.fileName().length()).max(Integer::compareTo).get();
+            int pathColLen = Math.max(10, maxLen+2);
+
+            int ownerColLen = Arrays.stream(files).map(f -> f.getUser().length()).max(Integer::compareTo).get();
+            int groupColLen = Arrays.stream(files).map(f -> f.getGroup().length()).max(Integer::compareTo).get();
 
             ResultHelper resultHelper = new ResultHelper();
 
-            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", 10);
-            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", 10);
+            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", ownerColLen+1);
+            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", groupColLen+1);
             ResultHelper.TimestampColumn modtimeCol = resultHelper.addTimestamp("MODTIME", 30);
             ResultHelper.BigintColumn  sizeCol      = resultHelper.addBigint("SIZE", 10);
             ResultHelper.VarcharColumn permCol      = resultHelper.addVarchar("PERM", 12);
-            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", Math.max(10, maxLen+2) );
+            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", pathColLen );
             for (FileInfo fi : files )
             {
                 resultHelper.newRow();
-                pathCol.set(fi.fileName());
+                pathCol.set( fi.fileName() );
                 ownerCol.set(fi.getUser());
                 groupCol.set(fi.getGroup());
                 modtimeCol.set( fi.getModificationTime() == 0 ? null : new DateTime(fi.getModificationTime()) );
