@@ -847,8 +847,10 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     @Test
     public void testSubstr() throws Exception {
         methodWatcher.execute("drop table testSubstr if exists");
-        methodWatcher.execute("create table testSubstr(a varchar(40), b varchar(40), c char(40))");
-        methodWatcher.execute("insert into testSubstr values ('abc', 'abc ', 'abc')");
+        methodWatcher.execute("create table testSubstr(a varchar(40), b varchar(40), c char(40), " +
+                "d varchar(40) for bit data, e varchar(40) for bit data, f char(40) for bit data, dash char(1) for bit data)");
+        methodWatcher.execute("insert into testSubstr values ('abc', 'abc ', 'abc'," +
+                "cast('abc' as varchar(40) for bit data), cast('abc ' as varchar(40) for bit data), cast('abc' as char(40) for bit data), cast('-' as char(1) for bit data))");
         TestConnection[] conns = {
                 methodWatcher.connectionBuilder().useOLAP(false).build(),
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
@@ -861,6 +863,12 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("'-' || substr(b, 2, 5) || '-' from testSubstr", "-bc   -", conn);
             checkStringExpression("'-' || substr(c, 2) || '-' from testSubstr", "-bc                                     -", conn);
             checkStringExpression("'-' || substr(c, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("dash || substr(d, 2) || dash from testSubstr", "2d62632d", conn);
+            checkStringExpression("dash || substr(d, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+            checkStringExpression("dash || substr(e, 2) || dash from testSubstr", "2d6263202d", conn);
+            checkStringExpression("dash || substr(e, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+            checkStringExpression("dash || substr(f, 2) || dash from testSubstr", "2d6263202020202020202020202020202020202020202020202020202020202020202020202020202d", conn);
+            checkStringExpression("dash || substr(f, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
         }
     }
 }
