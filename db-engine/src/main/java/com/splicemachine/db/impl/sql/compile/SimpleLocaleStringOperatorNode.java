@@ -103,7 +103,7 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 		TypeId operandType = leftOperand.getTypeId();
 
 		int leftWidth = leftOperand.getTypeCompiler().getCastToCharWidth(
-		        leftOperand.getTypeServices());
+		        leftOperand.getTypeServices(), getCompilerContext());
 		if (leftWidth > Limits.DB2_LOB_MAXWIDTH / 2) {
 		    throw StandardException.newException(SQLState.BLOB_LENGTH_TOO_LONG, methodName,
                     leftWidth * 2);
