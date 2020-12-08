@@ -15,10 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -44,7 +41,7 @@ import static org.junit.Assert.*;
  * 
  * @author Walt Koetke
  */
-public class SpliceStringFunctionsIT {
+public class SpliceStringFunctionsIT extends SpliceUnitTest {
 	
     private static final String CLASS_NAME = SpliceStringFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
@@ -829,6 +826,41 @@ public class SpliceStringFunctionsIT {
                 String result = TestUtils.FormattedResult.ResultFactory.toString(rs);
                 assertEquals(expected, result);
             }
+        }
+    }
+
+    @Test
+    public void testSubstrResultType() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("substr(varchar('abc', 40), 10)", "VARCHAR(40)", conn);
+            checkExpressionType("substr(varchar('abc', 40), 10, 5)", "CHAR(5)", conn);
+            checkExpressionType("substr(char('abc', 40), 10)", "CHAR(31)", conn);
+            checkExpressionType("substr(char('abc', 40), 10, 5)", "CHAR(5)", conn);
+
+            checkExpressionType("substr(cast('abc' as varchar(40) for bit data), 10)", "VARCHAR (40) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as varchar(40) for bit data), 10, 5)", "CHAR (5) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as char(40) for bit data), 10)", "CHAR (31) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as char(40) for bit data), 10, 5)", "CHAR (5) FOR BIT DATA", conn);
+        }
+    }
+
+    @Test
+    public void testSubstr() throws Exception {
+        methodWatcher.execute("drop table testSubstr if exists");
+        methodWatcher.execute("create table testSubstr(a varchar(40), b varchar(40), c char(40))");
+        methodWatcher.execute("insert into testSubstr values ('abc', 'abc ', 'abc')");
+        TestConnection[] conns = {
+                methodWatcher.connectionBuilder().useOLAP(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
+        };
+        for (TestConnection conn: conns) {
+            checkStringExpression("'-' || substr(a, 2) || '-' from testSubstr", "-bc-", conn);
+            checkStringExpression("'-' || substr(a, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("'-' || substr(b, 2) || '-' from testSubstr", "-bc -", conn);
+            checkStringExpression("'-' || substr(b, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("'-' || substr(c, 2) || '-' from testSubstr", "-bc                                     -", conn);
+            checkStringExpression("'-' || substr(c, 2, 5) || '-' from testSubstr", "-bc   -", conn);
         }
     }
 }
