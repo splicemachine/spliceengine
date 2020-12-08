@@ -859,6 +859,43 @@ public class IndexIT extends SpliceUnitTest{
     // ===============================================================================
 
     @Test
+    public void testGetKeyColumnPositionThrowForIndexOnExpressions() throws Exception {
+        String tableName = "TEST_IDX_GKCP";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 10, 1.1), ('def', 20, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), i + 2)", tableName, tableName));
+
+        String query = format(
+                "SELECT \n" +
+                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) as ORD \n" +
+                "    , cols.COLUMNNUMBER \n" +
+                "    , cols.COLUMNNAME \n" +
+                "  FROM --splice-properties joinOrder=fixed \n" +
+                "      SYS.SYSTABLES T --splice-properties index=SYSTABLES_INDEX1, useSpark=false \n" +
+                "    , SYS.SYSSCHEMAS S --splice-properties joinStrategy=broadcast \n" +
+                "    , SYS.SYSCONGLOMERATES CONGLOMS --splice-properties index=SYSCONGLOMERATES_INDEX3, joinStrategy=nestedloop \n" +
+                "    , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
+                "  WHERE \n" +
+                "      T.SCHEMAID = S.SCHEMAID \n" +
+                "  AND T.TABLEID = CONGLOMS.TABLEID \n" +
+                "  AND T.TABLEID = COLS.REFERENCEID \n" +
+                "  AND (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN \n" +
+                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE \n" +
+                "         0 END) <> 0 \n" +
+                "  AND T.TABLENAME='%s' \n" +
+                "  AND CONGLOMS.CONGLOMERATENAME='%s'", tableName, tableName + "_IDX");
+
+        try {
+            methodWatcher.executeQuery(query);
+            Assert.fail("expect IllegalArgumentException thrown in getKeyColumnPosition()");
+        } catch (SQLException e) {
+            Assert.assertEquals("SE001", e.getSQLState());
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("Cannot retrieve ordinal position"));
+        }
+    }
+
+    @Test
     public void testCreateIndexAndInsertWithExpressionsOfNumericFunctions() throws Exception {
         String tableName = "TEST_IDX_NUMERIC_FN";
         methodWatcher.executeUpdate(format("create table %s (d1 double, d2 double, i int)", tableName));
