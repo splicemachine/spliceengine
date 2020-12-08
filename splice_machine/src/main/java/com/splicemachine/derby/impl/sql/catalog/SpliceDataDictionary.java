@@ -404,12 +404,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
