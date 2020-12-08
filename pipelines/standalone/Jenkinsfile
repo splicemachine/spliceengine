@@ -23,13 +23,13 @@ node('spliceengine') {
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],
-        [$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
-            [$class: 'VaultSecretValue', envVar: 'build_secret_key_id', vaultKey: 'access_key_id'],
-            [$class: 'VaultSecretValue', envVar: 'build_secret_key', vaultKey: 'access_key']]],
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/splicemachine", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key_id', vaultKey: 'access'],
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key', vaultKey: 'secret']]],
     ]
     slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
     stage('Build Login') {
-        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             sh "aws configure set aws_access_key_id $build_secret_key_id"
             sh "aws configure set aws_secret_access_key $build_secret_key"
             sh "aws configure set region us-east-1"
@@ -39,7 +39,7 @@ node('spliceengine') {
     stage('Checkout') {
       checkout([  
             $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/DB-10218']], 
+            branches: [[name: 'refs/heads/DB-10092']], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'infrastructure-support']], 
             submoduleCfg: [], 
@@ -53,14 +53,6 @@ node('spliceengine') {
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
       ])
-      checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/master']], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'infrastructure-support/build-support/scripts/standalone/spliceengine-ee']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
-      ])
     }
 
 
@@ -70,11 +62,9 @@ node('spliceengine') {
             dir('infrastructure-support/build-support/scripts/standalone/spliceengine'){
                 sh """
                     mkdir -p  ~/.m2/
-                    cp pipelines/template/settings.xml ~/.m2/settings.xml
+                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
-                    mvn -B -e --fail-at-end  clean install -Pcore,cdh6.3.0 -DskipTests -Dmaven.artifact.threads=30 -Dhbase.version=2.1.0-cdh6.3.0 -DenvClassifier=cdh6.3.0
-                    
                 """
             }
         }
@@ -91,6 +81,11 @@ node('spliceengine') {
         ./standalone.sh
         tar xvf *.tar.gz
         export PYTHONPATH=$WORKSPACE:$PYTHONPATH
+        export JAVA_HOME=/usr/lib/jvm/jre-openjdk
+        export M2_HOME=/opt/maven
+        export ANT_HOME=/opt/ant
+        export MAVEN_HOME=/opt/maven
+        export PATH=/opt/ant/bin:/opt/maven/bin:${PATH}:${PATH}
         python3 unit_test.py
         '''
       }
@@ -100,7 +95,8 @@ node('spliceengine') {
     stage('Push to S3') {
       dir('infrastructure-support/build-support/scripts/standalone/'){
         sh'''
-        sh "aws s3 cp *.tar.gz s3://splice-releases/standalone/ --acl public-read"
+        ls
+        aws s3 cp *.tar.gz s3://splice-releases/standalone/ --acl public-read
         '''
       }
     }
