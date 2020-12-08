@@ -1324,6 +1324,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             PropertyInfo.setDatabaseProperty(key, value);
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            // we need to invalidate the statement caches since we could set parameters that affect query plans.
+            SYSCS_INVALIDATE_STORED_STATEMENTS();
+            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
@@ -1930,7 +1933,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
-        final String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
+        final String timeStampFormat = SQLTimestamp.defaultTimestampFormatString;
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, RunningOperation> pair : operations)

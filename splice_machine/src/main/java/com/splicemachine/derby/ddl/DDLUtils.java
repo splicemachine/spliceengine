@@ -304,6 +304,7 @@ public class DDLUtils {
     public static void preDropForeignKey(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         try {
             dd.getDataDictionaryCache().constraintDescriptorListCacheRemove(ProtoUtil.getDerbyUUID(change.getTentativeFK().getConstraintUuid()));
+            dd.getDataDictionaryCache().oidTdCacheRemove(ProtoUtil.getDerbyUUID(change.getTentativeFK().getFkConstraintInfo().getChildTable().getTableUuid()));
         } catch(Exception e) {
             throw StandardException.plainWrapException(e);
         }
