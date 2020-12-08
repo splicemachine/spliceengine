@@ -745,7 +745,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          */
         Procedure ANALYZE_EXTERNAL_TABLE = Procedure.newBuilder().name("ANALYZE_EXTERNAL_TABLE")
                 .numOutputParams(0)
-                .varchar("path",128)
+                .varchar("path",1024)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
@@ -756,7 +756,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          */
         Procedure ls = Procedure.newBuilder().name("LIST_DIRECTORY")
                 .numOutputParams(0)
-                .varchar("path",128)
+                .varchar("path",1024)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
