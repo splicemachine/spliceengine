@@ -1195,6 +1195,21 @@ public class SpliceUnitTest {
             rs.next();
             Assert.assertEquals(output, rs.getBoolean(1));
         }
+    }
 
+    protected void checkExpressionType(String input, String expectedType, TestConnection conn) throws SQLException {
+        String sql = format("select typeof(%s)", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedType, rs.getString(1));
+        }
+    }
+
+    protected void checkStringExpression(String input, String expectedOutput, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getString(1));
+        }
     }
 }
