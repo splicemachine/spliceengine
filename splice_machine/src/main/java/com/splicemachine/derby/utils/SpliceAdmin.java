@@ -1325,6 +1325,53 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    public static void SYSCS_GET_TABLE_COUNT(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            SIDriver driver = SIDriver.driver();
+            PartitionFactory partitionFactory = driver.getTableFactory();
+            PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
+            int tableCount = partitionAdmin.getTableCount();
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("NumTables", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLInteger(tableCount)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Cannot get table count.", t);
+        }
+    }
+
+    public static void SYSCS_IS_MEM_PLATFORM(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            boolean isMemPlatform = EngineDriver.isMemPlatform();
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("IsMemPlatform", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLBoolean(isMemPlatform)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Failed to test mem platform status.", t);
+        }
+    }
     public static void SYSCS_INVALIDATE_STORED_STATEMENTS() throws SQLException{
         SystemProcedures.SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS();
         SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE();

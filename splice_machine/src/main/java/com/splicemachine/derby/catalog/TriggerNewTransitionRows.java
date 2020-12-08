@@ -96,7 +96,6 @@ public class TriggerNewTransitionRows
 	private ResultSet resultSet;
 	private DataSet<ExecRow> sourceSet;
 	private TriggerExecutionContext tec;
-	private TemporaryRowHolderResultSet temporaryRowHolderResultSet;
 	protected TriggerRowHolderImpl rowHolder = null;
 
 	public TriggerNewTransitionRows()
@@ -238,7 +237,7 @@ public class TriggerNewTransitionRows
                     else
                         triggerRows = sourceSet.union(cachedRowsSet, op.getOperationContext());
 
-                    if (!activation.isSubStatement() && tec.hasSpecialFromTableTrigger()) {
+                    if (tec.hasSpecialFromTableTrigger()) {
                         dsp.setTempTriggerConglomerate(conglomID);
                     }
                 }
@@ -335,6 +334,7 @@ public class TriggerNewTransitionRows
            sourceSet.unpersistIt();
            sourceSet = null;
        }
+       tec = null;
    }
 
     @Override
