@@ -836,9 +836,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static Stream<TxnView> getActiveTransactions(long minTxnId, long maxTxnId, byte[] destinationTable, boolean sort) throws SQLException {
         List<TxnView> activeTransactions = new ArrayList<>();
         try {
-            PartitionAdmin pa = SIDriver.driver().getTableFactory().getAdmin();
-            ExecutorService executorService = SIDriver.driver().getExecutorService();
-            Collection<PartitionServer> servers = pa.allServers();
+            SIDriver driver = SIDriver.driver();
+            ExecutorService executorService = driver.getExecutorService();
+            Collection<PartitionServer> servers = driver.getTableFactory().getAdmin().allServers();
 
             List<Future<List<Long>>> futures = Lists.newArrayList();
             for (PartitionServer server : servers) {

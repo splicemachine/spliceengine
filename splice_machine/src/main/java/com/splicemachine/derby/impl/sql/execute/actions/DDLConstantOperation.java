@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -39,18 +37,11 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.stream.Stream;
-import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
