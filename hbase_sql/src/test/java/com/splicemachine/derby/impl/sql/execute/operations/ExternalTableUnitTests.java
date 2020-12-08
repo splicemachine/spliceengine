@@ -18,9 +18,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.spark.SparkExternalTableUtil;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.system.CsvOptions;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -102,14 +104,10 @@ public class ExternalTableUnitTests {
         StructType s = new StructType();
         s = s.add("ws_sold_date_sk", DataTypes.DoubleType);
 
-        try {
-            SparkExternalTableUtil.parsePartitionsFromFiles(files, true, basePaths, s,null);
-            Assert.fail("no exception");
-        }
-        catch( Exception e)
-        {
-            Assert.assertEquals(e.toString(), "java.lang.IllegalArgumentException: Column ws_sold_date_sk is double, can't parse HELLO");
-        }
+        StructType finalS = s;
+        SpliceUnitTest.assertThrows( () -> {
+            SparkExternalTableUtil.parsePartitionsFromFiles(files, true, basePaths, finalS,null); },
+                "java.lang.IllegalArgumentException: Column ws_sold_date_sk is double, can't parse HELLO");
     }
 
     @Test
