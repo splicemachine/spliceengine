@@ -78,7 +78,7 @@ public interface IndexDescriptor
 	 * 0 means that the column is not in the key.  Same as the above
 	 * method, but it uses int instead of Integer.
 	 */
-	int getKeyColumnPosition(int heapColumnPosition);
+	int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
 
 	/**
 	 * Returns the number of ordered columns.  
