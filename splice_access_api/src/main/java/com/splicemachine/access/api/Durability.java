@@ -12,22 +12,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.storage;
+package com.splicemachine.access.api;
 
-import com.splicemachine.access.api.Durability;
-
-/**
- * @author Scott Fines
- *         Date: 12/16/15
- */
-public interface DataDelete extends DataMutation{
-    void deleteColumn(DataCell dc);
-
-    DataDelete deleteColumn(byte[] family,byte[] qualifier,long version);
-
-    byte[] key();
-
-    Iterable<DataCell> cells();
-
-    void setDurability(Durability durability);
+public enum Durability {
+    NONE,
+    ASYNC,
+    SYNC
 }

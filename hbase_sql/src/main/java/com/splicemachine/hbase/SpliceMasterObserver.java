@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
@@ -129,7 +130,8 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
              */
             this.manager = new DatabaseLifecycleManager();
 
-            if (SIConfigurations.Durability.NONE == configuration.getDurability()) {
+            if (configuration.getDurability() != Durability.SYNC) {
+                LOG.warn("Running with non-durable HMaster procedures");
                 setNoopProcedureStore(ctx);
             }
         } catch (Throwable t) {

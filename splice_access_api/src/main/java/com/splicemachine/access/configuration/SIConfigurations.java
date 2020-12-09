@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
 
@@ -220,11 +221,5 @@ public class SIConfigurations implements ConfigurationDefault {
             LOG.error("Couldn't parse durability option: " + durability);
             builder.durability = Durability.SYNC;
         }
-    }
-
-    public enum Durability {
-        NONE,
-        ASYNC,
-        SYNC
     }
 }
