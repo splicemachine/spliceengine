@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import org.apache.log4j.Logger;
@@ -193,7 +194,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long transactionTimeout;
     private final boolean ignoreMissingTxns;
     private final long systablesMinRetentionPeriod;
-    private final SIConfigurations.Durability durability;
+    private final Durability durability;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -775,7 +776,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return systablesMinRetentionPeriod;
     }
     @Override
-    public SIConfigurations.Durability getDurability() {
+    public Durability getDurability() {
         return durability;
     }
 

@@ -235,7 +235,7 @@ public interface SConfiguration {
 
     long getSystablesMinRetentionPeriod();
 
-    SIConfigurations.Durability getDurability();
+    Durability getDurability();
 
     // Olap configurations
 
