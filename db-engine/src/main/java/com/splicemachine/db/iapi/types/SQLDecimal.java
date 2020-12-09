@@ -388,20 +388,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         return (value == null) && (rawData == null);
     }
 
-    /**
-     * Distill the BigDecimal to a byte array and
-     * write out: <UL>
-     *    <LI> scale (zero or positive) as a byte </LI>
-     *    <LI> length of byte array as a byte</LI>
-     *    <LI> the byte array </LI> </UL>
-     *
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
     @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.SQLDecimal.Builder builder = CatalogMessage.SQLDecimal.newBuilder();
@@ -466,39 +452,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      * @see java.io.Externalizable#readExternal
      */
     @Override
-    public void readExternal(ObjectInput in) throws IOException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-
-    private void readExternalNew(ObjectInput in) throws IOException {
-        byte[] bs = ArrayUtil.readByteArray(in);
-        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
-        extensionRegistry.add(CatalogMessage.SQLDecimal.sqlDecimal);
-        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
-        CatalogMessage.SQLDecimal sqlDecimal = dvd.getExtension(CatalogMessage.SQLDecimal.sqlDecimal);
-        init(sqlDecimal);
-    }
-
-    private void init(CatalogMessage.SQLDecimal sqlDecimal) {
-        isNull = sqlDecimal.getIsNull();
-        if (isNull) {
-            setCoreValue(null);
-            return;
-        }
-        // clear the previous value to ensure that the
-        // rawData value will be used
-        value = null;
-
-        rawScale = sqlDecimal.getRawScale();
-        rawData = sqlDecimal.getRawData().toByteArray();
-        isNull = evaluateNull();
-    }
-    private void readExternalOld(ObjectInput in) throws IOException {
+    protected void readExternalOld(ObjectInput in) throws IOException {
 
         if (in.readBoolean()) {
             setCoreValue(null);
@@ -528,6 +482,32 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         isNull = evaluateNull();
 
     }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLDecimal.sqlDecimal);
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLDecimal sqlDecimal = dvd.getExtension(CatalogMessage.SQLDecimal.sqlDecimal);
+        init(sqlDecimal);
+    }
+
+    private void init(CatalogMessage.SQLDecimal sqlDecimal) {
+        isNull = sqlDecimal.getIsNull();
+        if (isNull) {
+            setCoreValue(null);
+            return;
+        }
+        // clear the previous value to ensure that the
+        // rawData value will be used
+        value = null;
+
+        rawScale = sqlDecimal.getRawScale();
+        rawData = sqlDecimal.getRawData().toByteArray();
+        isNull = evaluateNull();
+    }
+
     public void readExternalFromArray(ArrayInputStream in) throws IOException
     {
         // clear the previous value to ensure that the

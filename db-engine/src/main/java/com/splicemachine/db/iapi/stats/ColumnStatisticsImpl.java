@@ -31,6 +31,7 @@
 package com.splicemachine.db.iapi.stats;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -133,7 +134,9 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     protected void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
         byte[] bs = ArrayUtil.readByteArray(in);
-        CatalogMessage.ColumnStatisticsImpl columnStatistics = CatalogMessage.ColumnStatisticsImpl.parseFrom(bs);
+        ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+        CatalogMessage.ColumnStatisticsImpl columnStatistics =
+                CatalogMessage.ColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
         NativeMemory quantMem = null;
         NativeMemory freqMem = null;
         NativeMemory thetaMem = null;
@@ -544,7 +547,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity - startSelectivity;
         double count = (double) quantilesSketch.getN();
-        if (totalSelectivity == Double.NaN || count == 0)
+        if (Double.valueOf(totalSelectivity).isNaN() || count == 0)
             qualifiedRows = 0;
         else
             qualifiedRows = Math.round(totalSelectivity * count);

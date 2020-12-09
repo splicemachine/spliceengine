@@ -184,12 +184,6 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
-    @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.HBaseRowLocation.Builder builder = CatalogMessage.HBaseRowLocation.newBuilder();
         builder.setIsNull(slice == null);
@@ -205,16 +199,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-
-    private void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.HBaseRowLocation.hbaseRowLocation);
@@ -231,9 +216,15 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         }
     }
 
-    private void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-        if (in.readBoolean())
-            slice = (ByteSlice) in.readObject();
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
+        try {
+            if (in.readBoolean()) {
+                slice = (ByteSlice) in.readObject();
+            }
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

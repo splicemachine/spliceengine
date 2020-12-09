@@ -947,12 +947,6 @@ public class SQLChar
 
     */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
-    @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.SQLChar.Builder builder = CatalogMessage.SQLChar.newBuilder();
         builder.setIsNull(isNull);
@@ -1004,68 +998,6 @@ public class SQLChar
         return dvd;
     }
 
-    private void writeExternalOld(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-
-        if (isNull()) {
-            return;
-        }
-
-        //
-        // This handles the case that a CHAR or VARCHAR value was populated from
-        // a user Clob.
-        //
-        if ( _clobValue != null )
-        {
-            writeClobUTF( out );
-            return;
-        }
-
-        String lvalue = null;
-        char[] data = null;
-
-        int strlen = rawLength;
-        boolean isRaw;
-
-        if (strlen < 0) {
-            lvalue = value;
-            strlen = lvalue.length();
-            isRaw = false;
-        } else {
-            data = rawData;
-            isRaw = true;
-        }
-
-        // byte length will always be at least string length
-        int utflen = strlen;
-
-        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
-        {
-            int c = isRaw ? data[i] : lvalue.charAt(i);
-            if ((c >= 0x0001) && (c <= 0x007F))
-            {
-                // 1 byte for character
-            }
-            else if (c > 0x07FF)
-            {
-                utflen += 2; // 3 bytes for character
-            }
-            else
-            {
-                utflen += 1; // 2 bytes for character
-            }
-        }
-
-        StreamHeaderGenerator header = getStreamHeaderGenerator();
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(!header.expectsCharCount());
-        }
-        // Generate the header, write it to the destination stream, write the
-        // user data and finally write an EOF-marker is required.
-        header.generateInto(out, utflen);
-        writeUTF(out, strlen, isRaw, null );
-        header.writeEOF(out, utflen);
-    }
 
     /**
      * Writes the user data value to a stream in the modified UTF-8 format.
@@ -1245,16 +1177,7 @@ public class SQLChar
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-
-    private void readExternalNew(ObjectInput in) throws IOException {
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.SQLChar.sqlChar);
@@ -1299,7 +1222,9 @@ public class SQLChar
             }
         }
     }
-    private void readExternalOld(ObjectInput in) throws IOException {
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
 
         if (isNull()) {

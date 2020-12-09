@@ -190,10 +190,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     public abstract int getBaseMemoryUsage();
 
-    public abstract void writeExternal(ObjectOutput out) throws IOException;
-
-    public abstract void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
-
     public abstract int getTypeFormatId();
 
     @Override

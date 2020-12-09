@@ -291,16 +291,6 @@ public class UserType extends DataType
 		return StoredFormatIds.SQL_USERTYPE_ID_V3;
 	}
 
-	/** 
-		@exception IOException error writing data
-
-	*/
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
 	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.UserType.Builder builder = CatalogMessage.UserType.newBuilder();
@@ -321,25 +311,10 @@ public class UserType extends DataType
 				.build();
 		return dvd;
 	}
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										is not found
-	 */
-	@Override
-	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
 		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
@@ -364,16 +339,19 @@ public class UserType extends DataType
 		}
 	}
 
-	private void readExternalOld(ObjectInput in)
-			throws IOException, ClassNotFoundException
-	{
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		boolean readIsNull = in.readBoolean();
-		if (!readIsNull) {
-			/* RESOLVE: Sanity check for right class */
-			value = in.readObject();
-			isNull = evaluateNull();
-		} else {
-			restoreToNull();
+		try {
+			if (!readIsNull) {
+				/* RESOLVE: Sanity check for right class */
+				value = in.readObject();
+				isNull = evaluateNull();
+			} else {
+				restoreToNull();
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
 

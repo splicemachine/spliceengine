@@ -198,11 +198,6 @@ public final class SQLBoolean
         return StoredFormatIds.SQL_BOOLEAN_ID;
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
 
     @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
@@ -218,18 +213,9 @@ public final class SQLBoolean
                         .build();
         return dvd;
     }
-    /** @see java.io.Externalizable#readExternal */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
 
-    private void readExternalNew(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.SQLBoolean.sqlBoolean);
@@ -245,7 +231,9 @@ public final class SQLBoolean
             value = sqlBoolean.getValue();
         }
     }
-    private void readExternalOld(ObjectInput in) throws IOException {
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         value = in.readBoolean();
     }

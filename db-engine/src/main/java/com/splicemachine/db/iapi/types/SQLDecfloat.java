@@ -357,15 +357,6 @@ public final class SQLDecfloat extends NumberDataType
         return (value == null);
     }
 
-    /**
-     *
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
     @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.SQLDecfloat.Builder builder = CatalogMessage.SQLDecfloat.newBuilder();
@@ -388,23 +379,9 @@ public final class SQLDecfloat extends NumberDataType
                         .build();
         return dvd;
     }
-    /**
-     * Note the use of rawData: we reuse the array if the
-     * incoming array is the same length or smaller than
-     * the array length.
-     *
-     * @see java.io.Externalizable#readExternal
-     */
+
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-    private void readExternalNew(ObjectInput in) throws IOException {
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         CatalogMessage.SQLDecfloat decfloat = CatalogMessage.SQLDecfloat.parseFrom(bs);
         init(decfloat);
@@ -418,16 +395,21 @@ public final class SQLDecfloat extends NumberDataType
             value = new BigDecimal(new BigInteger(data), scale);
         }
     }
-    private void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 
-        if (in.readBoolean()) {
-            setCoreValue(null);
-            return;
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
+        try {
+            if (in.readBoolean()) {
+                setCoreValue(null);
+                return;
+            }
+
+            value = ((BigDecimal) in.readObject()).round(MathContext.DECIMAL128);
+
+            isNull = evaluateNull();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
         }
-
-        value = ((BigDecimal) in.readObject()).round(MathContext.DECIMAL128);
-
-        isNull = evaluateNull();
     }
 
     public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {

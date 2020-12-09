@@ -355,7 +355,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
      *                                the stream could not be found.
      * @see java.io.Externalizable#readExternal
      **/
-    private void localReadExternal(ObjectInput in) throws IOException {
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
 
         partitionFactory=SIDriver.driver().getTableFactory();
         opFactory=SIDriver.driver().getOperationFactory();
@@ -364,17 +365,18 @@ public class HBaseConglomerate extends SpliceConglomerate{
         try {
             String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
             if (version == null ||  version.equals("1")) {
-                localReadExternalOld(in);
+                readExternalOld(in);
             }
             else {
-                localReadExternalNew(in);
+                readExternalNew(in);
             }
         } catch (StandardException e) {
             throw new IOException(e);
         }
     }
 
-    private void localReadExternalOld(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
         containerId=in.readLong();
@@ -388,8 +390,9 @@ public class HBaseConglomerate extends SpliceConglomerate{
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
     }
-    
-    private void localReadExternalNew(ObjectInput in) throws IOException {
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.HBaseConglomerate.hbaseConglomerate);
@@ -417,15 +420,11 @@ public class HBaseConglomerate extends SpliceConglomerate{
             columnOrdering[i] = spliceConglomerate.getColumnOrdering(i);
         }
     }
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        localReadExternal(in);
-    }
-
 
     public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException{
         if(LOG.isTraceEnabled())
             LOG.trace("readExternalFromArray: ");
-        localReadExternal(in);
+        readExternalOld(in);
     }
 
     @Override

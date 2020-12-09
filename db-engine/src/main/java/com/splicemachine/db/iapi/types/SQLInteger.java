@@ -180,18 +180,9 @@ public final class SQLInteger
 						.build();
 		return dvd;
 	}
-	/** @see java.io.Externalizable#readExternal */
-	@Override
-	public final void readExternal(ObjectInput in) throws IOException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private final void readExternalNew(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLInteger.sqlInteger);
@@ -208,13 +199,14 @@ public final class SQLInteger
 			setToNull();
 		}
 	}
-	private final void readExternalOld(ObjectInput in)
-        throws IOException {
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		if (!in.readBoolean())
 			setValue(in.readInt());
 		else
 			setToNull();
 	}
+
 	public final void readExternalFromArray(ArrayInputStream in) 
         throws IOException {
 		if (!in.readBoolean())

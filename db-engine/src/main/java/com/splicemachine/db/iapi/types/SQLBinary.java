@@ -334,20 +334,6 @@ abstract class SQLBinary
         return (dataValue == null) && (stream == null) && (_blobValue == null);
     }
 
-    /**
-        Write the value out from the byte array (not called if null)
-        using the 8.1 encoding.
-
-     * @exception IOException        io exception
-     */
-    @Override
-    public final void writeExternal(ObjectOutput out) throws IOException {
-
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
     @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.SQLBinary.Builder builder = CatalogMessage.SQLBinary.newBuilder();
@@ -451,7 +437,7 @@ abstract class SQLBinary
      * @exception ClassNotFoundException    class not found
     */
     @Override
-    public final void readExternal(ObjectInput in) throws IOException {
+    public void readExternal(ObjectInput in) throws IOException {
         if (in instanceof FormatIdInputStream || DataInputUtil.isOldFormat()) {
             readExternalOld(in);
         }
@@ -460,7 +446,8 @@ abstract class SQLBinary
         }
     }
 
-    public final void readExternalNew(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
 
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
@@ -504,8 +491,9 @@ abstract class SQLBinary
         }
         isNull = evaluateNull();
     }
-    public final void readExternalOld(ObjectInput in) throws IOException
-    {
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         // need to clear stream first, in case this object is reused, and
         // stream is set by previous use.  Track 3794.
         stream = null;

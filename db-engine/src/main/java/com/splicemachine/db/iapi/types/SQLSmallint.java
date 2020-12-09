@@ -193,12 +193,6 @@ public final class SQLSmallint
 	}
 
 	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
-	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLSmallint.Builder builder = CatalogMessage.SQLSmallint.newBuilder();
 		builder.setIsNull(isNull);
@@ -218,17 +212,9 @@ public final class SQLSmallint
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLSmallint.sqlSmallint);
@@ -243,7 +229,9 @@ public final class SQLSmallint
 			value = (short) smallint.getValue();
 		}
 	}
-	private void readExternalOld(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}

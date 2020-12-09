@@ -217,12 +217,6 @@ public final class SQLDouble extends NumberDataType
 	}
 
 	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
-	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLDouble.Builder builder = CatalogMessage.SQLDouble.newBuilder();
 		builder.setIsNull(isNull);
@@ -236,18 +230,9 @@ public final class SQLDouble extends NumberDataType
 						.build();
 		return dvd;
 	}
-	/** @see java.io.Externalizable#readExternal */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLDouble.sqlDouble);
@@ -262,7 +247,9 @@ public final class SQLDouble extends NumberDataType
 			value = sqlDouble.getValue();
 		}
 	}
-	private void readExternalOld(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		value = in.readDouble();
 	}

@@ -157,12 +157,6 @@ public final class ListDataType extends DataType {
 		return StoredFormatIds.LIST_ID;
 	}
 
-    @Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
 	@Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.ListDataType.Builder builder = CatalogMessage.ListDataType.newBuilder();
@@ -181,18 +175,8 @@ public final class ListDataType extends DataType {
         return dvd;
     }
 
-	/** @see java.io.Externalizable#readExternal */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-	}
-
-    private void readExternalNew(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
         CatalogMessage.DataValueDescriptor dataValueDescriptor =
@@ -209,7 +193,9 @@ public final class ListDataType extends DataType {
             dvd[i] = ProtoBufUtils.fromProtobuf(listDataType.getDvd(i));
         }
     }
-    private void readExternalOld(ObjectInput in) throws IOException {
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         setLength(in.readInt());
         try {

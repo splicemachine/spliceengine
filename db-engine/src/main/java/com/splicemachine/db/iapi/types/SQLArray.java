@@ -170,11 +170,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		return (value == null);
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
 	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLArray.Builder builder = CatalogMessage.SQLArray.newBuilder();
@@ -195,26 +190,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 		return dvd;
 	}
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
@@ -236,18 +215,24 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			}
 		}
 	}
-	private void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (in.readBoolean())
-			type = (DataValueDescriptor) in.readObject();
-		boolean nonNull = in.readBoolean();
-		if (nonNull) {
-			setIsNull(false);
-			value = new DataValueDescriptor[in.readInt()];
-			for (int i =0; i< value.length; i++) {
-				value[i] = (DataValueDescriptor) in.readObject();
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		try {
+			if (in.readBoolean())
+				type = (DataValueDescriptor) in.readObject();
+			boolean nonNull = in.readBoolean();
+			if (nonNull) {
+				setIsNull(false);
+				value = new DataValueDescriptor[in.readInt()];
+				for (int i = 0; i < value.length; i++) {
+					value[i] = (DataValueDescriptor) in.readObject();
+				}
+			} else {
+				setIsNull(true);
 			}
-		} else {
-			setIsNull(true);
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
 

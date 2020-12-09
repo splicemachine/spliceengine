@@ -458,14 +458,6 @@ public class IndexConglomerate extends SpliceConglomerate{
      * @see java.io.Externalizable#writeExternal
      **/
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        partitionFactory =SIDriver.driver().getTableFactory();
-        opFactory = SIDriver.driver().getOperationFactory();
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
-    @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 
         CatalogMessage.HBaseConglomerate spliceConglomerate = CatalogMessage.HBaseConglomerate.newBuilder()
@@ -524,7 +516,8 @@ public class IndexConglomerate extends SpliceConglomerate{
      *                                the stream could not be found.
      * @see java.io.Externalizable#readExternal
      **/
-    private void localReadExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
         if (LOG.isTraceEnabled()) {
             SpliceLogUtils.trace(LOG, "localReadExternal");
         }
@@ -534,17 +527,18 @@ public class IndexConglomerate extends SpliceConglomerate{
         try {
             String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
             if (version == null || version.equals("1")) {
-                localReadExternalOld(in);
+                readExternalOld(in);
             }
             else {
-                localReadExternalNew(in);
+                readExternalNew(in);
             }
         } catch (StandardException e) {
             throw new IOException(e);
         }
     }
 
-    private void localReadExternalNew(ObjectInput in) throws IOException{
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException{
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.IndexConglomerate.indexConglomerate);
@@ -616,8 +610,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
     }
 
-
-    private void localReadExternalOld(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         btreeReadExternal(in);
         baseConglomerateId=in.readLong();
         rowLocationColumn=in.readInt();
@@ -710,17 +704,10 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        if(LOG.isTraceEnabled())
-            LOG.trace("readExternal");
-        localReadExternal(in);
-    }
-
-    @Override
-    public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException{
+    public void readExternalFromArray(ArrayInputStream in) throws IOException {
         if(LOG.isTraceEnabled())
             LOG.trace("readExternalFromArray");
-        localReadExternal(in);
+        readExternal(in);
     }
 
     public void btreeWriteExternal(ObjectOutput out) throws IOException{
@@ -734,7 +721,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(format_ids,out);
     }
 
-    public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    public void btreeReadExternal(ObjectInput in) throws IOException {
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
         containerId=in.readLong();

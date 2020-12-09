@@ -507,22 +507,8 @@ public class XML
 		isNull = true;
     }
 
-    /**
-     * Read an XML value from an input stream.
-     * @param in The stream from which we're reading.
-     */
     @Override
-    public void readExternal(ObjectInput in) throws IOException
-    {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-
-    private void readExternalNew(ObjectInput in) throws IOException {
+    protected void readExternalNew(ObjectInput in) throws IOException {
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         extensionRegistry.add(CatalogMessage.XML.xml);
@@ -548,7 +534,8 @@ public class XML
         isNull = evaluateNull();
     }
 
-    private void readExternalOld(ObjectInput in) throws IOException
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException
     {
         if (xmlStringValue == null)
             xmlStringValue = new SQLChar();
@@ -570,23 +557,12 @@ public class XML
         isNull = evaluateNull();
     }
 
-    /**
-     * Write an XML value. 
-     * @param out The stream to which we're writing.
-     */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         // never called when value is null
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(!isNull());
 
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
-    @Override
-    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.DataValueDescriptor sqlChar = xmlStringValue.toProtobuf();
         CatalogMessage.XML xml = CatalogMessage.XML.newBuilder()
                 .setImplId(UTF8_IMPL_ID)

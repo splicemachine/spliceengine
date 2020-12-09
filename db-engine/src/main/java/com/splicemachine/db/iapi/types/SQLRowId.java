@@ -150,12 +150,6 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-        ArrayUtil.writeByteArray(out, dvd.toByteArray());
-    }
-
-    @Override
     public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
         CatalogMessage.SQLRowId.Builder builder = CatalogMessage.SQLRowId.newBuilder();
         builder.setIsNull(bytes == null);
@@ -175,16 +169,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
     @Override
-    public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
-        if (DataInputUtil.isOldFormat()) {
-            readExternalOld(in);
-        }
-        else {
-            readExternalNew(in);
-        }
-    }
-
-    private void readExternalNew(ObjectInput in)  throws IOException, ClassNotFoundException {
+    protected void readExternalNew(ObjectInput in)  throws IOException  {
 
         byte[] bs = ArrayUtil.readByteArray(in);
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
@@ -203,7 +188,8 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         }
     }
 
-    private void readExternalOld(ObjectInput in)  throws IOException, ClassNotFoundException {
+    @Override
+    protected void readExternalOld(ObjectInput in)  throws IOException {
         int len = in.readInt();
         if (len > 0) {
             bytes = new byte[len];

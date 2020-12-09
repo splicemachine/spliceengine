@@ -129,12 +129,6 @@ public class SQLRef extends DataType implements RefDataValue {
 	}
 
 	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
-	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLRef.Builder builder = CatalogMessage.SQLRef.newBuilder();
 		builder.setIsNull(value == null);
@@ -149,28 +143,8 @@ public class SQLRef extends DataType implements RefDataValue {
 		return dvd;
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
 	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
-
-	private void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException
-	{
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLRef.sqlRef);
@@ -190,11 +164,17 @@ public class SQLRef extends DataType implements RefDataValue {
 			setValue((RowLocation) dvd);
 		}
 	}
-	private void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException
 	{
-		boolean nonNull = in.readBoolean();
-		if (nonNull) {
-			setValue((RowLocation) in.readObject());
+		try {
+			boolean nonNull = in.readBoolean();
+			if (nonNull) {
+				setValue((RowLocation) in.readObject());
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
 

@@ -14,6 +14,7 @@
 
 package com.splicemachine.db.iapi.stats;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.DataInputUtil;
@@ -152,8 +153,9 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
     @Override
     protected void readExternalNew (ObjectInput in) throws IOException, ClassNotFoundException {
         byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
         CatalogMessage.FakeColumnStatisticsImpl columnStatistics =
-                CatalogMessage.FakeColumnStatisticsImpl.parseFrom(bs);
+                CatalogMessage.FakeColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
         dvd = ProtoBufUtils.fromProtobuf(columnStatistics.getDvd());
         totalCount = columnStatistics.getTotalCount();
         nullCount = columnStatistics.getNullCount();

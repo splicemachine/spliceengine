@@ -229,15 +229,6 @@ public final class SQLDate extends DataType
 		return StoredFormatIds.SQL_DATE_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
-
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
 	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLDate.Builder builder = CatalogMessage.SQLDate.newBuilder();
@@ -253,22 +244,9 @@ public final class SQLDate extends DataType
 
 		return dvd;
 	}
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLDate.sqlDate);
@@ -284,7 +262,8 @@ public final class SQLDate extends DataType
 		}
 	}
 
-	private void readExternalOld(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt());
 	}

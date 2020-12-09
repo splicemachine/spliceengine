@@ -182,12 +182,6 @@ public final class SQLLongint extends NumberDataType {
 	}
 
 	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
-		ArrayUtil.writeByteArray(out, dvd.toByteArray());
-	}
-
-	@Override
 	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
 		CatalogMessage.SQLLongint.Builder builder = CatalogMessage.SQLLongint.newBuilder();
 		builder.setIsNull(isNull);
@@ -201,18 +195,9 @@ public final class SQLLongint extends NumberDataType {
 						.build();
 		return dvd;
 	}
-	/** @see java.io.Externalizable#readExternal */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
-		if (DataInputUtil.isOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
 
-	private void readExternalNew(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
 		byte[] bs = ArrayUtil.readByteArray(in);
 		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
 		extensionRegistry.add(CatalogMessage.SQLLongint.sqlLongint);
@@ -227,7 +212,9 @@ public final class SQLLongint extends NumberDataType {
 			value = longint.getValue();
 		}
 	}
-	private void readExternalOld(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		setIsNull(in.readBoolean());
 		value = in.readLong();
 	}
