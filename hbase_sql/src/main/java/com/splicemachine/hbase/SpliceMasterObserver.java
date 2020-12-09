@@ -17,6 +17,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
@@ -37,6 +38,9 @@ import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
@@ -44,6 +48,15 @@ import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.MasterObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.master.HMaster;
+import org.apache.hadoop.hbase.master.SpliceNoopProcedureStore;
+import org.apache.hadoop.hbase.master.procedure.MasterProcedureConstants;
+import org.apache.hadoop.hbase.master.procedure.MasterProcedureEnv;
+import org.apache.hadoop.hbase.master.procedure.MasterProcedureScheduler;
+import org.apache.hadoop.hbase.procedure2.ProcedureExecutor;
+import org.apache.hadoop.hbase.procedure2.store.NoopProcedureStore;
+import org.apache.hadoop.hbase.procedure2.store.ProcedureStore;
+import org.apache.hadoop.hbase.procedure2.store.wal.WALProcedureStore;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -52,7 +65,12 @@ import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
+
+import static org.python.apache.xerces.dom.DOMNormalizer.abort;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -110,9 +128,63 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
              * issue during testing
              */
             this.manager = new DatabaseLifecycleManager();
+
+            if (SIConfigurations.Durability.NONE == configuration.getDurability()) {
+                setNoopProcedureStore(ctx);
+            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
+    }
+
+    private void setNoopProcedureStore(CoprocessorEnvironment ctx)
+            throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, IOException {
+        Field services = ctx.getClass().getDeclaredField("services");
+        services.setAccessible(true);
+        HMaster master = (HMaster)services.get(ctx);
+        Method stopExecutor = HMaster.class.getDeclaredMethod("stopProcedureExecutor");
+        stopExecutor.setAccessible(true);
+        stopExecutor.invoke(master);
+        Field procedureStore = HMaster.class.getDeclaredField("procedureStore");
+        Field procedureExecutor = HMaster.class.getDeclaredField("procedureExecutor");
+        procedureStore.setAccessible(true);
+        procedureExecutor.setAccessible(true);
+
+        MasterProcedureEnv procEnv = new MasterProcedureEnv(master);
+        Configuration conf = master.getConfiguration();
+        SpliceNoopProcedureStore noopProcedureStore = new SpliceNoopProcedureStore(conf, new WALProcedureStore.LeaseRecovery() {
+            @Override
+            public void recoverFileLease(FileSystem fs, Path path) throws IOException {
+                // no-op
+            }
+        });
+        procedureStore.set(master, noopProcedureStore);
+        noopProcedureStore.registerListener(new ProcedureStore.ProcedureStoreListener() {
+
+            @Override
+            public void abortProcess() {
+                master.abort("The Procedure Store lost the lease", null);
+            }
+        });
+        MasterProcedureScheduler procedureScheduler = procEnv.getProcedureScheduler();
+        ProcedureExecutor<MasterProcedureEnv> pExecutor = new ProcedureExecutor<>(conf, procEnv, noopProcedureStore, procedureScheduler);
+        procedureExecutor.set(master, pExecutor);
+
+        int cpus = Runtime.getRuntime().availableProcessors();
+        final int numThreads = conf.getInt(MasterProcedureConstants.MASTER_PROCEDURE_THREADS, Math.max(
+                (cpus > 0 ? cpus / 4 : 0), MasterProcedureConstants.DEFAULT_MIN_MASTER_PROCEDURE_THREADS));
+        final int urgentWorkers = conf
+                .getInt(MasterProcedureConstants.MASTER_URGENT_PROCEDURE_THREADS,
+                        MasterProcedureConstants.DEFAULT_MASTER_URGENT_PROCEDURE_THREADS);
+        final boolean abortOnCorruption =
+                conf.getBoolean(MasterProcedureConstants.EXECUTOR_ABORT_ON_CORRUPTION,
+                        MasterProcedureConstants.DEFAULT_EXECUTOR_ABORT_ON_CORRUPTION);
+        noopProcedureStore.start(numThreads);
+        // Just initialize it but do not start the workers, we will start the workers later by calling
+        // startProcedureExecutor. See the javadoc for finishActiveMasterInitialization for more
+        // details.
+        pExecutor.init(numThreads, urgentWorkers, abortOnCorruption);
+        procEnv.getRemoteDispatcher().start();
     }
 
     @Override
