@@ -61,6 +61,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int          NUM_CORE = 4;
 	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
 	public static final int CURRENT_CATALOG_SERIALIZATION_VERSION = 2;
+	@SuppressFBWarnings(value="MS_CANNOT_BE_FINAL", justification = "intentional")
 	public static int SPLICE_CATALOG_SERIALIZATION_VERSION = Integer.MIN_VALUE;
 
 	/**

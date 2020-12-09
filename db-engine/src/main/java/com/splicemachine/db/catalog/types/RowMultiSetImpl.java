@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Lists;
 
 import java.io.ObjectOutput;
@@ -50,6 +51,7 @@ import java.util.List;
  * in part 2, section 4.8.
  * </p>
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class RowMultiSetImpl extends BaseTypeIdImpl
 {
     /********************************************************

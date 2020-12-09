@@ -59,7 +59,8 @@ class CollatorSQLClob extends SQLClob implements CollationElementsInterface
 	/*
 	 * constructors
 	 */
-    
+
+	public CollatorSQLClob() {}
     /**
      * Create SQL CLOB value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 

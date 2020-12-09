@@ -22,6 +22,8 @@ import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -338,8 +340,8 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
         return -1;
     }
 
+    @SuppressFBWarnings(value="CN_IDIOM_NO_SUPER_CALL", justification="intentional")
     @Override
-    @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
     public ByteSlice clone() {
         if(buffer == null) return new ByteSlice();
         return new ByteSlice(getByteCopy(), 0, length);

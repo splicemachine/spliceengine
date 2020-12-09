@@ -447,7 +447,7 @@ public class UserType extends DataType
 		 */
 		if (typePrecedence() < other.typePrecedence())
 		{
-			return - (other.compare(this));
+			return  compare(other);
 		}
 
 		boolean thisNull, otherNull;

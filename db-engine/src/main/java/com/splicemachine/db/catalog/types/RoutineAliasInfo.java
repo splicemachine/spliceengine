@@ -527,6 +527,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		{
 		    case PS_JAVA:    sb.append( "JAVA " ); break;
 		    case PS_SPLICE_JDBC_RESULT_SET:    sb.append( "SPLICE_JDBC_RESULT_SET " ); break;
+			default:
 		}
         
         if ( isDeterministic() )
