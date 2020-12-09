@@ -259,7 +259,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	/** @see IndexDescriptor#isAscending */
 	public boolean isAscending(Integer keyColumnPosition) {
 		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
+		if (i < 0 || i >= isAscending.length)
 			return false;
 		return isAscending[i];
     }
@@ -267,7 +267,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	/** @see IndexDescriptor#isDescending */
 	public boolean isDescending(Integer keyColumnPosition) {
 		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
+		if (i < 0 || i >= isAscending.length)
 			return false;
 		return ! isAscending[i];
     }
