@@ -45,6 +45,11 @@ node('splice-standalone'){
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
                     """
+                   pom = readMavenPom file: 'pom.xml'
+                   env.POM_VERSION = pom.version
+                   sh '''#!/bin/bash -xe
+                       echo $POM_VERSION
+                   '''.stripIndent()
                     }
                 }
         }
@@ -56,6 +61,21 @@ node('splice-standalone'){
                     mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
                     '''
                 }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Launching Downstream Jobs...")
+        stage("Launch Downstream Jobs"){
+            dir('spliceengine'){
+                build (job: 'spliceengine-platform', propagate: false, wait: false)
+                build (job: 'spliceengine-sqlshell', propagate: false, wait: false)
+                build (job: 'spliceengine-jdbc', propagate: false, wait: false)
+                build (job: 'spliceengine-nsds', propagate: false, wait: false)
+                jar=sh(returnStdout: true, script: "echo ${POM_VERSION} | grep '\\-SNAPSHOT'")
+                echo jar
+                if (env.jar != null) {
+                    build (job: '../PDImageBuilds/ssds', parameters: [[$class: 'choiceParam', name: 'Branch', value: 'master'], [$class: 'choiceParam', name: 'Platform', value: 'hdp3.1.5'], [$class: 'stringParam', name: 'Tag', value: version], [$class: 'choiceParam', name: 'Release', value: 'True']], propagate: false, wait: false)
+                    build (job: '../PDImageBuilds/ssds', parameters: [[$class: 'choiceParam', name: 'Branch', value: 'master'], [$class: 'choiceParam', name: 'Platform', value: 'cdh6.3.0'], [$class: 'stringParam', name: 'Tag', value: version], [$class: 'choiceParam', name: 'Release', value: 'True']], propagate: false, wait: false)
+                }
+            }
         }
     } catch (any) {
         // if there was an exception thrown, the build failed

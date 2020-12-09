@@ -90,11 +90,15 @@ node('splice-standalone'){
         stage("Initiate Parallel Stages"){
                 parallel parallelStagesMap
         }
+        stage("Deploy Artifacts"){
+            build (job: 'spliceengine-hdp', propagate: false, wait: false)
+            build (job: 'spliceengine-parcel', propagate: false, wait: false)
+            build (job: 'spliceengine-mapr', propagate: false, wait: false)
+        }
     } catch (any) {
         // if there was an exception thrown, the build failed
         currentBuild.result = "FAILED"
         throw any
-
     } finally {
         archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
         slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")

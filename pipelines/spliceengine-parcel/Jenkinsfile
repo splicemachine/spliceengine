@@ -47,7 +47,7 @@ def generateStage(platform,slackResponse) {
                 wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                     sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -DskipTests
-                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
                     """
