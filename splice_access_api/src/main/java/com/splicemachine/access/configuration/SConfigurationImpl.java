@@ -193,6 +193,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long transactionTimeout;
     private final boolean ignoreMissingTxns;
     private final long systablesMinRetentionPeriod;
+    private final SIConfigurations.Durability durability;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -773,6 +774,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public long getSystablesMinRetentionPeriod() {
         return systablesMinRetentionPeriod;
     }
+    @Override
+    public SIConfigurations.Durability getDurability() {
+        return durability;
+    }
 
     // SQLConfiguration
     @Override
@@ -1141,6 +1146,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
+        durability = builder.durability;
         systablesMinRetentionPeriod = builder.systablesMinRetentionPeriod;
         maxCheckTableErrors = builder.maxCheckTableErrors;
         rollForwardQueueSize = builder.rollForwardQueueSize;
