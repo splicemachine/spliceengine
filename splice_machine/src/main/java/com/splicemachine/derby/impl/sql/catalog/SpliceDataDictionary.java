@@ -372,7 +372,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
@@ -382,12 +383,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
