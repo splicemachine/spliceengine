@@ -404,7 +404,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 // remove corresponding schema canche entry
-            dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
+                dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
                 dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getUpdateSchemaOwner().getSchemaUUID()));
                 // clear permission cache as it has out-of-date permission info for the schema
                 dd.getDataDictionaryCache().clearPermissionCache();

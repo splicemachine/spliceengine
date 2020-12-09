@@ -55,7 +55,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
     protected String ipAddress;
-    private boolean updated = false;
+    private boolean prepared = false;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this(CONNECTION_STRING, new Properties());
@@ -95,9 +95,10 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                        TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
-        if (updated) {
+        if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
+        boolean updated = false;
         try {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
@@ -120,6 +121,8 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                     false, -1,
                     ipAddress, reuseTC);
 
+            prepared = true;
+
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);
             if (updated)
@@ -130,10 +133,10 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
 
     public void close(){
-        if (updated) {
+        if (prepared) {
             csf.resetCurrentContextManager(cm);
             csf.removeContextManager(cm);
-            updated = false;
+            prepared = false;
         }
     }
 
