@@ -49,6 +49,7 @@ import java.util.Properties;
 import static com.splicemachine.db.shared.common.reference.MessageId.SPLICE_GENERIC_EXCEPTION;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER_BAD_REF_MISMATCH;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test REFERENCING clause in triggers.
@@ -140,12 +141,12 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         // Mem platform doesn't physically remove dropped tables, so
         // this is an HBase-only check.
         if (!isMemPlatform)
-            assertEquals("\nStarted with " + numTables + " tables and ended with " + newNumTables,
-                         numTables, newNumTables);
+            assertTrue("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                         numTables >= newNumTables);
 
         int newNumOperations = getNumberOfRunningOperations();
-        assertEquals("\nStarted with " + runningOperations + " running operations and ended with " + newNumOperations,
-                     runningOperations, newNumOperations);
+        assertTrue("\nStarted with " + runningOperations + " running operations and ended with " + newNumOperations,
+                     runningOperations >= newNumOperations);
     }
 
     protected void createInt_Proc() throws Exception {
