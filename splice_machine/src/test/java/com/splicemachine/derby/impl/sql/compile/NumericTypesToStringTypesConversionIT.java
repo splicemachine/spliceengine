@@ -271,9 +271,9 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
 
     @Test
     public void testFloatNumbersTruncate() throws Exception {
-        // This time the value is actual an integer but in double type. In output format, there is not enough
-        // decimal digits to hold the value. In DB2, it's the same behavior as rounding (half-even). But Java
-        // seems to have half-up. The rounding option settings has no effect in this situation.
+        // Here, the value is an integer but in double type. In output format, there is not enough decimal
+        // digits to hold the value. In DB2, it's the same behavior as rounding (half-even). But Java seems
+        // to have half-up. The rounding option settings has no effect in this situation.
         try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123445)) from sysibm.sysdummy1")) {
             String expected = "1          |\n" +
                     "---------------------\n" +
@@ -284,7 +284,7 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
         try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123446)) from sysibm.sysdummy1")) {
             String expected = "1          |\n" +
                     "---------------------\n" +
-                    "1.23456789012345E15 |";   // 1.23456789012344E15 in DB2
+                    "1.23456789012345E15 |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
