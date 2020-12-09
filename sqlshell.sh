@@ -9,14 +9,25 @@ else
     RLWRAP=
 fi
 
-
 echo "Running Splice Machine SQL shell"
 echo "For help: \"splice> help;\""
+
+
+if [ $# -ge 1 ] && [ $1 = "debug" ]
+then
+    port=4010
+    if [ $# -eq 2 ]
+    then
+        port=$2
+    fi
+    export MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=$port"
+fi
+
 
 if [ -z "${CLIENT_SSL_KEYSTORE}" ]; then
   cd splice_machine ; ${RLWRAP} mvn exec:java ; cd ${DIR}
 else
-  cd splice_machine ; ${RLWRAP} mvn  exec:java \
+  cd splice_machine ; ${RLWRAP} MAVEN_OPTS="${MY_MAVEN_OPTS}" mvn exec:java \
     -Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
     -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
     -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
