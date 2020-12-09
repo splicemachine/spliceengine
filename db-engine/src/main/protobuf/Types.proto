@@ -529,3 +529,19 @@ message IndexConglomerate {
   optional int32 rowLocationColumn=8;
   repeated bool ascDescInfo=9;
 }
+
+message ColumnStatisticsImpl {
+  optional int64 nullCount = 1;
+  optional DataValueDescriptor dvd = 2;
+  optional bytes quantilesSketch = 3;
+  optional bytes frequenciesSketch = 4;
+  optional bytes thetaSketch = 5;
+}
+
+message FakeColumnStatisticsImpl {
+  optional DataValueDescriptor dvd = 1;
+  optional int64 totalCount = 2;
+  optional int64 nullCount = 3;
+  optional int64 cardinality = 4;
+  optional int64 rpv = 5;
+}
