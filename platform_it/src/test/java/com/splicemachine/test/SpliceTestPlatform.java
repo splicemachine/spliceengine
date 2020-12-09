@@ -34,7 +34,7 @@ import java.security.PrivilegedExceptionAction;
 public class SpliceTestPlatform {
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 9) {
+        if (args.length < 9) {
             SpliceTestPlatformUsage.usage("Unknown argument(s)", null);
         }
         try {
@@ -48,6 +48,9 @@ public class SpliceTestPlatform {
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
             String olapLog4jConfig = args[7];
             boolean secure = Boolean.parseBoolean(args[8]);
+            String durability = "ASYNC";
+            if (args.length > 9)
+                durability = args[9];
 
             Configuration config = SpliceTestPlatformConfig.create(
                     hbaseRootDirUri,
@@ -58,7 +61,8 @@ public class SpliceTestPlatform {
                     derbyPort,
                     failTasksRandomly,
                     olapLog4jConfig,
-                    secure);
+                    secure,
+                    durability);
 
             // clean-up zookeeper
             try {
