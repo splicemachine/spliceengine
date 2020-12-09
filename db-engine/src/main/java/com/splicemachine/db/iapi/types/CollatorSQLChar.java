@@ -61,6 +61,7 @@ public final class CollatorSQLChar extends SQLChar implements CollationElementsI
      * Create SQL CHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 
      */
+    public CollatorSQLChar() {}
     public CollatorSQLChar(RuleBasedCollator collatorForCharacterDatatypes)
     {
         setCollator(collatorForCharacterDatatypes);

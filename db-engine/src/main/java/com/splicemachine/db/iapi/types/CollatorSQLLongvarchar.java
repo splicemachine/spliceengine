@@ -58,7 +58,7 @@ class CollatorSQLLongvarchar extends SQLLongvarchar implements CollationElements
 	 * constructors
 	 */
 
-
+	public CollatorSQLLongvarchar() {}
     /**
      * Create SQL LONG VARCHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 

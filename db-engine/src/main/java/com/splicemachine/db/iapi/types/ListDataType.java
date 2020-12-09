@@ -105,16 +105,15 @@ public final class ListDataType extends DataType {
     @Override
     public String getString() throws StandardException
     {
-        String theString = new String();
-        theString.concat("( ");
+        StringBuffer sb = new StringBuffer("( ");
         for (int i = 0; i < numElements; i++) {
             String stringToAdd = dvd[i] == null ? null : dvd[i].getString();
-            theString.concat(stringToAdd != null ? stringToAdd : "NULL");
+            sb.append(stringToAdd != null ? stringToAdd : "NULL");
             if (i != numElements - 1)
-                theString.concat(", ");
+                sb.append((", "));
         }
-        theString.concat(")");
-        return theString;
+        sb.append(")");
+        return sb.toString();
     }
 
     @Override

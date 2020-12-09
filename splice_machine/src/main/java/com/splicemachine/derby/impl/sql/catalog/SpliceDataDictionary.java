@@ -1997,6 +1997,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                         ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, partitionId, columnId, columnStatistics);
                         addColumnStatistics(statsRow, tc);
                         break;
+                    default:
+                        throw new RuntimeException("Unexpected table number: " + tables[i]);
                 }
             }
         }

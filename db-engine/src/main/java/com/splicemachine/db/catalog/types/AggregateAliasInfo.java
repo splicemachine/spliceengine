@@ -162,7 +162,7 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 		 throws IOException, ClassNotFoundException
 	{
         // as the persistent form evolves, switch on this value
-        int oldVersion = in.readInt();
+        in.readInt();
 
         _forType = (TypeDescriptor) in.readObject();
         _returnType = (TypeDescriptor) in.readObject();

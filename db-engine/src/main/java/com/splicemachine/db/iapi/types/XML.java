@@ -48,6 +48,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -71,6 +72,7 @@ import org.apache.spark.sql.types.StructField;
  * are written, the impl id will be the key to figuring out
  * how an XML value should be read, written, and processed.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class XML
     extends DataType implements XMLDataValue, StreamStorable
 {

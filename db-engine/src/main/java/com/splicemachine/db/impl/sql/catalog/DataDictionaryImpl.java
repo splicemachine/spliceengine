@@ -71,6 +71,7 @@ import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Optional;
@@ -252,6 +253,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param startParams The start-up parameters
      * @throws StandardException Thrown if the module fails to start
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         softwareVersion=new DD_Version(this,DataDictionary.DD_VERSION_DERBY_10_9);
@@ -3713,7 +3715,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
                     replaceRow[i] = new SQLBoolean(false);
                 else if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
-                    replaceRow[i] = new UserType(null);
+                    replaceRow[i] = new UserType((Object)null);
                 else
                     replaceRow[i] = rowTemplate[i].cloneValue(false);
             }
@@ -6595,6 +6597,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
                                           DataDescriptorGenerator ddg) throws StandardException{

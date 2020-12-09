@@ -106,29 +106,20 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	@Override
 	public byte[] getBytes() throws StandardException {
-		ObjectOutput output = null;
-		try {
-			ByteArrayOutputStream stream = new ByteArrayOutputStream();
-			output = new ObjectOutputStream(stream);
+		try (ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			 ObjectOutput output = new ObjectOutputStream(stream)) {
 			output.writeBoolean(value !=null);
 			if (value != null) {
 				output.writeInt(value.length);
-                for (DataValueDescriptor aValue : value) {
-                    output.writeObject(aValue);
-                }
+				for (DataValueDescriptor aValue : value) {
+					output.writeObject(aValue);
+				}
 			}
 			output.flush();
 			return stream.toByteArray();
-		} catch (Exception e) {
+		} catch (IOException e) {
 			throw StandardException.plainWrapException(e);
-		} finally {
-			try {
-				if (output != null) {
-					output.close();
-				}
-			} catch (Exception ignored) {}
 		}
-
 	}
 
 
