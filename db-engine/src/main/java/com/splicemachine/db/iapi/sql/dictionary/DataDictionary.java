@@ -286,7 +286,8 @@ public interface DataDictionary{
             "1", // SYSSNAPSHOT
             "1", // SYSTOKENS
             "1", // SYSREPLICATION
-            "1"  // SYSMONGETCONNECTION_CATALOG_NUM
+            "1", // SYSMONGETCONNECTION_CATALOG_NUM
+            "1"  // SYSNATURALNUMBERS
     ));
 
     /**
