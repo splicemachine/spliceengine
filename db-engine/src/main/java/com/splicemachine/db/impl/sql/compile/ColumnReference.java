@@ -496,8 +496,6 @@ public class ColumnReference extends ValueNode {
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
-        ResultColumn matchingRC;
-
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(fromList != null, "fromList is expected to be non-null");
         }
@@ -506,19 +504,7 @@ public class ColumnReference extends ValueNode {
             throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
         }
 
-        matchingRC = fromList.bindColumnReference(this);
-            /* Error if no match found in fromList */
-        if (matchingRC == null) {
-            // not found in normal table, check if it is an alias?
-            ValueNode node = fromList.getAlias(this);
-            if (node == null) {
-                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
-            }
-            // if found, REPLACE this alias-referencing node with the expression the alias is pointing to
-            return node;
-        }
-
-        return this;
+        return fromList.bindColumnReference(this);
     }
 
     /**

@@ -219,8 +219,9 @@ public interface TypeCompiler
      *
      * @param dts        The associated DataTypeDescriptor for this TypeId.
      *
+     * @param compilerContext
      * @return int            The maximum width for this data type when cast to a char type.
      */
-    int getCastToCharWidth(DataTypeDescriptor dts);
+    int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext);
 
 }

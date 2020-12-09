@@ -244,7 +244,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		if (!(leftOperand.getTypeId().isStringTypeId() || leftOperand
 				.getTypeId().isBitTypeId())) {
 			int leftWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
-			                 tc.getCastToCharWidth(leftOperand.getTypeServices());
+			                 tc.getCastToCharWidth(leftOperand.getTypeServices(), getCompilerContext());
 			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
 					Types.VARCHAR, true, leftWidth);
 
@@ -264,7 +264,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		if (!(rightOperand.getTypeId().isStringTypeId() || rightOperand
 				.getTypeId().isBitTypeId())) {
 			int rightWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
-			                 tc.getCastToCharWidth(rightOperand.getTypeServices());
+			                 tc.getCastToCharWidth(rightOperand.getTypeServices(), getCompilerContext());
 			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
 					Types.VARCHAR, true, rightWidth);
 

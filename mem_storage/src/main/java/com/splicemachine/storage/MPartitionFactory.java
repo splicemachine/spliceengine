@@ -265,5 +265,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
+
+        @Override
+        public int getTableCount() throws IOException {
+            return partitionMap.size();
+        }
     }
 }
