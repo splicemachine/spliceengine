@@ -428,7 +428,11 @@ conglomerates are removed.
         Conglomerate.Priority priority)
              throws StandardException;
 
-    long createConglomerate(
+    /**
+     * Creates a conglomerate asynchronously, the caller can use the returned object but they must call {@link Conglomerate#awaitCreation()}
+     * before they can use the newly created, referenced conglomerate
+     */
+    Conglomerate createConglomerateAsync(
         boolean                 isExternal,
         String                  implementation,
         DataValueDescriptor[]   template,
