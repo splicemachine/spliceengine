@@ -230,6 +230,7 @@ public class ConfigurationBuilder {
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
     public boolean olapCompactionAutomaticallyPurgeOldUpdates;
     public String olapServerMode;
+    public SIConfigurations.Durability durability;
 
 
     /**

@@ -15,6 +15,7 @@
 package com.splicemachine.access.configuration;
 
 import com.splicemachine.primitives.Bytes;
+import org.apache.log4j.Logger;
 
 /**
  * Repository for holding configuration keys for SI.
@@ -26,6 +27,8 @@ import com.splicemachine.primitives.Bytes;
  *         Date: 12/15/15
  */
 public class SIConfigurations implements ConfigurationDefault {
+    private static final Logger LOG = Logger.getLogger(SIConfigurations.class);
+
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 
@@ -171,7 +174,10 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String ROLLFORWARD_SECOND_THREADS = "splice.txn.rollforward.secondQueueThreads";
     public static final int DEFAULT_ROLLFORWARD_SECOND_THREADS = 1;
 
-
+    // Durability setting, useful for testing or standalone
+    // Options: NONE, ASYNC, SYNC
+    public static final String DURABILITY = "splice.txn.durability";
+    public static final String DEFAULT_DURABILITY = "SYNC";
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -206,5 +212,19 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.rollForwardSecondWait  = configurationSource.getInt(ROLLFORWARD_SECOND_WAIT, DEFAULT_ROLLFORWARD_SECOND_WAIT);
         builder.rollForwardFirstThreads  = configurationSource.getInt(ROLLFORWARD_FIRST_THREADS, DEFAULT_ROLLFORWARD_FIRST_THREADS);
         builder.rollForwardSecondThreads = configurationSource.getInt(ROLLFORWARD_SECOND_THREADS, DEFAULT_ROLLFORWARD_SECOND_THREADS);
+
+        String durability = configurationSource.getString(DURABILITY, DEFAULT_DURABILITY);
+        try {
+            builder.durability = Durability.valueOf(durability);
+        } catch (IllegalArgumentException ex) {
+            LOG.error("Couldn't parse durability option: " + durability);
+            builder.durability = Durability.SYNC;
+        }
+    }
+
+    public enum Durability {
+        NONE,
+        ASYNC,
+        SYNC
     }
 }
