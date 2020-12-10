@@ -14,7 +14,7 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.log4j.Logger;
 
 import java.util.Iterator;

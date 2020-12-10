@@ -38,13 +38,12 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 
@@ -57,6 +56,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		protected String restrictionMethodName;
 		protected String projectionMethodName;
 		protected String constantRestrictionMethodName;
+		protected boolean parameterInConstantRestriction;
 		protected int mapRefItem;
 		protected int cloneMapItem;
 		protected boolean reuseResult;
@@ -116,6 +116,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         int resultColumnTypeArrayItem,
                                         int resultSetNumber,
                                         GeneratedMethod cr,
+                                        boolean paramInCr,
                                         int mapRefItem,
                                         int cloneMapItem,
                                         boolean reuseResult,
@@ -130,6 +131,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
 				this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
+				this.parameterInConstantRestriction = paramInCr;
 				this.mapRefItem = mapRefItem;
 				this.cloneMapItem = cloneMapItem;
 				this.reuseResult = reuseResult;
@@ -151,60 +153,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				super.readExternal(in);
-				restrictionMethodName = readNullableString(in);
-				projectionMethodName = readNullableString(in);
-				constantRestrictionMethodName = readNullableString(in);
-				mapRefItem = in.readInt();
-				cloneMapItem = in.readInt();
-				int version = in.readUnsignedByte();
-				if (version < PROJECT_RESTRICT_OPERATION_V2)
-				    reuseResult = (version == 1);
-				else
-				    reuseResult = in.readBoolean();
-				doesProjection = in.readBoolean();
-				source = (SpliceOperation) in.readObject();
-				if (version >= PROJECT_RESTRICT_OPERATION_V2) {
-				    filterPred = readNullableString(in);
-				    int numexpressions = in.readInt();
-				    if (numexpressions > 0) {
-				        expressions = new String[numexpressions];
-				        for (int i = 0; i < numexpressions; i++) {
-				            expressions[i] = readNullableString(in);
-				        }
-				    }
-				    hasGroupingFunction = in.readBoolean();
-				}
-				subqueryText = readNullableString(in);
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				writeNullableString(restrictionMethodName, out);
-				writeNullableString(projectionMethodName, out);
-				writeNullableString(constantRestrictionMethodName, out);
-				out.writeInt(mapRefItem);
-				out.writeInt(cloneMapItem);
-				out.writeByte(PROJECT_RESTRICT_OPERATION_V2);
-				out.writeBoolean(reuseResult);
-				out.writeBoolean(doesProjection);
-				out.writeObject(source);
-				writeNullableString(filterPred, out);
-				if (expressions == null)
-				    out.writeInt(0);
-				else {
-				    out.writeInt(expressions.length);
-				    for (int i = 0; i < expressions.length; i++) {
-				        writeNullableString(expressions[i], out);
-				    }
-				}
-				out.writeBoolean(hasGroupingFunction);
-				writeNullableString(subqueryText, out);
-		}
-
-		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
@@ -215,14 +163,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
 				}
 				cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
-				if (this.constantRestrictionMethodName != null) {
-						SpliceMethod<DataValueDescriptor> constantRestriction =new SpliceMethod<>(constantRestrictionMethodName,activation);
-						DataValueDescriptor restrictBoolean = constantRestriction.invoke();
-						shortCircuitOpen  = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+				evaluateConstantRestriction();
 
-						alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
-
-				}
 				if (restrictionMethodName != null)
 						restriction =new SpliceMethod<>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
@@ -365,11 +307,23 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return mergeRestriction;
     }
 
+    private void evaluateConstantRestriction() throws StandardException {
+		if (constantRestrictionMethodName != null) {
+			SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<>(constantRestrictionMethodName, activation);
+			DataValueDescriptor restrictBoolean = constantRestriction.invoke();
+			shortCircuitOpen = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+			alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
+		}
+	}
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		if (!isOpen)
 			throw new IllegalStateException("Operation is not open");
 
+		if (parameterInConstantRestriction) {
+			evaluateConstantRestriction();
+		}
 		if (alwaysFalse) {
             return dsp.getEmpty();
         }
@@ -415,6 +369,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		return source.getStartPosition();
 	}
 
+	@Override
+	public ExecIndexRow getStopPosition() throws StandardException {
+		return source.getStopPosition();
+	}
+
+	@Override
+	public boolean getSameStartStopPosition() {
+		return source.getSameStartStopPosition();
+	}
+
     @Override
     public String getVTIFileName() {
         return getSubOperations().get(0).getVTIFileName();
@@ -429,4 +393,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ScanInformation<ExecRow> getScanInformation() {
 		return source.getScanInformation();
 	}
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
+    }
 }

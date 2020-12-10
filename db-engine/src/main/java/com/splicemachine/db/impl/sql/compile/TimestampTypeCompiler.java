@@ -36,7 +36,9 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -142,9 +144,9 @@ public class TimestampTypeCompiler extends BaseTypeCompiler
 	/**
 	 * @see TypeCompiler#getCastToCharWidth
 	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
-		return 26; // DATE TIME.milliseconds (extra few for good measure)
+		return SQLTimestamp.getFormatLength(compilerContext.getTimestampFormat());
 	}
 
 	public double estimatedMemoryUsage(DataTypeDescriptor dtd)

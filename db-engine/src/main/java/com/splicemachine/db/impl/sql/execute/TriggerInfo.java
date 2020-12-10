@@ -41,15 +41,17 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
 /**
  * This is a simple class used to store the run time information
  * about a foreign key.  Used by DML to figure out what to
  * check.
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public final class TriggerInfo implements Formatable {
 
     private TriggerDescriptor[] triggerDescriptors;
@@ -187,6 +189,7 @@ public final class TriggerInfo implements Formatable {
      */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        // DO NOT CHANGE THIS SERIALIZATION
         ArrayUtil.writeArray(out, triggerDescriptors);
         ArrayUtil.writeIntArray(out, columnIds);
         ArrayUtil.writeArray(out, columnNames);
@@ -199,6 +202,7 @@ public final class TriggerInfo implements Formatable {
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        // DO NOT CHANGE THIS SERIALIZATION
         triggerDescriptors = new TriggerDescriptor[ArrayUtil.readArrayLength(in)];
         ArrayUtil.readArrayItems(in, triggerDescriptors);
 
@@ -220,4 +224,17 @@ public final class TriggerInfo implements Formatable {
     public int getTypeFormatId() {
         return StoredFormatIds.TRIGGER_INFO_V01_ID;
     }
+
+    public boolean hasSpecialFromTableTrigger() {
+        boolean hasSpecialFromTableTrigger = false;
+        for (int i = 0; i < triggerDescriptors.length; i++) {
+            if (triggerDescriptors[i] instanceof TriggerDescriptorV4) {
+                TriggerDescriptorV4 triggerDesc = (TriggerDescriptorV4) triggerDescriptors[i];
+                if (triggerDesc.isSpecialFromTableTrigger())
+                    hasSpecialFromTableTrigger = true;
+            }
+        }
+        return hasSpecialFromTableTrigger;
+    }
+
 }

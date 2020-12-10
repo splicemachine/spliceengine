@@ -52,6 +52,8 @@ import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -87,15 +89,13 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
  *
  */
 public class TriggerNewTransitionRows
-                   implements DatasetProvider, VTICosting, AutoCloseable, Externalizable
-{
+                   implements DatasetProvider, VTICosting, AutoCloseable {
 
         private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
         private static final double DUMMY_COST_ESTIMATE = 1000;
 	private ResultSet resultSet;
 	private DataSet<ExecRow> sourceSet;
 	private TriggerExecutionContext tec;
-	private TemporaryRowHolderResultSet temporaryRowHolderResultSet;
 	protected TriggerRowHolderImpl rowHolder = null;
 
 	public TriggerNewTransitionRows()
@@ -124,36 +124,6 @@ public class TriggerNewTransitionRows
             return triggerRowsHolder;
         }
 
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            // Version number
-            in.readInt();
-            boolean hasRowHolder = in.readBoolean();
-
-            if (hasRowHolder)
-                rowHolder = (TriggerRowHolderImpl)in.readObject();
-
-            boolean hasTEC = in.readBoolean();
-            if (hasTEC)
-                tec = (TriggerExecutionContext)in.readObject();
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            // Version number
-            out.writeInt(1);
-
-            TriggerRowHolderImpl rowHolder = getTriggerRowHolder();
-            boolean hasRowHolder = rowHolder != null;
-            out.writeBoolean(hasRowHolder);
-            if (hasRowHolder)
-                out.writeObject(rowHolder);
-            boolean hasTEC = tec != null;
-            out.writeBoolean(hasTEC);
-            if (hasTEC)
-                out.writeObject(tec);
-        }
-
         @SuppressWarnings({ "rawtypes", "unchecked" })
 	public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
             TriggerRowHolderImpl triggerRowsHolder;
@@ -169,8 +139,8 @@ public class TriggerNewTransitionRows
             DataSet<ExecRow> triggerRows = null;
             long conglomID;
 
+            TriggerExecutionContext tec = null;
             if (triggerRowsHolder == null) {
-                TriggerExecutionContext tec = null;
                 try {
                     tec = Factory.getTriggerExecutionContext();
                 }
@@ -188,6 +158,7 @@ public class TriggerNewTransitionRows
 
                 activation = triggerRowsHolder.getActivation();
                 sourceSet = triggerRowsHolder.getSourceSet();
+                tec = activation.getLanguageConnectionContext().getTriggerExecutionContext();
 
                 if (activation.getResultSet() instanceof DMLWriteOperation)
                     writeOperation = (DMLWriteOperation) (activation.getResultSet());
@@ -203,20 +174,24 @@ public class TriggerNewTransitionRows
             // Disable the persisted DataSet path for now.
             // It doesn't work properly with tables with generated columns.
             usePersistedDataSet = false;
+            boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
             if (usePersistedDataSet) {
                 sourceSet.persist();
                 triggerRows = sourceSet;
             }
             else {
                 DataSet<ExecRow> cachedRowsSet = null;
-                boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
-                if (!isSpark)
-                    cachedRowsSet = new ControlDataSet<>(triggerRowsHolder.getCachedRowsIterator());
+
+                if (triggerRowsHolder != null)
+                    cachedRowsSet = dsp.createDataSet(triggerRowsHolder.getCachedRowsIterator());
+
                 if (conglomID != 0) {
                     String tableName = Long.toString(conglomID);
                     TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
                     Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
                     TxnView txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+
+                    SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomID);
 
                     DataScan s = Scans.setupScan(
                     null,    // startKeyValues
@@ -229,13 +204,14 @@ public class TriggerNewTransitionRows
                     null,   // getAccessedColumns(),
                     null,            // txn : non-transactional
                     false,  // sameStartStop,
-                    null,       // conglomerate.getFormat_ids(),
+                    templateRow,
                     null,  // keyDecodingMap,
                     null,   
                     activation.getDataValueFactory(),
                     tableVersion,
-                    false   // rowIdKey
-                    );
+                    false,   // rowIdKey
+                    conglomerate,
+                    null);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
                     deSiify(s);
@@ -260,12 +236,16 @@ public class TriggerNewTransitionRows
                         triggerRows = sourceSet;
                     else
                         triggerRows = sourceSet.union(cachedRowsSet, op.getOperationContext());
+
+                    if (tec.hasSpecialFromTableTrigger()) {
+                        dsp.setTempTriggerConglomerate(conglomID);
+                    }
                 }
                 else
                     triggerRows = cachedRowsSet;
             }
             boolean isOld = (this instanceof TriggerOldTransitionRows);
-            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld));
+            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld, tec));
             if (writeOperation != null)
                 writeOperation.registerCloseable(this);
 	    return triggerRows;
@@ -299,8 +279,9 @@ public class TriggerNewTransitionRows
 	        catch (SQLException e) {
 
                 }
-                if (rowHolder != null) {
 
+                if (resultSet == null) {
+                    rowHolder = (TriggerRowHolderImpl) tec.getTemporaryRowHolder();
                     ConnectionContext cc =
                     (ConnectionContext) lcc.getContextManager().
                     getContext(ConnectionContext.CONTEXT_ID);
@@ -311,8 +292,6 @@ public class TriggerNewTransitionRows
                     rowHolder.setActivation(activation);
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     try {
-                        if (resultSet != null)
-                            resultSet.close();
                         resultSet = tec.getNewRowSet();
                     } catch (SQLException e) {
                         throw Exceptions.parseException(e);
@@ -355,6 +334,7 @@ public class TriggerNewTransitionRows
            sourceSet.unpersistIt();
            sourceSet = null;
        }
+       tec = null;
    }
 
     @Override

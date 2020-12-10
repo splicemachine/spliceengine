@@ -35,6 +35,7 @@ import    com.splicemachine.db.catalog.Dependable;
 import    com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -860,6 +861,11 @@ final public class GenericActivationHolder implements Activation
     @Override
     public DataSetProcessorType datasetProcessorType() {
         return ac.datasetProcessorType();
+    }
+
+    @Override
+    public SparkExecutionType sparkExecutionType() {
+        return ac.sparkExecutionType();
     }
 
 	@Override

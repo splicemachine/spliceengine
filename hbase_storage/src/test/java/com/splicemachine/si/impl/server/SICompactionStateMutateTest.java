@@ -1,12 +1,13 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnTestUtils;
 import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -19,21 +20,27 @@ import static org.junit.Assert.*;
 
 public class SICompactionStateMutateTest {
     private long watermark = 1000;
-    private SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build());
-    private SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build());
-    private SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build());
-    private SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
-    private SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
+    private SimpleCompactionContext context = new SimpleCompactionContext();
+    private PurgeConfig cutNoPurge =
+            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build();
+    private PurgeConfig cutForcePurge =
+            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build();
+    private PurgeConfig cutPurgeDuringFlush =
+            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build();
+    private PurgeConfig cutPurgeDuringMajorCompaction =
+            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build();
+    private PurgeConfig cutPurgeDuringMinorCompaction =
+            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build();
     private List<Cell> inputCells = new ArrayList<>();
     private List<TxnView> transactions = new ArrayList<>();
     private List<Cell> outputCells = new ArrayList<>();
 
     public SICompactionStateMutateTest() throws IOException {
+    }
+
+    @Before
+    public void resetContext() {
+        context.reset();
     }
 
     private List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
@@ -48,7 +55,7 @@ public class SICompactionStateMutateTest {
 
     @Test
     public void mutateEmpty() throws IOException {
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
     }
 
@@ -61,7 +68,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockActiveTxn(200),
                 TxnTestUtils.getMockActiveTxn(100)
         ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 
@@ -71,7 +78,7 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(100)));
         transactions.addAll(Collections.singletonList(
                 TxnTestUtils.getMockCommittedTxn(100, 200)));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(inputCells.size() + 1));
         List<Cell> newCells = getNewlyAddedCells(inputCells, outputCells);
         assertThat(newCells, hasSize(1));
@@ -93,8 +100,28 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockRolledBackTxn(200),
                 TxnTestUtils.getMockRolledBackTxn(100)
         ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+        assertThat(context.cellsRolledback.get(), is(3L));
+    }
+
+    String toString(Collection<Cell> cells, boolean printUserData)
+    {
+        StringBuilder sb = new StringBuilder();
+        int i=0;
+        for(Cell c : cells)
+        {
+            sb.append(i++ + ": ");
+            CellType ct = CellUtils.getKeyValueType(c);
+            sb.append( ct.toString() );
+            sb.append(" timestamp " + c.getTimestamp());
+            if( ct == CellType.COMMIT_TIMESTAMP )
+                sb.append(" commit " + CellUtils.getCommitTimestamp(c));
+            else if( printUserData && ct == CellType.USER_DATA )
+                sb.append("hex = " + CellUtils.getUserDataHex(c));
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 
     @Test
@@ -104,12 +131,21 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(200),
                 SITestUtils.getMockValueCell(100)
         ));
+        Assert.assertEquals( "0: USER_DATA timestamp 300\n" +
+                "1: USER_DATA timestamp 200\n" +
+                "2: USER_DATA timestamp 100\n", toString(inputCells, false) );
+
         transactions.addAll(Arrays.asList(
                 TxnTestUtils.getMockCommittedTxn(300, 310),
                 TxnTestUtils.getMockActiveTxn(200),
                 TxnTestUtils.getMockRolledBackTxn(100)
         ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
+
+        Assert.assertEquals( "0: COMMIT_TIMESTAMP timestamp 300 commit 310\n" +
+                "1: USER_DATA timestamp 300\n" +
+                "2: USER_DATA timestamp 200\n", toString(outputCells, false) );
+
         assertThat(outputCells, hasSize(inputCells.size())); // + 1 commit, -1 rolled back
         List<Cell> newCells = getNewlyAddedCells(inputCells, outputCells);
         List<Cell> removedCells = getRemovedCells(inputCells, outputCells);
@@ -117,6 +153,7 @@ public class SICompactionStateMutateTest {
         assertThat(removedCells, hasSize(1));
         assertThat(removedCells.get(0).getTimestamp(), equalTo(100L));
         assertThat(newCells.get(0).getTimestamp(), equalTo(300L));
+        assertThat(context.cellsRolledback.get(), is(1L));
     }
 
     @Test
@@ -129,7 +166,7 @@ public class SICompactionStateMutateTest {
                 null,
                 null
         ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(outputCells));
     }
 
@@ -143,7 +180,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(100, 250),
                 TxnTestUtils.getMockCommittedTxn(100, 250)
         ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutNoPurge, context, inputCells, transactions, outputCells);
         assertThat(getRemovedCells(inputCells, outputCells), is(empty()));
     }
 
@@ -161,8 +198,9 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+        assertThat(context.purgedDeletedCells.get(), is(4L));
     }
 
     @Test
@@ -177,8 +215,9 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockActiveTxn(200),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
+        assertThat(context.purgedDeletedCells.get(), is(0L));
     }
 
     @Test
@@ -193,11 +232,12 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockRolledBackTxn(200),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(100, 110),
                 SITestUtils.getMockValueCell(100)));
+        assertThat(context.cellsRolledback.get(), is(1L));
     }
 
     @Test
@@ -224,12 +264,13 @@ public class SICompactionStateMutateTest {
                 transaction3,
                 transaction1
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(3));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(300, 310),
                 SITestUtils.getMockAntiTombstoneCell(300),
                 SITestUtils.getMockValueCell(300)));
+        assertThat(context.purgedDeletedCells.get(), is(4L));
     }
 
     @Test
@@ -246,7 +287,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringFlush, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockCommitCell(100, 110),
@@ -268,7 +309,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMajorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
     }
 
@@ -302,7 +343,7 @@ public class SICompactionStateMutateTest {
                 transaction1
         ));
 
-        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMajorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(5));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(100),
@@ -342,7 +383,7 @@ public class SICompactionStateMutateTest {
                 transaction1
         ));
 
-        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringFlush, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(7));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(100),
@@ -364,7 +405,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(900, 1100),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMajorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
 
     }
@@ -385,7 +426,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(100, 110),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringFlush, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
     }
 
@@ -400,6 +441,8 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockFirstWriteCell(100)
         ));
 
+        System.out.println(toString(inputCells, false));
+
         TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(100, 110);
         TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(200, 210);
         transactions.addAll(Arrays.asList(
@@ -410,8 +453,9 @@ public class SICompactionStateMutateTest {
                 transaction2,
                 transaction1
         ));
-        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMinorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+        System.out.println(toString(outputCells, false));
     }
 
     @Test
@@ -446,7 +490,7 @@ public class SICompactionStateMutateTest {
                 transaction2,
                 transaction1
         ));
-        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMinorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(400, 410),
                 SITestUtils.getMockTombstoneCell(400)
@@ -471,7 +515,7 @@ public class SICompactionStateMutateTest {
                 transaction1,
                 transaction2
         ));
-        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMinorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(3));
     }
 
@@ -484,6 +528,8 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(100),
                 SITestUtils.getMockFirstWriteCell(100)
         ));
+        System.out.println(toString(inputCells, false));
+
         TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(100, 110);
         TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(200, 210);
         transactions.addAll(Arrays.asList(
@@ -493,12 +539,20 @@ public class SICompactionStateMutateTest {
                 transaction1,
                 transaction1
         ));
-        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+
+        // minor compaction will leave commit timestamp and tombstone
+        SICompactionStateMutate.mutate(cutPurgeDuringMinorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
+        System.out.println(toString(outputCells, false));
+
+        // major compaction will delete tombstone
+        SICompactionStateMutate.mutate(cutPurgeDuringMajorCompaction, context, inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(0));
+
     }
 
     @Test
-    public void mutatePurgeDuringMinorCompactionAntiTombstoneGhostsTombstone() throws IOException {
+    public void mutatePurgeAntiTombstoneGhostsTombstone() throws IOException {
         inputCells.addAll(Arrays.asList(
                 SITestUtils.getMockCommitCell(200, 210),
                 SITestUtils.getMockCommitCell(100, 110),
@@ -519,7 +573,10 @@ public class SICompactionStateMutateTest {
                 transaction2,
                 transaction1
         ));
-        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutPurgeDuringMinorCompaction, context, inputCells, transactions, outputCells);
+        assertThat(outputCells, equalTo(inputCells));
+
+        SICompactionStateMutate.mutate(cutPurgeDuringMajorCompaction, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 
@@ -531,6 +588,7 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(300),
                 SITestUtils.getMockValueCell(100)
         ));
+        System.out.println(toString(inputCells, false));
         TxnView transaction = TxnTestUtils.getMockCommittedTxn(50, 400);
         transactions.addAll(Arrays.asList(
                 transaction,
@@ -538,7 +596,8 @@ public class SICompactionStateMutateTest {
                 transaction,
                 transaction
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
+        System.out.println(toString(outputCells, false));
         assertThat(outputCells, not(empty()));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(300, 400),
@@ -562,7 +621,7 @@ public class SICompactionStateMutateTest {
                 transaction,
                 transaction
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, not(empty()));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(200, 400),
@@ -587,7 +646,7 @@ public class SICompactionStateMutateTest {
                 transaction,
                 transaction
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, not(empty()));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(200, 400),
@@ -615,7 +674,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 
@@ -637,7 +696,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(300, 310),
@@ -663,7 +722,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(4));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(200, new boolean[]{true, false}),
@@ -689,12 +748,13 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(4));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(100, new boolean[]{true, true}),
                 SITestUtils.getMockCommitCell(100, 110)
         ));
+        assertThat(context.purgedUpdatedCells.get(), is(2L));
     }
 
     @Test
@@ -711,7 +771,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(1200, 1210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 
@@ -729,7 +789,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(900, 1100),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 
@@ -747,7 +807,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(100, new boolean[]{}),
@@ -769,7 +829,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(200, 210),
                 TxnTestUtils.getMockCommittedTxn(100, 110)
         ));
-        long actualSize = cutForcePurge.mutate(inputCells, transactions, outputCells);
+        long actualSize = SICompactionStateMutate.mutate(cutForcePurge, context, inputCells, transactions, outputCells);
         assertThat(actualSize, equalTo(SITestUtils.getSize(inputCells)));
     }
 }

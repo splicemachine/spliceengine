@@ -221,6 +221,7 @@ message TentativeFK {
         /* Referenced table's encoding version ('1.0', '2.0', etc) */
         optional string referencedTableVersion = 8;
         optional int64 backingIndexConglomerateId = 9;
+        optional UUID constraintUuid = 10;
 }
 
 message TentativeAddColumn {
@@ -321,6 +322,8 @@ message FKConstraintInfo {
     optional Table childTable = 7; // the table in which the foreign key is defined
     repeated int32 columnIndices = 8; // 1-based
     optional int64 parentTableConglomerate = 9; // needed for checking self-referencing FKs.
+    /* nullability flag for FK cols */
+    repeated bool nullFlags = 10;
 }
 
 message NotifyJarLoader {
@@ -339,6 +342,14 @@ message SetReplicationRole {
 }
 
 message UpdateSystemProcedures{
+}
+
+message RollingUpgrade {
+  enum OperationType {
+    BEGIN = 1;
+    END = 2;
+  }
+     required OperationType type = 1;
 }
 
 enum DDLChangeType {
@@ -385,8 +396,9 @@ enum DDLChangeType {
     SET_DATABASE_PROPERTY = 40;
     SET_REPLICATION_ROLE = 41;
     UPDATE_SYSTEM_PROCEDURES = 42;
-    DROP_DATABASE = 43;
-    CREATE_DATABASE = 44;
+    ROLLING_UPGRADE = 43;
+    DROP_DATABASE = 44;
+    CREATE_DATABASE = 45;
 }
 
 message DDLChange {
@@ -429,6 +441,7 @@ message DDLChange {
     optional SetDatabaseProperty setDatabaseProperty = 37;
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
-    optional DropDatabase dropDatabase = 40;
-    optional CreateDatabase createDatabase = 41;
+    optional RollingUpgrade rollingUpgrade = 40;
+    optional DropDatabase dropDatabase = 41;
+    optional CreateDatabase createDatabase = 42;
 }

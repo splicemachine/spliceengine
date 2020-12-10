@@ -33,8 +33,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
@@ -122,36 +120,6 @@ public class ExportKafkaOperation extends SpliceBaseOperation {
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public ResultColumnDescriptor[] getSourceResultColumnDescriptors() {
         return this.sourceColumnDescriptors;
-    }
-
-    // - - - - - - - - - - - -
-    // serialization
-    // - - - - - - - - - - - -
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        currentTemplate = (ExecRow) in.readObject();
-        topicName = in.readUTF();
-        int srcColDescriptors = in.readInt();
-        sourceColumnDescriptors = new ResultColumnDescriptor[srcColDescriptors];
-
-        for (int i = 0; i < srcColDescriptors; i++) {
-            sourceColumnDescriptors[i] = (ResultColumnDescriptor) in.readObject();
-        }
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeObject(currentTemplate);
-        out.writeUTF(topicName);
-        out.writeInt(sourceColumnDescriptors.length);
-        for (int i = 0; i < sourceColumnDescriptors.length; i++) {
-            out.writeObject(sourceColumnDescriptors[i]);
-        }
     }
 
     @SuppressWarnings("unchecked")

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -31,8 +32,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -80,25 +79,6 @@ public class SortOperation extends SpliceBaseOperation{
         this.orderingItem=orderingItem;
         this.numColumns=numColumns;
         init();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        source=(SpliceOperation)in.readObject();
-        distinct=in.readBoolean();
-        orderingItem=in.readInt();
-        numColumns=in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeBoolean(distinct);
-        out.writeInt(orderingItem);
-        out.writeInt(numColumns);
     }
 
     @Override
@@ -216,5 +196,10 @@ public class SortOperation extends SpliceBaseOperation{
 
     public String getScopeName(){
         return (distinct ? "Sort Distinct" : "Sort");
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

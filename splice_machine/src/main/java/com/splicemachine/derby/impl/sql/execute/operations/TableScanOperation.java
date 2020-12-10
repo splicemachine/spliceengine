@@ -114,12 +114,12 @@ public class TableScanOperation extends ScanOperation{
      * @param delimited
      * @param escaped
      * @param lines
-     * @param location
-     * @param pin
      * @param storedAs
+     * @param location
      * @param defaultRowFunc
      * @param defaultValueMapItem
      * @param pastTxFunctor a functor that returns the id of a committed transaction for time-travel queries, -1 for not set.
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      *
      * @throws StandardException
      */
@@ -151,7 +151,6 @@ public class TableScanOperation extends ScanOperation{
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String tableVersion,
-                              boolean pin,
                               int splits,
                               String delimited,
                               String escaped,
@@ -161,12 +160,13 @@ public class TableScanOperation extends ScanOperation{
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
                               int defaultValueMapItem,
-                              GeneratedMethod pastTxFunctor) throws StandardException{
+                              GeneratedMethod pastTxFunctor,
+                              long minRetentionPeriod) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor);
+                splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                pastTxFunctor, minRetentionPeriod);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -193,7 +193,6 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        pin = in.readBoolean();
         tableName=in.readUTF();
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
@@ -211,7 +210,6 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
-        out.writeBoolean(pin);
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
@@ -362,7 +360,6 @@ public class TableScanOperation extends ScanOperation{
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(getRowDecodingMap())
                 .baseColumnMap(baseColumnMap)
-                .pin(pin)
                 .delimited(delimited)
                 .escaped(escaped)
                 .lines(lines)

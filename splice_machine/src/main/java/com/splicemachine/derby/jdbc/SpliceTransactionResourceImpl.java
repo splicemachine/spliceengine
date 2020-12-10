@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -111,10 +112,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
             }
 
-            lcc=database.generateLanguageConnectionContext(txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
-                                                           DataSetProcessorType.DEFAULT_CONTROL,
-                                                           false, -1, ipAddress,
-                                                            reuseTC);
+            lcc=database.generateLanguageConnectionContext(
+                    txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
+                    DataSetProcessorType.DEFAULT_OLTP, SparkExecutionType.UNSPECIFIED,
+                    false, -1,
+                    ipAddress, reuseTC);
 
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);

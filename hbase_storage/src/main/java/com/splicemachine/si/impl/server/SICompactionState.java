@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.TransactionsWatcher;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import splice.com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
@@ -49,13 +51,16 @@ public class SICompactionState {
     private final TxnSupplier transactionStore;
     private final CompactionContext context;
     private final ExecutorService executorService;
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
 
-    public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
+    public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context,
+                             ExecutorService executorService, IgnoreTxnSupplier ignoreTxnSupplier) {
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,activeTransactionCacheSize,true);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
         this.executorService = executorService;
+        this.ignoreTxnSupplier = ignoreTxnSupplier;
     }
 
     /**
@@ -66,19 +71,27 @@ public class SICompactionState {
      * @return the size of all cells in the `row` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig);
-        return impl.mutate(rawList, txns, results);
+        return SICompactionStateMutate.mutate(purgeConfig, context, rawList, txns, results);
     }
 
-    private void ensureTransactionCached(long timestamp,Cell element) {
+    private void ensureTransactionCached(long timestamp,Cell element) throws IOException {
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(element)){
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Timestamp  " + timestamp + " is failed txn");
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
 
-                if (LOG.isDebugEnabled())
-                    LOG.debug("Caching " + timestamp + " with commitTs " + commitTs);
+                if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(commitTs)) {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("Caching ignored txn " + timestamp);
+                    transactionStore.cache(new RolledBackTxn(timestamp));
+                    return;
+                }
+
+                if (LOG.isTraceEnabled())
+                    LOG.trace("Caching " + timestamp + " with commitTs " + commitTs);
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
@@ -117,8 +130,8 @@ public class SICompactionState {
                         context.readData();
                     TxnView tentative = transactionStore.getTransactionFromCache(timestamp);
                     if (tentative != null) {
-                        if (LOG.isDebugEnabled())
-                            LOG.debug("Cached " + tentative);
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Cached " + tentative);
                         result.add(Futures.immediateFuture(tentative));
                         if (context != null)
                             context.recordResolutionCached();
@@ -129,8 +142,8 @@ public class SICompactionState {
                                 if (context != null)
                                     context.recordRPC();
                                 return executorService.submit(() -> {
-                                    if (LOG.isDebugEnabled())
-                                        LOG.debug("Resolving " + txnId);
+                                    if (LOG.isTraceEnabled())
+                                        LOG.trace("Resolving " + txnId);
                                     TxnView txn;
                                     try {
                                         txn = transactionStore.getTransaction(txnId);
@@ -150,8 +163,11 @@ public class SICompactionState {
                                         LOG.warn("We couldn't resolve transaction " + timestamp +". This is only acceptable during a Restore operation");
                                         return null;
                                     }
-                                    if (LOG.isDebugEnabled())
-                                        LOG.debug("Returning, parent " + txn.getParentTxnView());
+                                    if (LOG.isDebugEnabled() && txn.getState() == Txn.State.ROLLEDBACK) {
+                                        LOG.debug("Transaction " + txnId + " is rolled back: " + txn);
+                                    }
+                                    if (LOG.isTraceEnabled())
+                                        LOG.trace("Returning, parent " + txn.getParentTxnView());
                                     return txn;
                                 });
                             });

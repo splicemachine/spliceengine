@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -80,6 +81,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     protected final TxnSupplier txnSupplier;
     protected final Transactor transactory;
     protected final TxnOperationFactory txnOperationFactory;
+    protected long conglomID;
 
     public ControlDataSetProcessor(TxnSupplier txnSupplier,
                                    Transactor transactory,
@@ -340,11 +342,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,
-                                      Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
+    public <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                                      ExecRow execRow, boolean useSample, double sampleFraction) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob).toLocalIterator());
+        return new ControlDataSet(proc.readORCFile(schema, baseColumnMap,partitionColumnMap, location,
+                context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override
@@ -360,18 +363,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readPinnedTable(long conglomerateId,int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
-        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readPinnedTable(conglomerateId, baseColumnMap, location, context, qualifiers, probeValue,execRow).toLocalIterator());
-    }
-
-    @Override
-    public void dropPinnedTable(long conglomerateId) throws StandardException {
-        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        proc.dropPinnedTable(conglomerateId);
-    }
-
-    @Override
     public void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         proc.createEmptyExternalFile(fields,baseColumnMap,partitionBy,storageAs,location, compression);
@@ -384,9 +375,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
+    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+                                                         CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                         StructType partitionColumns) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions);
+        return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions,
+                nonPartitionColumns, partitionColumns);
     }
 
     @Override
@@ -424,5 +418,18 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() { return false; }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        this.conglomID = conglomID;
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        return this.conglomID;
     }
 }

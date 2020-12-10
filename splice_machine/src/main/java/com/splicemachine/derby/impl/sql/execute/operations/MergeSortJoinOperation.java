@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  *
@@ -140,22 +138,6 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        SpliceLogUtils.trace(LOG, "readExternal");
-        super.readExternal(in);
-        leftHashKeyItem = in.readInt();
-        rightHashKeyItem = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        SpliceLogUtils.trace(LOG, "writeExternal");
-        super.writeExternal(out);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
-    }
-
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
@@ -183,6 +165,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
         dsp.incrementOpDepth();
         boolean useNativeSparkJoin = (dsp.getType().equals(DataSetProcessor.Type.SPARK)   &&
+                                      !dsp.isSparkDB2CompatibilityMode()               &&
                                       (restriction == null || hasSparkJoinPredicate()) &&
                                       !rightFromSSQ && !containsUnsafeSQLRealComparison());
 

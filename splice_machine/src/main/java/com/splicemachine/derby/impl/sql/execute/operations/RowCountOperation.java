@@ -27,11 +27,10 @@ import com.splicemachine.derby.stream.function.OffsetFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
@@ -167,26 +166,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         bypass = true;
     }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        offsetMethodName = readNullableString(in);
-        fetchFirstMethodName = readNullableString(in);
-        hasJDBCLimitClause = in.readBoolean();
-        bypass = in.readBoolean();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-        writeNullableString(offsetMethodName, out);
-        writeNullableString(fetchFirstMethodName, out);
-        out.writeBoolean(hasJDBCLimitClause);
-        out.writeBoolean(bypass);
-    }
-
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
@@ -217,4 +196,8 @@ public class RowCountOperation extends SpliceBaseOperation {
         return "Row Limit";
     }
 
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
+    }
 }

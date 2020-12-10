@@ -30,8 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 
 public class CrossJoinOperation extends JoinOperation{
@@ -42,6 +40,7 @@ public class CrossJoinOperation extends JoinOperation{
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
     protected boolean broadcastRightSide;
+    protected boolean noCacheBroadcastJoinRight;
     protected long sequenceId;
     protected static final String NAME = CrossJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -60,6 +59,7 @@ public class CrossJoinOperation extends JoinOperation{
                               int rightNumCols,
                               int leftHashKeyItem,
                               int rightHashKeyItem,
+                              boolean noCacheBroadcastJoinRight,
                               Activation activation,
                               GeneratedMethod restriction,
                               int resultSetNumber,
@@ -79,31 +79,13 @@ public class CrossJoinOperation extends JoinOperation{
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
         this.broadcastRightSide=broadcastRightSide;
+        this.noCacheBroadcastJoinRight=noCacheBroadcastJoinRight;
         this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        sequenceId = in.readLong();
-        broadcastRightSide = in.readBoolean();
-        leftHashKeyItem=in.readInt();
-        rightHashKeyItem=in.readInt();
-    }
-
     public long getRightSequenceId() {
         return sequenceId;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeLong(sequenceId);
-        out.writeBoolean(broadcastRightSide);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
     }
 
     @Override
@@ -125,7 +107,8 @@ public class CrossJoinOperation extends JoinOperation{
 
         OperationContext operationContext = dsp.createOperationContext(this);
         dsp.incrementOpDepth();
-        boolean usesNativeSparkDataSet = 
+        boolean usesNativeSparkDataSet =
+           !dsp.isSparkDB2CompatibilityMode() &&
            dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
@@ -154,7 +137,7 @@ public class CrossJoinOperation extends JoinOperation{
             }
             if (this.leftHashKeys.length != 0)
                 leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, false))
+            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, noCacheBroadcastJoinRight))
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

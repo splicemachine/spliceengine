@@ -17,13 +17,18 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import splice.com.google.common.base.Joiner;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,13 +49,13 @@ public class SpliceUnitTest {
     /// set the following boolean to true to prevent deletion of temporary files (e.g. for debugging)
     static private final boolean debug_no_delete = false;
 
-	public String getSchemaName() {
-		Class<?> enclosingClass = getClass().getEnclosingClass();
-		if (enclosingClass != null)
-		    return enclosingClass.getSimpleName().toUpperCase();
-		else
-		    return getClass().getSimpleName().toUpperCase();
-	}
+    public String getSchemaName() {
+        Class<?> enclosingClass = getClass().getEnclosingClass();
+        if (enclosingClass != null)
+            return enclosingClass.getSimpleName().toUpperCase();
+        else
+            return getClass().getSimpleName().toUpperCase();
+    }
 
     /**
      * Load a table with given values
@@ -67,31 +72,31 @@ public class SpliceUnitTest {
     }
 
     public String getTableReference(String tableName) {
-		return getSchemaName() + "." + tableName;
-	}
+        return getSchemaName() + "." + tableName;
+    }
 
-	public String getPaddedTableReference(String tableName) {
-		return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
-	}
+    public String getPaddedTableReference(String tableName) {
+        return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
+    }
 
-	
-	public static int resultSetSize(ResultSet rs) throws Exception {
-		int i = 0;
-		while (rs.next()) {
-			i++;
-		}
-		return i;
-	}
+
+    public static int resultSetSize(ResultSet rs) throws Exception {
+        int i = 0;
+        while (rs.next()) {
+            i++;
+        }
+        return i;
+    }
 
     public static int columnWidth(ResultSet rs ) throws SQLException {
         return rs.getMetaData().getColumnCount();
     }
 
-	public static String format(String format, Object...args) {
-		return String.format(format, args);
-	}
-	public static String getBaseDirectory() {
-		String userDir = System.getProperty("user.dir");
+    public static String format(String format, Object...args) {
+        return String.format(format, args);
+    }
+    public static String getBaseDirectory() {
+        String userDir = System.getProperty("user.dir");
         /*
          * The ITs can run in multiple different locations based on the different architectures
          * that are available, but the actual test data files are located in the splice_machine directory; thus,
@@ -119,19 +124,20 @@ public class SpliceUnitTest {
             Path us = Paths.get(userDir);
             nioPath = Paths.get(us.toString(),"splice_machine");
             if(!Files.exists(nioPath)){
-             /* Try to go up and to the left. If it's not
-             * there, then we are screwed anyway, so just go with it
-             */
+                /* Try to go up and to the left. If it's not
+                 * there, then we are screwed anyway, so just go with it
+                 */
                 Path parent=Paths.get(userDir).getParent();
+                if(parent == null) throw new RuntimeException("path " + userDir + " not found");
                 nioPath=Paths.get(parent.toString(),"splice_machine");
             }
         }
         return nioPath.toString();
-	}
+    }
 
     public static String getResourceDirectory() {
-		return getBaseDirectory()+"/src/test/test-data/";
-	}
+        return getBaseDirectory()+"/src/test/test-data/";
+    }
 
     public static String getHbaseRootDirectory() {
         return getHBaseDirectory()+"/target/hbase";
@@ -166,19 +172,20 @@ public class SpliceUnitTest {
             Path us = Paths.get(userDir);
             nioPath = Paths.get(us.toString(),"platform_it");
             if(!Files.exists(nioPath)){
-             /* Try to go up and to the left. If it's not
-             * there, then we are screwed anyway, so just go with it
-             */
+                /* Try to go up and to the left. If it's not
+                 * there, then we are screwed anyway, so just go with it
+                 */
                 Path parent=Paths.get(userDir).getParent();
+                if(parent == null) throw new RuntimeException("path " + userDir + " not found");
                 nioPath=Paths.get(parent.toString(),"platform_it");
             }
         }
         return nioPath.toString();
     }
-    
+
     public static String getHiveWarehouseDirectory() {
-		return getHBaseDirectory()+"/user/hive/warehouse";
-	}
+        return getHBaseDirectory()+"/user/hive/warehouse";
+    }
 
     public static class MyWatcher extends SpliceTableWatcher {
 
@@ -216,7 +223,7 @@ public class SpliceUnitTest {
                 for(int level : levels){
                     if(level==i){
                         Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
-                                              +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
+                                +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
                         k++;
                     }
                 }
@@ -319,6 +326,25 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void columnInRowsContainsQuery(int[] levels, int columnPosition, String query, SpliceWatcher methodWatcher, String... contains) throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
+                                +resultSet.getString(columnPosition),resultSet.getString(columnPosition).contains(contains[k]));
+                        k++;
+                    }
+                }
+            }
+            if (k < contains.length)
+                fail("fail to match the given strings");
+        }
+    }
+
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
         queryDoesNotContainString(query,new String[] {notContains}, methodWatcher, false);
@@ -375,26 +401,20 @@ public class SpliceUnitTest {
     }
 
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = methodWatcher.executeQuery(sqlText);
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
-        finally {
-            if (rs != null)
-                rs.close();
         }
     }
 
     protected void testQuery(String sqlText, String expected, Statement s) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = s.executeQuery(sqlText);
+        try (ResultSet rs = s.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
-        finally {
-            if (rs != null)
-                rs.close();
+    }
+
+    protected void testQuery(String sqlText, String expected, TestConnection c) throws Exception {
+        try (ResultSet rs = c.query(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 
@@ -457,8 +477,8 @@ public class SpliceUnitTest {
     }
 
     protected void testQueryDoesNotContain(String sqlText, String containedString,
-                                     SpliceWatcher methodWatcher,
-                                     boolean caseInsensitive) throws Exception {
+                                           SpliceWatcher methodWatcher,
+                                           boolean caseInsensitive) throws Exception {
         ResultSet rs = null;
         try {
             rs = methodWatcher.executeQuery(sqlText);
@@ -491,9 +511,7 @@ public class SpliceUnitTest {
     protected void testFail(String sqlText,
                             List<String> expectedErrors,
                             SpliceWatcher methodWatcher) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = methodWatcher.executeQuery(sqlText);
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String failMsg = format("Query not expected to succeed.\n%s", sqlText);
             fail(failMsg);
         }
@@ -501,10 +519,6 @@ public class SpliceUnitTest {
             boolean found = expectedErrors.contains(e.getMessage());
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
-        }
-        finally {
-            if (rs != null)
-                rs.close();
         }
     }
 
@@ -562,6 +576,31 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testFail(String expectedErrorCode, String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String failMsg = format("SQL not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = false;
+            String extraText = "";
+            if (e instanceof SQLException) {
+                found = ((SQLException) e).getSQLState().equals(expectedErrorCode);
+                if (!found)
+                    extraText = format("found error code: %s", ((SQLException) e).getSQLState());
+            }
+            if (!found) {
+                fail(format("\n + Expected error code: %s, ", expectedErrorCode) + extraText);
+            }
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
     protected void assertStatementError(String expectedErrorCode,
                                         Statement s,
                                         String sqlText) throws AssertionError {
@@ -577,21 +616,20 @@ public class SpliceUnitTest {
      * @throws SQLException Error accessing the database.
      */
     public void assertTableRowCount(String table, int rowCount, Statement s)
-       throws SQLException, AssertionError
+            throws SQLException, AssertionError
     {
-        ResultSet rs = s.executeQuery(
-                "SELECT COUNT(*) FROM " + table);
-        rs.next();
-        assertEquals(table + " row count:",
-            rowCount, rs.getInt(1));
-        rs.close();
+        try( ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + table) ) {
+            rs.next();
+            assertEquals(table + " row count:",
+                    rowCount, rs.getInt(1));
+        }
     }
 
     public static void assertUpdateCount(Statement st,
-        int expectedRC, String sql) throws SQLException, AssertionError
+                                         int expectedRC, String sql) throws SQLException, AssertionError
     {
         assertEquals("Update count does not match:",
-            expectedRC, st.executeUpdate(sql));
+                expectedRC, st.executeUpdate(sql));
     }
 
     public static class Contains {
@@ -615,8 +653,8 @@ public class SpliceUnitTest {
 
     protected static void importData(SpliceWatcher methodWatcher, String schema,String tableName, String fileName) throws Exception {
         String file = SpliceUnitTest.getResourceDirectory()+ fileName;
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null,true,'utf-8')", schema, tableName, null, file));
-        ps.executeQuery();
+        String sql = String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null,true,'utf-8')", schema, tableName, null, file);
+        methodWatcher.execute(sql);
     }
 
     protected static void validateImportResults(ResultSet resultSet, int good,int bad) throws SQLException {
@@ -707,8 +745,12 @@ public class SpliceUnitTest {
         File importFileDirectory = new File(getHBaseDirectory() + "/target/import_data/" + schemaName);
         if (importFileDirectory.exists()) {
             //noinspection ConstantConditions
-            for (File file : importFileDirectory.listFiles()) {
-                assertTrue("Couldn't create "+file,file.delete());
+            File[] files = importFileDirectory.listFiles();
+            if( files != null ) {
+                for (File file : files) {
+                    if (file != null)
+                        assertTrue("Couldn't create " + file, file.delete());
+                }
             }
             assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.delete());
         }
@@ -780,7 +822,7 @@ public class SpliceUnitTest {
 
 
     public static SpliceUnitTest.TestFileGenerator generatePartialRow(File directory, String fileName, int size,
-                                                                       List<int[]> fileData) throws IOException {
+                                                                      List<int[]> fileData) throws IOException {
         SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
         try {
             for (int i = 0; i < size; i++) {
@@ -795,8 +837,8 @@ public class SpliceUnitTest {
     }
 
     public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
-                                                                        List<int[]> fileData,
-                                                                        boolean duplicateLast) throws IOException {
+                                                                   List<int[]> fileData,
+                                                                   boolean duplicateLast) throws IOException {
         return generateFullRow(directory,fileName,size,fileData,duplicateLast,false);
     }
 
@@ -826,6 +868,7 @@ public class SpliceUnitTest {
 
     public static boolean existsBadFile(File badDir, String prefix) {
         String[] files = badDir.list();
+        if( files == null ) return false;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 return true;
@@ -836,6 +879,7 @@ public class SpliceUnitTest {
 
     public static String getBadFile(File badDir, String prefix) {
         String[] files = badDir.list();
+        if( files == null ) return null;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 return file;
@@ -847,6 +891,7 @@ public class SpliceUnitTest {
     public static List<String> getAllBadFiles(File badDir, String prefix) {
         List<String> badFiles = new ArrayList<>();
         String[] files = badDir.list();
+        if( files == null ) return badFiles;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 badFiles.add(file);
@@ -871,7 +916,7 @@ public class SpliceUnitTest {
         public TestFileGenerator(File directory, String fileName) throws IOException {
             this.fileName = fileName+".csv";
             this.file = new File(directory, this.fileName);
-            this.writer =  new BufferedWriter(new FileWriter(file));
+            this.writer =  new BufferedWriter( (new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)));
             this.joiner = Joiner.on(",");
         }
 
@@ -956,8 +1001,9 @@ public class SpliceUnitTest {
     }
 
     public static void assertFailed(Connection connection, String sql, String errorState) {
-        try {
-            connection.createStatement().execute(sql);
+        try(Statement s = connection.createStatement())
+        {
+            s.execute(sql);
             fail("Did not fail");
         } catch (Exception e) {
             assertTrue("Incorrect error type: " + e.getClass().getName(), e instanceof SQLException);
@@ -970,7 +1016,8 @@ public class SpliceUnitTest {
     {
         File path = new File(getHBaseDirectory(), "/target/tmp/" + subpath);
         FileUtils.deleteDirectory(path); // clean directory
-        path.mkdirs();
+        if( !path.mkdirs() )
+            throw new RuntimeException("couldn't create " + path.toString());
         return path;
     }
 
@@ -1018,27 +1065,160 @@ public class SpliceUnitTest {
     }
 
     /// execute sql query 'sqlText' and expect an exception of certain state being thrown
-    public static void SqlExpectException( SpliceWatcher methodWatcher, String sqlText, String expectedState )
+    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
     {
         try {
-            ResultSet rs = methodWatcher.executeQuery(sqlText);
-            rs.close();
+            if( update )
+                methodWatcher.executeUpdate(sqlText);
+            else {
+                ResultSet rs = methodWatcher.executeQuery(sqlText);
+                rs.close();
+            }
             Assert.fail("Exception not thrown for " + sqlText);
 
         } catch (SQLException e) {
-            System.out.println( e );
-            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getSQLState());
+        } catch (Exception e) {
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
+        }
+    }
+
+    public static void assertThrows(Runnable r, String expectedExceptionStr) {
+        try {
+            r.run();
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            Assert.assertEquals(expectedExceptionStr, e.toString());
         }
     }
 
     /// execute sql query 'sqlText' and expect a certain formatted result
-    public static void SqlExpectToString( SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
+    public static void sqlExpectToString(SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
     {
         try( ResultSet rs = methodWatcher.executeQuery(sqlText) ) {
             String val = sort
                     ? TestUtils.FormattedResult.ResultFactory.toString(rs)
                     : TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(expected, val);
+            Assert.assertEquals(sqlText, expected, val);
+        }
+    }
+
+
+    /**
+     * check if there's any transactions still open
+     * if getOldestActiveTransaction is two times the same in a row, there's a stale transaction
+     * otherwise, we will get every time different ids since also the CALL SYSUTIL_... will open a mini-transaction
+     *
+     * Note that this is only correct if the test ends and nothing else is running anymore
+     * (e.g. @Category({SerialTest.class}) ). Because of this, the default should be failOnError = false.
+     * @param failOnError if true, fail on error (don't do this on parallel tests). otherwise, just LOG.
+     */
+    public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds,
+                                                boolean failOnError)
+    {
+        Logger LOG = Logger.getLogger("SpliceUnitTest");
+        try {
+            long oldest1 = getOldestActiveTransaction(methodWatcher);
+            LOG.info("checking for stale transactions");
+            for (int i = 0; i < numSeconds; i++) {
+                long oldest2 = getOldestActiveTransaction(methodWatcher);
+                if (oldest1 != oldest2)
+                    return;
+                Thread.sleep(1000);
+                oldest1 = oldest2;
+            }
+            if (failOnError) {
+                Assert.fail(name + " failed to close all transactions.");
+            } else {
+                // if you see this error, this is a hint that something might be left open, especially if you see
+                // multiple of these messages. turn failOnError=true and check tests one by one.
+                LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
+                        "tests running in parallel.");
+            }
+        } catch( SQLException e)
+        {
+            SQLException next = e.getNextException();
+            if (next != null) {
+                e = next;
+            }
+            if (e.toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
+                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'.")) {
+                return;
+            }
+            else {
+                LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
+            }
+        }
+        catch( Exception e)
+        {
+            // some tests might have closed the database (RestoreIT)
+            LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
+        }
+    }
+
+    public static long getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
+        try (ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()"))
+        {
+            Assert.assertEquals(true, rs.next());
+            return rs.getLong(1);
+        }
+    }
+
+    @AfterClass
+    public static void waitForStaleTransactions() {
+        SpliceWatcher methodWatcher = new SpliceWatcher(null);
+        // for parallel running tests waitForStaleTransactions might report false positives,
+        // but you can set this to true if you're checking the tests one by one manually.
+        boolean failOnError = false;
+        waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
+        methodWatcher.closeAll();
+    }
+
+    public static String getSqlItJarFile()
+    {
+        String[] paths = {
+                System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+        };
+        for(String path : paths ) {
+            if( new File(path).exists())
+                return path;
+        }
+        String err = "Couldn't find procedures jar file in either of " + Arrays.toString(paths);
+        Assert.fail(err);
+        throw new RuntimeException(err);
+    }
+
+    protected void checkDecfloatExpression(String input, String output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertTrue(format("expected: %s, actual: %s", output, rs.getBigDecimal(1)),
+                    new BigDecimal(output, MathContext.DECIMAL128).compareTo(rs.getBigDecimal(1)) == 0);
+        }
+    }
+
+    protected void checkBooleanExpression(String input, boolean output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(output, rs.getBoolean(1));
+        }
+    }
+
+    protected void checkExpressionType(String input, String expectedType, TestConnection conn) throws SQLException {
+        String sql = format("select typeof(%s)", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedType, rs.getString(1));
+        }
+    }
+
+    protected void checkStringExpression(String input, String expectedOutput, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getString(1));
         }
     }
 }

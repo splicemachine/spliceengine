@@ -50,10 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
@@ -541,7 +538,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @throws StandardException Thrown on error
      */
 
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.THROWASSERT(
                     "preprocess() not expected to be called for "+getClass().toString());
@@ -1763,5 +1760,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
     public boolean getContainsSelfReference() {
         return containsSelfReference;
+    }
+
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        return true;
     }
 }
