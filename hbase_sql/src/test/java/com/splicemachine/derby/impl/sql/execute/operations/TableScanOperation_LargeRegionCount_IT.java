@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;

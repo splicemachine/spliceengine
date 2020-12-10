@@ -44,6 +44,7 @@ import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -617,5 +618,30 @@ public class ShowCreateTableIT extends SpliceUnitTest
 
         String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
         Assert.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void testTableDDLLonger32672() throws Exception {
+        StringBuilder columnsDdlBuilder = new StringBuilder();
+        final String columnTypes[] = {"VARCHAR(30)", "CHAR(10)", "BIGINT", "DATE", "INTEGER", "DECIMAL(4,2)"};
+        Random rand = new Random();
+
+        int columnCounter = 0;
+        while (columnsDdlBuilder.length() < 43100) {
+            if (columnCounter > 0) {
+                columnsDdlBuilder.append(",");
+            }
+            columnsDdlBuilder.append(String.format("\"COL_%d\" %s\n", columnCounter++, columnTypes[rand.nextInt(columnTypes.length)]));
+        }
+
+        String ddl = String.format("CREATE TABLE \"%s\".\"TEST_LONG_DDL\" (\n%s) ", SCHEMA, columnsDdlBuilder.toString()) ;
+
+        methodWatcher.execute(ddl);
+
+        try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TEST_LONG_DDL')")){
+            rs.next();
+            String result = rs.getString(1);
+            Assert.assertEquals(ddl + ";", result);
+        }
     }
 }

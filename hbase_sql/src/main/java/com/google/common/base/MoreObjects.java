@@ -14,9 +14,9 @@
 
 package com.google.common.base;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static splice.com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.annotations.GwtCompatible;
+import splice.com.google.common.annotations.GwtCompatible;
 import java.util.Arrays;
 import javax.annotation.Nullable;
 

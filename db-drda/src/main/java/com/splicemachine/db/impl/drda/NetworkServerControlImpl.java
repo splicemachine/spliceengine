@@ -557,13 +557,11 @@ public final class NetworkServerControlImpl {
 
     /**
      * Write an exception to console output stream,
-     * but only if debugOutput is true.
      *
      * @param e    exception
      */
     public void consoleExceptionPrint(Exception e)
     {
-        if (debugOutput)
             consoleExceptionPrintTrace(e);
     }
 
@@ -3945,6 +3943,7 @@ public final class NetworkServerControlImpl {
         // dynamic tracing reconfiguration).
         Session session = new Session(this,connectionNumber, clientSocket,
                                       getTraceDirectory(), getTraceAll());
+        consoleMessage("added new session :" + session.toString(), true);
 
         sessionTable.put(connectionNumber, session);
 
@@ -3973,6 +3972,10 @@ public final class NetworkServerControlImpl {
                 if ((maxThreads == 0) || (threadList.size() < maxThreads)) {
                     thread = new DRDAConnThread(session, this, getTimeSlice(),
                                                 getLogConnections());
+                    thread.setUncaughtExceptionHandler((t, e) -> {
+                        consoleMessage("tracing unhandled exception originating from thread: '" + t.getName() + "'", true);
+                        consoleExceptionPrintTrace(e);
+                    });
                     threadList.add(thread);
                     thread.start();
                 }

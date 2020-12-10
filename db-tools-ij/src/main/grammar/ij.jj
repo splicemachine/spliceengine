@@ -39,6 +39,7 @@ import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.shared.common.sql.Utils;
 
 import java.lang.reflect.*;
 import java.security.AccessController;
@@ -635,12 +636,12 @@ class ij {
         try {
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
-            rs = dbmd.getSchemas(null,schema);
+            rs = dbmd.getSchemas(null,Utils.escape(schema));
             if (!rs.next())
                 throw ijException.noSuchSchema(schema);
             rs.close();
 
-            rs = dbmd.getTables(null,schema,table,null);
+            rs = dbmd.getTables(null,Utils.escape(schema), Utils.escape(table),null);
             if(!rs.next())
                 throw ijException.noSuchTable(table);
         } finally {
@@ -667,7 +668,7 @@ class ij {
         ResultSet rs = null;
         try {
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,proc);
+            rs = dbmd.getProcedures(null,Utils.escape(schema),Utils.escape(proc));
             if(!rs.next())
                 throw ijException.noSuchProcedure(proc);
         } finally {
@@ -693,7 +694,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getTables(null,schema,null,tableType);
+            rs = dbmd.getTables(null,Utils.escape(schema),null,tableType);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_SCHEM"),
@@ -731,7 +732,7 @@ class ij {
         haveConnection();
 
         DatabaseMetaData dbmd = theConnection.getMetaData();
-        return dbmd.getIndexInfo(null, schema, table, false, true);
+        return dbmd.getIndexInfo(null, Utils.escape(schema), Utils.escape(table), false, true);
     }
 
     /**
@@ -820,7 +821,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,null);
+            rs = dbmd.getProcedures(null,Utils.escape(schema),null);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("PROCEDURE_SCHEM"),
@@ -854,7 +855,7 @@ class ij {
             verifyProcedureExists(schema,proc);
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedureColumns(null,schema,proc,null);
+            rs = dbmd.getProcedureColumns(null,Utils.escape(schema),Utils.escape(proc),null);
 
             // Small subset of the result set fields available
             int[] displayColumns = new int[] {
@@ -889,7 +890,7 @@ class ij {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getPrimaryKeys(null,schema,table);
+            rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_NAME"),
@@ -935,7 +936,7 @@ class ij {
                                                     new Class[] { String.class,
                                                                String.class,
                                                                String.class});
-                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, schema, null});
+                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, Utils.escape(schema), null});
             } catch(NoSuchMethodException nsme) {
                 throw ijException.notAvailableForDriver(dbmd.getDriverName());
             } catch(IllegalAccessException iae) {
@@ -1226,15 +1227,13 @@ class ij {
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
-            String getSynonymAliasInfo = "SELECT BASETABLE \n" +
-                    " FROM \n" +
-                    " SYSVW.SYSALIASTOTABLEVIEW V \n" +
-                    " WHERE \n" +
-                    " (V.SCHEMANAME LIKE ?) AND (V.ALIAS LIKE ?)";
+            String getSynonymAliasInfo = String.format(
+                    "SELECT BASETABLE FROM SYSVW.SYSALIASTOTABLEVIEW V WHERE (V.SCHEMANAME LIKE ? ESCAPE '%s') AND (V.ALIAS LIKE ? ESCAPE '%s')",
+                    Utils.defaultEscapeCharacter, Utils.defaultEscapeCharacter);
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
-            s.setString(1, schema);
-            s.setString(2, table);
+            s.setString(1, Utils.escape(schema));
+            s.setString(2, Utils.escape(table));
             rs = s.executeQuery();
 
             if (rs.next()){
@@ -1245,7 +1244,7 @@ class ij {
                 }
             }
 
-            rs = dbmd.getColumns(null,schema,table,null);
+            rs = dbmd.getColumns(null, Utils.escape(schema), Utils.escape(table), null);
 
             int[] displayColumns = new int[] {
                 rs.findColumn("TABLE_SCHEM"),

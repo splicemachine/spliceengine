@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -84,6 +85,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
 
         /*
          * Inform the data dictionary that we are about to write to it.
@@ -103,14 +105,19 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             dropAllSchemaObjects(sd, lcc, tc, activation);
         }
 
-        dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
-        sd.drop(lcc, activation);
+        /* Invalidate dependencies remotely */
         DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(
                 tc.getActiveStateTxn().getTxnId(),
                 (BasicUUID)sd.getDatabaseId(),
                 schemaName,
                 (BasicUUID)sd.getUUID());
+        // Run locally first to capture any errors.
+        dm.invalidateFor(sd, DependencyManager.DROP_SCHEMA, lcc);
+        // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+        dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
+        sd.drop(lcc, activation);
     }
 
     public String getScopeName() {
@@ -168,7 +175,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // drop files
         ArrayList<FileInfoDescriptor> fileList = dd.getFilesInSchema(sd.getUUID().toString());
         for (FileInfoDescriptor fileDescriptor: fileList) {
-            executeUpdate(lcc, String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",sd.getSchemaName()+"."+fileDescriptor.getDescriptorName()));
+            executeUpdate(lcc, String.format("CALL SQLJ.REMOVE_JAR('\"%s\".\"%s\"', 0)", sd.getSchemaName(), fileDescriptor.getDescriptorName()));
         }
 
     }

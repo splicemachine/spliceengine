@@ -243,6 +243,7 @@ public class ForeignKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 */
 	public boolean needsToFire(int stmtType, int[] modifiedCols)
 	{
+		if( stmtType == StatementType.LOAD_REPLACE ) return false;
 		/*
 		** If we are disabled, we never fire
 		*/

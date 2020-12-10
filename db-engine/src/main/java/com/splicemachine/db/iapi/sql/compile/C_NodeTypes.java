@@ -106,7 +106,7 @@ public interface C_NodeTypes
     int DROP_INDEX_NODE = 63;
     // 64 available;
     int DROP_TRIGGER_NODE = 65;
-    // 66 available;
+    int DECFLOAT_CONSTANT_NODE = 66;
     int DECIMAL_CONSTANT_NODE = 67;
     int DOUBLE_CONSTANT_NODE = 68;
     int FLOAT_CONSTANT_NODE = 69;
@@ -198,7 +198,8 @@ public interface C_NodeTypes
     int DROP_ALIAS_NODE = 156;
     int INTERSECT_OR_EXCEPT_NODE = 157;
     int REPLACE_OPERATOR_NODE = 158;
-    // 159 - 183 available
+    // 159 - 181 available
+    int DECIMAL_FUNCTION_NODE = 182;
     int SCALAR_MIN_MAX_FUNCTION_NODE = 183;
     int TIMESTAMP_ADD_FN_NODE = 184;
     int TIMESTAMP_DIFF_FN_NODE = 185;
@@ -263,13 +264,11 @@ public interface C_NodeTypes
     int TRUNC_NODE = 251;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
-    int CREATE_PIN_NODE = 255;
-    int DROP_PIN_NODE = 256;
+
     int ARRAY_OPERATOR_NODE = 257;
     int ARRAY_CONSTANT_NODE = 258;
     int SET_SESSION_PROPERTY_NODE = 259;
     int CURRENT_SESSION_PROPERTY_NODE = 260;
-    int BINARY_EXPORT_NODE = 261;
     int LIST_VALUE_NODE = 262;
     int GROUPING_FUNCTION_NODE = 263;
     int REPEAT_OPERATOR_NODE = 264;
@@ -289,8 +288,10 @@ public interface C_NodeTypes
     int TO_INSTANT_NODE = 278;
     int TO_HBASE_ESCAPED_NODE = 279;
     int SPLIT_PART_OPERATOR_NODE = 280;
-    int CREATE_DATABASE_NODE = 281;
-    int DROP_DATABASE_NODE = 282;
+    int TYPEOF_OPERATOR_NODE = 281;
+    int CREATE_DATABASE_NODE = 282;
+    int DROP_DATABASE_NODE = 283;
+
 
     // Final value in set, keep up to date!
     int FINAL_VALUE = DROP_DATABASE_NODE;

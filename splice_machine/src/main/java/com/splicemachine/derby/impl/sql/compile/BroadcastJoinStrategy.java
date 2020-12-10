@@ -35,20 +35,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     }
 
     /**
-     * @see JoinStrategy#resultSetMethodName
-     */
-	@Override
-    public String resultSetMethodName(boolean multiprobe) {
-        if (multiprobe)
-            return "getMultiProbeTableScanResultSet";
-        else
-            return "getTableScanResultSet";
-    }
-
-    /**
      * @see JoinStrategy#joinResultSetMethodName
      */
-	@Override
+    @Override
     public String joinResultSetMethodName() {
         return "getBroadcastJoinResultSet";
     }
@@ -56,7 +45,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
-	@Override
+    @Override
     public String halfOuterJoinResultSetMethodName() {
         return "getBroadcastLeftOuterJoinResultSet";
     }
@@ -65,11 +54,11 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public String fullOuterJoinResultSetMethodName() {
         return "getBroadcastFullOuterJoinResultSet";
     }
-	
-	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
-		return true;
-	}
+
+    /** @see JoinStrategy#multiplyBaseCostByOuterRows */
+    public boolean multiplyBaseCostByOuterRows() {
+        return true;
+    }
     
     /**
      * 
@@ -78,8 +67,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
      * using the HBaseRegionLoads.memstoreAndStorefileSize method on each region load.
      * 
      */
-	@Override
-	public boolean feasible(Optimizable innerTable,
+    @Override
+    public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
@@ -93,7 +82,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
         return hashFeasible;
 
-	}
+    }
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -152,23 +141,23 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
             double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
             double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-            innerCost.setNumPartitions(outerCost.partitionCount());
+            innerCost.setParallelism(outerCost.getParallelism());
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
             innerCost.setLocalCost(joinCost);
-            innerCost.setLocalCostPerPartition(joinCost);
-            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+            innerCost.setLocalCostPerParallelTask(joinCost);
+            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
             innerCost.setRemoteCost(remoteCostPerPartition);
-            innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
+            innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
             innerCost.setRowOrdering(outerCost.getRowOrdering());
-            innerCost.setRowCount(totalOutputRows);
             innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
+            innerCost.setRowCount(totalOutputRows);
         }
         else {
             // Set cost to max to rule out broadcast join
             innerCost.setLocalCost(Double.MAX_VALUE);
             innerCost.setRemoteCost(Double.MAX_VALUE);
-            innerCost.setLocalCostPerPartition(Double.MAX_VALUE);
-            innerCost.setRemoteCostPerPartition(Double.MAX_VALUE);
+            innerCost.setLocalCostPerParallelTask(Double.MAX_VALUE);
+            innerCost.setRemoteCostPerParallelTask(Double.MAX_VALUE);
         }
     }
 
@@ -186,14 +175,14 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double result = (outerCost.getLocalCostPerPartition())+((innerCost.getLocalCostPerPartition()+innerCost.getRemoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
-               + joiningRowCost/outerCost.partitionCount();
+        assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
+        double result = (outerCost.getLocalCostPerParallelTask())+(innerCost.getLocalCostPerParallelTask())+(innerCost.getRemoteCostPerParallelTask() * innerCost.getParallelism())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
+               + joiningRowCost/outerCost.getParallelism();
         // For full outer join, we need to broadcast the left side also to compute the non-matching rows
         // from the right, so add cost to reflex that.
         if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN) {
-            result += (innerCost.getLocalCostPerPartition()) + ((outerCost.getLocalCostPerPartition() + outerCost.getRemoteCostPerPartition()) * outerCost.partitionCount()) + outerCost.getOpenCost() + outerCost.getCloseCost() + joiningRowCost/innerCost.partitionCount();
+            result += (innerCost.getLocalCostPerParallelTask()) + ((outerCost.getLocalCostPerParallelTask() + outerCost.getRemoteCostPerParallelTask()) * outerCost.getParallelism()) + outerCost.getOpenCost() + outerCost.getCloseCost() + joiningRowCost/innerCost.partitionCount();
         }
         return result;
     }

@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLVarcharDB2Compatible;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.pipeline.ErrorState;
@@ -32,6 +33,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import static com.splicemachine.db.iapi.services.io.StoredFormatIds.SQL_VARCHAR_DB2_COMPATIBLE_ID;
 
 /**
  * @author Scott Fines
@@ -52,7 +55,10 @@ public class EngineUtils{
     public static int[] getFormatIds(DataValueDescriptor[] dvds) {
         int[] ids = new int [dvds.length];
         for (int i = 0; i < dvds.length; ++i) {
-            ids[i] = dvds[i].getTypeFormatId();
+            if (dvds[i] instanceof SQLVarcharDB2Compatible)
+                ids[i] = SQL_VARCHAR_DB2_COMPATIBLE_ID;
+            else
+                ids[i] = dvds[i].getTypeFormatId();
         }
         return ids;
     }

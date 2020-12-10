@@ -91,4 +91,6 @@ public interface PartitionAdmin extends AutoCloseable{
      */
 
     int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception;
+
+    int getTableCount() throws IOException;
 }

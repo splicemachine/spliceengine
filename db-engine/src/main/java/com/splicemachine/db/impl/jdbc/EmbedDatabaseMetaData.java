@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
+import com.splicemachine.db.shared.common.sql.Utils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -163,7 +164,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
             try {
                 props[i] = new Properties();
                 // SECURITY PERMISSION - IP3
-                InputStream is = getClass().getResourceAsStream(files[i]);
+                InputStream is = EmbedDatabaseMetaData.class.getResourceAsStream(files[i]);
                 props[i].load(is);
                 is.close();
             } catch (IOException ioe) {
@@ -501,14 +502,15 @@ public class EmbedDatabaseMetaData extends ConnectionChild
     /**
      * This is the string that can be used to escape '_' or '%' in
      * the string pattern style catalog search parameters.
-        we have no default escape value, so = is the end of the next line
+     * The default escape character is determined by
+     * <code>com.splicemachine.db.shared.common.sql.Utils#defaultEscapeCharacter</code>
      * <P>The '_' character represents any single character.
      * <P>The '%' character represents any sequence of zero or
      * more characters.
      * @return the string used to escape wildcard characters
      */
     public String getSearchStringEscape()  {
-        return "";
+        return Character.toString(Utils.defaultEscapeCharacter);
     }
 
     /**
@@ -1582,6 +1584,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      *      column description
      * @see #getSearchStringEscape
      * @exception SQLException thrown on failure.
+     * @implNote if you intend to use this API with exact schema and procedure make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getProcedureColumns(String catalog,
             String schemaPattern,
@@ -1600,6 +1605,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * Get a description of a catalog's stored procedure parameters
      * and result columns.  Same as getProcedureColumns() above,
      * except that the result set will conform to ODBC specifications.
+     * @implNote if you intend to use this API with exact schema and procedure make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getProcedureColumnsForODBC(String catalog,
             String schemaPattern, String procedureNamePattern,
@@ -1744,7 +1752,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsProcCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1752,7 +1761,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -1855,7 +1865,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsProcCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1863,7 +1874,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -1975,7 +1987,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsFuncCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1983,7 +1996,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -2296,6 +2310,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return ResultSet - each row is a column description
      * @see #getSearchStringEscape
      * @exception SQLException thrown on failure.
+     * @implNote if you intend to use this API with exact schema, table, and column names make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getColumns(String catalog, String schemaPattern,
         String tableNamePattern, String columnNamePattern)
@@ -2309,6 +2326,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * Get a description of table columns available in a catalog.
      * Same as getColumns() above, except that the result set
      * will conform to ODBC specifications.
+     * @implNote if you intend to use this API with exact schema, table, and column names make sure to escape
+     *           them first, you could use <code>com.splicemachine.db.shared.common.sql.Utils.escape</code>
+     *           facility to do that for you.
      */
     public ResultSet getColumnsForODBC(String catalog, String schemaPattern,
         String tableNamePattern, String columnNamePattern)
@@ -2508,7 +2528,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         int nullableInIntForm = 0;
         if (nullable)
             nullableInIntForm = 1;
-      
+
         if (catalogPattern == null)
         {
             catalogPattern = "%";
@@ -3203,6 +3223,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         s.setString(1, swapNull(schema));
         s.setString(2, swapNull(table)); //DERBY-1484: Must match table name as stored
         s.setBoolean(3, unique);
+        s.setString(4, swapNull(schema));
+        s.setString(5, swapNull(table)); //DERBY-1484: Must match table name as stored
+        s.setBoolean(6, unique);
         return s.executeQuery();
     }
 

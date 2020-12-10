@@ -55,7 +55,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param tableType            Type of table (e.g., BASE, global temporary table).
      * @param columnInfo           Information on all the columns in the table.
      *                             (REMIND tableDescriptor ignored)
-     * @param constraintActions    CreateConstraintConstantAction[] for constraints
+	 * @param constraintActions    ConstraintConstantOperation[] for constraints
      * @param properties           Optional table properties
      * @param createBehavior       CREATE_IF_NOT_EXISTS or CREATE_DEFAULT
      * @param lockGranularity      The lock granularity.

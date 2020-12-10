@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.system.SparkVersion;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
 import java.util.*;
@@ -133,7 +134,8 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
         defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+        dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+        sparkExecutionType = SparkExecutionType.UNSPECIFIED;
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
         projectionPruningEnabled = false;
@@ -260,7 +262,7 @@ public class CompilerContextImpl extends ContextImpl
         return sparkVersionInitialized;
     }
 
-        public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
         nativeSparkAggregationMode = newValue;
     }
 
@@ -276,12 +278,40 @@ public class CompilerContextImpl extends ContextImpl
         return allowOverflowSensitiveNativeSparkExpressions;
     }
 
+    public NewMergeJoinExecutionType getNewMergeJoin() {
+        return newMergeJoin;
+    }
+
+    public void setNewMergeJoin(NewMergeJoinExecutionType newValue) {
+        newMergeJoin = newValue;
+    }
+
+    public void setDisablePerParallelTaskJoinCosting(boolean newValue) {
+        disablePerParallelTaskJoinCosting = newValue;
+    }
+
+    public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
+
+    public void setVarcharDB2CompatibilityMode(boolean newValue) {
+        varcharDB2CompatibilityMode = newValue;
+    }
+
+    public boolean getVarcharDB2CompatibilityMode() { return varcharDB2CompatibilityMode; }
+
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
     }
 
+    public void setTimestampFormat(String value) {
+        timestampFormat = value;
+    }
+
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
+    }
+
+    public String getTimestampFormat() {
+        return timestampFormat;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -550,7 +580,7 @@ public class CompilerContextImpl extends ContextImpl
      * @exception StandardException        Thrown on error
      */
     @Override
-    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
+    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException {
           long conglomerateNumber = cd.getConglomerateNumber();
         /*
         ** Try to find the given conglomerate number in the array of
@@ -564,7 +594,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);
@@ -718,6 +748,7 @@ public class CompilerContextImpl extends ContextImpl
     /**
      * @see CompilerContext#getParameterTypes
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public DataTypeDescriptor[] getParameterTypes()
     {
         return parameterDescriptors;
@@ -1112,7 +1143,6 @@ public class CompilerContextImpl extends ContextImpl
      */
     public boolean isReferenced( SequenceDescriptor sd ) {
         return referencedSequences != null && referencedSequences.containsKey(sd.getUUID());
-
     }
 
     public int getNextOJLevel() {
@@ -1123,42 +1153,47 @@ public class CompilerContextImpl extends ContextImpl
     ** Context state must be reset in restContext()
     */
 
-    private final Parser         parser;
-    private final LanguageConnectionContext lcc;
-    private final LanguageConnectionFactory lcf;
-    private TypeCompilerFactory    typeCompilerFactory;
-    private Dependent            currentDependent;
-    private DependencyManager    dm;
-    private boolean                firstOnStack;
-    private boolean                inUse;
-    private int                    reliability = CompilerContext.SQL_LEGAL;
-    private    int                    nextColumnNumber = 1;
-    private int                    nextTableNumber;
-    private int                    nextSubqueryNumber;
-    private int                    nextResultSetNumber;
-    private int                    scanIsolationLevel;
-    private int                    nextEquivalenceClass = -1;
-    private long                nextClassName;
-    private Vector                savedObjects;
-    private String                classPrefix;
-    private SchemaDescriptor    compilationSchema;
+    private final Parser                              parser;
+    private final LanguageConnectionContext           lcc;
+    private final LanguageConnectionFactory           lcf;
+    private       TypeCompilerFactory                 typeCompilerFactory;
+    private       Dependent                           currentDependent;
+    private       DependencyManager                   dm;
+    private       boolean                             firstOnStack;
+    private       boolean                             inUse;
+    private       int                                 reliability                                  = CompilerContext.SQL_LEGAL;
+    private       int                                 nextColumnNumber                             = 1;
+    private       int                                 nextTableNumber;
+    private       int                                 nextSubqueryNumber;
+    private       int                                 nextResultSetNumber;
+    private       int                                 scanIsolationLevel;
+    private       int                                 nextEquivalenceClass                         = -1;
+    private       long                                nextClassName;
+    private       Vector                              savedObjects;
+    private       String                              classPrefix;
+    private       SchemaDescriptor                    compilationSchema;
     /* this is the number of tables taking into consideration the where Subqueries */
-    private int                 maximalPossibleTableCount;
-    private boolean             selectivityEstimationIncludingSkewedDefault = false;
-    private boolean             projectionPruningEnabled;
-    private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
-    private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
-    private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
-    private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
-    private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
-    private boolean sparkVersionInitialized = false;
-    private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
-    private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
-    private int currentTimestampPrecision = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+    private       int                                 maximalPossibleTableCount;
+    private       boolean                             selectivityEstimationIncludingSkewedDefault  = false;
+    private       boolean                             projectionPruningEnabled;
+    private       int                                 maxMulticolumnProbeValues                    = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+    private       boolean                             multicolumnInlistProbeOnSparkEnabled         = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+    private       boolean                             convertMultiColumnDNFPredicatesToInList      = DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+    private       boolean                             disablePredicateSimplification               = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private       SparkVersion                        sparkVersion                                 = DEFAULT_SPLICE_SPARK_VERSION;
+    private       boolean                             sparkVersionInitialized                      = false;
+    private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+    private       boolean                             allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+    private       int                                 currentTimestampPrecision                    = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+
+    private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     // Used to track the flattened half outer joins.
-    private int                 nextOJLevel = 1;
-    private boolean             outerJoinFlatteningDisabled;
-    private boolean             ssqFlatteningForUpdateDisabled;
+    private       int                                 nextOJLevel                                  = 1;
+    private       boolean                             outerJoinFlatteningDisabled;
+    private       boolean                             ssqFlatteningForUpdateDisabled;
+    private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
+    private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
@@ -1191,7 +1226,17 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap requiredUsagePrivileges;
     private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
+    }
+
+    public void setSparkExecutionType(SparkExecutionType type) throws StandardException {
+        this.sparkExecutionType = sparkExecutionType.combine(type);
+    }
+
+    private SparkExecutionType sparkExecutionType = SparkExecutionType.UNSPECIFIED;
 
     @Override
     public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {

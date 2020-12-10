@@ -16,7 +16,7 @@
 package com.splicemachine.olap;
 
 import splice.com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -50,7 +50,10 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.deploy.SparkHadoopUtil;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.util.Utils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -68,6 +71,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_NUM_NODES_PATH;
+import static com.splicemachine.derby.impl.SpliceSpark.getContextUnsafe;
+import static com.splicemachine.derby.impl.SpliceSpark.getSession;
+import static com.splicemachine.hbase.ZkUtils.recursiveDelete;
+
 
 /**
  * Created by dgomezferro on 29/08/2017.
@@ -81,6 +89,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     private RecoverableZooKeeper rzk;
     private String queueZkPath;
     private String appZkPath;
+    private String sparkNumNodesZkPath;
     private Configuration conf;
     private CountDownLatch finished = new CountDownLatch(1);
     private ScheduledExecutorService ses = Executors.newScheduledThreadPool(1,
@@ -121,6 +130,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         zkSafeCreate(appRoot);
         queueZkPath = queueRoot + "/" + queueName;
         appZkPath = appRoot + "/" + appId;
+        sparkNumNodesZkPath = root + SPARK_NUM_NODES_PATH;
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -321,7 +331,8 @@ public class OlapServerMaster implements LeaderSelectorListener {
 
         publishServer(rzk, hostname, port);
 
-        SpliceSpark.getContextUnsafe(); // kickstart Spark
+        JavaSparkContext sparkContext = SpliceSpark.getContextUnsafe(); // kickstart Spark
+        publishSparkNumNodes(rzk, sparkContext.sc());
 
         while(!end.get()) {
             Thread.sleep(10000);
@@ -345,6 +356,20 @@ public class OlapServerMaster implements LeaderSelectorListener {
         }
     }
 
+    private void publishSparkNumNodes(RecoverableZooKeeper rzk, SparkContext sparkContext) throws InterruptedException, KeeperException {
+        try {
+            // Find the number of nodes in the cluster that run spark executors using
+            // the method documented at https://kb.databricks.com/clusters/calculate-number-of-cores.html
+            Integer numNodes = sparkContext.statusTracker().getExecutorInfos().length - 1;
+            if (numNodes < 1)
+                numNodes = 1;
+            ZkUtils.safeDelete(sparkNumNodesZkPath, -1, rzk);
+            ZkUtils.safeCreate(sparkNumNodesZkPath, Bytes.toBytes(numNodes), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+        } catch (Exception e) {
+            LOG.error("Couldn't register number of Spark nodes due to unexpected exception", e);
+            throw e;
+        }
+    }
 
     private AMRMClientAsync<AMRMClient.ContainerRequest> initClient(Configuration conf) throws YarnException, IOException {
         AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {

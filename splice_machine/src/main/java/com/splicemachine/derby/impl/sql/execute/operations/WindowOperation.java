@@ -15,12 +15,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -89,22 +88,6 @@ public class WindowOperation extends SpliceBaseOperation {
 
     public SpliceOperation getSource() {
         return this.source;
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        isInSortedOrder = in.readBoolean();
-        windowContext = (DerbyWindowContext)in.readObject();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeBoolean(isInSortedOrder);
-        out.writeObject(windowContext);
     }
 
     @Override
@@ -192,5 +175,10 @@ public class WindowOperation extends SpliceBaseOperation {
    
     public String getScopeName() {
         return "Window Function";
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

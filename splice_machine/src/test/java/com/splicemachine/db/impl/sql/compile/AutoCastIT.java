@@ -41,7 +41,6 @@ import static org.junit.Assert.assertEquals;
  * Test automatic casting of CHAR and VARCHAR to numeric types.
  */
 @RunWith(Parameterized.class)
-@Category(LongerThanTwoMinutes.class)
 public class AutoCastIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
@@ -255,6 +254,16 @@ public class AutoCastIT  extends SpliceUnitTest {
             "where tab1.num1='-.1234567890123456789012345678901' ", useSpark), expected);
         testQuery(format("select 1 from t3 tab1 --SPLICE-PROPERTIES useSpark=%s, index=autocastit2\n" +
             "where tab1.num2='-.1234567890123456789012345678901' ", useSpark), expected);
+    }
+
+    @Test
+    public void testVarcharOnLeftSide() throws Exception {
+        String expected = "CHAR1 |\n" +
+                "--------\n" +
+                "  -1   |\n" +
+                "   1   |";
+        testQuery(format("select char1 from t1 --splice-properties useSpark=%s\n where char2 = num6" +
+            "\n order by char1", useSpark), expected);
     }
 
 }

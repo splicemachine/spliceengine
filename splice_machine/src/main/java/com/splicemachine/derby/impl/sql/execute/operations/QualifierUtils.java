@@ -19,13 +19,13 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
+
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityModeStatic;
 
 /**
  * @author Scott Fines
@@ -75,7 +75,8 @@ public class QualifierUtils {
          * @throws StandardException if something goes wrong
          */
     public static DataValueDescriptor adjustDataValueDescriptor(
-            DataValueDescriptor sourceDvd, DataValueDescriptor targetDvd, DataValueFactory dataValueFactory) throws StandardException {
+            DataValueDescriptor sourceDvd, DataValueDescriptor targetDvd, DataValueFactory dataValueFactory,
+            boolean forStartKey) throws StandardException {
         assert dataValueFactory != null;
         int sourceType = sourceDvd.getTypeFormatId();
         int targetType = targetDvd.getTypeFormatId();
@@ -92,6 +93,14 @@ public class QualifierUtils {
 
                 return convertChar((SQLChar) sourceDvd, sourceLength, targetLength);
             } else {
+                boolean DB2CompatibilityMode = targetDvd instanceof SQLVarcharDB2Compatible ||
+                                               getDB2CompatibilityModeStatic();
+                if (DB2CompatibilityMode && isVarChar(targetType)) {
+                    int targetLength =
+                      forStartKey ? 0 : ((SQLVarchar) targetDvd).getSqlCharSize();
+                    return convertChar(new SQLChar(sourceDvd.getString()),
+                                       sourceDvd.getLength(), targetLength);
+                }
                 return sourceDvd;
             }
         } else if (isFloatType(targetType)) {
@@ -104,7 +113,13 @@ public class QualifierUtils {
             return convertDate(sourceDvd, targetType, dataValueFactory);
         } else if (isTime(targetType)) {
             return convertTime(sourceDvd, targetType, dataValueFactory);
-        } else {
+        } else if (isVarChar(targetType) && isFixedChar(sourceType) &&
+                   (targetDvd instanceof SQLVarcharDB2Compatible || getDB2CompatibilityModeStatic())) {
+            int targetLength =
+              forStartKey ? 0 : ((SQLVarchar) targetDvd).getSqlCharSize();
+            return convertChar((SQLChar)sourceDvd, sourceDvd.getLength(), targetLength);
+        }
+        else {
             return sourceDvd; //nothing to do
         }
     }
@@ -280,8 +295,11 @@ public class QualifierUtils {
         return (columnFormat == StoredFormatIds.SQL_CHAR_ID);
     }
 
+    private static boolean isVarChar(int columnFormat) {
+        return (columnFormat == StoredFormatIds.SQL_VARCHAR_ID);
+    }
 
-    private static DataValueDescriptor convertChar(SQLChar source, int sourceCharSize, int targetCharSize) throws StandardException {
+    public static DataValueDescriptor convertChar(SQLChar source, int sourceCharSize, int targetCharSize) throws StandardException {
         SQLChar correctedSource;
         if (targetCharSize > sourceCharSize) {
             correctedSource = new SQLChar(StringUtil.padRight(source.getString(), SQLChar.PAD, targetCharSize));

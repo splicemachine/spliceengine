@@ -55,6 +55,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.vti.DeferModification;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
@@ -894,8 +896,15 @@ public final class UpdateNode extends DMLModStatementNode
                 mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
                 mb.push(targetTableDescriptor.getVersion());
                 mb.push(this.printExplainInformationForActivation());
+                SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
+                if (fromTableTriggerSPSDescriptor == null)
+                    mb.pushNull("java.lang.String");
+                else {
+                    String spsAsString = Base64.encodeBase64String(SerializationUtils.serialize(fromTableTriggerSPSDescriptor));
+                    mb.push(spsAsString);
+                }
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 7);
+                              ClassName.ResultSet, 8);
             }
         }
     }

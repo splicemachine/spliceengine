@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1981-SNAPSHOT</version>
+        <version>3.2.0.1989-SNAPSHOT</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -69,6 +69,10 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>spark_sql</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -79,6 +83,8 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <version>12.0.1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -145,6 +151,10 @@
                         <exclusion>
                             <groupId>com.splicemachine</groupId>
                             <artifactId>hbase_storage</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_upgrade</artifactId>
                         </exclusion>
                     </exclusions>
                 </dependency>
@@ -215,6 +225,8 @@
                                 <exclude>com/splicemachine/hbase/**</exclude>
                                 <exclude>com/splicemachine/mrio/**</exclude>
                                 <exclude>**/CallableTransactionIT.java</exclude>
+                                <exclude>**/HTablePrioritiesIT.java</exclude>
+                                <exclude>**/TransactionResolutionIT.java</exclude>
                                 <exclude>**/VacuumIT.java</exclude>
                                 <!-- EE ITs failing in remote mode -->
                                 <exclude>com/splicemachine/backup/**</exclude>
@@ -225,6 +237,7 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -233,7 +246,6 @@
                         </goals>
                         <configuration>
                             <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
-                            <!--<skipTests>${skip.integration.tests}</skipTests>-->
                             <parallel>classes</parallel>
                             <threadCount>16</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
@@ -307,12 +319,15 @@
                                 <exclude>**/ClusterDDLTestIT.java</exclude>
                                 <exclude>**/ExternalTableIT.java</exclude>
                                 <exclude>**/ExternalTablePartitionIT.java</exclude>
+                                <exclude>**/HTablePrioritiesIT.java</exclude>
                                 <exclude>**/TempTableHBaseIT.java</exclude>
                                 <exclude>**/TransactionResolutionIT.java</exclude>
                                 <!-- Serial IT failing to compile -->
                                 <exclude>**/VacuumIT.java</exclude>
                                 <!-- EE ITs failing in remote mode -->
                                 <exclude>com/splicemachine/backup/**</exclude>
+                                <!-- DB-10763 FlushProblemIT doesn't work on Mem (Index FK violation) -->
+                                <exclude>**/FlushProblemIT.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>

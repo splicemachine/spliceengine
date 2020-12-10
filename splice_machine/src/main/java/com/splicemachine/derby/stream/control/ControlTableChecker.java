@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -173,7 +173,7 @@ public class ControlTableChecker implements TableChecker {
     private void fixDuplicateIndexes(ArrayListMultimap<String, Tuple2<byte[], ExecRow>> result) throws StandardException {
         try {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 
@@ -291,7 +291,7 @@ public class ControlTableChecker implements TableChecker {
     private void fixInvalidIndexes(ArrayListMultimap<String, Tuple2<byte[], ExecRow>> result) throws StandardException {
         try {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 

@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
@@ -33,6 +35,8 @@ public class BroadcastedActivation implements Externalizable {
     private byte[] serializedValue;
     private ActivationHolder activationHolder;
     private Broadcast<byte[]> bcast;
+    private boolean DB2VarcharCompatibilityMode = false;
+    protected long conglomID = 0;
 
     public BroadcastedActivation() {
 
@@ -42,11 +46,22 @@ public class BroadcastedActivation implements Externalizable {
         this.activationHolder = new ActivationHolder(activation, root);
         this.serializedValue = writeActivationHolder();
         this.bcast = SpliceSpark.getContext().broadcast(serializedValue);
+        try {
+            this.DB2VarcharCompatibilityMode =
+                PropertyUtil.getCachedDatabaseBoolean(
+                              activationHolder.getLCC(),
+                               Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        }
+        catch (Exception e) {
+
+        }
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(bcast);
+        out.writeBoolean(DB2VarcharCompatibilityMode);
+        out.writeLong(conglomID);
     }
 
     @Override
@@ -60,6 +75,8 @@ public class BroadcastedActivation implements Externalizable {
         }
 
         activationHolder = ah.activationHolder;
+        DB2VarcharCompatibilityMode = in.readBoolean();
+        conglomID = in.readLong();
     }
 
     public ActivationHolder getActivationHolder() {
@@ -105,5 +122,15 @@ public class BroadcastedActivation implements Externalizable {
 
     public void setActivationHolder(ActivationHolder ah) {
         activationHolder = ah;
+    }
+
+    public boolean isDB2VarcharCompatibilityMode() { return DB2VarcharCompatibilityMode; }
+
+    public void setTempTriggerConglomerate(long conglomID) {
+        this.conglomID = conglomID;
+    }
+
+    public long getTempTriggerConglomerate() {
+        return conglomID;
     }
 }

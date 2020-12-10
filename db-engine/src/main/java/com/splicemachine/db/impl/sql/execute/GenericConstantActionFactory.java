@@ -320,7 +320,7 @@ public abstract class GenericConstantActionFactory {
      *  @param tableType    Type of table (e.g., BASE, global temporary table).
      *  @param columnInfo    Information on all the columns in the table.
      *         (REMIND tableDescriptor ignored)
-     *  @param constraintActions    CreateConstraintConstantAction[] for constraints
+     *  @param constraintActions    ConstantAction[] for usually for constraints.
      *  @param properties    Optional table properties
      * @param createBehavior  CREATE_IF_NOT_EXISTS or CREATE_DEFAULT
      * @param lockGranularity    The lock granularity.
@@ -359,11 +359,6 @@ public abstract class GenericConstantActionFactory {
         String dateFormat,
         String timeFormat
         );
-
-    public abstract    ConstantAction    getPinTableConstantAction (
-                    String            schemaName,
-                    String            tableName
-            );
 
 
     /**
@@ -587,28 +582,6 @@ public abstract class GenericConstantActionFactory {
         long                conglomerateNumber,
         UUID                tableId,
         int                    behavior
-    );
-
-    /**
-     *    Make the ConstantAction for a DROP TABLE statement.
-     *
-     *
-     *    @param    fullTableName        Fully qualified table name
-     *    @param    tableName            Table name.
-     *    @param    sd                    Schema that table lives in.
-     *  @param  conglomerateNumber    Conglomerate number for heap
-     *  @param  tableId                UUID for table
-     *  @param  behavior            drop behavior, CASCADE, RESTRICT or DEFAULT
-     *
-     */
-    public abstract ConstantAction    getDropPinConstantAction
-    (
-            String                fullTableName,
-            String                tableName,
-            SchemaDescriptor    sd,
-            long                conglomerateNumber,
-            UUID                tableId,
-            int                    behavior
     );
 
 
@@ -935,7 +908,7 @@ public abstract class GenericConstantActionFactory {
     public abstract ConstantAction[] createConstraintConstantActionArray(int size);
     
     public boolean primaryKeyConstantActionCheck(ConstantAction constantAction) {
-        return (constantAction instanceof CreateConstraintConstantAction) && ((CreateConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;
+        return (constantAction instanceof ConstraintConstantAction) && ((ConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;
     }
     
 }
