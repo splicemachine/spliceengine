@@ -297,16 +297,7 @@ public class IndexTransformer {
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
-
-        int maxKeyBaseColumnPosition =
-                table.getColumnOrderingCount() > 0 ? Collections.max(table.getColumnOrderingList()) : 0;
-        int maxValueBaseColumnPosition = 0;
-        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
-            if (i > maxValueBaseColumnPosition)
-                maxValueBaseColumnPosition = i;
-        }
-
-        ExecRow decodedRow = new ValueRow(Math.max(maxKeyBaseColumnPosition, maxValueBaseColumnPosition) + 1);
+        ExecRow decodedRow = new ValueRow(mainColToIndexPosMap.length + 1);
 
         if (baseRowSerializers == null)
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];
@@ -707,6 +698,10 @@ public class IndexTransformer {
     }
 
     private LanguageConnectionContext getLcc(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
+        /* TODO(DB-10485) SpliceTransactionResourceImpl is closed by the time we use the LCC. It works in our small
+         *  use-case here, but could lead to complications if a future commit tries to access the context manager from
+         *  that LCC. We should either pass LCC from a caller function, or get ClassFactory directly.
+         */
         TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);

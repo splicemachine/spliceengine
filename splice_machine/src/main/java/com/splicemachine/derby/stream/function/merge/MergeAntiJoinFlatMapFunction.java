@@ -29,8 +29,8 @@ public class MergeAntiJoinFlatMapFunction extends AbstractMergeJoinFlatMapFuncti
         super();
     }
 
-    public MergeAntiJoinFlatMapFunction(OperationContext<JoinOperation> operationContext) {
-        super(operationContext);
+    public MergeAntiJoinFlatMapFunction(OperationContext<JoinOperation> operationContext, boolean useOldMergeJoin) {
+        super(operationContext, useOldMergeJoin);
     }
 
     @Override

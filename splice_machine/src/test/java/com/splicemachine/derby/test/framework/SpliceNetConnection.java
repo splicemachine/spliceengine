@@ -131,8 +131,10 @@ public class SpliceNetConnection {
         private String user;
         private String password;
         private String schema;
+        private String currentSchema;
         private String ssl;
         private String useOLAP;
+        private String useNativeSpark;
 
         @Override
         public ConnectionBuilder clone() throws CloneNotSupportedException {
@@ -167,12 +169,20 @@ public class SpliceNetConnection {
             this.schema = schema;
             return this;
         }
+        public ConnectionBuilder currentSchema(String schema) {
+            this.currentSchema = schema;
+            return this;
+        }
         public ConnectionBuilder ssl(boolean ssl) {
             this.ssl = Boolean.toString(ssl);
             return this;
         }
         public ConnectionBuilder useOLAP(boolean useOLAP) {
             this.useOLAP = Boolean.toString(useOLAP);
+            return this;
+        }
+        public ConnectionBuilder useNativeSpark(boolean useNativeSpark) {
+            this.useNativeSpark = Boolean.toString(useNativeSpark);
             return this;
         }
 
@@ -184,10 +194,14 @@ public class SpliceNetConnection {
                 info.put("create", create != null ? create : jdbcCreate);
             if (schema != null || jdbcSchema != null)
                 info.put("schema", schema != null ? schema : jdbcSchema);
+            if (currentSchema != null || jdbcSchema != null)
+                info.put("currentSchema", currentSchema != null ? currentSchema : jdbcSchema);
             if (ssl != null || jdbcSsl != null)
                 info.put("ssl", (ssl != null ? ssl : jdbcSsl));
             if (useOLAP != null || jdbcUseOLAP != null)
                 info.put("useOLAP", useOLAP != null ? useOLAP : jdbcUseOLAP);
+            if (useNativeSpark != null)
+                info.put("useNativeSpark", useNativeSpark);
             StringBuilder url = new StringBuilder();
             if (host != null || port != null) {
                 url.append(URL_PREFIX);

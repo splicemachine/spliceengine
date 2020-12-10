@@ -83,6 +83,8 @@ public interface C_NodeNames
 
     String COALESCE_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CoalesceFunctionNode";
 
+    String DECIMAL_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DecimalFunctionNode";
+
     String COLUMN_DEFINITION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode";
 
     String COLUMN_REFERENCE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnReference";
@@ -169,7 +171,7 @@ public interface C_NodeNames
 
     String GET_CURRENT_CONNECTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetCurrentConnectionNode";
 
-	String GET_NEAREST_TRANSACTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetNearestTransactionNode";
+    String GET_NEAREST_TRANSACTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetNearestTransactionNode";
 
     String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
 
@@ -342,15 +344,9 @@ public interface C_NodeNames
 
     String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
 
-    String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
-
     String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
-
-    String CREATE_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreatePinNode";
-
-    String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";
 
     String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
 
@@ -376,11 +372,9 @@ public interface C_NodeNames
 
     String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
 
+    String TYPEOF_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TypeofOperatorNode";
+
     String CREATE_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateDatabaseNode";
 
     String DROP_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropDatabaseNode";
-
-    // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
-    // THEM TO tools/jar/DBMSnodes.properties
-
 }

@@ -137,4 +137,54 @@ public class LimitOffsetVisitorIT extends SpliceUnitTest {
                 "outputRows=20,");
     }
 
+    @Test
+    public void limitOverSimpleSelectOnOLTP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 * from A --splice-properties useDefaultRowCount=1000000000",methodWatcher,
+                "OLTP");
+    }
+
+    @Test
+    public void limitOverSimpleProjectionOnOLTP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 4 * from A --splice-properties useDefaultRowCount=1000000000\n where col1+1 < 2",methodWatcher,
+                "OLTP");
+    }
+
+    @Test
+    public void limitOverIndexLookupOnOLTP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 * from B --splice-properties index=BIX, useDefaultRowCount=1000000000\n",methodWatcher,
+                "OLTP");
+    }
+
+    @Test
+    public void limitOverDistinctScanOnOLAP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 col1 from A --splice-properties useDefaultRowCount=1000000000\n group by col1",methodWatcher,
+                "OLAP");
+    }
+
+    @Test
+    public void limitOverGroupByOnOLAP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 col1,max(col2) from A --splice-properties useDefaultRowCount=1000000000\n group by col1",methodWatcher,
+                "OLAP");
+    }
+
+    @Test
+    public void limitOverOrderByOnOLAP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 col1 from A --splice-properties useDefaultRowCount=1000000000\n order by col1",methodWatcher,
+                "OLAP");
+    }
+
+    @Test
+    public void limitOverJoinOnOLAP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 * from C --splice-properties useDefaultRowCount=1000000000\n " +
+                        " ,D --splice-properties useDefaultRowCount=1000000000\n " +
+                        " where C.COL1 = D.COL1",methodWatcher,
+                "OLAP");
+    }
+
+    @Test
+    public void limitOverUnionAllOnOLAP() throws Exception {
+        rowContainsQuery(new int[]{1},"explain select top 10 * from A --splice-properties useDefaultRowCount=1000000000\n " +
+                        "UNION ALL select * from B --splice-properties useDefaultRowCount=1000000000\n",methodWatcher,
+                "OLAP");
+    }
 }

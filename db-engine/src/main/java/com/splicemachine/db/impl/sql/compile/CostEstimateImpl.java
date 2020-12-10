@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -73,12 +74,13 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override
     public void setCost(double cost, double rowCount, double singleScanRowCount) {
-        setCost(cost,rowCount,singleScanRowCount,0);
+        setCost(cost,rowCount,singleScanRowCount,0,0);
     }
 
     /** @see CostEstimate#setCost */
+    @Override
     public void setCost(double cost, double rowCount,
-                        double singleScanRowCount,int numPartitions) {
+                        double singleScanRowCount, int numPartitions, int parallelism) {
         if (SanityManager.DEBUG) {
             if (cost < 0.0 ||
                     rowCount < 0.0 ||
@@ -110,6 +112,11 @@ public class CostEstimateImpl implements CostEstimate {
 
     //no-op
     @Override public void setNumPartitions(int numPartitions) {  }
+
+    //no-op
+    @Override public void setParallelism(int numparallelTasks) {  }
+
+    @Override public int getParallelism() { return 1; }
 
     //derby always scans a single partition
     @Override public int partitionCount() { return 1; }
@@ -584,22 +591,22 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public void setLocalCostPerPartition(double remoteCost) { }
+    public void setLocalCostPerParallelTask(double remoteCost) { }
 
     @Override
-    public void setLocalCostPerPartition(double localCost, int numPartitions) { }
+    public void setLocalCostPerParallelTask(double localCost, int parallelism) { }
 
     @Override
-    public void setRemoteCostPerPartition(double remoteCost, int numPartitions) { }
+    public void setRemoteCostPerParallelTask(double remoteCost, int parallelism) { }
 
     @Override
-    public double getLocalCostPerPartition() { return 0; }
+    public double getLocalCostPerParallelTask() { return 0; }
 
     @Override
-    public double getRemoteCostPerPartition() { return 0; }
+    public double getRemoteCostPerParallelTask() { return 0; }
 
     @Override
-    public void setRemoteCostPerPartition(double remoteCost) { }
+    public void setRemoteCostPerParallelTask(double remoteCost) { }
 
     @Override
     public double getAccumulatedMemory() {
@@ -612,4 +619,11 @@ public class CostEstimateImpl implements CostEstimate {
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    // No-op
+    @Override
+    public void setOptimizer(Optimizer optimizer) { }
+
+    @Override
+    public Optimizer getOptimizer() { return null; }
 }

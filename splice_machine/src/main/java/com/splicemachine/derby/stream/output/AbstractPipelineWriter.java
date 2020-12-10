@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.output;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -23,6 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
+import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.derby.stream.output.update.NonPkRowHash;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -40,6 +43,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import static com.splicemachine.derby.stream.output.insert.InsertPipelineWriter.getEncodingColumns;
+
 /**
  * Created by jleach on 5/20/15.
  */
@@ -51,7 +56,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected byte[] tempTriggerTable;
     protected long heapConglom;
     protected long tempConglomID;
-    protected  TriggerHandler triggerHandler;
+    protected  TriggerHandler triggerHandler = null;
     protected Callable<Void> flushCallback;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
@@ -62,9 +67,12 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
     protected boolean rollforward;
+    protected boolean loadReplaceMode;
 
     @SuppressFBWarnings(value = {"URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "EI_EXPOSE_REP2"}, justification = "fields are used in subclasses")
-    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) {
+    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID,
+                                  String tableVersion, ExecRow execRowDefinition, OperationContext operationContext,
+                                  boolean loadReplaceMode) {
         this.txn = txn;
         this.token = token;
         this.heapConglom = heapConglom;
@@ -77,16 +85,24 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         this.tempTriggerTable = tempConglomID == 0 ? null : Bytes.toBytes(Long.toString(tempConglomID));
         this.tableVersion = tableVersion;
         this.execRowDefinition=execRowDefinition;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
-    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {
+        this.loadReplaceMode = loadReplaceMode;
+        if (this.loadReplaceMode) { // don't fire trigger in loadReplaceMode
+            triggerHandler = null;
+        }
         writeCoordinator = PipelineDriver.driver().writeCoordinator();
         if (triggerHandler != null) {
             triggerHandler.setTxn(txn);
             triggerHandler.initTriggerRowHolders(triggerHandler.isSpark(), txn, token, tempConglomID);
         }
         this.triggerHandler = triggerHandler;
+        final boolean isInsert = this instanceof InsertPipelineWriter;
+        if (triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause())
+            triggerRowsEncoder=new PairEncoder(getTriggerKeyEncoder(isInsert),getTriggerRowHash(isInsert),KVPair.Type.INSERT);
     }
 
     @Override
@@ -170,7 +186,13 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
     }
 
-    public KeyEncoder getTriggerKeyEncoder() throws StandardException{
+    public KeyEncoder getTriggerKeyEncoder(boolean forInsert) throws StandardException{
+        if (forInsert) {
+            HashPrefix prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
+            KeyPostfix postfix = NoOpPostfix.INSTANCE;
+            DataHash dataHash = NoOpDataHash.INSTANCE;
+            return new KeyEncoder(prefix,dataHash,postfix);
+        }
         DataHash hash;
         hash=new DataHash<ExecRow>(){
             private ExecRow currentRow;
@@ -197,17 +219,28 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
     }
 
-    public DataHash getTriggerRowHash() throws StandardException{
+    public DataHash getTriggerRowHash(boolean forInsert) throws StandardException{
         int numColumns = execRowDefinition.nColumns();
         FormatableBitSet bitSet = new FormatableBitSet(execRowDefinition.nColumns()+1);
         for (int i = 1; i <= numColumns; i++) {
             bitSet.set(i);
         }
-        int[] colMap = new int[numColumns+1];
-        for (int i = 0; i < numColumns; i++)
-            colMap[i+1] = i;
-        DescriptorSerializer[] serializers= VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        return new NonPkRowHash(colMap,null,serializers,bitSet);
+        DescriptorSerializer[] serializers= VersionedSerializers.forVersion(tableVersion,forInsert).getSerializers(execRowDefinition);
+
+        int[] colMap = null;
+        DataHash dataHash;
+        if (forInsert) {
+            colMap = getEncodingColumns(execRowDefinition.nColumns(), null);
+            dataHash = new EntryDataHash(colMap,null,serializers);
+        }
+        else {
+            colMap = new int[numColumns+1];
+            for (int i = 0; i < numColumns; i++)
+                colMap[i + 1] = i;
+
+            dataHash = new NonPkRowHash(colMap, null, serializers, bitSet);
+        }
+        return dataHash;
     }
 
 }

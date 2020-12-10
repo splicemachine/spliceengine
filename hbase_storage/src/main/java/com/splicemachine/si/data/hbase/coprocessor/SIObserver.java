@@ -16,14 +16,15 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompaction;
 import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
-import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -40,15 +41,18 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.*;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
+import org.apache.hadoop.hbase.coprocessor.WALCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.WALObserver;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RpcServer;
@@ -62,6 +66,8 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.wal.WALEdit;
+import org.apache.hadoop.hbase.wal.WAL;
+import org.apache.hadoop.hbase.wal.WALFactory;
 import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -72,13 +78,14 @@ import splice.com.google.common.collect.Maps;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocessor{
+public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocessor {
     private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected boolean tableEnvMatch=false;
     protected boolean spliceTable=false;
@@ -89,6 +96,45 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     protected TableAuthManager authManager = null;
     protected boolean authTokenEnabled;
     protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
+
+    /**
+     * We need to keep track of compacted files in HFiles in order to avoid forgetting about any of them when
+     * recovering from a crash, since the compaction marker might have been lost due to a WAL roll or another crash
+     * See DB-10896 and HBASE-20724 for more details
+     */
+    @Override
+    public void postOpen(ObserverContext<RegionCoprocessorEnvironment> c) {
+        try {
+            HRegion region = (HRegion) c.getEnvironment().getRegion();
+            for (HStore store : region.getStores()) {
+                // Gather all compacted HFiles
+                Set<String> compactedFiles = new HashSet<>();
+                for (HStoreFile hsf : store.getStorefiles()) {
+                    byte[] result = hsf.getMetadataValue(SpliceCompaction.SPLICE_COMPACTION_EVENT_KEY);
+                    if (result != null) {
+                        SpliceMessage.CompactedFiles message = SpliceMessage.CompactedFiles.parseFrom(result);
+                        compactedFiles.addAll(message.getCompactedFileList());
+                    }
+                }
+                // Remove the ones that are already marked as compacted
+                compactedFiles.removeAll(SpliceCompaction.storeFilesToNames(store.getCompactedFiles()));
+                if (compactedFiles.isEmpty())
+                    return;
+
+                // From name to HStoreFile
+                List<HStoreFile> toRemove = store.getStorefiles().stream()
+                        .filter(sf -> compactedFiles.contains(sf.getPath().getName()))
+                        .collect(Collectors.toList());
+                if (toRemove.isEmpty())
+                    return;
+
+                store.getStoreEngine().getStoreFileManager().addCompactionResults(toRemove, Collections.emptyList());
+                store.closeAndArchiveCompactedFiles();
+            }
+        } catch (IOException ioe) {
+            LOG.error("Exception while trying to mark compacted files, this could lead to inconsistencies", ioe);
+        }
+    }
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
@@ -192,7 +238,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 && defaultFlusherIsSetProperly(tracker, store)) {
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                    driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
             SConfiguration conf = driver.getConfiguration();
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
@@ -218,7 +265,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                        driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
                 SConfiguration conf = driver.getConfiguration();
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
@@ -344,8 +392,14 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     }
 
     protected boolean shouldUseSI(OperationWithAttributes op){
+        if(op.getAttributesMap().isEmpty()) return false;
         if(op.getAttribute(SIConstants.SI_NEEDED)==null) return false;
         else return op.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null;
+    }
+
+    protected boolean shouldReadAllVersions(OperationWithAttributes op) {
+        if(op.getAttributesMap().isEmpty()) return false;
+        return op.getAttribute(SIConstants.ALL_VERSIONS) != null;
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
@@ -401,6 +455,10 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 get.setTimeRange(0L,Long.MAX_VALUE);
                 assert (get.getMaxVersions()==Integer.MAX_VALUE);
                 addSIFilterToGet(get);
+            }
+            if(tableEnvMatch && shouldReadAllVersions(get)) {
+                get.setMaxVersions();
+                get.setTimeRange(0L,Long.MAX_VALUE);
             }
             SpliceLogUtils.trace(LOG,"preGet after %s",get);
 
@@ -509,6 +567,25 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 CellType cellType = CellUtils.getKeyValueType(cell);
                 if (cellType == CellType.FIRST_WRITE_TOKEN) {
                     it.remove();
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
+        if (LOG.isDebugEnabled()) {
+            Configuration conf = ctx.getEnvironment().getConfiguration();
+            FileSystem fs = FileSystem.get(edits.toUri(), conf);
+            try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
+                WAL.Entry entry;
+                LOG.debug("WAL replay");
+                while ((entry = reader.next()) != null) {
+                    WALKey key = entry.getKey();
+                    WALEdit val = entry.getEdit();
+
+                    LOG.debug(key + " -> " + val);
                 }
             }
         }

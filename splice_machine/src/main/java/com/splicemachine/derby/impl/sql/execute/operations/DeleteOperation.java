@@ -41,6 +41,7 @@ public class DeleteOperation extends DMLWriteOperation {
     protected String bulkDeleteDirectory;
     protected int colMapRefItem;
     protected int[] colMap;
+    protected boolean noTriggerRI;
 
 	@Override
 	public String getName() {
@@ -51,13 +52,19 @@ public class DeleteOperation extends DMLWriteOperation {
 		super();
 	}
 
-	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
+    /**
+     * @param noTriggerRI if true, DELETE will not fire triggers or check foreign key constraints
+     */
+    public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost, String tableVersion,
-						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
-
-        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                           String bulkDeleteDirectory, int colMapRefItem,
+                           String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI) throws StandardException, IOException
+    {
+        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
+              fromTableDmlSpsDescriptorAsString);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
+        this.noTriggerRI = noTriggerRI;
         init();
 	}
 
@@ -103,8 +110,9 @@ public class DeleteOperation extends DMLWriteOperation {
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
-            if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+            if (triggerHandler != null) {
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
+            }
 
             if (bulkDeleteDirectory != null) {
                 dataSetWriterBuilder = set
@@ -122,6 +130,7 @@ public class DeleteOperation extends DMLWriteOperation {
                     .operationContext(operationContext)
                     .tableVersion(tableVersion)
                     .execRowDefinition(getExecRowDefinition())
+                    .loadReplaceMode(noTriggerRI)
                     .txn(txn).build();
             return dataSetWriter.write();
 
@@ -134,20 +143,5 @@ public class DeleteOperation extends DMLWriteOperation {
             finalizeNestedTransaction();
             operationContext.popScope();
         }
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        writeNullableString(bulkDeleteDirectory,out);
-        out.writeInt(colMapRefItem);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        bulkDeleteDirectory = readNullableString(in);
-        colMapRefItem = in.readInt();
     }
 }

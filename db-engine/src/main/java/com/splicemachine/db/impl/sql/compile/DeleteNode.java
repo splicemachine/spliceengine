@@ -56,6 +56,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.vti.DeferModification;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.Hashtable;
@@ -81,7 +83,9 @@ public class DeleteNode extends DMLModStatementNode
     public static final String COLUMNNAME = "###RowLocationToDelete";
 
     public static final String BULK_DELETE_DIRECTORY = "bulkDeleteDirectory";
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    public static final String NO_TRIGGER_RI = "noTriggerRI";
+    public static final String NO_TRIGGER_RI_PROPERTY = " --splice-properties " + NO_TRIGGER_RI + "=1\n";
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
     /* Filled in by bind. */
     protected boolean          deferred;
@@ -110,6 +114,32 @@ public class DeleteNode extends DMLModStatementNode
         super.init(queryExpression);
         this.targetTableName = (TableName) targetTableName;
         this.targetProperties = (Properties) targetProperties;
+    }
+
+    static public boolean isBulkDelete(Properties properties)
+    {
+        return properties == null ? false :
+                properties.getProperty(BULK_DELETE_DIRECTORY) != null;
+    }
+
+    static public Properties getDeleteProperties(Properties tableProperties)
+    {
+        if (tableProperties == null) {
+            return null;
+        }
+        String dir = (String)tableProperties.remove(BULK_DELETE_DIRECTORY);
+        String noTriggerRI = (String)tableProperties.remove(NO_TRIGGER_RI);
+
+        Properties deleteProperties = null;
+        if (dir != null || noTriggerRI != null) {
+            deleteProperties = new FormatableProperties();
+            if( dir != null )
+                deleteProperties.setProperty(BULK_DELETE_DIRECTORY, dir);
+            if( noTriggerRI != null ) {
+                deleteProperties.setProperty(NO_TRIGGER_RI, noTriggerRI);
+            }
+        }
+        return deleteProperties;
     }
 
     public String statementToString()
@@ -240,8 +270,7 @@ public class DeleteNode extends DMLModStatementNode
 
                 FromBaseTable fbt = getResultColumnList(resultColumnList);
 
-                readColsBitSet = getReadMap(dataDictionary,
-                                        targetTableDescriptor);
+                readColsBitSet = getReadMap(targetTableDescriptor);
 
                 resultColumnList = fbt.addColsToList(resultColumnList, readColsBitSet);
 
@@ -432,7 +461,7 @@ public class DeleteNode extends DMLModStatementNode
     {
         bulkDeleteDirectory = targetProperties.getProperty(BULK_DELETE_DIRECTORY);
         if (bulkDeleteDirectory != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
 
         }
     }
@@ -703,12 +732,21 @@ public class DeleteNode extends DMLModStatementNode
         if ("getDeleteResultSet".equals(resultSetGetter)) {
             mb.push(this.printExplainInformationForActivation());
             BaseJoinStrategy.pushNullableString(mb, bulkDeleteDirectory);
+
             if (colMap != null && colMap.length > 0) {
                 mb.push(acb.addItem(colMap));
             } else {
                 mb.push(-1);
             }
-            argCount += 3;
+            SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
+            if (fromTableTriggerSPSDescriptor == null)
+                mb.pushNull("java.lang.String");
+            else {
+                String spsAsString = Base64.encodeBase64String(SerializationUtils.serialize(fromTableTriggerSPSDescriptor));
+                mb.push(spsAsString);
+            }
+            mb.push(isNoTriggerRIMode());
+            argCount += 5;
         }
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
 
@@ -729,6 +767,10 @@ public class DeleteNode extends DMLModStatementNode
         }
     }
 
+    private boolean isNoTriggerRIMode() {
+        String s =  targetProperties != null ? targetProperties.getProperty(NO_TRIGGER_RI) : null;
+        return s != null && s.equals("1");
+    }
 
     /**
      * Return the type of statement, something from
@@ -754,34 +796,28 @@ public class DeleteNode extends DMLModStatementNode
       * be read from the base table, then the corresponding 1-based bit
       * is turned ON in the returned FormatableBitSet.
       *
-      *    @param    dd                the data dictionary to look in
       *    @param    baseTable        the base table descriptor
       *
       *    @return    a FormatableBitSet of columns to be read out of the base table
       *
       * @exception StandardException        Thrown on error
       */
-    public    FormatableBitSet    getReadMap
-    (
-        DataDictionary        dd,
-        TableDescriptor        baseTable
-    )
+    public FormatableBitSet getReadMap(TableDescriptor baseTable)
         throws StandardException
     {
-        boolean[]    needsDeferredProcessing = new boolean[1];
-        needsDeferredProcessing[0] = requiresDeferredProcessing();
-
-        Vector        conglomVector = new Vector();
+        boolean[] needsDeferredProcessing = new boolean[] { requiresDeferredProcessing() };
+        Vector conglomVector = new Vector();
         relevantTriggers = new GenericDescriptorList();
 
-        FormatableBitSet columnMap = DeleteNode.getDeleteReadMap(baseTable,conglomVector, relevantTriggers, needsDeferredProcessing, bulkDeleteDirectory!=null);
+        FormatableBitSet columnMap = DeleteNode.getDeleteReadMap(baseTable,conglomVector, relevantTriggers,
+                needsDeferredProcessing, bulkDeleteDirectory!=null, isNoTriggerRIMode());
 
         colMap = getColMap(columnMap);
         markAffectedIndexes( conglomVector );
 
         adjustDeferredFlag( needsDeferredProcessing[0] );
 
-        return    columnMap;
+        return columnMap;
     }
 
     int[] getColMap(FormatableBitSet columnMap) {
@@ -1005,11 +1041,12 @@ public class DeleteNode extends DMLModStatementNode
       */
     private static FormatableBitSet getDeleteReadMap
     (
-        TableDescriptor                baseTable,
-        Vector                        conglomVector,
-        GenericDescriptorList        relevantTriggers,
-        boolean[]                    needsDeferredProcessing,
-        boolean                     isBulkDelete
+        TableDescriptor       baseTable,
+        Vector                conglomVector,
+        GenericDescriptorList relevantTriggers,
+        boolean[]             needsDeferredProcessing,
+        boolean               isBulkDelete,
+        boolean               isNoTriggerRI
     )
         throws StandardException
     {
@@ -1049,7 +1086,7 @@ public class DeleteNode extends DMLModStatementNode
          ** 2)Since one/more triggers have REFERENCING clause on them, get all
          ** the columns because we don't know what the user will ultimately reference.
          */
-        baseTable.getAllRelevantTriggers( StatementType.DELETE, (int[])null, relevantTriggers );
+        baseTable.getAllRelevantTriggers( isNoTriggerRI ? StatementType.LOAD_REPLACE : StatementType.DELETE, (int[])null, relevantTriggers );
 
         if (relevantTriggers.size() > 0)
         {

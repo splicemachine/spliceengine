@@ -51,6 +51,11 @@ public interface FileInfo{
     long spaceConsumed();
 
     /**
+     * list recursively all files
+     */
+    FileInfo[] listRecursive();
+
+    /**
      *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
      */

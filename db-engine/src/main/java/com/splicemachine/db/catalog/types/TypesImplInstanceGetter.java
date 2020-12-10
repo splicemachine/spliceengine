@@ -60,6 +60,7 @@ public class TypesImplInstanceGetter extends FormatableInstanceGetter {
                   case StoredFormatIds.CLOB_TYPE_ID_IMPL:
                   case StoredFormatIds.XML_TYPE_ID_IMPL:
                   case StoredFormatIds.LIST_TYPE_ID_IMPL:
+                  case StoredFormatIds.DECFLOAT_TYPE_ID_IMPL:
                           return new BaseTypeIdImpl(fmtId);
                   case StoredFormatIds.DECIMAL_TYPE_ID_IMPL:
                           return new DecimalTypeIdImpl(false);

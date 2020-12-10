@@ -261,7 +261,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
             throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,
-                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory);
+                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory, xact_manager);
     }
 
     public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
@@ -353,8 +353,10 @@ public class HBaseConglomerate extends SpliceConglomerate{
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
 
-        partitionFactory=SIDriver.driver().getTableFactory();
-        opFactory=SIDriver.driver().getOperationFactory();
+        if( SIDriver.driver() != null ) {
+            partitionFactory = SIDriver.driver().getTableFactory();
+            opFactory = SIDriver.driver().getOperationFactory();
+        }
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{

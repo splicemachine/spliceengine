@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -61,6 +62,7 @@ import java.util.List;
  Basic implementation of ExecRow.
 
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public class ValueRow implements ExecRow, Externalizable {
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -160,7 +162,6 @@ public class ValueRow implements ExecRow, Externalizable {
     // Same as setColumn, but preserves the data type of the dvd we're replacing.
     public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
         hash = 0;
-        DataValueDescriptor dvd = column[position-1];
         int precision = 0, scale = 0;
 
         try {
@@ -478,8 +479,10 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
-		for (int i = 0; i < ncols;i++)
+		for (int i = 0; i < ncols;i++) {
+			assert column[i] != null;
 			fields[i] = column[i].getStructField(getNamedColumn(i));
+		}
 		return DataTypes.createStructType(fields);
 	}
 

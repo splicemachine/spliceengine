@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;

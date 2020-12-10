@@ -59,7 +59,7 @@ public class Trigger_Statement_IT {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        //params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
         params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
         return params;
     }
@@ -72,8 +72,14 @@ public class Trigger_Statement_IT {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
+        classWatcher.executeUpdate("drop table if exists T");
+        classWatcher.executeUpdate("drop table if exists RECORD");
+        classWatcher.executeUpdate("drop table if exists t1");
+        classWatcher.executeUpdate("drop table if exists t3");
         classWatcher.executeUpdate("create table T (a int, b int, c int)");
         classWatcher.executeUpdate("create table RECORD (txt varchar(99))");
+        classWatcher.executeUpdate("create table t1 (a1 int, b1 varchar(30), c1 varchar(30), primary key (a1))");
+        classWatcher.executeUpdate("create table t3 (a3 int, b3 varchar(30), c3 varchar(30))");
     }
 
     @Before
@@ -81,6 +87,8 @@ public class Trigger_Statement_IT {
         triggerDAO.dropAllTriggers(SCHEMA, "T");
         methodWatcher.executeUpdate("delete from T");
         methodWatcher.executeUpdate("delete from RECORD");
+        methodWatcher.executeUpdate("delete from t1");
+        methodWatcher.executeUpdate("delete from t3");
         methodWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
         Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
         conn.setSchema(SCHEMA.toUpperCase());
@@ -298,6 +306,9 @@ public class Trigger_Statement_IT {
     /* DB-3351 */
     @Test
     public void recursiveTriggerNotRecursiveAfterDropped() throws Exception {
+        // Takes too long to run on Spark.
+        if (connectionString.contains("useSpark"))
+            return;
         methodWatcher.executeUpdate("create table a (b int,c int)");
         methodWatcher.executeUpdate("insert into a values (1,2)");
 
@@ -317,6 +328,55 @@ public class Trigger_Statement_IT {
         methodWatcher.executeUpdate("drop trigger trig2");
 
         methodWatcher.executeUpdate("drop table a");
+    }
+
+    @Test
+    public void DB_10266() throws Exception {
+        methodWatcher.executeUpdate("create trigger trig22\n" +
+                                    "after insert on t1\n" +
+                                    "referencing new_table as NT\n" +
+                                    "for each statement\n" +
+                                    "insert into t3\n" +
+                                    "select * from NT\n");
+
+        methodWatcher.executeUpdate("insert into t1 values (1, 'abcdefg', 'dummy')");
+        Assert.assertEquals(1, (int)methodWatcher.query("select a3 from t3"));
+        methodWatcher.executeUpdate("drop trigger trig22");
+        methodWatcher.executeUpdate("delete from t3");
+
+        methodWatcher.executeUpdate("create trigger trig22\n" +
+                                    "after update on t1\n" +
+                                    "referencing new_table as NT\n" +
+                                    "for each statement\n" +
+                                    "insert into t3 select * from NT\n");
+        methodWatcher.executeUpdate("update t1 set a1 = 2");
+        Assert.assertEquals(2, (int)methodWatcher.query("select a3 from t3"));
+        methodWatcher.executeUpdate("drop trigger trig22");
+        methodWatcher.executeUpdate("create trigger trig22\n" +
+                                    "after delete on t1\n" +
+                                    "referencing old_table as OT\n" +
+                                    "for each statement\n" +
+                                    "delete from t3 where a3 in (select a1 from OT)\n");
+        methodWatcher.executeUpdate("delete from t1");
+        Assert.assertEquals(0, (long)methodWatcher.query("select count(*) from t3"));
+        methodWatcher.executeUpdate("drop trigger trig22");
+
+    }
+
+@Test
+    public void sparkHint() throws Exception {
+        methodWatcher.executeUpdate("create trigger trig22\n" +
+                                    "after insert on t1\n" +
+                                    "referencing new_table as NT\n" +
+                                    "for each statement\n" +
+                                    "insert into t3 --splice-properties useSpark=true\n" +
+                                    "select * from NT\n");
+
+        // The following should not throw a ClassCastException.
+        methodWatcher.executeUpdate("insert into t1 values (1, 'abcdefg', 'dummy')");
+        Assert.assertEquals(1, (int)methodWatcher.query("select a3 from t3"));
+        methodWatcher.executeUpdate("drop trigger trig22");
+        methodWatcher.executeUpdate("delete from t3");
     }
 
     private void assertQueryFails(String query, String expectedError) {

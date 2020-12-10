@@ -15,11 +15,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -259,5 +261,137 @@ public class PreparedStatementIT {
         rs.next();
         Assert.assertEquals(rs.getInt(2), 1);
         rs.close();
+    }
+
+    @Test
+    public void testPrepStatementMultiProbeScanOnEqualParameter() throws Exception {
+        String tableName = "TEST_PK_MULTI_PROBE";
+        methodWatcher.executeUpdate(String.format("create table if not exists %s.%s (col1 int, col2 int, primary key(col1, col2))",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("delete from %s.%s",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values (1,1), (2,2), (3,3), (4,4), (5,5)",
+                tableSchema.schemaName, tableName));
+
+        String query = String.format("select * from %s.%s where col1=? and col2 in (?,?)", tableSchema.schemaName, tableName);
+        PreparedStatement ps = conn.prepareStatement("explain " + query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        try(ResultSet rs = ps.executeQuery()) {
+            String plan = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(plan.contains("MultiProbeTableScan"));
+            Assert.assertFalse(plan.contains("->  TableScan"));
+        }
+
+        ps = conn.prepareStatement(query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        String expected =
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |  1  |";
+
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    private void testReturnRowCount(PreparedStatement ps, int expectedCount) throws Exception {
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expectedCount, SpliceUnitTest.resultSetSize(rs));
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterInConstantRestriction() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where 1 = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 2);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2");
+        testReturnRowCount(ps, 0);
+
+        try {
+            ps.setDate(1, Date.valueOf("2020-01-01"));
+            Assert.fail("Expect failure in converting date to integer");
+        } catch (Exception e) {
+            Assert.assertEquals("An attempt was made to get a data value of type 'INTEGER' from a data value of type 'DATE'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterOnBothSidesOfBinaryComparison() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where ? = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 0);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.5);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "aa");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "ab");
+        testReturnRowCount(ps, 0);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-02-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 12);
+        ps.setString(2, "12");
+        testReturnRowCount(ps, 1);
+
+        ps.setDouble(1, 1.0);
+        ps.setString(2, "1.0");
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        ps.setString(2, "1.0E0");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2020-01-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "2020-02-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 1577836800);
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
     }
 }

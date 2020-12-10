@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.List;
@@ -45,7 +47,7 @@ import java.util.List;
 /**
  * This node represents a unary arithmetic operator
  */
-
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     private final static int UNARY_PLUS=0;
     private final static int UNARY_MINUS=1;
@@ -101,6 +103,28 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      */
     public boolean isParameterNode() {
         return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.isParameterNode();
+    }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) {
+        return considerParameters && requiresTypeFromContext() && operand.isKnownConstant(true);
+    }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        if (requiresTypeFromContext()) {
+            return operand.getKnownConstantValue();
+        }
+        return null;
+    }
+
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if(operatorType == UNARY_MINUS || operatorType == UNARY_PLUS) {
+            return (operand instanceof UntypedNullConstantNode) ? operand : this;
+        }
+        return this;
     }
 
     /**
@@ -251,5 +275,10 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
             operand.setType(descriptor);
         }
         super.setType(descriptor);
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return getOperandCost() + SIMPLE_OP_COST;
     }
 }

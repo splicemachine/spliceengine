@@ -31,29 +31,27 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
-import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The CurrentDatetimeOperator operator is for the builtin CURRENT_DATE,
  * CURRENT_TIME, and CURRENT_TIMESTAMP operations.
  *
  */
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CurrentDatetimeOperatorNode extends ValueNode {
 
     public static final int CURRENT_DATE = 0;
@@ -216,6 +214,10 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
             return other.whichType == whichType;
         }
         return false;
+    }
+
+    public int hashCode() {
+        return Objects.hash(getBaseHashCode(), whichType);
     }
 
     public List<? extends QueryTreeNode> getChildren() {

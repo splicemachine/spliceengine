@@ -18,10 +18,10 @@ import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
 import com.splicemachine.ck.command.common.CommonOptions;
 import com.splicemachine.ck.command.common.TableNameGroup;
-import com.splicemachine.derby.utils.EngineUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.hbase.TableNotFoundException;
 import picocli.CommandLine;
 
+import java.io.UncheckedIOException;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "rget",
@@ -31,16 +31,30 @@ import java.util.concurrent.Callable;
         optionListHeading = "Options:%n" )
 public class RGetCommand extends CommonOptions implements Callable<Integer>
 {
-    @CommandLine.Parameters(index = "0", description = "row id") String id;
+    @CommandLine.Parameters(index = "0", description = "row id or 'all' to display all rows (limited by -L)") String id;
+
     @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "row values parsing options%n")
     ExclusiveRowParsing rowParsingGroup;
     @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "table identifier options%n")
     TableNameGroup tableNameGroup;
 
+    @CommandLine.Option(names = {"-L", "--limit"}, required = false, description =
+            "maximum number of rows to print (default is 100)", defaultValue = "100") Integer limit;
+
+    @CommandLine.Option(names = {"-V", "--versions"}, required = false, description =
+            "versions to display (default 0 = all)", defaultValue = "0") Long versions;
+
+    @CommandLine.Option(names = {"--hbase"}, required = false,
+            description = "output data like hbase") Boolean hbaseOption;
+
     public static class ExclusiveRowParsing {
-        @CommandLine.Option(names = {"-c", "--columns"}, required = true, split =",", description = "user-defined table columns, possible values: ${COMPLETION-CANDIDATES}") Utils.SQLType[] colsSchema;
-        @CommandLine.Option(names = {"-a", "--auto"}, required = true, description = "retrieve table columns automatically") Boolean auto;
-        @CommandLine.Option(names = {"-n", "--none"}, required = true, description = "print the row in hex") Boolean none;
+        @CommandLine.Option(names = {"-c", "--columns"}, required = true, split =",",
+                description = "user-defined table columns, possible values: ${COMPLETION-CANDIDATES}")
+            Utils.SQLType[] colsSchema;
+        @CommandLine.Option(names = {"-a", "--auto"}, required = true,
+                description = "retrieve table columns automatically") Boolean auto;
+        @CommandLine.Option(names = {"-n", "--none"}, required = true,
+                description = "print the row in hex") Boolean none;
     }
 
     public RGetCommand() {
@@ -50,24 +64,34 @@ public class RGetCommand extends CommonOptions implements Callable<Integer>
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
         try {
-            String region;
-            if(tableNameGroup.qualifiedTableName != null) {
-                tableNameGroup.qualifiedTableName.table = EngineUtils.validateTable(tableNameGroup.qualifiedTableName.table);
-                tableNameGroup.qualifiedTableName.schema = EngineUtils.validateSchema(tableNameGroup.qualifiedTableName.schema);
-                region = hbaseInspector.regionOf(tableNameGroup.qualifiedTableName.schema, tableNameGroup.qualifiedTableName.table);
-            } else {
-                if(StringUtils.isNumeric(tableNameGroup.region)) {
-                    region = "splice:" + tableNameGroup.region;
-                } else {
-                    region = tableNameGroup.region;
+            String region = tableNameGroup.getRegion(hbaseInspector);
+            boolean hbase = hbaseOption != null;
+
+            String rowKey = id.equals("all") ? null : id;
+            if(rowParsingGroup.auto != null) {
+                Utils.Tabular cols = null;
+                try {
+                    cols = hbaseInspector.columnsOf(region);
+                }
+                catch(Exception e)
+                {
+                    if (e instanceof TableNotFoundException ||
+                            (e instanceof UncheckedIOException && e.getCause() instanceof TableNotFoundException)) {
+                        rowParsingGroup.auto = null;
+                        cols = null;
+                        System.out.println("WARNING: couldn't find schema of " + region + ", will print rows as hex");
+                    }
+                }
+                if( cols != null ) {
+                    Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(cols.getCol(2));
+                    System.out.println(hbaseInspector.scanRow(region, rowKey, sqlTypes,
+                            limit.intValue(), versions.intValue(), hbase ));
                 }
             }
-            if(rowParsingGroup.auto != null) {
-                Utils.Tabular cols = hbaseInspector.columnsOf(region);
-                Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(cols.getCol(2));
-                System.out.println(hbaseInspector.scanRow(region, id, sqlTypes));
-            } else {
-                System.out.println(hbaseInspector.scanRow(region, id, rowParsingGroup.colsSchema /* ok if null */));
+
+            if(rowParsingGroup.auto == null) {
+                System.out.println(hbaseInspector.scanRow(region, rowKey, rowParsingGroup.colsSchema /* ok if null */,
+                        limit.intValue(), versions.intValue(), hbase));
             }
             return 0;
         } catch (Exception e) {

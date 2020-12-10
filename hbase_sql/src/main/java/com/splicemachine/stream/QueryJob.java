@@ -15,8 +15,10 @@
 package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -34,6 +36,9 @@ import org.apache.spark.sql.internal.SQLConf;
 
 import java.util.UUID;
 import java.util.concurrent.*;
+
+import static com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl.dropTable;
+import static java.lang.String.format;
 
 /**
  * @author Scott Fines
@@ -65,6 +70,7 @@ public class QueryJob implements Callable<Void>{
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
         String jobName = null;
+        Activation activation = null;
         boolean resetSession = false;
         try {
             if (queryRequest.shufflePartitions != null) {
@@ -72,7 +78,7 @@ public class QueryJob implements Callable<Void>{
                 resetSession = true;
             }
             ah.reinitialize(null);
-            Activation activation = ah.getActivation();
+            activation = ah.getActivation();
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
@@ -114,11 +120,31 @@ public class QueryJob implements Callable<Void>{
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
             throw e;
         } finally {
+            long tempTriggerConglomerate = dsp.getTempTriggerConglomerate();
+            if (tempTriggerConglomerate != 0 && activation != null)
+                dropConglomerate(tempTriggerConglomerate, activation);
             if(resetSession)
                 SpliceSpark.resetSession();
             ah.close();
         }
 
         return null;
+    }
+
+    private void dropConglomerate(long CID, Activation activation) {
+        TransactionController tc = activation.getTransactionController();
+        LOG.trace(format("Dropping temporary conglomerate splice:%d", CID));
+        try {
+            tc.dropConglomerate(CID);
+        }
+        catch (StandardException e) {
+            LOG.warn(format("Unable to drop temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
+        }
+        try {
+            dropTable(CID);
+        }
+        catch (StandardException e) {
+            LOG.warn(format("Unable to drop HBase table for temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
+        }
     }
 }

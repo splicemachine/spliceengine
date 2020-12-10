@@ -78,6 +78,9 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1977), new UpgradeScriptToAddSysKeyColUseViewInSYSIBM(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1979), new UpgradeScriptForTablePriorities(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1979), new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1989), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
     }
     public void run() throws StandardException{
 

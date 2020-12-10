@@ -31,25 +31,27 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.Orderable;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.util.JBitSet;
+ import com.splicemachine.db.catalog.IndexDescriptor;
+ import com.splicemachine.db.iapi.error.StandardException;
+ import com.splicemachine.db.iapi.reference.ClassName;
+ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+ import com.splicemachine.db.iapi.services.sanity.SanityManager;
+ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+ import com.splicemachine.db.iapi.sql.compile.Optimizable;
+ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+ import com.splicemachine.db.iapi.store.access.ScanController;
+ import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataValueDescriptor;
+ import com.splicemachine.db.iapi.types.Orderable;
+ import com.splicemachine.db.iapi.types.TypeId;
+ import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.sql.Types;
-import java.util.HashSet;
-import java.util.List;
+ import java.sql.Types;
+ import java.util.HashSet;
+ import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
+ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 
  /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
@@ -59,6 +61,11 @@ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 public class BinaryRelationalOperatorNode
         extends BinaryComparisonOperatorNode
         implements RelationalOperator{
+    /* values for determining which side contains key columns or index expression */
+    public static final int LEFT    = -1;
+    public static final int NEITHER =  0;
+    public static final int RIGHT   =  1;
+     
     private int operatorType;
     private int outerJoinLevel;
     /* RelationalOperator Interface */
@@ -306,7 +313,20 @@ public class BinaryRelationalOperatorNode
     }
 
     @Override
-    public ValueNode getExpressionOperand(int tableNumber,int columnPosition,FromTable ft){
+    public ValueNode getExpressionOperand(int tableNumber,int columnPosition,
+                                          FromTable ft,boolean forIndexExpression)
+            throws StandardException
+    {
+        if (forIndexExpression) {
+            if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
+                return rightOperand;
+            } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
+                return leftOperand;
+            } else {
+                return null;
+            }
+        }
+
         ColumnReference cr;
         boolean walkSubtree=true;
 
@@ -454,9 +474,11 @@ public class BinaryRelationalOperatorNode
      * @throws StandardException Thrown on error
      * @see RelationalOperator#generateExpressionOperand
      */
+    @Override
     public void generateExpressionOperand(
             Optimizable optTable,
             int columnPosition,
+            boolean forIndexExpression,
             ExpressionClassBuilder acb,
             MethodBuilder mb)
             throws StandardException{
@@ -469,7 +491,7 @@ public class BinaryRelationalOperatorNode
         ft=(FromBaseTable)optTable;
 
         ValueNode exprOp=getExpressionOperand(
-                ft.getTableNumber(),columnPosition,ft);
+                ft.getTableNumber(),columnPosition,ft,forIndexExpression);
 
         if(SanityManager.DEBUG){
             if(exprOp==null){
@@ -484,12 +506,25 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
+    @Override
+    public int getMatchingExprIndexColumnPosition(int tableNumber) {
+        if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
+            assert leftMatchIndexExprColumnPosition >= 0;
+            return leftMatchIndexExprColumnPosition;
+        } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
+            assert rightMatchIndexExprColumnPosition >= 0;
+            return rightMatchIndexExprColumnPosition;
+        } else {
+            return -1;
+        }
+    }
+
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison
      */
     @Override
-    public boolean selfComparison(ColumnReference cr)
+    public boolean selfComparison(ColumnReference cr, boolean forIndexExpression)
             throws StandardException{
         ValueNode otherSide = null;
         JBitSet tablesReferenced;
@@ -502,12 +537,29 @@ public class BinaryRelationalOperatorNode
         ** Figure out which side the given ColumnReference is on,
         ** and look for the same table on the other side.
         */
-        if(lcr != null && lcr.size() == 1 && lcr.get(0) == cr){
-            otherSide=rightOperand;
-        }else {
+        if(lcr != null && !lcr.isEmpty()){
+            if (forIndexExpression || lcr.size() == 1) {
+                for (ColumnReference columnReference : lcr) {
+                    if (columnReference.equals(cr)) {
+                        otherSide = rightOperand;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (otherSide == null) {
             rcr = rightOperand.getHashableJoinColumnReference();
-            if (rcr != null && rcr.size() == 1 && rcr.get(0) == cr)
-                otherSide = leftOperand;
+            if (rcr != null && !rcr.isEmpty()) {
+                if (forIndexExpression || rcr.size() == 1) {
+                    for (ColumnReference columnReference : rcr) {
+                        if (columnReference.equals(cr)) {
+                            otherSide = leftOperand;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         if (otherSide == null) {
@@ -527,7 +579,7 @@ public class BinaryRelationalOperatorNode
     /**
      * @see RelationalOperator#usefulStartKey
      */
-    public boolean usefulStartKey(Optimizable optTable) {
+    public boolean usefulStartKey(Optimizable optTable, IndexDescriptor id) {
 
         BinaryRelationalOperatorNodeUtil.coerceDataTypeIfNecessary(this);
 
@@ -535,10 +587,25 @@ public class BinaryRelationalOperatorNode
         ** Determine whether this operator is a useful start operator
         ** with knowledge of whether the key column is on the left or right.
         */
-        int columnSide = columnOnOneSide(optTable);
+        boolean isIndexOnExpr = id != null && id.isOnExpression();
+        int columnSide = isIndexOnExpr ? indexExprOnOneSide(optTable) : columnOnOneSide(optTable);
 
         return columnSide != NEITHER && usefulStartKey(columnSide == LEFT);
     }
+
+     /**
+      * @see RelationalOperator#usefulStopKey
+      */
+     public boolean usefulStopKey(Optimizable optTable, IndexDescriptor id) {
+         /*
+          ** Determine whether this operator is a useful start operator
+          ** with knowledge of whether the key column is on the left or right.
+          */
+         boolean isIndexOnExpr = id != null && id.isOnExpression();
+         int columnSide = isIndexOnExpr ? indexExprOnOneSide(optTable) : columnOnOneSide(optTable);
+
+         return columnSide != NEITHER && usefulStopKey(columnSide == LEFT);
+     }
 
     /**
      * Return true if a key column for the given table is found on the
@@ -560,7 +627,7 @@ public class BinaryRelationalOperatorNode
 
         /* Is the key column on the left or the right? */
         List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
+        if (columnReferences != null && (leftMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
             if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
                 /* The left operand is the key column */
                 left = true;
@@ -571,7 +638,7 @@ public class BinaryRelationalOperatorNode
             if(!left){
                 boolean right = false;
                 columnReferences = rightOperand.getHashableJoinColumnReference();
-                if (columnReferences != null && columnReferences.size() ==1) {
+                if (columnReferences != null && (rightMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
                     if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
                     /* The right operand is the key column */
                         right=true;
@@ -583,11 +650,6 @@ public class BinaryRelationalOperatorNode
 
         return left;
     }
-
-    /* Return values for columnOnOneSide */
-    protected static final int LEFT=-1;
-    protected static final int NEITHER=0;
-    protected static final int RIGHT=1;
 
     /**
      * Determine whether there is a column from the given table on one side
@@ -601,7 +663,6 @@ public class BinaryRelationalOperatorNode
      */
     protected int columnOnOneSide(Optimizable optTable){
         ColumnReference cr;
-        boolean left=false;
         boolean walkSubtree=true;
 
         /* Is a column on the left */
@@ -635,17 +696,24 @@ public class BinaryRelationalOperatorNode
         return NEITHER;
     }
 
-    /**
-     * @see RelationalOperator#usefulStopKey
-     */
-    public boolean usefulStopKey(Optimizable optTable) {
-        /*
-        ** Determine whether this operator is a useful start operator
-        ** with knowledge of whether the key column is on the left or right.
-        */
-        int columnSide = columnOnOneSide(optTable);
+    private int indexExprOnOneSide(Optimizable optTable) {
+        if (optTable.hasTableNumber() && leftMatchIndexExpr == optTable.getTableNumber()) {
+            return LEFT;
+        } else if (optTable.hasTableNumber() && rightMatchIndexExpr == optTable.getTableNumber()) {
+            return RIGHT;
+        } else {
+            return NEITHER;
+        }
+    }
 
-        return columnSide != NEITHER && usefulStopKey(columnSide == LEFT);
+    private boolean indexExprOnLeft(Optimizable optTable) {
+        int columnSide = indexExprOnOneSide(optTable);
+        if (SanityManager.DEBUG) {
+            if (columnSide == NEITHER) {
+                SanityManager.THROWASSERT("index expression not found on either side");
+            }
+        }
+        return columnSide == LEFT;
     }
 
     /**
@@ -661,7 +729,7 @@ public class BinaryRelationalOperatorNode
      * @see RelationalOperator#generateAbsoluteColumnId
      */
     public void generateAbsoluteColumnId(MethodBuilder mb,
-                                         Optimizable optTable){
+                                         Optimizable optTable) throws StandardException {
         // Get the absolute column position for the column
         int columnPosition=getAbsoluteColumnPosition(optTable);
         mb.push(columnPosition);
@@ -674,7 +742,7 @@ public class BinaryRelationalOperatorNode
      * @see RelationalOperator#generateRelativeColumnId
      */
     public void generateRelativeColumnId(MethodBuilder mb,
-                                         Optimizable optTable){
+                                         Optimizable optTable) throws StandardException {
         // Get the absolute column position for the column
         int columnPosition=getAbsoluteColumnPosition(optTable);
         // Convert the absolute to the relative 0-based column position
@@ -693,7 +761,7 @@ public class BinaryRelationalOperatorNode
      * @param optTable The Optimizable
      * @return The absolute 0-based column position of the ColumnReference
      */
-    private int getAbsoluteColumnPosition(Optimizable optTable){
+    private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
         List<ColumnReference> columnReferences;
         ConglomerateDescriptor bestCD;
         int columnPosition;
@@ -733,7 +801,7 @@ public class BinaryRelationalOperatorNode
         return columnPosition-1;
     }
 
-    private int getAbsoluteStoragePosition(Optimizable optTable){
+    private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
         List<ColumnReference> columnReferences;
         ConglomerateDescriptor bestCD;
         int columnPosition;
@@ -773,9 +841,11 @@ public class BinaryRelationalOperatorNode
     /**
      * @throws StandardException Thrown on error
      */
+    @Override
     public void generateQualMethod(ExpressionClassBuilder acb,
                                    MethodBuilder mb,
-                                   Optimizable optTable)
+                                   Optimizable optTable,
+                                   boolean forIndexExpression)
             throws StandardException{
         /* Generate a method that returns the expression */
         MethodBuilder qualMethod=acb.newUserExprFun();
@@ -784,10 +854,11 @@ public class BinaryRelationalOperatorNode
         ** Generate the expression that's on the opposite side
         ** of the key column
         */
-        if(keyColumnOnLeft(optTable)){
-            rightOperand.generateExpression(acb,qualMethod);
-        }else{
-            leftOperand.generateExpression(acb,qualMethod);
+        boolean onLeft = forIndexExpression ? indexExprOnLeft(optTable) : keyColumnOnLeft(optTable);
+        if (onLeft) {
+            rightOperand.generateExpression(acb, qualMethod);
+        } else {
+            leftOperand.generateExpression(acb, qualMethod);
         }
 
         qualMethod.methodReturn();
@@ -1029,27 +1100,14 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(considerParameters){
-            return (node instanceof ConstantNode) ||
-                    ((node.requiresTypeFromContext()) &&
-                            (((ParameterNode)node).getDefaultValue()!=null));
-        }else{
-            return node instanceof ConstantNode;
-        }
-    }
-
     @Override
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         ValueNode node;
         if (optTable != null) {
             node = keyColumnOnLeft(optTable) ? rightOperand : leftOperand;
-            return isKnownConstant(node, considerParameters);
+            return node.isKnownConstant(considerParameters);
         } else {
-            return (isKnownConstant(rightOperand, considerParameters) || isKnownConstant(leftOperand, considerParameters));
+            return (rightOperand.isKnownConstant(considerParameters) || leftOperand.isKnownConstant(considerParameters));
         }
     }
 
@@ -1062,21 +1120,7 @@ public class BinaryRelationalOperatorNode
         ** the key column.
         */
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(node instanceof ConstantNode){
-            return ((ConstantNode)node).getValue();
-        }else if(node.requiresTypeFromContext()){
-            ParameterNode pn;
-            if(node instanceof UnaryOperatorNode)
-                pn=((UnaryOperatorNode)node).getParameterOperand();
-            else
-                pn=(ParameterNode)(node);
-            return pn.getDefaultValue();
-        }else{
-            return null;
-        }
+        return node.getKnownConstantValue();
     }
 
 
@@ -1384,7 +1428,10 @@ public class BinaryRelationalOperatorNode
     /**
      * @see RelationalOperator#generateNegate
      */
-    public void generateNegate(MethodBuilder mb,Optimizable optTable){
+    @Override
+    public void generateNegate(MethodBuilder mb,Optimizable optTable,boolean forIndexExpression)
+            throws StandardException
+    {
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
                 mb.push(false);
@@ -1393,13 +1440,23 @@ public class BinaryRelationalOperatorNode
                 mb.push(true);
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
-            case RelationalOperator.LESS_EQUALS_RELOP:
-                mb.push(!keyColumnOnLeft(optTable));
+            case RelationalOperator.LESS_EQUALS_RELOP: {
+                if (forIndexExpression) {
+                    mb.push(!indexExprOnLeft(optTable));
+                } else {
+                    mb.push(!keyColumnOnLeft(optTable));
+                }
                 break;
+            }
             case RelationalOperator.GREATER_THAN_RELOP:
-            case RelationalOperator.GREATER_EQUALS_RELOP:
-                mb.push(keyColumnOnLeft(optTable));
+            case RelationalOperator.GREATER_EQUALS_RELOP: {
+                if (forIndexExpression) {
+                    mb.push(indexExprOnLeft(optTable));
+                } else {
+                    mb.push(keyColumnOnLeft(optTable));
+                }
                 break;
+            }
             default:
                 assert false;
         }
@@ -1515,8 +1572,9 @@ public class BinaryRelationalOperatorNode
         // Binary Relational Operator Node...
         double selectivity;
 
-        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
-            ColumnReference right = (ColumnReference) rightOperand;
+        if (operandMayHaveStatistics(RIGHT)) {
+            ColumnReference right = getColumnOrIndexExprColumn(RIGHT);
+            assert right != null;
             if (!right.useRealColumnStatistics()) {
                 noStatsColumns.add(right.getSchemaQualifiedColumnName());
             }
@@ -1525,8 +1583,9 @@ public class BinaryRelationalOperatorNode
             } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
                 // TODO DB-7816, temporarily borrow the selectivity logic from left join, may need to revisit
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
-            } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
-                ColumnReference left = (ColumnReference) leftOperand;
+            } else if (operandMayHaveStatistics(LEFT)) {
+                ColumnReference left = getColumnOrIndexExprColumn(LEFT);
+                assert left != null;
                 if (!left.useRealColumnStatistics()) {
                     noStatsColumns.add(left.getSchemaQualifiedColumnName());
                 }
@@ -1537,7 +1596,7 @@ public class BinaryRelationalOperatorNode
                 if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
                     selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
                     if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
-                        selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                        selectivity = selectivity /(innerRowCount - (double)innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
                     }
                 }
             } else { // No Left Column Reference
@@ -1548,6 +1607,66 @@ public class BinaryRelationalOperatorNode
         }
         assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
         return selectivity;
+    }
+
+    private boolean operandMayHaveStatistics(int side) {
+        if (side == LEFT) {
+            return (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null)
+                    || (leftMatchIndexExpr >= 0 && leftMatchIndexExprColumnPosition >= 0 && leftMatchIndexExprConglomDesc != null);
+        } else if (side == RIGHT) {
+            return (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null)
+                    || (rightMatchIndexExpr >= 0 && rightMatchIndexExprColumnPosition >= 0 && rightMatchIndexExprConglomDesc != null);
+        } else {
+            throw new RuntimeException("invalid side argument passed in");
+        }
+    }
+
+    /* Get a ColumnReference for an index on expression column so that we can get a
+     * StoreCostController to get correct statistics. We need this because in cost
+     * estimation, index expression are not rewritten yet.
+     * Note that the returned ColumnReference should only be used to retrieve
+     * statistics because it's column position is set to conglomerate column
+     * position of the index expression. It doesn't refer to any child result set
+     * columns.
+     */
+    private ColumnReference getColumnOrIndexExprColumn(int side)
+            throws StandardException
+    {
+        ValueNode operand = side == LEFT ? leftOperand : rightOperand;
+        int tableNumber = side == LEFT ? leftMatchIndexExpr : rightMatchIndexExpr;
+        int indexColumnPosition = side == LEFT ? leftMatchIndexExprColumnPosition : rightMatchIndexExprColumnPosition;
+        ConglomerateDescriptor conglomDesc = side == LEFT ? leftMatchIndexExprConglomDesc : rightMatchIndexExprConglomDesc;
+
+        IndexRowGenerator irg = conglomDesc == null ? null : conglomDesc.getIndexDescriptor();
+        if (irg == null || !irg.isOnExpression() || tableNumber < 0 || indexColumnPosition < 0) {
+            if (operand instanceof ColumnReference) {
+                return (ColumnReference)operand;
+            } else {
+                return null;
+            }
+        }
+        List<ColumnReference> baseColumnRefs = operand.getHashableJoinColumnReference();
+        assert !baseColumnRefs.isEmpty() : "no column reference found in index expression";
+        ColumnReference baseColumnRef = baseColumnRefs.get(0);
+
+        // build a fake ResultColumn
+        ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                irg.getIndexColumnTypes()[indexColumnPosition],
+                operand,
+                getContextManager());
+        rc.setIndexExpression(operand);
+        rc.setReferenced();
+        // virtual column IDs are 1-based, set to conglomerate index column position
+        // so that we can get column statistics correctly
+        rc.setVirtualColumnId(indexColumnPosition + 1);
+        rc.setName(conglomDesc.getConglomerateName() + "_col" + rc.getColumnPosition());
+        rc.setSourceTableName(baseColumnRef.getSourceTableName());
+        rc.setSourceSchemaName(baseColumnRef.getSourceSchemaName());
+        rc.setSourceConglomerateNumber(conglomDesc.getConglomerateNumber());
+        rc.setSourceConglomerateColumnPosition(indexColumnPosition + 1);
+
+        return rc.getColumnReference(operand);
     }
 
     public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException{
@@ -1561,6 +1680,9 @@ public class BinaryRelationalOperatorNode
         boolean retval=false;
 
         int side=columnOnOneSide(optTable);
+        if (side == NEITHER) {
+            side = indexExprOnOneSide(optTable);
+        }
         if(side==LEFT){
             retval=rightOperand.isConstantExpression();
         }else if(side==RIGHT){
@@ -1575,30 +1697,37 @@ public class BinaryRelationalOperatorNode
         double selectivity = 1.0d;
         ColumnReference innerColumn = null;
         ColumnReference outerColumn = null;
-        if (leftOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) leftOperand;
+
+        if (operandMayHaveStatistics(LEFT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(LEFT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-            }
-            else {
+            } else {
                 outerColumn = cr;
             }
         }
         else return selectivity;
 
-        if (rightOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) rightOperand;
+        if (operandMayHaveStatistics(RIGHT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(RIGHT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-            }
-            else {
+            } else {
                 outerColumn = cr;
             }
         }
         else return selectivity;
+
+        if (innerColumn == null || outerColumn == null)
+            return selectivity;
 
         StoreCostController innerTableCostController = innerColumn.getStoreCostController();
         StoreCostController outerTableCostController = outerColumn.getStoreCostController();
+
+        final int innerColumnPosition = innerColumn.getColumnPositionForStatistics();
+        final int outerColumnPosition = outerColumn.getColumnPositionForStatistics();
 
         DataValueDescriptor minOuterColumn = null;
         DataValueDescriptor maxOuterColumn = null;
@@ -1608,16 +1737,18 @@ public class BinaryRelationalOperatorNode
             long rc = (long)outerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
-            maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
+            boolean forIndexExpr = outerColumn.isGeneratedToReplaceIndexExpression();
+            minOuterColumn = outerTableCostController.minValue(forIndexExpr, outerColumnPosition);
+            maxOuterColumn = outerTableCostController.maxValue(forIndexExpr, outerColumnPosition);
         }
 
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+            boolean forIndexExpr = innerColumn.isGeneratedToReplaceIndexExpression();
+            minInnerColumn = innerTableCostController.minValue(forIndexExpr, innerColumnPosition);
+            maxInnerColumn = innerTableCostController.maxValue(forIndexExpr, innerColumnPosition);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1625,8 +1756,28 @@ public class BinaryRelationalOperatorNode
 
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
-                    startKey, true, endKey, true, false);
+            selectivity *= innerTableCostController.getSelectivity(innerColumn.isGeneratedToReplaceIndexExpression(),
+                    innerColumnPosition, startKey, true, endKey, true, false);
+        }
+        else if (this.operatorType == EQUALS_RELOP) {
+            // Use a more realistic selectivity that takes the
+            // inner table RPV into account instead of defaulting
+            // to a selectivity of 1.
+            double outerCardinality =
+                    outerTableCostController.cardinality(
+                            outerColumn.isGeneratedToReplaceIndexExpression(),
+                            outerColumnPosition);
+            double innerCardinality =
+                    innerTableCostController.cardinality(
+                            innerColumn.isGeneratedToReplaceIndexExpression(),
+                            innerColumnPosition);
+
+            // If cardinality values are uninitialized (zero),
+            // we can't apply this estimation formula.
+            if (outerCardinality != 0.0d && innerCardinality != 0.0d) {
+                double tempSelectivity = outerCardinality / innerCardinality;
+                selectivity = Math.min(tempSelectivity, 1.0d);
+            }
         }
 
         return selectivity;
@@ -1704,9 +1855,46 @@ public class BinaryRelationalOperatorNode
         if (cr == null)
             return false;
 
-        return !selfComparison(cr) && !implicitVarcharComparison();
+        return !selfComparison(cr,false) && !implicitVarcharComparison();
 
     }
+
+     @Override
+     public boolean optimizableEqualityNode(Optimizable optTable,
+                                            ValueNode indexExpr,
+                                            boolean isNullOkay) throws StandardException {
+         if (operatorType != EQUALS_RELOP)
+             return false;
+
+         /* If this rel op is for a probe predicate then we do not treat
+          * it as an equality node; it's actually a disguised IN-list node.
+          */
+         if (isInListProbeNode())
+             return false;
+
+         ValueNode expr;
+         int side = indexExprOnOneSide(optTable);
+         switch(side) {
+             case LEFT:
+                 expr = leftOperand;
+                 break;
+             case RIGHT:
+                 expr = rightOperand;
+                 break;
+             case NEITHER:
+             default:
+                 return false;
+         }
+
+         if (!indexExpr.semanticallyEquals(expr)) {
+             return false;
+         }
+
+         List<ColumnReference> crList = expr.getHashableJoinColumnReference();
+         assert crList != null && !crList.isEmpty();
+         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+
+     }
 
     /**
      * Return whether or not this binary relational predicate requires an implicit

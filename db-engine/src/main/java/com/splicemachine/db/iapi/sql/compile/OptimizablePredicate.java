@@ -88,7 +88,7 @@ public interface OptimizablePredicate
 	 * Tell the predicate that it is to be used as a qualifier in an index
 	 * scan.
 	 */
-	void markQualifier();
+	void markQualifier() throws StandardException;
 
 	/** Is this predicate a qualifier? */
 	boolean isQualifier();
@@ -136,6 +136,17 @@ public interface OptimizablePredicate
 	int hasEqualOnColumnList(int[] baseColumnPositions,
 								 Optimizable optTable)
 		throws StandardException;
+
+	/**
+	 * Returns if the predicate involves an equal operator on one of the
+	 * index expressions defined for optTable.
+	 *
+	 * @param 	optTable the table on which index expressions are defined.
+
+	 @return returns the index of the index expression that has the
+	 equality operator.
+	 */
+	int hasEqualOnIndexExpression(Optimizable optTable) throws StandardException;
 
 	/**
 	 * Get a (crude) estimate of the selectivity of this predicate.

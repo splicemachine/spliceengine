@@ -31,28 +31,16 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.util.StringUtil;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.PreparedStatement;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.ParseException;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
@@ -60,6 +48,15 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 /**
  * This contains an instance of a SQL Time
  * Our current implementation doesn't implement time precision so the fractional
@@ -88,6 +85,7 @@ public final class SQLTime extends DataType
 	private int		encodedTime;
 	private int		encodedTimeFraction; //currently always 0 since we don't
 											 //support time precision
+	private int     stringFormat = JIS;
 
 	private static boolean skipDBContext = false;
 
@@ -105,14 +103,15 @@ public final class SQLTime extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-	public String getString()
-	{
-		if (!isNull())
-		{
-			return encodedTimeToString(encodedTime);
-		}
-		else
-		{
+	@Override
+	public void setStringFormat(int format) {
+    	stringFormat = format;
+	}
+
+	public String getString() throws StandardException {
+		if (!isNull()) {
+			return encodedTimeToString(encodedTime, stringFormat);
+		} else {
 			return null;
 		}
 	}
@@ -395,7 +394,7 @@ public final class SQLTime extends DataType
      *<li>JIS & current ISO: hh:mm[:ss]
      *</ol>
      * 
-     * @exception Standard exception if the syntax is invalid or the value is out of range.
+     * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder)
         throws StandardException
@@ -411,7 +410,7 @@ public final class SQLTime extends DataType
      *<li>JIS & current ISO: hh:mm[:ss]
      *</ol>
      * 
-     * @exception Standard exception if the syntax is invalid or the value is out of range.
+     * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
         throws StandardException
@@ -957,6 +956,14 @@ public final class SQLTime extends DataType
         return (hour << 16) + (minute << 8) + second;
     }
 
+    static void timeComponentToString(int value, StringBuffer sb) {
+		String valStr = Integer.toString(value);
+		if (valStr.length() == 1) {
+			sb.append("0");
+		}
+		sb.append(valStr);
+	}
+
     /**
      * Convert a time to a JDBC escape format string
      *
@@ -965,22 +972,46 @@ public final class SQLTime extends DataType
      * @param second
      * @param sb The resulting string is appended to this StringBuffer
      */
-    static void timeToString( int hour, int minute, int second, StringBuffer sb)
+    static void timeToString( int hour, int minute, int second, int format, StringBuffer sb) throws StandardException
     {
-		String hourStr = Integer.toString( hour);
-		String minStr = Integer.toString( minute);
-		String secondStr = Integer.toString( second);
-		if (hourStr.length() == 1)
-			sb.append("0");
-		sb.append( hourStr);
-		sb.append( JIS_SEPARATOR);
-		if (minStr.length() == 1)
-			sb.append("0");
-		sb.append(minStr);
-		sb.append( JIS_SEPARATOR);
-		if (secondStr.length() == 1)
-			sb.append("0");
-		sb.append(secondStr);
+		switch (format) {
+			case ISO:
+			case EUR:
+				// HH.mm.ss
+				timeComponentToString(hour, sb);
+				sb.append(IBM_EUR_SEPARATOR);
+				timeComponentToString(minute, sb);
+				sb.append(IBM_EUR_SEPARATOR);
+				timeComponentToString(second, sb);
+				break;
+			case JIS:
+				// HH:mm:ss
+				timeComponentToString(hour, sb);
+				sb.append(JIS_SEPARATOR);
+				timeComponentToString(minute, sb);
+				sb.append(JIS_SEPARATOR);
+				timeComponentToString(second, sb);
+				break;
+			case USA: {
+				// HH:mm a
+				String aStr = (hour >= 12 && hour < 24) ? " PM" : " AM";
+				if (hour >= 12) {
+					hour -= 12;
+				}
+				if (hour == 0) {
+					hour = 12;
+				}
+				timeComponentToString(hour, sb);
+				sb.append(JIS_SEPARATOR);
+				timeComponentToString(minute, sb);
+				sb.append(aStr);
+				// no second component in USA format
+				break;
+			}
+			case LOCAL:
+			default:
+				throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "time");
+		}
     } // end of timeToString
 
 	/**
@@ -988,10 +1019,10 @@ public final class SQLTime extends DataType
 	 *
 	 * @return	 string value.
 	 */
-	protected static String encodedTimeToString(int encodedTime)
+	protected static String encodedTimeToString(int encodedTime, int format) throws StandardException
 	{
 		StringBuffer vstr = new StringBuffer();
-        timeToString( SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), vstr);
+        timeToString( SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), format, vstr);
 		return vstr.toString();
 	}
 

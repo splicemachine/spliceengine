@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -49,7 +50,7 @@ import java.util.List;
  * This node represents a unary upper or lower operator
  *
  */
-
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SimpleStringOperatorNode extends UnaryOperatorNode
 {
 	/**
@@ -109,7 +110,7 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
 							  operand.getTypeCompiler().
 								getCastToCharWidth(
-									operand.getTypeServices()));
+									operand.getTypeServices(), getCompilerContext()));
 			
 					operand =  (ValueNode)
 						getNodeFactory().getNode(
@@ -133,7 +134,7 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 		setType(new DataTypeDescriptor(operandType,
 				operand.getTypeServices().isNullable(),
 				operand.getTypeCompiler().
-					getCastToCharWidth(operand.getTypeServices())
+					getCastToCharWidth(operand.getTypeServices(), getCompilerContext())
 						)
 				);
 		//Result of upper()/lower() will have the same collation as the   
@@ -169,5 +170,13 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 	 */
 	public String getReceiverInterfaceName() {
 	    return ClassName.StringDataValue;
+	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		double lowerCost = getOperandCost();
+		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : Math.min(operand.getTypeServices().getNull().getLength(), 64));
+		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+		return lowerCost + localCost + callCost;
 	}
 }

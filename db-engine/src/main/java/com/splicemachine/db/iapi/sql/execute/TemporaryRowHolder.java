@@ -34,6 +34,8 @@ package com.splicemachine.db.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 
+import java.io.Serializable;
+
 /**
  * This is a class that is used to temporarily
  * (non-persistently) hold rows that are used in
@@ -44,7 +46,7 @@ import com.splicemachine.db.iapi.sql.Activation;
  * It is used for deferred DML processing.
  *
  */
-public interface TemporaryRowHolder
+public interface TemporaryRowHolder extends Serializable
 {
 	/**
 	 * Insert a row

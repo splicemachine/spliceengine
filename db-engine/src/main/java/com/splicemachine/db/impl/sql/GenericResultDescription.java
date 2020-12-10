@@ -60,7 +60,7 @@ import java.util.Map;
  */
 public final class GenericResultDescription
 		implements ResultDescription, Formatable, Serializable {
-	static final long serialVersionUID = 1L; //assign a long value
+	public static final long serialVersionUID = 1L; //assign a long value
 
 	/********************************************************
 	**
@@ -213,6 +213,7 @@ public final class GenericResultDescription
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
+		// DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
 		int len = (columns == null) ? 0 : columns.length;
 
 		out.writeObject(statementType);

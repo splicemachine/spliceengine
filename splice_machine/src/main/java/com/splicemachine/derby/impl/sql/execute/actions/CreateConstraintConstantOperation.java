@@ -15,9 +15,13 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.DictionaryGraphBuilder;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.Graph;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -30,23 +34,13 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DDUtils;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateConstraintConstantOperation extends ConstraintConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateConstraintConstantOperation.class);
@@ -62,6 +56,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     */
     private boolean enabled;
     private ProviderInfo[] providerInfo;
+
+    private Graph fkGraph;
 
     // CONSTRUCTORS
 
@@ -121,9 +117,46 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         }
     }
 
+    private TableDescriptor getTableDescriptor(Activation activation, boolean shouldThrowIfNull) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
+
+        TableDescriptor result = activation.getDDLTableDescriptor();
+
+        if (result == null) {
+            /* tableId will be non-null if adding a
+             * constraint to an existing table.
+             */
+            result = tableId!=null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
+            if (result == null) {
+                if(shouldThrowIfNull) {
+                    throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
+                } else {
+                    return null;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static DDUtils.Checker readCheckerConfig() throws StandardException {
+        switch(EngineDriver.driver().getConfiguration().getForeignKeyChecker()) {
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_SPLICEMACHINE:
+                return DDUtils.Checker.SpliceMachine;
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_DERBY:
+                return DDUtils.Checker.Derby;
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_NONE:
+                return DDUtils.Checker.None;
+        }
+        throw StandardException.newException(String.format("unexpected foreign key checker type: %s",
+                                                           EngineDriver.driver().getConfiguration().getForeignKeyChecker()));
+    }
+
     /**
      *    This is the guts of the Execution-time logic for CREATE CONSTRAINT.
-     *  <P>
+     * <p>
      *  A constraint is represented as:
      *  <UL>
      *  <LI> ConstraintDescriptor.
@@ -140,12 +173,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      *  on the ConstraintDescriptor for the referenced constraints
      *  and the privileges required to create the constraint.
      *  </UL>
-
+     *
+     * @throws StandardException Thrown on failure
      *  @see ConstraintDescriptor
      *  @see CreateIndexConstantOperation
      *    @see ConstantAction#executeConstantAction
-     *
-     * @exception StandardException        Thrown on failure
      */
     @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
@@ -169,17 +201,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         cf = lcc.getLanguageConnectionFactory().getClassFactory();
         SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
 
-        td = activation.getDDLTableDescriptor();
-
-        if (td == null) {
-            /* tableId will be non-null if adding a
-             * constraint to an existing table.
-             */
-            td = tableId!=null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
-            if (td == null)
-                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
+        td = getTableDescriptor(activation, true);
             activation.setDDLTableDescriptor(td);
-        }
 
         /* Generate the UUID for the backing index.  This will become the
          * constraint's name, if no name was specified.
@@ -201,8 +224,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0                // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;
@@ -218,8 +240,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0                // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;
@@ -248,7 +269,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
                 ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
                     ( dd, td, constraintName, columnNames, otherConstraintInfo );
-                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames);
+                DDUtils.Checker foreignKeyChecker = readCheckerConfig();
+                if(foreignKeyChecker == DDUtils.Checker.None) {
+                    LOG.warn("no foreign key checker is set, bypassing foreign key dependency check"); // should be in DDUtils.
+                }
+                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, foreignKeyChecker);
 
                 conDesc = ddg.newForeignKeyConstraintDescriptor(
                                 td, constraintName,
@@ -470,7 +495,30 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         return strbuf.toString();
     }
 
+    @Override
     public String getScopeName() {
         return String.format("Create Constraint %s (Table %s)", constraintName, tableName);
+    }
+
+    /**
+     * build the foreign key dependency graph, it is necessary to perform this for the following reasons:
+     * 1. the foreign key dependency graph needs to access almost all the <code>ConstraintDescriptor</code>s in the database.
+     * 2. accessing all these descriptors directly from Hbase can cause performance slow down.
+     * 3. the cache is inaccessible during DDL operations, so it is effectively useless to build the graph later on.
+     *
+     * Therefore, we build the graph upfront leveraging what's in the cache. This could lead to giving inconsistent results
+     * in case there is another conflicting ALTER TABLE statement running in parallel, but this should rarely happen. To fix
+     * it we need a mechanism to detect parallel modifications e.g. via w-w conflicts, check DB-10660 for further details.
+     */
+    @Override
+    public void prePrepareDataDictionaryActions(Activation activation) throws StandardException {
+        if (getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT && readCheckerConfig() == DDUtils.Checker.SpliceMachine) {
+
+            DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
+            TableDescriptor td = getTableDescriptor(activation, false);
+
+            DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, constraintName, otherConstraintInfo, schemaName, schemaId, tableName);
+            fkGraph = builder.generateGraph();
+        }
     }
 }

@@ -125,6 +125,9 @@ public class Subquery_Table_IT extends SpliceUnitTest {
             s.executeUpdate("insert into tab3 values (1,1),(2,2),(4,4)");
             s.executeUpdate("create table tab4 (a4 int not null, b4 int)");
             s.executeUpdate("insert into tab4 values (1,1),(2,2),(5,5)");
+
+            s.executeUpdate("create table tab5 (a5 int, b5 int, c5 int, primary key(a5, c5))");
+            s.executeUpdate("insert into tab5 values (1,1,2),(1,1,3),(1,1,4)");
         }
     }
 
@@ -1245,6 +1248,32 @@ public class Subquery_Table_IT extends SpliceUnitTest {
             String expected = "1 |\n" +
                     "----\n" +
                     " 3 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testSubquerywithInListOnKeyColumns() throws Exception {
+        String sqlText = "select * from tab5 where a5=1 and b5 in (select max(b5) from tab5 where a5=1 and c5 in (3,4,5))";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected = "A5 |B5 |C5 |\n" +
+                    "------------\n" +
+                    " 1 | 1 | 2 |\n" +
+                    " 1 | 1 | 3 |\n" +
+                    " 1 | 1 | 4 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testSubquerywithInListOnKeyColumns2() throws Exception {
+        String sqlText = "select * from tab5 X where exists(select 1 from tab5 Y where Y.a5 in (1,2,3) and Y.c5=X.c5) or X.a5=1";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected = "A5 |B5 |C5 |\n" +
+                    "------------\n" +
+                    " 1 | 1 | 2 |\n" +
+                    " 1 | 1 | 3 |\n" +
+                    " 1 | 1 | 4 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }

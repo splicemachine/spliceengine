@@ -33,133 +33,133 @@ package com.splicemachine.db.shared.common.reference;
 
 
 /**
-    List of error message identifiers.
-    This is the set of message identifiers. The message identifier
-    also encodes the SQLState as the first five characters.
-    StandardExceptions must be created using the static
-    StandardException.newException() method calls, passing in a
-    field from this class.
-    <BR>
-    The five character SQL State is obtained from a StandardException
-    using the zero-argument StandardException.getSQLState() method.
-    <BR>
-    The message identifier (ie. the value that matches a field in this class)
-    is obtained using the zero-argument StandardException.getMessageId() method.
-    <BR>
-    Thus if checking for a specific error using a field from this interface
-    the correct code is
-    <PRE>
-        if (se.getMessageId().equals(SQLState.DEADLOCK))
-    </PRE>
-    <BR>
-    A utility static method StandardException.getSQLState(String messageId)
-    exists to convert an field from this class into a five character SQLState.
-    <P>
-
-    <P>
-    The SQL state of an error message dictates the error's severity.
-    The severity is determined from the first two characters of the
-    state if the state is five characters long, otherwise the state
-    is expected to be 7 characters long and the last character determines
-    the state. If the state is seven characters long then only the first
-    five will be seen by the error reporting code and exception.
-    <BR>
-    If the state is 9 characters long, the last two characters encode
-    an exception category, which Synchronization uses to determine whether
-    the error causes REFRESH to halt or to simply skip the failed transaction.
-    All 5 and 7 character states default to the ENVIRONMENTAL exception
-    category.
-    <BR>
-    Here is the encoding of the SQL state, broken down by severity.
-    <UL>
-    <LI> <B> SYSTEM_SEVERITY </B>
-        xxxxx.M
-
-    <LI> <B> DATABASE_SEVERITY </B>
-        xxxxx.D
-
-    <LI> <B> SESSION_SEVERITY </B>
-        08xxx
-        xxxxx.C
-
-    <LI> <B> TRANSACTION_SEVERITY </B>
-        40xxx or xxxxx.T
-
-    <LI> <B> STATEMENT_SEVERITY </B>
-        {2,3}xxxx, 42xxx,  07xxx  or xxxxx.S
-
-    <LI> <B> WARNING_SEVERITY </B>
-        01xxx <EM> SQL State rules require that warnings have states starting with 01</EM>
-
-    <LI> <B> NO_APPLICABLE_SEVERITY </B>
-        YYxxx (YY means none of the above) or xxxxx.U
-
-    <LI> <B> TRANSIENT exception category </B>
-        xxxxx.Y#T (Y can be any of the preceding severities)
-
-    <LI> <B> CONSISTENCY exception category </B>
-        xxxxx.Y#C (Y can be any of the preceding severities)
-
-    <LI> <B> ENVIRONMENTAL exception category (the default)</B>
-        xxxxx.Y#E (Y can be any of the preceding severities)
-
-    <LI> <B> WRAPPED exception category</B>
-        xxxxx.Y#W (Y can be any of the preceding severities)
-
-    </UL>
-    <HR>
-    <P>
-    <B>SQL State ranges</B>
-    <UL>
-    <LI>Basic Services
-      <UL>
-      <LI> XBCA CacheService
-      <LI> XBCM ClassManager
-      <LI> XBCX    Cryptography
-      <LI> XBM0    Monitor
-      <LI> XBDA DataComm
-      <LI> XCY0 Properties
-      </UL>
-
-    <LI>Connectivity
-      <UL>
-      <LI> 08XXX Connection Exceptions
-      </UL>
-
-
-    <LI>Language
-      <UL>
-        <LI> 2200J-2200R for SQL/XML errors (based on SQL/XML[2006]) </LI>
-        <LI> 42800-? for compatible DB2 errors
-        <LI> 42X00-42Zxx for compilation errors </LI>
-        <LI> 43X00-43Yxx  for com.splicemachine.db.impl.sql.execute.rts
-        <LI> 44X00  for all other com.splicemachine.db.catalog.types
-        <LI> 46000  for SQLJ errors (for now, leave this range empty) </LI>
-        <LI> 38000  SQL3 ranges  </LI>
-        <LI> XD00x  Dependency mgr </LI>
-        <LI> XMLxx  Misc XML errors not covered by SQL standard </LI>
-      <LI>
-      </UL>
-
-    <LI>Store
-      <UL>
-      <LI> XSCG0 Conglomerate
-      <LI> XSCH0 Heap
-      </UL>
-
-    <LI>Security
-      <UL>
-      <LI> XK...
-      </UL>
-
-    <LI>Replication
-      <UL>
-      <LI> XRExx
-      </UL>
-
-    <LI>Reserved for IBM Use: XQC00 - XQCZZ
-    </UL>
-*/
+ * List of error message identifiers.
+ * This is the set of message identifiers. The message identifier
+ * also encodes the SQLState as the first five characters.
+ * StandardExceptions must be created using the static
+ * StandardException.newException() method calls, passing in a
+ * field from this class.
+ * <BR>
+ * The five character SQL State is obtained from a StandardException
+ * using the zero-argument StandardException.getSQLState() method.
+ * <BR>
+ * The message identifier (ie. the value that matches a field in this class)
+ * is obtained using the zero-argument StandardException.getMessageId() method.
+ * <BR>
+ * Thus if checking for a specific error using a field from this interface
+ * the correct code is
+ * <PRE>
+ * if (se.getMessageId().equals(SQLState.DEADLOCK))
+ * </PRE>
+ * <BR>
+ * A utility static method StandardException.getSQLState(String messageId)
+ * exists to convert an field from this class into a five character SQLState.
+ * <p>
+ *
+ * <p>
+ * The SQL state of an error message dictates the error's severity.
+ * The severity is determined from the first two characters of the
+ * state if the state is five characters long, otherwise the state
+ * is expected to be 7 characters long and the last character determines
+ * the state. If the state is seven characters long then only the first
+ * five will be seen by the error reporting code and exception.
+ * <BR>
+ * If the state is 9 characters long, the last two characters encode
+ * an exception category, which Synchronization uses to determine whether
+ * the error causes REFRESH to halt or to simply skip the failed transaction.
+ * All 5 and 7 character states default to the ENVIRONMENTAL exception
+ * category.
+ * <BR>
+ * Here is the encoding of the SQL state, broken down by severity.
+ * <UL>
+ * <LI> <B> SYSTEM_SEVERITY </B>
+ * xxxxx.M
+ *
+ * <LI> <B> DATABASE_SEVERITY </B>
+ * xxxxx.D
+ *
+ * <LI> <B> SESSION_SEVERITY </B>
+ * 08xxx
+ * xxxxx.C
+ *
+ * <LI> <B> TRANSACTION_SEVERITY </B>
+ * 40xxx or xxxxx.T
+ *
+ * <LI> <B> STATEMENT_SEVERITY </B>
+ * {2,3}xxxx, 42xxx,  07xxx  or xxxxx.S
+ *
+ * <LI> <B> WARNING_SEVERITY </B>
+ * 01xxx <EM> SQL State rules require that warnings have states starting with 01</EM>
+ *
+ * <LI> <B> NO_APPLICABLE_SEVERITY </B>
+ * YYxxx (YY means none of the above) or xxxxx.U
+ *
+ * <LI> <B> TRANSIENT exception category </B>
+ * xxxxx.Y#T (Y can be any of the preceding severities)
+ *
+ * <LI> <B> CONSISTENCY exception category </B>
+ * xxxxx.Y#C (Y can be any of the preceding severities)
+ *
+ * <LI> <B> ENVIRONMENTAL exception category (the default)</B>
+ * xxxxx.Y#E (Y can be any of the preceding severities)
+ *
+ * <LI> <B> WRAPPED exception category</B>
+ * xxxxx.Y#W (Y can be any of the preceding severities)
+ *
+ * </UL>
+ * <HR>
+ * <p>
+ * <B>SQL State ranges</B>
+ * <UL>
+ * <LI>Basic Services
+ * <UL>
+ * <LI> XBCA CacheService
+ * <LI> XBCM ClassManager
+ * <LI> XBCX    Cryptography
+ * <LI> XBM0    Monitor
+ * <LI> XBDA DataComm
+ * <LI> XCY0 Properties
+ * </UL>
+ *
+ * <LI>Connectivity
+ * <UL>
+ * <LI> 08XXX Connection Exceptions
+ * </UL>
+ *
+ *
+ * <LI>Language
+ * <UL>
+ * <LI> 2200J-2200R for SQL/XML errors (based on SQL/XML[2006]) </LI>
+ * <LI> 42800-? for compatible DB2 errors
+ * <LI> 42X00-42Zxx for compilation errors </LI>
+ * <LI> 43X00-43Yxx  for com.splicemachine.db.impl.sql.execute.rts
+ * <LI> 44X00  for all other com.splicemachine.db.catalog.types
+ * <LI> 46000  for SQLJ errors (for now, leave this range empty) </LI>
+ * <LI> 38000  SQL3 ranges  </LI>
+ * <LI> XD00x  Dependency mgr </LI>
+ * <LI> XMLxx  Misc XML errors not covered by SQL standard </LI>
+ * <LI>
+ * </UL>
+ *
+ * <LI>Store
+ * <UL>
+ * <LI> XSCG0 Conglomerate
+ * <LI> XSCH0 Heap
+ * </UL>
+ *
+ * <LI>Security
+ * <UL>
+ * <LI> XK...
+ * </UL>
+ *
+ * <LI>Replication
+ * <UL>
+ * <LI> XRExx
+ * </UL>
+ *
+ * <LI>Reserved for IBM Use: XQC00 - XQCZZ
+ * </UL>
+ */
 
 public interface SQLState {
 
@@ -557,7 +557,6 @@ public interface SQLState {
     String FILE_IO_INTERRUPTED                                  = "XSDG9.D";
 
 
-
     /*
     ** InternalUtil - Id Parsing
     ** Note that the code catches ID parsing errors.
@@ -758,10 +757,13 @@ public interface SQLState {
     */
     String INTEGRITY_VIOLATION_PREFIX="23";
 
+
     String LANG_NULL_INTO_NON_NULL                                     = "23502";
     String LANG_DUPLICATE_KEY_CONSTRAINT                               = "23505";
     String LANG_FK_VIOLATION                                           = "23503";
     String LANG_CHECK_CONSTRAINT_VIOLATED                              = "23513";
+    String LANG_FK_SET_NULL_TO_NON_NULL                                = "23514";
+
 
     // From SQL/XML[2006] spec; there are others, but
     // these are the ones we actually use with our
@@ -772,8 +774,8 @@ public interface SQLState {
     String LANG_INVALID_XML_CONTEXT_ITEM                               = "2200V";
     String LANG_XQUERY_SERIALIZATION_ERROR                             = "2200W";
 
-    String CANNOT_CLOSE_ACTIVE_CONNECTION                              = "25001";
-    String INVALID_TRANSACTION_STATE_ACTIVE_CONNECTION                 = "25001.S.1";
+    String CANNOT_CLOSE_ACTIVE_CONNECTION              = "25001";
+    String INVALID_TRANSACTION_STATE_ACTIVE_CONNECTION = "25001.S.1";
 
 
     String LANG_UNEXPECTED_USER_EXCEPTION                              = "38000";
@@ -817,6 +819,9 @@ public interface SQLState {
     String AUTH_NO_PERMISSION_FOR_KILLING_OPERATION                    = "4251N";
     String LANG_NO_SUCH_RUNNING_OPERATION                              = "4251P";
     String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT                    = "42601";
+    String LANG_UNSUPPORTED_FROM_TABLE                        = "42602";
+    String LANG_MODIFIED_FINAL_TABLE                          = "42603";
+    String LANG_UNSUPPORTED_FROM_TABLE_QUERY                  = "42604";
     String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT                    = "42606";
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE       = "51045";
     String LANG_DB2_STRING_CONSTANT_TOO_LONG                    = "54002";
@@ -991,8 +996,10 @@ public interface SQLState {
     // String LANG_DROP_SYSTEM_TABLE_ATTEMPTED                         = "42Y17"; -- replaced by 42X62
     String LANG_DATABASE_DOES_NOT_EXIST                                = "42Y18";
     String LANG_INVALID_CAST                                           = "42846";
+    String LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR             = "42846.A";
+    String LANG_INVALID_CAST_TO_CHAR_WITH_FORMAT_NOT_FROM_DATE             = "42846.B";
     //    String LANG_AMBIGUOUS_GROUPING_COLUMN                              = "42Y19"; -- unused post 883.
-    //    String LANG_UNMATCHED_GROUPING_COLUMN                              =    //    "42Y20"; -- not used
+    //    String LANG_UNMATCHED_GROUPING_COLUMN                            = "42Y20"; -- not used
     String LANG_USER_AGGREGATE_BAD_TYPE                                = "42Y22";
     String LANG_BAD_J_D_B_C_TYPE_INFO                                  = "42Y23";
     String LANG_VIEW_NOT_UPDATEABLE                                    = "42Y24";
@@ -1002,7 +1009,7 @@ public interface SQLState {
     // String LANG_NO_TRIGGER_ON_SYSTEM_TABLE                             = "42Y28"; -- replaced by 42X62
     String LANG_INVALID_NON_GROUPED_SELECT_LIST                        = "42Y29";
     String LANG_INVALID_GROUPED_SELECT_LIST                            = "42Y30";
-
+    // 42Y31 is available
     String LANG_TOO_MANY_ELEMENTS                            = "54004";
     String LANG_BAD_AGGREGATOR_CLASS2                                  = "42Y32";
     String LANG_USER_AGGREGATE_CONTAINS_AGGREGATE                      = "42Y33";
@@ -1142,31 +1149,31 @@ public interface SQLState {
 
     // MORE GENERIC LANGUAGE STUFF
     // String LANG_UPDATABLE_VTI_BAD_GETRESULTSETCONCURRENCY          = "42Z89";
-    String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS                        = "42Z90";
-    String LANG_SUBQUERY                                              = "42Z91";
-    String LANG_REPEATABLE_READ                                       = "42Z92";
-    String LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS                = "42Z93";
-    // String LANG_ALTER_SYSTEM_TABLE_ATTEMPTED                       = "42Z94"; -- replaced by 42X62
-    // String LANG_ALTER_TABLE_ON_NON_TABLE                           = "42Z95"; -- replaced by 42Y62
-    String LANG_RENAME_COLUMN_WILL_BREAK_CHECK_CONSTRAINT             = "42Z97";
+    String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS            = "42Z90";
+    String LANG_SUBQUERY                                  = "42Z91";
+    String LANG_REPEATABLE_READ                           = "42Z92";
+    String LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS    = "42Z93";
+    // String LANG_ALTER_SYSTEM_TABLE_ATTEMPTED           = "42Z94"; -- replaced by 42X62
+    // String LANG_ALTER_TABLE_ON_NON_TABLE               = "42Z95"; -- replaced by 42Y62
+    String LANG_RENAME_COLUMN_WILL_BREAK_CHECK_CONSTRAINT = "42Z97";
     // beetle 2758.  For now just raise an error for literals > 64K
-    String LANG_INVALID_LITERAL_LENGTH                                = "42Z99";
-    String LANG_READ_UNCOMMITTED                                      = "42Z9A";
-    String LANG_VTI_BLOB_CLOB_UNSUPPORTED                             = "42Z9B";
-    String LANG_UNSUPPORTED_TRIGGER_STMT                              = "42Z9D";
-    String LANG_UNSUPPORTED_TRIGGER_PROC                              = "42Z9D.S.1";
-    String LANG_DROP_CONSTRAINT_TYPE                                  = "42Z9E";
-    String LANG_QUERY_TOO_COMPLEX                                     = "42ZA0";
-    String LANG_INVALID_SQL_IN_BATCH                                  = "42ZA1";
-    String LANG_LIKE_COLLATION_MISMATCH                               = "42ZA2";
-    String LANG_CAN_NOT_CREATE_TABLE                               = "42ZA3";
+    String LANG_INVALID_LITERAL_LENGTH                    = "42Z99";
+    String LANG_READ_UNCOMMITTED                          = "42Z9A";
+    String LANG_VTI_BLOB_CLOB_UNSUPPORTED                 = "42Z9B";
+    String LANG_UNSUPPORTED_TRIGGER_STMT                  = "42Z9D";
+    String LANG_UNSUPPORTED_TRIGGER_PROC                  = "42Z9D.S.1";
+    String LANG_DROP_CONSTRAINT_TYPE                      = "42Z9E";
+    String LANG_QUERY_TOO_COMPLEX                         = "42ZA0";
+    String LANG_INVALID_SQL_IN_BATCH                      = "42ZA1";
+    String LANG_LIKE_COLLATION_MISMATCH                   = "42ZA2";
+    String LANG_CAN_NOT_CREATE_TABLE                      = "42ZA3";
 
-    String LANG_NO_DJRS                                             = "42ZB1";
-    String LANG_MUST_BE_DJRS                                        = "42ZB2";
-    String LANG_XML_NOT_ALLOWED_DJRS                                = "42ZB3";
-    String LANG_NOT_TABLE_FUNCTION                                  = "42ZB4";
-    String LANG_NO_COSTING_CONSTRUCTOR                              = "42ZB5";
-    String LANG_TABLE_FUNCTION_NOT_ALLOWED                   = "42ZB6";
+    String LANG_NO_DJRS                    = "42ZB1";
+    String LANG_MUST_BE_DJRS               = "42ZB2";
+    String LANG_XML_NOT_ALLOWED_DJRS       = "42ZB3";
+    String LANG_NOT_TABLE_FUNCTION         = "42ZB4";
+    String LANG_NO_COSTING_CONSTRUCTOR     = "42ZB5";
+    String LANG_TABLE_FUNCTION_NOT_ALLOWED = "42ZB6";
 
     String LANG_NO_SUCH_WINDOW                                         = "42ZC0";
     String LANG_WINDOW_LIMIT_EXCEEDED                                  = "42ZC1";
@@ -1180,7 +1187,7 @@ public interface SQLState {
 
     String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
 
-    String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
+    String LANG_INVALID_OLAP_AND_OLTP = "42ZD1";
 
     String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
 
@@ -1189,6 +1196,16 @@ public interface SQLState {
 
     String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
     String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
+    String LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD  = "42ZD7";
+    String LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID   = "42ZD8";
+
+    String LANG_INVALID_NATIVE_AND_NON_NATIVE_SPARK       = "42ZD9";
+
+    String LANG_INVALID_DECIMAL_CHARACTER                 = "42ZE0";
+    String LANG_INVALID_DECIMAL_ARGUMENT                  = "42ZE1";
+    String LANG_INVALID_DECIMAL_CONVERSION                = "42ZE2";
+    String LANG_INVALID_DECIMAL_STRING                    = "42ZE3";
+    String LANG_INVALID_DECIMAL_TYPE                      = "42ZE4";
 
     //following 3 matches the DB2 sql states
     String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
@@ -1209,17 +1226,17 @@ public interface SQLState {
     String LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES = "XCL51.S";
 
     // truncate function error msgs
-    String LANG_TRUNCATE_NULL_OPERAND                                   = "43001";
-    String LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND                           = "43002";
-    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE                   = "43003";
-    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE                = "43004";
-    String LANG_TRUNCATE_WRONG_TRUNC_VALUE_FOR_DATE                     = "43005";
-    String LANG_TRUNCATE_UNKNOWN_TRUNC_VALUE                            = "43006";
+    String LANG_TRUNCATE_NULL_OPERAND                    = "43001";
+    String LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND            = "43002";
+    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE    = "43003";
+    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE = "43004";
+    String LANG_TRUNCATE_WRONG_TRUNC_VALUE_FOR_DATE      = "43005";
+    String LANG_TRUNCATE_UNKNOWN_TRUNC_VALUE             = "43006";
 
     // date, timestamp arithmetic error msgs
-    String LANG_DATE_TIME_MULT_DIV_PROHIBITED                           = "44001";
-    String LANG_DATE_TIME_ADDITION_PROHIBITED                           = "44002";
-    String LANG_DATE_TIME_ARITHMETIC_OVERFLOW                           = "44003";
+    String LANG_DATE_TIME_MULT_DIV_PROHIBITED = "44001";
+    String LANG_DATE_TIME_ADDITION_PROHIBITED = "44002";
+    String LANG_DATE_TIME_ARITHMETIC_OVERFLOW = "44003";
 
     // com.splicemachine.db.impl.sql.execute.rts
     String RTS_ATTACHED_TO                                               = "43X00.U";
@@ -1397,6 +1414,7 @@ public interface SQLState {
     String LANG_STOP_AFTER_BINDING                                     = "42Z56.U";
     String LANG_STOP_AFTER_OPTIMIZING                                  = "42Z57.U";
     String LANG_STOP_AFTER_GENERATING                                  = "42Z58.U";
+    String LANG_INTERNAL_ERROR               = "42Z59.U";
 
     // PARSER EXCEPTIONS
     String LANG_UNBINDABLE_REWRITE                                     = "X0A00.S";
@@ -1506,7 +1524,6 @@ public interface SQLState {
     String LANG_STATEMENT_NEEDS_RECOMPILE                               = "XCL32.S";
 
 
-
     //delete rule restriction violation errors
     String LANG_CANT_BE_DEPENDENT_ESELF                                   = "XCL33.S";
     String LANG_CANT_BE_DEPENDENT_ECYCLE                               = "XCL34.S";
@@ -1534,7 +1551,7 @@ public interface SQLState {
     // Initial release of Apache Derby did not support upgrade
     String LANG_CANT_UPGRADE_DATABASE                                 = "XCL50.S";
 
-    String LANG_STATEMENT_CANCELLED_OR_TIMED_OUT                       = "XCL52.S";
+    String LANG_STATEMENT_CANCELLED_OR_TIMED_OUT = "XCL52.S";
 
     /*
     ** Language errors that match DB2
@@ -1564,9 +1581,6 @@ public interface SQLState {
     String SPLICE_NOT_IMPLEMENTED                                    = "0A000.SP";
 
 
-
-
-
     /*
     ** Authorization and Authentication
     */
@@ -1587,10 +1601,10 @@ public interface SQLState {
     String DEP_UNABLE_TO_STORE                                         = "XD004.S";
 
     /*
-    ** Connectivity
-    */
+     ** Connectivity
+     */
     //following have statement severity.
-    String NO_CURRENT_ROW = "24000";
+    String NO_CURRENT_ROW                             = "24000";
     // String NULL_TYPE_PARAMETER_MISMATCH = "37000";
     String NO_INPUT_PARAMETERS = "07009";
     String NEED_TO_REGISTER_PARAM = "07004";
@@ -1672,62 +1686,62 @@ public interface SQLState {
     String UNABLE_TO_OPEN_FILE = "XJ113.S";
     String CURSOR_INVALID_CURSOR_NAME = "XJ114.S";
     String UNABLE_TO_OPEN_RESULTSET_WITH_REQUESTED_HOLDABILTY = "XJ115.S";
-    String TOO_MANY_COMMANDS_FOR_BATCH = "XJ116.S";
-    String CANNOT_BATCH_QUERIES = "XJ117.S";
-    String QUERY_BATCH_ON_NON_QUERY_STATEMENT = "XJ118.S";
-    String CURSOR_INVALID_OPERATION_AT_CURRENT_POSITION = "XJ121.S";
-    String CURSOR_NO_UPDATE_CALLS_ON_CURRENT_ROW = "XJ122.S";
-    String CURSOR_NOT_ON_CURRENT_OR_INSERT_ROW = "XJ123.S";
-    String CURSOR_COLUMN_NOT_UPDATABLE = "XJ124.S";
-    String CURSOR_MUST_BE_SCROLLABLE = "XJ125.S";
-    String CURSOR_INVALID_FOR_SENSITIVE_DYNAMIC = "XJ126.S";
+    String TOO_MANY_COMMANDS_FOR_BATCH                        = "XJ116.S";
+    String CANNOT_BATCH_QUERIES                               = "XJ117.S";
+    String QUERY_BATCH_ON_NON_QUERY_STATEMENT                 = "XJ118.S";
+    String CURSOR_INVALID_OPERATION_AT_CURRENT_POSITION       = "XJ121.S";
+    String CURSOR_NO_UPDATE_CALLS_ON_CURRENT_ROW              = "XJ122.S";
+    String CURSOR_NOT_ON_CURRENT_OR_INSERT_ROW                = "XJ123.S";
+    String CURSOR_COLUMN_NOT_UPDATABLE                        = "XJ124.S";
+    String CURSOR_MUST_BE_SCROLLABLE                          = "XJ125.S";
+    String CURSOR_INVALID_FOR_SENSITIVE_DYNAMIC               = "XJ126.S";
     //wrapper related
-    String UNABLE_TO_UNWRAP = "XJ128.S";
-    
-    String EXCEEDED_MAX_SECTIONS = "XJ200.S";
-    String CURSOR_INVALID_NAME = "XJ202.S";
-    String CURSOR_DUPLICATE_NAME = "XJ203.S";
+    String UNABLE_TO_UNWRAP                                   = "XJ128.S";
+
+    String EXCEEDED_MAX_SECTIONS                        = "XJ200.S";
+    String CURSOR_INVALID_NAME                          = "XJ202.S";
+    String CURSOR_DUPLICATE_NAME                        = "XJ203.S";
     String UNABLE_TO_OPEN_RS_WITH_REQUESTED_HOLDABILITY = "XJ204.S";
-    String NO_TOKENS_IN_SQL_TEXT = "XJ206.S";
-    String CANT_USE_EXEC_QUERY_FOR_UPDATE = "XJ207.S";
-    String BATCH_NON_ATOMIC_FAILURE = "XJ208.S";
-    String STORED_PROC_NOT_INSTALLED = "XJ209.S";
-    String STORED_PROC_LOAD_MODULE_NOT_FOUND = "XJ210.S";
-    String BATCH_CHAIN_BREAKING_EXCEPTION = "XJ211.S";
-    String INVALID_ATTRIBUTE_SYNTAX = "XJ212.S";
-    String TRACELEVEL_FORMAT_INVALID = "XJ213.C";
-    String IO_ERROR_UPON_LOB_FREE = "XJ214.S";
-    String LOB_OBJECT_INVALID = "XJ215.S";
-    String LOB_OBJECT_LENGTH_UNKNOWN_YET = "XJ216.S";
-    String LOB_LOCATOR_INVALID = "XJ217.S";
-    
+    String NO_TOKENS_IN_SQL_TEXT                        = "XJ206.S";
+    String CANT_USE_EXEC_QUERY_FOR_UPDATE               = "XJ207.S";
+    String BATCH_NON_ATOMIC_FAILURE                     = "XJ208.S";
+    String STORED_PROC_NOT_INSTALLED                    = "XJ209.S";
+    String STORED_PROC_LOAD_MODULE_NOT_FOUND            = "XJ210.S";
+    String BATCH_CHAIN_BREAKING_EXCEPTION               = "XJ211.S";
+    String INVALID_ATTRIBUTE_SYNTAX                     = "XJ212.S";
+    String TRACELEVEL_FORMAT_INVALID                    = "XJ213.C";
+    String IO_ERROR_UPON_LOB_FREE                       = "XJ214.S";
+    String LOB_OBJECT_INVALID                           = "XJ215.S";
+    String LOB_OBJECT_LENGTH_UNKNOWN_YET                = "XJ216.S";
+    String LOB_LOCATOR_INVALID                          = "XJ217.S";
+
     //XN - Network-level messages
-    String NET_CONNECTION_RESET_NOT_ALLOWED_IN_UNIT_OF_WORK         = "XN001.S";
-    String NET_SECKTKN_NOT_RETURNED                                 = "XN002.U";
-    String NET_QUERY_PROCESSING_TERMINATED                          = "XN008.S";
-    String NET_ERROR_GETTING_BLOB_LENGTH                            = "XN009.S";
-    String NET_NULL_PROCEDURE_NAME                                  = "XN010.S";
-    String NET_PROCEDURE_NAME_LENGTH_OUT_OF_RANGE                   = "XN011.S";
-    String NET_WRONG_XA_VERSION                                     = "XN012.S";
-    String NET_INVALID_SCROLL_ORIENTATION                           = "XN013.S";
-    String NET_EXCEPTION_ON_READ                                  = "XN014.S";
-    String NET_INPUTSTREAM_LENGTH_TOO_SMALL                         = "XN015.S";
-    String NET_EXCEPTION_ON_STREAMLEN_VERIFICATION                = "XN016.S";
-    String NET_PREMATURE_EOS                                        = "XN017.S";
-    String NET_READER_LENGTH_TOO_SMALL                              = "XN018.S";
-    String NET_XARETVAL_ERROR                                       = "XN019.S";
-    String NET_MARSHALLING_UDT_ERROR                     = "XN020.S";
-    String NET_UDT_COERCION_ERROR                               = "XN021.S";
-    
+    String NET_CONNECTION_RESET_NOT_ALLOWED_IN_UNIT_OF_WORK = "XN001.S";
+    String NET_SECKTKN_NOT_RETURNED                         = "XN002.U";
+    String NET_QUERY_PROCESSING_TERMINATED                  = "XN008.S";
+    String NET_ERROR_GETTING_BLOB_LENGTH                    = "XN009.S";
+    String NET_NULL_PROCEDURE_NAME                          = "XN010.S";
+    String NET_PROCEDURE_NAME_LENGTH_OUT_OF_RANGE           = "XN011.S";
+    String NET_WRONG_XA_VERSION                             = "XN012.S";
+    String NET_INVALID_SCROLL_ORIENTATION                   = "XN013.S";
+    String NET_EXCEPTION_ON_READ                            = "XN014.S";
+    String NET_INPUTSTREAM_LENGTH_TOO_SMALL                 = "XN015.S";
+    String NET_EXCEPTION_ON_STREAMLEN_VERIFICATION          = "XN016.S";
+    String NET_PREMATURE_EOS                                = "XN017.S";
+    String NET_READER_LENGTH_TOO_SMALL                      = "XN018.S";
+    String NET_XARETVAL_ERROR                               = "XN019.S";
+    String NET_MARSHALLING_UDT_ERROR                        = "XN020.S";
+    String NET_UDT_COERCION_ERROR                           = "XN021.S";
+
     // XML - Derby-specific XML errors not covered by
     // SQL standard.
-    String LANG_MISSING_XML_CLASSES                                 = "XML00";
-    String LANG_UNEXPECTED_XML_EXCEPTION                            = "XML01";
+    String LANG_MISSING_XML_CLASSES      = "XML00";
+    String LANG_UNEXPECTED_XML_EXCEPTION = "XML01";
 
     // Used by server for scrollable updatable insensitive result sets
     // to transmit updated state to client. Internal, not seen by user.
     // Has no message in messages.properties as it is never printed.
-    String ROW_UPDATED = "rwupd"; 
+    String ROW_UPDATED = "rwupd";
     // Used by server to signal delete holes to the client. Internal, not 
     // seen by user. Has no message in messages.properties as it is never 
     // printed.
@@ -1744,42 +1758,42 @@ public interface SQLState {
     String INVALID_ATTRIBUTE = "XJ05B.C";
     
     // Connection exceptions - SQL State class 08
-    
+
     // 08004 SQL State means the server rejected the connection request
-    String LOGIN_FAILED = "08004";
-    String NET_CONNECT_AUTH_FAILED                          = "08004.C.1";
-    String NET_DATABASE_NOT_FOUND                           = "08004.C.2";
-    String AUTH_DATABASE_CONNECTION_REFUSED                 = "08004.C.3"; 
+    String LOGIN_FAILED                            = "08004";
+    String NET_CONNECT_AUTH_FAILED                 = "08004.C.1";
+    String NET_DATABASE_NOT_FOUND                  = "08004.C.2";
+    String AUTH_DATABASE_CONNECTION_REFUSED        = "08004.C.3";
     //DERBY-1828: AUTH_DATABASE_CONNECTION_REFUSED used to be "04501.C"; 
-    String AUTH_SHUTDOWN_NOT_DB_OWNER                       = "08004.C.4";
-    String AUTH_ENCRYPT_NOT_DB_OWNER                        = "08004.C.5";
-    String AUTH_HARD_UPGRADE_NOT_DB_OWNER                   = "08004.C.6";
+    String AUTH_SHUTDOWN_NOT_DB_OWNER              = "08004.C.4";
+    String AUTH_ENCRYPT_NOT_DB_OWNER               = "08004.C.5";
+    String AUTH_HARD_UPGRADE_NOT_DB_OWNER          = "08004.C.6";
     //DERBY-1828: AUTH_x_NOT_DB_OWNER used to be "2850H/I/J.C";
-    String CANNOT_CONNECT_TO_DB_IN_REPLICA_MODE             = "08004.C.7";
-    String AUTH_REPLICATION_NOT_DB_OWNER                    = "08004.C.8";
+    String CANNOT_CONNECT_TO_DB_IN_REPLICA_MODE    = "08004.C.7";
+    String AUTH_REPLICATION_NOT_DB_OWNER           = "08004.C.8";
     //DERBY-2109: new state/msg (considered sql state 28101.C not appropriate)
-    String AUTH_SHUTDOWN_MISSING_PERMISSION                 = "08004.C.9";
+    String AUTH_SHUTDOWN_MISSING_PERMISSION        = "08004.C.9";
     //DERBY-2109: new state/msg
-    String AUTH_DATABASE_CREATE_EXCEPTION                   = "08004.C.10";
+    String AUTH_DATABASE_CREATE_EXCEPTION          = "08004.C.10";
     //DERBY-2109: new state/msg
-    String AUTH_DATABASE_CREATE_MISSING_PERMISSION          = "08004.C.11";
-    String NET_CONNECT_SECMEC_INCOMPATIBLE_SCHEME           = "08004.C.12";
-    String AUTH_EMPTY_CREDENTIALS                                  = "08004.C.13";
+    String AUTH_DATABASE_CREATE_MISSING_PERMISSION = "08004.C.11";
+    String NET_CONNECT_SECMEC_INCOMPATIBLE_SCHEME  = "08004.C.12";
+    String AUTH_EMPTY_CREDENTIALS                  = "08004.C.13";
 
     // There can be multiple causes for 08003, which according
     // to SQL2003 spec means "connection does not exist"
     // We use a suffix to distinguish them.  Because of the suffix
     // you *must* add a severity code
-    String NO_CURRENT_CONNECTION = "08003";
+    String NO_CURRENT_CONNECTION                 = "08003";
     String NOGETCONN_ON_CLOSED_POOLED_CONNECTION = "08003.C.1";
-    String LOB_METHOD_ON_CLOSED_CONNECTION = "08003.C.2";
-    String PHYSICAL_CONNECTION_ALREADY_CLOSED = "08003.C.3";
+    String LOB_METHOD_ON_CLOSED_CONNECTION       = "08003.C.2";
+    String PHYSICAL_CONNECTION_ALREADY_CLOSED    = "08003.C.3";
 
-    
+
     // 08006 means connection exception - connection failure
-    String DRDA_CONNECTION_TERMINATED                           = "08006.C";
-    String CONNECTION_FAILED_ON_RESET                           = "08006.C.1";
-   
+    String DRDA_CONNECTION_TERMINATED = "08006.C";
+    String CONNECTION_FAILED_ON_RESET = "08006.C.1";
+
     // Use this version of SOCKET_EXCEPTION any time *except* when trying to
     // establish a connection, as the SQLState is different.  When trying
     // to establish a connection, use CONNECT_SOCKET_EXCEPTION.
@@ -1797,29 +1811,29 @@ public interface SQLState {
     // occur upon attempting to open a connection.
     // NOTE that if the server *rejects* the connection, that's a different
     // SQLState- 08004'
-    String CONNECT_REQUIRED_PROPERTY_NOT_SET                    = "08001.C.1";
-    String CONNECT_UNABLE_TO_CONNECT_TO_SERVER                  = "08001.C.2";
+    String CONNECT_REQUIRED_PROPERTY_NOT_SET    = "08001.C.1";
+    String CONNECT_UNABLE_TO_CONNECT_TO_SERVER  = "08001.C.2";
     // Use this version of socket exception occurs when trying to establish
     // a connection to the server, as the SQL State 08001 indicates failure
     // to establish a connection.  If you aren't trying to connect, just
     // use SOCKET_EXCEPTION
-    String CONNECT_SOCKET_EXCEPTION                             = "08001.C.3";
-    String CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM                 = "08001.C.4";
-    String CONNECT_USERID_LENGTH_OUT_OF_RANGE                   = "08001.C.5";
-    String CONNECT_PASSWORD_LENGTH_OUT_OF_RANGE                 = "08001.C.6";
-    String CONNECT_USERID_ISNULL                                = "08001.C.7";
-    String CONNECT_PASSWORD_ISNULL                              = "08001.C.8";
-    String NET_DBNAME_TOO_LONG                                  = "08001.C.9";
-    String NET_SECTKN_TOO_LONG                                  = "08001.C.10";
-    String NET_USERID_TOO_LONG                                  = "08001.C.11";
-    String NET_PASSWORD_TOO_LONG                                = "08001.C.12";
-    String NET_EXTNAM_TOO_LONG                                  = "08001.C.13";
-    String NET_SRVNAM_TOO_LONG                                  = "08001.C.14";    
+    String CONNECT_SOCKET_EXCEPTION             = "08001.C.3";
+    String CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM = "08001.C.4";
+    String CONNECT_USERID_LENGTH_OUT_OF_RANGE   = "08001.C.5";
+    String CONNECT_PASSWORD_LENGTH_OUT_OF_RANGE = "08001.C.6";
+    String CONNECT_USERID_ISNULL                = "08001.C.7";
+    String CONNECT_PASSWORD_ISNULL              = "08001.C.8";
+    String NET_DBNAME_TOO_LONG                  = "08001.C.9";
+    String NET_SECTKN_TOO_LONG                  = "08001.C.10";
+    String NET_USERID_TOO_LONG                  = "08001.C.11";
+    String NET_PASSWORD_TOO_LONG                = "08001.C.12";
+    String NET_EXTNAM_TOO_LONG                  = "08001.C.13";
+    String NET_SRVNAM_TOO_LONG                  = "08001.C.14";
 
     // database severity
-    String SHUTDOWN_DATABASE = "08006.D";  
-    String DROP_DATABASE = "08006.D.1";
-        
+    String SHUTDOWN_DATABASE = "08006.D";
+    String DROP_DATABASE     = "08006.D.1";
+
     //the following 2 exceptions are internal and never get seen by the user.
     String CLOSE_REQUEST = "close.C.1"; // no message in messages.properties as it is never printed
 
@@ -1848,38 +1862,37 @@ public interface SQLState {
     String CURSOR_OPERATION_CONFLICT = "01001";
 
 
-
     //following are no applicable severity
     String JAVA_EXCEPTION = "XJ001.U";
-    String NO_UPGRADE = "XJ050.U";
-        
+    String NO_UPGRADE     = "XJ050.U";
+
     /*
      ** Messages whose SQL states are prescribed by DRDA
      */
-    String DRDA_NO_AUTOCOMMIT_UNDER_XA                              = "2D521.S.1";
-    String DRDA_INVALID_XA_STATE_ON_COMMIT_OR_ROLLBACK              = "2D521.S.2"; 
-    String DRDA_CURSOR_NOT_OPEN                                     = "24501.S";
+    String DRDA_NO_AUTOCOMMIT_UNDER_XA                 = "2D521.S.1";
+    String DRDA_INVALID_XA_STATE_ON_COMMIT_OR_ROLLBACK = "2D521.S.2";
+    String DRDA_CURSOR_NOT_OPEN                        = "24501.S";
 
     // 58009 means connection is terminated by a DRDA-protocol error.  This can be caused by any number
     // of reasons, so this SQL State has a lot of instances. Exceptions that are 
     // not protocol related, e.g. SocketException, IOException etc should use 
     // SQLState 8006. DERBY-3077. 
     // 
-    String NET_SQLCDTA_INVALID_FOR_RDBCOLID                         = "58009.C.7";
-    String NET_SQLCDTA_INVALID_FOR_PKGID                            = "58009.C.8";
-    String NET_PGNAMCSN_INVALID_AT_SQLAM                            = "58009.C.9";
-    String NET_VCM_VCS_LENGTHS_INVALID                              = "58009.C.10";
-    String NET_ENCODING_NOT_SUPPORTED                               = "58009.C.11";
-    String NET_NOT_EXPECTED_CODEPOINT                               = "58009.C.12";
-    String NET_DDM_COLLECTION_TOO_SMALL                             = "58009.C.13";
-    String NET_COLLECTION_STACK_NOT_EMPTY                           = "58009.C.14";
-    String NET_DSS_NOT_ZERO                                         = "58009.C.15";
-    String NET_DSS_CHAINED_WITH_SAME_ID                             = "58009.C.16";
-    String NET_PREMATURE_EOS_DISCONNECT                             = "58009.C.17";
-    String NET_INVALID_FDOCA_ID                                     = "58009.C.18";
-    String NET_SECTKN_NOT_RETURNED                                  = "58009.C.19";
-    String NET_NVCM_NVCS_BOTH_NON_NULL                              = "58009.C.20";
-    String NET_SQLCDTA_INVALID_FOR_RDBNAM                           = "58009.C.21";
+    String NET_SQLCDTA_INVALID_FOR_RDBCOLID = "58009.C.7";
+    String NET_SQLCDTA_INVALID_FOR_PKGID    = "58009.C.8";
+    String NET_PGNAMCSN_INVALID_AT_SQLAM    = "58009.C.9";
+    String NET_VCM_VCS_LENGTHS_INVALID      = "58009.C.10";
+    String NET_ENCODING_NOT_SUPPORTED       = "58009.C.11";
+    String NET_NOT_EXPECTED_CODEPOINT       = "58009.C.12";
+    String NET_DDM_COLLECTION_TOO_SMALL     = "58009.C.13";
+    String NET_COLLECTION_STACK_NOT_EMPTY   = "58009.C.14";
+    String NET_DSS_NOT_ZERO                 = "58009.C.15";
+    String NET_DSS_CHAINED_WITH_SAME_ID     = "58009.C.16";
+    String NET_PREMATURE_EOS_DISCONNECT     = "58009.C.17";
+    String NET_INVALID_FDOCA_ID             = "58009.C.18";
+    String NET_SECTKN_NOT_RETURNED          = "58009.C.19";
+    String NET_NVCM_NVCS_BOTH_NON_NULL      = "58009.C.20";
+    String NET_SQLCDTA_INVALID_FOR_RDBNAM   = "58009.C.21";
 
     String DRDA_MGRLVLRM                                            = "58010.C";
     String DRDA_DDM_COMMAND_NOT_SUPPORTED                           = "58014.C";
@@ -1936,49 +1949,50 @@ public interface SQLState {
     String UNEXPECTED_IMPORT_CSV_ERROR                             ="XIE11.S";
     String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR                 ="XIE12.S";
     String UNSUPPORTED_COMPRESSION_FORMAT                          ="XIE13.S";
+    String UNSUPPORTED_QUOTE_MODE                  = "XIE14.S";
 
 
     /*
-    ** Security XK...
-    */
-    String POLICY_NOT_RELOADED                                     ="XK000.S";
-    String NO_SUCH_USER                                            ="XK001.S";
+     ** Security XK...
+     */
+    String POLICY_NOT_RELOADED = "XK000.S";
+    String NO_SUCH_USER        = "XK001.S";
 
     /*
-    ** Replication XRExx
-    */
-    String LOGMODULE_DOES_NOT_SUPPORT_REPLICATION                  = "XRE00";
-    String REPLICATION_LOG_CORRUPTED                               = "XRE01";
-    String REPLICATION_PRIMARY_REPLICA_VERSION_MISMATCH            = "XRE02";
-    String REPLICATION_UNEXPECTED_EXCEPTION                        = "XRE03";
-    String REPLICATION_CONNECTION_EXCEPTION                        = "XRE04.C.1";
-    String REPLICATION_CONNECTION_LOST                             = "XRE04.C.2";
-    String REPLICATION_LOG_OUT_OF_SYNCH                            = "XRE05.C";
-    String REPLICATION_MASTER_TIMED_OUT                            = "XRE06";
-    String REPLICATION_NOT_IN_MASTER_MODE                          = "XRE07";
-    String REPLICATION_REPLICA_STARTED_OK                          = "XRE08";
-    String CANNOT_START_REPLICA_ALREADY_BOOTED                     = "XRE09.C";
-    String REPLICATION_CONFLICTING_ATTRIBUTES                      = "XRE10";
-    String REPLICATION_DB_NOT_BOOTED                               = "XRE11.C";
-    String REPLICATION_UNEXPECTED_MESSAGEID                        = "XRE12";
-    String REPLICATION_FAILOVER_SUCCESSFUL                         = "XRE20.D";
-    String REPLICATION_FAILOVER_UNSUCCESSFUL                       = "XRE21.C";
-    String REPLICATION_MASTER_ALREADY_BOOTED                       = "XRE22.C";
-    String REPLICATION_UNLOGGED_OPERATIONS_IN_PROGRESS             = "XRE23";
-    String REPLICATION_NOT_IN_REPLICA_MODE                         = "XRE40";
-    String REPLICA_OPERATION_DENIED_WHILE_CONNECTED                = "XRE41.C";
-    String REPLICATION_REPLICA_SHUTDOWN_OK                         = "XRE42.C";
-    String REPLICATION_STOPREPLICA_NOT_INITIATED                   = "XRE43";
+     ** Replication XRExx
+     */
+    String LOGMODULE_DOES_NOT_SUPPORT_REPLICATION       = "XRE00";
+    String REPLICATION_LOG_CORRUPTED                    = "XRE01";
+    String REPLICATION_PRIMARY_REPLICA_VERSION_MISMATCH = "XRE02";
+    String REPLICATION_UNEXPECTED_EXCEPTION             = "XRE03";
+    String REPLICATION_CONNECTION_EXCEPTION             = "XRE04.C.1";
+    String REPLICATION_CONNECTION_LOST                  = "XRE04.C.2";
+    String REPLICATION_LOG_OUT_OF_SYNCH                 = "XRE05.C";
+    String REPLICATION_MASTER_TIMED_OUT                 = "XRE06";
+    String REPLICATION_NOT_IN_MASTER_MODE               = "XRE07";
+    String REPLICATION_REPLICA_STARTED_OK               = "XRE08";
+    String CANNOT_START_REPLICA_ALREADY_BOOTED          = "XRE09.C";
+    String REPLICATION_CONFLICTING_ATTRIBUTES           = "XRE10";
+    String REPLICATION_DB_NOT_BOOTED                    = "XRE11.C";
+    String REPLICATION_UNEXPECTED_MESSAGEID             = "XRE12";
+    String REPLICATION_FAILOVER_SUCCESSFUL              = "XRE20.D";
+    String REPLICATION_FAILOVER_UNSUCCESSFUL            = "XRE21.C";
+    String REPLICATION_MASTER_ALREADY_BOOTED            = "XRE22.C";
+    String REPLICATION_UNLOGGED_OPERATIONS_IN_PROGRESS  = "XRE23";
+    String REPLICATION_NOT_IN_REPLICA_MODE              = "XRE40";
+    String REPLICA_OPERATION_DENIED_WHILE_CONNECTED     = "XRE41.C";
+    String REPLICATION_REPLICA_SHUTDOWN_OK              = "XRE42.C";
+    String REPLICATION_STOPREPLICA_NOT_INITIATED        = "XRE43";
 
     //Inherited DB2 error codes
     String LANG_CANCELLATION_EXCEPTION                             = "57014";
 
     //general SPlice errors
-    String LANG_INVALID_DAY                                        = "SE022";
-    String ERROR_PARSING_EXCEPTION                                 = "SE023";
-    String PARAMETER_CANNOT_BE_NULL                                = "SE024";
-    String PARAMETER_IS_NOT_HEXADECIMAL                            = "SE025";
-    String MISSING_COPROCESSOR_SERVICE                             = "SE030";
+    String LANG_INVALID_DAY             = "SE022";
+    String ERROR_PARSING_EXCEPTION      = "SE023";
+    String PARAMETER_CANNOT_BE_NULL     = "SE024";
+    String PARAMETER_IS_NOT_HEXADECIMAL = "SE025";
+    String MISSING_COPROCESSOR_SERVICE  = "SE030";
 
     /*
      * Backup and restore
