@@ -89,8 +89,6 @@ import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELET
  *
  */
 public class SpliceDefaultCompactor extends DefaultCompactor {
-    public static boolean allowSpark = true;
-
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId;
@@ -98,12 +96,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String indexDisplayName;
     private static String hostName;
     private boolean isSpark;
+    private final boolean allowSpark;
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
 
     public SpliceDefaultCompactor(final Configuration conf, final HStore store) {
         super(conf, store);
+        allowSpark = conf.getBoolean(SpliceCompaction.SPLICE_SPARK_COMPACTIONS_ENABLED, true);
         conglomId = this.store.getTableName().getQualifierAsString();
         tableDisplayName = this.store.getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
         indexDisplayName = this.store.getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
