@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +39,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -51,6 +54,8 @@ import static splice.com.google.common.base.Strings.isNullOrEmpty;
 public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
+    private static ExecutorService executor = Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
 
     private TestConnection currentConnection;
     private final String defaultSchema;
@@ -178,53 +183,39 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      * so abort the connections forcefully instead
      */
     private void closeConnections() {
-        int numThreads = connections.size() + 2; // two extra for the .abort() call
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads,
-                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
-        CompletionService<Void> completionService =
-                new ExecutorCompletionService<>(executor);
         try {
-            connections.stream().forEach(connection -> completionService.submit(() -> {
+            List<Callable<Void>> callables = connections.stream().map(connection -> (Callable<Void>) () -> {
                 try {
                     if (connection != null && !connection.isClosed())
                         connection.close();
                 } catch (SQLException e) {
+                    LOG.error("Exception while closing connection", e);
                 }
                 return null;
-            }));
-
-            int futures = 0;
-            while(futures++ < connections.size()) {
-                Future<Void> future = completionService.poll(10, TimeUnit.SECONDS);
-                if (future == null)
-                    throw new TimeoutException();
-                future.get();
+            }).collect(Collectors.toList());
+            List<Future<Void>> results = executor.invokeAll(callables, 10, TimeUnit.SECONDS);
+            List<Future<Void>> stillRunning = results.stream().filter(f -> f.isCancelled() || !f.isDone()).collect(Collectors.toList());
+            if (stillRunning.isEmpty()) {
+                // we are done
+                return;
             }
-            return;
+            stillRunning.stream().forEach(f -> f.cancel(true));
         } catch (InterruptedException e) {
             LOG.error("Interrupted while closing", e);
             Thread.currentThread().interrupt();
-        } catch (TimeoutException | ExecutionException e) {
-            LOG.warn("Couldn't close gracefully", e);
+        } catch (Exception e) {
+            LOG.warn("Exception while closing gracefully", e);
+        }
+        LOG.warn("Some tasks still running, aborting connections");
 
-            for(Connection connection : connections) {
-                try {
-                    if (connection != null && !connection.isClosed()) {
-                        LOG.info("Aborting " + connection);
-                        connection.abort(executor);
-                    }
-                } catch (SQLException sqle) {
-                    LOG.error("Couldn't abort connection", sqle);
-                }
-            }
-        } finally {
-            executor.shutdown();
+        for(Connection connection : connections) {
             try {
-                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
+                if (connection != null && !connection.isClosed()) {
+                    LOG.info("Aborting " + connection);
+                    connection.abort(executor);
                 }
-            } catch (InterruptedException e) {
-                // ignore
+            } catch (SQLException sqle) {
+                LOG.error("Couldn't abort connection", sqle);
             }
         }
 
