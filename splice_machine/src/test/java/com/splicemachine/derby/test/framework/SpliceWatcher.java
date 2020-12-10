@@ -104,6 +104,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             delegate.useOLAP(useOLAP);
             return this;
         }
+        public ConnectionBuilder useNativeSpark(boolean useNativeSpark) {
+            delegate.useNativeSpark(useNativeSpark);
+            return this;
+        }
 
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
