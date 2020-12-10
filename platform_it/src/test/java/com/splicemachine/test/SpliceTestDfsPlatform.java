@@ -50,9 +50,10 @@ public class SpliceTestDfsPlatform {
             throw new RuntimeException("Use main method for testing with splice hdfs cluster.");
         }
         String directory = args[1];
+        boolean secure = false;
 
         SpliceTestDfsPlatform hdfsParticipant = new SpliceTestDfsPlatform();
-        hdfsParticipant.start(nodeCount, directory);
+        hdfsParticipant.start(nodeCount, directory, secure);
     }
 
     public Configuration getConfig() {
@@ -69,19 +70,25 @@ public class SpliceTestDfsPlatform {
         }
     }
 
-    public void start(int nodeCount, String directory) throws Exception {
+    public void start(int nodeCount, String directory, boolean secure) throws Exception {
         if (dfsCluster == null) {
             conf = new Configuration();
             String keytab = directory+"/splice.keytab";
             conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, directory);
-            conf.set("hadoop.security.authentication", "kerberos");
-            conf.set("dfs.namenode.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
-            conf.set("dfs.namenode.keytab.file", keytab);
-            conf.set("dfs.web.authentication.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
-            conf.set("dfs.web.authentication.kerberos.keytab", keytab);
-            conf.set("dfs.datanode.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
-            conf.set("dfs.datanode.keytab.file", keytab);
-            conf.set("dfs.block.access.token.enable", "true");
+
+            if(secure) {
+                conf.set("hadoop.security.authentication", "kerberos");
+                conf.set("dfs.namenode.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
+                conf.set("dfs.namenode.keytab.file", keytab);
+                conf.set("dfs.web.authentication.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
+                conf.set("dfs.web.authentication.kerberos.keytab", keytab);
+                conf.set("dfs.datanode.kerberos.principal", "hdfs/example.com@EXAMPLE.COM");
+                conf.set("dfs.datanode.keytab.file", keytab);
+                conf.set("dfs.block.access.token.enable", "true");
+            }
+            else {
+                conf.set("hadoop.security.authentication", "simple");
+            }
             conf.set(DFSConfigKeys.IGNORE_SECURE_PORTS_FOR_TESTING_KEY, "true");
 
             dfsCluster = new MiniDFSCluster.Builder(conf).clusterId("localDfs").format(true).numDataNodes(nodeCount).nameNodePort(58878).build();

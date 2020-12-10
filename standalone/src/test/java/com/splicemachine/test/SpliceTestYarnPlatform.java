@@ -211,7 +211,7 @@ public class SpliceTestYarnPlatform {
             conf.set("yarn.nodemanager.keytab", keytab);
         }
         conf.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.default.name", "file:///"); // ?
         conf.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
         System.setProperty("zookeeper.sasl.client", "false");
         System.setProperty("zookeeper.sasl.serverconfig", "fake");

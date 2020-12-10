@@ -1134,6 +1134,7 @@
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${hdfs}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

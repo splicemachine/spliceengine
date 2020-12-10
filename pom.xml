@@ -742,8 +742,16 @@
             </properties>
         </profile>
         <profile>
+            <id>hdfs</id>
+            <properties>
+                <hdfs>true</hdfs>
+                <secure>false</secure>
+            </properties>
+        </profile>
+        <profile>
             <id>secure</id>
             <properties>
+                <hdfs>true</hdfs>
                 <secure>true</secure>
                 <spark.keytab>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</spark.keytab>
                 <spark.principal>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</spark.principal>

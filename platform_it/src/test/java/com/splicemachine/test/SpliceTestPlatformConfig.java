@@ -140,7 +140,8 @@ class SpliceTestPlatformConfig {
                                        Integer derbyPort,
                                        boolean failTasksRandomly,
                                        String olapLog4jConfig,
-                                       boolean secure) {
+                                       boolean secure,
+                                       boolean hdfs) {
 
         Configuration config = HConfiguration.unwrapDelegate();
 
@@ -221,7 +222,7 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        String defaultFs = secure ? "hdfs://localhost:58878/" : "file:///";
+        String defaultFs = hdfs ? "hdfs://localhost:58878/" : "file:///";
 
         config.set("fs.defaultFS", defaultFs); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
         config.set(FileSystem.FS_DEFAULT_NAME_KEY, defaultFs);

@@ -83,7 +83,8 @@ usage() {
     echo "Where: "
     echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first. The default is to build first."
     echo "  -l is an optional argument specifying to NOT run clean the environment."
-    echo "  -f is an optional argument specifying to run a fully distributed, secure environment, with Kerberos and HDFS."
+    #echo "  -f is an optional argument specifying to run a fully distributed, secure environment, with Kerberos and HDFS."
+    echo "  -f is an optional argument specifying to run a fully distributed environment, with HDFS."
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start. The default is 1 master and 2 region servers."
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
@@ -150,7 +151,7 @@ if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   RUN_DIR="${BASE_DIR}/mem_sql"
 # Otherwise, set (in)secure option
 elif [[ "${DISTRIBUTED}" == "1" ]]; then
-    PROFILE="secure,${PROFILE}"
+    PROFILE="hdfs,${PROFILE}"
 else
     PROFILE="insecure,${PROFILE}"
 fi
@@ -213,13 +214,7 @@ if [ ${COUNT} -eq 0 ]; then
 fi
 
 if [[ "${DISTRIBUTED}" == "1" ]]; then
-    KDC_LOG="${RUN_DIR}/kdc.log"
-    echo "Starting KDC. Log file is ${KDC_LOG}"
-    (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
-    wait_for ${KDC_LOG} "KDC cluster started" 
-    
-    export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
-    
+   
     HDFS_LOG="${RUN_DIR}/hdfs.log"
     echo "Starting HDFS. Log file is ${HDFS_LOG}"
     (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS

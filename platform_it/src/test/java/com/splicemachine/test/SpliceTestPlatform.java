@@ -47,7 +47,8 @@ public class SpliceTestPlatform {
             Integer derbyPort = Integer.valueOf(args[5]);
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
             String olapLog4jConfig = args[7];
-            boolean secure = Boolean.parseBoolean(args[8]);
+            boolean secure = Boolean.parseBoolean(args[7]);
+            boolean hdfs = Boolean.parseBoolean(args[8]);
 
             Configuration config = SpliceTestPlatformConfig.create(
                     hbaseRootDirUri,
@@ -58,7 +59,8 @@ public class SpliceTestPlatform {
                     derbyPort,
                     failTasksRandomly,
                     olapLog4jConfig,
-                    secure);
+                    secure,
+                    hdfs);
 
             // clean-up zookeeper
             try {
