@@ -1120,7 +1120,12 @@ public class CastNode extends ValueNode
         int length = requestedStringLength;
         if (length == -1) {
             TypeId srcTypeId = opndType.getTypeId();
-            if (srcTypeId.isNumericTypeId()) {
+            if (srcTypeId.isFloatingPointTypeId()) {
+                // DB2 compatible type
+                // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000777.html
+                length = 24;
+            }
+            else if (srcTypeId.isNumericTypeId()) {
                 length = opndType.getPrecision() + 1; // 1 for the sign
                 if (opndType.getScale() > 0)
                     length += 1;               // 1 for the decimal .
