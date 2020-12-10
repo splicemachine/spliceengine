@@ -219,7 +219,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param dd                    dataDictionary
      * @throws StandardException thrown on failure
      */
-    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH")
+    @SuppressFBWarnings(value={"SF_SWITCH_FALLTHROUGH", "DLS_DEAD_LOCAL_STORE"}, justification = "DB-10654")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
@@ -407,7 +407,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 		/* 7th column is REFERENCECOUNT, boolean */
         col=row.getColumn(SYSCONSTRAINTS_REFERENCECOUNT);
         referenceCount=col.getInt();
-		
+
 		/* now build and return the descriptor */
 
         switch(constraintIType){
@@ -422,8 +422,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                         ((SubKeyConstraintDescriptor)
                                 parentTupleDescriptor).getIndexId(),
                         schema,
-                        constraintEnabled,
-                        referenceCount);
+                        constraintEnabled);
                 break;
 
             case DataDictionary.UNIQUE_CONSTRAINT:
@@ -437,15 +436,10 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                         ((SubKeyConstraintDescriptor)
                                 parentTupleDescriptor).getIndexId(),
                         schema,
-                        constraintEnabled,
-                        referenceCount);
+                        constraintEnabled);
                 break;
 
             case DataDictionary.FOREIGNKEY_CONSTRAINT:
-                if(SanityManager.DEBUG){
-                    SanityManager.ASSERT(referenceCount==0,
-                            "REFERENCECOUNT column is nonzero for fk constraint");
-                }
 
                 constraintDesc=ddg.newForeignKeyConstraintDescriptor(
                         td,
@@ -467,11 +461,6 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 break;
 
             case DataDictionary.CHECK_CONSTRAINT:
-                if(SanityManager.DEBUG){
-                    SanityManager.ASSERT(referenceCount==0,
-                            "REFERENCECOUNT column is nonzero for check constraint");
-                }
-
                 constraintDesc=ddg.newCheckConstraintDescriptor(
                         td,
                         constraintName,

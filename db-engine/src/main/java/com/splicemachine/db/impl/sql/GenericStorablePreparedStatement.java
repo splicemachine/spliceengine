@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -147,12 +148,15 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
     //
     /////////////////////////////////////////////////////////////
 
+    @SuppressFBWarnings("DMI_NONSERIALIZABLE_OBJECT_WRITTEN") // todo in DB-10583
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+
+        // DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
         out.writeObject(getCursorInfo());
         out.writeBoolean(needsSavepoint());
         out.writeBoolean(isAtomic);
-        out.writeObject(executionConstants);
+        out.writeObject(executionConstants); // DB-10583
         out.writeObject(resultDesc);
 
         // savedObjects may be null
@@ -231,17 +235,13 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
 
     @Override
     public String toString() {
-        if (SanityManager.DEBUG) {
-            String acn;
-            if (activationClass == null)
-                acn = "null";
-            else
-                acn = activationClass.getName();
+        String acn;
+        if (activationClass == null)
+            acn = "null";
+        else
+            acn = activationClass.getName();
 
-            return "GSPS " + System.identityHashCode(this) + " activationClassName=" + acn + " className=" + className;
-        } else {
-            return "";
-        }
+        return "GenericStorablePreparedStatement activationClassName=" + acn + " className=" + className;
     }
 
 

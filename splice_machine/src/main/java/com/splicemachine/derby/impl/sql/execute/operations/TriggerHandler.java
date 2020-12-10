@@ -23,6 +23,8 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -88,9 +90,15 @@ public class TriggerHandler {
     private boolean isSpark;
     private TxnView txn;
     private byte[] token;
+    private boolean hasSpecialFromTableTrigger;
+    private SPSDescriptor fromTableDmlSpsDescriptor;
+    boolean cleanup1Done = false;
+    boolean cleanup2Done = false;
+    protected TriggerInfo triggerInfo;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",justification = "Intentional")
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
@@ -98,7 +106,8 @@ public class TriggerHandler {
                           TriggerEvent afterEvent,
                           FormatableBitSet heapList,
                           ExecRow templateRow,
-                          String tableVersion) throws StandardException {
+                          String tableVersion,
+                          SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -118,6 +127,9 @@ public class TriggerHandler {
         this.tableVersion = tableVersion;
         this.activation = activation;
         this.writeInfo = writeInfo;
+        this.hasSpecialFromTableTrigger = triggerInfo.hasSpecialFromTableTrigger();
+        this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
+        this.triggerInfo = triggerInfo;
         initTriggerActivator(activation, constantAction);
     }
 
@@ -211,7 +223,11 @@ public class TriggerHandler {
 
     }
 
-    public TriggerExecutionContext getTriggerExecutionContext() { return this.triggerActivator.getTriggerExecutionContext(); }
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        if (triggerActivator != null)
+            return this.triggerActivator.getTriggerExecutionContext();
+        else return null;
+    }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
@@ -246,7 +262,8 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
+                    null, SIDriver.driver().getExecutorService(), withContext,
+                    heapList, !SpliceClient.isRegionServer, fromTableDmlSpsDescriptor);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
@@ -268,7 +285,9 @@ public class TriggerHandler {
         ConnectionContext existingContext = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         if (existingContext == null) {
             try {
-                Connection connection = new EmbedConnectionMaker().createNew(new Properties());
+                Properties dbProperties = new Properties();
+                dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true");
+                Connection connection = new EmbedConnectionMaker().createNew(dbProperties);
                 Context newContext = ((EmbedConnection) connection).getContextManager().getContext(ConnectionContext.CONTEXT_ID);
                 lcc.getContextManager().pushContext(newContext);
             } catch (SQLException e) {
@@ -278,11 +297,19 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
-        if (triggerActivator != null) {
+        // If an Exception is encountered, some resources may be closed more than
+        // once during unwinding of the call stack we want to make sure that
+        // full cleanup isn't indefinitely deferred, and isn't unnecessarily
+        // called multiple times, so add cleanup1Done and cleanup2Done
+        // flags to test if we've gotten here before.
+        if (triggerActivator != null && !cleanup1Done) {
+            cleanup1Done = true;
             triggerActivator.cleanup(false);
         }
-        if (triggerRowHolder != null)
-            triggerRowHolder.close();;
+        if (triggerRowHolder != null && !cleanup2Done) {
+            cleanup2Done = true;
+            triggerRowHolder.close();
+        }
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
@@ -443,5 +470,4 @@ public class TriggerHandler {
             }
         };
     }
-
 }

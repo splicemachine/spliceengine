@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.*;
 import com.splicemachine.homeless.TestUtils;
@@ -22,6 +23,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by tgildersleeve on 6/29/17.
@@ -35,7 +38,7 @@ import java.sql.*;
  *
  * _true tests test existing tables; _false tests test nonexistent tables
  */
-public class DropTableIT {
+public class DropTableIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = DropTableIT.class.getSimpleName().toUpperCase();
@@ -52,45 +55,46 @@ public class DropTableIT {
     public void testDropTable_true() throws Exception {
         methodWatcher.executeUpdate(String.format("CREATE TABLE %s.DropTable_true(COL1 INT, COL2 VARCHAR(10))", schema.schemaName));
 
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "DROPTABLE_TRUE",null);
-        String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        Assert.assertTrue("DropTable_true has not been created", s.contains("DROPTABLE_TRUE"));
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "DROPTABLE_TRUE",null)) {
+            String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue("DropTable_true has not been created", s.contains("DROPTABLE_TRUE"));
+        }
 
         methodWatcher.executeUpdate(String.format("DROP TABLE %s.DROPTABLE_TRUE", schema.schemaName));
-        ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "DROPTABLE_TRUE",null);
-        Assert.assertTrue("DropTable_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLE_TRUE"));
+        try (ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "DROPTABLE_TRUE",null)) {
+            Assert.assertTrue("DropTable_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLE_TRUE"));
+        }
     }
 
     @Test
     public void testDropTable_false() throws Exception {
-        try {
-            ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null);
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null)) {
             Assert.assertTrue("Nonexistent_table should not exist yet", !TestUtils.FormattedResult.ResultFactory.toString(rs).contains("NONEXISTENT_TABLE"));
-
-            methodWatcher.executeUpdate(String.format("DROP TABLE %s.NONEXISTENT_TABLE", schema.schemaName));
-            Assert.fail("Exception not thrown");
         }
         catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42Y55",e.getSQLState());
         }
+        String sqlText = String.format("DROP TABLE %s.NONEXISTENT_TABLE", schema.schemaName);
+        List<String> expectedErrors = Arrays.asList("'DROP TABLE' cannot be performed on 'DROPTABLEIT.NONEXISTENT_TABLE' because it does not exist.");
+        testUpdateFail(sqlText, expectedErrors, methodWatcher);
     }
 
     @Test
     public void testDropTableIfExists_name_true() throws Exception {
         methodWatcher.executeUpdate(String.format("CREATE TABLE %s.DropTableIfExists_name_true(COL1 INT, COL2 VARCHAR(10))",schema.schemaName));
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLEIFEXISTS_NAME_TRUE", null);
-        String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        Assert.assertTrue("DropTableIfExists_name_true has not been created", s.contains("DROPTABLEIFEXISTS_NAME_TRUE"));
-
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLEIFEXISTS_NAME_TRUE", null)) {
+            String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue("DropTableIfExists_name_true has not been created", s.contains("DROPTABLEIFEXISTS_NAME_TRUE"));
+        }
         methodWatcher.executeUpdate(String.format("DROP TABLE IF EXISTS %s.DROPTABLEIFEXISTS_NAME_TRUE", schema.schemaName));
-        ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLEIFEXISTS_NAME_TRUE", null);
-        Assert.assertTrue("DropTableIfExists_name_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLEIFEXISTS_NAME_TRUE"));
+        try (ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLEIFEXISTS_NAME_TRUE", null)) {
+            Assert.assertTrue("DropTableIfExists_name_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLEIFEXISTS_NAME_TRUE"));
+        }
     }
 
     @Test
     public void testDropTableIfExists_name_false() throws Exception {
-        try {
-            ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null);
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null)) {
             Assert.assertTrue("NONEXISTENT_TABLE should not exist yet", !TestUtils.FormattedResult.ResultFactory.toString(rs).contains("NONEXISTENT_TABLE"));
 
             methodWatcher.executeUpdate(String.format("DROP TABLE IF EXISTS %s.NONEXISTENT_TABLE", schema.schemaName));
@@ -103,19 +107,20 @@ public class DropTableIT {
     @Test
     public void testDropTable_name_ifExists_true() throws Exception {
         methodWatcher.executeUpdate(String.format("CREATE TABLE %s.DropTable_name_ifExists_true(COL1 INT, COL2 VARCHAR(10))",schema.schemaName));
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLE_NAME_IFEXISTS_TRUE", null);
-        String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        Assert.assertTrue("DropTable_name_ifExists_true has not been created", s.contains("DROPTABLE_NAME_IFEXISTS_TRUE"));
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLE_NAME_IFEXISTS_TRUE", null)) {
+            String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue("DropTable_name_ifExists_true has not been created", s.contains("DROPTABLE_NAME_IFEXISTS_TRUE"));
+        }
 
         methodWatcher.executeUpdate(String.format("DROP TABLE %s.DROPTABLE_NAME_IFEXISTS_TRUE IF EXISTS", schema.schemaName));
-        ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLE_NAME_IFEXISTS_TRUE", null);
-        Assert.assertTrue("DropTable_name_ifExists_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLE_NAME_IFEXISTS_TRUE"));
+        try (ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName,"DROPTABLE_NAME_IFEXISTS_TRUE", null)) {
+            Assert.assertTrue("DropTable_name_ifExists_true was not deleted", !TestUtils.FormattedResult.ResultFactory.toString(rs2).contains("DROPTABLE_NAME_IFEXISTS_TRUE"));
+        }
     }
 
     @Test
     public void testDropTable_name_ifExists_false() throws Exception {
-        try {
-            ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null);
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null)) {
             Assert.assertTrue("NONEXISTENT_TABLE should not exist yet", !TestUtils.FormattedResult.ResultFactory.toString(rs).contains("NONEXISTENT_TABLE"));
 
             methodWatcher.executeUpdate(String.format("DROP TABLE %s.NONEXISTENT_TABLE IF EXISTS", schema.schemaName));
@@ -127,8 +132,7 @@ public class DropTableIT {
 
     @Test
     public void testDropTableIfExists_syntaxErr() throws Exception {
-        try {
-            ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null);
+        try (ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, schema.schemaName, "NONEXISTENT_TABLE",null)) {
             Assert.assertTrue("NONEXISTENT_TABLE should not exist yet", !TestUtils.FormattedResult.ResultFactory.toString(rs).contains("NONEXISTENT_TABLE"));
 
             methodWatcher.executeUpdate(String.format("DROP TABLE EXISTS %s.NONEXISTENT_TABLE", schema.schemaName));

@@ -1252,11 +1252,13 @@ conglomerates are removed.
 	 *
 	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
+	 * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
+	 *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.
@@ -1655,4 +1657,14 @@ conglomerates are removed.
     void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
 
 	long getActiveStateTxId();
+
+	/**
+	 * The ScanController.close() method has been called on "scan".
+	 * <p>
+	 * Take whatever cleanup action is appropriate to a closed scan.  It is
+	 * likely this routine will remove references to the scan object that it
+	 * was maintaining for cleanup purposes.
+	 *
+	 **/
+	void closeMe(ScanController scan);
 }

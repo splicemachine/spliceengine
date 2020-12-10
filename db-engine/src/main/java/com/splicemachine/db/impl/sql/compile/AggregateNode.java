@@ -45,10 +45,11 @@ import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
 import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
@@ -723,5 +724,21 @@ public class AggregateNode extends UnaryOperatorNode {
 
     public FunctionType getType() {
         return this.type;
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (operand != null) {
+            operand = operand.replaceIndexExpression(childRCL);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        if (operand != null) {
+            return operand.collectExpressions(exprMap);
+        }
+        return true;
     }
 }

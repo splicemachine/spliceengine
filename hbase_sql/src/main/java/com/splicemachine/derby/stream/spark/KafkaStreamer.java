@@ -16,10 +16,12 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.kryo.KryoSerialization;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
@@ -77,19 +79,25 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-dss-ks-"+UUID.randomUUID() );
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
-        KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        KafkaProducer<Integer, byte[]> producer = new KafkaProducer<>(props);
+
+        KryoSerialization kryo = new KryoSerialization();
+        kryo.init();
+
         int count = 0 ;
         while (locatedRowIterator.hasNext()) {
             T lr = locatedRowIterator.next();
 
-            ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName, count++, lr);
+            ProducerRecord<Integer, byte[]> record = new ProducerRecord(topicName, count++, kryo.serialize(lr));
             producer.send(record);
             LOG.trace("KS.c sent "+partition.intValue()+" "+count+" "+lr);
         }
         LOG.trace("KS.c count "+partition.intValue()+" "+count);
 
         producer.close();
+        kryo.close();
+        
         // TODO Clean up
         return Arrays.asList("OK").iterator();
     }

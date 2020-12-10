@@ -31,8 +31,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,7 +69,6 @@ public class CachedOperation extends SpliceBaseOperation {
         try {
             super.init(context);
             source.init(context);
-            populateCache();
         }
         catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -81,28 +78,6 @@ public class CachedOperation extends SpliceBaseOperation {
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         return source.getExecRowDefinition();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation)in.readObject();
-        populated = in.readBoolean();
-        rows = (List)in.readObject();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-
-        try {
-            populateCache();
-        } catch (StandardException e) {
-            throw new IOException(e);
-        }
-        out.writeBoolean(populated);
-        out.writeObject(rows);
     }
 
     @Override
@@ -134,6 +109,13 @@ public class CachedOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
+        populateCache();
+        try {
+            source.init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+        source.openCore(dsp);
 
         if (!rows.isEmpty()) {
             DataSet dataSet = dsp.createDataSet(rows.iterator());
@@ -176,9 +158,10 @@ public class CachedOperation extends SpliceBaseOperation {
         // instance if there's a NLJ downstream) we would try to populate it again. See DB-7154 for more details
         populated = true;
 
+
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         int maxMemoryPerTable = lcc.getOptimizerFactory().getMaxMemoryPerTable();
-        if(maxMemoryPerTable<=0)
+        if (maxMemoryPerTable <= 0)
             return;
 
         source.openCore();
@@ -187,23 +170,29 @@ public class CachedOperation extends SpliceBaseOperation {
         int cacheSize = 0;
         FormatableBitSet toClone = null;
 
-        aRow = source.getNextRowCore();
-        if (aRow != null)
-        {
-            toClone = new FormatableBitSet(aRow.nColumns() + 1);
-            toClone.set(1);
-        }
-        while (aRow != null)
-        {
-            cacheSize += aRow.getColumn(1).getLength();
-            if (cacheSize > maxMemoryPerTable ||
-                    rows.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS) {
-                rows.clear();
-                break;
-            }
-            rows.add(aRow.getClone(toClone));
+        try {
             aRow = source.getNextRowCore();
+            if (aRow != null) {
+                toClone = new FormatableBitSet(aRow.nColumns() + 1);
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    toClone.set(i);
+                }
+            }
+            while (aRow != null) {
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    cacheSize += aRow.getColumn(i).getLength();
+                }
+                if (cacheSize > maxMemoryPerTable ||
+                        rows.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS) {
+                    rows.clear();
+                    break;
+                }
+                rows.add(aRow.getClone(toClone));
+                aRow = source.getNextRowCore();
+            }
         }
-        source.close();
+        finally {
+            source.close();
+        }
     }
 }

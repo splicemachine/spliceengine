@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -57,10 +58,8 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  *
@@ -90,11 +89,13 @@ public class DataDictionaryCache {
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
     private ManagedCache<Long, Optional<String>> catalogVersionCache;
+    private ManagedCache<UUID, ConstraintDescriptorList> constraintDescriptorListCache;
     private DataDictionary dd;
+
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "databaseCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
-            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "catalogVersionCache", "txnAwareConglomerateCache"};
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "catalogVersionCache", "txnAwareConglomerateCache", "constraintDescriptorListCache"};
 
     public static List<String> getCacheNames() {
         return Collections.unmodifiableList(Arrays.asList(cacheNames));
@@ -147,6 +148,8 @@ public class DataDictionaryCache {
                 Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
         int catalogVersionCacheSize = getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
                 Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
+        int constraintDescriptorListCacheSize = getCacheSize(startParams, Property.LANG_CONSTRAINT_CACHE_SIZE,
+                Property.LANG_CONSTRAINT_CACHE_SIZE_DEFAULT);
 
         RemovalListener<Object,Dependent> dependentInvalidator = new RemovalListener<Object, Dependent>() {
             @Override
@@ -199,6 +202,8 @@ public class DataDictionaryCache {
                 (propertyCacheSize).build(), propertyCacheSize);
         catalogVersionCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
                 (catalogVersionCacheSize).build(), catalogVersionCacheSize);
+        constraintDescriptorListCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (constraintDescriptorListCacheSize).build(), constraintDescriptorListCacheSize);
         this.dd = dd;
     }
 
@@ -533,6 +538,7 @@ public class DataDictionaryCache {
         aliasDescriptorCache.invalidateAll();
         catalogVersionCache.invalidateAll();
         txnAwareConglomerateCache.invalidateAll();
+        constraintDescriptorListCache.invalidateAll();
     }
 
     public void clearAliasCache() {
@@ -754,6 +760,34 @@ public class DataDictionaryCache {
         conglomerateDescriptorCache.invalidate(conglomId);
     }
 
+    public void constraintDescriptorListCacheAdd(UUID id, ConstraintDescriptorList item) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("constraintDescriptorListCacheAdd " + id);
+        constraintDescriptorListCache.put(id,item);
+    }
+
+    public ConstraintDescriptorList constraintDescriptorListCacheFind(UUID id) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("constraintDescriptorListCacheFind " + id);
+        return constraintDescriptorListCache.getIfPresent(id);
+    }
+
+    public void constraintDescriptorListCacheRemove(UUID id) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("constraintDescriptorListCacheRemove " + id);
+        constraintDescriptorListCache.invalidate(id);
+    }
+
+    public void clearConstraintDescriptorListCache() {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearConstraintDescriptorListCache ");
+        constraintDescriptorListCache.invalidateAll();
+    }
+
     @MXBean
     @SuppressWarnings("UnusedDeclaration")
     public interface DataDictionaryCacheIFace {
@@ -764,7 +798,7 @@ public class DataDictionaryCache {
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
                     conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache,
-                    oidSchemaCache, catalogVersionCache, txnAwareConglomerateCache};
+                    oidSchemaCache, catalogVersionCache, txnAwareConglomerateCache, constraintDescriptorListCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);

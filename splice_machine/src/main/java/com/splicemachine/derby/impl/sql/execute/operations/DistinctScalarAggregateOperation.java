@@ -33,8 +33,6 @@ import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  *
@@ -87,18 +85,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(orderItem);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        orderItem = in.readInt();
-    }
-
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         ExecPreparedStatement gsps = activation.getPreparedStatement();
@@ -128,13 +114,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         dsp.decrementOpDepth();
         DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
 
-        if (nativeSparkForced())
+        if (nativeSparkForced(dsp))
             dataSet = dataSet.upgradeToSparkNativeDataSet(operationContext);
 
         // If the aggregation can be applied using native Spark UnsafeRow, then do so
         // and return immediately.  Otherwise, use traditional Splice lower-level
         // functional APIs.
-        if (nativeSparkEnabled())
+        if (nativeSparkEnabled(dsp))
             dataSetWithNativeSparkAggregation =
                 dataSet.applyNativeSparkAggregation(null, aggregates,
                                                     false, operationContext);

@@ -44,9 +44,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -57,7 +55,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ConditionalNode extends ValueNode
 {
     ValueNode        testCondition;
@@ -735,6 +732,25 @@ public class ConditionalNode extends ValueNode
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            ConditionalNode other = (ConditionalNode) o;
+            return testCondition.isSemanticallyEquivalent(other.testCondition) &&
+                    thenElseList.isSemanticallyEquivalent(other.thenElseList);
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + testCondition.hashCode();
+        result = 31 * result + thenElseList.hashCode();
+        return result;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         List<QueryTreeNode> nodes = new LinkedList<>();
         nodes.add(testCondition);
@@ -782,5 +798,19 @@ public class ConditionalNode extends ValueNode
             return false;
 
         return true;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (testCondition != null) {
+            cost += testCondition.getBaseOperationCost();
+        }
+        if (thenElseList != null) {
+            for (Object e : thenElseList) {
+                cost += ((ValueNode) e).getBaseOperationCost();
+            }
+        }
+        return cost;
     }
 }

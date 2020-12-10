@@ -25,26 +25,36 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TxnView;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /*
 
@@ -124,6 +134,9 @@ public class VTIOperation extends SpliceBaseOperation {
     private int resultDescriptionItemNumber;
     private ResultDescription resultDescription;
     private boolean convertTimestamps;
+    private boolean quotedEmptyIsNull;
+    private GenericStorablePreparedStatement fromTableDML_SPS = null;
+    private ResultSet fromTableDML_ResultSet = null;
 
 
 	/**
@@ -161,7 +174,9 @@ public class VTIOperation extends SpliceBaseOperation {
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
-                 int resultDescriptionNumber
+                 int resultDescriptionNumber,
+                 boolean quotedEmptyIsNull,
+                 String fromTableDmlSpsAsString
                  ) 
 		throws StandardException
 	{
@@ -203,7 +218,10 @@ public class VTIOperation extends SpliceBaseOperation {
         }
         // if database property is not set, treat it as false
 		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
-
+        this.quotedEmptyIsNull = quotedEmptyIsNull;
+        if (fromTableDmlSpsAsString != null)
+            this.fromTableDML_SPS =
+                 SerializationUtils.deserialize(Base64.decodeBase64(fromTableDmlSpsAsString));
         init();
     }
 
@@ -225,37 +243,6 @@ public class VTIOperation extends SpliceBaseOperation {
     public ExecRow getExecRowDefinition() throws StandardException {
         return getAllocatedRow();
     }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        javaClassName = in.readUTF();
-        rowMethodName = in.readUTF();
-        constructorMethodName = in.readUTF();
-        resultDescriptionItemNumber = in.readInt();
-        convertTimestamps = in.readBoolean();
-
-        if (in.readBoolean()) {
-            this.userVTI = (DatasetProvider)in.readObject();
-        }
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(javaClassName);
-        out.writeUTF(rowMethodName);
-        out.writeUTF(constructorMethodName);
-        out.writeInt(resultDescriptionItemNumber);
-        out.writeBoolean(convertTimestamps);
-
-        boolean hasTriggerRows = this.userVTI instanceof TriggerNewTransitionRows;
-        out.writeBoolean(hasTriggerRows);
-        if (hasTriggerRows) {
-            out.writeObject(this.userVTI);
-        }
-    }
-
 
     /**
 	 * Cache the ExecRow for this result set.
@@ -301,14 +288,89 @@ public class VTIOperation extends SpliceBaseOperation {
         return "VTIOperation";
     }
 
+    private void executeFromTableDML() throws StandardException {
+        if (fromTableDML_SPS != null) {
+            Activation parentActivation = getActivation();
+            LanguageConnectionContext lcc = parentActivation.getLanguageConnectionContext();
+            fromTableDML_SPS.setValid();
+            Activation activation = fromTableDML_SPS.getActivation(lcc, false);
+            activation.setSingleExecution();
+
+            // We are sharing the query parameters with the outer activation
+            // because both statements were compiled together.
+            activation.setParameters(parentActivation.getParameterValueSet(),
+                                     fromTableDML_SPS.getParameterTypes());
+            fromTableDML_ResultSet =
+                fromTableDML_SPS.executeSubStatement(parentActivation,
+                                                     activation, false, 0L);
+        }
+    }
+
+    @Override
+    public void close() throws StandardException{
+        super.close();
+        if (fromTableDML_ResultSet != null && !fromTableDML_ResultSet.isClosed()) {
+            // Flush out any rows from execution.  Should be just one.
+            try {
+                if (fromTableDML_ResultSet.returnsRows())
+                    while (fromTableDML_ResultSet.getNextRow() != null) {
+                    }
+                // Release resources.
+            }
+            finally {
+                if (!fromTableDML_ResultSet.isClosed())
+                    fromTableDML_ResultSet.close();
+                fromTableDML_ResultSet = null;
+            }
+        }
+        if (fromTableDML_SPS != null) {
+            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+            if (lcc != null) {
+                TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
+                if (tec != null)
+                    tec.clearTrigger(false);
+            }
+        }
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        if (isFromTableStatement())
+            return elevateTransaction();
+        else
+            return super.getCurrentTransaction();
+    }
+
+    @Override
+    public boolean isFromTableStatement() {
+        return fromTableDML_SPS != null;
+    }
+
+    long getFromTableTargetConglomId() throws StandardException {
+        if (fromTableDML_SPS == null)
+            return 0;
+        if (this.fromTableDML_SPS.getConstantAction() instanceof WriteCursorConstantOperation) {
+            WriteCursorConstantOperation constantOperation =
+            (WriteCursorConstantOperation) this.fromTableDML_SPS.getConstantAction();
+            return constantOperation.getTargetConglomId();
+        }
+        else
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                   "FROM TABLE statement without target conglomerate id.");
+    }
+
+    public byte[] getDestinationTable() throws StandardException {
+        return Bytes.toBytes(Long.toString(getFromTableTargetConglomId()));
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
+        operationContext = dsp.createOperationContext(this);
 
-        dsp.createOperationContext(this);
-
+        executeFromTableDML();
         if (this.userVTI instanceof TriggerNewTransitionRows) {
             TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
             triggerTransitionRows.finishDeserialization(activation);
@@ -355,4 +417,5 @@ public class VTIOperation extends SpliceBaseOperation {
         return resultColumnTypes;
     }
     public boolean isConvertTimestampsEnabled() { return convertTimestamps; }
+    public boolean getQuotedEmptyIsNull() { return quotedEmptyIsNull; }
 }

@@ -18,12 +18,11 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.util.Shell;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -38,6 +37,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 5/24/17.
  */
+@SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE")
 @Category(value = {SerialTest.class})
 public class PhysicalDeletionIT extends SpliceUnitTest {
 
@@ -97,38 +97,41 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         shouldContainAfterPurge("A", 2, true);
     }
 
-    private void setMinRetentionPeriodOf(String schema, String table, int minRetentionPeriod) throws Exception {
-        if(table == null) {
-            methodWatcher.execute("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('" + schema + "', NULL, " + minRetentionPeriod + ")");
-        } else {
-            methodWatcher.execute("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('" + schema + "', '" + table + "', " + minRetentionPeriod + ")");
-        }
+    private void setMinRetentionPeriodOf(String schema, String table, Long minRetentionPeriod) throws Exception {
+        String tableName = table == null ? "NULL" : String.format("'%s'", table);
+        String minRetentionPeriodString = minRetentionPeriod == null ? "NULL" : minRetentionPeriod.toString();
+        methodWatcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', %s, %s)", schema, tableName, minRetentionPeriodString));
     }
 
-    private int getMinRetentionPeriodOf(String table) throws SQLException {
+    private Long getMinRetentionPeriodOf(String table) throws SQLException {
         ResultSet rs = methodWatcher.executeQuery("SELECT MIN_RETENTION_PERIOD FROM SYS.SYSTABLES WHERE TABLENAME = '" + table + "'");
         Assert.assertTrue(rs.next());
-        return rs.getInt(1);
+        long value = rs.getLong(1);
+        return rs.wasNull() ? null : value;
     }
 
     @Test
     public void testMinRetentionPeriod() throws Exception {
-        Assert.assertEquals(0, getMinRetentionPeriodOf(MRP11));
-        Assert.assertEquals(0, getMinRetentionPeriodOf(MRP21));
-        Assert.assertEquals(0, getMinRetentionPeriodOf(MRP22));
+        Assert.assertNull(getMinRetentionPeriodOf(MRP11));
+        Assert.assertNull(getMinRetentionPeriodOf(MRP21));
+        Assert.assertNull(getMinRetentionPeriodOf(MRP22));
 
-        setMinRetentionPeriodOf(SCHEMA1, MRP11, 200);
-        Assert.assertEquals(200, getMinRetentionPeriodOf(MRP11));
+        setMinRetentionPeriodOf(SCHEMA1, MRP11, 200L);
+        Assert.assertEquals(Long.valueOf(200), getMinRetentionPeriodOf(MRP11));
 
-        setMinRetentionPeriodOf(SCHEMA2, null, 400);
-        Assert.assertEquals(400, getMinRetentionPeriodOf(MRP21));
-        Assert.assertEquals(400, getMinRetentionPeriodOf(MRP22));
+        setMinRetentionPeriodOf(SCHEMA2, null, 400L);
+        Assert.assertEquals(Long.valueOf(400), getMinRetentionPeriodOf(MRP21));
+        Assert.assertEquals(Long.valueOf(400), getMinRetentionPeriodOf(MRP22));
+
+        setMinRetentionPeriodOf(SCHEMA2, null, null);
+        Assert.assertNull(getMinRetentionPeriodOf(MRP21));
+        Assert.assertNull(getMinRetentionPeriodOf(MRP22));
     }
 
     @Test
     public void testSettingMinRetentionPeriodToInvalidTableThrows() throws Exception {
         try {
-            setMinRetentionPeriodOf(SCHEMA1, "NON_EXISTING_TABLE", 400);
+            setMinRetentionPeriodOf(SCHEMA1, "NON_EXISTING_TABLE", 400L);
             Assert.fail("expected exception to be thrown");
         } catch (Exception e) {
             Assert.assertEquals("Table 'NON_EXISTING_TABLE' does not exist.  ", e.getMessage());
@@ -138,7 +141,7 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
     @Test
     public void testSettingMinRetentionPeriodToInvalidSchemaThrows() throws Exception {
         try {
-            setMinRetentionPeriodOf("INVALID_SCHEMA", "NON_EXISTING_TABLE", 400);
+            setMinRetentionPeriodOf("INVALID_SCHEMA", "NON_EXISTING_TABLE", 400L);
             Assert.fail("expected exception to be thrown");
         } catch (Exception e) {
             Assert.assertEquals("Schema 'INVALID_SCHEMA' does not exist", e.getMessage());
@@ -148,7 +151,7 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
     @Test
     public void testSettingMinRetentionPeriodToInvalidMinRetentionPeriodThrows() throws Exception {
         try {
-            setMinRetentionPeriodOf(SCHEMA1, MRP11, -400);
+            setMinRetentionPeriodOf(SCHEMA1, MRP11, -400L);
             Assert.fail("expected exception to be thrown");
         } catch (Exception e) {
             Assert.assertEquals("'-400' is not in the valid range 'non-negative number'.", e.getMessage());

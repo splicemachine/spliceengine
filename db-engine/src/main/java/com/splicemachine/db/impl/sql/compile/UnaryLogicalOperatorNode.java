@@ -110,4 +110,9 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
         nullableResult=operand.getTypeServices().isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return getOperandCost() + SIMPLE_OP_COST;
+    }
 }

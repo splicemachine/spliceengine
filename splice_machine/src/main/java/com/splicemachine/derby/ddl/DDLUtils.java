@@ -310,6 +310,15 @@ public class DDLUtils {
         }
     }
 
+    public static void preDropForeignKey(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
+        try {
+            dd.getDataDictionaryCache().constraintDescriptorListCacheRemove(ProtoUtil.getDerbyUUID(change.getTentativeFK().getConstraintUuid()));
+            dd.getDataDictionaryCache().oidTdCacheRemove(ProtoUtil.getDerbyUUID(change.getTentativeFK().getFkConstraintInfo().getChildTable().getTableUuid()));
+        } catch(Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
     /**
      *
      *
@@ -452,10 +461,10 @@ public class DDLUtils {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
                 if (td != null) { // Table Descriptor transaction never committed
-                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
+                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
                 }
                 if (cd != null) {
-                    dm.invalidateFor(cd, DependencyManager.DROP_INDEX, transactionResource.getLcc());
+                    dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
                 }
             }
         } catch (Exception e) {

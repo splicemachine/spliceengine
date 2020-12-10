@@ -51,12 +51,16 @@ import java.text.RuleBasedCollator;
  */
 class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterface
 {
-	private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo;
+	private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo = null;
 
 	/*
 	 * constructors
 	 */
-    
+    public CollatorSQLVarchar()
+    {
+
+    }
+
     /**
      * Create SQL VARCHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 
@@ -76,39 +80,6 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
         setCollator(collatorForCharacterDatatypes);
 	}
 
-	/**
-	 * Set the RuleBasedCollator for this instance of CollatorSQLVarchar. It will
-	 * be used to do the collation.
-	 */
-	private void setCollator(RuleBasedCollator collatorForCharacterDatatypes)
-	{
-		holderForCollationSensitiveInfo = 
-			new WorkHorseForCollatorDatatypes(collatorForCharacterDatatypes, this);
-	}
-
-	/**
-	 * Get the RuleBasedCollator for this instance of CollatorSQLVarchar. It 
-	 * will be used to do the collation.
-	 * 
-	 * @return	The Collator object which should be used for collation 
-	 * operation on this object
-	 */
-	protected RuleBasedCollator getCollatorForCollation() throws StandardException
-	{
-		return holderForCollationSensitiveInfo.getCollatorForCollation();
-	}
-	
-	/** @see CollationElementsInterface#getCollationElementsForString */
-	public int[] getCollationElementsForString() throws StandardException 
-	{
-		return holderForCollationSensitiveInfo.getCollationElementsForString();
-	}
-
-	/** @see CollationElementsInterface#getCountOfCollationElements */
-	public int getCountOfCollationElements()
-	{
-		return holderForCollationSensitiveInfo.getCountOfCollationElements();
-	}
 
 	/*
 	 * DataValueDescriptor interface
@@ -171,8 +142,7 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 			return s;
 		}
 	}
-	
-	/** @see SQLChar#stringCompare(SQLChar, SQLChar) */
+
 	 protected int stringCompare(SQLChar char1, SQLChar char2)
 	 throws StandardException
 	 {
@@ -188,6 +158,40 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
      public int hashCode() {
          return hashCodeForCollation();
      }
+
+	/**
+	 * Set the RuleBasedCollator for this instance of CollatorSQLVarchar. It will
+	 * be used to do the collation.
+	 */
+	private void setCollator(RuleBasedCollator collatorForCharacterDatatypes)
+	{
+		holderForCollationSensitiveInfo =
+			new WorkHorseForCollatorDatatypes(collatorForCharacterDatatypes, this);
+	}
+
+	/**
+	 * Get the RuleBasedCollator for this instance of CollatorSQLVarchar. It
+	 * will be used to do the collation.
+	 *
+	 * @return	The Collator object which should be used for collation
+	 * operation on this object
+	 */
+	protected RuleBasedCollator getCollatorForCollation() throws StandardException
+	{
+		return holderForCollationSensitiveInfo.getCollatorForCollation();
+	}
+
+	/** @see CollationElementsInterface#getCollationElementsForString */
+	public int[] getCollationElementsForString() throws StandardException
+	{
+		return holderForCollationSensitiveInfo.getCollationElementsForString();
+	}
+
+	/** @see CollationElementsInterface#getCountOfCollationElements */
+	public int getCountOfCollationElements()
+	{
+		return holderForCollationSensitiveInfo.getCountOfCollationElements();
+	}
 
 	/**
 	 * This method implements the like function for char (with no escape value).
@@ -207,12 +211,12 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	{
 		return(holderForCollationSensitiveInfo.like(pattern));
 	}
-	
+
 	/**
 	 * This method implements the like function for char with an escape value.
-	 * 
+	 *
 	 * @param pattern		The pattern to use
-	 * 								 
+	 *
 	 * @return	A SQL boolean value telling whether the first operand is
 	 * like the second operand
 	 *

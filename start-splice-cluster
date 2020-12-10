@@ -23,14 +23,14 @@ _kill_em_all () {
    P=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found YARN. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
-
    P=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Kafka. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/exec:java/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found stray maven exec:java. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+
+   P=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 }
 export -f _kill_em_all
 
