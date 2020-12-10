@@ -15556,14 +15556,15 @@ StatementNode
 dropDatabaseStatement() throws StandardException :
 {
     String dbName;
+    Boolean option;
 }
 {
-    <DATABASE> dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    <DATABASE> dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
     {
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_DATABASE_NODE,
                             dbName,
-                            new Integer(StatementType.DROP_RESTRICT),
+                            new Integer(option ? StatementType.DROP_RESTRICT: StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;

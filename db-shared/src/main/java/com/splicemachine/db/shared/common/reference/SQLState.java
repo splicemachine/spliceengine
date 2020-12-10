@@ -971,10 +971,10 @@ public interface SQLState {
     String LANG_SEQ_INCREMENT_ZERO                                     = "42XAC";
     String LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE                          = "42XAE";
     String LANG_SEQ_MIN_EXCEEDS_MAX                                    = "42XAF";
-    String LANG_SEQ_INVALID_START                                      = "42XAG";    
-    String LANG_NEXT_VALUE_FOR_ILLEGAL                                      = "42XAH";    
-    String LANG_SEQUENCE_REFERENCED_TWICE                                      = "42XAI";    
-    String LANG_DUPLICATE_CS_CLAUSE                                      = "42XAJ";    
+    String LANG_SEQ_INVALID_START                                      = "42XAG";
+    String LANG_NEXT_VALUE_FOR_ILLEGAL                                      = "42XAH";
+    String LANG_SEQUENCE_REFERENCED_TWICE                                      = "42XAI";
+    String LANG_DUPLICATE_CS_CLAUSE                                      = "42XAJ";
     String LANG_INVALID_USER_AGGREGATE_DEFINITION2                     = "42Y00";
     String LANG_INVALID_CHECK_CONSTRAINT                               = "42Y01";
     // String LANG_NO_ALTER_TABLE_COMPRESS_ON_TARGET_TABLE                = "42Y02";
@@ -1456,9 +1456,9 @@ public interface SQLState {
     String LANG_CREATE_SYSTEM_INDEX_ATTEMPTED                          = "X0Y28.S";
     String LANG_PROVIDER_HAS_DEPENDENT_TABLE                            = "X0Y29.S";
     String LANG_PROVIDER_HAS_DEPENDENT_ALIAS                            = "X0Y30.S";
-	String LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY                       = "X0Y31.S";
+    String LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY                       = "X0Y31.S";
     String LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT                           = "X0Y32.S";
-	String LANG_CYCLIC_DEPENDENCY_DETECTED                             = "X0Y33.S";
+    String LANG_CYCLIC_DEPENDENCY_DETECTED                             = "X0Y33.S";
     String LANG_CREATE_INDEX_NO_TABLE                                  = "X0Y38.S";
     String LANG_INVALID_FK_NO_PK                                       = "X0Y41.S";
     String LANG_INVALID_FK_COL_TYPES_DO_NOT_MATCH                      = "X0Y42.S";
@@ -1662,8 +1662,8 @@ public interface SQLState {
     String STREAM_EOF = "XJ085.S";
     String CURSOR_NOT_POSITIONED_ON_INSERT_ROW = "XJ086.S";
     String POS_AND_LENGTH_GREATER_THAN_LOB = "XJ087.S";
-    
-    
+
+
     String WASNULL_INVALID = "XJ088.S";
     String CALENDAR_IS_NULL = "XJ090.S";
     String PARAM_NOT_OUT_OR_INOUT = "XJ091.S";
@@ -1682,7 +1682,7 @@ public interface SQLState {
     String CRYPTO_ILLEGAL_BLOCK_SIZE = "XJ108.S";
     String PRIMARY_TABLE_NAME_IS_NULL = "XJ110.S";
     String FOREIGN_TABLE_NAME_IS_NULL = "XJ111.S";
-    String SECURITY_EXCEPTION_ENCOUNTERED = "XJ112.S";    
+    String SECURITY_EXCEPTION_ENCOUNTERED = "XJ112.S";
     String UNABLE_TO_OPEN_FILE = "XJ113.S";
     String CURSOR_INVALID_CURSOR_NAME = "XJ114.S";
     String UNABLE_TO_OPEN_RESULTSET_WITH_REQUESTED_HOLDABILTY = "XJ115.S";
@@ -1756,7 +1756,7 @@ public interface SQLState {
     String CONFLICTING_CREATE_ATTRIBUTES = "XJ049.C";
     String CONFLICTING_RESTORE_ATTRIBUTES = "XJ081.C";
     String INVALID_ATTRIBUTE = "XJ05B.C";
-    
+
     // Connection exceptions - SQL State class 08
 
     // 08004 SQL State means the server rejected the connection request
@@ -1802,7 +1802,7 @@ public interface SQLState {
     String CONNECTION_FAILED_ON_DEFERRED_RESET                  = "08006.C.4";
     String NET_INSUFFICIENT_DATA                                = "08006.C.5";
     String NET_LOB_DATA_TOO_LARGE_FOR_JVM                       = "08006.C.6";
-    
+
     String CORE_JDBC_DRIVER_UNREGISTERED                    = "08006.C.8"; // JDBCDriver is not registered with the JDBC driver manager
     String CONNECTION_RESET_ON_RESTORE_MODE                     = "08006.C.9";
 
@@ -1900,7 +1900,7 @@ public interface SQLState {
     String DRDA_DDM_PARAM_NOT_SUPPORTED                             = "58016.C";
     String DRDA_DDM_PARAMVAL_NOT_SUPPORTED                          = "58017.C";
     String DRDA_NO_AVAIL_CODEPAGE_CONVERSION                        = "57017.C";
-    
+
     /*
     ** com.splicemachine.db.database.UserUtility
         */

@@ -167,4 +167,21 @@ public class MultiDatabaseIT {
             Assert.assertEquals("42Y18", e.getSQLState());
         }
     }
+
+    @Test
+    public void testDropDatabaseRestrictCascade() throws SQLException {
+        String dbName = OTHER_DB + "_TEST_DROP_RESTRICT_CASCADE";
+        classWatcher.connectionBuilder().database(dbName).create(true).build();
+        try {
+            spliceDbConn.createStatement().execute(String.format("drop database %s restrict", dbName));
+            Assert.fail("An exception should be thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("X0Y53", e.getSQLState());
+        }
+        spliceDbConn.createStatement().execute(String.format("drop database %s cascade", dbName));
+        try (ResultSet rs = spliceDbConn.query(String.format(
+                "select databasename from sys.sysdatabases where databasename = '%s'", dbName))) {
+            assertFalse(rs.next());
+        }
+    }
 }

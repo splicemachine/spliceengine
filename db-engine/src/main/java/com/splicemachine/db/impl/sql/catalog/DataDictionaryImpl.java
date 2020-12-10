@@ -1178,8 +1178,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor dbIdOrderable = getIDValueAsCHAR(dbId);
 
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,schemaNameOrderable);
-        keyRow.setColumn(2,dbIdOrderable);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
 
         return (SchemaDescriptor)
                 getDescriptorViaIndex(
@@ -2111,6 +2111,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         return foundRow;
+    }
+
+    public ArrayList<SchemaDescriptor> getSchemasInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = coreInfo[SYSSCHEMAS_CATALOG_NUM];
+
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<SchemaDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false);
+        return resultList;
     }
 
     public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{

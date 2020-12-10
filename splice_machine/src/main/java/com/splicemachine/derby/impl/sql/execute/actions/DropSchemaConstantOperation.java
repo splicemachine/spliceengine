@@ -53,16 +53,22 @@ import java.util.List;
 public class DropSchemaConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(DropSchemaConstantOperation.class);
     private final String schemaName;
-	private final int dropBehavior;
+    private final int dropBehavior;
+    private final UUID dbId;
     /**
      *    Make the ConstantAction for a DROP SCHEMA statement.
      *
      *    @param    schemaName            Schema name.
      *
      */
-	public DropSchemaConstantOperation(String	schemaName, int dropBehavior) {
+    public DropSchemaConstantOperation(String schemaName, int dropBehavior) {
+        this(null, schemaName, dropBehavior);
+    }
+
+    public DropSchemaConstantOperation(UUID dbId, String schemaName, int dropBehavior) {
+        this.dbId = dbId;
         this.schemaName = schemaName;
-		this.dropBehavior = dropBehavior;
+        this.dropBehavior = dropBehavior;
     }
 
     public    String    toString() {
@@ -92,7 +98,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
          */
         dd.startWriting(lcc);
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, tc, true);
 
         // drop all objects in the schema first
         if (dropBehavior == StatementType.DROP_CASCADE) {
@@ -345,7 +351,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             return returnList;
         }
 
-	   /* borrowed some code from BaseDependentcyManger.getDependencyDescriptorList() */
+       /* borrowed some code from BaseDependentcyManger.getDependencyDescriptorList() */
         for (DependencyDescriptor aStoredList : storedList) {
             DependableFinder finder = aStoredList.getDependentFinder();
             Dependent tempD = (Dependent) finder.getDependable(dd, aStoredList.getUUID());
