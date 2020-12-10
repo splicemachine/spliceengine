@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -54,9 +55,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     private final String schemaName;
 	private final int dropBehavior;
     /**
-     *    Make the ConstantAction for a DROP TABLE statement.
+     *    Make the ConstantAction for a DROP SCHEMA statement.
      *
-     *    @param    schemaName            Table name.
+     *    @param    schemaName            Schema name.
      *
      */
 	public DropSchemaConstantOperation(String	schemaName, int dropBehavior) {
@@ -78,6 +79,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
 
         /*
          * Inform the data dictionary that we are about to write to it.
@@ -97,10 +99,19 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             dropAllSchemaObjects(sd, lcc, tc, activation);
         }
 
+        /* Invalidate dependencies remotely */
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(
+                tc.getActiveStateTxn().getTxnId(),
+                (BasicUUID)sd.getDatabaseId(),
+                schemaName,
+                (BasicUUID)sd.getUUID());
+        // Run locally first to capture any errors.
+        dm.invalidateFor(sd, DependencyManager.DROP_SCHEMA, lcc);
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
         dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
         sd.drop(lcc, activation);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName, (BasicUUID)sd.getUUID());
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
     public String getScopeName() {

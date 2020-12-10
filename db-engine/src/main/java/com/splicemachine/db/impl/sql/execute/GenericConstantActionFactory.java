@@ -260,6 +260,13 @@ public abstract class GenericConstantActionFactory {
         char    aliasType);
 
     /**
+     * Make the ConstantAction for a CREATE DATABASE statement.
+     *
+     *  @param dbName    Name of table.
+     */
+    public abstract ConstantAction getCreateDatabaseConstantAction (String dbName);
+
+    /**
      * Make the ConstantAction for a CREATE SCHEMA statement.
      *
      *  @param schemaName    Name of table.
@@ -544,6 +551,14 @@ public abstract class GenericConstantActionFactory {
      *    @param    dropBehavior          Restrict or Cascade
      */
     public abstract ConstantAction    getDropSchemaConstantAction(String    schemaName, int dropBehavior);
+
+
+    /**
+     *    Make the ConstantAction for a DROP SCHEMA statement.
+     *
+     *    @param dbName Table name.
+     */
+    public abstract ConstantAction    getDropDatabaseConstantAction(String dbName);
 
 
     /**

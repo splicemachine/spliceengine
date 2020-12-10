@@ -2775,6 +2775,7 @@ createStatements() throws StandardException :
 {
     beginToken = <CREATE> (
         (
+            statementNode = databaseDefinition() |
             statementNode = schemaDefinition() |
             statementNode = viewDefinition(beginToken) |
             statementNode = triggerDefinition() |
@@ -2814,6 +2815,7 @@ dropStatements() throws StandardException :
 {
     <DROP>
         (
+            statementNode = dropDatabaseStatement() |
             statementNode = dropSchemaStatement() |
             statementNode = dropTableStatement() |
             statementNode = dropIndexStatement() |
@@ -11733,6 +11735,25 @@ asOfClause() throws StandardException :
 }
 
 StatementNode
+databaseDefinition() throws StandardException :
+{
+    String    dbName = null;
+}
+{
+    <DATABASE>
+    (
+        dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+        {
+            return (StatementNode) nodeFactory.getNode(
+                    C_NodeTypes.CREATE_DATABASE_NODE,
+                    dbName,
+                    getContextManager()
+            );
+        }
+    )
+}
+
+StatementNode
 schemaDefinition() throws StandardException :
 {
     String    schemaName = null;
@@ -15525,6 +15546,24 @@ dropSchemaStatement() throws StandardException :
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
                             new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
+                            getContextManager());
+
+        return stmt;
+    }
+}
+
+StatementNode
+dropDatabaseStatement() throws StandardException :
+{
+    String dbName;
+}
+{
+    <DATABASE> dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    {
+        StatementNode stmt =  (StatementNode) nodeFactory.getNode(
+                            C_NodeTypes.DROP_DATABASE_NODE,
+                            dbName,
+                            new Integer(StatementType.DROP_RESTRICT),
                             getContextManager());
 
         return stmt;

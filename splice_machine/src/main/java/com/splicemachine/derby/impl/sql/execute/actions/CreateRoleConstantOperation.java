@@ -150,7 +150,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
             throws StandardException {
     	SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
         //
-        AuthenticationService s = lcc.getDatabase().getAuthenticationService();
+        AuthenticationService s = lcc.getSpliceInstance().getAuthenticationService();
 
         if (currentUser.equals(roleName)) {
             return true;

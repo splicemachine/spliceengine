@@ -26,6 +26,8 @@ import java.sql.Statement;
 import java.util.concurrent.Semaphore;
 
 public class SpliceDatabaseWatcher extends TestWatcher {
+    private static final Logger LOG = Logger.getLogger(SpliceDatabaseWatcher.class);
+
     public String dbName;
 
     public SpliceDatabaseWatcher(String dbName) {
@@ -43,11 +45,30 @@ public class SpliceDatabaseWatcher extends TestWatcher {
 
     @Override
     protected void finished(Description description) {
-        // XXX (arnaud multidb implement finished for SpliceDatabaseWatcher)
+        LOG.info(tag("Finished", dbName));
+        try (Connection connection = SpliceNetConnection.newBuilder().build()) {
+            try(Statement statement = connection.createStatement()){
+                statement.execute(String.format("drop database %s restrict", dbName));
+            }catch(Exception e){
+                e.printStackTrace();
+                connection.rollback();
+                throw e;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public String toString() {
         return dbName;
+    }
+
+    protected static Object tag(Object message, String dbName) {
+        if (message instanceof String) {
+            return String.format("[%s] %s", dbName, message);
+        } else {
+            return message;
+        }
     }
 }

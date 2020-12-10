@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.db.InternalDatabase;
-import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -52,12 +51,15 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.security.DatabasePermission;
+import com.splicemachine.primitives.Bytes;
 
 import java.io.IOException;
 import java.security.AccessControlException;
@@ -102,7 +104,6 @@ import java.sql.ResultSet;
  */
 public abstract class EmbedConnection implements EngineConnection
 {
-    public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
     protected static final StandardException exceptionClose = StandardException.closeException();
     public static final String INTERNAL_CONNECTION = "SPLICE_INTERNAL_CONNECTION";
     
@@ -239,7 +240,7 @@ public abstract class EmbedConnection implements EngineConnection
             boolean shutdown = Boolean.parseBoolean(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
             // see if database is already booted
-            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, DatabaseDescriptor.STD_DB_NAME); // XXX (arnaud multidb) should we use lower case here for backward compatibility?
 
             // See if user wants to create a new database.
             boolean    createBoot = createBoot(info);
@@ -288,20 +289,16 @@ public abstract class EmbedConnection implements EngineConnection
                     info = removePhaseTwoProps((Properties)info.clone());
                 }
 
-                isCreate.set(createBoot && !dropDatabase);
-
                 // Return false iff the monitor cannot handle a service of the
                 // type indicated by the protocol within the name.  If that's
                 // the case then we are the wrong driver.
 
                 if (!bootDatabase(info, isTwoPhaseUpgradeBoot))
                 {
-                    isCreate.remove();
                     tr.clearContextInError();
                     setInactive();
                     return;
                 }
-                isCreate.remove();
             }
 
            if (createBoot && !shutdown && !dropDatabase)
@@ -310,7 +307,7 @@ public abstract class EmbedConnection implements EngineConnection
                 // database
 
                 if (tr.getDatabase() != null) {
-                    addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, getDBName()));
+                    addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, DatabaseDescriptor.STD_DB_NAME));
                 } else {
 
                     //
@@ -320,7 +317,7 @@ public abstract class EmbedConnection implements EngineConnection
                     checkUserCredentials( true, null, info );
 
                     // Process with database creation
-                    database = createDatabase(tr.getDBName(), info);
+                    database = createDatabase(DatabaseDescriptor.STD_DB_NAME, info);
                     tr.setDatabase(database);
                 }
             }
@@ -330,12 +327,21 @@ public abstract class EmbedConnection implements EngineConnection
                 handleDBNotFound();
             }
 
+            if (createBoot && !shutdown && !dropDatabase && !getDBName().equals(DatabaseDescriptor.STD_DB_NAME)) {
+                try {
+                    AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
+                    af.elevateRawTransaction(Bytes.toBytes("boot"));
+                    database.getDataDictionary().createNewDatabase(getDBName());
+                } catch (StandardException se) {
+                    throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
+                }
+            }
 
             // Check User's credentials and if it is a valid user of
             // the database
             //
             try {
-                checkUserCredentials( false, tr.getDBName(), info );
+                checkUserCredentials( false, DatabaseDescriptor.STD_DB_NAME, info ); // XXX (arnaud multidb) check against another Database?
             } catch (SQLException sqle) {
                 if (isStartReplicaBoot && !replicaDBAlreadyBooted) {
                     // Failing credentials check on a previously
@@ -360,12 +366,6 @@ public abstract class EmbedConnection implements EngineConnection
             // Make a real connection into the database, setup lcc, tc and all
             // the rest.
             tr.startTransaction();
-
-            // Add potentially newly created database in the sysdatabase table
-            if (createBoot && !shutdown && !dropDatabase) {
-                SystemProcedures.addDatabase(getDBName(), "PLACEHOLDER", tr.getDatabase().getId(), tr.getLcc()); // XXX(arnaud multidb) different userid probably for aid?
-
-            }
 
             // now we have the database connection, we can shut down
             if (shutdown) {
@@ -418,7 +418,6 @@ public abstract class EmbedConnection implements EngineConnection
         }
         catch (OutOfMemoryError noMemory)
         {
-            isCreate.remove();
             //System.out.println("freeA");
             InterruptStatus.restoreIntrFlagIfSeen();
             restoreContextStack();
@@ -434,7 +433,6 @@ public abstract class EmbedConnection implements EngineConnection
             throw NO_MEM;
         }
         catch (Throwable t) {
-            isCreate.remove();
             InterruptStatus.restoreIntrFlagIfSeen();
 
             if (t instanceof StandardException)
@@ -2270,7 +2268,7 @@ public abstract class EmbedConnection implements EngineConnection
                                  boolean softAuthenticationBoot
                                  ) throws Throwable
     {
-        String dbname = tr.getDBName();
+        String dbname = DatabaseDescriptor.STD_DB_NAME;
 
         // boot database now
         try {
@@ -2713,16 +2711,16 @@ public abstract class EmbedConnection implements EngineConnection
             
             LanguageConnectionContext lcc = getLanguageConnection();
 
-            connString = 
+            connString =
               this.getClass().getName() + "@" + this.hashCode() + " " +
                       LanguageConnectionContext.xidStr +
-                    lcc.getTransactionExecute().getTransactionIdString() + 
+                    lcc.getTransactionExecute().getTransactionIdString() +
                     "), " +
                       LanguageConnectionContext.lccStr +
                     Integer.toString(lcc.getInstanceNumber()) + "), " +
                       LanguageConnectionContext.dbnameStr + lcc.getDbname() + "), " +
                       LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
-        }       
+        }
         
         return connString;
     }

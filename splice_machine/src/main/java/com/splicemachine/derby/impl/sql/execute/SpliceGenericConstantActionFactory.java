@@ -188,6 +188,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
+    public ConstantAction getCreateDatabaseConstantAction(String dbName) {
+        SpliceLogUtils.trace(LOG, "getCreateDatabaseConstantAction for database {%s}", dbName);
+        return new CreateDatabaseConstantOperation(dbName);
+    }
+
+    @Override
     public ConstantAction getCreateSchemaConstantAction(String schemaName,String aid){
         SpliceLogUtils.trace(LOG,"getCreateSchemaConstantAction for schema {%s} with aid {%s}",schemaName,aid);
         return new CreateSchemaConstantOperation(schemaName,aid);
@@ -308,6 +314,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     public ConstantAction getDropSchemaConstantAction(String schemaName, int dropBehavior){
         SpliceLogUtils.trace(LOG,"getDropSchemaConstantAction for {%s}",schemaName);
         return new DropSchemaConstantOperation(schemaName, dropBehavior);
+    }
+
+    @Override
+    public ConstantAction getDropDatabaseConstantAction(String dbName){
+        SpliceLogUtils.trace(LOG,"getDropDatabaseConstantAction for {%s}", dbName);
+        return new DropDatabaseConstantOperation(dbName);
     }
 
     @Override

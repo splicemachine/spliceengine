@@ -1452,7 +1452,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             if (dd.getUser(ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
-            ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
+            ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(tc.getActiveStateTxn().getTxnId(), schemaName, ownerName, (BasicUUID)sd.getUUID());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
@@ -1924,50 +1924,50 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        if (userId != null && userId.equals(dbo)) {
-            userId = null;
-        }
+        try {
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+            String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+            String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+            if (userId != null && userId.equals(dbo)) {
+                userId = null;
+            }
 
-        List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+            List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
-        SConfiguration config=EngineDriver.driver().getConfiguration();
-        String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
+            SConfiguration config=EngineDriver.driver().getConfiguration();
+            String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
         final String timeStampFormat = SQLTimestamp.defaultTimestampFormatString;
 
-        List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations)
-        {
-            UUID uuid = pair.getFirst();
-            RunningOperation ro = pair.getSecond();
-            ExecRow row = new ValueRow(9);
-            Activation activation = ro.getOperation().getActivation();
-            assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
-            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
-            ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
-            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
+            List<ExecRow> rows = new ArrayList<>(operations.size());
+            for (Pair<UUID, RunningOperation> pair : operations)
+            {
+                UUID uuid = pair.getFirst();
+                RunningOperation ro = pair.getSecond();
+                ExecRow row = new ValueRow(9);
+                Activation activation = ro.getOperation().getActivation();
+                assert activation.getPreparedStatement() != null:"Prepared Statement is null";
+                row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
+                row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
+                row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
+                row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
+                ExecPreparedStatement ps = activation.getPreparedStatement();
+                row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
+                String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
+                row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
 
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
-            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
-            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
-            rows.add(row);
-        }
+                row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
+                row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
+                row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
+                rows.add(row);
+            }
 
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
-        try {
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
             resultsToWrap.openCore();
+            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
     private static String getElapsedTimeStr(Date begin, Date end)
@@ -2049,46 +2049,43 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_KILL_DRDA_OPERATION_LOCAL(final String rdbIntTkn) throws SQLException{
 
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        String userId = lcc.getCurrentUserId(lastActivation);
-
-        boolean killed;
         try {
-            killed = EngineDriver.driver().getOperationManager().killDRDAOperation(rdbIntTkn, userId);
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+            String userId = lcc.getCurrentUserId(lastActivation);
+
+            boolean killed = EngineDriver.driver().getOperationManager().killDRDAOperation(rdbIntTkn, userId);
+            if (!killed)
+                throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, rdbIntTkn));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
 
-        if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, rdbIntTkn));
     }
 
     public static void SYSCS_KILL_OPERATION_LOCAL(final String uuidString) throws SQLException{
 
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        String userId = lcc.getCurrentUserId(lastActivation);
-
-        UUID uuid;
         try {
-            uuid = UUID.fromString(uuidString);
-        } catch (IllegalArgumentException e) {
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
-        }
-        boolean killed;
-        try {
-            killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+            String userId = lcc.getCurrentUserId(lastActivation);
+
+            UUID uuid;
+            try {
+                uuid = UUID.fromString(uuidString);
+            } catch (IllegalArgumentException e) {
+                throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
+            }
+            boolean killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
+            if (!killed)
+                throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
-
-        if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
     }
 
 

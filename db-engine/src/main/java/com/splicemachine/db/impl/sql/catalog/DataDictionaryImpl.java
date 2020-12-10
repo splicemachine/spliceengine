@@ -61,7 +61,6 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
 import com.splicemachine.db.impl.services.locks.Timeout;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
@@ -274,8 +273,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Get AccessFactory in order to transaction stuff */
         af=(AccessFactory)Monitor.findServiceModule(this,AccessFactory.MODULE);
 
-        getBuiltinSpliceDb();
-        getBuiltinSystemSchemas();
+        createBuiltinSpliceDb();
+        createBuiltinSystemSchemas();
 
         // REMIND: actually, we're supposed to get the DataValueFactory
         // out of the connection context...this is a bit of a shortcut.
@@ -549,8 +548,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
             }
 
-            if (create || isCurrentlyCreatingSecondaryDatabase(startParams)) {
-                createSpliceSchema(bootingTC, startParams);
+            if (create) {
+                createSpliceSchema(bootingTC, getSpliceDatabaseDescriptor().getUUID());
             }
 
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
@@ -579,17 +578,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         booting=false;
     }
 
-    protected boolean isCurrentlyCreatingSecondaryDatabase(Properties startParams) {
-        return Boolean.TRUE.equals(EmbedConnection.isCreate.get()) &&
-                !getCurrentlyBootingDatabaseName(startParams).equals(spliceDbDesc.getDatabaseName());
-    }
-
-    protected String getCurrentlyBootingDatabaseName(Properties startParams) {
-        return startParams.getProperty(PersistentService.SERVICE_NAME);
-    }
-
     protected UUID getCurrentlyBootingDatabaseUuid(Properties startParams, TransactionController tc) throws StandardException {
-        String dbIdKey = DataDictionary.getDatabaseId(getCurrentlyBootingDatabaseName(startParams));
+        String dbIdKey = DataDictionary.getDatabaseId(startParams.getProperty(PersistentService.SERVICE_NAME));
         return (UUID) tc.getProperty(dbIdKey);
     }
 
@@ -699,7 +689,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * Set up the builtin schema descriptors for system schemas.
      */
-    private void getBuiltinSystemSchemas(){
+    private void createBuiltinSystemSchemas(){
         if(systemSchemaDesc!=null)
             return;
 
@@ -712,7 +702,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sysCatSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,SchemaDescriptor.SYSCAT_SCHEMA_UUID);
     }
 
-    private void getBuiltinSpliceDb() throws StandardException {
+    private void createBuiltinSpliceDb() throws StandardException {
         if (spliceDbDesc != null)
             return;
 
@@ -723,6 +713,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         spliceDbDesc = new DatabaseDescriptor(
                 this, DatabaseDescriptor.STD_DB_NAME, "PLACEHOLDER", // XXX(arnaud multidb) replace placeholder
                 databaseID);
+    }
+
+    public UUID createNewDatabase(String name) throws StandardException {
+        ContextService.getFactory();
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+        if (!tc.isElevated()) {
+            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+        }
+
+        UUID uuid = getUUIDFactory().createUUID();
+        DatabaseDescriptor desc = new DatabaseDescriptor(
+                this, name, "PLACEHOLDER", uuid); // XXX (arnaud multidb) replace placeholder
+        addDescriptor(desc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
+        createSpliceSchema(tc, uuid);
+        return uuid;
     }
 
     public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
@@ -1540,7 +1545,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow1;
-        DataValueDescriptor schemaNameOrderable;
+        DataValueDescriptor schemaNameOrderable, dbIdOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
         if(SanityManager.DEBUG){
@@ -1554,12 +1559,47 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          * and stop position for index 1 scan.
          */
         schemaNameOrderable=new SQLVarchar(schemaName);
+        dbIdOrderable = new SQLChar(dbId.toString());
+
+        /* Set up the start/stop position for the scan */
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow1=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
+        keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
+        keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
+
+        ti.deleteRow(tc,keyRow1,SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID);
+    }
+
+    /**
+     * Drop the descriptor for a database, given the db's name
+     *
+     * @param dbName The name of the schema to drop
+     * @param tc         TransactionController for the transaction
+     * @throws StandardException Thrown on error
+     */
+    @Override
+    public void dropDatabaseDescriptor(String dbName,TransactionController tc) throws StandardException{
+        ExecIndexRow keyRow1;
+        DataValueDescriptor databaseNameOrderable;
+        TabInfoImpl ti=coreInfo[SYSDATABASES_CORE_NUM];
+
+        if(SanityManager.DEBUG){
+            DatabaseDescriptor dd = getDatabaseDescriptor(dbName, getTransactionCompile(), true);
+            if(!isDatabaseEmpty(dd)){
+                SanityManager.THROWASSERT("Attempt to drop database " + dbName + " that is not empty");
+            }
+        }
+
+        /* Use databaseNameOrderable in both start
+         * and stop position for index 1 scan.
+         */
+        databaseNameOrderable=new SQLVarchar(dbName);
 
         /* Set up the start/stop position for the scan */
         keyRow1=exFactory.getIndexableRow(1);
-        keyRow1.setColumn(1,schemaNameOrderable);
+        keyRow1.setColumn(1,databaseNameOrderable);
 
-        ti.deleteRow(tc,keyRow1,SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID);
+        ti.deleteRow(tc, keyRow1, SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID);
     }
 
     /**
@@ -1839,6 +1879,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return td;
     }
 
+    @Override
+    public boolean isDatabaseEmpty(DatabaseDescriptor dd) throws StandardException{
+        DataValueDescriptor dbIdOrderable;
+        TransactionController tc=getTransactionCompile();
+
+        dbIdOrderable=getIDValueAsCHAR(dd.getUUID());
+
+        if(isDatabaseReferenced(tc,coreInfo[SYSSCHEMAS_CORE_NUM],
+                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, // XXX (arnaud multidb should that be an index to fetch DB ID ?)
+                dbIdOrderable)){
+            return false;
+        }
+
+        // XXX (arnaud multidb) Check other things as we add DATABASEID columns to other sys tables
+
+        return true;
+    }
+
     /**
      * Indicate whether there is anything in the
      * particular schema.  Checks for tables in the
@@ -1914,6 +1973,76 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         return true;
     }
+
+    /**
+     * Is the database id referenced by the system table in question?
+     * Currently assumes that the schema id is in an index.
+     * NOTE: could be generalized a bit, and possibly used
+     * elsewhere...
+     *
+     * @param tc                transaction controller
+     * @param ti                table info for the system table
+     * @param indexId           index id
+     * @param indexCol          1 based index column
+     * @param databaseIdOrderable the databaseid in a char orderable
+     * @return true if there is a reference to this schema
+     * @throws StandardException on error
+     */
+    protected boolean isDatabaseReferenced(TransactionController tc,
+                                         TabInfoImpl ti,
+                                         int indexId,
+                                         int indexCol,
+                                         DataValueDescriptor databaseIdOrderable) throws StandardException{
+        ConglomerateController heapCC=null;
+        ScanController scanController=null;
+        boolean foundRow;
+        FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
+
+        assert indexId>=0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
+
+        colToCheck.set(indexCol-1);
+
+        ScanQualifier[][] qualifier=exFactory.getScanQualifier(1);
+        qualifier[0][0].setQualifier
+                (indexCol-1,
+                        databaseIdOrderable,
+                        Orderable.ORDER_OP_EQUALS,
+                        false,
+                        false,
+                        false);
+
+        try{
+            heapCC=tc.openConglomerate(
+                    ti.getHeapConglomerate(),false,0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ);
+
+            scanController=tc.openScan(
+                    ti.getIndexConglomerate(indexId),    // conglomerate to open
+                    false,                                // don't hold open across commit
+                    0,                                  // for read
+                    TransactionController.MODE_RECORD,    // row locking
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    colToCheck,                        // don't get any rows
+                    null,                            // start position - first row
+                    ScanController.GE,                // startSearchOperation
+                    qualifier,                            // scanQualifier,
+                    null,                            // stop position - through last row
+                    ScanController.GT);                // stopSearchOperation
+
+            foundRow=(scanController.next());
+        }finally{
+            if(scanController!=null){
+                scanController.close();
+            }
+            if(heapCC!=null){
+                heapCC.close();
+            }
+        }
+
+        return foundRow;
+    }
+
 
     /**
      * Is the schema id referenced by the system table in question?
@@ -6050,19 +6179,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,aid,tc);
+        String dbId = getSpliceDatabaseDescriptor().getUUID().toString();
+        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,aid,tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,aid,tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME, aid, tc);
+        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
 
         // now reset our understanding of who owns the database
         resetDatabaseOwner(tc);
@@ -6076,21 +6206,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc              The TransactionController to use
      * @throws StandardException Thrown on failure
      */
-    public void updateSchemaAuth(String schemaName,String authorizationId,TransactionController tc) throws StandardException{
+    public void updateSchemaAuth(String dbUUID, String schemaName,String authorizationId,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow;
-        DataValueDescriptor schemaNameOrderable;
+        DataValueDescriptor schemaNameOrderable, dbIdOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
         /* Use schemaNameOrderable in both start
          * and stop position for index 1 scan.
          */
         schemaNameOrderable=new SQLVarchar(schemaName);
+        dbIdOrderable = new SQLChar(dbUUID);
 
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,schemaNameOrderable);
-
         SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
 
         ExecRow row=rf.makeEmptyRow();
 
@@ -6362,7 +6493,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return null;
         }
 
-        SchemaDescriptor sd = getSchemaDescriptor(getLCC().getDatabase().getId(), btii.getSchemaName(), tc, true);
+        SchemaDescriptor sd = getSchemaDescriptor(getLCC().getDatabaseId(), btii.getSchemaName(), tc, true);
 
         return getAliasDescriptor(sd.getUUID().toString(),btii.getUnqualifiedName(),AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR);
     }
@@ -6912,11 +7043,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
     }
 
-    protected void createSpliceSchema(TransactionController tc, Properties params) throws StandardException {
-        UUID schemaUuid = isCurrentlyCreatingSecondaryDatabase(params) ? uuidFactory.createUUID()
-                : uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID);
-        UUID databaseUuid = getCurrentlyBootingDatabaseUuid(params, tc);
-                SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
+    public void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException {
+        UUID schemaUuid;
+        if (databaseUuid.equals(getSpliceDatabaseDescriptor().getUUID())) {
+            schemaUuid = uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID);
+        } else {
+            schemaUuid = uuidFactory.createUUID();
+        }
+
+        SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
                 SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                 SchemaDescriptor.DEFAULT_USER_NAME,
                 schemaUuid,
@@ -10483,7 +10618,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }else{// see if it's a user-defined table function
             String schemaName=td.getSchemaName();
             String functionName=td.getDescriptorName();
-            SchemaDescriptor sd=getSchemaDescriptor(getLCC().getDatabase().getId(), td.getSchemaName(),null,true);
+            SchemaDescriptor sd=getSchemaDescriptor(getLCC().getDatabaseId(), td.getSchemaName(),null,true);
 
             if(sd!=null){
                 AliasDescriptor ad=getAliasDescriptor(sd.getUUID().toString(),functionName,AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR);

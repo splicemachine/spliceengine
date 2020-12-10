@@ -297,6 +297,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(CreateDatabaseNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(CreateIndexNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -368,6 +373,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(DropAliasNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(DropDatabaseNode node) throws StandardException {
         return defaultVisit(node);
     }
 

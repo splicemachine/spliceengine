@@ -1072,7 +1072,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         DataDictionary dd=getDataDictionary();
         String nextSynonymTable=tabName.getTableName();
         String nextSynonymSchema=tabName.getSchemaName();
-        UUID dbId = getLanguageConnectionContext().getDatabase().getId(); // XXX(arnaud multidb) decode as part of the fully defined tabName
+        UUID dbId = getLanguageConnectionContext().getDatabaseId(); // XXX(arnaud multidb) decode as part of the fully defined tabName
         boolean found=false;
         CompilerContext cc=getCompilerContext();
 
@@ -1187,7 +1187,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         // ok, we have an unbound UDT. lookup this type in the data dictionary
 
         DataDictionary dd=getDataDictionary();
-        UUID dbId = getLanguageConnectionContext().getDatabase().getId();
+        UUID dbId = getLanguageConnectionContext().getDatabaseId();
         SchemaDescriptor typeSchema=getSchemaDescriptor(dbId, userTypeID.getSchemaName());
         char udtNameSpace=AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR;
         String unqualifiedTypeName=userTypeID.getUnqualifiedName();

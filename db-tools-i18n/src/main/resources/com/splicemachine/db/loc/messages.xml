@@ -2775,6 +2775,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y68</name>
+                <text>Database '{0}' cannot be dropped.</text>
+                <arg>dbName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y69</name>
                                 <text>No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.</text>
                                 <!--                <text>No valid execution plan was found for this statement. This may have one of two causes: either you specified a hash join strategy when hash join is not allowed (no optimizable equijoin) or you are attempting to join two external virtual tables, each of which references the other, and so the statement cannot be evaluated.  </text> -->
@@ -3838,6 +3844,12 @@ Guide.
                 <text>Constraint '{0}' is invalid: referenced table {1} does not exist.</text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>X0Y53.S</name>
+                <text>Database '{0}' cannot be dropped because it is not empty.</text>
+                <arg>dbName</arg>
             </msg>
 
             <msg>

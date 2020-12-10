@@ -506,7 +506,7 @@ public final class NetworkServerControlImpl {
             return null;
     }
 
-    protected static Driver getDriver()
+    public static Driver getDriver()
     {
         return cloudscapeDriver;
     }
@@ -562,7 +562,7 @@ public final class NetworkServerControlImpl {
      */
     public void consoleExceptionPrint(Exception e)
     {
-        consoleExceptionPrintTrace(e);
+            consoleExceptionPrintTrace(e);
     }
 
     /**

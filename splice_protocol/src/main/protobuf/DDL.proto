@@ -35,6 +35,9 @@ message CreateSchema {
 message CreateView {
 }
 
+message CreateDatabase {
+}
+
 message DropView {
         required UUID tableId = 1;
 }
@@ -71,15 +74,16 @@ message DropIndex {
 }
 
 message DropSchema {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         required string schemaName = 3;
         required UUID schemaUUID = 4;
+        optional UUID dbUUID = 5;
 }
 
 message DropTable {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         optional UUID tableId = 3;
 }
 
@@ -90,6 +94,11 @@ message DropSequence {
 
 message DropRole {
         optional string roleName = 1;
+}
+
+message DropDatabase {
+        required string dbName = 1;
+        required UUID dbUUID = 2;
 }
 
 message CreateRole {
@@ -388,6 +397,8 @@ enum DDLChangeType {
     SET_REPLICATION_ROLE = 41;
     UPDATE_SYSTEM_PROCEDURES = 42;
     ROLLING_UPGRADE = 43;
+    DROP_DATABASE = 44;
+    CREATE_DATABASE = 45;
 }
 
 message DDLChange {
@@ -431,4 +442,6 @@ message DDLChange {
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
     optional RollingUpgrade rollingUpgrade = 40;
+    optional DropDatabase dropDatabase = 41;
+    optional CreateDatabase createDatabase = 42;
 }

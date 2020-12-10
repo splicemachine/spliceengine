@@ -603,6 +603,15 @@ public interface DataDictionary{
     void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException;
 
     /**
+     * Drop the descriptor for a database, given the database's name
+     *
+     * @param dbName The name of the schema to drop
+     * @param tc         Transaction Controller
+     * @throws StandardException Thrown on failure
+     */
+    void dropDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException;
+
+    /**
      * Indicate whether there is anything in the
      * particular schema.  Checks for tables in the
      * the schema, on the assumption that there cannot
@@ -628,6 +637,18 @@ public interface DataDictionary{
     ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
 
     ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
+
+    /**
+     * Indicate whether there is anything in the
+     * particular database.  Checks for schemas in the
+     * the database
+     * XXX(arnaud multidb) check for other objects in the DB?
+     *
+     * @param dd database descriptor
+     * @return true/false
+     * @throws StandardException on error
+     */
+    boolean isDatabaseEmpty(DatabaseDescriptor dd) throws StandardException;
 
     /**
      * Get the descriptor for the named table within the given schema.
@@ -2297,4 +2318,8 @@ public interface DataDictionary{
     long getSystablesMinRetentionPeriod();
 
     boolean useTxnAwareCache();
+
+    void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException;
+
+    UUID createNewDatabase(String name) throws StandardException;
 }

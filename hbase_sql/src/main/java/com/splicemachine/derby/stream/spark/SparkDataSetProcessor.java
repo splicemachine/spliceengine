@@ -319,7 +319,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     private transient BroadcastedActivation broadcastedActivation;
 
-    private void setupBroadcastedActivation(Activation activation, SpliceOperation root){
+    private void setupBroadcastedActivation(Activation activation, SpliceOperation root) {
         if (broadcastedActivation == null) {
             broadcastedActivation = new BroadcastedActivation(activation, root);
         }

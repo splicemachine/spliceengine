@@ -36,7 +36,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 

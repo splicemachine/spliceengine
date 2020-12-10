@@ -65,12 +65,22 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createDropSchema(long txnId, String schemaName, BasicUUID schemaUUID) {
+    public static DDLChange createDropSchema(long txnId, BasicUUID dbId, String schemaName, BasicUUID schemaUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropSchema(DropSchema.newBuilder()
+                .setDbUUID(transferDerbyUUID(dbId))
                 .setSchemaName(schemaName)
                 .setSchemaUUID(transferDerbyUUID(schemaUUID))
                 .build())
                 .setDdlChangeType(DDLChangeType.DROP_SCHEMA)
+                .build();
+    }
+
+    public static DDLChange createDropDatabase(long txnId, String dbName, BasicUUID dbUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDropDatabase(DropDatabase.newBuilder()
+                .setDbName(dbName)
+                .setDbUUID(transferDerbyUUID(dbUUID))
+                .build())
+                .setDdlChangeType(DDLChangeType.DROP_DATABASE)
                 .build();
     }
 
