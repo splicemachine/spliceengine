@@ -15,6 +15,8 @@
 
 package com.splicemachine.olap;
 
+import com.splicemachine.access.SparkYarnConfiguration;
+import org.apache.spark.SparkConf;
 import splice.com.google.common.net.HostAndPort;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.HConfiguration;
@@ -53,7 +55,6 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.deploy.SparkHadoopUtil;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.util.Utils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -61,7 +62,9 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.List;
@@ -71,9 +74,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_NUM_NODES_PATH;
-import static com.splicemachine.derby.impl.SpliceSpark.getContextUnsafe;
-import static com.splicemachine.derby.impl.SpliceSpark.getSession;
+import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_YARN_CONFIG_PATH;
 import static com.splicemachine.hbase.ZkUtils.recursiveDelete;
 
 
@@ -89,7 +90,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     private RecoverableZooKeeper rzk;
     private String queueZkPath;
     private String appZkPath;
-    private String sparkNumNodesZkPath;
+    private String sparkYarnConfigZkPath;
     private Configuration conf;
     private CountDownLatch finished = new CountDownLatch(1);
     private ScheduledExecutorService ses = Executors.newScheduledThreadPool(1,
@@ -130,7 +131,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         zkSafeCreate(appRoot);
         queueZkPath = queueRoot + "/" + queueName;
         appZkPath = appRoot + "/" + appId;
-        sparkNumNodesZkPath = root + SPARK_NUM_NODES_PATH;
+        sparkYarnConfigZkPath = root + SPARK_YARN_CONFIG_PATH;
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -332,7 +333,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         publishServer(rzk, hostname, port);
 
         JavaSparkContext sparkContext = SpliceSpark.getContextUnsafe(); // kickstart Spark
-        publishSparkNumNodes(rzk, sparkContext.sc());
+        publishSparkYarnConfig(rzk, sparkContext.sc());
 
         while(!end.get()) {
             Thread.sleep(10000);
@@ -356,15 +357,64 @@ public class OlapServerMaster implements LeaderSelectorListener {
         }
     }
 
-    private void publishSparkNumNodes(RecoverableZooKeeper rzk, SparkContext sparkContext) throws InterruptedException, KeeperException {
+    private String
+    getSparkProperty(String key, SparkConf sparkConf) {
+        String result = null;
         try {
-            // Find the number of nodes in the cluster that run spark executors using
-            // the method documented at https://kb.databricks.com/clusters/calculate-number-of-cores.html
-            Integer numNodes = sparkContext.statusTracker().getExecutorInfos().length - 1;
+            result = sparkConf.get(key);
+        }
+        catch (Exception e) {
+
+        }
+        return result;
+    }
+
+    private String
+    getYarnProperty(String key, Configuration yarnConf) {
+        String result = null;
+        try {
+            result = yarnConf.get(key);
+        }
+        catch (Exception e) {
+
+        }
+        return result;
+    }
+
+    private void publishSparkYarnConfig(RecoverableZooKeeper rzk, SparkContext sparkContext) throws InterruptedException, KeeperException, IOException {
+
+
+        try {
+            SparkYarnConfiguration config = new SparkYarnConfiguration();
+            Configuration yarnConf = HConfiguration.unwrapDelegate();
+            String yarnMemory = getYarnProperty("yarn.nodemanager.resource.memory-mb", yarnConf);
+            if (yarnMemory == null || "-1".equals(yarnMemory))
+                yarnMemory = getYarnProperty("yarn.scheduler.maximum-allocation-mb", yarnConf);
+
+            config.setYarnNodemanagerResourceMemoryMB(yarnMemory);
+
+            SparkConf sparkConf = sparkContext.conf();
+
+            config.setDynamicAllocationEnabled(getSparkProperty("spark.dynamicAllocation.enabled", sparkConf));
+            config.setExecutorInstances(getSparkProperty("spark.executor.instances", sparkConf));
+            config.setExecutorCores(getSparkProperty("spark.executor.cores", sparkConf));
+            config.setExecutorMemory(getSparkProperty("spark.executor.memory", sparkConf));
+            config.setDynamicAllocationMaxExecutors(getSparkProperty("spark.dynamicAllocation.maxExecutors", sparkConf));
+            config.setExecutorMemoryOverhead(getSparkProperty("spark.executor.memoryOverhead", sparkConf));
+            config.setYarnExecutorMemoryOverhead(getSparkProperty("spark.yarn.executor.memoryOverhead", sparkConf));
+
+            Integer numNodes = rmClient.getClusterNodeCount();
             if (numNodes < 1)
                 numNodes = 1;
-            ZkUtils.safeDelete(sparkNumNodesZkPath, -1, rzk);
-            ZkUtils.safeCreate(sparkNumNodesZkPath, Bytes.toBytes(numNodes), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            config.setNumNodes(numNodes);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(config);
+            oos.flush();
+            byte [] serializedConfig = bos.toByteArray();
+
+            ZkUtils.safeDelete(sparkYarnConfigZkPath, -1, rzk);
+            ZkUtils.safeCreate(sparkYarnConfigZkPath, serializedConfig, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         } catch (Exception e) {
             LOG.error("Couldn't register number of Spark nodes due to unexpected exception", e);
             throw e;
