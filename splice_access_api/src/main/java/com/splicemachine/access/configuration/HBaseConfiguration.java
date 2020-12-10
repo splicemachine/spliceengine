@@ -133,9 +133,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SERVERS_PATH = "/servers";
 
     /**
-     * Path in ZooKeeper for registering the number or spark nodes
+     * Path in ZooKeeper for registering the SparkYarnConfiguration
      */
-    public static final String SPARK_NUM_NODES_PATH = "/sparkNumNodes";
+    public static final String SPARK_YARN_CONFIG_PATH = "/sparkYarnConfig";
 
 
     public static final String DDL_PATH="/ddl";

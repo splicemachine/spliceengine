@@ -14,6 +14,9 @@
 
 package com.splicemachine.derby.lifecycle;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.util.HashMap;
@@ -22,9 +25,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.SparkYarnConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
@@ -54,7 +57,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
 
-import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_NUM_NODES_PATH;
+import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_YARN_CONFIG_PATH;
 import static java.lang.System.getProperty;
 
 /**
@@ -68,6 +71,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     // numNodes is written to zookeeper by OlapServerMaster, so we have
     // to wait until the Olap Server comes up before getting numNodes from zookeeper.
     private static int MAX_EXECUTOR_CORES = -1;
+    // A value to use until the Olap Server comes up.
+    private static int DEFAULT_MAX_EXECUTOR_CORES = 8;
     private static int numSparkNodes = -1;
 
     private PropertyManager propertyManager;
@@ -78,22 +83,22 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient olapClient;
     private OperationManager operationManager;
     private ZkServiceDiscovery serviceDiscovery;
-    private static final String sparkNumNodesZkPath =
-            HConfiguration.getConfiguration().getSpliceRootPath() + SPARK_NUM_NODES_PATH;
+    private static final String sparkYarnConfigZkPath =
+            HConfiguration.getConfiguration().getSpliceRootPath() + SPARK_YARN_CONFIG_PATH;
 
 
-    // Find the number of nodes on which Spark executors can be run.
-    private static int getNumSparkNodes() {
-        int numNodes = -1;
+    // Find the Spark and YARN configuration from Zookeeper.
+    private static byte [] getSparkYarnConfigBytes() {
+        byte [] returnData = null;
         try {
-            byte [] data = ZkUtils.getData(sparkNumNodesZkPath);
+            byte [] data = ZkUtils.getData(sparkYarnConfigZkPath);
             if (data != null && data.length > 0)
-                numNodes = Bytes.toInt(data);
+                returnData = data;
         }
         catch (Exception | java.lang.AssertionError e) {
-            LOG.warn("Unable to find the number of spark nodes from zookeeper.");
+            LOG.warn("Unable to find the SparkYarnConfiguration in zookeeper.");
         }
-        return numNodes;
+        return returnData;
     }
 
     @Override
@@ -265,21 +270,38 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         if (MAX_EXECUTOR_CORES != -1)
             return MAX_EXECUTOR_CORES;
         synchronized (HEngineSqlEnv.class) {
-            int sparkNodes = getNumSparkNodes();
+            byte [] sparkYarnConfigBytes = getSparkYarnConfigBytes();
+            if (sparkYarnConfigBytes == null)
+                return DEFAULT_MAX_EXECUTOR_CORES;
+
+            SparkYarnConfiguration conf = null;
+            try {
+                ByteArrayInputStream bis = new ByteArrayInputStream(sparkYarnConfigBytes);
+                ObjectInput in = new ObjectInputStream(bis);
+                conf = (SparkYarnConfiguration) in.readObject();
+            }
+            catch (Exception e) {
+                return DEFAULT_MAX_EXECUTOR_CORES;
+            }
+            if (conf == null)
+                return DEFAULT_MAX_EXECUTOR_CORES;
+
             int maxExecutorCores =
-              calculateMaxExecutorCores(HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb"),
-                                        getProperty("splice.spark.dynamicAllocation.enabled"),
-                                        getProperty("splice.spark.executor.instances"),
-                                        getProperty("splice.spark.executor.cores"),
-                                        getProperty("splice.spark.executor.memory"),
-                                        getProperty("splice.spark.dynamicAllocation.maxExecutors"),
-                                        getProperty("splice.spark.executor.memoryOverhead"),
-                                        getProperty("splice.spark.yarn.executor.memoryOverhead"),
-                                        sparkNodes > 0 ? sparkNodes : 1);
-            if (sparkNodes > 0) {
-                numSparkNodes = sparkNodes;
+              calculateMaxExecutorCores(conf.getYarnNodemanagerResourceMemoryMB(),
+                                        conf.getDynamicAllocationEnabled(),
+                                        conf.getExecutorInstances(),
+                                        conf.getExecutorCores(),
+                                        conf.getExecutorMemory(),
+                                        conf.getDynamicAllocationMaxExecutors(),
+                                        conf.getExecutorMemoryOverhead(),
+                                        conf.getYarnExecutorMemoryOverhead(),
+                                        conf.getNumNodes());
+            if (conf.getNumNodes() > 0) {
+                numSparkNodes = conf.getNumNodes();
                 MAX_EXECUTOR_CORES = maxExecutorCores;
             }
+            else
+                return DEFAULT_MAX_EXECUTOR_CORES;
         }
         return MAX_EXECUTOR_CORES;
     }
@@ -324,6 +346,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             }
             catch (NumberFormatException e) {
             }
+            if (memSize <= 0)
+                memSize = 8192L*1024*1024;
         }
 
         boolean dynamicAllocation = sparkDynamicAllocationString != null &&
@@ -347,6 +371,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             if (sparkDynamicAllocationMaxExecutors != null) {
                 try {
                     numSparkExecutors = Integer.parseInt(sparkDynamicAllocationMaxExecutors);
+                    if (numSparkExecutors <= 0)
+                        numSparkExecutors = Integer.MAX_VALUE;
                 }
                 catch(NumberFormatException e){
                 }
