@@ -1449,7 +1449,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
             SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, /* raiseError= */true);
-            if (dd.getUser(ownerName) == null) {
+            if (dd.getUser(lcc.getDatabaseId(), ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);
@@ -1475,7 +1475,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
         if (dd.usesSqlAuthorization()) {
-            String databaseOwner = dd.getAuthorizationDatabaseOwner();
+            String databaseOwner = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
             List<String> groupUserlist = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
             if (!(databaseOwner.equals(currentUser) || (groupUserlist != null && groupUserlist.contains(databaseOwner)))) {
@@ -1927,8 +1927,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try {
             EmbedConnection conn = (EmbedConnection)getDefaultConn();
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-            String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-            String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+            LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
+            String userId = lcc.getCurrentUserId(lastActivation);
+            String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
             if (userId != null && userId.equals(dbo)) {
                 userId = null;
             }

@@ -99,6 +99,8 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
         if (!isDatabasePresent(activation)) {
             throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);
         }
+
+        // XXX (arnaud multidb) create owner of DB with some syntax here?
     }
 
     public String getScopeName() {

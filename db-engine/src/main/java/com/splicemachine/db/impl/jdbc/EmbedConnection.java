@@ -331,7 +331,11 @@ public abstract class EmbedConnection implements EngineConnection
                 try {
                     AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
                     af.elevateRawTransaction(Bytes.toBytes("boot"));
-                    database.getDataDictionary().createNewDatabase(getDBName());
+                    DataDictionary dd = database.getDataDictionary();
+                    dd.createNewDatabase(getDBName(),
+                                         info.getProperty(Attribute.USERNAME_ATTR),
+                                         info.getProperty(Attribute.PASSWORD_ATTR)
+                            );
                 } catch (StandardException se) {
                     throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
                 }
@@ -341,7 +345,7 @@ public abstract class EmbedConnection implements EngineConnection
             // the database
             //
             try {
-                checkUserCredentials( false, DatabaseDescriptor.STD_DB_NAME, info ); // XXX (arnaud multidb) check against another Database?
+                checkUserCredentials( false, getDBName(), info );
             } catch (SQLException sqle) {
                 if (isStartReplicaBoot && !replicaDBAlreadyBooted) {
                     // Failing credentials check on a previously
@@ -716,7 +720,7 @@ public abstract class EmbedConnection implements EngineConnection
         //
         AuthenticationService authenticationService = null;
         try {
-            // Retrieve appropriate authentication service handle
+            // Retrieve appropriate authentication service handle // XXX (arnaud multidb) get different authentication services for different DB?
             if (dbname == null)
                 authenticationService =
                     getLocalDriver().getAuthenticationService();
@@ -856,7 +860,7 @@ public abstract class EmbedConnection implements EngineConnection
             // Check is only performed if we have db.database.sqlAuthorization == true
             if (lcc.usesSqlAuthorization()) {
                 String failedString = MessageService.getTextMessage(MessageId.AUTH_INVALID);
-                if (dd.getRoleDefinitionDescriptor(username) != null) {
+                if (dd.getRoleDefinitionDescriptor(username, lcc.getDatabaseId()) != null) {
                     throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED, failedString);
                 }
             }
@@ -890,8 +894,9 @@ public abstract class EmbedConnection implements EngineConnection
     {
         final LanguageConnectionContext lcc = getLanguageConnection();
         final String actualId = lcc.getSessionUserId();
-        final String dbOwnerId = lcc.getDataDictionary().
-            getAuthorizationDatabaseOwner();
+        final String dbOwnerId;
+        dbOwnerId = lcc.getDataDictionary().
+                getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         if (!actualId.equals(dbOwnerId)) {
             switch (operation) {
             case OP_ENCRYPT:

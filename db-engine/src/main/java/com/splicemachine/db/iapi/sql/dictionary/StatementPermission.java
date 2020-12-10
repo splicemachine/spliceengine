@@ -172,16 +172,16 @@ public abstract class StatementPermission {
             // session, is lazily set to none when it is attemped
             // used.
             RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-                (role, lcc.getCurrentUserId(activation));
+                (role, lcc.getCurrentUserId(activation), lcc.getDatabaseId());
 
             if (rd == null) {
                 rd = dd.getRoleGrantDescriptor(
                     role,
-                    Authorizer.PUBLIC_AUTHORIZATION_ID);
+                    Authorizer.PUBLIC_AUTHORIZATION_ID, lcc.getDatabaseId());
             }
             if (rd == null && currentGroupuserlist != null) {
                 for (String currentGroupuser : currentGroupuserlist) {
-                    rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                    rd = dd.getRoleGrantDescriptor(role, currentGroupuser, lcc.getDatabaseId());
                     if (rd != null)
                         break;
                 }
@@ -204,7 +204,7 @@ public abstract class StatementPermission {
                 RoleClosureIterator rci =
                     dd.createRoleClosureIterator
                     (activation.getTransactionController(),
-                     role, true );
+                     role, true, lcc.getDatabaseId());
 
                 String r;
                 while (!resolved && (r = rci.next()) != null)
@@ -222,7 +222,7 @@ public abstract class StatementPermission {
                 // are able to invalidate the ps or activation (the latter is
                 // used if the current role changes).
                 DependencyManager dm = dd.getDependencyManager();
-                RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
+                RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                 ContextManager cm = lcc.getContextManager();
                 dm.addDependency(ps, rgd, cm);
                 dm.addDependency(activation, rgd, cm);

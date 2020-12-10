@@ -472,37 +472,37 @@ public abstract class AuthenticationServiceBase
         String      stringValue = (String) value;
         boolean     settingToNativeLocal = Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL.equals( stringValue );
         
-        if ( Property.AUTHENTICATION_PROVIDER_PARAMETER.equals( key ) )
-        {
+        if ( Property.AUTHENTICATION_PROVIDER_PARAMETER.equals( key ) ) {
             // NATIVE + LOCAL is the only value of this property which can be persisted
             if (
-                ( stringValue != null ) &&
-                ( stringValue.startsWith( Property.AUTHENTICATION_PROVIDER_NATIVE ) )&&
-                !settingToNativeLocal
-                )
-            {
-                throw  StandardException.newException( SQLState.PROPERTY_DBO_LACKS_CREDENTIALS );
+                    (stringValue != null) &&
+                            (stringValue.startsWith(Property.AUTHENTICATION_PROVIDER_NATIVE)) &&
+                            !settingToNativeLocal
+            ) {
+                throw StandardException.newException(SQLState.PROPERTY_DBO_LACKS_CREDENTIALS);
             }
 
             // once set to NATIVE authentication, you can't change it
-            String  oldValue = (String) p.get( Property.AUTHENTICATION_PROVIDER_PARAMETER );
-            if ( (oldValue != null) && oldValue.startsWith( Property.AUTHENTICATION_PROVIDER_NATIVE ) )
-            {
-                throw StandardException.newException( SQLState.PROPERTY_CANT_UNDO_NATIVE );
+            String oldValue = (String) p.get(Property.AUTHENTICATION_PROVIDER_PARAMETER);
+            if ((oldValue != null) && oldValue.startsWith(Property.AUTHENTICATION_PROVIDER_NATIVE)) {
+                throw StandardException.newException(SQLState.PROPERTY_CANT_UNDO_NATIVE);
             }
 
             // can't turn on NATIVE + LOCAL authentication unless the DBO's credentials are already stored.
             // this should prevent setting NATIVE + LOCAL authentication in pre-10.9 databases too
             // because you can't store credentials in a pre-10.9 database.
-            if ( settingToNativeLocal )
-            {
-                DataDictionary  dd = getDataDictionary();
-                String              dbo = dd.getAuthorizationDatabaseOwner();
-                UserDescriptor  userCredentials = dd.getUser( dbo );
+            if (settingToNativeLocal) {
+                try {
+                    LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                    DataDictionary dd = getDataDictionary();
+                    String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+                    UserDescriptor userCredentials = dd.getUser(lcc.getDatabaseId(), dbo);
 
-                if ( userCredentials == null )
-                {
-                    throw StandardException.newException( SQLState.PROPERTY_DBO_LACKS_CREDENTIALS );
+                    if (userCredentials == null) {
+                        throw StandardException.newException(SQLState.PROPERTY_DBO_LACKS_CREDENTIALS);
+                    }
+                } catch (SQLException e) {
+                    throw StandardException.plainWrapException(e);
                 }
             }
         }
@@ -910,9 +910,10 @@ public abstract class AuthenticationServiceBase
      */
     protected void createDBOUserIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
             throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         // Check if the DBO already exists which may happen if the manual override for
         // creation of the native credentials database is set.
-        if (dd.getUser(userName) == null) {
+        if (dd.getUser(lcc.getDatabaseId(), userName) == null) {
             SystemProcedures.addUser( userName, userPassword, tc );
             // Change the system schemas to be owned by the user.  This is needed for upgrading
             // the Splice Machine 0.5 beta where the owner of the system schemas was APP.

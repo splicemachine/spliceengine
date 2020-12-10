@@ -318,7 +318,7 @@ public abstract class DDLConstantAction implements ConstantAction
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
         SettableBoolean roleDepAdded = new SettableBoolean();
@@ -518,12 +518,12 @@ public abstract class DDLConstantAction implements ConstantAction
 
             // determine how we got to be able use this role
             rootGrant =
-                    dd.getRoleGrantDescriptor(role, currentUser);
+                    dd.getRoleGrantDescriptor(role, currentUser, lcc.getDatabaseId());
 
             if (rootGrant == null) {
                 rootGrant = dd.getRoleGrantDescriptor(
                         role,
-                        Authorizer.PUBLIC_AUTHORIZATION_ID);
+                        Authorizer.PUBLIC_AUTHORIZATION_ID, lcc.getDatabaseId());
             }
 
             // If not found in current role, get transitive
@@ -531,10 +531,8 @@ public abstract class DDLConstantAction implements ConstantAction
             // iterate over it to see if permission has
             // been granted to any of the roles the current
             // role inherits.
-            RoleClosureIterator rci =
-                    dd.createRoleClosureIterator
-                            (activation.getTransactionController(),
-                                    role, true /* inverse relation*/);
+            RoleClosureIterator rci = dd.createRoleClosureIterator(
+                    activation.getTransactionController(), role, true, lcc.getDatabaseId());
 
             String graphGrant;
             while (permDesc == null &&
@@ -587,7 +585,7 @@ public abstract class DDLConstantAction implements ConstantAction
             List<String> roleList = lcc.getCurrentRoles(activation);
             for (String role: roleList) {
                 RoleGrantDescriptor rgd =
-                        dd.getRoleDefinitionDescriptor(role);
+                        dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
                 dm.addDependency
                         (dependent, rgd,
@@ -637,7 +635,7 @@ public abstract class DDLConstantAction implements ConstantAction
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         String currentUser = lcc.getCurrentUserId(activation);
         SettableBoolean roleDepAdded = new SettableBoolean();
 

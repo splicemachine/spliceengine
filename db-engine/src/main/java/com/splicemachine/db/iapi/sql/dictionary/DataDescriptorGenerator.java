@@ -35,10 +35,12 @@ import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
@@ -375,7 +377,7 @@ public class DataDescriptorGenerator
      * @param isEnabled    is this trigger enabled or disabled
      * @param td        the table upon which this trigger is defined
      * @param whenSPSId    the sps id for the when clause (may be null)
-     * @param actionSPSId    the spsid for the trigger action (may be null)
+     * @param actionSPSIdList    the spsids for the trigger action (may be null)
      * @param creationTimestamp    when was this trigger created?
      * @param referencedCols    what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction    what columns does the trigger
@@ -473,15 +475,34 @@ public class DataDescriptorGenerator
                 dataDictionary, id, sd, sqlName, generationId);
     }
 
-    public UserDescriptor newUserDescriptor
-        (
-         String userName,
-         String hashingScheme,
-         char[] password,
-         Timestamp lastModified
-         )
+    public UserDescriptor newUserDescriptor (
+            String userName,
+            String hashingScheme,
+            char[] password,
+            Timestamp lastModified,
+            UUID databaseId)
     {
-        return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified );
+        return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified, databaseId);
+    }
+
+    public UserDescriptor makeUserDescriptor (
+            TransactionController tc,
+            String userName,
+            String password,
+            UUID databaseId) throws StandardException{
+        PasswordHasher hasher=dataDictionary.makePasswordHasher(tc.getProperties());
+
+        if(hasher==null){
+            throw StandardException.newException(SQLState.WEAK_AUTHENTICATION);
+        }
+
+        String hashingScheme=hasher.encodeHashingScheme();
+        String hashedPassword=hasher.hashPasswordIntoString(userName,password);
+
+        Timestamp currentTimestamp=new Timestamp((new java.util.Date()).getTime());
+
+        return this.newUserDescriptor
+                (userName,hashingScheme,hashedPassword.toCharArray(),currentTimestamp, databaseId);
     }
 
     public TablePermsDescriptor  newTablePermsDescriptor( TableDescriptor td,
@@ -620,7 +641,8 @@ public class DataDescriptorGenerator
                                                       String grantor,
                                                       boolean withadminoption,
                                                       boolean isDef,
-                                                      boolean isDefaultRole)
+                                                      boolean isDefaultRole,
+                                                      UUID databaseId)
         throws StandardException
     {
         return new RoleGrantDescriptor(dataDictionary,
@@ -630,7 +652,8 @@ public class DataDescriptorGenerator
                                        grantor,
                                        withadminoption,
                                        isDef,
-                                       isDefaultRole);
+                                       isDefaultRole,
+                                       databaseId);
     }
 
     /**

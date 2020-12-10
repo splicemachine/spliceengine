@@ -615,15 +615,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             DataDictionary dd=getDataDictionary();
             defaultRoles = new ArrayList<>();
             List<String>  userRoles =
-                    dd.getDefaultRoles(getSessionUserId(),getTransactionCompile());
+                    dd.getDefaultRoles(getDatabaseId(), getSessionUserId(), getTransactionCompile());
             defaultRoles.addAll(userRoles);
             List<String> publicRoles =
-                    dd.getDefaultRoles("PUBLIC", getTransactionCompile());
+                    dd.getDefaultRoles(getDatabaseId(), "PUBLIC", getTransactionCompile());
             defaultRoles.addAll(publicRoles);
             if (groupuserlist != null) {
                 for (String groupuser : groupuserlist) {
                     List<String> groupRoles =
-                            dd.getDefaultRoles(groupuser, getTransactionCompile());
+                            dd.getDefaultRoles(getDatabaseId(), groupuser, getTransactionCompile());
                     defaultRoles.addAll(groupRoles);
                 }
             }
@@ -3538,30 +3538,30 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public boolean roleIsSettable(Activation a,String role) throws StandardException{
 
         DataDictionary dd=getDataDictionary();
-        String dbo=dd.getAuthorizationDatabaseOwner();
+        String dbo=dd.getAuthorizationDatabaseOwner(getDatabaseId());
 
         RoleGrantDescriptor grantDesc=null;
         String currentUser=getCurrentUserId(a);
         List<String> groupuserList = getCurrentGroupUser(a);
 
         if(currentUser.equals(dbo) || (groupuserList != null && groupuserList.contains(dbo))){
-            grantDesc=dd.getRoleDefinitionDescriptor(role);
+            grantDesc=dd.getRoleDefinitionDescriptor(role, getDatabaseId());
         }else{
             // since DB-6636, we allow non-splice admin user, roles' grantor is no longer necessary splice(dbo)
             // set grantor to null to fetch grant description regardless of the grantor
             grantDesc=dd.getRoleGrantDescriptor
-                    (role,currentUser);
+                    (role,currentUser, getDatabaseId());
 
             if(grantDesc==null){
                 // or if not, via PUBLIC?
                 grantDesc=dd.getRoleGrantDescriptor
-                        (role,Authorizer.PUBLIC_AUTHORIZATION_ID);
+                        (role,Authorizer.PUBLIC_AUTHORIZATION_ID, getDatabaseId());
             }
 
             // or via group user
             if (grantDesc == null && groupuserList != null) {
                 for (String currentGroupuser : groupuserList) {
-                    grantDesc = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                    grantDesc = dd.getRoleGrantDescriptor(role, currentGroupuser, getDatabaseId());
                     if (grantDesc != null)
                         break;
                 }

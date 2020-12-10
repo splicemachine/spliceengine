@@ -791,16 +791,15 @@ public class DDLUtils {
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
-            RoleClosureIterator rci =
-                    dd.createRoleClosureIterator
-                            (transactionResource.getLcc().getTransactionCompile(),
-                                    roleName, false);
+            LanguageConnectionContext lcc = transactionResource.getLcc();
+            RoleClosureIterator rci = dd.createRoleClosureIterator(
+                    lcc.getTransactionCompile(), roleName, false, lcc.getDatabaseId());
 
             String role;
             while ((role = rci.next()) != null) {
-                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                 if (r != null) {
-                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, transactionResource.getLcc());
+                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, lcc);
                 }
             }
 

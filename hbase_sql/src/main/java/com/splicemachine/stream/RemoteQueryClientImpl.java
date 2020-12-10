@@ -179,7 +179,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 
         List<String> userGroups = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         if(lcc.getCurrentUserId(activation).equals(dbo) || (userGroups != null && userGroups.contains(dbo))) {
             if(requestedQueue != null) {
                 return requestedQueue;

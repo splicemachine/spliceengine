@@ -204,16 +204,16 @@ public class StatementSchemaPermission extends StatementPermission
                 // session, is lazily set to none when it is attempted
                 // used.
                 RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-                        (role, currentUserId);
+                        (role, currentUserId, lcc.getDatabaseId());
 
                 if (rd == null) {
                     rd = dd.getRoleGrantDescriptor(
                             role,
-                            Authorizer.PUBLIC_AUTHORIZATION_ID);
+                            Authorizer.PUBLIC_AUTHORIZATION_ID, lcc.getDatabaseId());
                 }
                 if (rd == null && currentGroupuserlist != null) {
                     for (String currentGroupuser : currentGroupuserlist) {
-                        rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                        rd = dd.getRoleGrantDescriptor(role, currentGroupuser, lcc.getDatabaseId());
                         if (rd != null)
                             break;
                     }
@@ -236,7 +236,7 @@ public class StatementSchemaPermission extends StatementPermission
                     RoleClosureIterator rci =
                             dd.createRoleClosureIterator
                                     (activation.getTransactionController(),
-                                            role, true /* inverse relation*/);
+                                            role, true /* inverse relation*/, lcc.getDatabaseId());
 
                     String r;
 
@@ -254,7 +254,7 @@ public class StatementSchemaPermission extends StatementPermission
                         // if the current role changes).
                         DependencyManager dm = dd.getDependencyManager();
                         RoleGrantDescriptor rgd =
-                                dd.getRoleDefinitionDescriptor(role);
+                                dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                         ContextManager cm = lcc.getContextManager();
 
                         dm.addDependency(ps, rgd, cm);

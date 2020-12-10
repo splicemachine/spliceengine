@@ -69,7 +69,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
         final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
@@ -85,7 +85,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
 
                 // check that role exists
                 RoleGrantDescriptor rdDef =
-                    dd.getRoleDefinitionDescriptor(role);
+                    dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
                 if (rdDef == null) {
                     throw StandardException.
@@ -124,7 +124,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                 }
 
                 RoleGrantDescriptor rd =
-                    dd.getRoleGrantDescriptor(role, grantee);
+                    dd.getRoleGrantDescriptor(role, grantee, lcc.getDatabaseId());
 
                 if (rd != null && withAdminOption) {
                     // NOTE: Never called yet, withAdminOption not yet
@@ -179,11 +179,11 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                     RoleClosureIterator rci =
                         dd.createRoleClosureIterator
                         (activation.getTransactionController(),
-                         role, false);
+                         role, false, lcc.getDatabaseId());
 
                     String r;
                     while ((r = rci.next()) != null) {
-                        rdDef = dd.getRoleDefinitionDescriptor(r);
+                        rdDef = dd.getRoleDefinitionDescriptor(r, lcc.getDatabaseId());
 
                         dd.getDependencyManager().invalidateFor
                             (rdDef, DependencyManager.REVOKE_ROLE, lcc);

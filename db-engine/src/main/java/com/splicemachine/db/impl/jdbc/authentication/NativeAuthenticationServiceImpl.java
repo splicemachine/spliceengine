@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.jdbc.authentication;
 
 import com.splicemachine.db.authentication.UserAuthenticator;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -46,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.sql.DataSource;
 import java.security.MessageDigest;
@@ -78,7 +80,7 @@ import java.util.Properties;
  *
  */
 public final class NativeAuthenticationServiceImpl
-	extends AuthenticationServiceBase implements UserAuthenticator
+    extends AuthenticationServiceBase implements UserAuthenticator
 {
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -107,12 +109,12 @@ public final class NativeAuthenticationServiceImpl
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 *  Check if we should activate this authentication service.
-	 */
-	public boolean canSupport(Properties properties)
+    /**
+     *  Check if we should activate this authentication service.
+     */
+    public boolean canSupport(Properties properties)
     {
-		if (!requireAuthentication(properties)) { return false; }
+        if (!requireAuthentication(properties)) { return false; }
 
         if ( PropertyUtil.nativeAuthenticationEnabled( properties ) )
         {
@@ -121,7 +123,7 @@ public final class NativeAuthenticationServiceImpl
             return true;
         }
         else { return false; }
-	}
+    }
 
     /**
      * <p>
@@ -227,16 +229,16 @@ public final class NativeAuthenticationServiceImpl
         return _authenticateDatabaseOperationsLocally;
     }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
-	 * @exception StandardException upon failure to load/boot the expected
-	 * authentication service.
-	 */
-	public void boot(boolean create, Properties properties)
-	  throws StandardException
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+     * @exception StandardException upon failure to load/boot the expected
+     * authentication service.
+     */
+    public void boot(boolean create, Properties properties)
+      throws StandardException
     {
-		// first perform the initialization in our superclass
-		super.boot( create, properties );
+        // first perform the initialization in our superclass
+        super.boot( create, properties );
 
         if ( !validAuthenticationProvider() )
         {
@@ -249,31 +251,31 @@ public final class NativeAuthenticationServiceImpl
                 ( SQLState.BAD_PASSWORD_LIFETIME, _badlyFormattedPasswordProperty );
         }
 
-		// Initialize the MessageDigest class engine here
-		// (we don't need to do that ideally, but there is some
-		// overhead the first time it is instantiated.
-		try {
-			MessageDigest digestAlgorithm = MessageDigest.getInstance("SHA-1");
-			digestAlgorithm.reset();
+        // Initialize the MessageDigest class engine here
+        // (we don't need to do that ideally, but there is some
+        // overhead the first time it is instantiated.
+        try {
+            MessageDigest digestAlgorithm = MessageDigest.getInstance("SHA-1");
+            digestAlgorithm.reset();
 
-		} catch (NoSuchAlgorithmException nsae) {
-			throw Monitor.exceptionStartingModule(nsae);
-		}
+        } catch (NoSuchAlgorithmException nsae) {
+            throw Monitor.exceptionStartingModule(nsae);
+        }
 
         // bootstrap the creation of the initial username/password when the dbo creates a credentials db
-		/*
-		 * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
-		 * native credentials database after the Splice/Derby database has been created.
-		 * This is useful for beta Splice customers that wish to enable AnA.
-		 */
+        /*
+         * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
+         * native credentials database after the Splice/Derby database has been created.
+         * This is useful for beta Splice customers that wish to enable AnA.
+         */
         _creatingCredentialsDB = (create || PropertyUtil.createNativeAuthenticationCredentialsDatabaseEnabled(properties)) &&
                 authenticatingInThisService(getCanonicalServiceName());
 
-		// Set ourselves as being ready, having loaded the proper
-		// authentication scheme for this service
-		//
-		this.setAuthenticationService(this);
-	}
+        // Set ourselves as being ready, having loaded the proper
+        // authentication scheme for this service
+        //
+        this.setAuthenticationService(this);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -285,15 +287,15 @@ public final class NativeAuthenticationServiceImpl
     public  String  getSystemCredentialsDatabaseName()    { return _credentialsDB; }
     /** Override behavior in superclass */
 
-	/**
-	 * Authenticate the passed-in user's credentials.
-	 *
-	 * @param userName		The user's name used to connect to JBMS system
-	 * @param userPassword	The user's password used to connect to JBMS system
-	 * @param databaseName	The database which the user wants to connect to.
-	 * @param info			Additional jdbc connection info.
-	 */
-	public String	authenticateUser
+    /**
+     * Authenticate the passed-in user's credentials.
+     *
+     * @param userName        The user's name used to connect to JBMS system
+     * @param userPassword    The user's password used to connect to JBMS system
+     * @param databaseName    The database which the user wants to connect to.
+     * @param info            Additional jdbc connection info.
+     */
+    public String    authenticateUser
         (
          String userName,
          String userPassword,
@@ -301,7 +303,7 @@ public final class NativeAuthenticationServiceImpl
          Properties info
          )
         throws SQLException
-	{
+    {
         try {
             // No "guest" user
             if ( userName == null ) { return null; }
@@ -355,7 +357,7 @@ public final class NativeAuthenticationServiceImpl
         {
             throw Util.generateCsSQLException(se);
         }
-	}
+    }
 
     /**
      * <p>
@@ -387,7 +389,8 @@ public final class NativeAuthenticationServiceImpl
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
 
-        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
+        //String canonicalDB =
+        Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
 
         return canonicalCredentialsDBName != null && canonicalCredentialsDBName.equals(canonicalDatabaseName);
     }
@@ -412,23 +415,23 @@ public final class NativeAuthenticationServiceImpl
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Authenticate the passed-in credentials against another Derby database. This is done
+    /**
+     * Authenticate the passed-in credentials against another Derby database. This is done
      * by getting a connection to the credentials database using the supplied username
      * and password. If the connection attempts succeeds, then authentication succeeds.
-	 *
-	 * @param userName		The user's name used to connect to JBMS system
-	 * @param userPassword	The user's password used to connect to JBMS system
-	 * @param databaseName	The database which the user wants to connect to.
-	 */
-	private boolean	authenticateRemotely
+     *
+     * @param userName        The user's name used to connect to JBMS system
+     * @param userPassword    The user's password used to connect to JBMS system
+     * @param databaseName    The database which the user wants to connect to.
+     */
+    private boolean    authenticateRemotely
         (
          String userName,
          String userPassword,
          String databaseName
          )
         throws StandardException, SQLWarning
-	{
+    {
         // this catches the case when someone specifies db.authentication.provider=NATIVE::LOCAL
         // at the system level
         if ( _credentialsDB == null )
@@ -485,27 +488,32 @@ public final class NativeAuthenticationServiceImpl
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Authenticate the passed-in credentials against the local database.
-	 *
-	 * @param userName		The user's name used to connect to JBMS system
-	 * @param userPassword	The user's password used to connect to JBMS system
-	 * @param databaseName	The database which the user wants to connect to.
-	 */
-	private boolean	authenticateLocally
+    /**
+     * Authenticate the passed-in credentials against the local database.
+     *
+     * @param userName        The user's name used to connect to JBMS system
+     * @param userPassword    The user's password used to connect to JBMS system
+     * @param databaseName    The database which the user wants to connect to.
+     */
+    @SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED", justification = "We pretend evaluating the password. See comment below")
+    private boolean authenticateLocally
         (
          String userName,
          String userPassword,
          String databaseName
          )
         throws StandardException, SQLException
-	{
+    {
         userName = IdUtil.getUserAuthorizationId( userName ) ;
 
         //
         // we expect to find a data dictionary
         //
         DataDictionary      dd = (DataDictionary) Monitor.getServiceModule( this, DataDictionary.MODULE );
+
+        TransactionController   tc = getTransaction();
+
+        UUID databaseId = dd.getDatabaseDescriptor(databaseName, tc).getUUID();
 
         //
         // Special bootstrap code. If we are creating a credentials database, then
@@ -516,8 +524,6 @@ public final class NativeAuthenticationServiceImpl
         {
             _creatingCredentialsDB = false;
             
-            TransactionController   tc = getTransaction();
-
             createDBOUserIfDoesNotExist(userName, userPassword, dd, tc);
             createDBOSchemaIfDoesNotExist(userName, userPassword, dd, tc);
 
@@ -526,7 +532,7 @@ public final class NativeAuthenticationServiceImpl
             return true;
         }
         
-        UserDescriptor      userDescriptor = dd.getUser( userName );
+        UserDescriptor userDescriptor = dd.getUser(databaseId, userName);
         
         if ( userDescriptor == null )
         {
@@ -544,11 +550,11 @@ public final class NativeAuthenticationServiceImpl
         }
         
         PasswordHasher      hasher = new PasswordHasher( userDescriptor.getHashingScheme() );
-        char[]                     candidatePassword = hasher.hashPasswordIntoString( userName, userPassword ).toCharArray();
-        char[]                     actualPassword = userDescriptor.getAndZeroPassword();
+        char[]              candidatePassword = hasher.hashPasswordIntoString( userName, userPassword ).toCharArray();
+        char[]              actualPassword = userDescriptor.getAndZeroPassword();
 
         try {
-            if ( (candidatePassword == null) || (actualPassword == null)) { return false; }
+            if (actualPassword == null) { return false; }
             if ( candidatePassword.length != actualPassword.length ) { return false; }
         
             for ( int i = 0; i < candidatePassword.length; i++ )
@@ -557,7 +563,7 @@ public final class NativeAuthenticationServiceImpl
             }
         } finally
         {
-            if ( candidatePassword != null ) { Arrays.fill( candidatePassword, (char) 0 ); }
+            Arrays.fill( candidatePassword, (char) 0 );
             if ( actualPassword != null ) { Arrays.fill( actualPassword, (char) 0 ); }
         }
 
@@ -576,7 +582,7 @@ public final class NativeAuthenticationServiceImpl
             if ( remainingLifetime <= 0L )
             {
                 // The DBO's password never expires.
-                if ( !dd.getAuthorizationDatabaseOwner().equals( userName ) ) { return false; }
+                if ( !dd.getAuthorizationDatabaseOwner(databaseId).equals( userName ) ) { return false; }
                 else { remainingLifetime = 0L; }
             }
 
@@ -584,7 +590,7 @@ public final class NativeAuthenticationServiceImpl
             
             if ( remainingLifetime <= expirationThreshold )
             {
-                if ( dd.getAuthorizationDatabaseOwner().equals( userName ) )
+                if ( dd.getAuthorizationDatabaseOwner(databaseId).equals( userName ) )
                 {
                     throw SQLWarningFactory.newSQLWarning( SQLState.DBO_PASSWORD_EXPIRES_SOON, databaseName );
                 }
