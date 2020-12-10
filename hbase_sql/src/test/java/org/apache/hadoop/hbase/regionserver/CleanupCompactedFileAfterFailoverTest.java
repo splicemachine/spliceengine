@@ -14,6 +14,7 @@
 
 package org.apache.hadoop.hbase.regionserver;
 
+import com.splicemachine.compactions.SpliceCompaction;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
@@ -50,14 +51,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class TestCleanupCompactedFileAfterFailover {
-    private static final Logger LOG = Logger.getLogger(TestCleanupCompactedFileAfterFailover.class);
+public class CleanupCompactedFileAfterFailoverTest {
+    private static final Logger LOG = Logger.getLogger(CleanupCompactedFileAfterFailoverTest.class);
 
     private static HBaseTestingUtility TEST_UTIL;
     private static Admin admin;
     private static Table table;
 
-    private static TableName TABLE_NAME = TableName.valueOf("TestCleanupCompactedFileAfterFailover");
+    private static TableName TABLE_NAME = TableName.valueOf("CleanupCompactedFileAfterFailoverTest");
     private static byte[] ROW = Bytes.toBytes("row");
     private static byte[] FAMILY = Bytes.toBytes("cf");
     private static byte[] QUALIFIER = Bytes.toBytes("cq");
@@ -76,11 +77,10 @@ public class TestCleanupCompactedFileAfterFailover {
         TEST_UTIL.getConfiguration().set(TimeToLiveHFileCleaner.TTL_CONF_KEY, "0");
         Configuration config = TEST_UTIL.getConfiguration();
         config.set("hbase.coprocessor.region.classes", SIObserver.class.getCanonicalName());
+        config.set(SpliceCompaction.SPLICE_SPARK_COMPACTIONS_ENABLED, "false");
         config.setInt("test.hbase.zookeeper.property.clientPort", 2181);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
-
-        SpliceDefaultCompactor.allowSpark = false;
 
         TEST_UTIL.startMiniCluster(RS_NUMBER);
         admin = TEST_UTIL.getAdmin();

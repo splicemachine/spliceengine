@@ -27,6 +27,8 @@ public class SpliceCompaction {
     @SuppressFBWarnings(value="MS_MUTABLE_ARRAY")
     public static final byte[] SPLICE_COMPACTION_EVENT_KEY = Bytes.toBytes("SPLICE_COMPACTION_EVENT_KEY");
 
+    public static final String SPLICE_SPARK_COMPACTIONS_ENABLED = "splice.spark.compactions.enabled";
+
     public static Set<String> storeFilesToNames(Collection<HStoreFile> storefiles) {
         return storefiles.stream().map(sf -> sf.getPath().getName()).collect(Collectors.toSet());
     }
