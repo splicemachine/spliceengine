@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -792,5 +792,18 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                         .filter( td -> td != null )
                         .collect(Collectors.toList());
         return upgradeTablePrioritiesFromList( admin, tableDescriptorList );
+    }
+
+    @Override
+    public int getTableCount() throws IOException{
+
+        try {
+            TableName[] tableNames =  admin.listTableNames();
+            return tableNames.length;
+        }
+        catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "Could not find the table count.");
+            throw e;
+        }
     }
 }

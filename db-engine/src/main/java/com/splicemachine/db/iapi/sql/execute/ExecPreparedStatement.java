@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.PreparedStatement;
@@ -206,6 +207,16 @@ public interface ExecPreparedStatement
 	 * @return override datasetprocessortype
 	 */
 	void setDatasetProcessorType(DataSetProcessorType type);
+
+	/**
+	 * @return sparkExecutionType if overriden, otherwise null
+	 */
+	SparkExecutionType sparkExecutionType();
+
+	/**
+	 * @return override sparkExecutionType
+	 */
+	void setSparkExecutionType(SparkExecutionType type);
 
 }
 

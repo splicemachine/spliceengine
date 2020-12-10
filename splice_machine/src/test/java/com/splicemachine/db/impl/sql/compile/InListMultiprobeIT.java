@@ -40,9 +40,8 @@ import static org.junit.Assert.assertEquals;
 /**
  * Test the IN list predicates with the multiprobe index scan
  */
-@Ignore
 @RunWith(Parameterized.class)
-@Category({SerialTest.class, LongerThanTwoMinutes.class})
+@Category({SerialTest.class})
 public class InListMultiprobeIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
@@ -170,6 +169,52 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             spliceClassWatcher.executeUpdate(format("insert into t1 select a1, b1+%d, c1 from t1", increment));
             increment *= 2;
         }
+
+        new TableCreator(conn)
+                .withCreate("create table t11 (a1 bigint,\n" +
+                "                 b1 decimal(38,0),\n" +
+                "                 c1 char(5),\n" +
+                "                 d1 int,\n" +
+                "                 e1 smallint,\n" +
+                "                 f1 bigint,\n" +
+                "                 g1 bigint,\n" +
+                "                 h1 timestamp, primary key(a1, b1, c1, d1, e1, f1, g1, h1))")
+                .withInsert("insert into t11 values (?,?,?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1,1,1,1, "2018-12-31 15:59:59.3211111"),
+                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.3211111"),
+                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.9999999"),
+                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.000001"),
+                        row(2,1,1,1,1,1,1, "1969-12-31 15:59:59.001"),
+                        row(2,1,1,1,1,1,1, "1969-12-31 15:59:59.00"),
+                        row(2,1,1,1,1,1,1, "1970-12-31 15:59:59.00"),
+                        row(2,1,1,1,1,1,1, "1999-12-31 15:59:59.00"),
+                        row(2,1,1,1,1,1,1, "1995-01-01 15:59:59.00")))
+                .create();
+        int[] incr = {2,4,10};
+        for (int i=0; i < incr.length; i++)
+            spliceClassWatcher.executeUpdate(format("insert into t11 select a1+%d,b1,c1,d1,e1,f1,g1,h1 from t11", incr[i]));
+        for (int i=0; i < incr.length; i++)
+            spliceClassWatcher.executeUpdate(format("insert into t11 select a1,b1+%d,c1,d1,e1,f1,g1,h1 from t11", incr[i]));
+        for (int i=0; i < incr.length; i++)
+            spliceClassWatcher.executeUpdate(format("insert into t11 select a1,b1,c1+%d,d1,e1,f1,g1,h1 from t11", incr[i]));
+        for (int i=0; i < incr.length; i++)
+            spliceClassWatcher.executeUpdate(format("insert into t11 select a1,b1,c1,d1+%d,e1,f1,g1,h1 from t11", incr[i]));
+
+        new TableCreator(conn)
+                .withCreate("create table t33 (a1 bigint,\n" +
+                "                 b1 decimal(38,0),\n" +
+                "                 c1 char(5),\n" +
+                "                 d1 int,\n" +
+                "                 e1 smallint,\n" +
+                "                 f1 bigint,\n" +
+                "                 g1 bigint,\n" +
+                "                 h1 timestamp)")
+                .withIndex("create index t33_ix1 on t33(a1 DESC,b1 DESC,c1 DESC,d1 DESC,e1 DESC,f1 DESC,g1 DESC,h1 DESC)")
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into t33 select * from t11");
+        spliceClassWatcher.executeQuery(format("analyze table %s.t33", CLASS_NAME));
 
         new TableCreator(conn)
                 .withCreate("create table t3 (a3 char(10), b3 int, c3 int, d3 int, e3 int, primary key (a3, b3, c3))")
@@ -595,7 +640,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         while (rs.next()) {
             String resultString = rs.getString(1);
             if (level == 3) {
-                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+                Assert.assertTrue("MultiProbeIndexScan is expected, but got " + resultString, resultString.contains("MultiProbeIndexScan"));
             }
             level++;
         }
@@ -619,7 +664,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         /** explain should look like the following:
          Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
          ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
-         ->  MultiProbeIndexScan[IX_FLOAT(2689)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2672),preds=[((F[0:1],N[0:2]) IN ((1.0,1),(1.0,3),(1.0,4),(1.0,5),(2.0,1),(2.0,3),(2.0,4),(2.0,5),(3.0,1),(3.0,3),(3.0,4),(3.0,5),(4.0,1),(4.0,3),(4.0,4),(4.0,5))),(C[0:3] = 4.0)]) */
+         ->  ProjectRestrict(n=1,totalCost=4.027,outputRows=1,outputHeapSize=0 B,partitions=1,preds=[(F[0:1] <> 8)])
+         ->  MultiProbeIndexScan[IX_FLOAT(7697)](n=0,totalCost=4.027,scannedRows=17,outputRows=1,outputHeapSize=0 B,partitions=1,baseTable=TS_FLOAT(7680),preds=[((F[0:1],N[0:2],R[0:3]) IN ((1.0,1,4.0),(1.0,3,4.0),(1.0,4,4.0),(1.0,5,4.0),(2.0,1,4.0),(2.0,3,4.0),(2.0,4,4.0),(2.0,5,4.0),(3.0,1,4.0),(3.0,3,4.0),(3.0,4,4.0),(3.0,5,4.0),(4.0,1,4.0),(4.0,3,4.0),(4.0,4,4.0),(4.0,5,4.0))),(F[0:1] <> 6),(F[0:1] <> 7),(R[0:3] <> 55),(R[0:3] <> 33),(R[0:3] <> 44),(R[0:3] <> 55)]) |
+         */
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
@@ -944,8 +991,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
-            if (level == 4) {
-                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected, but is " + resultString, resultString.contains("MultiProbeIndexScan"));
             }
             level++;
         }
@@ -2440,7 +2487,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     public void testInListWithUdfExpressionsOnPK() throws Exception {
         // step 1: create user defined function and load library
         // install jar file and set classpath
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = SpliceUnitTest.getSqlItJarFile();
         String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
         methodWatcher.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
@@ -2537,4 +2584,202 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    private void setMaxMulticolumnProbes(int numProbes) throws Exception {
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', '%d')", numProbes));
+    }
+
+    // Test queries with matching and unmatching probe values, where non-matches
+    // occur at the beginning of populated row ranges, in the middle of a range,
+    // and at the end.
+    private void TestDifferentNumberOfProbesMain(String tableName) throws Exception {
+
+        String sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('1','2','3','4','5','6','7','8','9','10') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        String expected =
+        "1  |\n" +
+        "------\n" +
+        "2304 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (0, 1,2,3,4,5,6,7,8,9,10, 111) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('1','2','3','4','5','6','7','8','9','10') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (0, 1,2,3,4,5,6,7,8,9,10, 111) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('-1', '1', '8', '11', '40') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1152 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (-2, -1) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('-1', '1', '8', '11', '40') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 0 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (40,41) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('-1', '1', '8', '11', '40') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        rowContainsQuery(7, "explain " + sqlText, "MultiProbe", methodWatcher);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 0 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (9,10) and\n" +
+        "      b1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      c1 in ('-1', '1', '8', '11', '40') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 0 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (2,4,8,11) and\n" +
+        "      b1 in (-1,1,8) and\n" +
+        "      c1 in ('-1', '1', '7') and\n" +
+        "      d1 in (9,11) and\n" +
+        "      e1 in (1,2) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        "38 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (1,2) and\n" +
+        "      b1 in (1,2) and\n" +
+        "      c1 in ('1', '2') and\n" +
+        "      d1 in (1,2) and\n" +
+        "      e1 in (1,2) and\n" +
+        "      f1 in (1,2) and\n" +
+        "      g1 in (1,2)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (17,18) and\n" +
+        "      b1 in (1,2) and\n" +
+        "      c1 in ('1', '2') and\n" +
+        "      d1 in (1,2) and\n" +
+        "      e1 in (1,2) and\n" +
+        "      f1 in (1,2) and\n" +
+        "      g1 in (1,2)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1 in (1,3,17,18,20) and\n" +
+        "      b1 in (3,3,3,4,1,2) and\n" +
+        "      c1 in ('1', '2') and\n" +
+        "      d1 in (1,2) and\n" +
+        "      e1 in (1,2) and\n" +
+        "      f1 in (1,2) and\n" +
+        "      g1 in (1,2)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        "34 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from %s --splice-properties useSpark=%s\n" +
+        "where a1=17 and\n" +
+        "      b1=17 and\n" +
+        "      c1 in ('1','2','3','4','5','6','7','8','9','10') and\n" +
+        "      d1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      e1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      f1 in (1,2,3,4,5,6,7,8,9,10) and\n" +
+        "      g1 in (1,2,3,4,5,6,7,8,9,10)\n", tableName, useSpark);
+
+        expected =
+        "1 |\n" +
+        "----\n" +
+        " 4 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    // Test different numbers of probes to try to find incorrect memstore scanning cases.
+    @Test
+    public void TestDifferentNumbersOfProbes() throws Exception {
+
+        int [] probes = {15,150,1500,15000};
+        for (int numProbes:probes) {
+            setMaxMulticolumnProbes(numProbes);
+            TestDifferentNumberOfProbesMain("t11");
+            TestDifferentNumberOfProbesMain("t33");
+        }
+        // Reset derby.database.maxMulticolumnProbeValues to the default setting.
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
+    }
+
 }

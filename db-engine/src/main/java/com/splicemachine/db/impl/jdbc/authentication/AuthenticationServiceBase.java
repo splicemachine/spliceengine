@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
-import com.google.common.base.Splitter;
+import splice.com.google.common.base.Splitter;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.catalog.UUID;

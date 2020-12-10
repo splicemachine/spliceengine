@@ -27,7 +27,7 @@ class NoAccessIT extends PermissionsIT {
   override val msgExceptionDF = schemaDoesntExist
   override val msgExceptionTruncate = schemaDoesntExist
   override val msgExceptionDelete = noPrimaryKey+"Deletes"
-  override val msgExceptionInsert = schemaDoesntExist
+  override val msgExceptionInsert = s"java.lang.Exception: No column metadata found for $internalTN"
   override val msgExceptionUpdate = noPrimaryKey+"Updates"
   override val msgExceptionUpdate2 = msgExceptionUpdate
   override val msgExceptionGetSchema = s"java.lang.Exception: Table/View '$internalTN' does not exist."

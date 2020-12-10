@@ -61,8 +61,10 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
@@ -142,6 +144,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private StringBuffer sb;
     private DataSetProcessorType type;
+    private SparkExecutionType sparkExecutionType;
 
     private final String ipAddress;
     private InternalDatabase db;
@@ -346,6 +349,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
+    private boolean db2VarcharCompatibilityModeNeedsReset = false;
+    private CharTypeCompiler charTypeCompiler = null;
+    private boolean compilingFromTableTempTrigger = false;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -361,16 +367,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String dbname,
             String rdbIntTkn,
             DataSetProcessorType type,
+            SparkExecutionType sparkExecutionType,
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
             String defaultSchema,
             Properties connectionProperties
-            ) throws StandardException{
+    ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
         this.type = type;
+        this.sparkExecutionType = sparkExecutionType;
         this.ipAddress = ipAddress;
         dataFactory=lcf.getDataValueFactory();
         tcf=lcf.getTypeCompilerFactory();
@@ -386,6 +394,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
+
+        if (defaultSchema != null) {
+            if (defaultSchema.charAt(0) == '"') {
+                // quoted schema name
+                this.defaultSchema = IdUtil.parseSQLIdentifier(defaultSchema);
+            } else {
+                // regular schema name, need to be converted to upper case
+                this.defaultSchema = StringUtil.SQLToUpperCase(this.defaultSchema);
+            }
+        }
 
         /* Find out whether or not to log info on executing statements to error log
          */
@@ -451,9 +469,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
         } else {
-            assert type.isDefaultControl();
+            assert type.isDefaultOltp();
+        }
+        if (sparkExecutionType.isSessionHinted()) {
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
+        } else {
+            assert sparkExecutionType.isUnspecified();
         }
 
 
@@ -3796,7 +3819,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
-        return this.type;
+        return type;
+    }
+
+    @Override
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
     }
 
     public void materialize() throws StandardException {}
@@ -4002,5 +4030,31 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return nljPredicatePushDownDisabled;
+    }
+
+    @Override
+    public void setDB2VarcharCompatibilityModeNeedsReset(boolean newValue,
+                                                         CharTypeCompiler charTypeCompiler) {
+        db2VarcharCompatibilityModeNeedsReset = newValue;
+        this.charTypeCompiler = charTypeCompiler;
+    }
+
+    @Override
+    public void resetDB2VarcharCompatibilityMode() {
+        db2VarcharCompatibilityModeNeedsReset = false;
+        if (charTypeCompiler != null) {
+            charTypeCompiler.setDB2VarcharCompatibilityMode(false);
+            charTypeCompiler = null;
+        }
+    }
+
+    @Override
+    public void setCompilingFromTableTempTrigger(boolean newVal) {
+        compilingFromTableTempTrigger = newVal;
+    }
+
+    @Override
+    public boolean isCompilingFromTableTempTrigger() {
+        return compilingFromTableTempTrigger;
     }
 }

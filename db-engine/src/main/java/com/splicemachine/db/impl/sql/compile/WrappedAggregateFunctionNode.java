@@ -31,10 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
@@ -45,6 +41,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import splice.com.google.common.collect.Lists;
+
+import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
 
@@ -257,5 +255,21 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         if (aggregateFunction instanceof StringAggregateNode)
             ht.put("param", ((StringAggregateNode)aggregateFunction).getParameter());
         return ht;
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (aggregateFunction != null) {
+            aggregateFunction.replaceIndexExpression(childRCL);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        if (aggregateFunction != null) {
+            return aggregateFunction.collectExpressions(exprMap);
+        }
+        return true;
     }
 }

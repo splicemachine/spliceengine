@@ -58,19 +58,8 @@ public class RPutCommand extends CommonOptions implements Callable<Integer>
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
         try {
-            String region;
-            if(tableNameGroup.qualifiedTableName != null) {
-                tableNameGroup.qualifiedTableName.table = EngineUtils.validateTable(tableNameGroup.qualifiedTableName.table);
-                tableNameGroup.qualifiedTableName.schema = EngineUtils.validateSchema(tableNameGroup.qualifiedTableName.schema);
-                String table = tableNameGroup.qualifiedTableName.table;
-                region = hbaseInspector.regionOf(tableNameGroup.qualifiedTableName.schema, table);
-            } else {
-                if(StringUtils.isNumeric(tableNameGroup.region)) {
-                    region = "splice:" + tableNameGroup.region;
-                } else {
-                    region = tableNameGroup.region;
-                }
-            }
+            String region = tableNameGroup.getRegion(hbaseInspector);
+
             RPutConfigBuilder configBuilder = new RPutConfigBuilder();
             configBuilder.withCommitTS(txn);
             if(rowOptions.tombstone != null) {

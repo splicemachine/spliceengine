@@ -14,16 +14,18 @@
 
 package com.splicemachine.compactions;
 
-import com.clearspring.analytics.util.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.ExploringCompactionPolicy;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.splicemachine.compactions.SpliceCompaction.storeFilesToNames;
 
 /**
  * Simple compaction policy extending HBase's default in order to create our own CompactionRequest
@@ -47,12 +49,14 @@ public class SpliceDefaultCompactionPolicy extends ExploringCompactionPolicy {
         HStore store = (HStore)storeConfigInfo;
         HRegion region = store.getHRegion();
         String storeName = store.getColumnFamilyName();
+        Set<String> compactedFiles = storeFilesToNames(store.getCompactedFiles());
         scr.setIsMajor(cr.isMajor(), cr.isAllFiles());
         // Ignoring cr.isOffPeak() and hardcoding true because SpliceCompactionRequest.setOffPeak is hijacked to run
         // SpliceCompactionRequest.afterExecute if isOffPeak(false) is called.
         scr.setOffPeak(true);
         scr.setPriority(cr.getPriority());
         scr.setDescription(region.getRegionInfo().getEncodedName(), storeName);
+        scr.setCompactedFiles(compactedFiles);
         return scr;
     }
 }

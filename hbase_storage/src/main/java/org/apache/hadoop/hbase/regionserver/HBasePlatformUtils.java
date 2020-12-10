@@ -18,16 +18,29 @@ package org.apache.hadoop.hbase.regionserver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.SkeletonHBaseClientPartition;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.collect.Sets;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class HBasePlatformUtils{
     private static final Logger LOG = Logger.getLogger(HBasePlatformUtils.class);
@@ -49,5 +62,39 @@ public class HBasePlatformUtils{
         RegionLocator locator = conn.getRegionLocator(tableName);
         Table table = conn.getTable(tableName);
         loader.doBulkLoad(path, admin, table, locator);
+    }
+
+    public static Set<String> getCompactedFilesPathsFromHBaseRegionServer(RegionInfo hri) {
+        try {
+            String regionName = hri.getRegionNameAsString();
+            try (Partition partition = SIDriver.driver().getTableFactory().getTable(hri.getTable())) {
+                Map<byte[], List<String>> results = ((SkeletonHBaseClientPartition) partition).coprocessorExec(
+                        SpliceMessage.SpliceDerbyCoprocessorService.class,
+                        hri.getStartKey(),
+                        hri.getStartKey(),
+                        instance -> {
+                            ServerRpcController controller = new ServerRpcController();
+                            SpliceMessage.GetCompactedHFilesRequest message = SpliceMessage.GetCompactedHFilesRequest
+                                    .newBuilder()
+                                    .setRegionEncodedName(regionName)
+                                    .build();
+
+                            CoprocessorRpcUtils.BlockingRpcCallback<SpliceMessage.GetCompactedHFilesResponse> rpcCallback = new CoprocessorRpcUtils.BlockingRpcCallback<>();
+                            instance.getCompactedHFiles(controller, message, rpcCallback);
+                            if (controller.failed()) {
+                                Throwable t = Throwables.getRootCause(controller.getFailedOn());
+                                if (t instanceof IOException) throw (IOException) t;
+                                else throw new IOException(t);
+                            }
+                            SpliceMessage.GetCompactedHFilesResponse response = rpcCallback.get();
+                            return response.getFilePathList();
+                        });
+                //assert results.size() == 1: results;
+                return Sets.newHashSet(results.get(hri.getRegionName()));
+            }
+        } catch (Throwable e) {
+            SpliceLogUtils.error(LOG, "Unable to set Compacted Files from HBase region server", e);
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -226,24 +226,34 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public boolean selfComparison(ColumnReference cr) {
-		assert cr==operand: "ColumnReference not found in IsNullNode.";
+	public boolean selfComparison(ColumnReference cr, boolean forIndexExpression) {
+		assert forIndexExpression || cr == operand : "ColumnReference not found in IsNullNode.";
 
 		/* An IsNullNode is not a comparison with any other column */
 		return false;
 	}
 
 	@Override
-	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft) {
+	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft, boolean forIndexExpression) {
 		return null;
 	}
 
 	@Override
 	public void generateExpressionOperand(Optimizable optTable,
 										  int columnPosition,
+										  boolean forIndexExpression,
 										  ExpressionClassBuilder acb,
 										  MethodBuilder mb) throws StandardException {
 		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices());
+	}
+
+	@Override
+	public int getMatchingExprIndexColumnPosition(int tableNumber) {
+		if (operandMatchIndexExpr >= 0 && operandMatchIndexExpr == tableNumber) {
+			assert operandMatchIndexExprColumnPosition >= 0;
+			return operandMatchIndexExprColumnPosition;
+		}
+		return -1;
 	}
 
 	/** @see RelationalOperator#getStartOperator */
@@ -274,7 +284,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	@Override
 	public void generateQualMethod(ExpressionClassBuilder acb,
 								   MethodBuilder mb,
-								   Optimizable optTable) throws StandardException {
+								   Optimizable optTable,
+								   boolean forIndexExpression) throws StandardException {
 		MethodBuilder qualMethod = acb.newUserExprFun();
 
 		/* Generate a method that returns that expression */
@@ -288,7 +299,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) {
+	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		mb.push(columnPosition);
@@ -298,7 +309,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) {
+	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		// Convert the absolute to the relative 0-based column position
@@ -318,7 +329,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	 *
 	 * @return The absolute 0-based column position of the ColumnReference
 	 */
-	private int getAbsoluteColumnPosition(Optimizable optTable) {
+	private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
 		ColumnReference	cr = (ColumnReference) operand;
 		int columnPosition;
 		ConglomerateDescriptor bestCD;
@@ -341,7 +352,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		return columnPosition - 1;
 	}
 
-    private int getAbsoluteStoragePosition(Optimizable optTable) {
+    private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
         ColumnReference	cr = (ColumnReference) operand;
         int columnPosition;
         ConglomerateDescriptor bestCD;
@@ -385,5 +396,10 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	@Override
 	public int getOrderableVariantType(Optimizable optTable)  throws StandardException {
 		return operand.getOrderableVariantType();
+	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		return getOperandCost() + SIMPLE_OP_COST;
 	}
 }

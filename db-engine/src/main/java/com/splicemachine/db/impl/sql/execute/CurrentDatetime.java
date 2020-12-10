@@ -31,12 +31,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-/* can't import due to name overlap:
-import java.util.Date;
-*/
-import com.splicemachine.concurrent.TickingClock;
-import org.glassfish.jersey.spi.Contract;
-
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -154,11 +148,11 @@ public class CurrentDatetime {
         currentTimestamp = null;
     }
 
-    public int getTimestampPrecision() {
+    public int getCurrentTimestampPrecision() {
         return timestampPrecision;
     }
 
-    public void setTimestampPrecision(int timestampPrecision) {
+    public void setCurrentTimestampPrecision(int timestampPrecision) {
         assert timestampPrecision >= 0 && timestampPrecision <= 9;
         this.timestampPrecision = timestampPrecision;
         currentTimestamp = null;

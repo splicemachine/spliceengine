@@ -15,10 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -44,7 +41,7 @@ import static org.junit.Assert.*;
  * 
  * @author Walt Koetke
  */
-public class SpliceStringFunctionsIT {
+public class SpliceStringFunctionsIT extends SpliceUnitTest {
 	
     private static final String CLASS_NAME = SpliceStringFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
@@ -318,7 +315,7 @@ public class SpliceStringFunctionsIT {
 	    String sCell1 = null;
 	    String sCell2 = null;
 	    ResultSet rs;
-	    
+
 	    rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB);
 	    count = 0;
 	    while (rs.next()) {
@@ -702,40 +699,37 @@ public class SpliceStringFunctionsIT {
 
     @Test
     public void testHEX() throws Exception {
-        String sqlText = "values hex('B')";
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "42", rs.getString(1) );
 
-        sqlText = "values hex('000020')";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "303030303230", rs.getString(1) );
+        // note that HEX is using getBytes("UTF-8") to get a fixed representation
 
-        sqlText = "values hex(concat('a','b'))";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", "6162", rs.getString(1) );
+        String tests[] = {
+                "'B'",              "42",
+                "'000020'",         "303030303230",
+                "'000020'" ,        "303030303230",
+                "'ß'",              "C39F",
+                "'\u00E4'",         "C3A4",     // ä  https://www.compart.com/de/unicode/U+00E4
+                "'\uD83D\uDE02'",   "F09F9882", // 😂 https://www.compart.com/de/unicode/U+1F602
+                "'Hello, World!'",    "48656C6C6F2C20576F726C6421",
 
-        sqlText = "values hex(null)";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+                "''",               "",
+                "null",             null,
+                "concat('a','b')",  "6162"
+        };
 
-        sqlText = "values hex('')";
-        rs = methodWatcher.executeQuery(sqlText);
-        rs.next();
-        Assert.assertEquals("Wrong result value","", rs.getString(1) );
+        for(int i=0; i<tests.length; i+=2)
+        {
+            String sql = "values hex(" + tests[i] + ")", expected = tests[i+1];
+            Assert.assertEquals( "when executing " + sql,
+                    expected, methodWatcher.executeGetString(sql, 1) );
+        }
 
         try {
-            sqlText = "values hex(1.2)";
+            String sqlText = "values hex(1.2)";
             methodWatcher.executeQuery(sqlText);
-            Assert.fail("Cannot convert types 'DECIMAL' to 'VARCHAR'");
+            Assert.fail("Exception not thrown: Cannot convert types 'DECIMAL' to 'VARCHAR'");
         } catch (SQLSyntaxErrorException e) {
             Assert.assertEquals("42846", e.getSQLState());
         }
-
-        rs.close();
     }
 
     @Test(timeout=1000) //Time out after 1 second
@@ -776,7 +770,7 @@ public class SpliceStringFunctionsIT {
 
             // Group by aggregate
             try (ResultSet rs = methodWatcher.executeQuery(String.format("select a, STRING_AGG(b, '# ') " +
-                    "from I --splice-properties useSpark=%s \n group by a", useSpark))) {
+                    "from I --splice-properties useSpark=%s %n group by a", useSpark))) {
                 for (int i = 0; i < 2; ++i) {
                     assertTrue(rs.next());
                     int group = rs.getInt(1);
@@ -823,7 +817,7 @@ public class SpliceStringFunctionsIT {
                     "select a, agg from (select a, " +
                             "lead(a) over (partition by a order by b asc) as l, " +
                             "string_agg(b, ' - ') over (partition by a order by b asc) as agg " +
-                            "from I --splice-properties useSpark=%s \n) b where l is null", useSpark))) {
+                            "from I --splice-properties useSpark=%s %n) b where l is null", useSpark))) {
                 String expected =
                         "A |     AGG      |\n" +
                         "-------------------\n" +
@@ -832,6 +826,49 @@ public class SpliceStringFunctionsIT {
                 String result = TestUtils.FormattedResult.ResultFactory.toString(rs);
                 assertEquals(expected, result);
             }
+        }
+    }
+
+    @Test
+    public void testSubstrResultType() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("substr(varchar('abc', 40), 10)", "VARCHAR(40)", conn);
+            checkExpressionType("substr(varchar('abc', 40), 10, 5)", "CHAR(5)", conn);
+            checkExpressionType("substr(char('abc', 40), 10)", "CHAR(31)", conn);
+            checkExpressionType("substr(char('abc', 40), 10, 5)", "CHAR(5)", conn);
+
+            checkExpressionType("substr(cast('abc' as varchar(40) for bit data), 10)", "VARCHAR (40) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as varchar(40) for bit data), 10, 5)", "CHAR (5) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as char(40) for bit data), 10)", "CHAR (31) FOR BIT DATA", conn);
+            checkExpressionType("substr(cast('abc' as char(40) for bit data), 10, 5)", "CHAR (5) FOR BIT DATA", conn);
+        }
+    }
+
+    @Test
+    public void testSubstr() throws Exception {
+        methodWatcher.execute("drop table testSubstr if exists");
+        methodWatcher.execute("create table testSubstr(a varchar(40), b varchar(40), c char(40), " +
+                "d varchar(40) for bit data, e varchar(40) for bit data, f char(40) for bit data, dash char(1) for bit data)");
+        methodWatcher.execute("insert into testSubstr values ('abc', 'abc ', 'abc'," +
+                "cast('abc' as varchar(40) for bit data), cast('abc ' as varchar(40) for bit data), cast('abc' as char(40) for bit data), cast('-' as char(1) for bit data))");
+        TestConnection[] conns = {
+                methodWatcher.connectionBuilder().useOLAP(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
+        };
+        for (TestConnection conn: conns) {
+            checkStringExpression("'-' || substr(a, 2) || '-' from testSubstr", "-bc-", conn);
+            checkStringExpression("'-' || substr(a, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("'-' || substr(b, 2) || '-' from testSubstr", "-bc -", conn);
+            checkStringExpression("'-' || substr(b, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("'-' || substr(c, 2) || '-' from testSubstr", "-bc                                     -", conn);
+            checkStringExpression("'-' || substr(c, 2, 5) || '-' from testSubstr", "-bc   -", conn);
+            checkStringExpression("dash || substr(d, 2) || dash from testSubstr", "2d62632d", conn);
+            checkStringExpression("dash || substr(d, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+            checkStringExpression("dash || substr(e, 2) || dash from testSubstr", "2d6263202d", conn);
+            checkStringExpression("dash || substr(e, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+            checkStringExpression("dash || substr(f, 2) || dash from testSubstr", "2d6263202020202020202020202020202020202020202020202020202020202020202020202020202d", conn);
+            checkStringExpression("dash || substr(f, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
         }
     }
 }

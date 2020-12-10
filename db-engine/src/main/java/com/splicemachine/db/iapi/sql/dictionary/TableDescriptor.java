@@ -48,15 +48,21 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import splice.com.google.common.primitives.Ints;
 
+import java.util.List;
 import java.util.TreeMap;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
 /**
  * This class represents a table descriptor. The external interface to this
@@ -784,6 +790,18 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return matches;
     }
 
+    private static void assertValidStatementType(int statementType)
+    {
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
+                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
+                            (statementType==StatementType.UPDATE) ||
+                            (statementType==StatementType.LOAD_REPLACE) ||
+                            (statementType==StatementType.DELETE),
+                    "invalid statement type "+statementType);
+        }
+    }
+
     /**
      * Builds a list of all triggers which are relevant to a
      * given statement type, given a list of updated columns.
@@ -794,19 +812,56 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on error
      */
     public void getAllRelevantTriggers(int statementType,int[] changedColumnIds,GenericDescriptorList relevantTriggers) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
-                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
-                            (statementType==StatementType.UPDATE) ||
-                            (statementType==StatementType.DELETE),
-                    "invalid statement type "+statementType);
-        }
+        assertValidStatementType( statementType );
 
         DataDictionary dd=getDataDictionary();
         for(Object o : dd.getTriggerDescriptors(this)){
             TriggerDescriptor tgr=(TriggerDescriptor)o;
             if(tgr.needsToFire(statementType,changedColumnIds)){
                 relevantTriggers.add(tgr);
+            }
+        }
+        TriggerDescriptor tgr = TriggerReferencingStruct.fromTableTriggerDescriptor.get();
+        if (tgr != null) {
+            if(tgr.needsToFire(statementType,changedColumnIds)) {
+                finalTableErrorCheck(relevantTriggers, dd,
+                                     TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get());
+                relevantTriggers.add(tgr);
+            }
+        }
+    }
+
+    // If there exists any AFTER triggers that write to the same table
+    // as the FINAL table, we need to error out.
+    private void finalTableErrorCheck(GenericDescriptorList relevantTriggers,
+                                      DataDictionary        dd,
+                                      SPSDescriptor         fromTableSPSDescriptor) throws StandardException {
+        if (fromTableSPSDescriptor == null)
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                   "Missing SPSDescriptor while checking FROM FINAL TABLE clause.");
+        if (fromTableSPSDescriptor.getFinalTableConglomID() == 0)
+            return;
+        long finalTableConglomID = fromTableSPSDescriptor.getFinalTableConglomID();
+        for (Object aTdl : relevantTriggers) {
+            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
+            if (trd.isBeforeTrigger())
+                continue;
+            List<UUID> actions = trd.getActionIdList();
+            for(UUID uuid:actions) {
+                SPSDescriptor actionSPS = dd.getSPSDescriptor(uuid);
+                if (actionSPS == null)
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                           "Missing action SPSDescriptor while checking FROM FINAL TABLE clause.");
+                ExecPreparedStatement stmt = actionSPS.getPreparedStatement();
+                if (stmt == null)
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                           "Missing prepared statement while checking FROM FINAL TABLE clause.");
+                ConstantAction action = stmt.getConstantAction();
+                if (action != null) {
+                    if (action.getTargetConglomId() == finalTableConglomID)
+                        throw StandardException.newException(LANG_MODIFIED_FINAL_TABLE,
+                           trd.getName(), trd.getTableDescriptor().getQualifiedName());
+                }
             }
         }
     }
@@ -831,13 +886,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                                           int[] changedColumnIds,
                                           boolean[] needsDeferredProcessing,
                                           ConstraintDescriptorList relevantConstraints) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
-                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
-                            (statementType==StatementType.UPDATE) ||
-                            (statementType==StatementType.DELETE),
-                    "invalid statement type "+statementType);
-        }
+
+        assertValidStatementType(statementType);
 
         DataDictionary dd=getDataDictionary();
         ConstraintDescriptorList cdl=dd.getConstraintDescriptors(this);
@@ -845,6 +895,12 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
         for(int index=0;index<cdlSize;index++){
             ConstraintDescriptor cd=cdl.elementAt(index);
+
+            // LOAD_REPLACE mode doesn't check ForeignKey constraints
+            if( statementType==StatementType.LOAD_REPLACE
+                    && cd.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT ) {
+                continue;
+            }
 
             if(skipCheckConstraints &&
                     (cd.getConstraintType()==DataDictionary.CHECK_CONSTRAINT)){

@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -192,7 +193,7 @@ public class ijCommands {
             verifyProcedureExists(schema,proc);
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedureColumns(null,schema,proc,null);
+            rs = dbmd.getProcedureColumns(null,Utils.escape(schema),Utils.escape(proc),null);
 
             // Small subset of the result set fields available
             ColumnParameters[] columnParameters = new ColumnParameters[] {
@@ -538,15 +539,13 @@ public class ijCommands {
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
-            String getSynonymAliasInfo = "SELECT BASETABLE \n" +
-                    " FROM \n" +
-                    " SYSVW.SYSALIASTOTABLEVIEW V \n" +
-                    " WHERE \n" +
-                    " (V.SCHEMANAME LIKE ?) AND (V.ALIAS LIKE ?)";
+            String getSynonymAliasInfo = String.format(
+                    "SELECT BASETABLE FROM SYSVW.SYSALIASTOTABLEVIEW V WHERE (V.SCHEMANAME LIKE ? ESCAPE '%s') AND (V.ALIAS LIKE ? ESCAPE '%s')",
+                    Utils.defaultEscapeCharacter, Utils.defaultEscapeCharacter);
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
-            s.setString(1, schema);
-            s.setString(2, table);
+            s.setString(1, Utils.escape(schema));
+            s.setString(2, Utils.escape(table));
             rs = s.executeQuery();
 
             if (rs.next()){
@@ -557,7 +556,7 @@ public class ijCommands {
                 }
             }
 
-            rs = dbmd.getColumns(null,schema,table,null);
+            rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_SCHEM", 20),

@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
 
@@ -110,10 +112,14 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         return (ValueNode) (singleLeftOperand ? leftOperandList.elementAt(0) : null);
     }
     
-    public boolean allLeftOperandsColumnReferences() {
-        for (Object obj:leftOperandList) {
-            if (!(obj instanceof  ColumnReference))
+    public boolean allLeftOperandsContainColumnReferences() throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        for (int i = 0; i < leftOperandList.size(); i++) {
+            leftOperandList.elementAt(i).accept(cnv);
+            if (cnv.getList().isEmpty()) {
                 return false;
+            }
+            cnv.getList().clear();
         }
         return true;
     }
@@ -234,6 +240,20 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         return this;
     }
 
+    private void addCastOnRightOperandForStringToNonStringComparison() throws StandardException {
+        if (singleLeftOperand) {
+            TypeId leftTypeId = getLeftOperand().getTypeId();
+            for (int i = 0; i < rightOperandList.size(); ++i) {
+                ValueNode rightOperand = (ValueNode) rightOperandList.elementAt(i);
+                TypeId rightTypeId = rightOperand.getTypeId();
+                if (!leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId()) {
+                    rightOperand = addCastNodeForStringToNonStringComparison(getLeftOperand(), rightOperand);
+                }
+                rightOperandList.setElementAt(rightOperand, i);
+            }
+        }
+    }
+
     /**
      * Test the type compatability of the operands and set the type info
      * for this node.  This method is useful both during binding and
@@ -246,8 +266,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
         /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
-        if (singleLeftOperand)
-            rightOperandList.comparable(getLeftOperand());
+        if (singleLeftOperand) {
+            if (!rightOperandList.comparable(getLeftOperand())) {
+                addCastOnRightOperandForStringToNonStringComparison();
+            }
+            rightOperandList.throwIfNotComparable(getLeftOperand());
+        }
+
 
         /*
         ** Set the result type of this comparison operator based on the
@@ -316,6 +341,28 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      */
     public ValueNodeList getRightOperandList(){
         return rightOperandList;
+    }
+
+    /**
+     * See if this binary list operator is referencing the same table.
+     *
+     * @param cr	The column reference.
+     *
+     * @return	true if this list references the same table as in cr.
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public boolean selfReference(ColumnReference cr)
+            throws StandardException
+    {
+        int size = rightOperandList.size();
+        for (int i = 0; i < size; i++)
+        {
+            ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
+            if (vn.getTablesReferenced().get(cr.getTableNumber()))
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -423,8 +470,26 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other = (BinaryListOperatorNode) o;
-        return !(!operator.equals(other.operator) || !leftOperandList.isEquivalent(other.getLeftOperandList())) && rightOperandList.isEquivalent(other.rightOperandList);
+        return operator.equals(other.operator) && leftOperandList.isEquivalent(other.getLeftOperandList()) && rightOperandList.isEquivalent(other.rightOperandList);
+    }
 
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryListOperatorNode other = (BinaryListOperatorNode) o;
+        return operator.equals(other.operator) &&
+                leftOperandList.isSemanticallyEquivalent(other.getLeftOperandList()) &&
+                rightOperandList.isSemanticallyEquivalent(other.rightOperandList);
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + operator.hashCode();
+        result = 31 * result + (leftOperandList == null ? 0 : leftOperandList.hashCode());
+        result = 31 * result + (rightOperandList == null ? 0 : rightOperandList.hashCode());
+        return result;
     }
 
     @Override
@@ -470,4 +535,37 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
     }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (leftOperandList != null) {
+            leftOperandList = leftOperandList.replaceIndexExpression(childRCL);
+        }
+        if (rightOperandList != null) {
+            rightOperandList = rightOperandList.replaceIndexExpression(childRCL);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (leftOperandList != null) {
+            result = leftOperandList.collectExpressions(exprMap);
+        }
+        if (rightOperandList != null) {
+            result = result && rightOperandList.collectExpressions(exprMap);
+        }
+        return result;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost = 0.0;
+        for (Object leftOperand : leftOperandList) {
+            localCost += ((ValueNode) leftOperand).getBaseOperationCost();
+        }
+        return localCost;
+    }
+
 }

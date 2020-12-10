@@ -73,7 +73,22 @@ public class CoalesceFunctionNode extends MultiaryFunctionNode
         }
 
         // don't compare function name because it could be coalesce or value
-        MultiaryFunctionNode other = (MultiaryFunctionNode)o;
+        CoalesceFunctionNode other = (CoalesceFunctionNode)o;
         return argumentsList.isEquivalent(other.argumentsList);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+
+        // don't compare function name because it could be coalesce or value
+        MultiaryFunctionNode other = (MultiaryFunctionNode)o;
+        return argumentsList.isSemanticallyEquivalent(other.argumentsList);
     }
 }

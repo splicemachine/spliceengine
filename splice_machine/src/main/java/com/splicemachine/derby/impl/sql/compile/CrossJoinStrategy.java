@@ -78,7 +78,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals, String tableVersion, boolean pin,
+            boolean genInListVals, String tableVersion,
             int splits,
             String delimited,
             String escaped,
@@ -97,10 +97,10 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
          * 4) array of types of the in-list columns
          */
         if (genInListVals) {
-            numArgs = 39;
+            numArgs = 38;
         }
         else {
-            numArgs = 35 ;
+            numArgs = 34 ;
         }
 
         fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
@@ -125,7 +125,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,
                 splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }
@@ -243,13 +243,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
-        innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setLocalCostPerParallelTask(joinCost);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
-        innerCost.setRowCount(totalOutputRows);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setRowCount(totalOutputRows);
+        innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowOrdering(null);
     }
 
@@ -257,9 +257,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
      *
      * Cross Join Local Cost Computation
      *
-     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Transfer Cost) +
-     * (Right Side Cost) + (Left Side Row Count/Left Side Partition Count)*(Right Side Transfer
-     * Cost)
+     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Right Side Transfer Cost) +
+     * (Right Side Cost) + (Joining Row Cost)
      *
      * @param innerCost
      * @param outerCost
@@ -271,16 +270,15 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
-        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
-        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
-        return outerCost.getLocalCostPerPartition() +
-                outerCost.getRemoteCostPerPartition()  +
-                (outerCost.rowCount()/outerCost.partitionCount()) * (innerLocalCost + innerRemoteCost) +
-                joiningRowCost/outerCost.partitionCount();
+        assert outerCost.getLocalCostPerParallelTask() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.getRemoteCostPerParallelTask() != 0d || outerCost.remoteCost() == 0d;
+        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
+        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
+        return outerCost.getLocalCostPerParallelTask() +
+                innerRemoteCost + innerLocalCost +
+                joiningRowCost;
     }
 
 

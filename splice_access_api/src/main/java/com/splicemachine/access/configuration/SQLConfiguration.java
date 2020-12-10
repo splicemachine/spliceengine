@@ -262,6 +262,40 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="forced";
     public static final CompilerContext.NativeSparkModeType DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE=CompilerContext.NativeSparkModeType.FORCED;
 
+    /**
+     * Specify whether merge joins use the new implementation.
+     *
+     * Modes: on, off, forced
+     *
+     * on:  New merge join execution is enabled, but may not be picked
+     *      due to costing.
+     * off: All merge joins use the old implementation.
+     * forced: New merge join will be used for every merge join.
+     *
+     * Defaults to forced
+     */
+    public static final String NEW_MERGE_JOIN = "splice.execution.newMergeJoin";
+    public static final String DEFAULT_NEW_MERGE_JOIN="on";
+    public static final CompilerContext.NewMergeJoinExecutionType DEFAULT_NEW_MERGE_JOIN_VALUE= CompilerContext.NewMergeJoinExecutionType.ON;
+
+    /**
+     * Specify the foreign key dependencies checker.
+     *
+     * Modes: derby, splicemachine, none
+     *
+     * derby: use Derby's FK checker.
+     * splicemachine: use SpliceMachine FK checker.
+     * none: do not use an FK checker, could be dangerous, nevertheless it yields better performance. Useful in certain
+     * situations where we know the graph is valid (e.g. during restoration of a DB backup).
+     *
+     * Defaults to splicemachine.
+     */
+    public static final String FOREIGN_KEY_CHECKER_DERBY = "derby";
+    public static final String FOREIGN_KEY_CHECKER_SPLICEMACHINE = "splicemachine";
+    public static final String FOREIGN_KEY_CHECKER_NONE = "none";
+    public static final String FOREIGN_KEY_CHECKER = "splice.execution.fkChecker";
+    public static final String DEFAULT_FOREIGN_KEY_CHECKER = FOREIGN_KEY_CHECKER_SPLICEMACHINE;
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -324,5 +358,28 @@ public class SQLConfiguration implements ConfigurationDefault {
             builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
         else
             builder.nativeSparkAggregationMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
+
+        String newMergeJoinString =
+            configurationSource.getString(NEW_MERGE_JOIN,
+                                          DEFAULT_NEW_MERGE_JOIN);
+        newMergeJoinString = newMergeJoinString.toLowerCase();
+        if (newMergeJoinString.equals("on"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
+        else if (newMergeJoinString.equals("off"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
+        else if (newMergeJoinString.equals("forced"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
+        else
+            builder.newMergeJoin = SQLConfiguration.DEFAULT_NEW_MERGE_JOIN_VALUE;
+
+        String newForeignKeyChecker =
+            configurationSource.getString(FOREIGN_KEY_CHECKER, DEFAULT_FOREIGN_KEY_CHECKER);
+        if(newForeignKeyChecker.equalsIgnoreCase(FOREIGN_KEY_CHECKER_DERBY)) {
+            builder.foreignKeyChecker = FOREIGN_KEY_CHECKER_DERBY;
+        } else if(newForeignKeyChecker.equalsIgnoreCase(FOREIGN_KEY_CHECKER_NONE)) {
+            builder.foreignKeyChecker = FOREIGN_KEY_CHECKER_NONE;
+        } else {
+            builder.foreignKeyChecker = DEFAULT_FOREIGN_KEY_CHECKER;
+        }
     }
 }

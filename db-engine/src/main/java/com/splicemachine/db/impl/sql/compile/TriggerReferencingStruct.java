@@ -31,10 +31,23 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+
 /**
  * Rudimentary structure for containing information about a REFERENCING clause for a trigger.
  */
 public class TriggerReferencingStruct {
+
+    public static final ThreadLocal<TriggerDescriptor> fromTableTriggerDescriptor = new ThreadLocal<>();
+    public static final ThreadLocal<SPSDescriptor> fromTableTriggerSPSDescriptor = new ThreadLocal<>();
+    public static final ThreadLocal<MutableBoolean> isFromTableStatement = new ThreadLocal<MutableBoolean>() {
+        @Override
+        protected MutableBoolean initialValue() {
+            return new MutableBoolean(false);
+        }
+    };
 
     public String identifier;
     public boolean isRow;
@@ -52,4 +65,7 @@ public class TriggerReferencingStruct {
     public String toString() {
         return (isRow ? "ROW " : "TABLE ") + (isNew ? "new: " : "old: ") + identifier;
     }
+
+    public boolean isNew() { return isNew; }
+    public String getIdentifier() { return identifier; }
 }

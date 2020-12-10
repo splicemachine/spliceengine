@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -45,8 +46,10 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -59,6 +62,8 @@ import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -202,7 +207,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        if (this.activation.datasetProcessorType().isSpark())
+        if (this.activation.datasetProcessorType().isOlap())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -217,6 +222,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "NullPointerException and others are not explicitly thrown.")
     public void close() throws StandardException {
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
@@ -257,7 +263,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(isTopResultSet){
 
                 LanguageConnectionContext lcc=getActivation().getLanguageConnectionContext();
-
+                if (lcc != null && !activation.isSubStatement()) {
+                    TriggerExecutionContext tec =
+                        lcc.getTriggerExecutionContext();
+                    if (tec != null && tec.hasSpecialFromTableTrigger()) {
+                        tec.clearTrigger(false);
+                        lcc.popTriggerExecutionContext(tec);
+                    }
+                }
                 int staLength=(subqueryTrackingArray==null)?0:
                         subqueryTrackingArray.length;
 
@@ -441,6 +454,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
+    @Override
+    public void reOpen() {
+        isOpen = true;
+        for (SpliceOperation op : getSubOperations()) {
+            op.reOpen();
+        }
+    }
+
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
             this.execRowIterator = Collections.emptyIterator();
@@ -481,7 +502,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             throw e;
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
-        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_SPARK);
+        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_OLAP);
         openDistributed();
     }
 
@@ -827,11 +848,27 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
         TxnView currentTxn = rawTxn.getActiveStateTxn();
-        if(this instanceof DMLWriteOperation) {
+        if(this instanceof DMLWriteOperation ||
+           isFromTableStatement()) {
             if (currentTxn instanceof ActiveWriteTxn)
                 return rawTxn.getActiveStateTxn();
-            else if (rawTxn instanceof  SpliceTransaction)
-                return ((SpliceTransaction) rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+            else if (rawTxn instanceof  SpliceTransaction) {
+                byte [] destinationTable;
+                if (this instanceof DMLWriteOperation ) {
+                    DMLWriteOperation writeOp = ((DMLWriteOperation) this);
+                    destinationTable = writeOp.getDestinationTable();
+                    final Txn txn = ((SpliceTransaction) rawTxn).getTxn();
+
+                    if (writeOp.forFromTableStatement() &&
+                        txn instanceof ReadOnlyTxn)
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                               "FROM TABLE queries must elevate the transaction from the top-level operation.");
+                }
+                else
+                    destinationTable = ((VTIOperation) this).getDestinationTable();
+
+                return ((SpliceTransaction) rawTxn).elevate(destinationTable);
+            }
             else
                 throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
         }
@@ -956,6 +993,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public ExecIndexRow getStartPosition() throws StandardException{
         throw new RuntimeException("getStartPosition not implemented");
+    }
+
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        throw new RuntimeException("getStopPosition not implemented");
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        throw new RuntimeException("getSameStartStopPosition not implemented");
     }
 
     @Override
@@ -1103,5 +1150,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         for (int i = 0; i < ncols;i++)
             fields[i] = resultDataTypeDescriptors[i].getStructField(ValueRow.getNamedColumn(i));
         return DataTypes.createStructType(fields);
+    }
+
+    public boolean isFromTableStatement() {
+        return false;
     }
 }
