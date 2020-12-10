@@ -679,23 +679,26 @@ public class OperatorToString {
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
                     vars.relationalOpDepth.increment();
-                    if (top.getOperator().equals("LOCATE") ||
-                        top.getOperator().equals("replace") ||
-                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
-
+                    if (top.getOperator().equals("LOCATE") || top.getOperator().equals("replace")) {
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
                     } else if (top.getOperator().equals("substring")) {
-                        assert top.getRightOperand() == null;
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
-                                opToString2(top.getLeftOperand(), vars));
+                        String retval = format("%s(%s, %s %s)",
+                                top.getOperator(),
+                                opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars),
+                                top.getRightOperand() == null ? "" : ", " + opToString2(top.getRightOperand(), vars));
+                        if (top.getRightOperand() != null) {
+                            retval = format("RPAD(%s, %s, ' ')",
+                                    retval,
+                                    opToString2(top.getRightOperand(), vars));
+                        }
                         vars.relationalOpDepth.decrement();
                         return retval;
-
                     } else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
