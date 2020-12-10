@@ -351,6 +351,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -625,6 +644,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
     }
 
     @Override
