@@ -20,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,6 +29,7 @@ import java.nio.file.attribute.*;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -262,16 +264,26 @@ public class MemFileSystem extends DistributedFileSystem{
         }
         @Override
         public FileInfo[] listDir(){
-            throw new UnsupportedOperationException("IMPLEMENT");
+            try {
+                return Files.list(p).map( path -> new PathInfo(path) ).toArray(PathInfo[]::new);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
 
         @Override
         public String getPermissionStr(){
-            throw new UnsupportedOperationException("IMPLEMENT");
+             try {
+                 Set<PosixFilePermission> s = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+                 return PosixFilePermissions.toString(s);
+            } catch (IOException e) {
+                return "err";
+            }
         }
         @Override
-        public long getModificationTime(){
-            throw new UnsupportedOperationException("IMPLEMENT");
+        public long getModificationTime() {
+            return p.toFile().lastModified();
         }
 
         @Override
