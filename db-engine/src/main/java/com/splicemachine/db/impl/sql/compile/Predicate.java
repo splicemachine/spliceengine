@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -521,10 +522,27 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * @return true if the predicate is a pushable set of OR clauses.
      * @throws StandardException Standard exception policy.
      */
-    public final boolean isPushableOrClause(Optimizable optTable) throws StandardException{
+    public final boolean isPushableOrClause(Optimizable optTable, ConglomerateDescriptor cd,
+                                            boolean pushPreds) throws StandardException{
 
         if(andNode.getLeftOperand() instanceof OrNode){
-            QueryTreeNode node=andNode.getLeftOperand();
+            QueryTreeNode node = andNode.getLeftOperand();
+            QueryTreeNode trueNode;
+            AndNode tempAnd = null;
+
+            IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+            boolean isOnExpression = irg != null && irg.isOnExpression();
+            if (isOnExpression) {
+                trueNode = (QueryTreeNode) getNodeFactory().getNode(
+                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        getContextManager());
+                tempAnd = (AndNode) getNodeFactory().getNode(
+                        C_NodeTypes.AND_NODE,
+                        trueNode,  // to be replaced later
+                        trueNode,
+                        getContextManager());
+            }
 
             while(node instanceof OrNode){
                 OrNode or_node=(OrNode)node;
@@ -532,23 +550,36 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                 if(or_node.getLeftOperand() instanceof RelationalOperator){
                     // if any term of the OR clause is not a qualifier, then
                     // reject the entire OR clause.
-                    if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable,true)){
-                        // one of the terms is not a pushable Qualifier.
-                        return (false);
+                    if (isOnExpression) {
+                        tempAnd.setLeftOperand(or_node.getLeftOperand());
+                        tempAnd.postBindFixup();
+                        Predicate tempPred = (Predicate) getNodeFactory().getNode(
+                                C_NodeTypes.PREDICATE,
+                                tempAnd,
+                                or_node.getLeftOperand().getTablesReferenced(),
+                                getContextManager());
+                        boolean skipProbePreds = pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+                        Integer position = PredicateList.isIndexUseful(tempPred, optTable, pushPreds, skipProbePreds, cd);
+                        if (position == null) {
+                            return false;
+                        }
+                    } else {
+                        if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable, pushPreds)){
+                            // one of the terms is not a pushable Qualifier.
+                            return false;
+                        }
                     }
 
                     node=or_node.getRightOperand();
-                }else{
+                } else {
                     // one of the terms is not a RelationalOperator
-
-                    return (false);
+                    return false;
                 }
             }
-
-            return (true);
-        }else{
+            return true;
+        } else {
             // Not an OR list
-            return (false);
+            return false;
         }
     }
 
