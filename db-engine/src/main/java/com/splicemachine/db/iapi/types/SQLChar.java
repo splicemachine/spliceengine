@@ -1588,12 +1588,12 @@ public class SQLChar
 
     public void setValue(double theValue)  throws StandardException
     {
-        setValue(Double.toString(theValue));
+        setValue(NumberDataType.toDB2String(theValue));
     }
 
     public void setValue(float theValue)  throws StandardException
     {
-        setValue(Float.toString(theValue));
+        setValue(NumberDataType.toDB2String(theValue));
     }
 
     public void setValue(short theValue)  throws StandardException

@@ -28,9 +28,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
-import static org.junit.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Scott Fines
@@ -899,14 +898,14 @@ public class FunctionIT extends SpliceUnitTest {
         scalarFunctionExpectSuccess("dec2", true, "", "VARCHAR(20)", "2");
         // FIXME(DB-10938) Should be VARCHAR(42) instead of VARCHAR(35)
         scalarFunctionExpectSuccess("decfl1", true, "", "VARCHAR(35)", "1");
-        scalarFunctionExpectSuccess("floating1", true, "", "VARCHAR(53)", "1.0");
-        scalarFunctionExpectSuccess("floating2", true, "", "VARCHAR(24)", "2.0");
+        scalarFunctionExpectSuccess("floating1", true, "", "VARCHAR(24)", "1.0E0");
+        scalarFunctionExpectSuccess("floating2", true, "", "VARCHAR(24)", "2.0E0");
         scalarFunctionExpectSuccess("dec1", false, "", "CHAR(12)", "1           ");
         scalarFunctionExpectSuccess("dec2", false, "", "CHAR(20)", "2                   ");
         // FIXME(DB-10938) Should be CHAR(42) instead of CHAR(35)
         scalarFunctionExpectSuccess("decfl1", false, "", "CHAR(35)", "1                                  ");
-        scalarFunctionExpectSuccess("floating1", false, "", "CHAR(53)", "1.0                                                  ");
-        scalarFunctionExpectSuccess("floating2", false, "", "CHAR(24)", "2.0                     ");
+        scalarFunctionExpectSuccess("floating1", false, "", "CHAR(24)", "1.0E0                   ");
+        scalarFunctionExpectSuccess("floating2", false, "", "CHAR(24)", "2.0E0                   ");
 
         scalarFunctionExpectFailure("dec1", null, "1", "42846");
         scalarFunctionExpectFailure("dec2", null, "1", "42846");
