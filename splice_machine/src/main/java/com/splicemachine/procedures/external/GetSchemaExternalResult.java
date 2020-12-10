@@ -15,6 +15,8 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 /**
@@ -22,18 +24,48 @@ import org.apache.spark.sql.types.StructType;
  * PlaceHolder for the schema information provided by Spark.
  */
 public class GetSchemaExternalResult extends AbstractOlapResult {
+    private StructType partition_schema;
     private StructType schema;
 
     public GetSchemaExternalResult(StructType schema) {
         this.schema = schema;
     }
 
-    public  StructType getSchema(){
-        return  schema;
+    public GetSchemaExternalResult(StructType partition_schema, StructType schema) {
+        this.partition_schema = partition_schema;
+        this.schema = schema;
+    }
+
+    public StructType getSchema(){
+        return schema;
+    }
+    public StructType getPartitionSchema(){
+        return partition_schema;
     }
 
     @Override
     public boolean isSuccess(){
         return true;
+    }
+
+    public String getSuggestedSchema()
+    {
+        return ExternalTableUtils.getSuggestedSchema(schema, partition_schema);
+    }
+
+    public StructType getFullSchema()
+    {
+        if( partition_schema == null ) {
+            return schema;
+        }
+        else
+        {
+            // add directory-partitioning to the end just like spark does
+            StructType full_schema = new StructType(schema.fields());
+            for (StructField f : partition_schema.fields()) {
+                full_schema = full_schema.add(f);
+            }
+            return full_schema;
+        }
     }
 }

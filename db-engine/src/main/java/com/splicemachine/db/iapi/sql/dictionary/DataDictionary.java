@@ -249,6 +249,7 @@ public interface DataDictionary{
     int SYSTOKENS_NUM=32;
     int SYSREPLICATION_CATALOG_NUM=33;
     int SYSMONGETCONNECTION_CATALOG_NUM=34;
+    int SYSNATURALNUMBERS_CATALOG_NUM=35;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
@@ -294,7 +295,8 @@ public interface DataDictionary{
             "1", // SYSSNAPSHOT
             "1", // SYSTOKENS
             "1", // SYSREPLICATION
-            "1"  // SYSMONGETCONNECTION_CATALOG_NUM
+            "1", // SYSMONGETCONNECTION_CATALOG_NUM
+            "1"  // SYSNATURALNUMBERS
     ));
 
     /**

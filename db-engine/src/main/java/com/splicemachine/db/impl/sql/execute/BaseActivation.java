@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -68,10 +69,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * BaseActivation
@@ -97,6 +95,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     protected int numSubqueries;
     protected int datasetProcessorType;
+    protected int sparkExecutionType;
 
     private boolean singleExecution;
 
@@ -211,6 +210,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     protected ExecRow scanStopOverride;
     protected int[] scanKeys;
 
+    protected List<Pair<ExecRow, ExecRow>> keyRows;
+
     private long numRowsSeen = 0L;
     //
     // constructors
@@ -314,6 +315,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
             if (ps.datasetProcessorType() != null) {
                 setDatasetProcessorType(ps.datasetProcessorType().ordinal());
             }
+            if (ps.sparkExecutionType() != null) {
+                setSparkExecutionType(ps.sparkExecutionType().ordinal());
+            }
 
             // Initialize the parameter set to have allocated
             // DataValueDescriptor objects for each parameter.
@@ -394,7 +398,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      */
     public void reset() throws StandardException
     {
-        if (resultSet != null)
+        if (resultSet != null && !resultSet.isClosed())
             resultSet.close();
 
         updateHeapCC = null;
@@ -511,8 +515,17 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return DataSetProcessorType.values()[datasetProcessorType];
     }
 
+    @Override
+    public SparkExecutionType sparkExecutionType() {
+        return SparkExecutionType.values()[sparkExecutionType];
+    }
+
     public void setDatasetProcessorType(int datasetProcessorType) {
         this.datasetProcessorType = datasetProcessorType;
+    }
+
+    public void setSparkExecutionType(int sparkExecutionType) {
+        this.sparkExecutionType = sparkExecutionType;
     }
 
     /**
@@ -1235,7 +1248,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      * context via its parent activation.
      * @see com.splicemachine.db.iapi.sql.Activation#getSQLSessionContextForChildren
      */
-    public SQLSessionContext getSQLSessionContextForChildren() throws StandardException {
+    public SQLSessionContext getSQLSessionContextForChildren() {
         SQLSessionContext sessionContext = this.sqlSessionContextForChildren;
         if (sessionContext == null) {
             // if child session context not existent here, try parent.
@@ -1253,7 +1266,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * @see com.splicemachine.db.iapi.sql.Activation#setupSQLSessionContextForChildren
      */
-    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException {
+    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) {
 
         if (push) {
             // Nested connection, so need to push a new context: SQL 2003,
@@ -1698,6 +1711,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     public ExecRow getScanStartOverride() {
         return scanStartOverride;
+    }
+
+    public void setKeyRows(List<Pair<ExecRow, ExecRow>> keyRows) {
+        this.keyRows = keyRows;
+    }
+
+    public List<Pair<ExecRow, ExecRow>> getKeyRows() {
+        return keyRows;
     }
 
     public void setScanStopOverride(ExecRow scanStopOverride) {

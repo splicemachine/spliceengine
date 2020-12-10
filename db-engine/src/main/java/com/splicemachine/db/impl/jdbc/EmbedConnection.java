@@ -33,7 +33,6 @@ package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
@@ -2909,7 +2908,7 @@ public abstract class EmbedConnection implements EngineConnection
      * current schema for piggy-backing
      * @return the current schema name
      */
-    public String getCurrentSchemaName() throws StandardException {
+    public String getCurrentSchemaName() {
         return getLanguageConnection().getCurrentSchemaName();
     }
     
@@ -2968,8 +2967,6 @@ public abstract class EmbedConnection implements EngineConnection
             try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 return lcc.getCurrentSchemaName();
-            } catch (StandardException e) {
-                throw PublicAPI.wrapStandardException(e);
             } finally {
                 restoreContextStack();
             }

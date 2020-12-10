@@ -254,6 +254,11 @@ public class TestingFileSystem extends DistributedFileSystem{
             return Files.exists(p);
         }
 
+        @Override
+        public FileInfo[] listRecursive(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
     }
 }
 

@@ -32,10 +32,7 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.types.BooleanDataValue;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
+import com.splicemachine.db.iapi.types.*;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -520,5 +517,10 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     @Override
     public void setSparkObject(Object sparkObject) throws StandardException {
         dvd.setSparkObject(sparkObject);
+    }
+
+    public void setValueForSbcsData(DataValueDescriptor theValue) throws StandardException
+    {
+        dvd.setValueForSbcsData(theValue);
     }
 }

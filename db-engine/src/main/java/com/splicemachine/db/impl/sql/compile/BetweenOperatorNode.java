@@ -32,11 +32,11 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 
 /**
  * A BetweenOperatorNode represents a BETWEEN clause. The between values are
@@ -179,9 +179,6 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 								PredicateList outerPredicateList) 
 					throws StandardException
 	{
-		ValueNode	leftClone1;
-		ValueNode	rightOperand;
-
 		/* We must 1st preprocess the component parts */
 		super.preprocess(numTables,
 						 outerFromList, outerSubqueryList,
@@ -196,11 +193,27 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 			return this;
 		}
 
+		return translateToGEAndLE();
+	}
+
+	public AndNode translateToGEAndLE() throws StandardException {
+		ValueNode	leftClone1;
+
 		/* For some unknown reason we need to clone the leftOperand if it is
 		 * a ColumnReference because reusing them in Qualifiers for a scan
-		 * does not work.  
+		 * does not work.
+		 *
+		 * But in case of an index expression, if the index is covering, the
+		 * left operand is eventually replaced by a column reference.
+		 * If the index is not covering, we don't actually use the information
+		 * from the underlying base column reference in code generation. So
+		 * directly using left operand should be fine.
 		 */
-		leftClone1 = getLeftOperand().getClone();
+		if (getLeftOperand() instanceof ColumnReference) {
+			leftClone1 = getLeftOperand().getClone();
+		} else {
+			leftClone1 = getLeftOperand();
+		}
 
 		/* The transformed tree has to be normalized:
 		 *				AND
@@ -213,16 +226,16 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		NodeFactory nodeFactory = getNodeFactory();
 		ContextManager cm = getContextManager();
 
-        QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-											C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-											Boolean.TRUE,
-											cm);
+		QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
+				C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+				Boolean.TRUE,
+				cm);
 
 		/* Create the AND <= */
-		BinaryComparisonOperatorNode lessEqual = 
-			(BinaryComparisonOperatorNode) nodeFactory.getNode(
+		BinaryComparisonOperatorNode lessEqual =
+				(BinaryComparisonOperatorNode) nodeFactory.getNode(
 						C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
-						leftClone1, 
+						leftClone1,
 						rightOperandList.elementAt(1),
 						cm);
 
@@ -232,19 +245,19 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 
 		/* Create the AND */
 		AndNode newAnd = (AndNode) nodeFactory.getNode(
-												C_NodeTypes.AND_NODE,
-												lessEqual,
-												trueNode,
-												cm);
+				C_NodeTypes.AND_NODE,
+				lessEqual,
+				trueNode,
+				cm);
 		newAnd.postBindFixup();
 
 		/* Create the AND >= */
-		BinaryComparisonOperatorNode greaterEqual = 
-			(BinaryComparisonOperatorNode) nodeFactory.getNode(
-					C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-					getLeftOperand(),
-					rightOperandList.elementAt(0),
-					cm);
+		BinaryComparisonOperatorNode greaterEqual =
+				(BinaryComparisonOperatorNode) nodeFactory.getNode(
+						C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
+						getLeftOperand(),
+						rightOperandList.elementAt(0),
+						cm);
 
 		/* Set type info for the operator node */
 		greaterEqual.bindComparisonOperator();
@@ -252,10 +265,10 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 
 		/* Create the AND */
 		newAnd = (AndNode) nodeFactory.getNode(
-												C_NodeTypes.AND_NODE,
-												greaterEqual,
-												newAnd,
-												cm);
+				C_NodeTypes.AND_NODE,
+				greaterEqual,
+				newAnd,
+				cm);
 		newAnd.postBindFixup();
 
 		/* Tell optimizer to use the between selectivity instead of >= * <= selectivities */
@@ -263,6 +276,16 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		greaterEqual.setBetweenSelectivity();
 
 		return newAnd;
+	}
+
+	public boolean compareWithKnownConstant(boolean considerParameters) {
+		for (Object node : rightOperandList) {
+			ValueNode value = (ValueNode) node;
+			if (!value.isKnownConstant(considerParameters)) {
+				return false;
+			}
+		}
+		return true;
 	}
  
 	/**
@@ -326,11 +349,5 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 												cm);
 		newAnd.postBindFixup();
 		newAnd.generateExpression(acb, mb);
-	}
-	
-	public int hashCode(){
-		int result = getLeftOperand()==null? 0: getLeftOperand().hashCode();
-		result = 31*result+(rightOperandList==null?0:rightOperandList.hashCode());
-		return result;
 	}
 }

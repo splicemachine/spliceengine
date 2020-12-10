@@ -17,10 +17,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -42,12 +41,15 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static com.splicemachine.EngineDriver.*;
 
 /**
  *
@@ -74,9 +76,12 @@ public class StoreCostControllerImpl implements StoreCostController {
     private final double closeLatency;
     private final double fallbackNullFraction;
     private final double extraQualifierMultiplier;
-    private int missingPartitions;
-    private final TableStatistics tableStatistics;
-    private final boolean useRealTableStatistics;
+    private int missingTablePartitions;
+    private int missingExprIndexPartitions;
+    private TableStatistics tableStatistics;
+    private boolean useRealTableStatistics;
+    private TableStatistics exprIndexStatistics;
+    private boolean useRealExpressionBasedIndexStatistics;
     private final double fallbackLocalLatency;
     private final double fallbackRemoteLatencyRatio;
     private final ExecRow baseTableRow;
@@ -85,17 +90,28 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private int requestedSplits;
+
+    // The number of parallel Spark tasks that would run concurrently
+    // to access this table.
+    private int parallelism = 1;
 
 
-    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td,
+                                   ConglomerateDescriptor conglomerateDescriptor,
+                                   List<PartitionStatisticsDescriptor> tablePartitionStatistics,
+                                   List<PartitionStatisticsDescriptor> exprIndexPartitionStatistics,
+                                   long defaultRowCount,
+                                   int requestedSplits) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
+        this.requestedSplits = requestedSplits;
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
         fallbackNullFraction = config.getFallbackNullFraction();
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =config.getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
-        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+
         baseTableRow = td.getEmptyExecRow();
         if (conglomerateDescriptor.getIndexDescriptor() != null &&
             conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor() != null)
@@ -107,49 +123,77 @@ public class StoreCostControllerImpl implements StoreCostController {
         } else {
             conglomerateColumns = (conglomerateDescriptor.getColumnNames() == null) ? 2 : conglomerateDescriptor.getColumnNames().length;
         }
-        byte[] table = Bytes.toBytes(tableId);
 
         isSampleStats = false;
         sampleFraction = 0.0d;
-        if (!partitionStatistics.isEmpty()) {
-            int statsType = partitionStatistics.get(0).getStatsType();
+        if (!tablePartitionStatistics.isEmpty()) {
+            int statsType = tablePartitionStatistics.get(0).getStatsType();
             isSampleStats = statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
             isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.FAKE_MERGED_STATS;
             if (isSampleStats)
-                sampleFraction = partitionStatistics.get(0).getSampleFraction();
+                sampleFraction = tablePartitionStatistics.get(0).getSampleFraction();
         }
 
-        List<Partition> partitions = new ArrayList<>();
+        missingTablePartitions = 0;
+        missingExprIndexPartitions = 0;
+        setTableStatistics(td, tablePartitionStatistics, defaultRowCount);
+        setExpressionBasedIndexStatistics(conglomerateDescriptor, exprIndexPartitionStatistics, defaultRowCount);
+    }
+
+    private List<PartitionStatistics> collectPartitionStatistics(boolean forExprIndex,
+                                                                 boolean isExternalTable,
+                                                                 byte[] congId,
+                                                                 List<PartitionStatisticsDescriptor> partitionStatistics,
+                                                                 List<Partition> partitions)
+            throws StandardException
+    {
         List<PartitionStatistics> partitionStats;
-        if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE && !isMergedStats) {
-            getPartitions(table, partitions, false);
-            assert partitions != null && !partitions.isEmpty() : "No Partitions returned";
+        assert partitions != null;
+        partitions.clear();
+        if ((forExprIndex || !isExternalTable) && !isMergedStats) {
+            getPartitions(congId, partitions, false);
+            assert !partitions.isEmpty() : "No Partitions returned";
             List<String> partitionNames = Lists.transform(partitions, partitionNameTransform);
-            LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
             Map<String, PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics, partitionStatisticsTransform);
             if (partitions.size() < partitionStatistics.size()) {
                 // reload if partition cache contains outdated data for this table
                 partitions.clear();
-                getPartitions(table, partitions, true);
+                getPartitions(congId, partitions, true);
             }
             partitionStats = new ArrayList<>(partitions.size());
             PartitionStatisticsDescriptor tStats;
 
-
             for (String partitionName : partitionNames) {
                 tStats = partitionMap.get(partitionName);
                 if (tStats == null) {
-                    missingPartitions++;
+                    if (forExprIndex)
+                        missingExprIndexPartitions++;
+                    else
+                        missingTablePartitions++;
                     continue; //skip missing partitions entirely
                 }
-                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction,extraQualifierMultiplier));
+                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction, extraQualifierMultiplier));
             }
         } else {
             partitionStats = new ArrayList<>(partitionStatistics.size());
             for (PartitionStatisticsDescriptor tStats : partitionStatistics) {
-                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction,extraQualifierMultiplier));
+                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction, extraQualifierMultiplier));
             }
         }
+        return partitionStats;
+    }
+
+    private void setTableStatistics(TableDescriptor td,
+                                    List<PartitionStatisticsDescriptor> partitionStatistics,
+                                    long defaultRowCount)
+            throws StandardException
+    {
+        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+        byte[] table = Bytes.toBytes(tableId);
+
+        List<Partition> partitions = new ArrayList<>();
+        List<PartitionStatistics> partitionStats =
+                collectPartitionStatistics(false, td.getTableType() == TableDescriptor.EXTERNAL_TYPE, table, partitionStatistics, partitions);
 
         /*
          * We cannot have *zero* completely populated items unless we have no column statistics, but in that case
@@ -157,7 +201,7 @@ public class StoreCostControllerImpl implements StoreCostController {
          * what to do
          */
         if (partitionStats.isEmpty()) {
-            missingPartitions = 0;
+            missingTablePartitions = 0;
             noStats = true;
             if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE)
                 tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier, defaultRowCount);
@@ -183,6 +227,46 @@ public class StoreCostControllerImpl implements StoreCostController {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
             useRealTableStatistics = true;
         }
+
+        long tableSize = tableStatistics.rowCount() * tableStatistics.avgRowWidth();
+        if (isMemPlatform())
+            parallelism = 1;
+        else {
+            if (requestedSplits > 0)
+                parallelism = requestedSplits;
+            else
+                parallelism = EngineDriver.getNumSplits(tableSize, getNumPartitions());
+            if (parallelism > getMaxExecutorCores())
+                parallelism = getMaxExecutorCores();
+        }
+    }
+
+    private void setExpressionBasedIndexStatistics(ConglomerateDescriptor cd,
+                                                   List<PartitionStatisticsDescriptor> partitionStatistics,
+                                                   long defaultRowCount)
+            throws StandardException
+    {
+        IndexRowGenerator irg = cd.getIndexDescriptor();
+        if (irg == null || irg.getIndexDescriptor() == null || !irg.isOnExpression()) {
+            return;
+        }
+
+        String congId = Long.toString(cd.getConglomerateNumber());
+        byte[] index = Bytes.toBytes(congId);
+
+        List<Partition> partitions = new ArrayList<>();
+        List<PartitionStatistics> partitionStats =
+                collectPartitionStatistics(true, false, index, partitionStatistics, partitions);
+
+        if (partitionStats.isEmpty()) {
+            // use fake statistics
+            missingExprIndexPartitions = 0;
+            exprIndexStatistics = RegionLoadStatistics.getTableStatistics(congId, partitions, fallbackNullFraction, extraQualifierMultiplier, defaultRowCount);
+            useRealExpressionBasedIndexStatistics = false;
+        } else {
+            exprIndexStatistics = new TableStatisticsImpl(congId, partitionStats, fallbackNullFraction, extraQualifierMultiplier);
+            useRealExpressionBasedIndexStatistics = true;
+        }
     }
 
     @Override
@@ -191,8 +275,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public void getFetchFromFullKeyCost(BitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
-                /*
+    public void getFetchFromFullKeyCost(boolean forExprIndex, BitSet validColumns, int access_type, CostEstimate cost) {
+        /*
          * This is the cost to read a single row from a PK or indexed table (without any associated index lookups).
          * Since we know the full key, we have two scenarios:
          *
@@ -206,13 +290,14 @@ public class StoreCostControllerImpl implements StoreCostController {
          * assuming just a single row here
          */
         double columnSizeFactor = conglomerateColumnSizeFactor(validColumns);
+        int avgRowWidth = forExprIndex ? exprIndexStatistics.avgRowWidth() : tableStatistics.avgRowWidth();
 
-        cost.setRemoteCost(getRemoteLatency()*columnSizeFactor*tableStatistics.avgRowWidth());
+        cost.setRemoteCost(getRemoteLatency()*columnSizeFactor*avgRowWidth);
         cost.setLocalCost(fallbackLocalLatency);
-        cost.setEstimatedHeapSize((long) columnSizeFactor*tableStatistics.avgRowWidth());
+        cost.setEstimatedHeapSize((long) columnSizeFactor*avgRowWidth);
         cost.setNumPartitions(1);
-        cost.setRemoteCostPerPartition(cost.remoteCost());
-        cost.setLocalCostPerPartition(cost.localCost());
+        cost.setRemoteCostPerParallelTask(cost.remoteCost());
+        cost.setLocalCostPerParallelTask(cost.localCost());
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(openLatency);
         cost.setCloseCost(closeLatency);
@@ -224,13 +309,17 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public RowLocation newRowLocationTemplate() throws StandardException {
+    public RowLocation newRowLocationTemplate() {
         return null;
     }
 
     @Override
-    public double getSelectivity(int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop, boolean useExtrapolation) {
-        return tableStatistics.rangeSelectivity(start,stop,includeStart,includeStop,columnNumber-1, useExtrapolation);
+    public double getSelectivity(boolean fromExprIndex, int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop, boolean useExtrapolation) {
+        if (fromExprIndex) {
+            return exprIndexStatistics.rangeSelectivity(start, stop, includeStart, includeStop, columnNumber - 1, useExtrapolation);
+        } else {
+            return tableStatistics.rangeSelectivity(start, stop, includeStart, includeStop, columnNumber - 1, useExtrapolation);
+        }
     }
 
     @Override
@@ -239,9 +328,9 @@ public class StoreCostControllerImpl implements StoreCostController {
         double rowCnt = tableStatistics.rowCount();
         if (isSampleStats)
             rowCnt = rowCnt/sampleFraction;
-        if (missingPartitions > 0) {
+        if (missingTablePartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0 ";
-            return rowCnt + rowCnt * ((double)missingPartitions / tableStatistics.numPartitions());
+            return rowCnt + rowCnt * ((double) missingTablePartitions / tableStatistics.numPartitions());
         }
         else
             return rowCnt;
@@ -249,21 +338,36 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     @SuppressFBWarnings(value = "ICAST_IDIV_CAST_TO_DOUBLE", justification = "DB-9844")
-    public double nonNullCount(int columnNumber) {
-        double notNullCount = tableStatistics.notNullCount(columnNumber - 1);
+    public double nonNullCount(boolean fromExprIndex, int columnNumber) {
+        double notNullCount;
+        if (fromExprIndex) {
+            notNullCount = exprIndexStatistics.notNullCount(columnNumber - 1);
+        } else {
+            notNullCount = tableStatistics.notNullCount(columnNumber - 1);
+        }
         if (isSampleStats)
             notNullCount = notNullCount/sampleFraction;
+
+        int numPartitions = fromExprIndex ? exprIndexStatistics.numPartitions() : tableStatistics.numPartitions();
+        int missingPartitions = fromExprIndex ? missingExprIndexPartitions : missingTablePartitions;
         if (missingPartitions > 0) {
-            assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-            return notNullCount + notNullCount * ((double)missingPartitions / tableStatistics.numPartitions());
+            assert numPartitions > 0: "Number of partitions cannot be 0";
+            return notNullCount + notNullCount * ((double) missingPartitions / numPartitions);
         } else
             return notNullCount;
     }
 
     @Override
-    public double nullSelectivity(int columnNumber) {
-        long rowCount = tableStatistics.rowCount();
-        long nonNullCount = tableStatistics.notNullCount(columnNumber-1);
+    public double nullSelectivity(boolean fromExprIndex, int columnNumber) {
+        long rowCount;
+        long nonNullCount;
+        if (fromExprIndex) {
+            rowCount = exprIndexStatistics.rowCount();
+            nonNullCount = exprIndexStatistics.notNullCount(columnNumber-1);
+        } else {
+            rowCount = tableStatistics.rowCount();
+            nonNullCount = tableStatistics.notNullCount(columnNumber-1);
+        }
         // If a column has null values for all rows, set its null selectivity to be slightly less than 1 to prevent
         // nonnull selectivity from being 0.
         if (rowCount == 0)
@@ -272,23 +376,23 @@ public class StoreCostControllerImpl implements StoreCostController {
             return (double)(rowCount - 1) / (double)rowCount;
         else
             return (double)(rowCount - nonNullCount) / (double)rowCount;
-
-
     }
 
     @Override
-    public long cardinality(int columnNumber) {
+    public long cardinality(boolean fromExprIndex, int columnNumber) {
+        int numPartitions = fromExprIndex ? exprIndexStatistics.numPartitions() : tableStatistics.numPartitions();
+        int missingPartitions = fromExprIndex ? missingExprIndexPartitions : missingTablePartitions;
         if (missingPartitions > 0)
-            assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-        /** Even when there are partitions with missing stats, we can still assume that these partitions
+            assert numPartitions > 0: "Number of partitions cannot be 0";
+        /* Even when there are partitions with missing stats, we can still assume that these partitions
          *  do not contribute more unique values, thus have the same cardinality as the rest partitions
-         */
-        /** Currently, we assume naively that with sample stats, we also see all the distinct values, so there is no
+         *
+         * Currently, we assume naively that with sample stats, we also see all the distinct values, so there is no
          * need to scale based on sample fraction.
          * Possible enhancement is to take into consideration the property of columns (e.g., is it distinct, is it boolean)
          * to determine the extrapolation logic.
          */
-        return tableStatistics.cardinality(columnNumber-1);
+        return fromExprIndex ? exprIndexStatistics.cardinality(columnNumber-1) : tableStatistics.cardinality(columnNumber-1);
     }
 
     @Override
@@ -312,9 +416,9 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public double baseTableColumnSizeFactor(BitSet validColumns) {
+    public double baseTableColumnSizeFactor(int numValidColumns) {
         assert baseTableRow.nColumns() > 0: "Base Table N Columns cannot be 0";
-        return ( (double) validColumns.cardinality())/ ((double) baseTableRow.nColumns());
+        return ((double) numValidColumns)/ ((double) baseTableRow.nColumns());
     }
 
     @Override
@@ -339,9 +443,13 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public int getNumPartitions() {
-        return missingPartitions+tableStatistics.numPartitions();
+        return missingTablePartitions +tableStatistics.numPartitions();
     }
 
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
 
     @Override
     public double baseRowCount() {
@@ -349,13 +457,21 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public DataValueDescriptor minValue(int columnNumber) {
-        return tableStatistics.minValue(columnNumber-1);
+    public DataValueDescriptor minValue(boolean fromExprIndex, int columnNumber) {
+        if (fromExprIndex) {
+            return exprIndexStatistics.minValue(columnNumber-1);
+        } else {
+            return tableStatistics.minValue(columnNumber - 1);
+        }
     }
 
     @Override
-    public DataValueDescriptor maxValue(int columnNumber) {
-        return tableStatistics.maxValue(columnNumber-1);
+    public DataValueDescriptor maxValue(boolean fromExprIndex, int columnNumber) {
+        if (fromExprIndex) {
+            return exprIndexStatistics.maxValue(columnNumber-1);
+        } else {
+            return tableStatistics.maxValue(columnNumber - 1);
+        }
     }
 
     @Override
@@ -395,8 +511,12 @@ public class StoreCostControllerImpl implements StoreCostController {
         }
     }
 
-    public double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value) {
-        return tableStatistics.selectivityExcludingValueIfSkewed(value, columnNumber-1);
+    public double getSelectivityExcludingValueIfSkewed(boolean fromIndexExpr, int columnNumber, DataValueDescriptor value) {
+        if (fromIndexExpr) {
+            return exprIndexStatistics.selectivityExcludingValueIfSkewed(value, columnNumber - 1);
+        } else {
+            return tableStatistics.selectivityExcludingValueIfSkewed(value, columnNumber - 1);
+        }
     }
 
     @Override
@@ -405,10 +525,18 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public boolean useRealColumnStatistics(int columnNumber) {
-        if (!useRealTableStatistics || columnNumber <= 0)  // rowid column number == 0
+    public boolean useRealExpressionBasedIndexStatistics() {
+        return useRealExpressionBasedIndexStatistics;
+    }
+
+    @Override
+    public boolean useRealColumnStatistics(boolean fromExprIndex, int columnNumber) {
+        boolean useRealStats = fromExprIndex ? useRealExpressionBasedIndexStatistics : useRealTableStatistics;
+        TableStatistics stats = fromExprIndex ? exprIndexStatistics : tableStatistics;
+
+        if (!useRealStats || columnNumber <= 0)  // rowid column number == 0
             return false;
-        PartitionStatistics ps = tableStatistics.getPartitionStatistics().get(0);
+        PartitionStatistics ps = stats.getPartitionStatistics().get(0);
         return ps.getColumnStatistics(columnNumber - 1) != null;
     }
 }

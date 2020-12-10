@@ -168,6 +168,10 @@ use your data disks.
             <td><code>Java Heap Size of DataNode in Bytes</code></td>
             <td><code>2 GB</code></td>
         </tr>
+        <tr>
+            <td><code>Minimal Block Replication</code></td>
+            <td><code>2</code></td>
+        </tr>
     </tbody>
    </table>
 

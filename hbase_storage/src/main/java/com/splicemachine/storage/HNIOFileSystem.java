@@ -35,7 +35,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static com.google.common.collect.Iterables.toArray;
+import static splice.com.google.common.collect.Iterables.toArray;
 
 /**
  * @author Scott Fines
@@ -174,6 +174,27 @@ public class HNIOFileSystem extends DistributedFileSystem{
             {
                 this.fileStatus = null;
             }
+        }
+
+        public HFileInfo(FileStatus fileStatus) {
+            this.fileStatus = fileStatus;
+            this.path = fileStatus.getPath();
+        }
+
+        @Override
+        public FileInfo[] listRecursive() {
+            if( !exists() ) return new FileInfo[] {};
+            if( !isDirectory() ) return new FileInfo[] { this };
+            try {
+                listRoot();
+            } catch (IOException e) {
+                return new FileInfo[] {};
+            }
+            FileInfo[] res = new FileInfo[rootFileStatusList.size()];
+            for( int i=0; i < rootFileStatusList.size(); i++ ) {
+                res[i] = new HFileInfo(rootFileStatusList.get(i));
+            }
+            return res;
         }
 
         // these two methods are to avoid having to re-calculate the list of files in the directory

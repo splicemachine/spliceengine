@@ -54,7 +54,7 @@ public class OperationManagerImpl implements OperationManager {
             drdaOperations.remove(ro.getRdbIntTkn());
     }
 
-    public List<Pair<UUID, RunningOperation>> runningOperations(String userId) throws StandardException {
+    public List<Pair<UUID, RunningOperation>> runningOperations(String userId) {
         List<Pair<UUID, RunningOperation>> result = new ArrayList<>(operations.size());
         for (Map.Entry<UUID, RunningOperation> entry : operations.entrySet()) {
             Activation activation = entry.getValue().getOperation().getActivation();

@@ -55,7 +55,7 @@ import java.util.*;
  *         Created on: 2/22/13
  */
 public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator,ModuleControl {
-    private static final String SYSTEM_PROCEDURES = "com.splicemachine.db.catalog.SystemProcedures";
+    public static final String SYSTEM_PROCEDURES = "com.splicemachine.db.catalog.SystemProcedures";
     private static final String LOB_STORED_PROCEDURE = "com.splicemachine.db.impl.jdbc.LOBStoredProcedure";
 
     private static final DataTypeDescriptor TYPE_SYSTEM_IDENTIFIER =
@@ -435,7 +435,13 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES)
                     .build()
             ,
-            Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
+            Procedure.newBuilder().name("SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_EMPTY_STORED_STATEMENT_CACHE")
                     .numOutputParams(0).numResultSets(0).modifiesSql()
                     .returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)

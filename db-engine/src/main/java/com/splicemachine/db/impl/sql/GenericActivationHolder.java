@@ -35,6 +35,7 @@ import    com.splicemachine.db.catalog.Dependable;
 import    com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -600,11 +601,11 @@ final public class GenericActivationHolder implements Activation
         return ac.getTargetVTI();
     }
 
-    public SQLSessionContext getSQLSessionContextForChildren() throws StandardException {
+    public SQLSessionContext getSQLSessionContextForChildren() {
         return ac.getSQLSessionContextForChildren();
     }
 
-    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException {
+    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) {
         return ac.setupSQLSessionContextForChildren(push);
     }
 
@@ -860,6 +861,11 @@ final public class GenericActivationHolder implements Activation
     @Override
     public DataSetProcessorType datasetProcessorType() {
         return ac.datasetProcessorType();
+    }
+
+    @Override
+    public SparkExecutionType sparkExecutionType() {
+        return ac.sparkExecutionType();
     }
 
 	@Override

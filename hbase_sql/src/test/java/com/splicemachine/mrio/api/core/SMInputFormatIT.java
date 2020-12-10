@@ -130,16 +130,17 @@ public class SMInputFormatIT extends BaseMRIOTest {
         config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherA.toString());
         config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherA.toString());
         config.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, String.valueOf(classWatcher.getConglomId(tableWatcherA.tableName, tableWatcherA.getSchema())));
-        Job job = Job.getInstance(config, "Test Scan");
-        JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
-        List<Tuple2<RowLocation, ExecRow>> data = table.collect();
-        int i = 0;
-        for (Tuple2<RowLocation, ExecRow> tuple: data) {
-            i++;
-            Assert.assertNotNull(tuple._1());
-            Assert.assertNotNull(tuple._2());
+        try(Job job = Job.getInstance(config, "Test Scan")) {
+            JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
+            List<Tuple2<RowLocation, ExecRow>> data = table.collect();
+            int i = 0;
+            for (Tuple2<RowLocation, ExecRow> tuple : data) {
+                i++;
+                Assert.assertNotNull(tuple._1());
+                Assert.assertNotNull(tuple._2());
+            }
+            Assert.assertEquals("Incorrect Results Returned", 2, i);
         }
-        Assert.assertEquals("Incorrect Results Returned", 2,i);
     }
 
     @Test
@@ -147,17 +148,17 @@ public class SMInputFormatIT extends BaseMRIOTest {
         config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherB.toString());
         config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
         config.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, String.valueOf(classWatcher.getConglomId(tableWatcherB.tableName, tableWatcherB.getSchema())));
-        Job job = Job.getInstance(config, "Test Scan");
-        JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
-        List<Tuple2<RowLocation, ExecRow>> data = table.collect();
-        int i = 0;
-        for (Tuple2<RowLocation, ExecRow> tuple: data) {
-            i++;
-            Assert.assertNotNull(tuple._1());
-            Assert.assertNotNull(tuple._2());
+        try(Job job = Job.getInstance(config, "Test Scan")) {
+            JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
+            List<Tuple2<RowLocation, ExecRow>> data = table.collect();
+            int i = 0;
+            for (Tuple2<RowLocation, ExecRow> tuple : data) {
+                i++;
+                Assert.assertNotNull(tuple._1());
+                Assert.assertNotNull(tuple._2());
+            }
+            Assert.assertEquals("Incorrect Results Returned", 10000, i);
         }
-        Assert.assertEquals("Incorrect Results Returned", 10000,i);
-
     }
 
     private void executeQueryAndAssert(String query, int expected) throws SQLException {
@@ -202,9 +203,10 @@ public class SMInputFormatIT extends BaseMRIOTest {
         config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherB.toString());
         config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
         config.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, String.valueOf(classWatcher.getConglomId(tableWatcherB.tableName, tableWatcherB.getSchema())));
-        Job job = Job.getInstance(config, "Test Scan");
-        JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormatFail.class, RowLocation.class, ExecRow.class);
-        List<Tuple2<RowLocation, ExecRow>> data = table.collect();
+        try(Job job = Job.getInstance(config, "Test Scan")) {
+            JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormatFail.class, RowLocation.class, ExecRow.class);
+            table.collect();
+        }
     }
 
 }

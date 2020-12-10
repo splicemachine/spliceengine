@@ -31,22 +31,18 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A StaticClassFieldReferenceNode represents a Java static field reference from 
@@ -254,5 +250,24 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode {
     @Override
     public void setChild(int index, QueryTreeNode newValue) {
         assert false;
+    }
+
+    @Override
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) {
+        if (o instanceof StaticClassFieldReferenceNode) {
+            StaticClassFieldReferenceNode other = (StaticClassFieldReferenceNode) o;
+            return javaClassName.equals(other.javaClassName) &&
+                    fieldName.equals(other.fieldName) &&
+                    Modifier.isFinal(field.getModifiers());
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + javaClassName.hashCode();
+        result = 31 * result + fieldName.hashCode();
+        return Objects.hash(result, field.getModifiers());
     }
 }

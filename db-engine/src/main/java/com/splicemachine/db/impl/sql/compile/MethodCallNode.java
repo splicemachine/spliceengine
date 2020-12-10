@@ -54,6 +54,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import java.lang.reflect.Member;
 import java.sql.ResultSet;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A MethodCallNode represents a Java method call.  Method calls can be done
@@ -102,6 +104,15 @@ abstract class MethodCallNode extends JavaValueNode
         The parameter types for the resolved method.
     */
     String[] methodParameterTypes;
+
+    private static final Set<String> deterministicBuiltInFunctions = Stream.of(
+            "abs", "absval", "ceil", "ceiling", "exp", "floor", "ln", "log",
+            "log10", "mod", "round", "sign", "sqrt", "trunc", "truncate",
+            "initcap", "instr", "lcase", "lower", "locate", "ltrim", "regexp_like",
+            "repeat", "replace", "rtrim", "substr", "trim", "ucase", "upper",
+            "acos", "asin", "atan", "atan2", "cos", "cosh", "cot", "degrees",
+            "pi", "radians", "sin", "sinh", "tan", "tanh"
+    ).collect(Collectors.toCollection(HashSet::new));
 
     /**
      * Initializer for a MethodCallNode
@@ -1360,5 +1371,36 @@ abstract class MethodCallNode extends JavaValueNode
                 return false;
         }
         return true;
+    }
+
+    @Override
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) throws StandardException {
+        if (o != null && getNodeType() == o.getNodeType()) {
+            MethodCallNode other = (MethodCallNode) o;
+            if (javaClassName.equals(other.javaClassName) &&
+                    methodName.equals(other.methodName) &&
+                    methodParms.length == other.methodParms.length) {
+                boolean match = true;
+                for (int i = 0; i < methodParms.length; i++) {
+                    if (!methodParms[i].isSemanticallyEquivalent(other.methodParms[i])) {
+                        match = false;
+                        break;
+                    }
+                }
+                return match && deterministicBuiltInFunctions.contains(methodName.toLowerCase());
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + javaClassName.hashCode();
+        result = 31 * result + methodName.hashCode();
+        for (JavaValueNode methodParm : methodParms) {
+            result = 31 * result + methodParm.hashCode();
+        }
+        return Objects.hash(result, deterministicBuiltInFunctions.contains(methodName.toLowerCase()));
     }
 }

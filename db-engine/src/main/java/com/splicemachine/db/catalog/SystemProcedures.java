@@ -48,17 +48,23 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.load.Import;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import com.splicemachine.utils.StringUtils;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.net.HostAndPort;
 
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.Policy;
 import java.security.PrivilegedAction;
 import java.sql.*;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
@@ -1536,13 +1542,29 @@ public class SystemProcedures{
      * Invalidate all the stored statements so they will get recompiled when
      * executed next time around.
      */
-    public static void SYSCS_INVALIDATE_STORED_STATEMENTS()
+    public static void SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS()
             throws SQLException{
         try{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
 
             dd.invalidateAllSPSPlans(lcc);
+        }catch(StandardException se){
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    public static void SYSCS_EMPTY_STORED_STATEMENT_CACHE()
+            throws SQLException{
+        try{
+            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+            DataDictionary dd=lcc.getDataDictionary();
+
+            DataDictionaryCache dc = dd.getDataDictionaryCache();
+            dc.clearAliasCache();
+            dc.clearSpsNameCache();
+            dc.clearStoredPreparedStatementCache();
+
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
@@ -1863,11 +1885,7 @@ public class SystemProcedures{
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }catch(StandardException se){
-            status = false;
-            reason = se.getMessage();
-            throw PublicAPI.wrapStandardException(se);
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.RESET_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
@@ -1931,11 +1949,7 @@ public class SystemProcedures{
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }catch(StandardException se){
-            status = false;
-            reason = se.getMessage();
-            throw PublicAPI.wrapStandardException(se);
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.MODIFY_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }

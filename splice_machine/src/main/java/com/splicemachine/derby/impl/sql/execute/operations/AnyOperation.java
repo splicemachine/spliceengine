@@ -15,13 +15,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -89,20 +88,6 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     public SpliceOperation getLeftOperation() {
         return source;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeUTF(emptyRowFunName);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        emptyRowFunName = in.readUTF();
     }
 
     @Override
@@ -176,5 +161,10 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
         throw e;
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

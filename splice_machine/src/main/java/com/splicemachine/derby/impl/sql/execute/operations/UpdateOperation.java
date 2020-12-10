@@ -42,10 +42,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
@@ -80,9 +76,10 @@ public class UpdateOperation extends DMLWriteOperation{
 
     public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost,String tableVersion)
+                           double optimizerEstimatedCost,String tableVersion, String fromTableDmlSpsDescriptorAsString)
             throws StandardException, IOException{
-        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
+              tableVersion, fromTableDmlSpsDescriptorAsString);
         init();
     }
 
@@ -113,7 +110,8 @@ public class UpdateOperation extends DMLWriteOperation{
                     getAfterEvent(getClass()),
                     getHeapList(),
                     getExecRowDefinition(),
-                    getTableVersion()
+                    getTableVersion(),
+                    fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
         }
@@ -178,10 +176,12 @@ public class UpdateOperation extends DMLWriteOperation{
         if (heapListStorage==null) {
             FormatableBitSet heapList = getHeapList();
             int[] storagePositionIds = ((UpdateConstantOperation)writeInfo.getConstantAction()).getStoragePositionIds();
-            heapListStorage = new FormatableBitSet(heapList.getLength());
+            int heapListStorageSize = storagePositionIds[storagePositionIds.length - 1] // largest 0-based storagePosition
+                                      + 1 // to make it 1-based
+                                      + 1; // to get the size of the new container
+            heapListStorage = new FormatableBitSet(heapListStorageSize);
             for(int i=heapList.anySetBit();i>=0;i=heapList.anySetBit(i)) {
                 int storagePos = storagePositionIds[i-1]+1;
-                heapListStorage.grow(storagePos+1);
                 heapListStorage.set(storagePos);
             }
         }
@@ -216,8 +216,9 @@ public class UpdateOperation extends DMLWriteOperation{
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
-            if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+            if (triggerHandler != null) {
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
+            }
 
             DataSetWriter writer=set.updateData(operationContext)
                     .execRowTypeFormatIds(execRowTypeFormatIds)

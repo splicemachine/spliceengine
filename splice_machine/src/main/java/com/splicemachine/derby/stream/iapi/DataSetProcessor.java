@@ -23,6 +23,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructField;
@@ -74,7 +75,7 @@ public interface DataSetProcessor {
      * Creates an operation context for executing a function.
      *
      */
-    <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) throws StandardException;
+    <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation);
 
     /**
      * Creates an operation context based only on the supplied activation
@@ -187,7 +188,9 @@ public interface DataSetProcessor {
      * @param csvOptions
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException;
+    GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+                                                  CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                  StructType partitionColumns) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
@@ -196,23 +199,6 @@ public interface DataSetProcessor {
      * @param location
      */
     void refreshTable(String location);
-    /**
-     *
-     * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
-     *
-     * @param conglomerateId
-     * @param baseColumnMap
-     * @param location
-     * @param context
-     * @param qualifiers
-     * @param probeValue
-     * @param execRow
-     * @param <V>
-     * @return
-     * @throws StandardException
-     */
-    <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
-                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
      *
@@ -229,9 +215,9 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readORCFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                               OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                               boolean useSample, double sampleFraction, boolean statsjob) throws StandardException;
+    <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                               OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                               ExecRow execRow, boolean useSample, double sampleFraction) throws StandardException;
 
     /**
      *
@@ -245,15 +231,6 @@ public interface DataSetProcessor {
                                       String location, OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow,
                                       boolean useSample, double sampleFraction) throws StandardException;
-
-    /**
-     *
-     * Drops the in-memory version of the table.
-     *
-     * @param conglomerateId
-     * @throws StandardException
-     */
-    void dropPinnedTable(long conglomerateId) throws StandardException;
 
 
     /**
@@ -284,4 +261,9 @@ public interface DataSetProcessor {
     // <- End operations related to spark explain.
 
     <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
+
+    boolean isSparkDB2CompatibilityMode();
+
+    void setTempTriggerConglomerate(long conglomID);
+    long getTempTriggerConglomerate();
 }

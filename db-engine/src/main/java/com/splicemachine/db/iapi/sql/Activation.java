@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.sql;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
@@ -58,9 +59,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.utils.Pair;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -85,7 +84,7 @@ import java.util.Hashtable;
  *
  */
 
-public interface Activation extends Dependent
+public interface Activation extends Dependent, AutoCloseable
 {
     /**
      * Resets the activation to the "pre-execution" state -
@@ -605,7 +604,7 @@ public interface Activation extends Dependent
      * Get the current SQL session context if in a nested connection of a
      * stored routine or in a substatement.
      */
-    SQLSessionContext getSQLSessionContextForChildren() throws StandardException;
+    SQLSessionContext getSQLSessionContextForChildren();
 
     /**
      * Set up and return the current SQL session context for all immediately
@@ -615,7 +614,7 @@ public interface Activation extends Dependent
      * (push=false).
      * @param push true if used to push a new connection context
      */
-    SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException;
+    SQLSessionContext setupSQLSessionContextForChildren(boolean push);
 
     /**
      * This activation is created in a dynamic call context or a substatement
@@ -633,6 +632,10 @@ public interface Activation extends Dependent
 
     void materialize() throws StandardException;
 
+    default Vector getSubqueryResultSets() throws StandardException{
+        return null;
+    }
+
     boolean isMaterialized();
 
     boolean isBatched();
@@ -644,6 +647,8 @@ public interface Activation extends Dependent
     void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps);
 
     DataSetProcessorType datasetProcessorType();
+
+    SparkExecutionType sparkExecutionType();
 
     boolean isSubStatement();
 

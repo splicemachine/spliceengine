@@ -42,7 +42,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.JSQLType;
 import com.splicemachine.db.iapi.types.TypeId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.LinkedList;
@@ -54,7 +53,6 @@ import java.util.Vector;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ParameterNode extends ValueNode
 {
 
@@ -526,6 +524,10 @@ public class ParameterNode extends ValueNode
         return this == o;
     }
 
+    public int hashCode() {
+        return System.identityHashCode(this);
+    }
+
     /**
      * Save the received ValueNode locally so that we can generate it
      * (in place of "this") at generation time.  See the preprocess()
@@ -578,5 +580,15 @@ public class ParameterNode extends ValueNode
     @Override
     public boolean isConstantOrParameterTreeNode() {
         return true;
+    }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) {
+        return considerParameters && getDefaultValue() != null;
+    }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return getDefaultValue();
     }
 }

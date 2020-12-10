@@ -61,6 +61,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         private BadRecordsRecorder badRecordsRecorder;
         private boolean failed;
         private int numberBadRecords = 0;
+        private long badRecordThreshold;
+        private String importFileName;
 
     public ControlOperationContext() {
         }
@@ -91,11 +93,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             if(activationHolder==null) {
-                try {
-                    activationHolder = new ActivationHolder(activation, op);
-                } catch (StandardException se) {
-                    throw new IOException(se);
-                }
+                activationHolder = new ActivationHolder(activation, op);
             }
             out.writeObject(activationHolder);
             out.writeInt(op.resultSetNumber());
@@ -347,6 +345,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold) {
         this.permissive=true;
+        this.badRecordThreshold = badRecordThreshold;
+        this.importFileName = importFileName;
         this.badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
     }
 
@@ -382,4 +382,10 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     public ActivationHolder getActivationHolder() {
         return activationHolder;
     }
+
+    @Override
+    public long getBadRecordThreshold() { return badRecordThreshold; }
+
+    @Override
+    public String getImportFileName() { return importFileName; }
 }
