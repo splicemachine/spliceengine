@@ -63,7 +63,7 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
     protected static final String YES_WITHOUT_GRANT_OPTION = "y";
     protected static final String NO = "N";
 
-    protected static final String[][] actionString =
+    private static final String[][] actionString =
             {{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}, {"m", "M"}, {"a", "A"}};
 
     protected boolean[] actionAllowed;
@@ -171,7 +171,6 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
         if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
             if (descriptorList != null) {
                 TransactionController tc = lcc.getTransactionExecute();
-                int siz = descriptorList.size();
                 for (Object aDescriptorList : descriptorList) {
                     TupleDescriptor p;
                     SchemaDescriptor s = null;
