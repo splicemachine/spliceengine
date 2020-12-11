@@ -2024,7 +2024,7 @@ public interface ResultSetFactory {
      * @param resultSetNumber The resultSetNumber for the ResultSet
      */
     NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation,
-                                         int resultSetNumber);
+                                         int resultSetNumber) throws StandardException;
 
     /**
      * The Union interface is used to evaluate the union (all) of two ResultSets.

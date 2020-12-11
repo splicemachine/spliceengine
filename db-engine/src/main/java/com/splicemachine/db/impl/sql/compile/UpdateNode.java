@@ -555,7 +555,7 @@ public final class UpdateNode extends DMLModStatementNode
                 (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
                         COLUMNNAME,
-                        columnReference,
+                        rowIdColumn,
                         getContextManager());
 
         /* Append to the ResultColumnList */
