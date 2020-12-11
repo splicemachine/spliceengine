@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
+import com.splicemachine.derby.impl.sql.execute.operations.CurrentOfResultSetOperation;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -2399,7 +2400,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) {
-        throw new RuntimeException("Not Implemented");
+    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) throws StandardException {
+        return new CurrentOfResultSetOperation(cursorName, activation, resultSetNumber);
     }
 }

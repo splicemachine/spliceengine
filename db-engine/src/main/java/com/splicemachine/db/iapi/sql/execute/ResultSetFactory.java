@@ -1759,7 +1759,17 @@ NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
                                                         int defaultValueMapItem)
         throws StandardException;
 
-NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber);
+    /**
+     * A current of result set forms a result set on the
+     * current row of an open cursor.
+     * It is used to perform positioned operations such as
+     * positioned update and delete, using the result set paradigm.
+     *
+     * @param cursorName      the name of the cursor providing the row.
+     * @param resultSetNumber The resultSetNumber for the ResultSet
+     */
+    NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation,
+                                         int resultSetNumber) throws StandardException;
 
     NoPutResultSet getUnionResultSet(NoPutResultSet source1,
                                      NoPutResultSet source2,
