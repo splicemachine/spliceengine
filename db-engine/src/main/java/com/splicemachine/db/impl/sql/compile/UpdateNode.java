@@ -99,8 +99,9 @@ public final class UpdateNode extends DMLModStatementNode
     public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, ContextManager cm) {
         setContextManager(cm);
         setNodeType(C_NodeTypes.UPDATE_NODE);
+        super.init(resultSet);
+        this.targetTableName = tableName;
         this.cursorUpdate = cursorUpdate;
-        this.init(tableName, resultSet);
     }
 
     /**
