@@ -395,6 +395,9 @@ public class CastNode extends ValueNode
                 case Types.TIMESTAMP:
                     if (destJDBCTypeId == Types.CHAR)
                     {
+                        if(dateToStringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
+                            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+                        }
                         SQLTimestamp dvd = (SQLTimestamp) ((ConstantNode) castOperand).getValue();
                         dvd.setTimestampFormat(getCompilerContext().getTimestampFormat());
                         String castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
