@@ -1599,4 +1599,12 @@ public class ColumnReference extends ValueNode {
         return replacesIndexExpression ? getSource().getSourceConglomerateColumnPosition()
                                        : getSource().getColumnPosition();
     }
+
+    public ResultColumn generateResultColumn() throws StandardException {
+        return (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                this.getColumnName(),
+                this.getClone(),
+                getContextManager());
+    }
 }
