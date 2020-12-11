@@ -112,6 +112,10 @@ public class StatementColumnPermission extends StatementTablePermission
         DataDictionary dd = lcc.getDataDictionary();
         ExecPreparedStatement ps = activation.getPreparedStatement();
 
+        if (lcc.currentUserIsDatabaseOwner(activation)) {
+            return;
+        }
+
         if (hasPermissionOnTable(lcc, activation, forGrant, ps)) {
             return;
         }

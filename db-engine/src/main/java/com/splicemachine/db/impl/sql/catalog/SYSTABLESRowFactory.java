@@ -408,6 +408,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      * @param row                   a SYSTABLES row
      * @param parentTupleDescriptor Null for this kind of descriptor.
      * @param dd                    dataDictionary
+     * @param tc
      * @throws StandardException thrown on failure
      * @return a table descriptor equivalent to a SYSTABLES row
      */
@@ -415,7 +416,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd)
+            DataDictionary dd, TransactionController tc)
             throws StandardException {
         return buildDescriptorBody(
                 row,

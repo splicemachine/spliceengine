@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.catalog.UUID;
@@ -144,7 +145,7 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
 	/** builds a tuple descriptor from a row */
 	public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary	dataDictionary)
+                                           DataDictionary dataDictionary, TransactionController tc)
 		throws StandardException
     {
         if( SanityManager.DEBUG)
@@ -369,5 +370,5 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
 
             "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
             "WHERE T.TABLEID = P.TABLEID AND " +
-            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
+            "CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

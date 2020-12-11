@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -160,17 +161,18 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 	 * Make a descriptor out of a SYSFILES row
 	 *
 	 * @param row a row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
 	 * @param dd dataDictionary
 	 *
-	 * @return	a descriptor equivalent to a row
+	 * @param tc
+     * @return	a descriptor equivalent to a row
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
 	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
 					throws StandardException {
 		if (SanityManager.DEBUG) {
 			if (row.nColumns() != SYSFILES_COLUMN_COUNT) {

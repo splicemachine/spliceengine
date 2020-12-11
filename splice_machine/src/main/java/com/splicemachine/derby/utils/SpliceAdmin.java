@@ -52,7 +52,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -2670,7 +2669,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-            dd.createOrUpdateAllSystemProcedures(tc);
+            dd.createOrUpdateAllSystemProcedures(null, tc);
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
@@ -2708,7 +2707,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             schemaName = EngineUtils.validateSchema(schemaName);
-            dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
+            dd.createOrUpdateSystemProcedure(null, schemaName, procName, tc);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
@@ -48,6 +49,8 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSSEQUENCES row. The contract of this table is this:
@@ -202,14 +205,15 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
      * @param row                   a SYSSEQUENCES row
      * @param parentTupleDescriptor unused
      * @param dd                    dataDictionary
+     * @param tc
      * @return a  descriptor equivalent to a SYSSEQUENCES row
      * @throws com.splicemachine.db.iapi.error.StandardException
      *          thrown on failure
      */
     public TupleDescriptor buildDescriptor
-            (ExecRow row,
-             TupleDescriptor parentTupleDescriptor,
-             DataDictionary dd)
+    (ExecRow row,
+     TupleDescriptor parentTupleDescriptor,
+     DataDictionary dd, TransactionController tc)
             throws StandardException {
 
         DataValueDescriptor col;
@@ -302,7 +306,6 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
         throws StandardException
     {
         return new SystemColumn[]{
-
                 SystemColumnImpl.getUUIDColumn("SEQUENCEID", false),
                 SystemColumnImpl.getIdentifierColumn("SEQUENCENAME", false),
                 SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
@@ -316,5 +319,60 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIndicatorColumn("CYCLEOPTION")
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128);
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("SEQUENCEID", 1, 1,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
+                                null, null, view, viewId, 0, 0, 0),
+                        new ColumnDescriptor("SEQUENCENAME", 2, 2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
+                                null, null, view, viewId, 0, 0, 0),
+                        new ColumnDescriptor("SCHEMAID", 3, 3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
+                                null, null, view, viewId, 0, 0, 0),
+                        new ColumnDescriptor("CURRENTVALUE",4,4,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("STARTVALUE",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("MINIMUMVALUE",6,6,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("MAXIMUMVALUE",7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("INCREMENT",8,8,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("CYCLEOPTION", 9, 9,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  1),
+                                null, null, view, viewId, 0, 0, 0),
+                        new ColumnDescriptor("SCHEMANAME"               ,10,10,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                });
+        return cdsl;
+    }
+
+    public static final String SYSSEQUENCES_VIEW_SQL = "create view syssequencesView as \n" +
+            "SELECT " +
+            "   SEQ.SEQUENCEID," +
+            "   SEQ.SEQUENCENAME," +
+            "   SEQ.SCHEMAID," +
+            "   SEQ.CURRENTVALUE," +
+            "   SEQ.STARTVALUE," +
+            "   SEQ.MINIMUMVALUE," +
+            "   SEQ.MAXIMUMVALUE," +
+            "   SEQ.INCREMENT," +
+            "   SEQ.CYCLEOPTION," +
+            "   SCH.SCHEMANAME " +
+            "FROM SYS.SYSSEQUENCES AS SEQ, SYSVW.SYSSCHEMASVIEW AS SCH " +
+            "WHERE SEQ.SCHEMAID = SCH.SCHEMAID";
 }
 

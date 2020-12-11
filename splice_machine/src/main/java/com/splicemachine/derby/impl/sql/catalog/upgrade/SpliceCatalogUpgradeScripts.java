@@ -105,7 +105,7 @@ public class SpliceCatalogUpgradeScripts{
 
         // Always update system procedures and stored statements
         sdd.clearSPSPlans();
-        sdd.createOrUpdateAllSystemProcedures(tc);
+        sdd.createOrUpdateAllSystemProceduresForAllDatabases(tc);
         sdd.updateMetadataSPSes(tc);
     }
 }

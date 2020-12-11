@@ -252,7 +252,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             // TableDescriptor could be for a view or alias
             if (((TableDescriptor) tupleDescriptor).getTableType() == TableDescriptor.SYNONYM_TYPE) {
                 // we need to get the alias UUID for dependency check
-                AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
+                AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR, null);
                 if (aliasDescriptor != null)
                     providerID = aliasDescriptor.getUUID().toString();
             } else {

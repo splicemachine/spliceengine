@@ -96,8 +96,8 @@ public final class StatementGenericPermission extends StatementPermission
 	 */
     public PrivilegedSQLObject getPrivilegedObject( DataDictionary dd ) throws StandardException
     {
-        if ( PermDescriptor.UDT_TYPE.equals( _objectType ) ) { return dd.getAliasDescriptor( _objectID ); }
-        else if ( PermDescriptor.AGGREGATE_TYPE.equals( _objectType ) ) { return dd.getAliasDescriptor( _objectID ); }
+        if ( PermDescriptor.UDT_TYPE.equals( _objectType ) ) { return dd.getAliasDescriptor( _objectID, null); }
+        else if ( PermDescriptor.AGGREGATE_TYPE.equals( _objectType ) ) { return dd.getAliasDescriptor( _objectID, null); }
         else if ( PermDescriptor.SEQUENCE_TYPE.equals( _objectType ) ) { return dd.getSequenceDescriptor( _objectID ); }
         else
         {

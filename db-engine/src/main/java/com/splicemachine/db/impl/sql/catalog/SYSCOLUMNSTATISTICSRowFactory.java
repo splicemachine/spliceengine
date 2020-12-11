@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
@@ -113,7 +114,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
     }
 
     @Override
-    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary) throws StandardException {
+    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary, TransactionController tc) throws StandardException {
         DataValueDescriptor col = row.getColumn(CONGLOMID);
         long conglomId = col.getLong();
         col = row.getColumn(PARTITIONID);

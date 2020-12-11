@@ -55,7 +55,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 
     @Override
     protected void starting(Description description) {
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()){
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).user(userName).build()){
 //            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);
@@ -122,7 +122,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
             }
         }
 
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).user(userName).build()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
 

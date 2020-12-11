@@ -29,14 +29,20 @@ public class SpliceDatabaseWatcher extends TestWatcher {
     private static final Logger LOG = Logger.getLogger(SpliceDatabaseWatcher.class);
 
     public String dbName;
+    public String dbOwner;
 
     public SpliceDatabaseWatcher(String dbName) {
         this.dbName = dbName;
     }
 
+    public SpliceDatabaseWatcher(String dbName, String dbOwner) {
+        this.dbName = dbName;
+        this.dbOwner = dbOwner;
+    }
+
     @Override
     protected void starting(Description description) {
-        try (Connection ignored = SpliceNetConnection.newBuilder().database(dbName).create(true).build()) {
+        try (Connection ignored = SpliceNetConnection.newBuilder().database(dbName).user(dbOwner).create(true).build()) {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

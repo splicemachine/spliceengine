@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 
@@ -151,7 +152,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     }
 
     @Override
-    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary) throws StandardException {
+    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary, TransactionController tc) throws StandardException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT( row.nColumns() ==SYSTABLESTATISTICS_COLUMN_COUNT,
                     "Wrong number of columns for a STATEMENTHISTORY row");

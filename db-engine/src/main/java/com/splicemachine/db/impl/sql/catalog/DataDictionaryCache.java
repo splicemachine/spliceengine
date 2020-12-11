@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -59,7 +58,6 @@ import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  *
@@ -444,16 +442,16 @@ public class DataDictionaryCache {
         databaseCache.invalidate(databaseName);
     }
 
-    public SchemaDescriptor schemaCacheFind(UUID dbId, String schemaName) throws StandardException {
-        if (!dd.canReadCache(null))
+    public SchemaDescriptor schemaCacheFind(UUID dbId, String schemaName, TransactionController tc) throws StandardException {
+        if (!dd.canReadCache(tc))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheFind " + dbId + ":" + schemaName);
         return schemaCache.getIfPresent(new Pair<>(dbId, schemaName));
     }
 
-    public void schemaCacheAdd(UUID dbId, String schemaName, SchemaDescriptor descriptor) throws StandardException {
-        if (!dd.canWriteCache(null))
+    public void schemaCacheAdd(UUID dbId, String schemaName, SchemaDescriptor descriptor, TransactionController tc) throws StandardException {
+        if (!dd.canWriteCache(tc))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheAdd " + dbId + ":" + schemaName + " : " + descriptor);
@@ -466,8 +464,8 @@ public class DataDictionaryCache {
         schemaCache.invalidate(new Pair<>(dbId, schemaName));
     }
 
-    public SchemaDescriptor oidSchemaCacheFind(UUID schemaID) throws StandardException {
-        if (!dd.canReadCache(null))
+    public SchemaDescriptor oidSchemaCacheFind(UUID schemaID, TransactionController tc) throws StandardException {
+        if (!dd.canReadCache(tc))
             return null;
         SchemaDescriptor sd = oidSchemaCache.getIfPresent(schemaID);
         if (LOG.isDebugEnabled())
@@ -475,8 +473,8 @@ public class DataDictionaryCache {
         return sd;
     }
 
-    public void oidSchemaCacheAdd(UUID schemaID, SchemaDescriptor descriptor) throws StandardException {
-        if (!dd.canWriteCache(null))
+    public void oidSchemaCacheAdd(UUID schemaID, SchemaDescriptor descriptor, TransactionController tc) throws StandardException {
+        if (!dd.canWriteCache(tc))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("oidSchemaCacheAdd " + schemaID + " : " + descriptor);

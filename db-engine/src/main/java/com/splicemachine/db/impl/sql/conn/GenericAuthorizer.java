@@ -155,8 +155,7 @@ public class GenericAuthorizer implements Authorizer {
 
         // splicedb database Owner can access any object. Ignore
         // requiredPermissionsList for Database Owner
-        if (lcc.getCurrentDatabase().getDatabaseName().equals(DatabaseDescriptor.STD_DB_NAME) &&
-                lcc.getCurrentUserId(activation).equals(dbo) || (groupuserlist != null && groupuserlist.contains(dbo))) {
+        if (lcc.currentDatabaseIsSpliceDB() && lcc.currentUserIsDatabaseOwner(activation)) {
             return;
         }
 

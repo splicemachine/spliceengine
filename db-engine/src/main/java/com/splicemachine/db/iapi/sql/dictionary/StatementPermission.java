@@ -160,7 +160,7 @@ public abstract class StatementPermission {
         // if the user/groupuser has the correct permission, we're done
         if ( isCorrectPermission( perm ) ) { return; }
 
-            boolean resolved = false;
+        boolean resolved = false;
 
         // Since no permission exists for the current user or PUBLIC,
         // check if a permission exists for the current role (if set).

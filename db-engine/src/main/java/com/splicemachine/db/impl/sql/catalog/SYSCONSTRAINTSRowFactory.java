@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -217,13 +218,14 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param row                   a SYSCONSTRAINTS row
      * @param parentTupleDescriptor Subconstraint descriptor with auxiliary info.
      * @param dd                    dataDictionary
+     * @param tc
      * @throws StandardException thrown on failure
      */
     @SuppressFBWarnings(value={"SF_SWITCH_FALLTHROUGH", "DLS_DEAD_LOCAL_STORE"}, justification = "DB-10654")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd)
+            DataDictionary dd, TransactionController tc)
             throws StandardException{
         ConstraintDescriptor constraintDesc=null;
 

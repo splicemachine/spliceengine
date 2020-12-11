@@ -36,11 +36,10 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import org.joda.time.DateTime;
 
 import java.sql.Types;
 
@@ -117,7 +116,7 @@ public class SYSREPLICATIONRowFactory extends CatalogRowFactory {
     @Override
     public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary dataDictionary) throws StandardException {
+                                           DataDictionary dataDictionary, TransactionController tc) throws StandardException {
 
         DataValueDescriptor col = row.getColumn(SCOPE);
         String scope = col.getString();

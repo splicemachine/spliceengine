@@ -582,7 +582,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 DDLMessage.DropAlias dropAlias=change.getDropAlias();
-                AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0));
+                AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0), null);
                 if(ad==null) // Table Descriptor transaction never committed
                     return;
                 DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
@@ -967,13 +967,13 @@ public class DDLUtils {
                 dd,
                 revokeRoutinePrivilege.getGrantee(),
                 revokeRoutinePrivilege.getGrantor(),
-                uuid);
+                uuid, null);
         routinePermsDescriptor.setUUID(objectId);
 
         if (!isGrant) {
             dm.invalidateFor(routinePermsDescriptor, DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
 
-            AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId);
+            AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId, null);
             if (aliasDescriptor != null) {
                 dm.invalidateFor(aliasDescriptor, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
             }
@@ -1009,7 +1009,7 @@ public class DDLUtils {
             if (revokeGenericPrivilege.getObjectType().compareToIgnoreCase("SEQUENCE") == 0) {
                 privilegedSQLObject = dd.getSequenceDescriptor(objectId);
             } else {
-                privilegedSQLObject = dd.getAliasDescriptor(objectId);
+                privilegedSQLObject = dd.getAliasDescriptor(objectId, null);
             }
             if (privilegedSQLObject != null) {
                 dm.invalidateFor(privilegedSQLObject, invalidationType, lcc);

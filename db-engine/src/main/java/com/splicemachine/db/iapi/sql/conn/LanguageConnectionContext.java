@@ -481,6 +481,8 @@ public interface LanguageConnectionContext extends Context {
 
     void setCurrentUser(Activation a, String userName);
 
+    boolean currentUserIsDatabaseOwner(Activation a);
+
     void setCurrentGroupUser(Activation a, List<String> groupUsers);
     /**
      * Get the current group user
@@ -520,15 +522,34 @@ public interface LanguageConnectionContext extends Context {
 
     /**
      * Get the current database
+     * used at compile-time when no activation
+     * is yet available, cf. the activation argument overload version.
      *
      * @return DatabaseDescriptor    the current database descriptor
      */
     DatabaseDescriptor getCurrentDatabase();
 
     /**
+     * Get the current database (used at execution time).  At execution
+     * time, the current statement context is not always a reliable
+     * place to find the correct SQL session context, viz. when a
+     * dynamic result set referencing CURRENT SCHEMA is accessed after
+     * a called procedure has returned only the activation of the call
+     * is live and still holds the correct session context.
+     * @param a current activation
+     *
+     * @return DatabaseDescriptor    the current database descriptor
+     */
+    DatabaseDescriptor getCurrentDatabase(Activation a);
+
+    boolean currentDatabaseIsSpliceDB();
+
+    /**
      * Set the current database
      */
     void setCurrentDatabase(DatabaseDescriptor desc);
+
+    void setCurrentDatabase(Activation a, DatabaseDescriptor desc);
 
     /**
      * Set the default schema (at compile-time, see explanations for
@@ -1153,7 +1174,14 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return database name of this LCC.
      */
-    String getDbname();
+    String getCurrentDatabaseName(Activation a);
+
+    /**
+     * Get the owner name of the current database of this LCC
+     *
+     * @return owner name
+     */
+    String getCurrentDatabaseOwner(Activation a);
 
     /**
      * Check if in SQL standard mode, with support for Grant & Revoke

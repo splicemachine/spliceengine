@@ -1981,7 +1981,8 @@ TOKEN [IGNORE_CASE] :
  */
 TOKEN [IGNORE_CASE] :
 {    /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
-     <ANALYZE: "analyze">
+     <ADMIN: "admin">
+|    <ANALYZE: "analyze">
 |    <ANALYSE: "analyse">
 |    <BOOLEAN: "boolean">
 |    <CALL: "call">
@@ -7521,6 +7522,11 @@ miscBuiltins() throws StandardException :
         return value;
     }
 |
+    value = currentDatabaseAdminFunction()
+    {
+        return value;
+    }
+|
     value = currentServerFunction()
     {
         return value;
@@ -10936,6 +10942,24 @@ datetimeValueFunction() throws StandardException :
     }
 }
 
+/*
+ * <A NAME="currentDatabaseAdminFunction">currentDatabaseAdminFunction</A>
+ */
+ValueNode
+currentDatabaseAdminFunction() throws StandardException :
+{
+}
+{
+    (
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATABASE && getToken(3).kind == ADMIN)}) <CURRENT> <DATABASE> <ADMIN>
+    )
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_DATABASE_ADMIN_NODE,
+                                getContextManager());
+    }
+}
+
 
 /*
  * <A NAME="currentServerFunction">currentServerFunction</A>
@@ -13768,6 +13792,11 @@ DB2DefaultOption(String columnName) throws StandardException :
         throw StandardException.newException(
             SQLState.LANG_DB2_INVALID_DEFAULT_VALUE,
             columnName);
+    }
+|
+    value = currentDatabaseAdminFunction()
+    {
+        return value;
     }
 |
     value = currentServerFunction()
@@ -17315,6 +17344,7 @@ nonReservedKeyword()  :
     |    tok = <ABSVAL>
     |    tok = <ACCESS>
     |    tok = <ACTION>
+    |    tok = <ADMIN>
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>

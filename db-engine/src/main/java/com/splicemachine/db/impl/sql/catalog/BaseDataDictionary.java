@@ -191,10 +191,10 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
+        SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, // schema with grantable routines
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
-        SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
+        SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, // schema with grantable routines
         SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME
     };

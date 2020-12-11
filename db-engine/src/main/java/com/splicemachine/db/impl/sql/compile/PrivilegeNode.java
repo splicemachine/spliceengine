@@ -334,7 +334,7 @@ public class PrivilegeNode extends QueryTreeNode
             objectName.setSchemaName( sd.getSchemaName() );
                    
             dependencyProvider = getDataDictionary().getAliasDescriptor
-            ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR  );
+            ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR, null);
             if ( dependencyProvider == null )
             {
                  throw StandardException.newException
@@ -370,7 +370,7 @@ public class PrivilegeNode extends QueryTreeNode
             objectName.setSchemaName( sd.getSchemaName() );
             
             dependencyProvider = getDataDictionary().getAliasDescriptor
-                ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR  );
+                ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR, null);
             if ( dependencyProvider == null )
             {
                 throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, "TYPE", objectName.getFullTableName());

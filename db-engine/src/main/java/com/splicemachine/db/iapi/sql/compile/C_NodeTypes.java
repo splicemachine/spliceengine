@@ -291,10 +291,11 @@ public interface C_NodeTypes
     int TYPEOF_OPERATOR_NODE = 281;
     int CREATE_DATABASE_NODE = 282;
     int DROP_DATABASE_NODE = 283;
+    int CURRENT_DATABASE_ADMIN_NODE = 284;
 
 
     // Final value in set, keep up to date!
-    int FINAL_VALUE = DROP_DATABASE_NODE;
+    int FINAL_VALUE = CURRENT_DATABASE_ADMIN_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

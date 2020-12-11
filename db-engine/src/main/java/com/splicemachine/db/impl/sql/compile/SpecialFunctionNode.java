@@ -219,9 +219,15 @@ public class SpecialFunctionNode extends ValueNode
             break;
         case C_NodeTypes.CURRENT_SERVER_NODE:
             sqlName = "CURRENT SERVER";
-            methodName = "getDbname";
+            methodName = "getCurrentDatabaseName";
             methodType = "java.lang.String";
-            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 16);
+            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 16); // XXX Probably make that varchar 128
+            break;
+        case C_NodeTypes.CURRENT_DATABASE_ADMIN_NODE:
+            sqlName = "CURRENT DATABASE ADMIN";
+            methodName = "getCurrentDatabaseOwner";
+            methodType = "java.lang.String";
+            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128);
             break;
         default:
             if (SanityManager.DEBUG)
@@ -269,13 +275,18 @@ public class SpecialFunctionNode extends ValueNode
                                              ClassName.LanguageConnectionContext, 0);
         int argCount = 0;
 
-        if (methodName.equals("getCurrentRoleIdDelimited") ||
-            methodName.equals("getCurrentGroupUserDelimited") ||
-            methodName.equals("getCurrentSchemaName") ||
-            methodName.equals("getCurrentUserId")) {
-
-            acb.pushThisAsActivation(mb);
-            argCount++;
+        switch (methodName) {
+            case "getCurrentRoleIdDelimited":
+            case "getCurrentGroupUserDelimited":
+            case "getCurrentSchemaName":
+            case "getCurrentUserId":
+            case "getCurrentDatabaseName":
+            case "getCurrentDatabaseOwner":
+                acb.pushThisAsActivation(mb);
+                argCount++;
+                break;
+            default:
+                break;
         }
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,

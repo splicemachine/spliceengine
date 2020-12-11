@@ -87,7 +87,7 @@ public final class StatementRoutinePermission extends StatementPermission
 	 * @see StatementPermission#getPrivilegedObject
 	 */
     public PrivilegedSQLObject getPrivilegedObject( DataDictionary dd ) throws StandardException
-    { return dd.getAliasDescriptor( routineUUID); }
+    { return dd.getAliasDescriptor( routineUUID, null); }
 
 	/**
 	 * @see StatementPermission#getPermissionDescriptor

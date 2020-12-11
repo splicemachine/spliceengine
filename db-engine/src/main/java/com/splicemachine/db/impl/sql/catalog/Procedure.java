@@ -135,7 +135,7 @@ public class Procedure {
                 returnType==null? AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR : AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR,
                 false,
                 rai,
-                null);
+                null, tc);
         dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc,false);
 
         return ads;

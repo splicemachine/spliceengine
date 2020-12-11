@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -263,14 +264,15 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
      * @param row                   a SYSPERMS row
      * @param parentTupleDescriptor unused
      * @param dd                    dataDictionary
+     * @param tc
      * @return a  descriptor equivalent to a SYSPERMS row
      * @throws com.splicemachine.db.iapi.error.StandardException
      *          thrown on failure
      */
     public TupleDescriptor buildDescriptor
-            (ExecRow row,
-             TupleDescriptor parentTupleDescriptor,
-             DataDictionary dd)
+    (ExecRow row,
+     TupleDescriptor parentTupleDescriptor,
+     DataDictionary dd, TransactionController tc)
             throws StandardException {
 
         DataValueDescriptor col;
@@ -396,5 +398,5 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
             "                    left join SYS.SYSSEQUENCES SE on P.OBJECTID=SE.SEQUENCEID " +
             ", SYSVW.SYSSCHEMASVIEW SC "+
             "WHERE case when OBJECTTYPE='SEQUENCE' then SE.SCHEMAID else A.SCHEMAID end = SC.SCHEMAID AND " +
-            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
+            "CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }
