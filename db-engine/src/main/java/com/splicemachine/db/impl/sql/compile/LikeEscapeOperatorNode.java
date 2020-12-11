@@ -262,9 +262,6 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         bindToBuiltIn();
 
-        TypeCompiler receiverTC = receiver.getTypeCompiler();
-        TypeCompiler leftTC     = leftOperand.getTypeCompiler();
-
         /* The receiver must be a string type
         */
         if (! receiver.getTypeId().isStringTypeId())
@@ -279,7 +276,6 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         if (!leftOperand.getTypeId().isStringTypeId())
         {
             leftOperand = castArgToString(leftOperand);
-            leftTC      = leftOperand.getTypeCompiler();
         }
 
         if (rightOperand != null)
