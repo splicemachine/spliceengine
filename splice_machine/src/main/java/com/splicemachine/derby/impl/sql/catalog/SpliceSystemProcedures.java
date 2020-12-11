@@ -1565,6 +1565,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(getWalPosition);
 
+        Procedure getReplicationProgress = Procedure.newBuilder().name("GET_REPLICATION_PROGRESS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getReplicationProgress);
+
         Procedure dumpUnreplicatedWals = Procedure.newBuilder().name("DUMP_UNREPLICATED_WALS")
                 .numOutputParams(0)
                 .numResultSets(1)
