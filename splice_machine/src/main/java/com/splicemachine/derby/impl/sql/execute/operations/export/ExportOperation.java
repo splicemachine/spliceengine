@@ -84,15 +84,7 @@ public class ExportOperation extends SpliceBaseOperation {
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, format, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
-
-        try {
-            ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
-            checker.verify();
-            checker.cleanup();
-            init();
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        init();
     }
 
     @Override
@@ -180,6 +172,15 @@ public class ExportOperation extends SpliceBaseOperation {
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        try {
+            ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
+            checker.verify();
+            checker.cleanup();
+
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
