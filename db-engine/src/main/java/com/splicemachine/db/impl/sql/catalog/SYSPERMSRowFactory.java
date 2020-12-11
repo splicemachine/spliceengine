@@ -385,7 +385,7 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
             "SELECT P.*, case when OBJECTTYPE='SEQUENCE' then SE.SEQUENCENAME else A.ALIAS end as OBJECTNAME, SC.SCHEMANAME " +
             "FROM SYS.SYSPERMS P left join SYS.SYSALIASES A on P.OBJECTID=A.ALIASID " +
             "                    left join SYS.SYSSEQUENCES SE on P.OBJECTID=SE.SEQUENCEID " +
-            ", SYS.SYSSCHEMAS SC "+
+            ", SYSVW.SYSSCHEMASVIEW SC "+
             "WHERE case when OBJECTTYPE='SEQUENCE' then SE.SCHEMAID else A.SCHEMAID end = SC.SCHEMAID AND " +
             "P.grantee in (select name from sysvw.sysallroles) \n " +
 
@@ -394,7 +394,7 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
             "SELECT P.*, case when OBJECTTYPE='SEQUENCE' then SE.SEQUENCENAME else A.ALIAS end as OBJECTNAME, SC.SCHEMANAME " +
             "FROM SYS.SYSPERMS P left join SYS.SYSALIASES A on P.OBJECTID=A.ALIASID " +
             "                    left join SYS.SYSSEQUENCES SE on P.OBJECTID=SE.SEQUENCEID " +
-            ", SYS.SYSSCHEMAS SC "+
+            ", SYSVW.SYSSCHEMASVIEW SC "+
             "WHERE case when OBJECTTYPE='SEQUENCE' then SE.SCHEMAID else A.SCHEMAID end = SC.SCHEMAID AND " +
             "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

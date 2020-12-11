@@ -301,13 +301,13 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         return cdsl;
     }
     public static String SYSROUTINEPERMS_VIEW_SQL = "create view SYSROUTINEPERMSVIEW as \n" +
-            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYS.SYSSCHEMAS S "+
+            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYSVW.SYSSCHEMASVIEW S "+
             "WHERE P.ALIASID = A.ALIASID AND A.SCHEMAID= S.SCHEMAID AND " +
             "P.grantee in (select name from sysvw.sysallroles) \n" +
 
             "UNION ALL \n" +
 
-            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYS.SYSSCHEMAS S "+
+            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYSVW.SYSSCHEMASVIEW S "+
             "WHERE P.ALIASID = A.ALIASID AND A.SCHEMAID= S.SCHEMAID AND " +
             "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }
