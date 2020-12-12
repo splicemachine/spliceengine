@@ -47,4 +47,10 @@ public interface SelectivityHolder extends Comparable<SelectivityHolder> {
         QualifierPhase getPhase();
         int getColNum();
         boolean isRangeSelectivity();
+        int getNumReferencedTables();
+
+        // Test whether this SelectivityHolder should be counted.
+        // For example, join predicates should only be used towards
+        // the filterBaseTableSelectivity for nested loop join.
+        default boolean shouldApplySelectivity() { return true; }
 }

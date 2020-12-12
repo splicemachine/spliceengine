@@ -31,38 +31,20 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
 
 /**
- *
- * Selectivity computation for not equals.
+ * Join Predicate Selectivity Holder
  *
  */
-public class NotEqualsSelectivity extends AbstractSelectivityHolder {
-    private final DataValueDescriptor value;
-    private final StoreCostController storeCost;
-    private final double selectivityFactor;
-    private final boolean useExtrapolation;
-
-    public NotEqualsSelectivity(StoreCostController storeCost,
-                                boolean fromExprIndex, int colNum, QualifierPhase phase,
-                                DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation, Predicate pred) {
-        super(fromExprIndex, colNum, phase, pred);
-        this.value = value;
-        this.storeCost = storeCost;
-        this.selectivityFactor = selectivityFactor;
-        this.useExtrapolation = useExtrapolation;
+public class JoinPredicateSelectivity extends DefaultPredicateSelectivity {
+    public JoinPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivity){
+        super(p, baseTable, phase, 1.0);
+        this.selectivity = selectivity;
     }
 
-    public double getSelectivity() throws StandardException {
-        if (selectivity == -1.0d) {
-            double tmpSelectivity = storeCost.getSelectivity(useExprIndexStats, colNum, value, true, value, true, useExtrapolation);
-            if (selectivityFactor > 0)
-                tmpSelectivity *= selectivityFactor;
-            selectivity = 1 - tmpSelectivity;
-        }
+    @Override
+    public double getSelectivity() {
         return selectivity;
     }
 }
