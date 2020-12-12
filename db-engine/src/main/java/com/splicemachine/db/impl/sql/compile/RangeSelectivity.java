@@ -50,8 +50,8 @@ public class RangeSelectivity extends AbstractSelectivityHolder {
     private final boolean useExtrapolation;
 
     public RangeSelectivity(StoreCostController storeCost,DataValueDescriptor start, DataValueDescriptor stop,boolean includeStart, boolean includeStop,
-                            boolean fromExprIndex, int colNum, QualifierPhase phase, double selectivityFactor, boolean useExtrapolation){
-        super(fromExprIndex, colNum, phase);
+                            boolean fromExprIndex, int colNum, QualifierPhase phase, double selectivityFactor, boolean useExtrapolation, Predicate pred){
+        super(fromExprIndex, colNum, phase, pred);
         this.start = start;
         this.stop = stop;
         this.includeStart = includeStart;
