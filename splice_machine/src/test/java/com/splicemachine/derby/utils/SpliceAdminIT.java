@@ -541,14 +541,13 @@ public class SpliceAdminIT extends SpliceUnitTest {
             StringBuilder sb = new StringBuilder();
             // ignore 1 = owner (=username) and 2 = group which is different for every user
             while( rs.next() ) {
-                sb.append(rs.getString(4) + " " +
-                        rs.getString(5) + " " + rs.getString(6) + "\n");
+                sb.append(rs.getString(5) + " " + rs.getString(6) + "\n");
             }
             Assert.assertEquals(
-                    "0 -rw-r--r-- _SUCCESS\n" +
-                            "96 drwxr-xr-x partition1=AAA\n" +
-                            "96 drwxr-xr-x partition1=BBB\n" +
-                            "96 drwxr-xr-x partition1=CCC\n", sb.toString());
+                    "-rw-r--r-- _SUCCESS\n" +
+                            "drwxr-xr-x partition1=AAA\n" +
+                            "drwxr-xr-x partition1=BBB\n" +
+                            "drwxr-xr-x partition1=CCC\n", sb.toString());
         }
 
         SpliceUnitTest.sqlExpectException(methodWatcher, "CALL SYSCS_UTIL.LIST_DIRECTORY('/not/existing/directory')",
