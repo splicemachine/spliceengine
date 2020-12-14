@@ -168,11 +168,12 @@ public class SelectivityUtil {
                 ReferencedColumnsMap referencedColumnsMap = p.getReferencedColumns();
 
                 Integer mapIndex = null;
-                for (Integer I:columnSet) {
-                    mapIndex = selectivityIndexMap.get(I);
-                    if (mapIndex != null)
-                        break;
-                }
+                if (columnSet != null)
+                    for (Integer I:columnSet) {
+                        mapIndex = selectivityIndexMap.get(I);
+                        if (mapIndex != null)
+                            break;
+                    }
                 if (mapIndex != null) {
                     // Compare selectivities of predicates with overlapping column sets and keep the
                     // one with the lowest value.
@@ -186,8 +187,9 @@ public class SelectivityUtil {
                 }
                 else {
                     selectivityMap.put(index, predicateSelectivity);
-                    for (Integer I : columnSet)
-                        selectivityIndexMap.put(I, index);
+                    if (columnSet != null)
+                        for (Integer I : columnSet)
+                            selectivityIndexMap.put(I, index);
                     index++;
                 }
             }
