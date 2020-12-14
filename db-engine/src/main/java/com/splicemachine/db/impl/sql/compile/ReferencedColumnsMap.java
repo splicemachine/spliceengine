@@ -15,6 +15,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import static com.cedarsoftware.util.DeepEquals.deepEquals;
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Sets;
 import java.util.*;
 
@@ -112,6 +113,7 @@ public final class ReferencedColumnsMap {
         return intersects(tableNumber, otherFoundSet);
     }
 
+    @SuppressFBWarnings(value = "EQ_SELF_USE_OBJECT",justification = "intentional")
     public boolean equals(ReferencedColumnsMap refColsToCompare) {
         Map<Integer, Set<Integer>> otherTableColumns = refColsToCompare.getTableColumns();
         if (tableColumns == otherTableColumns)
@@ -124,6 +126,10 @@ public final class ReferencedColumnsMap {
             return false;
 
         return deepEquals(tableColumns, otherTableColumns);
+    }
+
+    public int hashCode() {
+        return tableColumns.hashCode();
     }
 
     // For internal use only.
