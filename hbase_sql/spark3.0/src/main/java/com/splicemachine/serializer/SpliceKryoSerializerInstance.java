@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+package com.splicemachine.serializer;
+
+import com.esotericsoftware.kryo.Kryo;
+import org.apache.spark.serializer.KryoSerializer;
+import org.apache.spark.serializer.KryoSerializerInstance;
+
+import java.util.function.Consumer;
+
+/**
+ *
+ * This class allows us to return the Kryo instance to our custom KryoPoool.
+ *
+ */
+public class SpliceKryoSerializerInstance extends KryoSerializerInstance {
+
+    private final Consumer<Kryo> release;
+
+    public SpliceKryoSerializerInstance(KryoSerializer ks, Consumer<Kryo> release) {
+        super(ks,false, false);
+        this.release = release;
+    }
+
+    @Override
+    public void releaseKryo(Kryo kryo) {
+        release.accept(kryo);
+    }
+
+
+}

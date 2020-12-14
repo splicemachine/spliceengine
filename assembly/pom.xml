@@ -29,7 +29,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.kafka</groupId>
@@ -131,6 +130,7 @@
             jython-standalone,
             picocli
         </commonArtifacts>
+        <platformArtifacts></platformArtifacts>
     </properties>
     <build>
         <plugins>
@@ -184,6 +184,25 @@
             </dependencies>
         </profile>
         <profile>
+            <id>cdh6.3.0</id>
+            <properties>
+                <platformArtifacts>hbase_storage_2.1,hbase_sql_spark2.4</platformArtifacts>
+            </properties>
+
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.1</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.4</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>parcel</id>
             <activation>
                 <property>
@@ -206,6 +225,7 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
+                                        ${platformArtifacts},
                                         splice_sentry
                                     </includeArtifactIds>
                                 </configuration>
@@ -1316,250 +1336,6 @@
                                     </preinstallScriptlet>
                                     <directoryIncluded>false</directoryIncluded>
                                 </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>dbaas</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
-                        <executions>
-                            <execution>
-                                <id>copy</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <excludeArtifactIds>
-                                        spark-avro_2.11
-                                    </excludeArtifactIds>
-                                    <includeArtifactIds>
-                                        commonArtifacts,
-                                        snappy-java,
-                                        kryo-shaded,
-                                        kryo-serializers,
-                                        db-client,
-                                        db-tools-i18n,
-                                        db-tools-ij,
-                                        db-shared,
-                                        db-drda,
-                                        javax.servlet-api,
-                                        javax.ws.rs-api,
-                                        jython-standalone,
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
-                                    </includeArtifactIds>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>1</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactSet>
-                                        <excludes>
-                                            <exclude>org.apache.hadoop*:*</exclude>
-                                            <exclude>org.apache.hadoop.hbase:*</exclude>
-                                            <exclude>org.apache.hbase:*</exclude>
-                                            <exclude>org.apache.hadoop.hbase.ipc:*</exclude>
-                                            <exclude>org.apache.hbase.ipc:*</exclude>
-                                            <exclude>org.apache.hadoop.hbase.filter:*</exclude>
-                                            <exclude>org.apache.hbase.filter:*</exclude>
-                                            <exclude>org.apache.hive:*</exclude>
-                                            <exclude>org.apache.zookeeper:zookeeper</exclude>
-                                            <exclude>org.apache.hive.shims:*</exclude>
-                                            <exclude>com.amazonaws:*</exclude>
-                                            <exclude>com.mapr*:*</exclude>
-                                            <exclude>mapr.fs*:*</exclude>
-                                            <exclude>com.sun.jersey:*</exclude>
-                                            <exclude>com.splicemachine:db-client</exclude>
-                                            <exclude>com.splicemachine:db-tools-i18n</exclude>
-                                            <exclude>com.splicemachine:db-tools-ij</exclude>
-                                            <exclude>com.splicemachine:db-shared</exclude>
-                                            <exclude>com.splicemachine:db-drda</exclude>
-                                            <exclude>org.apache.kafka:*</exclude>
-                                            <exclude>org.python:jython-standalone</exclude>
-                                        </excludes>
-                                    </artifactSet>
-
-                                    <relocations>
-                                        <relocation>
-                                            <pattern>com.fasterxml</pattern>
-                                            <shadedPattern>splice.com.fasterxml</shadedPattern>
-                                        </relocation>
-
-                                        <relocation>
-                                            <pattern>org.codehaus.jackson</pattern>
-                                            <shadedPattern>splice.org.codehaus.jackson</shadedPattern>
-                                        </relocation>
-
-                                        <relocation>
-                                            <pattern>org.jboss.netty</pattern>
-                                            <shadedPattern>splice.org.jboss.netty</shadedPattern>
-                                        </relocation>
-
-                                        <relocation>
-                                            <pattern>io.netty</pattern>
-                                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
-                                        </relocation>
-
-                                        <relocation>
-                                            <pattern>javax.ws</pattern>
-                                            <shadedPattern>splice.javax.ws</shadedPattern>
-                                        </relocation>
-
-                                    </relocations>
-                                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                                    <shadedClassifierName>splice-uber</shadedClassifierName>
-                                    <filters>
-                                        <filter>
-                                            <artifact>*:*</artifact>
-                                            <excludes>
-                                                <exclude>META-INF/maven/**</exclude>
-                                                <exclude>META-INF/*.RSA</exclude>
-                                                <exclude>META-INF/*.DSA</exclude>
-                                                <exclude>META-INF/*.SF</exclude>
-                                                <exclude>META-INF/licence/**</exclude>
-                                                <exclude>**/core-site.xml</exclude>
-                                                <exclude>**/hbase-site.xml</exclude>
-                                                <exclude>**/splice-site.xml</exclude>
-                                                <exclude>**/yarn-site.xml</exclude>
-                                                <exclude>org/apache/spark/sql/execution/BufferedRowIterator</exclude>
-                                            </excludes>
-                                        </filter>
-
-                                    </filters>
-                                    <transformers>
-                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                    </transformers>
-
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>2</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactSet>
-                                        <includes>
-                                            <include>org.apache.hadoop:hadoop-yarn-server-web-proxy*</include>
-                                        </includes>
-                                    </artifactSet>
-                                    <relocations>
-                                        <relocation>
-                                            <pattern>com.fasterxml</pattern>
-                                            <shadedPattern>splice.com.fasterxml</shadedPattern>
-                                        </relocation>
-                                        <relocation>
-                                            <pattern>org.jboss.netty</pattern>
-                                            <shadedPattern>splice.org.jboss.netty</shadedPattern>
-                                        </relocation>
-                                        <relocation>
-                                            <pattern>org.codehaus.jackson</pattern>
-                                            <shadedPattern>splice.org.codehaus.jackson</shadedPattern>
-                                        </relocation>
-                                        <relocation>
-                                            <pattern>io.netty</pattern>
-                                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
-                                        </relocation>
-                                        <relocation>
-                                            <pattern>javax.ws</pattern>
-                                            <shadedPattern>splice.javax.ws</shadedPattern>
-                                        </relocation>
-                                    </relocations>
-                                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                                    <shadedClassifierName>splice-yarn-webproxy</shadedClassifierName>
-                                    <filters>
-                                        <filter>
-                                            <artifact>*:*</artifact>
-                                            <excludes>
-                                                <exclude>META-INF/maven/**</exclude>
-                                                <exclude>META-INF/*.RSA</exclude>
-                                                <exclude>META-INF/*.DSA</exclude>
-                                                <exclude>META-INF/*.SF</exclude>
-                                                <exclude>META-INF/licence/**</exclude>
-                                                <exclude>**/core-site.xml</exclude>
-                                                <exclude>**/hbase-site.xml</exclude>
-                                                <exclude>**/splice-site.xml</exclude>
-                                                <exclude>**/yarn-site.xml</exclude>
-                                                <exclude>org/apache/spark/sql/execution/BufferedRowIterator.class</exclude>
-                                            </excludes>
-                                        </filter>
-
-                                    </filters>
-                                    <transformers>
-                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                    </transformers>
-
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <target>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <fileset dir="common/src/main/resources/bin" includes="**/*"/>
-                                        </copy>
-                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <include name="sqlshell.sh"/>
-                                        </replace>
-                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <include name="spliceck.sh"/>
-                                        </replace>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
-                                            <fileset dir="target/classes/conf" includes="**/*"/>
-                                        </copy>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
-                                            <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
-                                            <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
-                                        </copy>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
-                                            <fileset dir="target/dependency" includes="**/*"/>
-                                        </copy>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
-                                            <fileset dir="target/" includes="*splice-uber*"/>
-                                        </copy>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
-                                            <fileset dir="target/" includes="*splice-yarn-webproxy*"/>
-                                        </copy>
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${project.version}-splice-uber.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${project.version}-splice-yarn-webproxy.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
-                                        <tar compression="gzip" destfile="target/installer/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}.tar.gz">
-                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
-                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
-                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
-                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
-                                        </tar>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
                             </execution>
                         </executions>
                     </plugin>

@@ -45,7 +45,6 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -57,7 +56,6 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_pipeline</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -69,7 +67,6 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>spark_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -376,32 +373,18 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>**/*log4j.properties</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test-jar</id>
-                        <configuration>
-                            <classifier>${envClassifier}-tests</classifier>
-                        </configuration>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-jar</id>
-                        <configuration>
-                            <classifier>${envClassifier}</classifier>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+           <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+               <artifactId>maven-jar-plugin</artifactId>
+
+               <executions>
+                   <execution>
+                       <goals>
+                           <goal>test-jar</goal>
+                       </goals>
+                   </execution>
+               </executions>
+           </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -409,65 +392,8 @@
                     <excludedGroups>${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.9.1</version>
-                <executions>
-                    <execution>
-                        <id>add-platform-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${envHbase}/src/main/java</source>
-                                <source>${parquet.version}/src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>add-platform-test-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${envHbase}/src/test/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>add-platform-test-resource</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-test-resource</goal>
-                        </goals>
-                        <configuration>
-                            <resources>
-                                <resource>
-                                    <directory>${envHbase}/src/test/resources</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <classifier>${envClassifier}-sources</classifier>
-                </configuration>
-            </plugin>
         </plugins>
         <resources>
-            <resource>
-                <directory>${envHbase}/src/main/resources</directory>
-            </resource>
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
@@ -476,121 +402,23 @@
 
     <profiles>
         <profile>
-            <id>dbaas</id>           
+            <id>dbaas3.0</id>
             <dependencies>
                 <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-mesos_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark3.0</artifactId>
+                    <version>${project.version}</version>
                 </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-yarn_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.apache.hadoop</groupId>
-                        <artifactId>hadoop-yarn-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.hadoop</groupId>
-                        <artifactId>hadoop-yarn-server-web-proxy</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.hadoop</groupId>
-                        <artifactId>hadoop-client</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-streaming_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.scalatest</groupId>
-                        <artifactId>scalatest_${scala.binary.version}</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
             </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                      <artifactId>maven-jar-plugin</artifactId>
-                      <executions>
-                        <!-- Jar has to be shaded since the classifier is not recognized by shading -->
-                        <execution>
-                          <id>shaded-jar</id>
-                          <goals>
-                            <goal>jar</goal>
-                          </goals>
-                        </execution>
-                      </executions>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>io.netty:netty-all</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>com.esotericsoftware:kryo-shaded</exclude>
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <relocations>
-                                <relocation>
-                                    <pattern>io.netty</pattern>
-                                    <shadedPattern>org.spark_project.io.netty</shadedPattern>
-                                    <includes>
-                                        <include>io.netty.**</include>
-                                    </includes>
-                                </relocation>
-                            </relocations>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins> 
-            </build>
         </profile>
         <profile>
             <id>hdp3.1.0</id>
             <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.3</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
                     <groupId>com.databricks</groupId>
@@ -604,6 +432,11 @@
             <id>hdp3.1.5</id>
             <dependencies>
                 <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.3</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
                     <!-- com.databricks.spark.avro -->
                     <groupId>com.databricks</groupId>
                     <artifactId>spark-avro_${scala.binary.version}</artifactId>
@@ -615,6 +448,11 @@
         <profile>
             <id>cdh6.3.0</id>
             <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.4</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
                     <groupId>org.apache.spark</groupId>

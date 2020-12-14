@@ -83,7 +83,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

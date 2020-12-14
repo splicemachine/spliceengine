@@ -901,8 +901,10 @@
             </properties>
             <modules>
                 <module>hbase_storage</module>
+                <module>hbase_storage/hbase_2.0</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>hbase_sql/spark2.3</module>
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
@@ -937,8 +939,10 @@
             </properties>
             <modules>
                 <module>hbase_storage</module>
+                <module>hbase_storage/hbase_2.1</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>hbase_sql/spark2.3</module>
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
@@ -974,46 +978,10 @@
             </properties>
             <modules>
                 <module>hbase_storage</module>
+                <module>hbase_storage/hbase_2.1</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>standalone</module>
-                <module>platform_it</module>
-                <module>spark_sql</module>
-                <module>splice_ck</module>
-                <module>splice_spark</module>
-                <module>splice_spark2</module>
-                <module>scala_util</module>
-                <module>assembly</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>dbaas</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>dbaas</value>
-                </property>
-            </activation>
-            <properties>
-                <cdh.parcel.version>5.14.0</cdh.parcel.version>
-                <envClassifier>cdh5.14.0</envClassifier>
-                <envHbase>hbase1.2.0</envHbase>
-                <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
-                <hbase.version>1.2.0-cdh5.14.0</hbase.version>
-                <hive.version>1.1.0-cdh5.14.0</hive.version>
-                <spark.version>2.2.2</spark.version>
-                <spark.major.version>spark2.2</spark.major.version>
-                <scala.version>2.11.8</scala.version>
-                <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
-                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
-                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>parquet-spark2</parquet.version>
-            </properties>
-            <modules>
-                <module>hbase_storage</module>
-                <module>hbase_pipeline</module>
-                <module>hbase_sql</module>
+                <module>hbase_sql/spark2.4</module>
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
@@ -1055,8 +1023,10 @@
             </properties>
             <modules>
                 <module>hbase_storage</module>
+                <module>hbase_storage/hbase_2.1</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>hbase_sql/spark3.0</module>
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>

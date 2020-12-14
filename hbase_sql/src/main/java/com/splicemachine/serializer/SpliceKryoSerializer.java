@@ -21,16 +21,15 @@ import org.apache.spark.serializer.KryoSerializer;
 import org.apache.spark.serializer.SerializerInstance;
 
 /**
- *
  * Spark's default KryoSerializer recreates the Kryo instance for each execution.  We need
  * to re-use them to lower the latency.
- *
  */
 public class SpliceKryoSerializer extends KryoSerializer {
     public static volatile AbstractKryoPool kp;
+
     static {
         EngineDriver driver = EngineDriver.driver();
-        int kpSize = (driver==null)?1000:driver.getConfiguration().getKryoPoolSize();
+        int kpSize = (driver == null) ? 1000 : driver.getConfiguration().getKryoPoolSize();
         kp = new AbstractKryoPool(kpSize) {
             @Override
             public Kryo newInstance() {
@@ -38,18 +37,19 @@ public class SpliceKryoSerializer extends KryoSerializer {
             }
         };
     }
+
     public SpliceKryoSerializer(SparkConf conf) {
         super(conf);
     }
 
     @Override
     public SerializerInstance newInstance() {
-        return new SpliceKryoSerializerInstance(this);
+        return new SpliceKryoSerializerInstance(this, k -> kp.returnInstance(k));
     }
 
     @Override
     public Kryo newKryo() {
         Kryo next = kp.get();
-        return next == null?super.newKryo():next;
+        return next == null ? super.newKryo() : next;
     }
 }

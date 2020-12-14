@@ -40,13 +40,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -54,7 +52,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -81,7 +78,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}-tests</classifier>
+            <classifier>tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

@@ -156,65 +156,6 @@
                     <excludedGroups>${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
-            <!-- http://stackoverflow.com/questions/270445 -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.12</version>
-                <executions>
-                    <execution>
-                        <id>1</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/main/${spark.major.version}</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>2</id>
-                        <phase>generate-sources</phase>
-                        <goals><goal>add-test-source</goal></goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/${spark.major.version}</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>test-jar</id>
-                        <configuration>
-                            <classifier>${envClassifier}-tests</classifier>
-                        </configuration>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-jar</id>
-                        <configuration>
-                            <classifier>${envClassifier}</classifier>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <classifier>${envClassifier}-sources</classifier>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <profiles>
