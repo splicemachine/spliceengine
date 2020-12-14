@@ -160,6 +160,12 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         return ps;
     }
 
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+        PreparedStatement ps = getOrCreateConnection().prepareStatement(sql, resultSetType, resultSetConcurrency);
+        statements.add(ps);
+        return ps;
+    }
+
     private void closeConnections() {
         try {
             for (Connection connection : connections) {
