@@ -25,7 +25,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
  * A map from Table Number to a set of column numbers from that table.
  * Used primarily to track which columns in a table are referenced in a predicate.
  * Throws an error if an attempt is made to track a negative table number
- * or column number less than 1.
+ * or negative column number (ROWID columns use column number 0).
  */
 
 public final class ReferencedColumnsMap {
@@ -70,9 +70,9 @@ public final class ReferencedColumnsMap {
         if (tableNumber < 0)
             throw StandardException.newException(LANG_INTERNAL_ERROR,
                     "Attempt to add negative table number to ReferencedColumnsMap.");
-        if (columnNumber < 1)
+        if (columnNumber < 0)
             throw StandardException.newException(LANG_INTERNAL_ERROR,
-                    "Attempt to add non-positive column number to ReferencedColumnsMap.");
+                    "Attempt to add negative column number to ReferencedColumnsMap.");
 
         Set<Integer> foundSet = tableColumns.get(tableNumber);
         try {
