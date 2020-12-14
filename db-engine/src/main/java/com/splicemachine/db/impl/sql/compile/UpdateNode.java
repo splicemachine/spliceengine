@@ -543,14 +543,6 @@ public final class UpdateNode extends DMLModStatementNode
             rowIdColumn.setName(COLUMNNAME);
         }
 
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                rowIdColumn.getName(),
-                null,
-                getContextManager());
-        columnReference.setSource(rowIdColumn);
-        columnReference.setNestingLevel(targetTable.getLevel());
-        columnReference.setSourceLevel(targetTable.getLevel());
         rowLocationColumn =
                 (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
