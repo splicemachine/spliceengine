@@ -75,8 +75,8 @@ public class ReferencedColumnsMapTest {
         catch (StandardException e) {
         }
         try {
-            map1.add(1,0);
-            fail("Not supposed to be able to add a non-positive column number to the map.");
+            map1.add(-100,0);
+            fail("Not supposed to be able to add a negative column number to the map.");
         }
         catch (StandardException e) {
         }
