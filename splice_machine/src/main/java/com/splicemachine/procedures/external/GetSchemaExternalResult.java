@@ -54,12 +54,19 @@ public class GetSchemaExternalResult extends AbstractOlapResult {
 
     public String getSuggestedSchema(String separator)
     {
-        String s = ExternalTableUtils.getSuggestedSchema(schema, partition_schema, separator);
-        if(foundFiles != null && foundFiles.length > 0)
-            s = s + separator + " STORED AS " + ExternalTableUtils.getExternalTableTypeFromPath(foundFiles[0]);
-        if( rootPath != null )
-            s = s + " LOCATION '" + rootPath + "';";
-        return s;
+        StringBuilder sb = new StringBuilder();
+        ExternalTableUtils.getSuggestedSchema(sb, schema, partition_schema, separator);
+        if(foundFiles != null && foundFiles.length > 0) {
+            sb.append(separator);
+            sb.append(" STORED AS ");
+            sb.append(ExternalTableUtils.getExternalTableTypeFromPath(foundFiles[0]));
+        }
+        if( rootPath != null ) {
+            sb.append(" LOCATION '");
+            sb.append(rootPath);
+            sb.append("';");
+        }
+        return sb.toString();
     }
 
     public StructType getFullSchema()

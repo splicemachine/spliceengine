@@ -195,19 +195,13 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listDir()
-        {
+        public FileInfo[] listDir() throws IOException {
             if( !exists() ) return new FileInfo[] {};
             if( !isDirectory() ) return new FileInfo[] { this };
-            ArrayList<FileInfo> res = new ArrayList<>();
-            try {
-                RemoteIterator<LocatedFileStatus> iterator = fs.listLocatedStatus(path);
-                while (iterator.hasNext()) {
-                    res.add( new HFileInfo(iterator.next()) );
-                }
-
-            } catch (IOException e) {
-                return new FileInfo[0];
+            List<FileInfo> res = new ArrayList<>();
+            RemoteIterator<LocatedFileStatus> iterator = fs.listLocatedStatus(path);
+            while (iterator.hasNext()) {
+                res.add( new HFileInfo(iterator.next()) );
             }
             return res.toArray(new FileInfo[res.size()]);
         }
@@ -276,29 +270,23 @@ public class HNIOFileSystem extends DistributedFileSystem{
         private List<FileStatus> rootFileStatusFlat;
 
         @Override
-        public boolean isEmptyDirectory() {
+        public boolean isEmptyDirectory() throws IOException {
             if( !exists() ) return false;
             if( !isDirectory() ) return false;
-            try {
-                List<? extends FileStatus> files;
-                if(rootFileStatusList != null )
-                    files = rootFileStatusList;
-                else
-                {
-                    if( rootFileStatusFlat == null )
-                        rootFileStatusFlat = Arrays.asList(fs.listStatus(path));
-                    files = rootFileStatusFlat;
-                }
-                for (FileStatus s : files ) {
-                    if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
-                    return false;
-                }
-                return true;
-            } catch( Exception e ) {
-                // this shouldn't happen, as we already check if it exists.
-                LOG.error("Unexpected error listing directory", e);
+            List<? extends FileStatus> files;
+            if(rootFileStatusList != null )
+                files = rootFileStatusList;
+            else
+            {
+                if( rootFileStatusFlat == null )
+                    rootFileStatusFlat = Arrays.asList(fs.listStatus(path));
+                files = rootFileStatusFlat;
+            }
+            for (FileStatus s : files ) {
+                if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
                 return false;
             }
+            return true;
         }
 
         @Override

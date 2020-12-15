@@ -115,8 +115,8 @@ public class ExternalTableUtils {
         return first;
     }
 
-    public static String getSuggestedSchema(StructType externalSchema, StructType partitionSchema, String separator) {
-        StringBuilder sb = new StringBuilder();
+    public static void getSuggestedSchema(StringBuilder sb, StructType externalSchema,
+                                          StructType partitionSchema, String separator) {
         sb.append( "CREATE EXTERNAL TABLE T (" + separator + " " );
         boolean first = addTypes(externalSchema, sb, true, separator);
         if( partitionSchema != null && partitionSchema.size() > 0 ) {
@@ -131,7 +131,6 @@ public class ExternalTableUtils {
             }
         }
         sb.append( " " + separator + ")" );
-        return sb.toString();
     }
 
     public static String getExternalTableTypeFromPath(String path)
