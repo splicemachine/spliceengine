@@ -15,6 +15,10 @@ echo "For help: \"splice> help;\""
 
 if [ $# -ge 1 ] && [ $1 = "debug" ]
 then
+    # debug: use like
+    # ./sqlshell.sh debug # debug port = 4010 (default)
+    # or
+    # /sqlshell.sh debug 5005 # debug port = 5005
     port=4010
     if [ $# -eq 2 ]
     then
@@ -27,7 +31,7 @@ fi
 if [ -z "${CLIENT_SSL_KEYSTORE}" ]; then
   cd splice_machine ; ${RLWRAP} mvn exec:java ; cd ${DIR}
 else
-  cd splice_machine ; ${RLWRAP} MAVEN_OPTS="${MY_MAVEN_OPTS}" mvn exec:java \
+  cd splice_machine ; ${RLWRAP} mvn exec:java \
     -Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
     -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
     -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
