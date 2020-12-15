@@ -84,6 +84,7 @@ public class OptimizerImpl implements Optimizer{
     private static final int JUMPING=2;
     private static final int WALK_HIGH=3;
     private static final int WALK_LOW=4;
+    private static final int PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND = 2000;
     protected DataDictionary dDictionary;
     /* The number of tables in the query as a whole.  (Size of bit maps.) */
     protected final int numTablesInQuery;
@@ -2206,8 +2207,9 @@ public class OptimizerImpl implements Optimizer{
             // prepared statement does not need to be compiled on every
             // invocation, just once in a while.  So, it is time well
             // spent if it means we can compile a more optimal plan.
-            if (timeLimit < 2000 && isPreparedStatement())
-                timeLimit = 2000;
+            if (timeLimit < PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND &&
+                isPreparedStatement())
+                timeLimit = PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND;
         }
 
         /*
