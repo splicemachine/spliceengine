@@ -51,8 +51,7 @@ import java.util.*;
 
 public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements OptimizableList{
     Properties properties;
-    // RESOLVE: The default should be false
-    boolean fixedJoinOrder=true;
+    boolean fixedJoinOrder=false;
     // true by default.
     boolean useStatistics=true;
 
