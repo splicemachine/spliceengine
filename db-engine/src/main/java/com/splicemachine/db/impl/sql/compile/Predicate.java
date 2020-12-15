@@ -558,7 +558,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                                 tempAnd,
                                 or_node.getLeftOperand().getTablesReferenced(),
                                 getContextManager());
-                        boolean skipProbePreds = pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+                        boolean skipProbePreds = PredicateList.skipProbePreds(optTable, pushPreds);
                         Integer position = PredicateList.isIndexUseful(tempPred, optTable, pushPreds, skipProbePreds, cd);
                         if (position == null) {
                             return false;
