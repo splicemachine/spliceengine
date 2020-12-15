@@ -139,7 +139,7 @@ public class SelectivityUtil {
                 if (!isTheRightJoinPredicate(p, predicateType))
                     continue;
 
-                predSelectivities.add(new JoinPredicateSelectivity(p, innerTable, QualifierPhase.JOIN,
+                predSelectivities.add(new JoinPredicateSelectivity(p, innerTable, QualifierPhase.FILTER_BASE,
                                                            p.joinSelectivity(innerTable, innerCD, innerRowCount,
                                                                              outerRowCount, selectivityJoinType)));
             }
@@ -168,12 +168,13 @@ public class SelectivityUtil {
                 ReferencedColumnsMap referencedColumnsMap = p.getReferencedColumns();
 
                 Integer mapIndex = null;
-                if (columnSet != null)
-                    for (Integer I:columnSet) {
+                if (columnSet != null) {
+                    for (Integer I : columnSet) {
                         mapIndex = selectivityIndexMap.get(I);
                         if (mapIndex != null)
                             break;
                     }
+                }
                 if (mapIndex != null) {
                     // Compare selectivities of predicates with overlapping column sets and keep the
                     // one with the lowest value.
