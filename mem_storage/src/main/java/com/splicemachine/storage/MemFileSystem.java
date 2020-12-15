@@ -167,7 +167,7 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public boolean isEmptyDirectory()
+        public boolean isEmptyDirectory() throws IOException
         {
             if(!isDirectory()) return false;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
@@ -178,13 +178,11 @@ public class MemFileSystem extends DistributedFileSystem{
                     return false;
                 }
                 return true;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
             }
         }
 
         @Override
-        public long recursiveFileCount(){
+        public long recursiveFileCount() throws IOException {
             if(!isDirectory()) return 1l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -192,27 +190,17 @@ public class MemFileSystem extends DistributedFileSystem{
                     count++;
                 }
                 return count;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
             }
         }
 
         @Override
-        public long spaceConsumed(){
-            try{
-                return Files.size(p);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+        public long spaceConsumed() throws IOException{
+            return size();
         }
 
         @Override
-        public long size(){
-            try{
-                return Files.size(p);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+        public long size() throws IOException{
+            return Files.size(p);
         }
 
         @Override
@@ -221,20 +209,20 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public String getUser(){
-            try{
+        public String getUser() {
+            try {
                 return Files.getOwner(p).getName();
-            }catch(IOException e){
+            } catch(Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
         @Override
-        public String getGroup(){
-            try{
-                PosixFileAttributes attrs = Files.getFileAttributeView(p,PosixFileAttributeView.class).readAttributes();
+        public String getGroup() {
+            try {
+                PosixFileAttributes attrs = Files.getFileAttributeView(p, PosixFileAttributeView.class).readAttributes();
                 return attrs.owner().getName();
-            }catch(IOException e){
+            } catch(Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -245,7 +233,7 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public String toSummary() {
+        public String toSummary() throws IOException {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
             sb.append("\nFile Count = ").append(this.recursiveFileCount());
@@ -263,23 +251,14 @@ public class MemFileSystem extends DistributedFileSystem{
             throw new UnsupportedOperationException("IMPLEMENT");
         }
         @Override
-        public FileInfo[] listDir(){
-            try {
-                return Files.list(p).map( path -> new PathInfo(path) ).toArray(PathInfo[]::new);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
+        public FileInfo[] listDir() throws IOException {
+            return Files.list(p).map( path -> new PathInfo(path) ).toArray(PathInfo[]::new);
         }
 
         @Override
-        public String getPermissionStr(){
-             try {
-                 Set<PosixFilePermission> s = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
-                 return PosixFilePermissions.toString(s);
-            } catch (IOException e) {
-                return "err";
-            }
+        public String getPermissionStr() throws IOException {
+            Set<PosixFilePermission> s = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+            return PosixFilePermissions.toString(s);
         }
         @Override
         public long getModificationTime() {
@@ -287,12 +266,8 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long recursiveSize(){
-            try{
-                return Files.size(p);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+        public long recursiveSize() throws IOException {
+            return Files.size(p);
         }
     }
 }

@@ -182,9 +182,11 @@ public class ExternalTableUnitTests {
         StructType part = new StructType();
         part = part.add("col1", DataTypes.IntegerType);
         part = part.add("col2", DataTypes.FloatType);
-        Assert.assertEquals( "CREATE EXTERNAL TABLE T (col0 DOUBLE, col3 CHAR/VARCHAR(x), col1 INT, col2 REAL) " +
-                        "PARTITIONED BY(col1, col2);",
-                ExternalTableUtils.getSuggestedSchema(s, part, "") + ";" );
+
+        StringBuilder sb = new StringBuilder();
+        ExternalTableUtils.getSuggestedSchema(sb, s, part, "");
+        Assert.assertEquals( "CREATE EXTERNAL TABLE T ( col0 DOUBLE, col3 CHAR/VARCHAR(x), col1 INT, col2 REAL ) " +
+                        "PARTITIONED BY( col1, col2 )", sb.toString());
 
     }
 
