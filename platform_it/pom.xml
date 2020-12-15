@@ -199,6 +199,10 @@
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-slf4j-impl</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-orc</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -1187,6 +1191,14 @@
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
         </profile>
         <profile>
             <id>ee</id>
