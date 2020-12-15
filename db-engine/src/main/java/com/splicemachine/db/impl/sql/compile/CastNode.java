@@ -374,14 +374,10 @@ public class CastNode extends ValueNode
 
                 case Types.DATE:
                 case Types.TIME:
-                case Types.TIMESTAMP:
                     if (destJDBCTypeId == Types.CHAR)
                     {
                         DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
                         String castValue;
-                        if (dvd instanceof SQLTimestamp) {
-                            ((SQLTimestamp) dvd).setTimestampFormat(getCompilerContext().getTimestampFormat());
-                        }
                         if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
                             ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
                             castValue = dvd.getString();
@@ -396,7 +392,25 @@ public class CastNode extends ValueNode
                                 getContextManager());
                     }
                     break;
-
+                case Types.TIMESTAMP:
+                    if (destJDBCTypeId == Types.CHAR)
+                    {
+                        if(dateToStringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
+                            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+                        }
+                        SQLTimestamp dvd = (SQLTimestamp) ((ConstantNode) castOperand).getValue();
+                        dvd.setTimestampFormat(getCompilerContext().getTimestampFormat());
+                        String castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
+                        SQLChar sqlChar = new SQLChar(castValue);
+                        int width = getTypeServices().getMaximumWidth();
+                        sqlChar.setWidth(width, -1, false);
+                        retNode = (ValueNode) getNodeFactory().getNode(
+                                C_NodeTypes.CHAR_CONSTANT_NODE,
+                                sqlChar.toString(),
+                                ReuseFactory.getInteger(width),
+                                getContextManager());
+                    }
+                    break;
                 case Types.DECIMAL:
                     // ignore decimal -> decimal casts for now
                     if (destJDBCTypeId == Types.DECIMAL ||
@@ -1104,7 +1118,7 @@ public class CastNode extends ValueNode
 
             mb.push(isNumber ? getTypeServices().getPrecision() : getTypeServices().getMaximumWidth());
             mb.push(getTypeServices().getScale());
-            mb.push(!sourceCTI.variableLength() ||
+            mb.push(!(sourceCTI.variableLength() || sourceCTI.getJDBCTypeId() == Types.TIMESTAMP) ||
                     isNumber ||
                     assignmentSemantics);
             mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.VariableSizeDataValue,
@@ -1118,7 +1132,12 @@ public class CastNode extends ValueNode
         int length = requestedStringLength;
         if (length == -1) {
             TypeId srcTypeId = opndType.getTypeId();
-            if (srcTypeId.isNumericTypeId()) {
+            if (srcTypeId.isFloatingPointTypeId()) {
+                // DB2 compatible type
+                // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000777.html
+                length = 24;
+            }
+            else if (srcTypeId.isNumericTypeId()) {
                 length = opndType.getPrecision() + 1; // 1 for the sign
                 if (opndType.getScale() > 0)
                     length += 1;               // 1 for the decimal .

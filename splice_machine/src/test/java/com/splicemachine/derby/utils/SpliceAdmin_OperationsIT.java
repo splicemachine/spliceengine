@@ -24,6 +24,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 
 import java.sql.Connection;
@@ -33,6 +34,8 @@ import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -105,8 +108,12 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(spliceSchemaWatcher.schemaName);
 
+    @Rule
+    public Timeout globalTimeout= new Timeout(60, TimeUnit.SECONDS);
+
 
     @BeforeClass
+    @AfterClass
     public static void killRunningOperations() throws Exception {
         TestUtils.killRunningOperations(spliceClassWatcher);
     }
@@ -239,11 +246,9 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                PreparedStatement ps = null;
-                try (TestConnection connection = methodWatcher.createConnection()) {
-                    ps = connection.prepareStatement(sql);
-                    ResultSet rs = ps.executeQuery();
-                    assertTrue(rs.next());
+                try (TestConnection connection = methodWatcher.createConnection();
+                     PreparedStatement ps = connection.prepareStatement(sql);
+                     ResultSet rs = ps.executeQuery()) {
                     while(rs.next()) {
                     }
                 } catch (Exception e) {
@@ -254,22 +259,21 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         thread.start();
         
         // wait for the query to be submitted
-        Thread.sleep(1000);
-
         String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
 
         try (TestConnection connection = methodWatcher.createConnection()) {
-            ResultSet opsRs = connection.query(opsCall);
-
-            int count = 0;
             String uuid = null;
-            while (opsRs.next()) {
-                count++;
-                if (opsRs.getString(5).equals(sql)) {
-                    uuid = opsRs.getString(1);
+            while(uuid == null) {
+                Thread.sleep(1000);
+
+                try (ResultSet opsRs = connection.query(opsCall)) {
+                    while (opsRs.next()) {
+                        if (opsRs.getString(5).equals(sql)) {
+                            uuid = opsRs.getString(1);
+                        }
+                    }
                 }
             }
-            assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
 
             // kill the cursor
             String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('" + uuid + "')";
