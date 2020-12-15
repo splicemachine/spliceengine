@@ -204,11 +204,13 @@ public class SparkExternalTableUtil {
                     null, null);
             partition_schema = partitionSpec.partitionColumns();
         }
-        String res = ExternalTableUtils.getSuggestedSchema(externalSchema, partition_schema, "") + ";";
+        StringBuilder sb = new StringBuilder();
+        ExternalTableUtils.getSuggestedSchema(sb, externalSchema, partition_schema, "");
+        sb.append( ";" );
         if( fileInfo == null ) {
-            res = res + " (note: could not check path, so no PARTITIONED BY information available)";
+            sb.append(" (note: could not check path, so no PARTITIONED BY information available)");
         }
-        return res;
+        return sb.toString();
     }
 
     static String getSuggestedSchema(StructType externalSchema, String location) {
