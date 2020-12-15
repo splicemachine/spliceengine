@@ -39,6 +39,18 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>com.101tec</groupId>
             <artifactId>zkclient</artifactId>
             <version>0.11</version>
@@ -78,11 +90,6 @@
                     <groupId>org.apache.hive</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -147,6 +154,25 @@
             <version>1.7.15</version>
         </dependency>
     </dependencies>
+    <reporting>
+        <plugins>
+            <plugin>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.2</version>
+            </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <jvmArgs>
+                        <jvmArg>-Xms64m</jvmArg>
+                        <jvmArg>-Xmx1024m</jvmArg>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
     <build>
         <extensions>
             <extension>
@@ -156,30 +182,6 @@
             </extension>
         </extensions>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.0</version>
-                <configuration>
-                    <reportPlugins>
-                        <plugin>
-                            <artifactId>maven-project-info-reports-plugin</artifactId>
-                            <version>2.2</version>
-                        </plugin>
-                        <plugin>
-                            <groupId>net.alchim31.maven</groupId>
-                            <artifactId>scala-maven-plugin</artifactId>
-                            <version>3.4.2</version>
-                            <configuration>
-                                <jvmArgs>
-                                    <jvmArg>-Xms64m</jvmArg>
-                                    <jvmArg>-Xmx1024m</jvmArg>
-                                </jvmArgs>
-                            </configuration>
-                        </plugin>
-                    </reportPlugins>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

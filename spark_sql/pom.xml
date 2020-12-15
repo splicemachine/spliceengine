@@ -25,7 +25,8 @@
         <!--Skip server startup-->
         <server.skip.start>skipServerStart</server.skip.start>
         <!--Ant task to run shell scripts-->
-	<skipTests>${maven.skip.tests}</skipTests>
+	<!--suppress UnresolvedMavenProperty -->
+        <skipTests>${maven.skip.tests}</skipTests>
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/../platform_it/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/../platform_it/src/test/bin/stop-splice-its</stop.script>
@@ -85,6 +86,25 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <reporting>
+        <plugins>
+            <plugin>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.2</version>
+            </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <jvmArgs>
+                        <jvmArg>-Xms64m</jvmArg>
+                        <jvmArg>-Xmx1024m</jvmArg>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
     <build>
         <extensions>
             <extension>
@@ -94,30 +114,6 @@
             </extension>
         </extensions>
 	<plugins>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-site-plugin</artifactId>
-			<version>3.0</version>
-			<configuration>
-				<reportPlugins>
-					<plugin>
-						<artifactId>maven-project-info-reports-plugin</artifactId>
-						<version>2.2</version>
-					</plugin>
-					<plugin>
-						<groupId>net.alchim31.maven</groupId>
-						<artifactId>scala-maven-plugin</artifactId>
-						<version>3.4.2</version>
-						<configuration>
-							<jvmArgs>
-								<jvmArg>-Xms64m</jvmArg>
-								<jvmArg>-Xmx1024m</jvmArg>
-							</jvmArgs>
-						</configuration>
-					</plugin>
-				</reportPlugins>
-			</configuration>
-		</plugin>
 		<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -154,6 +150,35 @@
                 <configuration>
                     <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
                     <excludedGroups>${excluded.longerthan}</excludedGroups>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>test-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}-tests</classifier>
+                        </configuration>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <classifier>${envClassifier}-sources</classifier>
                 </configuration>
             </plugin>
         </plugins>

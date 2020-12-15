@@ -30,29 +30,14 @@
         <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
         <ee_out/>
+        <!--suppress UnresolvedMavenProperty -->
         <skipTests>${maven.skip.tests}</skipTests>
+        <!--suppress UnresolvedMavenProperty -->
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
         <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
         <tmpDir>${project.build.directory}/tmp</tmpDir>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
@@ -78,15 +63,63 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
-            <classifier>tests</classifier>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_pipeline</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_storage</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_spark</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -95,12 +128,32 @@
             <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_spark2</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -109,6 +162,16 @@
             <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -168,6 +231,10 @@
             <version>${hive.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-shims</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
@@ -1163,14 +1230,6 @@
             </properties>
         </profile>
         <profile>
-            <id>dbaas</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
             <id>dbaas3.0</id>
             <properties>
                 <extraDependency>splice_sentry</extraDependency>
@@ -1203,6 +1262,12 @@
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
                     <scope>runtime</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.hbase</groupId>
+                            <artifactId>hbase-server</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1236,6 +1301,12 @@
                     <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                     <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.hbase</groupId>
+                            <artifactId>hbase-server</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1243,6 +1314,12 @@
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
                     <scope>runtime</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1251,6 +1328,12 @@
                     <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                     <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1258,6 +1341,12 @@
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
                     <scope>runtime</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1266,6 +1355,12 @@
                     <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                     <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1273,6 +1368,12 @@
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
                     <scope>runtime</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1281,6 +1382,12 @@
                     <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                     <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>*</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
             <build>

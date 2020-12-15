@@ -33,6 +33,7 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
 
         <!-- Provided dependencies -->
@@ -92,4 +93,28 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <classifier>${envClassifier}-sources</classifier>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -43,19 +43,9 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
             <artifactId>scala_util</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_pipeline</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -67,6 +57,7 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>spark_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -373,18 +364,40 @@
 
     <build>
         <plugins>
-           <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-jar-plugin</artifactId>
-
-               <executions>
-                   <execution>
-                       <goals>
-                           <goal>test-jar</goal>
-                       </goals>
-                   </execution>
-               </executions>
-           </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*log4j.properties</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}-tests</classifier>
+                        </configuration>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <classifier>${envClassifier}-sources</classifier>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -406,6 +419,12 @@
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>dbaas3.0</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark3.0</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -414,6 +433,12 @@
         <profile>
             <id>hdp3.1.0</id>
             <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>hdp3.1.0</classifier>
+                </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.3</artifactId>
@@ -433,6 +458,12 @@
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>hdp3.1.5</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.3</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -448,6 +479,12 @@
         <profile>
             <id>cdh6.3.0</id>
             <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>cdh6.3.0</classifier>
+                </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.4</artifactId>

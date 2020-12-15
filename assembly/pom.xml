@@ -27,9 +27,26 @@
         <dependency>
             <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_storage</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
             <exclusions>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.kafka</groupId>
                     <artifactId>kafka_${scala.binary.version}</artifactId>
@@ -43,8 +60,12 @@
             <classifier>${envClassifier}</classifier>
             <exclusions>
                 <exclusion>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -57,6 +78,10 @@
                 <exclusion>
                     <groupId>org.apache.kafka</groupId>
                     <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -71,6 +96,12 @@
             <artifactId>splice_ck</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
     <properties>
@@ -184,6 +215,46 @@
             </dependencies>
         </profile>
         <profile>
+            <id>hdp3.1.0</id>
+            <properties>
+                <platformArtifacts>hbase_storage_2.0,hbase_sql_spark2.3</platformArtifacts>
+            </properties>
+
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.0</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.3</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hdp3.1.5</id>
+            <properties>
+                <platformArtifacts>hbase_storage_2.1,hbase_sql_spark2.3</platformArtifacts>
+            </properties>
+
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.1</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_sql_spark2.3</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>cdh6.3.0</id>
             <properties>
                 <platformArtifacts>hbase_storage_2.1,hbase_sql_spark2.4</platformArtifacts>
@@ -199,6 +270,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.4</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
             </dependencies>
         </profile>
@@ -639,6 +711,7 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
+                                        ${platformArtifacts},
                                         splice_ranger_admin,
                                         splice_ranger_service,
                                         splice_atlas
@@ -830,6 +903,7 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
+                                        ${platformArtifacts},
                                         splice_ranger_admin,
                                         splice_ranger_service,
                                         splice_atlas,
@@ -1451,6 +1525,7 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
+                                        ${platformArtifacts},
                                         spark-network-yarn_${scala.binary.version}
                                     </includeArtifactIds>
                                 </configuration>
@@ -1461,7 +1536,9 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <descriptor>${basedir}/src/assembly/standalone.xml</descriptor>
+                            <descriptors>
+                                <descriptor>${basedir}/src/assembly/standalone.xml</descriptor>
+                            </descriptors>
                             <finalName>SPLICEMACHINE-${project.version}</finalName>
                         </configuration>
                         <executions>

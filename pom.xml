@@ -82,6 +82,7 @@
         <obfuscate.si/>
         <obfuscate.si.tag/>
         <ij.connection.port>1527</ij.connection.port>
+        <!--suppress UnresolvedMavenProperty -->
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
