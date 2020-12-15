@@ -293,8 +293,8 @@ public class SpliceAdminIT extends SpliceUnitTest {
     @Test
     public void testGetSessionInfo() throws Exception {
         String hostname = ""; int session = 0;
-        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()") ) {
-            ResultSet rs = cs.executeQuery();
+        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+            ResultSet rs = cs.executeQuery() ) {
             rs.next();
             hostname = rs.getString("HOSTNAME");
             session = rs.getInt("SESSION");
@@ -302,7 +302,7 @@ public class SpliceAdminIT extends SpliceUnitTest {
         }
 
         try(CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
-        ResultSet rs2 = cs2.executeQuery() ) {
+            ResultSet rs2 = cs2.executeQuery() ) {
             rs2.next();
             String hostname2 = rs2.getString("HOSTNAME");
             int session2 = rs2.getInt("SESSION");
@@ -327,21 +327,23 @@ public class SpliceAdminIT extends SpliceUnitTest {
     @Test
     public void testGetRegionServerStatsInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size() >= 1);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 1);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
     public void testGetLoggers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGERS()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size() >= 80);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 80);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
@@ -385,11 +387,12 @@ public class SpliceAdminIT extends SpliceUnitTest {
     @Test
     public void testGetSpliceVersion() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size() >= 1);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 1);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
@@ -474,7 +477,6 @@ public class SpliceAdminIT extends SpliceUnitTest {
             ResultSet rs = methodWatcher.executeQuery(query);
             assertTrue(rs.next());
             String rowId = rs.getString(1);
-            //String tableId = rs.getString(2);
             assertFalse(rs.next());
 
             rs = methodWatcher.executeQuery("select c.conglomeratenumber from sys.systables t, sys.sysconglomerates c where t.tableid = c.tableid and " +

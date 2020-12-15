@@ -188,7 +188,7 @@ class ResultHelper {
         }
     }
     private List<ExecRow> rows = new ArrayList<>();
-    private ArrayList<Column> columns = new ArrayList<>();
-    private ArrayList<GenericColumnDescriptor> columnDescriptors = new ArrayList<>();
+    private List<Column> columns = new ArrayList<>();
+    private List<GenericColumnDescriptor> columnDescriptors = new ArrayList<>();
     private ExecRow row;
 }
