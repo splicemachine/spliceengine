@@ -38,6 +38,50 @@ public class SparkYarnConfiguration implements Externalizable {
     private String executorMemoryOverhead;
     private String yarnExecutorMemoryOverhead;
 
+    public boolean equals(SparkYarnConfiguration other) {
+        if (numNodes != other.getNumNodes())
+            return false;
+        if (!stringEquals(yarnNodemanagerResourceMemoryMB, other.getYarnNodemanagerResourceMemoryMB()))
+            return false;
+        if (!stringEquals(dynamicAllocationEnabled, other.getDynamicAllocationEnabled()))
+            return false;
+        if (!stringEquals(executorInstances, other.getExecutorInstances()))
+            return false;
+        if (!stringEquals(executorCores, other.getExecutorCores()))
+            return false;
+        if (!stringEquals(executorMemory, other.getExecutorMemory()))
+            return false;
+        if (!stringEquals(dynamicAllocationMaxExecutors, other.getDynamicAllocationMaxExecutors()))
+            return false;
+        if (!stringEquals(executorMemoryOverhead, other.getExecutorMemoryOverhead()))
+            return false;
+        if (!stringEquals(yarnExecutorMemoryOverhead, other.getYarnExecutorMemoryOverhead()))
+            return false;
+
+        return true;
+    }
+
+    public int hashCode() {
+        int hc = numNodes;
+        hc = hc*31 + (yarnNodemanagerResourceMemoryMB == null ? 0 : yarnNodemanagerResourceMemoryMB.hashCode());
+        hc = hc*31 + (dynamicAllocationEnabled == null ? 0 : dynamicAllocationEnabled.hashCode());
+        hc = hc*31 + (executorInstances == null ? 0 : executorInstances.hashCode());
+        hc = hc*31 + (executorCores == null ? 0 : executorCores.hashCode());
+        hc = hc*31 + (executorMemory == null ? 0 : executorMemory.hashCode());
+        hc = hc*31 + (dynamicAllocationMaxExecutors == null ? 0 : dynamicAllocationMaxExecutors.hashCode());
+        hc = hc*31 + (executorMemoryOverhead == null ? 0 : executorMemoryOverhead.hashCode());
+        hc = hc*31 + (yarnExecutorMemoryOverhead == null ? 0 : yarnExecutorMemoryOverhead.hashCode());
+        return hc;
+    }
+
+    private boolean stringEquals(String string1, String string2) {
+        if (string1 == null)
+            return string2 == null;
+        else if (string2 == null)
+            return false;
+        return string1.equals(string2);
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(numNodes);

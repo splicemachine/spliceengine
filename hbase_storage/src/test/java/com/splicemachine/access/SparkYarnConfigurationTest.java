@@ -14,7 +14,6 @@
 
 package com.splicemachine.access;
 
-import static com.cedarsoftware.util.DeepEquals.deepEquals;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import java.io.*;
@@ -48,6 +47,6 @@ public class SparkYarnConfigurationTest {
         ByteArrayInputStream bis = new ByteArrayInputStream(serializedConfig);
         ObjectInput in = new ObjectInputStream(bis);
         newConf = (SparkYarnConfiguration) in.readObject();
-        assertTrue("SerDe failed!", deepEquals(newConf,conf));
+        assertTrue("SerDe failed!", conf.equals(newConf));
     }
 }
