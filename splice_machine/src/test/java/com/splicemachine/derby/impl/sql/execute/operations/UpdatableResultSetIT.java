@@ -49,7 +49,7 @@ public class UpdatableResultSetIT {
                                                                                                    "n date," +
                                                                                                    "o clob(3)," +
                                                                                                    "p blob(3))");
-    protected static final SpliceTableWatcher  C_TABLE            = new SpliceTableWatcher("C", schemaWatcher.schemaName,"(c1 decfloat)");
+    protected static final SpliceTableWatcher  C_TABLE            = new SpliceTableWatcher("C", schemaWatcher.schemaName,"(c1 int, c2 varchar(20))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -219,15 +219,6 @@ public class UpdatableResultSetIT {
         });
     }
 
-    @Test
-    public void testDF() throws Exception {
-        methodWatcher.executeUpdate("CREATE TABLE DF(col1 decfloat)");
-        try (PreparedStatement ps = methodWatcher.prepareStatement("insert into df values (?)")) {
-            ps.setBigDecimal(1, new BigDecimal("1.1"));
-            ps.execute();
-        }
-    }
-
 
 
     @Test
@@ -292,6 +283,38 @@ public class UpdatableResultSetIT {
                 Assert.assertEquals(Date.valueOf("2021-01-14"), resultSet.getDate(14));
                 Assert.assertEquals(new LoopingAlphabetStream(1, a1).read(), resultSet.getBinaryStream(16).read());
                 Assert.assertFalse(resultSet.next());
+            }
+        }
+    }
+
+    @Test
+    public void testUpdateOnDistributedCursor() throws Exception {
+        final int rowCount = 7000;
+        try(PreparedStatement preparedStatement = methodWatcher.prepareStatement("INSERT INTO C VALUES (?, ?)")) {
+            for(int i = 0; i < rowCount; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.setString(2, "value " + i);
+                preparedStatement.addBatch();
+            }
+        }
+
+        final String expectedValue = "NEW VALUE!";
+        try(PreparedStatement ps = methodWatcher.prepareStatement("SELECT * FROM C WHERE c1 between ? and ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            ps.setInt(1, 400);
+            ps.setInt(2, 405);
+            ResultSet result = ps.executeQuery();
+            while(result.next()) {
+                result.updateString(2, expectedValue);
+                result.updateRow();
+            }
+        }
+
+        try(PreparedStatement ps = methodWatcher.prepareStatement("SELECT * FROM C WHERE c1 between ? and ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            ps.setInt(1, 400);
+            ps.setInt(2, 405);
+            ResultSet result = ps.executeQuery();
+            while(result.next()) {
+                Assert.assertEquals(expectedValue, result.getString(2));
             }
         }
     }
