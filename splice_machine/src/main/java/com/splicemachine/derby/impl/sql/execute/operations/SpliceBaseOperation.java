@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
@@ -44,6 +45,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInforma
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.stream.control.ControlUtils;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
@@ -57,13 +60,17 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -530,6 +537,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
         remoteQueryClient.submit();
         execRowIterator = remoteQueryClient.getIterator();
+        execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
+            @Nullable
+            @Override
+            public ExecRow apply(@Nullable ExecRow execRow) {
+                getOperation().setCurrentRow(execRow);
+                getOperation().setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
+                return execRow;
+            }
+        });
     }
 
     @Override
