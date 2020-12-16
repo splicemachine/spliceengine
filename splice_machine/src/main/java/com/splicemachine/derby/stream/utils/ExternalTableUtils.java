@@ -139,9 +139,13 @@ public class ExternalTableUtils {
     public static String getExternalTableTypeFromPath(String path)
     {
         String filetype = Files.getFileExtension(path).toUpperCase();
-        if( filetype.equals("CSV") || filetype.equals("TBL") )
-            return "TEXTFILE";
+        if( filetype.equals("PARQUET") )
+            return "PARQUET";
+        else if( filetype.equals("ORC") )
+            return "ORC";
+        else if( filetype.equals("AVRO") )
+            return "AVRO";
         else
-            return filetype;
+            return "TEXTFILE";
     }
 }
