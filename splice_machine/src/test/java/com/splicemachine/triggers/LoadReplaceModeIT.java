@@ -12,21 +12,19 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.triggers;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.compile.DeleteNode;
+import com.splicemachine.db.impl.sql.compile.InsertNode;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,9 +36,9 @@ import java.util.Properties;
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
-public class FlushProblemIT {
+public class LoadReplaceModeIT {
 
-    private static final String SCHEMA = FlushProblemIT.class.getSimpleName();
+    private static final String SCHEMA = LoadReplaceModeIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -51,33 +49,25 @@ public class FlushProblemIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters( name = "{index}.useOLAP={0}" )
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{Boolean.FALSE});
+        params.add(new Object[]{Boolean.TRUE});
         return params;
     }
 
-    private String connectionString;
+    private Boolean useOLAP;
 
-    public FlushProblemIT(String connectionString) {
-        this.connectionString = connectionString;
+    public LoadReplaceModeIT(Boolean useOLAP) {
+        this.useOLAP = useOLAP;
     }
 
-    @Before
-    public void createTables() throws Exception {
-        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
-        conn.setSchema(SCHEMA.toUpperCase());
-        methodWatcher.setConnection(conn);
-    }
+    // 2.8 doesn't have LOAD_REPLACE_MODE but we need to test the flush problem
 
-    void assureFails(boolean update, String exceptionType, String query) throws Exception {
-        SpliceUnitTest.sqlExpectException(methodWatcher, query, exceptionType, update);
-    }
-
+    // see DB-10690
     @Test
-    public void test() throws Exception {
+    public void testFlushProblem() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
         methodWatcher.executeUpdate("CREATE TABLE riB (\n" +
                 "   c1 INTEGER PRIMARY KEY,\n" +
@@ -97,5 +87,4 @@ public class FlushProblemIT {
         methodWatcher.execute("DROP TABLE riB");
         methodWatcher.execute("DROP TABLE riA");
     }
-
 }
