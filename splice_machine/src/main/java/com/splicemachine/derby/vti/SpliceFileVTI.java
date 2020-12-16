@@ -20,14 +20,15 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
-import com.splicemachine.derby.stream.function.FileFunction;
-import com.splicemachine.derby.stream.function.StreamFileFunction;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
+import com.splicemachine.derby.stream.function.csv.StreamFileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -127,6 +128,21 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
+    boolean getSkipCarriageReturn(SpliceOperation op) throws StandardException {
+        boolean defaultValue = CompilerContext.DEFAULT_SPLICE_SKIP_CARRIAGE_RETURN;
+        if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
+            return defaultValue;
+        String skipCarriageReturnString =
+                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(), Property.SPLICE_SKIP_CARRIAGE_RETURN);
+        try {
+            if (skipCarriageReturnString != null)
+                return Boolean.parseBoolean(skipCarriageReturnString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        return defaultValue;
+    }
 
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
@@ -143,14 +159,22 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
                 VTIOperation vtiOperation = (VTIOperation)op;
                 quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
             }
-            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+
+            boolean skipCarriageReturn = getSkipCarriageReturn(op);
+            if (oneLineRecords && skipCarriageReturn /* todo check if this is needed (SMTextInputFormat) */
+                    && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext, quotedEmptyIsNull), true);
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                        columnIndex, timeFormat, dateTimeFormat, timestampFormat,
+                        true, operationContext, quotedEmptyIsNull, skipCarriageReturn), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return streamSet.values(operationContext).flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext, quotedEmptyIsNull), true);
+                return streamSet.values(operationContext).flatMap(
+                        new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex,
+                                timeFormat, dateTimeFormat, timestampFormat, charset,
+                                operationContext, quotedEmptyIsNull, skipCarriageReturn), true);
             }
         } finally {
             operationContext.popScope();

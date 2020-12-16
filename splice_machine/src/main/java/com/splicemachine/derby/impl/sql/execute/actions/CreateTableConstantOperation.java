@@ -27,7 +27,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -768,7 +768,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull, true), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(execRow);
             for (ExecRow row : rows) {

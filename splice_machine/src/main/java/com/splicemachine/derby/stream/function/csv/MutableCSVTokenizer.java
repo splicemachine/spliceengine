@@ -12,8 +12,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
+import com.splicemachine.derby.stream.function.csv.QuoteTrackingTokenizer;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.supercsv.prefs.CsvPreference;
 
@@ -35,13 +36,10 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
     private String line;
     private final List<String> columns =new ArrayList<>();
     private final BooleanList quotedColumns = new BooleanList();
-    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, boolean oneLineRecord, boolean quotedEmptyIsNull) {
-        super(reader, preferences, oneLineRecord, quotedEmptyIsNull);
-    }
 
-    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, boolean oneLineRecord, boolean quotedEmptyIsNull, long scanThreshold,
+    public MutableCSVTokenizer(Reader reader, CsvParserConfig config, long scanThreshold,
                                List<Integer> valueSizeHint) {
-        super(reader, preferences, oneLineRecord, quotedEmptyIsNull, scanThreshold, valueSizeHint);
+        super(reader, config, scanThreshold, valueSizeHint);
     }
 
     /**
