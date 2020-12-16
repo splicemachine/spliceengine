@@ -41,6 +41,9 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, E
             this.operationContext.recordRead();
             op.setCurrentRow(execRow);
             this.operationContext.recordProduced();
+            if(!op.isForUpdate()) {
+                execRow.setKey(null);
+            }
             return execRow;
         }
 
