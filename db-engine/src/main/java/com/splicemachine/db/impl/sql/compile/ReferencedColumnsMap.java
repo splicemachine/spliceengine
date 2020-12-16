@@ -112,7 +112,16 @@ public final class ReferencedColumnsMap {
         return intersects(tableNumber, otherFoundSet);
     }
 
-    @SuppressFBWarnings(value = "EQ_SELF_USE_OBJECT",justification = "intentional")
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof ReferencedColumnsMap)
+            return this.equals((ReferencedColumnsMap)other);
+
+        return false;
+    }
+
     public boolean equals(ReferencedColumnsMap refColsToCompare) {
         Map<Integer, Set<Integer>> otherTableColumns = refColsToCompare.getTableColumns();
         if (tableColumns == otherTableColumns)
