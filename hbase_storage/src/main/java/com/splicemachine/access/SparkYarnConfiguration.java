@@ -38,12 +38,14 @@ public class SparkYarnConfiguration implements Externalizable {
     private String executorMemoryOverhead;
     private String yarnExecutorMemoryOverhead;
 
-    public boolean equals(SparkYarnConfiguration other) {
+    public boolean equals(Object other) {
         if (this == other) {
             return true;
         }
         if (other instanceof SparkYarnConfiguration)
-            return this.equals((SparkYarnConfiguration)other)
+            return this.equals((SparkYarnConfiguration)other);
+
+        return false;
     }
 
     public boolean equals(SparkYarnConfiguration other) {
