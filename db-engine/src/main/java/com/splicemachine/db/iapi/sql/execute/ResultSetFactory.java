@@ -2010,6 +2010,7 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
                                       String quoteChar,
                                       String quoteMode,
                                       String format,
+                                      String floatingPointNotation,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 
