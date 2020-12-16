@@ -115,6 +115,14 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
             byte[] encoded = encoder.encode();
             output.writeInt(encoded.length, true);
             output.writeBytes(encoded);
+            byte[] key = object.getKey();
+            if(key == null) {
+                output.writeBoolean(false);
+            } else {
+                output.writeBoolean(true);
+                output.writeInt(key.length);
+                output.write(key);
+            }
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while serializing row " + object, e);
         }
@@ -167,6 +175,11 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                 byte[] toDecode = input.readBytes(length);
                 decoder.set(toDecode, 0, length);
                 decoder.decode(instance);
+            }
+            boolean hasKey = input.readBoolean();
+            if(hasKey) {
+                int keyLength = input.readInt();
+                instance.setKey(input.readBytes(keyLength));
             }
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while deserializing row with template " + instance, e);
