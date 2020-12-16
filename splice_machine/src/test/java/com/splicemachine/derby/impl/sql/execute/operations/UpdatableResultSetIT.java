@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.dbTesting.functionTests.util.streams.ByteAlphabet;
 import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetStream;
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -50,16 +51,23 @@ public class UpdatableResultSetIT {
                                                                                                    "o clob(3)," +
                                                                                                    "p blob(3))");
     protected static final SpliceTableWatcher  C_TABLE            = new SpliceTableWatcher("C", schemaWatcher.schemaName,"(c1 int, c2 varchar(20))");
+    protected static final SpliceTableWatcher  D_TABLE            = new SpliceTableWatcher("D", schemaWatcher.schemaName,"(c1 int primary key, c2 varchar(20))");
+
+    protected static final SpliceIndexWatcher D_TABLE_IDX = new SpliceIndexWatcher(D_TABLE.tableName, schemaWatcher.schemaName, "D_IDX", schemaWatcher.schemaName,"(c1)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schemaWatcher)
             .around(A_TABLE)
             .around(B_TABLE)
-            .around(C_TABLE);
+            .around(C_TABLE)
+            .around(D_TABLE)
+            .around(D_TABLE_IDX);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
+
 
     @Before
     public void prepareTableA() throws Exception {
@@ -291,15 +299,20 @@ public class UpdatableResultSetIT {
     public void testUpdateOnDistributedCursor() throws Exception {
         final int rowCount = 7000;
         try(PreparedStatement preparedStatement = methodWatcher.prepareStatement("INSERT INTO C VALUES (?, ?)")) {
-            for(int i = 0; i < rowCount; i++) {
+            for(int i = 0; i <= rowCount; i++) {
                 preparedStatement.setInt(1, i);
                 preparedStatement.setString(2, "value " + i);
                 preparedStatement.addBatch();
+                if(i % 1000 == 0) {
+                    preparedStatement.executeBatch();
+                }
             }
+
         }
 
         final String expectedValue = "NEW VALUE!";
-        try(PreparedStatement ps = methodWatcher.prepareStatement("SELECT * FROM C WHERE c1 between ? and ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        String sql = "SELECT * FROM C WHERE c1 between ? and ?";
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ps.setInt(1, 400);
             ps.setInt(2, 405);
             ResultSet result = ps.executeQuery();
@@ -309,13 +322,58 @@ public class UpdatableResultSetIT {
             }
         }
 
-        try(PreparedStatement ps = methodWatcher.prepareStatement("SELECT * FROM C WHERE c1 between ? and ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
             ps.setInt(1, 400);
             ps.setInt(2, 405);
             ResultSet result = ps.executeQuery();
             while(result.next()) {
                 Assert.assertEquals(expectedValue, result.getString(2));
             }
+        }
+    }
+
+    @Test
+    public void testUpdatesWithIndexScan() throws Exception {
+        final int rowCount = 100;
+        try(PreparedStatement preparedStatement = methodWatcher.prepareStatement("INSERT INTO D VALUES (?, ?)")) {
+            for(int i = 0; i < rowCount; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.setString(2, "value " + i);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+        }
+
+        String rowId = "";
+        final String expectedValue = "NEW VALUE!";
+
+        // get the original rowId to make sure we didn't change it after the update.
+        String sql = String.format("SELECT rowid,c2 FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE.toString(), D_TABLE_IDX.indexName);
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
+            ps.setInt(1, 50);
+            ResultSet result = ps.executeQuery();
+            Assert.assertTrue(result.next());
+            rowId = result.getString(1);
+            Assert.assertFalse(result.next());
+        }
+
+        try(PreparedStatement ps = methodWatcher.prepareStatement(String.format("SELECT * FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE.toString(), D_TABLE_IDX.indexName), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            ps.setInt(1, 50);
+            ResultSet result = ps.executeQuery();
+            while(result.next()) {
+                result.updateString(2, expectedValue);
+                result.updateRow();
+            }
+        }
+
+        // verify
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
+            ps.setInt(1, 50);
+            ResultSet result = ps.executeQuery();
+            Assert.assertTrue(result.next());
+            Assert.assertEquals(rowId, result.getString(1));
+            Assert.assertEquals(expectedValue, result.getString(2));
+            Assert.assertFalse(result.next());
         }
     }
 }
