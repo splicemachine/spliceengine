@@ -39,6 +39,14 @@ public class SparkYarnConfiguration implements Externalizable {
     private String yarnExecutorMemoryOverhead;
 
     public boolean equals(SparkYarnConfiguration other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof SparkYarnConfiguration)
+            return this.equals((SparkYarnConfiguration)other)
+    }
+
+    public boolean equals(SparkYarnConfiguration other) {
         if (numNodes != other.getNumNodes())
             return false;
         if (!stringEquals(yarnNodemanagerResourceMemoryMB, other.getYarnNodemanagerResourceMemoryMB()))
