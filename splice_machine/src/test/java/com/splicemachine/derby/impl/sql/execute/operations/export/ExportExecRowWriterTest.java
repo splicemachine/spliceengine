@@ -44,9 +44,12 @@ public class ExportExecRowWriterTest {
         ResultColumnDescriptor[] columnDescriptors = columnDescriptors();
 
         // when
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, 0, new Timestamp(0)), columnDescriptors);
-        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789, 1234.1, new Timestamp(1608135099000L)), columnDescriptors);   // null!
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, -0.12354, new Timestamp(160813509900L)), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, 0,
+                new Timestamp(1970 - 1900, 1 - 1, 1, 0, 0, 0, 0)), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789, 1234.1,
+                new Timestamp(2020 - 1900, 12 - 1, 16, 16, 11, 39, 0)), columnDescriptors);   // null!
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, -0.12354,
+                new Timestamp(1975 - 1900, 2 - 1, 5, 6, 25, 9, 900000000)), columnDescriptors);
         execRowWriter.close();
 
         // then
@@ -56,18 +59,18 @@ public class ExportExecRowWriterTest {
     @Test
     public void writeRow_withNullValue() throws IOException, StandardException {
         assertEquals("" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0,1970-01-01 01:00:00.000000000\n" +
-                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1,2020-12-16 17:11:39.000000000\n" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354,1975-02-05 07:25:09.900000000\n",
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0,1970-01-01 00:00:00.000000000\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1,2020-12-16 16:11:39.000000000\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354,1975-02-05 06:25:09.900000000\n",
                 writeRowImpl(FloatingPointDataType.PLAIN, CompilerContext.DEFAULT_TIMESTAMP_FORMAT));
     }
 
     @Test
     public void writeRow_withNullValue_normalizedFloatingPoint_timestampFormat() throws IOException, StandardException {
         assertEquals("" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0E0,1970/01/01 01:00:00.0000\n" +
-                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1.2341E3,2020/12/16 17:11:39.0000\n" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-1.2354E-1,1975/02/05 07:25:09.9000\n",
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0E0,1970/01/01 00:00:00.0000\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1.2341E3,2020/12/16 16:11:39.0000\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-1.2354E-1,1975/02/05 06:25:09.9000\n",
                 writeRowImpl(FloatingPointDataType.NORMALIZED, "yyyy/MM/dd HH:mm:ss.SSSS"));
     }
 
