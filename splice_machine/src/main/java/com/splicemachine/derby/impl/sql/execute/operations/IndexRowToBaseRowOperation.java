@@ -450,4 +450,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     public ScanInformation<ExecRow> getScanInformation() {
         return source.getScanInformation();
     }
+
+    @Override
+    public boolean isForUpdate(){
+        return forUpdate;
+    }
 }

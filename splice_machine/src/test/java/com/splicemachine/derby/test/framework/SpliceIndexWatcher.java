@@ -31,7 +31,7 @@ public class SpliceIndexWatcher extends TestWatcher {
     protected String tableName;
     protected String tableSchemaName;
     protected String createString;
-    protected String indexName;
+    public final String indexName;
     protected String indexSchemaName;
     protected String create = "create";
     protected boolean excludeNulls;
@@ -66,7 +66,6 @@ public class SpliceIndexWatcher extends TestWatcher {
 
     @Override
     public void starting(Description description) {
-        LOG.trace("Starting");
         Connection connection = null;
         PreparedStatement statement = null;
         Statement statement2 = null;
@@ -100,7 +99,6 @@ public class SpliceIndexWatcher extends TestWatcher {
     }
     @Override
     public void finished(Description description) {
-        LOG.trace("finished");
 //        executeDrop(SpliceNetConnection.indexSchemaName,indexName);
     }
 
