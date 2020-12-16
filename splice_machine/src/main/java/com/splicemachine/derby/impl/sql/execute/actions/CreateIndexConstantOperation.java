@@ -49,7 +49,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -950,8 +950,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+            // todo: can split keys contain multi-line strings? if no, then we should have oneLineRecord =true
+            // todo: if yes, skipCarriageReturn should be false
+            boolean oneLineRecord = false;
+            boolean skipCarriageReturn = true;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull), true);
+                    null, timeFormat, dateFormat, timestampFormat, oneLineRecord, operationContext,
+                    quotedEmptyIsNull, skipCarriageReturn), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

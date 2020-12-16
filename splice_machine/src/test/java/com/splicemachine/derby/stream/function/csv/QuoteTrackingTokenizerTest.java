@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.junit.Assert;
@@ -144,7 +144,9 @@ public class QuoteTrackingTokenizerTest {
     public void quotedMultiRowRecordWithOneLineRecordSetThrowsProperly() throws Exception {
         String invalidRow = "\"hello\",\"wrong\ncell\",goodbye\n";
         try {
-            QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), CsvPreference.STANDARD_PREFERENCE, true, true);
+            CsvParserConfig config = new CsvParserConfig(CsvPreference.STANDARD_PREFERENCE)
+                    .oneLineRecord(true).quotedEmptyIsNull(true).skipCarriageReturn(true);
+            QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), config);
             List<String> columns = new ArrayList<>();
             qtt.readColumns(columns);
             Assert.fail("expected exception to be thrown, but no exception was thrown");
@@ -156,17 +158,19 @@ public class QuoteTrackingTokenizerTest {
         Assert.fail("expected exception to be thrown, but no exception was thrown");
     }
 
-
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, boolean quotedEmptyIsNull, int size) throws IOException {
         checkResults(row, expectedColumns, expectedQuotes, quotedEmptyIsNull, size, false);
     }
 
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, boolean quotedEmptyIsNull, int size, boolean triggerScan) throws IOException {
         QuoteTrackingTokenizer qtt = null;
+        CsvParserConfig config = new CsvParserConfig(CsvPreference.STANDARD_PREFERENCE)
+                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull);
         if(triggerScan) {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, quotedEmptyIsNull, 1, Collections.nCopies(expectedColumns.size(), 10));
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), config,
+                    1, Collections.nCopies(expectedColumns.size(), 10));
         } else {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, quotedEmptyIsNull);
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), config);
         }
         List<String> actualColumns = new ArrayList<>(size);
         BooleanList actualQuotes = new BooleanList(size);
@@ -177,7 +181,9 @@ public class QuoteTrackingTokenizerTest {
 
     private static void checkResults(String column, List<List<String>> expectedColumns, List<BooleanList> expectedQuotes,
                                      List<List<Integer>> expectedValueSizes, int size, List<Integer> valueSizes, boolean oneLineRecord) throws IOException {
-        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), CsvPreference.STANDARD_PREFERENCE, oneLineRecord, true, 1, valueSizes);
+        CsvParserConfig config = new CsvParserConfig(CsvPreference.STANDARD_PREFERENCE)
+                .oneLineRecord(oneLineRecord).quotedEmptyIsNull(true);
+        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), config, 1, valueSizes);
 
         List<String> cols = new ArrayList<>(size);
         BooleanList quoteCols = new BooleanList(size);

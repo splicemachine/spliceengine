@@ -287,6 +287,8 @@ public class HdfsImportIT extends SpliceUnitTest {
                         ")")
                 .withIndex("CREATE INDEX cust_idx ON hdfsimportit.customers(email)")
                 .create();
+
+        setSkipCarriageReturn(conn,true);
     }
 
     private static File BADDIR;
@@ -2116,5 +2118,72 @@ public class HdfsImportIT extends SpliceUnitTest {
                 "200,,,00\n";
         Assert.assertEquals(expected, result);
     }
+
+    @Test
+    public void testAnalyzeExternalTable() throws Exception {
+        String path = getResourceDirectory() + "parquet_simple_file_test";
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.ANALYZE_EXTERNAL_TABLE('" + path + "')") ) {
+            StringBuilder sb = new StringBuilder();
+            while( rs.next() ) {
+                sb.append(rs.getString(1) + "\n");
+            }
+            String expected = "CREATE EXTERNAL TABLE T (\n" +
+                    " column1 CHAR/VARCHAR(x),\n" +
+                    " column2 CHAR/VARCHAR(x),\n" +
+                    " partition1 CHAR/VARCHAR(x) \n" +
+                    ") PARTITIONED BY(\n" +
+                    " partition1 \n" +
+                    ")\n" +
+                    " STORED AS PARQUET LOCATION '%s';\n";
+            Assert.assertEquals(String.format(expected, path),  sb.toString());
+        }
+    }
+
+    public static void setSkipCarriageReturn(Connection conn, Boolean skipCR) throws Exception {
+        try( Statement s = conn.createStatement()) {
+            s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
+                    "'splice.function.skipCarriageReturn', '" + skipCR + "' )");
+        }
+    }
+
+    @Test
+    public void testLineEndings() throws Exception {
+
+        String[] configs = {
+                "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
+                "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)",
+                "call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
+            };
+
+        try {
+            String strTakeCR = "V1       |C1 |\n" +
+                    "--------------------\n" +
+                    " Hello\r\nWorld  | 1 |\n" +
+                    "Hello\r\nNewline | 2 |";
+            String strSkipCR = "V1       |C1 |\n" +
+                    "-------------------\n" +
+                    " Hello\nWorld  | 1 |\n" +
+                    "Hello\nNewline | 2 |";
+            methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER)");
+
+            for(String config : configs) {
+                for( Boolean skipCR : new Boolean[]{false, true}) {
+                    methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
+                    setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), skipCR);
+                    String path = getResourceDirectory() + "newline.csv";
+                    String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
+
+                    methodWatcher.executeQuery(String.format(sql, spliceSchemaWatcher.schemaName, path));
+                    SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from LINE_ENDINGS order by c1",
+                            skipCR ? strSkipCR : strTakeCR, false);
+                }
+            }
+        }
+        finally {
+            setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), true);
+        }
+    }
+
 
 }

@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -25,6 +25,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
@@ -161,7 +162,8 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     }
 
 
-    public static ExecRow getRow(List<String> values,BooleanList quotedColumns,
+    @SuppressFBWarnings("REC_CATCH_EXCEPTION")
+    public static ExecRow getRow(List<String> values, BooleanList quotedColumns,
                                  OperationContext operationContext, ExecRow execRow,
                                  Calendar calendar, String timeFormat,
                                  String dateTimeFormat, String timestampFormat,
@@ -268,7 +270,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         }
     }
 
-    void checkPreference() {
+    public void checkPreference() {
         if (preference==null){
             SConfiguration config =EngineDriver.driver().getConfiguration();
             int maxQuotedLines = config.getImportMaxQuotedColumnLines();

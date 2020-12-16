@@ -12,14 +12,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.log4j.Logger;
 import org.supercsv.comment.CommentMatcher;
 import org.supercsv.exception.SuperCsvException;
-import org.supercsv.io.AbstractTokenizer;
-import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -35,7 +33,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 9/29/16
  */
-public class QuoteTrackingTokenizer extends AbstractTokenizer {
+public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
 
     private static final Logger LOG = Logger.getLogger(QuoteTrackingTokenizer.class);
     private static final char NEWLINE = '\n';
@@ -72,6 +70,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         final List<String> bufferList;
         int size = 0;
         boolean sizeCached = false;
+        StringBuilder sb;
 
         public LazyStringBuilder() {
             this.bufferList = new ArrayList<String>(1000);
@@ -110,7 +109,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         }
 
         public String toString() {
-            StringBuilder sb = new StringBuilder(length());
+            if(sb == null)
+                 sb = new StringBuilder(length());
+            else
+                sb.delete(0, sb.length());
             for (String cb : bufferList) {
                 sb.append(cb);
             }
@@ -125,38 +127,40 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         NORMAL, QUOTE_MODE, FINISHED
     }
 
+    final Reader reader;
+
     /**
      * Constructs a new <tt>Tokenizer</tt>, which reads the CSV file, line by line.
      *
-     * @param reader      the reader
-     * @param preferences the CSV preferences
+     * @param config         CSV config
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord, boolean quotedEmptyIsNull){
-        this(reader, preferences, oneLineRecord, quotedEmptyIsNull, -1, null);
+    public QuoteTrackingTokenizer(Reader reader, CsvParserConfig config){
+        this(reader, config, -1, null);
     }
 
     /**
      * Constructs a new <tt>Tokenizer</tt>, which reads the CSV file, line by line.
      *
-     * @param reader         the reader
-     * @param preferences    the CSV preferences
+     * @param config         CSV config
      * @param valueSizeHints the maximum size of each column. this is used to optimize memory footprint of the reader.
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord, boolean quotedEmptyIsNull,
+    public QuoteTrackingTokenizer(Reader reader, CsvParserConfig config,
                                   final long scanThresold, final List<Integer> valueSizeHints) {
-        super(reader, preferences);
-        this.quoteChar = preferences.getQuoteChar();
-        this.delimeterChar = preferences.getDelimiterChar();
-        this.surroundingSpacesNeedQuotes = preferences.isSurroundingSpacesNeedQuotes();
-        this.ignoreEmptyLines = preferences.isIgnoreEmptyLines();
-        this.commentMatcher = preferences.getCommentMatcher();
-        this.maxLinesPerRow = preferences.getMaxLinesPerRow();
+        super(reader, config.preferences, config.skipCarriageReturn);
+        this.quoteChar = config.preferences.getQuoteChar();
+        this.delimeterChar = config.preferences.getDelimiterChar();
+        this.surroundingSpacesNeedQuotes = config.preferences.isSurroundingSpacesNeedQuotes();
+        this.ignoreEmptyLines = config.preferences.isIgnoreEmptyLines();
+        // note: it looks like commentMatcher is always null
+        this.commentMatcher = config.preferences.getCommentMatcher();
+        this.maxLinesPerRow = config.preferences.getMaxLinesPerRow();
         this.valueSizeHints = valueSizeHints;
         this.scanThresold = scanThresold;
-        this.oneLineRecord = oneLineRecord;
-        this.quotedEmptyIsNull = quotedEmptyIsNull;
+        this.oneLineRecord = config.oneLineRecord;
+        this.quotedEmptyIsNull = config.quotedEmptyIsNull;
+        this.reader = reader;
     }
 
     @Override
@@ -246,7 +250,9 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private void appendToRowNewLine() {
         if (checkExactSizeFirst) {
+
             currentRow.append(String.valueOf(NEWLINE));
+
         } else if (exactColumnSizes != null && !oneLineRecord) {
             rowIdx++; // simulate adding a newline by moving a sequence by one
         } else {
@@ -354,9 +360,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void handleQuoteState() throws IOException {
         if (charIndex == getCurrentLine().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
             // (will update to 0 for next iteration), read in the next line, then continue to next character)
+            charIndex = 0;
             addToColumn(NEWLINE);
             appendToRowNewLine(); // specific line terminator lost, \n will have to suffice
-            charIndex = 0;
+
             checkLineErrors(quoteScopeStartingLine);
             appendToRowFromFile();
             if (getCurrentLine() == null) {
