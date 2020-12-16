@@ -3261,6 +3261,7 @@ binaryExportStatement() throws StandardException :
         actualParameterList.addElement(null);
         actualParameterList.addElement(null);
         actualParameterList.addElement(parameterList.elementAt(2));
+        actualParameterList.addElement(null);
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    actualParameterList,
