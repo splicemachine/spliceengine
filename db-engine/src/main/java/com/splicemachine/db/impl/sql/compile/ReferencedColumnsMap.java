@@ -13,7 +13,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import static com.cedarsoftware.util.DeepEquals.deepEquals;
 import com.splicemachine.db.iapi.error.StandardException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Sets;
@@ -125,7 +124,19 @@ public final class ReferencedColumnsMap {
         else if (otherTableColumns.isEmpty())
             return false;
 
-        return deepEquals(tableColumns, otherTableColumns);
+        if (tableColumns.size() != otherTableColumns.size())
+            return false;
+
+        Iterator mapIterator = tableColumns.entrySet().iterator();
+        while (mapIterator.hasNext()) {
+            Map.Entry<Integer, Set<Integer>> mapElement =
+                (Map.Entry<Integer, Set<Integer>>) mapIterator.next();
+            Set<Integer> lookupSet = otherTableColumns.get(mapElement.getKey());
+            if (!mapElement.getValue().equals(lookupSet)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
