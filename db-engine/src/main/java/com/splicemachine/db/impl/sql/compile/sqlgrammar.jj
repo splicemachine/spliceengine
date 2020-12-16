@@ -1954,6 +1954,7 @@ TOKEN [IGNORE_CASE] :
 |    <TIMESTAMP: "timestamp">
 |    <TIMESTAMPADD: "timestampadd">
 |    <TIMESTAMPDIFF: "timestampdiff">
+|    <TIMESTAMP_FORMAT: "timestamp_format">
 |    <TRUNC: "trunc">
 |    <TRUNCATE: "truncate">
 |    <TYPE: "type">
@@ -3162,6 +3163,7 @@ exportStatement() throws StandardException :
     ValueNode quoteMode = null;
     ValueNode fileType = null;
     ValueNode floatingPointNotation = null;
+    ValueNode timestampFormat = null;
 }
 {
     <EXPORT>
@@ -3189,6 +3191,9 @@ exportStatement() throws StandardException :
         [
             <FLOATING_POINT_NOTATION> floatingPointNotation = floatingPointNotation()
         ]
+        [
+            <TIMESTAMP_FORMAT> timestampFormat = orExpression(null)
+        ]
         statementNode = preparableSQLDataStatement()
         {
             parameterList.addElement(exportPath);
@@ -3200,6 +3205,7 @@ exportStatement() throws StandardException :
             parameterList.addElement(quoteMode);
             parameterList.addElement(fileType);
             parameterList.addElement(floatingPointNotation);
+            parameterList.addElement(timestampFormat);
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                        statementNode,
                                        parameterList,
@@ -3215,6 +3221,7 @@ exportStatement() throws StandardException :
                                      "csv",
                                      getContextManager()));
             parameterList.addElement(null); // null for legacy (floating point notation)
+            parameterList.addElement(null); // null for legacy (timestamp format)
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                        statementNode,
                                        parameterList,
@@ -17558,6 +17565,7 @@ nonReservedKeyword()  :
     |    tok = <TIMESTAMPADD>
     |   tok = <TIMESTAMPFORMAT>
     |    tok = <TIMESTAMPDIFF>
+    |    tok = <TIMESTAMP_FORMAT>
     |   tok = <TRIGGER>
     |    tok = <TRUNCATE>
     |    tok = <TRUNCATE_END>

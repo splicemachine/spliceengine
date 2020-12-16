@@ -76,7 +76,8 @@ public class ExportOperation extends SpliceBaseOperation {
                            String fieldSeparator,
                            String quoteCharacter,
                            String quoteMode,
-                           String floatingPointNotation) throws StandardException {
+                           String floatingPointNotation,
+                           String timestampFormat) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
 
         if (replicationCount <= 0 && replicationCount != ExportNode.DEFAULT_INT_VALUE) {
@@ -86,7 +87,7 @@ public class ExportOperation extends SpliceBaseOperation {
         this.source = source;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, format, replicationCount, encoding,
-                fieldSeparator, quoteCharacter, quoteMode, floatingPointNotation);
+                fieldSeparator, quoteCharacter, quoteMode, floatingPointNotation, timestampFormat);
         this.activation = activation;
         init();
     }
