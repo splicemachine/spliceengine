@@ -1466,11 +1466,10 @@ public interface Property {
     /**
      * Fractional seconds precision of timestamp.
      */
-    String SPLICE_TIMESTAMP_PRECISION = "splice.function.timestampPrecision";
-
     String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
 
     String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
+    String SPLICE_SKIP_CARRIAGE_RETURN = "splice.function.skipCarriageReturn";
 
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
