@@ -55,7 +55,7 @@ import java.util.Objects;
  */
 public class ExportNode extends DMLStatementNode {
 
-    private static final int EXPECTED_ARGUMENT_COUNT = 8;
+    private static final int EXPECTED_ARGUMENT_COUNT = 9;
     public static final int DEFAULT_INT_VALUE = Integer.MIN_VALUE;
 
     private StatementNode node;
@@ -68,6 +68,7 @@ public class ExportNode extends DMLStatementNode {
     private String quoteCharacter;
     private String quoteMode;
     private String format;
+    private String floatingPointNotation;
 
     @Override
     int activationKind() {
@@ -95,6 +96,7 @@ public class ExportNode extends DMLStatementNode {
         this.quoteCharacter = stringValue(argsList.get(5));
         this.quoteMode = stringValue(argsList.get(6));
         this.format = stringValue(argsList.get(7));
+        this.floatingPointNotation = stringValue(argsList.get(8));
     }
 
     @Override
@@ -123,11 +125,12 @@ public class ExportNode extends DMLStatementNode {
         mb.push(quoteCharacter);
         mb.push(quoteMode);
         mb.push(format);
+        mb.push(floatingPointNotation);
 
         /* Save result description of source node for use in export formatting. */
         mb.push(acb.addItem(node.makeResultDescription()));
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 12);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 13);
     }
 
     @Override
