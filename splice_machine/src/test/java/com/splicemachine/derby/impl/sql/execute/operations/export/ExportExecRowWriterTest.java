@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -27,6 +28,7 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -34,17 +36,17 @@ import static org.mockito.Mockito.when;
 
 public class ExportExecRowWriterTest {
 
-    private String writeRowImpl(int floatingPointDataType) throws StandardException, IOException {
+    private String writeRowImpl(int floatingPointDataType, String timestampFormat) throws StandardException, IOException {
         // given
         StringWriter writer = new StringWriter(100);
         CsvListWriter csvWriter = new CsvListWriter(writer, CsvPreference.EXCEL_PREFERENCE);
-        ExportExecRowWriter execRowWriter = new ExportExecRowWriter(csvWriter, floatingPointDataType);
+        ExportExecRowWriter execRowWriter = new ExportExecRowWriter(csvWriter, floatingPointDataType, timestampFormat);
         ResultColumnDescriptor[] columnDescriptors = columnDescriptors();
 
         // when
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, 0), columnDescriptors);
-        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789, 1234.1), columnDescriptors);   // null!
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, -0.12354), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, 0, new Timestamp(0)), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789, 1234.1, new Timestamp(1608135099000L)), columnDescriptors);   // null!
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, -0.12354, new Timestamp(160813509900L)), columnDescriptors);
         execRowWriter.close();
 
         // then
@@ -54,24 +56,24 @@ public class ExportExecRowWriterTest {
     @Test
     public void writeRow_withNullValue() throws IOException, StandardException {
         assertEquals("" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0\n" +
-                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1\n" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354\n",
-                writeRowImpl(FloatingPointDataType.PLAIN));
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0,1970-01-01 01:00:00.000000000\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1,2020-12-16 17:11:39.000000000\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354,1975-02-05 07:25:09.900000000\n",
+                writeRowImpl(FloatingPointDataType.PLAIN, CompilerContext.DEFAULT_TIMESTAMP_FORMAT));
     }
 
     @Test
-    public void writeRow_withNullValue_normalizedFloatingPoint() throws IOException, StandardException {
+    public void writeRow_withNullValue_normalizedFloatingPoint_timestampFormat() throws IOException, StandardException {
         assertEquals("" +
-                        "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0E0\n" +
-                        "AAA,BBB,,DDD,EEE,111.12,222.1234568,1.2341E3\n" +
-                        "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-1.2354E-1\n",
-                writeRowImpl(FloatingPointDataType.NORMALIZED));
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0E0,1970/01/01 01:00:00.0000\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1.2341E3,2020/12/16 17:11:39.0000\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-1.2354E-1,1975/02/05 07:25:09.9000\n",
+                writeRowImpl(FloatingPointDataType.NORMALIZED, "yyyy/MM/dd HH:mm:ss.SSSS"));
     }
 
-    private ExecRow build(String c1, String c2, String c3, String c4, String c5, double d1, double d2, double d3) throws StandardException {
-        ExecRow row = new ValueRow(8);
-        DataValueDescriptor[] rowValues = new DataValueDescriptor[8];
+    private ExecRow build(String c1, String c2, String c3, String c4, String c5, double d1, double d2, double d3, Timestamp t1) throws StandardException {
+        ExecRow row = new ValueRow(9);
+        DataValueDescriptor[] rowValues = new DataValueDescriptor[9];
         rowValues[0] = new SQLVarchar(c1);
         rowValues[1] = new SQLVarchar(c2);
         rowValues[2] = new SQLVarchar(c3);
@@ -81,13 +83,14 @@ public class ExportExecRowWriterTest {
         rowValues[5] = new SQLDecimal(new BigDecimal(d1), 15, 2);
         rowValues[6] = new SQLDecimal(new BigDecimal(d2), 15, 7);
         rowValues[7] = new SQLDouble(d3);
+        rowValues[8] = new SQLTimestamp(t1);
 
         row.setRowArray(rowValues);
         return row;
     }
 
     private ResultColumnDescriptor[] columnDescriptors() {
-        ResultColumnDescriptor[] array = new ResultColumnDescriptor[8];
+        ResultColumnDescriptor[] array = new ResultColumnDescriptor[9];
 
         array[0] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
         array[1] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
@@ -97,6 +100,7 @@ public class ExportExecRowWriterTest {
         array[5] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2, false);
         array[6] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7, false);
         array[7] = mockColDesc(StoredFormatIds.DOUBLE_TYPE_ID, 0, true);
+        array[8] = mockColDesc(StoredFormatIds.TIMESTAMP_TYPE_ID, 0, false);
 
         return array;
     }

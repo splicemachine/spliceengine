@@ -544,6 +544,10 @@ public class ExportOperationIT {
     }
 
     private String buildExportSQL(String selectQuery, String exportPath, String compression, Integer replicationCount, String encoding, String fieldSeparator, String quoteCharacter, String quoteMode) {
+        return buildExportSQL(selectQuery, exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter, quoteMode, null, null);
+    }
+
+    private String buildExportSQL(String selectQuery, String exportPath, String compression, Integer replicationCount, String encoding, String fieldSeparator, String quoteCharacter, String quoteMode, String floatingPointNotation, String timestampFormat) {
         if (useNativeSyntax) {
             StringBuilder sql = new StringBuilder();
             sql.append("EXPORT TO '").append(exportPath).append("'");
@@ -576,6 +580,16 @@ public class ExportOperationIT {
                     sql.append(quoteMode);
                 else
                     sql.append("'").append(quoteMode).append("'");
+            }
+            if (floatingPointNotation != null) {
+                sql.append(" FLOATING_POINT_NOTATION ");
+                if (useKeywords)
+                    sql.append(floatingPointNotation);
+                else
+                    sql.append("'").append(floatingPointNotation).append("'");
+            }
+            if (timestampFormat != null) {
+                sql.append(" TIMESTAMP_FORMAT '").append(timestampFormat).append("'");
             }
             sql.append(" ").append(selectQuery);
             return sql.toString();
@@ -611,6 +625,8 @@ public class ExportOperationIT {
             }
             sql.append(" ").append(selectQuery);
             assert quoteMode == null;
+            assert floatingPointNotation == null;
+            assert timestampFormat == null;
             return sql.toString();
         }
     }
@@ -679,6 +695,48 @@ public class ExportOperationIT {
                         "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
                         "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
                         "30,3.14159,14:31:20,\"varchar1\"\n",
+                Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    @Test
+    public void exportFloatingPointNotation() throws Exception {
+        if (!useNativeSyntax)
+            return;
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate(String.format("create table normalized_notation_%s (a real, b double)", getSuffix()))
+                .withInsert(String.format("insert into normalized_notation_%s values(?, ?)", getSuffix()))
+                .withRows(rows(row("123.123", "-0.0123123"))).create();
+
+        String exportPath = temporaryFolder.getAbsolutePath();
+        String exportSQL = buildExportSQL(String.format("select * from normalized_notation_%s order by a asc", getSuffix()),
+                exportPath, null, null, null, null, null, null, "normalized", null);
+
+        exportAndAssertExportResults(exportSQL, 1);
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("1.23123E2,-1.23123E-2\n",
+                Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    @Test
+    public void exportTimestampFormat() throws Exception {
+        if (!useNativeSyntax)
+            return;
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate(String.format("create table timestamp_format_%s (a timestamp)", getSuffix()))
+                .withInsert(String.format("insert into timestamp_format_%s values(?)", getSuffix()))
+                .withRows(rows(row("2020-01-01 12:15:16.123456789"))).create();
+
+        String exportPath = temporaryFolder.getAbsolutePath();
+        String exportSQL = buildExportSQL(String.format("select * from timestamp_format_%s order by a asc", getSuffix()),
+                exportPath, null, null, null, null, null, null, null, "yyyy/MM/dd HH:mm:ss.SSSS");
+
+        exportAndAssertExportResults(exportSQL, 1);
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("2020/01/01 12:15:16.1234\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
