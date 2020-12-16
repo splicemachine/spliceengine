@@ -505,7 +505,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     // tests writing all columns types, null values, suggesting schema.
     @Test
-    @Ignore("DB-10033")
     public void testWriteReadFromSimpleExternalTable() throws Exception {
         for( String fileFormat : fileFormats )
             testWriteReadFromSimpleExternalTable(fileFormat);
@@ -982,7 +981,8 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.assertEquals("Wrong Exception",
                                     "The field 'COL2':'CHAR/VARCHAR(x)' defined in the table is not compatible with " +
                                     "the field 'c1':'INT' defined in the external file '" + filename + "'. " +
-                                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (c0 INT, c1 INT, c2 INT);'.",
+                                    "Suggested Schema is 'CREATE EXTERNAL TABLE T ( c0 INT, c1 INT, c2 INT ) " +
+                                    "STORED AS AVRO LOCATION '" + filename + "';'.",
                     e.getMessage());
         }
     }
@@ -1040,7 +1040,8 @@ public class ExternalTableIT extends SpliceUnitTest {
                 Assert.assertEquals("wrong exception message",
                         numCols[i] + " attribute(s) defined but 3 present " +
                                 "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
-                                "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.", e.getMessage());
+                                "( _c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x) ) " +
+                                "STORED AS TEXTFILE LOCATION '" + file + "';'.", e.getMessage());
             }
         }
     }
