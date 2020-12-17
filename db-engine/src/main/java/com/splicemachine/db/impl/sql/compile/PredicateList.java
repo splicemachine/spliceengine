@@ -509,6 +509,22 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
+    public static boolean skipProbePreds(Optimizable optTable, boolean pushPreds) {
+        // When this method is called in cost estimation, pushPreds = false. When called in
+        // modifying access paths, pushPreds can be either true or false. In both cases, we
+        // need to skip probing predicates for hash join.
+        JoinStrategy currentJoinStrategy;
+        if (pushPreds) {
+            currentJoinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
+        } else {
+            currentJoinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
+            if (currentJoinStrategy == null) {
+                currentJoinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
+            }
+        }
+        return currentJoinStrategy != null && currentJoinStrategy.isHashJoin();
+    }
+
     @SuppressWarnings("ConstantConditions")
     public static boolean isQualifier(Predicate pred, Optimizable optTable, ConglomerateDescriptor cd,
                                       boolean pushPreds) throws StandardException {
@@ -522,7 +538,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         */
         if(!pred.isRelationalOpPredicate()){
             // possible OR clause, check for it.
-            if(!pred.isPushableOrClause(optTable)){
+            if(!pred.isPushableOrClause(optTable, cd, pushPreds)){
                 /* NOT an OR or AND, so go on to next predicate.
                  *
                  * Note: if "pred" (or any predicates in the tree
@@ -537,7 +553,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         } else {
             IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
             if (irg != null && irg.isOnExpression()) {
-                boolean skipProbePreds = pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+                boolean skipProbePreds = skipProbePreds(optTable, pushPreds);
                 Integer position = isIndexUseful(pred, optTable, pushPreds, skipProbePreds, cd);
                 return position != null;
             } else {
@@ -547,14 +563,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return true;
     }
 
-    private static boolean isQualifierForHashableJoin(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
+    private static boolean isQualifierForHashableJoin(Predicate pred, Optimizable optTable, ConglomerateDescriptor cd,
+                                                      boolean pushPreds) throws StandardException{
         /*
         ** Skip over it if it's not a relational operator (this includes
         ** BinaryComparisonOperators and IsNullNodes.
         */
         if(!pred.isRelationalOpPredicate()) {
             // possible OR clause, check for it.
-            if (!pred.isPushableOrClause(optTable)) {
+            if (!pred.isPushableOrClause(optTable, cd, pushPreds)) {
                 /* NOT an OR or AND, so go on to next predicate.
                  *
                  * Note: if "pred" (or any predicates in the tree
@@ -934,7 +951,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 Predicate pred=elementAt(index);
 
                 if(isQualifier(pred,optTable,cd,pushPreds) ||
-                        (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
+                        (isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds))
                         ) {
                     pred.markQualifier();
                     if(SanityManager.DEBUG){
@@ -991,7 +1008,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * modifying access paths and thus we know for sure that we are going
          * to generate a hash join.
          */
-        boolean skipProbePreds=pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+
+        boolean skipProbePreds = skipProbePreds(optTable, pushPreds);
         boolean[] isEquality =
             new boolean[baseColumnPositions != null ?
                         (size > baseColumnPositions.length ? size : baseColumnPositions.length) :size];
@@ -1036,7 +1054,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }else{
                 if(primaryKey && isQualifier(pred,optTable,cd,pushPreds) ||
-                isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
+                isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
                         if(optTable.pushOptPredicate(pred)){
@@ -1278,7 +1296,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         for (Predicate pred : inListNonQualifiedPreds) {
             if (!inlistQualified || pred.getIndexPosition() < 0) {
                 if(primaryKey && isQualifier(pred,optTable,cd,pushPreds) ||
-                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
+                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
                         if(optTable.pushOptPredicate(pred)){
