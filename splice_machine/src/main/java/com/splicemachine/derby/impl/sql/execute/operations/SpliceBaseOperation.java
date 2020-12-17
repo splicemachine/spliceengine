@@ -536,7 +536,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         isOpen = true;
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
         remoteQueryClient.submit();
-        execRowIterator = remoteQueryClient.getIterator();
         execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
             @Nullable
             @Override
@@ -1169,6 +1168,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     public boolean isFromTableStatement() {
+        return false;
+    }
+
+    @Override
+    public boolean isControlOnly() {
         return false;
     }
 }

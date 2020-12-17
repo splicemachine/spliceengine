@@ -191,7 +191,7 @@ public interface ResultSetFactory {
      * @throws StandardException thrown when unable to perform the delete
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
+                                 double optimizerEstimatedCost, boolean cursorDelete, String tableVersion,
                                  String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
                                  String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI)
             throws StandardException;
@@ -236,10 +236,15 @@ public interface ResultSetFactory {
      * @return the update operation as a result set.
      * @throws StandardException thrown when unable to perform the update
      */
-    ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-                                 GeneratedMethod checkGM, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
+    ResultSet getUpdateResultSet(NoPutResultSet source,
+                                 GeneratedMethod generationClauses,
+                                 GeneratedMethod checkGM,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost,
+                                 boolean updateCursor,
+                                 String tableVersion,
+                                 String explainPlan,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**

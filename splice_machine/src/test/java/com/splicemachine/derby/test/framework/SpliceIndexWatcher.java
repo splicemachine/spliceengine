@@ -31,7 +31,7 @@ public class SpliceIndexWatcher extends TestWatcher {
     protected String tableName;
     protected String tableSchemaName;
     protected String createString;
-    public final String indexName;
+    protected String indexName;
     protected String indexSchemaName;
     protected String create = "create";
     protected boolean excludeNulls;
@@ -163,6 +163,10 @@ public class SpliceIndexWatcher extends TestWatcher {
             LOG.error("error Dropping "+e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    public String getIndexName() {
+        return indexName;
     }
 
     public void drop() {
