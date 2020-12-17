@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -115,8 +116,8 @@ public class MPut implements DataPut{
     }
 
     @Override
-    public void skipWAL() {
-        // no-op in mem
+    public void setDurability(Durability durability) {
+        // no-op
     }
 
     @Override
