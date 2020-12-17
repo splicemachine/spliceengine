@@ -15,74 +15,113 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.dbTesting.functionTests.util.streams.ByteAlphabet;
 import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetStream;
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Collection;
+import java.util.Properties;
 
+@Category(value = {SerialTest.class})
+@RunWith(Parameterized.class)
 public class UpdatableResultSetIT {
 
-    private static final   String              CLASS_NAME         = UpdatableResultSetIT.class.getSimpleName().toUpperCase();
-    private static final   SpliceWatcher       spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final   SpliceSchemaWatcher schemaWatcher      = new SpliceSchemaWatcher(CLASS_NAME);
-    protected static final SpliceTableWatcher  A_TABLE            = new SpliceTableWatcher("A", schemaWatcher.schemaName,
-                                                                                           "(c1 int, c2 varchar(10))");
-    protected static final SpliceTableWatcher  B_TABLE            = new SpliceTableWatcher("B", schemaWatcher.schemaName,
-                                                                                           "(a smallint," +
-                                                                                                   "b integer," +
-                                                                                                   "c bigint," +
-                                                                                                   "d decimal(16, 10)," +
-                                                                                                   "e numeric(16, 10)," +
-                                                                                                   "f real," +
-                                                                                                   "g double," +
-                                                                                                   "h float," +
-                                                                                                   "i decfloat," +
-                                                                                                   "j char(3)," +
-                                                                                                   "k varchar(3)," +
-                                                                                                   "l timestamp," +
-                                                                                                   "m time," +
-                                                                                                   "n date," +
-                                                                                                   "o clob(3)," +
-                                                                                                   "p blob(3))");
-    protected static final SpliceTableWatcher  C_TABLE            = new SpliceTableWatcher("C", schemaWatcher.schemaName,"(c1 int, c2 varchar(20))");
-    protected static final SpliceTableWatcher  D_TABLE            = new SpliceTableWatcher("D", schemaWatcher.schemaName,"(c1 int primary key, c2 varchar(20))");
+    private static final String SCHEMA = UpdatableResultSetIT.class.getSimpleName().toUpperCase();
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
-    protected static final SpliceIndexWatcher D_TABLE_IDX = new SpliceIndexWatcher(D_TABLE.tableName, schemaWatcher.schemaName, "D_IDX", schemaWatcher.schemaName,"(c1)");
-
-    @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(schemaWatcher)
-            .around(A_TABLE)
-            .around(B_TABLE)
-            .around(C_TABLE)
-            .around(D_TABLE)
-            .around(D_TABLE_IDX);
+    protected static final String A_TABLE     = "A";
+    protected static final String B_TABLE     = "B";
+    protected static final String C_TABLE     = "C";
+    protected static final String D_TABLE     = "D";
+    protected static final String D_TABLE_IDX = "D_IDX";
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
+    private TestConnection conn;
+    private String         connectionString;
+
+    private static final String DEFAULT = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin";
+    private static final String CONTROL = DEFAULT + ";useSpark=false";
+    private static final String SPARK = DEFAULT + ";useSpark=true";
+
+    @Parameterized.Parameters(name = "with mode {0}")
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{SPARK});
+        params.add(new Object[]{CONTROL});
+        params.add(new Object[]{DEFAULT});
+        return params;
+    }
+
+    public UpdatableResultSetIT(String connectionString) throws Exception {
+        this.connectionString = connectionString;
+    }
 
     @Before
-    public void prepareTableA() throws Exception {
-        methodWatcher.executeUpdate("DELETE FROM A");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (2, 'helium')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (10, 'neon')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (18, 'argon')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (38, 'krypton')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (54, 'xenon')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (86, 'radon')");
-        methodWatcher.executeUpdate("INSERT INTO A VALUES (118, 'oganesson')");
+    public void setUp() throws Exception{
+        conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setAutoCommit(true);
+        conn.setSchema(SCHEMA);
+        conn.execute("DELETE FROM A");
+        conn.execute("DELETE FROM B");
+        conn.execute("DELETE FROM C");
+        conn.execute("DELETE FROM D");
+        conn.execute("INSERT INTO A VALUES (2, 'helium')");
+        conn.execute("INSERT INTO A VALUES (10, 'neon')");
+        conn.execute("INSERT INTO A VALUES (18, 'argon')");
+        conn.execute("INSERT INTO A VALUES (38, 'krypton')");
+        conn.execute("INSERT INTO A VALUES (54, 'xenon')");
+        conn.execute("INSERT INTO A VALUES (86, 'radon')");
+        conn.execute("INSERT INTO A VALUES (118, 'oganesson')");
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        conn.rollback();
+        conn.reset();
+    }
+
+    @BeforeClass
+    public static void createdSharedTables() throws Exception {
+       TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(10))", A_TABLE)).create();
+        new TableCreator(conn).withCreate(String.format("create table %s (a smallint," +
+                                                                "b integer," +
+                                                                "c bigint," +
+                                                                "d decimal(16, 10)," +
+                                                                "e numeric(16, 10)," +
+                                                                "f real," +
+                                                                "g double," +
+                                                                "h float," +
+                                                                "i decfloat," +
+                                                                "j char(3)," +
+                                                                "k varchar(3)," +
+                                                                "l timestamp," +
+                                                                "m time," +
+                                                                "n date," +
+                                                                "o clob(3)," +
+                                                                "p blob(3))", B_TABLE)).create();
+
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", C_TABLE)).create();
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 int primary key, c2 varchar(20))", D_TABLE)).withIndex(String.format("create index %s on %s(c1)", D_TABLE_IDX, D_TABLE)).create();
     }
 
     private void tableAshouldBe(Object[][] expected) throws SQLException {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A ORDER BY C1 ASC")) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A ORDER BY C1 ASC")) {
             int row = 0;
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -96,7 +135,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testUpdate() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     resultSet.updateString(2, resultSet.getString(2).toUpperCase());
@@ -116,7 +155,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testUpdateWithFilter() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A WHERE C1 > ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A WHERE C1 > ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             statement.setInt(1, 20);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -137,7 +176,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testDelete() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     resultSet.deleteRow();
@@ -149,7 +188,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testDeleteWithFilter() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A WHERE C1 BETWEEN ? AND ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A WHERE C1 BETWEEN ? AND ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             statement.setInt(1, 10);
             statement.setInt(2, 40);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -167,7 +206,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testInsert() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     int c1 = resultSet.getInt(1);
@@ -199,7 +238,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testInsertWithFilter() throws Exception {
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM A WHERE c1 > ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A WHERE c1 > ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             statement.setInt(1, 20);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -231,7 +270,7 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testDataTypes() throws Exception {
-        methodWatcher.executeUpdate("INSERT INTO B VALUES(" +
+        conn.execute("INSERT INTO B VALUES(" +
                                             "1," +
                                             "2," +
                                             "3," +
@@ -249,7 +288,7 @@ public class UpdatableResultSetIT {
                                             "'c'," +
                                             "CAST (X'10' AS BLOB))");
         ByteAlphabet a1 = ByteAlphabet.singleByte((byte) 8);
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM B", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM B", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     resultSet.updateInt(1, 10);
@@ -266,13 +305,15 @@ public class UpdatableResultSetIT {
                     resultSet.updateTimestamp(12, Timestamp.valueOf("2021-01-14 15:21:30.123456"));
                     resultSet.updateTime(13, Time.valueOf("16:21:30"));
                     resultSet.updateDate(14, Date.valueOf("2021-01-14"));
-                    resultSet.updateBinaryStream(16, new LoopingAlphabetStream(1, a1), 1);
+                    if(connectionString.contains("userSpark=false")) { // DB-11070
+                        resultSet.updateBinaryStream(16, new LoopingAlphabetStream(1, a1), 1);
+                    }
                     resultSet.updateRow();
                 }
             }
         }
 
-        try (PreparedStatement statement = methodWatcher.prepareStatement("SELECT * FROM B")) {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM B")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 Assert.assertTrue(resultSet.next());
                 Assert.assertEquals(10, resultSet.getInt(1));
@@ -289,7 +330,9 @@ public class UpdatableResultSetIT {
                 Assert.assertEquals(Timestamp.valueOf("2021-01-14 15:21:30.123456"), resultSet.getTimestamp(12));
                 Assert.assertEquals(Time.valueOf("16:21:30"), resultSet.getTime(13));
                 Assert.assertEquals(Date.valueOf("2021-01-14"), resultSet.getDate(14));
-                Assert.assertEquals(new LoopingAlphabetStream(1, a1).read(), resultSet.getBinaryStream(16).read());
+                if(connectionString.contains("userSpark=false")) { // DB-11070
+                    Assert.assertEquals(new LoopingAlphabetStream(1, a1).read(), resultSet.getBinaryStream(16).read());
+                }
                 Assert.assertFalse(resultSet.next());
             }
         }
@@ -297,8 +340,11 @@ public class UpdatableResultSetIT {
 
     @Test
     public void testUpdateOnDistributedCursor() throws Exception {
-        final int rowCount = 7000;
-        try(PreparedStatement preparedStatement = methodWatcher.prepareStatement("INSERT INTO C VALUES (?, ?)")) {
+        int rowCount = 7000, rangeA = 400, rangeB = 405;
+        if(connectionString.contains("useSpark=true")) {
+            rowCount = 100; rangeA = 50; rangeB = 55;
+        }
+        try(PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO C VALUES (?, ?)")) {
             for(int i = 0; i <= rowCount; i++) {
                 preparedStatement.setInt(1, i);
                 preparedStatement.setString(2, "value " + i);
@@ -312,9 +358,9 @@ public class UpdatableResultSetIT {
 
         final String expectedValue = "NEW VALUE!";
         String sql = "SELECT * FROM C WHERE c1 between ? and ?";
-        try(PreparedStatement ps = methodWatcher.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-            ps.setInt(1, 400);
-            ps.setInt(2, 405);
+        try(PreparedStatement ps = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            ps.setInt(1, rangeA);
+            ps.setInt(2, rangeB);
             ResultSet result = ps.executeQuery();
             while(result.next()) {
                 result.updateString(2, expectedValue);
@@ -322,9 +368,9 @@ public class UpdatableResultSetIT {
             }
         }
 
-        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
-            ps.setInt(1, 400);
-            ps.setInt(2, 405);
+        try(PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, rangeA);
+            ps.setInt(2, rangeB);
             ResultSet result = ps.executeQuery();
             while(result.next()) {
                 Assert.assertEquals(expectedValue, result.getString(2));
@@ -335,7 +381,7 @@ public class UpdatableResultSetIT {
     @Test
     public void testUpdatesWithIndexScan() throws Exception {
         final int rowCount = 100;
-        try(PreparedStatement preparedStatement = methodWatcher.prepareStatement("INSERT INTO D VALUES (?, ?)")) {
+        try(PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO D VALUES (?, ?)")) {
             for(int i = 0; i < rowCount; i++) {
                 preparedStatement.setInt(1, i);
                 preparedStatement.setString(2, "value " + i);
@@ -348,8 +394,8 @@ public class UpdatableResultSetIT {
         final String expectedValue = "NEW VALUE!";
 
         // get the original rowId to make sure we didn't change it after the update.
-        String sql = String.format("SELECT rowid,c2 FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE.toString(), D_TABLE_IDX.indexName);
-        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
+        String sql = String.format("SELECT rowid,c2 FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE, D_TABLE_IDX);
+        try(PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, 50);
             ResultSet result = ps.executeQuery();
             Assert.assertTrue(result.next());
@@ -357,7 +403,7 @@ public class UpdatableResultSetIT {
             Assert.assertFalse(result.next());
         }
 
-        try(PreparedStatement ps = methodWatcher.prepareStatement(String.format("SELECT * FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE.toString(), D_TABLE_IDX.indexName), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        try(PreparedStatement ps = conn.prepareStatement(String.format("SELECT * FROM %s --splice-properties index=%s\nWHERE c1 = ?", D_TABLE, D_TABLE_IDX), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ps.setInt(1, 50);
             ResultSet result = ps.executeQuery();
             while(result.next()) {
@@ -367,7 +413,7 @@ public class UpdatableResultSetIT {
         }
 
         // verify
-        try(PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
+        try(PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, 50);
             ResultSet result = ps.executeQuery();
             Assert.assertTrue(result.next());

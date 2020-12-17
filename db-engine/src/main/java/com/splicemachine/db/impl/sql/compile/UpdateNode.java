@@ -76,15 +76,16 @@ public final class UpdateNode extends DMLModStatementNode
     public static final String PIN = "pin";
     //Note: These are public so they will be visible to
     //the RepUpdateNode.
-    public int[]                changedColumnIds;
-    public ExecRow                emptyHeapRow;
-    public boolean                deferred;
-    public ValueNode            checkConstraints;
+    public int[]     changedColumnIds;
+    public ExecRow   emptyHeapRow;
+    public boolean   deferred;
+    public ValueNode checkConstraints;
 
-    protected FromTable            targetTable;
-    protected FormatableBitSet             readColsBitSet;
-    protected boolean             positionedUpdate;
-    protected boolean             isUpdateWithSubquery; // Splice fork
+    protected FromTable        targetTable;
+    protected FormatableBitSet readColsBitSet;
+    protected boolean          positionedUpdate;
+    protected boolean isUpdateWithSubquery; // Splice fork
+    protected boolean cursorUpdate;
 
     /* Column name for the RowLocation in the ResultSet */
     public static final String COLUMNNAME = "###RowLocationToUpdate";
@@ -99,10 +100,12 @@ public final class UpdateNode extends DMLModStatementNode
 
     public void init(
                Object targetTableName,
-               Object resultSet)
+               Object resultSet,
+               Object cursorUpdate)
     {
         super.init(resultSet);
         this.targetTableName = (TableName) targetTableName;
+        this.cursorUpdate = (Boolean)cursorUpdate;
     }
 
     /**
@@ -886,6 +889,7 @@ public final class UpdateNode extends DMLModStatementNode
             {
                 mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
                 mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
+                mb.push(this.cursorUpdate);
                 mb.push(targetTableDescriptor.getVersion());
                 mb.push(this.printExplainInformationForActivation());
                 SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
@@ -896,7 +900,7 @@ public final class UpdateNode extends DMLModStatementNode
                     mb.push(spsAsString);
                 }
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 8);
+                              ClassName.ResultSet, 9);
             }
         }
     }
