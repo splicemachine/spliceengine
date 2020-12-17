@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -35,11 +36,12 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, E
         @Override
         public ExecRow call(ExecRow execRow) throws Exception {
             if (!initialized) {
-                op = (SpliceOperation) getOperation();
+                op = getOperation();
                 initialized = true;
             }
             this.operationContext.recordRead();
             op.setCurrentRow(execRow);
+            op.setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
             this.operationContext.recordProduced();
             if(!op.isForUpdate()) {
                 execRow.setKey(null);

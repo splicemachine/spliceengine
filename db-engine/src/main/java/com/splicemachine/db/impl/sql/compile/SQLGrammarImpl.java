@@ -560,6 +560,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.DELETE_NODE,
                         tableName,
                         resultSet,
+                        fromTable instanceof CurrentOfNode,
                         targetProperties,
                         getContextManager());
 
@@ -602,6 +603,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.UPDATE_NODE,
                         tableName,
                         resultSet,
+                        fromTable instanceof CurrentOfNode,
                         getContextManager());
 
         setUpAndLinkParameters();
@@ -684,6 +686,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.UPDATE_NODE,
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
+                        fromTable instanceof CurrentOfNode,
                         getContextManager());
 
         ((UpdateNode)retval).setUpdateWithSubquery(true);
