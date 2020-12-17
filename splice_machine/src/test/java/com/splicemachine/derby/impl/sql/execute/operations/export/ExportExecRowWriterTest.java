@@ -34,32 +34,44 @@ import static org.mockito.Mockito.when;
 
 public class ExportExecRowWriterTest {
 
-    @Test
-    public void writeRow_withNullValue() throws IOException, StandardException {
-
+    private String writeRowImpl(int floatingPointDataType) throws StandardException, IOException {
         // given
         StringWriter writer = new StringWriter(100);
         CsvListWriter csvWriter = new CsvListWriter(writer, CsvPreference.EXCEL_PREFERENCE);
-        ExportExecRowWriter execRowWriter = new ExportExecRowWriter(csvWriter);
+        ExportExecRowWriter execRowWriter = new ExportExecRowWriter(csvWriter, floatingPointDataType);
         ResultColumnDescriptor[] columnDescriptors = columnDescriptors();
 
         // when
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);
-        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);   // null!
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, 0), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789, 1234.1), columnDescriptors);   // null!
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789, -0.12354), columnDescriptors);
         execRowWriter.close();
 
         // then
-        assertEquals("" +
-                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568\n" +
-                "AAA,BBB,,DDD,EEE,111.12,222.1234568\n" +
-                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568\n" +
-                "", writer.toString());
+        return writer.toString();
     }
 
-    private ExecRow build(String c1, String c2, String c3, String c4, String c5, double d1, double d2) throws StandardException {
-        ExecRow row = new ValueRow(7);
-        DataValueDescriptor[] rowValues = new DataValueDescriptor[7];
+    @Test
+    public void writeRow_withNullValue() throws IOException, StandardException {
+        assertEquals("" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354\n",
+                writeRowImpl(FloatingPointDataType.PLAIN));
+    }
+
+    @Test
+    public void writeRow_withNullValue_normalizedFloatingPoint() throws IOException, StandardException {
+        assertEquals("" +
+                        "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0E0\n" +
+                        "AAA,BBB,,DDD,EEE,111.12,222.1234568,1.2341E3\n" +
+                        "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-1.2354E-1\n",
+                writeRowImpl(FloatingPointDataType.NORMALIZED));
+    }
+
+    private ExecRow build(String c1, String c2, String c3, String c4, String c5, double d1, double d2, double d3) throws StandardException {
+        ExecRow row = new ValueRow(8);
+        DataValueDescriptor[] rowValues = new DataValueDescriptor[8];
         rowValues[0] = new SQLVarchar(c1);
         rowValues[1] = new SQLVarchar(c2);
         rowValues[2] = new SQLVarchar(c3);
@@ -68,26 +80,28 @@ public class ExportExecRowWriterTest {
 
         rowValues[5] = new SQLDecimal(new BigDecimal(d1), 15, 2);
         rowValues[6] = new SQLDecimal(new BigDecimal(d2), 15, 7);
+        rowValues[7] = new SQLDouble(d3);
 
         row.setRowArray(rowValues);
         return row;
     }
 
     private ResultColumnDescriptor[] columnDescriptors() {
-        ResultColumnDescriptor[] array = new ResultColumnDescriptor[7];
+        ResultColumnDescriptor[] array = new ResultColumnDescriptor[8];
 
-        array[0] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[1] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[2] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[3] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[4] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[5] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2);
-        array[6] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7);
+        array[0] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
+        array[1] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
+        array[2] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
+        array[3] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
+        array[4] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0, false);
+        array[5] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2, false);
+        array[6] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7, false);
+        array[7] = mockColDesc(StoredFormatIds.DOUBLE_TYPE_ID, 0, true);
 
         return array;
     }
 
-    private ResultColumnDescriptor mockColDesc(int formatId, int scale) {
+    private ResultColumnDescriptor mockColDesc(int formatId, int scale, boolean isFloatingPoint) {
         ResultColumnDescriptor mockVarCharColDesc = mock(ResultColumnDescriptor.class);
         DataTypeDescriptor mockType = mock(DataTypeDescriptor.class);
         TypeId mockTypeId = mock(TypeId.class);
@@ -96,6 +110,7 @@ public class ExportExecRowWriterTest {
         when(mockType.getTypeId()).thenReturn(mockTypeId);
         when(mockType.getScale()).thenReturn(scale);
         when(mockTypeId.getTypeFormatId()).thenReturn(formatId);
+        when(mockTypeId.isFloatingPointTypeId()).thenReturn(isFloatingPoint);
         return mockVarCharColDesc;
     }
 
