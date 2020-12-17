@@ -368,7 +368,11 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
+    checkTestRow("Upsert as Update")
+  }
+
+  def checkTestRow(testId: String): Unit =
+    org.junit.Assert.assertEquals(s"$testId Failed!",
       (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
       executeQuery(
         s"select * from $internalTN",
@@ -396,7 +400,6 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         }
       ).asInstanceOf[String]
     )
-  }
 
   test("Test Upsert as Insert") {
     dropInternalTable
@@ -404,34 +407,25 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
-      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
-      executeQuery(
-        s"select * from $internalTN",
-        rs => {
-          rs.next
-          List(
-            rs.getBoolean(1),
-            rs.getString(2),
-            rs.getDate(3),
-            rs.getBigDecimal(4),
-            rs.getDouble(5),
-            rs.getInt(6),
-            rs.getInt(7),
-            rs.getFloat(8),
-            rs.getShort(9),
-            rs.getTime(10),
-            rs.getTimestamp(11),
-            rs.getString(12),
-            rs.getBigDecimal(13),
-            rs.getInt(14),
-            rs.getString(15),
-            rs.getFloat(16),
-            rs.getInt(17)
-          ).mkString(", ")
-        }
-      ).asInstanceOf[String]
-    )
+    checkTestRow("Upsert as Insert")
+  }
+
+  test("Test MergeInto as Update") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Update")
+  }
+
+  test("Test MergeInto as Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Insert")
   }
 
   test("Test Inserting Null") {
