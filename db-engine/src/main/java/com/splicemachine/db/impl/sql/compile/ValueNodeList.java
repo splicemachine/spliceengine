@@ -643,228 +643,232 @@ public class ValueNodeList extends QueryTreeNodeVector
         return true;
     }
 
-	boolean isSemanticallyEquivalent(ValueNodeList other) throws StandardException {
-		if (size() != other.size()) {
-			return false;
-		}
+    boolean isSemanticallyEquivalent(ValueNodeList other) throws StandardException {
+        if (size() != other.size()) {
+            return false;
+        }
 
-		for (int i = 0; i < size(); i++) {
-			ValueNode vn1 = (ValueNode) elementAt(i);
-			ValueNode vn2 = (ValueNode) other.elementAt(i);
-			if (!vn1.isSemanticallyEquivalent(vn2)) {
-				return false;
-			}
-		}
-		return true;
-	}
+        for (int i = 0; i < size(); i++) {
+            ValueNode vn1 = (ValueNode) elementAt(i);
+            ValueNode vn2 = (ValueNode) other.elementAt(i);
+            if (!vn1.isSemanticallyEquivalent(vn2)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-	/**
-	 * Return whether or not this expression tree represents a constant expression.
-	 *
-	 * @return	Whether or not this expression tree represents a constant expression.
-	 */
-	public boolean isConstantExpression()
-	{
-		int size = size();
+    /**
+     * Return whether or not this expression tree represents a constant expression.
+     *
+     * @return    Whether or not this expression tree represents a constant expression.
+     */
+    public boolean isConstantExpression()
+    {
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			boolean retcode;
+        for (int index = 0; index < size; index++)
+        {
+            boolean retcode;
 
-			retcode = ((ValueNode) elementAt(index)).isConstantExpression();
-			if (! retcode)
-			{
-				return retcode;
-			}
-		}
+            retcode = ((ValueNode) elementAt(index)).isConstantExpression();
+            if (! retcode)
+            {
+                return retcode;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/** @see ValueNode#constantExpression */
-	public boolean constantExpression(PredicateList whereClause)
-	{
-		int size = size();
+    /** @see ValueNode#constantExpression */
+    public boolean constantExpression(PredicateList whereClause)
+    {
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			boolean retcode;
+        for (int index = 0; index < size; index++)
+        {
+            boolean retcode;
 
-			retcode =
-				((ValueNode) elementAt(index)).constantExpression(whereClause);
-			if (! retcode)
-			{
-				return retcode;
-			}
-		}
+            retcode =
+                ((ValueNode) elementAt(index)).constantExpression(whereClause);
+            if (! retcode)
+            {
+                return retcode;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	 * Categorize this predicate.  Initially, this means
-	 * building a bit map of the referenced tables for each predicate.
-	 * If the source of this ColumnReference (at the next underlying level) 
-	 * is not a ColumnReference or a VirtualColumnNode then this predicate
-	 * will not be pushed down.
-	 *
-	 * For example, in:
-	 *		select * from (select 1 from s) a (x) where x = 1
-	 * we will not push down x = 1.
-	 * NOTE: It would be easy to handle the case of a constant, but if the
-	 * inner SELECT returns an arbitrary expression, then we would have to copy
-	 * that tree into the pushed predicate, and that tree could contain
-	 * subqueries and method calls.
-	 * RESOLVE - revisit this issue once we have views.
-	 *
-	 * @param referencedTabs	JBitSet with bit map of referenced FromTables
-	 * @param simplePredsOnly	Whether or not to consider method
-	 *							calls, field references and conditional nodes
-	 *							when building bit map
-	 *
-	 * @return boolean		Whether or not source.expression is a ColumnReference
-	 *						or a VirtualColumnNode.
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
-		throws StandardException
-	{
-		/* We stop here when only considering simple predicates
-		 *  as we don't consider in lists when looking
-		 * for null invariant predicates.
-		 */
-		boolean pushable = true;
-		int size = size();
+    /**
+     * Categorize this predicate.  Initially, this means
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
+     * If the source of this ColumnReference (at the next underlying level)
+     * is not a ColumnReference or a VirtualColumnNode then this predicate
+     * will not be pushed down.
+     *
+     * For example, in:
+     *        select * from (select 1 from s) a (x) where x = 1
+     * we will not push down x = 1.
+     * NOTE: It would be easy to handle the case of a constant, but if the
+     * inner SELECT returns an arbitrary expression, then we would have to copy
+     * that tree into the pushed predicate, and that tree could contain
+     * subqueries and method calls.
+     * RESOLVE - revisit this issue once we have views.
+     *
+     * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
+     * @param simplePredsOnly    Whether or not to consider method
+     *                            calls, field references and conditional nodes
+     *                            when building bit map
+     *
+     * @return boolean        Whether or not source.expression is a ColumnReference
+     *                        or a VirtualColumnNode.
+     * @exception StandardException        Thrown on error
+     */
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
+        throws StandardException
+    {
+        /* We stop here when only considering simple predicates
+         *  as we don't consider in lists when looking
+         * for null invariant predicates.
+         */
+        boolean pushable = true;
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			pushable = ((ValueNode) elementAt(index)).categorize(referencedTabs, simplePredsOnly) &&
-					   pushable;
-		}
+        for (int index = 0; index < size; index++)
+        {
+            pushable = ((ValueNode) elementAt(index)).categorize(referencedTabs, referencedColumns, simplePredsOnly) &&
+                       pushable;
+        }
 
-		return pushable;
-	}
+        return pushable;
+    }
 
-	/**
-	 * Return the variant type for the underlying expression.
-	 * The variant type can be:
-	 *		VARIANT				- variant within a scan
-	 *							  (method calls and non-static field access)
-	 *		SCAN_INVARIANT		- invariant within a scan
-	 *							  (column references from outer tables)
-	 *		QUERY_INVARIANT		- invariant within the life of a query
-	 *		CONSTANT			- constant
-	 *
-	 * @return	The variant type for the underlying expression.
-	 * @exception StandardException	thrown on error
-	 */
-	protected int getOrderableVariantType() throws StandardException
-	{
-		int listType = Qualifier.CONSTANT;
-		int size = size();
+    /**
+     * Return the variant type for the underlying expression.
+     * The variant type can be:
+     *        VARIANT                - variant within a scan
+     *                              (method calls and non-static field access)
+     *        SCAN_INVARIANT        - invariant within a scan
+     *                              (column references from outer tables)
+     *        QUERY_INVARIANT        - invariant within the life of a query
+     *        CONSTANT            - constant
+     *
+     * @return    The variant type for the underlying expression.
+     * @exception StandardException    thrown on error
+     */
+    protected int getOrderableVariantType() throws StandardException
+    {
+        int listType = Qualifier.CONSTANT;
+        int size = size();
 
-		/* If any element in the list is VARIANT then the 
-		 * entire expression is variant
-		 * else it is SCAN_INVARIANT if any element is SCAN_INVARIANT
-		 * else it is QUERY_INVARIANT.
-		 */
-		for (int index = 0; index < size; index++)
-		{
-			int curType = ((ValueNode) elementAt(index)).getOrderableVariantType();
-			listType = Math.min(listType, curType);
-		}
+        /* If any element in the list is VARIANT then the
+         * entire expression is variant
+         * else it is SCAN_INVARIANT if any element is SCAN_INVARIANT
+         * else it is QUERY_INVARIANT.
+         */
+        for (int index = 0; index < size; index++)
+        {
+            int curType = ((ValueNode) elementAt(index)).getOrderableVariantType();
+            listType = Math.min(listType, curType);
+        }
 
-		return listType;
-	}
-	
-	public int hashCode(){
-		int hashCode = 0;
+        return listType;
+    }
 
-		for(int i=0; i < size(); i++){
-			hashCode = 31*hashCode + elementAt(i).hashCode();
-		}
-		return hashCode;
-	}
+    public int hashCode(){
+        int hashCode = 0;
 
-	/**
-	 * Eliminate duplicates from the IN list and adjust the CharConstantNode with correct padding
-	 * @param dtdList dataTypeDescriptor list
-	 * @throws StandardException
-	 */
-	public void eliminateDuplicates(ArrayList<DataTypeDescriptor> dtdList) throws StandardException {
-		int numNodes = dtdList.size();
-		int [] maxSize = new int[numNodes];
-		String [] typeid = new String[numNodes];
-		boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
+        for(int i=0; i < size(); i++){
+            hashCode = 31*hashCode + elementAt(i).hashCode();
+        }
+        return hashCode;
+    }
 
-		
-		for (int i = 0; i < numNodes; i++) {
-			DataTypeDescriptor dtd = dtdList.get(i);
-			maxSize[i] = dtd.getMaximumWidth();
-			typeid[i] = dtd.getTypeName();
+    /**
+     * Eliminate duplicates from the IN list and adjust the CharConstantNode with correct padding
+     * @param dtdList dataTypeDescriptor list
+     * @throws StandardException
+     */
+    public void eliminateDuplicates(ArrayList<DataTypeDescriptor> dtdList) throws StandardException {
+        int numNodes = dtdList.size();
+        int [] maxSize = new int[numNodes];
+        String [] typeid = new String[numNodes];
+        boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
 
-			if (typeid[i].equals(TypeId.VARCHAR_NAME)) {
-				for (int index = 0; index < size(); index++) {
-					ValueNode valueNode = (ValueNode) elementAt(index);
-					if (valueNode instanceof ListValueNode)
-						valueNode = ((ListValueNode) valueNode).getValue(i);
 
-					CharConstantNode charConstantNode = (CharConstantNode)valueNode;
+        for (int i = 0; i < numNodes; i++) {
+            DataTypeDescriptor dtd = dtdList.get(i);
+            maxSize[i] = dtd.getMaximumWidth();
+            typeid[i] = dtd.getTypeName();
 
-					if (!DB2CompatibilityMode && !(charConstantNode.getValue() instanceof SQLVarchar)) {
-						charConstantNode.setValue(new SQLVarchar(charConstantNode.getString()));
-					}
-				}
-			}
-		}
-		
-		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
-		removeAllElements();
-		Iterator iterator = vset.iterator();
+            if (typeid[i].equals(TypeId.VARCHAR_NAME)) {
+                for (int index = 0; index < size(); index++) {
+                    ValueNode valueNode = (ValueNode) elementAt(index);
+                    if (valueNode instanceof ListValueNode)
+                        valueNode = ((ListValueNode) valueNode).getValue(i);
 
-		ValueNode valueNode = null;
-		while (iterator.hasNext())
-		{
+                    CharConstantNode charConstantNode = (CharConstantNode)valueNode;
 
-			ValueNode constant = (ValueNode) iterator.next();
-			for (int i = 0; i < numNodes; i++) {
-				if (numNodes == 1)
-					valueNode = constant;
-				else
-					valueNode = ((ListValueNode)constant).getValue(i);
+                    if (!DB2CompatibilityMode && !(charConstantNode.getValue() instanceof SQLVarchar)) {
+                        charConstantNode.setValue(new SQLVarchar(charConstantNode.getString()));
+                    }
+                }
+            }
+        }
 
-    			if (valueNode instanceof CharConstantNode && typeid[i].equals(TypeId.CHAR_NAME)) {
-				    rightPadCharConstantNode((CharConstantNode) valueNode, maxSize[i]);
-			    }
-			}
-			if (numNodes == 1)
-			    addElement(valueNode);
-			else
-				addElement(constant);
-		}
+        HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
+        removeAllElements();
+        Iterator iterator = vset.iterator();
 
-	}
+        ValueNode valueNode = null;
+        while (iterator.hasNext())
+        {
 
-	public static void rightPadCharConstantNode(CharConstantNode constantNode, int maxSize) throws StandardException {
-		String stringConstant = constantNode.getString();
-		constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
-	}
+            ValueNode constant = (ValueNode) iterator.next();
+            for (int i = 0; i < numNodes; i++) {
+                if (numNodes == 1)
+                    valueNode = constant;
+                else
+                    valueNode = ((ListValueNode)constant).getValue(i);
 
-	public ValueNodeList replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-		ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
-				C_NodeTypes.VALUE_NODE_LIST,
-				getContextManager());
-		for (int i = 0; i < size(); i++) {
-			newList.addValueNode(((ValueNode) elementAt(i)).replaceIndexExpression(childRCL));
-		}
-		return newList;
-	}
+                if (valueNode instanceof CharConstantNode && typeid[i].equals(TypeId.CHAR_NAME)) {
+                    rightPadCharConstantNode((CharConstantNode) valueNode, maxSize[i]);
+                }
+            }
+            if (numNodes == 1)
+                addElement(valueNode);
+            else
+                addElement(constant);
+        }
 
-	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
-		boolean result = true;
-		for (int i = 0; i <size(); i++) {
-			result = result && ((ValueNode) elementAt(i)).collectExpressions(exprMap);
-		}
-		return result;
-	}
+    }
+
+    public static void rightPadCharConstantNode(CharConstantNode constantNode, int maxSize) throws StandardException {
+        String stringConstant = constantNode.getString();
+        constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
+    }
+
+    public ValueNodeList replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
+                C_NodeTypes.VALUE_NODE_LIST,
+                getContextManager());
+        for (int i = 0; i < size(); i++) {
+            newList.addValueNode(((ValueNode) elementAt(i)).replaceIndexExpression(childRCL));
+        }
+        return newList;
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        for (int i = 0; i <size(); i++) {
+            result = result && ((ValueNode) elementAt(i)).collectExpressions(exprMap);
+        }
+        return result;
+    }
 }

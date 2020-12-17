@@ -1120,7 +1120,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * (DERBY-3288)
          */
         dependencyMap = new JBitSet(numTables);
-        methodCall.categorize(dependencyMap, false);
+        methodCall.categorize(dependencyMap, null, false);
 
         // Make sure this FromVTI does not "depend" on itself.
         dependencyMap.clear(tableNumber);

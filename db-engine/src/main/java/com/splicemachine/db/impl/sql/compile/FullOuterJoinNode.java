@@ -272,11 +272,11 @@ public class FullOuterJoinNode extends JoinNode {
 
                 /* only consider the left side of inlist operator, as right are ORed elements */
                 if (left instanceof InListOperatorNode) {
-                    if (!((InListOperatorNode) left).getLeftOperandList().categorize(refMap,true)) {
+                    if (!((InListOperatorNode) left).getLeftOperandList().categorize(refMap, null, true)) {
                         vn=and.getRightOperand();
                         continue;
                     }
-                } else if(!(left.categorize(refMap,true))){
+                } else if(!(left.categorize(refMap, null, true))){
                     vn=and.getRightOperand();
                     continue;
                 }

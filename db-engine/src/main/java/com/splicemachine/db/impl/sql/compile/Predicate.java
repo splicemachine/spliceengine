@@ -88,6 +88,23 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // to make the current combined multicolumn IN list probe predicate.
     private PredicateList originalInListPredList;
 
+    private ReferencedColumnsMap referencedColumns;
+
+    public ReferencedColumnsMap getReferencedColumns() {
+        return referencedColumns;
+    }
+
+    public int getNumReferencedTables() {
+        if (referencedColumns == null)
+            return 0;
+        else
+            return referencedColumns.getNumReferencedTables();
+    }
+
+    public void setReferencedColumns(ReferencedColumnsMap referencedColumns) {
+        this.referencedColumns = referencedColumns;
+    }
+
     public void setPulled(boolean pulled){
         this.pulled=pulled;
     }
@@ -459,12 +476,15 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      *
-     * @throws StandardException Thrown on error
+     * @throws StandardException Thrown on error`
      */
     public void categorize() throws StandardException{
-        pushable=andNode.categorize(referencedSet,false);
+        referencedColumns = new ReferencedColumnsMap();
+        pushable=andNode.categorize(referencedSet, referencedColumns, false);
     }
 
     /**
@@ -751,10 +771,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     /**
      * Copy all fields of this Predicate (except the two that
-     * are set from 'init').
+     * are set from 'init', and referencedColumns if skipReferencedColumns
+     * is true).
      */
 
-    public void copyFields(Predicate otherPred){
+    public void copyFields(Predicate otherPred, boolean skipReferencedColumns){
 
         this.equivalenceClass=otherPred.getEquivalenceClass();
         this.indexPosition=otherPred.getIndexPosition();
@@ -763,6 +784,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         this.isQualifier=otherPred.isQualifier();
         this.searchClauseHT=otherPred.getSearchClauseHT();
         this.matchIndexExpression=otherPred.matchIndexExpression();
+        if (!skipReferencedColumns)
+            this.referencedColumns=new ReferencedColumnsMap(otherPred.getReferencedColumns());
 
     }
 
@@ -1013,7 +1036,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // which is important for correct pushing of the new
         // predicate.
         JBitSet tableMap=new JBitSet(childRSN.getReferencedTableMap().size());
-        newAnd.categorize(tableMap,false);
+        ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
+        newAnd.categorize(tableMap, columnsMap, false);
 
         // Now put the pieces together to get a new predicate.
         Predicate newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
@@ -1023,8 +1047,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         // Copy all of this predicates other fields into the new predicate.
         newPred.clearScanFlags();
-        newPred.copyFields(this);
+        newPred.copyFields(this, true);
         newPred.setPushable(getPushable());
+        newPred.setReferencedColumns(columnsMap);
 
         // Take note of the fact that the new predicate is scoped for
         // the sake of pushing; we need this information during optimization

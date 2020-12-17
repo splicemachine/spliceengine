@@ -41,8 +41,8 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
  */
 public class NullSelectivity extends AbstractSelectivityHolder {
     private final StoreCostController storeCost;
-    public NullSelectivity(StoreCostController storeCost, boolean fromExprIndex, int colNum, QualifierPhase phase){
-        super(fromExprIndex, colNum, phase);
+    public NullSelectivity(StoreCostController storeCost, boolean fromExprIndex, int colNum, QualifierPhase phase, Predicate pred){
+        super(fromExprIndex, colNum, phase, pred);
         this.storeCost = storeCost;
     }
 
