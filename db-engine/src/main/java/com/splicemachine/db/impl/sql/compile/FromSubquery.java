@@ -331,6 +331,14 @@ public class FromSubquery extends FromTable
         }
     }
 
+    @Override
+    public void bindResultColumns(FromList fromListParam) throws StandardException{
+        if (resultColumns == null) {
+            bindExpressions(fromListParam);
+        }
+        super.bindResultColumns(fromListParam);
+    }
+
     /**
      * Try to find a ResultColumn in the table represented by this FromBaseTable
      * that matches the name in the given ColumnReference.
