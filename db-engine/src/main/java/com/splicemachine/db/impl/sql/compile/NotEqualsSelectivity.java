@@ -48,8 +48,8 @@ public class NotEqualsSelectivity extends AbstractSelectivityHolder {
 
     public NotEqualsSelectivity(StoreCostController storeCost,
                                 boolean fromExprIndex, int colNum, QualifierPhase phase,
-                                DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation) {
-        super(fromExprIndex, colNum, phase);
+                                DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation, Predicate pred) {
+        super(fromExprIndex, colNum, phase, pred);
         this.value = value;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
