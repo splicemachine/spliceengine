@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -1515,7 +1516,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             andCopy,
                             thisPred.getReferencedSet(),
                             getContextManager());
-                    predCopy.copyFields(thisPred);
+                    predCopy.copyFields(thisPred, false);
                     predToPush=predCopy;
                 }else{
                     predToPush=thisPred;
@@ -1649,8 +1650,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     /**
-     * Categorize the predicates in the list.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * Categorize this predicate.  Initially, this means
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      *
      * @throws StandardException Thrown on error
      */
@@ -2649,12 +2652,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newAnd.postBindFixup();
                     // Add a new predicate to both the equijoin clauses and this list
                     JBitSet tableMap=new JBitSet(numTables);
-                    newAnd.categorize(tableMap,false);
+                    ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
+                    newAnd.categorize(tableMap, columnsMap,false);
                     Predicate newPred=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
                             newAnd,
                             tableMap,
                             getContextManager());
+                    newPred.setReferencedColumns(columnsMap);
                     newPred.setEquivalenceClass(outerEC);
                     addPredicate(newPred);
                             /* Add the new predicate right after the outer position
@@ -2887,12 +2892,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newAnd.postBindFixup();
                     // Add a new predicate to both the search clauses and this list
                     JBitSet tableMap=new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
-                    newAnd.categorize(tableMap,false);
+                    ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
+                    newAnd.categorize(tableMap, columnsMap, false);
                     Predicate newPred=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
                             newAnd,
                             tableMap,
                             getContextManager());
+                    newPred.setReferencedColumns(columnsMap);
                     addPredicate(newPred);
                     searchClauses.addElement(newPred);
                 }
