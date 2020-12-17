@@ -61,9 +61,6 @@ public abstract class NumberDataType extends DataType
     static final BigDecimal MAXLONG_PLUS_ONE = BigDecimal.valueOf(Long.MAX_VALUE).add(ONE);
     static final BigDecimal MINLONG_MINUS_ONE = BigDecimal.valueOf(Long.MIN_VALUE).subtract(ONE);
 
-    // DB2 compatible string format for double, float, and real
-    protected static final NumberFormat floatingStrFormat = new DecimalFormat("0.0#############E0");
-
     protected final NumberDataValue getNullDVD(NumberDataValue parm1, NumberDataValue parm2) {
         NumberDataValue highPrec, result;
         highPrec = (parm1.typePrecedence() >= parm2.typePrecedence()) ?
@@ -640,10 +637,6 @@ public abstract class NumberDataType extends DataType
 
         result.setValue(sb.toString());
         return result;
-    }
-
-    protected static String toDB2String(double value) {
-        return value == 0 ? "0E0" : floatingStrFormat.format(value);
     }
 }
 
