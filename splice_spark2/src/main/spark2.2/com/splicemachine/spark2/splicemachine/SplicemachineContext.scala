@@ -977,6 +977,73 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+   * Rows in dataFrame whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in dataFrame whose primary key is in schemaTableName will be used to update the table.
+   *
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param dataFrame
+   * @param schemaTableName
+   */
+  def mergeInto(dataFrame: DataFrame, schemaTableName: String): Unit =
+    mergeInto(dataFrame.rdd, dataFrame.schema, schemaTableName)
+
+  /**
+   * Rows in rdd whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in rdd whose primary key is in schemaTableName will be used to update the table.
+   *
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param rdd
+   * @param schema
+   * @param schemaTableName
+   */
+  def mergeInto(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = if( rdd.getNumPartitions > 0 ) {
+    val keys = primaryKeys(schemaTableName)
+    if (keys.length == 0)
+      throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform MergeInto")
+
+    val topicName = if( rdd.getNumPartitions == insertTopicPartitions ) {
+      kafkaTopics.create()
+    } else {
+      kafkaTopics.createTopic(rdd.getNumPartitions)
+    }
+
+    try {
+      insAccum.reset
+      val tableSchemaStr = schemaString( columnInfo(schemaTableName), schema )
+      val ptnInfo = sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
+
+      if( ! insAccum.isZero ) {
+        val insColumnList = columnList(schema)
+        val selColumnList = s"SpliceDatasetVTI.${insColumnList.replaceAll(",",",SpliceDatasetVTI.")}"
+        val joinClause = keys.map( k => s"target.$k = SpliceDatasetVTI.$k" ).mkString(" and ")  // " a.pk0 = b.pk0 and a.pk1 = b.pk1 and ..."
+        val insertText = "insert into " + schemaTableName + " (" + insColumnList + ") select " + selColumnList + " from " +
+          "new com.splicemachine.derby.vti.KafkaVTI('" + topicName + topicSuffix(ptnInfo, rdd.getNumPartitions) + "') " +
+          "as SpliceDatasetVTI (" + tableSchemaStr + ") left join " + schemaTableName + " as target on " +
+          joinClause + " where target."+ keys(0) + " is null"
+
+        val nonKeys = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
+        val updColumnList = SpliceJDBCUtil.listColumns(nonKeys)
+
+        val updateText = "update " + schemaTableName +
+          " set (" + updColumnList + ") = (" +
+          "select " + updColumnList +
+          " from new com.splicemachine.derby.vti.KafkaVTI('" + topicName + topicSuffix(ptnInfo, rdd.getNumPartitions) + "') " +
+          "as SDVTI (" + tableSchemaStr + ") where "
+        val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+          " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
+        val combinedUpdText = updateText + whereClause + ")"
+        
+        executeUpdate(insertText)
+        executeUpdate(combinedUpdText)
+      }
+    } finally {
+      kafkaTopics.delete(topicName)
+    }
+  }
+
+  /**
    * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
    *
    * @param dataFrame input data
@@ -1032,6 +1099,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * Upsert data into the table (schema.table) from a DataFrame.  This will insert the data if the record is not found by primary key and if it is it will change
    * the columns that are different between the two records.
    *
+   * If triggers fail when calling upsert, use the mergeInto function instead of upsert.
+   *
    * @param dataFrame input data
    * @param schemaTableName output table
    */
@@ -1041,6 +1110,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
    * Upsert data into the table (schema.table) from an RDD.  This will insert the data if the record is not found by primary key and if it is it will change
    * the columns that are different between the two records.
+   *
+   * If triggers fail when calling upsert, use the mergeInto function instead of upsert.
    *
    * @param rdd input data
    * @param schema
