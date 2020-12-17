@@ -1,0 +1,90 @@
+@Library('jenkins-shared-library')_
+
+// Define params
+def BUILD_NUM = "${params.BUILD_NUM}"
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
+node('splice-standalone'){
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+    ]
+    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
+    try{
+        slackSend(channel: slackResponse.threadId, message: "Checking out code...")
+        stage('Checkout') {
+                // Get some code from a GitHub repository
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'branch-2.8']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                ])
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'branch-2.8']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                ])
+        }
+        slackSend(channel: slackResponse.threadId, message: "Deploying Core...")
+        stage("Deploy Core"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+                    sh """
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
+                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                    mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
+                    """
+                   pom = readMavenPom file: 'pom.xml'
+                   env.POM_VERSION = pom.version
+                   sh '''#!/bin/bash -xe
+                       echo $POM_VERSION
+                   '''.stripIndent()
+                    }
+                }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Deploying ee...")
+        stage("Deploy EE Core"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine-ee'){
+                    sh '''
+                    mvn -B -e --fail-at-end deploy -Pcore,splicemachine-internal,splicemachine-external
+                    '''
+                }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Launching Downstream Jobs...")
+        stage("Launch Downstream Jobs"){
+            dir('spliceengine'){
+                build (job: 'spliceengine-platform', propagate: false, wait: false)
+                build (job: 'spliceengine-sqlshell', propagate: false, wait: false)
+                build (job: 'spliceengine-jdbc', propagate: false, wait: false)
+                build (job: 'spliceengine-nsds', propagate: false, wait: false)
+                jar=sh(returnStdout: true, script: "echo ${POM_VERSION} | grep '\\-SNAPSHOT'")
+                echo jar
+                if (env.jar != null) {
+                    build (job: '../PDImageBuilds/ssds', parameters: [[$class: 'choiceParam', name: 'Branch', value: 'master'], [$class: 'choiceParam', name: 'Platform', value: 'hdp3.1.5'], [$class: 'stringParam', name: 'Tag', value: version], [$class: 'choiceParam', name: 'Release', value: 'True']], propagate: false, wait: false)
+                    build (job: '../PDImageBuilds/ssds', parameters: [[$class: 'choiceParam', name: 'Branch', value: 'master'], [$class: 'choiceParam', name: 'Platform', value: 'cdh6.3.0'], [$class: 'stringParam', name: 'Tag', value: version], [$class: 'choiceParam', name: 'Release', value: 'True']], propagate: false, wait: false)
+                }
+            }
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
+        notifyBuild(currentBuild.result)
+    }
+}
