@@ -65,17 +65,31 @@ public class RegionTxnStore implements TxnPartition{
     private final HRegion region;
     private final long keepAliveTimeoutMs;
     private final Clock clock;
+    private final Durability durability;
 
     public RegionTxnStore(HRegion region,
                           TxnSupplier txnSupplier,
                           TransactionResolver resolver,
                           long keepAliveTimeoutMs,
-                          Clock keepAliveClock){
+                          Clock keepAliveClock) {
+        this(region, txnSupplier,resolver, keepAliveTimeoutMs, keepAliveClock, Durability.SKIP_WAL);
+    }
+
+    public RegionTxnStore(HRegion region,
+                          TxnSupplier txnSupplier,
+                          TransactionResolver resolver,
+                          long keepAliveTimeoutMs,
+                          Clock keepAliveClock,
+                          Durability durability){
         this.txnSupplier=txnSupplier;
         this.region=region;
         this.resolver=resolver;
         this.keepAliveTimeoutMs = keepAliveTimeoutMs;
         this.clock = keepAliveClock;
+        this.durability = durability;
+        if(durability != Durability.SYNC_WAL) {
+            LOG.warn("Non-durable writes for transactions, expected lost transactions");
+        }
     }
 
     @Override
@@ -152,6 +166,7 @@ public class RegionTxnStore implements TxnPartition{
             System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes, destinationTable.length+1,kv.getValueLength());
         }
         Put put=new Put(get.getRow());
+        put.setDurability(durability);
         put.addColumn(FAMILY,destTableQualifier,newBytes);
         region.put(put);
     }
@@ -197,6 +212,7 @@ public class RegionTxnStore implements TxnPartition{
             throw new HTransactionTimeout(txnId);
 
         Put newPut=new Put(getRowKey(txnId));
+        newPut.setDurability(durability);
         newPut.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
         region.put(newPut); //TODO -sf- does this work when the region is splitting?
         return true;
@@ -233,6 +249,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordTransaction txn=%s",txn);
         Put put=newTransactionDecoder.encodeForPut(txn,getRowKey(txn.getTxnId()),clock);
+        put.setDurability(durability);
         region.put(put);
     }
 
@@ -241,6 +258,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordCommit txnId=%d, commitTs=%d",txnId,commitTs);
         Put put=new Put(getRowKey(txnId));
+        put.setDurability(durability);
         put.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
         put.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
         region.put(put);
@@ -249,6 +267,7 @@ public class RegionTxnStore implements TxnPartition{
     @Override
     public void recordGlobalCommit(long txnId,long globalCommitTs) throws IOException{
         Put put=new Put(getRowKey(txnId));
+        put.setDurability(durability);
         put.addColumn(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
         region.put(put);
     }
@@ -274,6 +293,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
         Put put=new Put(getRowKey(txnId));
+        put.setDurability(durability);
         put.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
         put.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
         put.addColumn(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
@@ -377,6 +397,7 @@ public class RegionTxnStore implements TxnPartition{
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 
         Put put=new Put(getRowKey(beginTS));
+        put.setDurability(durability);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         boolean first = true;
         for (long id : subIds) {

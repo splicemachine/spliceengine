@@ -27,7 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -118,6 +120,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             final MPartition p=new MPartition(name,name);
             partitionMap.put(name,p);
             return p;
+        }
+
+        @Override
+        public Future<Partition> createAsync() throws IOException {
+            return CompletableFuture.completedFuture(create());
         }
     }
 
