@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
@@ -43,6 +44,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.
@@ -51,6 +54,7 @@ import java.util.Properties;
 public class HBaseConglomerate extends SpliceConglomerate{
     public static final long serialVersionUID=5l;
     private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
+    private volatile Future future;
 
     public HBaseConglomerate(){
         super();
@@ -87,7 +91,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                //TODO -sf- add a warning to the activation that we weren't able to
             }
         }
-        ConglomerateUtils.createConglomerate(
+        future = ConglomerateUtils.createConglomerate(
                 isExternal,
                 containerId,
                 this,
@@ -98,6 +102,15 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 properties.getProperty(SIConstants.CATALOG_VERSION_ATTR),
                 pSize,
                 splitKeys, priority);
+    }
+
+    @Override
+    public void awaitCreation() throws StandardException {
+        try {
+            future.get();
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override

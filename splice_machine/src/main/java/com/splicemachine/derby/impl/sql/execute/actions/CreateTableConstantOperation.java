@@ -70,7 +70,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
-import java.sql.SQLWarning;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -315,7 +314,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          * that lets us specify the conglomerate number then
          * we will need to handle it here.
          */
-        long conglomId = tc.createConglomerate(storedAs!=null,
+        Conglomerate conglomerate = tc.createConglomerateAsync(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
                 columnOrdering, //column sort order - not required for heap
@@ -325,11 +324,15 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
                 splitKeys, Conglomerate.Priority.NORMAL);
+
+        long conglomId = conglomerate.getContainerid();
+
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         try {
             if (tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
                 if (dd.databaseReplicationEnabled() || dd.schemaReplicationEnabled(schemaName)) {
+                    conglomerate.awaitCreation(); // if we are replicating, table has to be created
                     PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
                     admin.enableTableReplication(Long.toString(conglomId));
                 }
@@ -431,6 +434,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         if(storedAs != null) {
             externalTablesCreate(activation, txnId);
         }
+        conglomerate.awaitCreation();
     }
 
     private int[] createCollationIds() {
