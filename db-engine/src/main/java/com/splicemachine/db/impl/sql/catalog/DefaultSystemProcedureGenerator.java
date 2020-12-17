@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.*;
@@ -87,7 +88,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 //    @Override
     public final void createProcedures(TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException {
         //get system procedures
-        Map/*<UUID,Procedure>*/ procedureMap = getProcedures(dictionary,tc);
+        Map<UUID,List<Procedure>> procedureMap = getProcedures(dictionary,tc);
         for (Object o : procedureMap.keySet()) {
             UUID uuid = (UUID) o;
             for (Object n : ((List) procedureMap.get(uuid))) {
@@ -253,18 +254,18 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 	 * @throws StandardException
 	 */
     public final void createOrUpdateAllProcedures(
-    		String schemaName,
-    		TransactionController tc,
-    		HashSet newlyCreatedRoutines) throws StandardException {
+            String schemaName,
+            TransactionController tc,
+            HashSet newlyCreatedRoutines) throws StandardException {
 
-    	if (schemaName == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (schemaName));
-    	}
+        if (schemaName == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (String) null);
+        }
 
-    	List procedureList = findProceduresForSchema(schemaName, tc);
-    	if (procedureList == null) {
-    		throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
-    	}
+        List procedureList = findProceduresForSchema(schemaName, tc);
+        if (procedureList == null) {
+            throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
+        }
         for (Object n : procedureList) {
             if (n instanceof Procedure) {
                 Procedure procedure = (Procedure) n;
@@ -283,17 +284,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      */
     protected List findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
 
-    	if (schemaName == null || tc == null) {
-    		return null;
-    	}
+        if (schemaName == null || tc == null) {
+            return null;
+        }
 
-    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
-    	UUID schemaId = sd.getUUID();
-    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-    	if (procedureMap == null) {
-    		return null;
-    	}
-    	return ((List) procedureMap.get(schemaId));
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        UUID schemaId = sd.getUUID();
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        return procedureMap.get(schemaId);
     }
 
     /**
@@ -305,19 +303,20 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * @return  the system stored procedure if found, otherwise, null is returned
      * @throws StandardException
      */
-    protected Procedure findProcedure(UUID schemaId, String procName, TransactionController tc) throws StandardException {
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+	protected Procedure findProcedure(UUID schemaId, String procName, TransactionController tc) throws StandardException {
 
-    	if (schemaId == null || procName == null || tc == null) {
-    		return null;
-    	}
-    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-    	if (procedureMap == null) {
-    		return null;
-    	}
-    	List procedureList = (List) procedureMap.get(schemaId);
-    	if (procedureList == null) {
-    		return null;
-    	}
+        if (schemaId == null || procName == null || tc == null) {
+            return null;
+        }
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        if (procedureMap == null) {
+            return null;
+        }
+        List procedureList = procedureMap.get(schemaId);
+        if (procedureList == null) {
+            return null;
+        }
 
         for (Object n : procedureList) {
             if (n instanceof Procedure) {
@@ -327,11 +326,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 }
             }
         }
-    	return null;
+        return null;
     }
 
-    protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
-        Map/*<UUID,Procedure>*/ procedures = new HashMap/*<UUID,Procedure>*/();
+    protected Map<UUID,List<Procedure>> getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
+        Map<UUID,List<Procedure>> procedures = new HashMap<>();
 
         // SYSIBM schema
         UUID sysIbmUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
@@ -352,6 +351,22 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         // refactor to address this later.
         augmentProcedureMap(dictionary, procedures);
         
+        return procedures;
+    }
+
+    static public List<Procedure> getSYSIBMProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sysIbmProcedures);
+        return procedures;
+    }
+    static public List<Procedure> getSQLProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sqlJProcedures);
+        return procedures;
+    }
+    static public List<Procedure> getSYSCSMProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sysCsProcedures);
         return procedures;
     }
 
@@ -495,7 +510,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 					.build()
 	}));
 
-    private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sqlJProcedures = Arrays.asList(new Procedure[]{
     		Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
             	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
             	.ownerClass(SYSTEM_PROCEDURES)
@@ -516,7 +531,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .integer("UNDEPLOY").build()
     });
 
-    private static final List/*<Procedure>*/ sysIbmProcedures = Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sysIbmProcedures = Arrays.asList(new Procedure[]{
             Procedure.newBuilder().name("SQLCAMESSAGE").numOutputParams(2).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -674,19 +689,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .ownerClass(LOB_STORED_PROCEDURE)
                 .integer("LOCATOR").build()
             ,
-            Procedure.newBuilder().name("CLOBGETPROSITIONFROMSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
-                .bigint("POS").build()
-            ,
             Procedure.newBuilder().name("CLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
                 .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
                 .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
                 .integer("LOCATOR")
                 .integer("SEARCHLOCATOR")
-                .integer("POS").build()
+                .bigint("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETLENGTH").numOutputParams(0).numResultSets(0)
                 .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
