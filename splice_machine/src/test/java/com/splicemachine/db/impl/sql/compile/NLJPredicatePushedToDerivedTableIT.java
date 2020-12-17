@@ -407,7 +407,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
         rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3000"},
                 new String[]{"BroadcastJoin", "outputRows=1000", "preds=[(A2[6:2] = A4[6:1])]"},
-                new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = T2.A2[4:1])]"},
+                new String[]{"TableScan[T2", "scannedRows=10000,outputRows=10000", "preds=[(A1[1:1] = T2.A2[4:1])]"},
                 new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
                 new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
                 new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
