@@ -33,17 +33,17 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.impl.ast.RSUtils;
 
 /**
  * Predicate Selectivity Computation
  *
  */
 public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
-    private final Predicate p;
     private final Optimizable baseTable;
     private final double selectivityFactor;
     public DefaultPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivityFactor){
-        super(false,0,phase);
+        super(false,0,phase,p);
         this.p = p;
         this.baseTable = baseTable;
         this.selectivityFactor = selectivityFactor;
@@ -57,4 +57,14 @@ public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
         }
         return selectivity;
     }
+
+    @Override
+    public boolean shouldApplySelectivity() {
+        return
+            getNumReferencedTables() < 2             ||
+            baseTable.getCurrentAccessPath() == null ||
+            RSUtils.isNLJ(baseTable.getCurrentAccessPath());
+    }
+
+    public Predicate getPredicate() { return p; }
 }
