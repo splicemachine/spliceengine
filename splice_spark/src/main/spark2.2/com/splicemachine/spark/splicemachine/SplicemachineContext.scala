@@ -698,7 +698,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val modRdd = modifyRdd(rdd, tableSchemaStr)
     SpliceRDDVTI.datasetThreadLocal.set(modRdd)
     
-    val jdbcOptions = new JdbcOptionsInWrite(Map(
+    val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
