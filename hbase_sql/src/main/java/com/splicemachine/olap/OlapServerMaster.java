@@ -15,7 +15,6 @@
 
 package com.splicemachine.olap;
 
-import com.splicemachine.access.SparkYarnConfiguration;
 import org.apache.spark.SparkConf;
 import splice.com.google.common.net.HostAndPort;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -65,17 +64,22 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_YARN_CONFIG_PATH;
-import static com.splicemachine.hbase.ZkUtils.recursiveDelete;
+import static com.splicemachine.access.configuration.HBaseConfiguration.MAX_EXECUTOR_CORES;
+
 
 
 /**
@@ -90,7 +94,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     private RecoverableZooKeeper rzk;
     private String queueZkPath;
     private String appZkPath;
-    private String sparkYarnConfigZkPath;
+    private String maxExecutorCoresZkPath;
     private Configuration conf;
     private CountDownLatch finished = new CountDownLatch(1);
     private ScheduledExecutorService ses = Executors.newScheduledThreadPool(1,
@@ -131,7 +135,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         zkSafeCreate(appRoot);
         queueZkPath = queueRoot + "/" + queueName;
         appZkPath = appRoot + "/" + appId;
-        sparkYarnConfigZkPath = root + SPARK_YARN_CONFIG_PATH;
+        maxExecutorCoresZkPath = root + MAX_EXECUTOR_CORES;
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -333,7 +337,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         publishServer(rzk, hostname, port);
 
         JavaSparkContext sparkContext = SpliceSpark.getContextUnsafe(); // kickstart Spark
-        publishSparkYarnConfig(rzk, sparkContext.sc());
+        publishMaxExecutorCores(rzk, sparkContext.sc());
 
         while(!end.get()) {
             Thread.sleep(10000);
@@ -381,45 +385,242 @@ public class OlapServerMaster implements LeaderSelectorListener {
         return result;
     }
 
-    private void publishSparkYarnConfig(RecoverableZooKeeper rzk, SparkContext sparkContext) throws InterruptedException, KeeperException, IOException {
+    private void publishMaxExecutorCores(RecoverableZooKeeper rzk, SparkContext sparkContext) throws InterruptedException, KeeperException, IOException {
 
 
         try {
-            SparkYarnConfiguration config = new SparkYarnConfiguration();
             Configuration yarnConf = HConfiguration.unwrapDelegate();
             String yarnMemory = getYarnProperty("yarn.nodemanager.resource.memory-mb", yarnConf);
             if (yarnMemory == null || "-1".equals(yarnMemory))
                 yarnMemory = getYarnProperty("yarn.scheduler.maximum-allocation-mb", yarnConf);
 
-            config.setYarnNodemanagerResourceMemoryMB(yarnMemory);
-
             SparkConf sparkConf = sparkContext.conf();
-
-            config.setDynamicAllocationEnabled(getSparkProperty("spark.dynamicAllocation.enabled", sparkConf));
-            config.setExecutorInstances(getSparkProperty("spark.executor.instances", sparkConf));
-            config.setExecutorCores(getSparkProperty("spark.executor.cores", sparkConf));
-            config.setExecutorMemory(getSparkProperty("spark.executor.memory", sparkConf));
-            config.setDynamicAllocationMaxExecutors(getSparkProperty("spark.dynamicAllocation.maxExecutors", sparkConf));
-            config.setExecutorMemoryOverhead(getSparkProperty("spark.executor.memoryOverhead", sparkConf));
-            config.setYarnExecutorMemoryOverhead(getSparkProperty("spark.yarn.executor.memoryOverhead", sparkConf));
 
             Integer numNodes = rmClient.getClusterNodeCount();
             if (numNodes < 1)
                 numNodes = 1;
-            config.setNumNodes(numNodes);
+
+            int maxExecutorCores =
+                calculateMaxExecutorCores(yarnMemory,
+                                          getSparkProperty("spark.dynamicAllocation.enabled", sparkConf),
+                                          getSparkProperty("spark.executor.instances", sparkConf),
+                                          getSparkProperty("spark.executor.cores", sparkConf),
+                                          getSparkProperty("spark.executor.memory", sparkConf),
+                                          getSparkProperty("spark.dynamicAllocation.maxExecutors", sparkConf),
+                                          getSparkProperty("spark.executor.memoryOverhead", sparkConf),
+                                          getSparkProperty("spark.yarn.executor.memoryOverhead", sparkConf),
+                                          numNodes);
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(config);
+            oos.writeInt(maxExecutorCores);
+            oos.writeInt(numNodes);
             oos.flush();
             byte [] serializedConfig = bos.toByteArray();
 
-            ZkUtils.safeDelete(sparkYarnConfigZkPath, -1, rzk);
-            ZkUtils.safeCreate(sparkYarnConfigZkPath, serializedConfig, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            ZkUtils.safeDelete(maxExecutorCoresZkPath, -1, rzk);
+            ZkUtils.safeCreate(maxExecutorCoresZkPath, serializedConfig, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         } catch (Exception e) {
-            LOG.error("Couldn't register number of Spark nodes due to unexpected exception", e);
+            LOG.error("Couldn't register maxExecutorCores due to unexpected exception", e);
             throw e;
         }
     }
+
+    /**
+     * Estimate the maximum number of Spark executor cores that could be running
+     * simultaneously given the current YARN and splice.spark settings.
+     *
+     * @return The maximum number of Spark executor cores.
+     * @notes See @link https://spark.apache.org/docs/latest/configuration.html
+     *        for more information on spark configuration properties.
+     */
+    public static int
+    calculateMaxExecutorCores(String memorySize,                         // yarn.nodemanager.resource.memory-mb
+                              String sparkDynamicAllocationString,       // splice.spark.dynamicAllocation.enabled
+                              String executorInstancesString,            // splice.spark.executor.instances
+                              String executorCoresString,                // splice.spark.executor.cores
+                              String sparkExecutorMemory,                // splice.spark.executor.memory
+                              String sparkDynamicAllocationMaxExecutors, // splice.spark.dynamicAllocation.maxExecutors
+                              String sparkExecutorMemoryOverhead,        // splice.spark.executor.memoryOverhead
+                              String sparkYARNExecutorMemoryOverhead,    // splice.spark.yarn.executor.memoryOverhead
+                              int numNodes)
+    {
+        if (numNodes < 1)
+            numNodes = 1;
+
+        int executorCores = 1;
+        if (executorCoresString != null) {
+            try {
+                executorCores = Integer.parseInt(executorCoresString);
+                if (executorCores < 1)
+                    executorCores = 1;
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        // Initialize to defaults, then check for custom settings.
+        long memSize = 8192L*1024*1024, containerSize;
+        if (memorySize != null) {
+            try {
+                memSize = Long.parseLong(memorySize) * 1024 * 1024;
+            }
+            catch (NumberFormatException e) {
+            }
+            if (memSize <= 0)
+                memSize = 8192L*1024*1024;
+        }
+
+        boolean dynamicAllocation = sparkDynamicAllocationString != null &&
+                                    Boolean.parseBoolean(sparkDynamicAllocationString);
+        int numSparkExecutorCores = executorCores;
+
+        int numSparkExecutors = 0;
+        if (!dynamicAllocation) {
+            try {
+                numSparkExecutors = 1;
+                numSparkExecutors = Integer.parseInt(executorInstancesString);
+                if (numSparkExecutors < 1)
+                    numSparkExecutors = 1;
+                numSparkExecutorCores = numSparkExecutors * executorCores;
+
+            } catch (NumberFormatException e) {
+            }
+        }
+        else {
+            numSparkExecutors = Integer.MAX_VALUE;
+            if (sparkDynamicAllocationMaxExecutors != null) {
+                try {
+                    numSparkExecutors = Integer.parseInt(sparkDynamicAllocationMaxExecutors);
+                    if (numSparkExecutors <= 0)
+                        numSparkExecutors = Integer.MAX_VALUE;
+                }
+                catch(NumberFormatException e){
+                }
+            }
+        }
+
+        long executorMemory = 1024L * 1024 * 1024; // 1g
+        if (sparkExecutorMemory != null)
+            executorMemory =
+                parseSizeString(sparkExecutorMemory, executorMemory, "b");
+
+        long sparkMemOverhead = executorMemory / 10;
+        if (sparkExecutorMemoryOverhead != null) {
+            try {
+                sparkMemOverhead =
+                    parseSizeString(sparkExecutorMemoryOverhead, sparkMemOverhead, "m");
+            } catch (NumberFormatException e) {
+            }
+        }
+        long sparkMemOverheadLegacy = executorMemory / 10;
+        if (sparkYARNExecutorMemoryOverhead != null) {
+            try {
+                sparkMemOverheadLegacy =
+                    parseSizeString(sparkYARNExecutorMemoryOverhead, sparkMemOverheadLegacy, "m");
+            } catch (NumberFormatException e) {
+            }
+        }
+        sparkMemOverhead = Math.max(sparkMemOverheadLegacy, sparkMemOverhead);
+
+        // Total executor memory includes the memory overhead.
+        containerSize = executorMemory + sparkMemOverhead;
+
+        int maxExecutorsSupportedByYARN =
+            (memSize / containerSize) > Integer.MAX_VALUE ?
+                                        Integer.MAX_VALUE : (int)(memSize / containerSize);
+
+        if (maxExecutorsSupportedByYARN < 1)
+            maxExecutorsSupportedByYARN = 1;
+
+        maxExecutorsSupportedByYARN *= numNodes;
+
+        int maxExecutorCoresSupportedByYARN = maxExecutorsSupportedByYARN * executorCores;
+
+        if (dynamicAllocation) {
+            if (numSparkExecutors < 1)
+                numSparkExecutors = 1;
+            numSparkExecutorCores = ((long)numSparkExecutors * executorCores) > Integer.MAX_VALUE ?
+                                     Integer.MAX_VALUE : numSparkExecutors * executorCores;
+        }
+
+        if (numSparkExecutorCores > maxExecutorCoresSupportedByYARN)
+            numSparkExecutorCores = maxExecutorCoresSupportedByYARN;
+
+        return numSparkExecutorCores;
+    }
+
+    /**
+     * Parse a Spark or Hadoop size parameter value, that may use b, k, m, g, t, p
+     * to represent bytes, kilobytes, megabytes, gigabytes, terabytes or petabytes respectively,
+     * and return back the corresponding number of bytes.  Valid suffixes can also end
+     * with a 'b' : kb, mb, gb, tb, pb.
+     * @param sizeString the parameter value string to parse
+     * @param defaultValue the default value of the parameter if an invalid
+     *                     <code>sizeString</code> was passed.
+     * @return The value in bytes of <code>sizeString</code>, or <code>defaultValue</code>
+     *         if a <code>sizeString</code> was passed that could not be parsed.
+     */
+    public static long parseSizeString(String sizeString, long defaultValue, String defaultSuffix) {
+        long retVal = defaultValue;
+        Pattern sizePattern = Pattern.compile("(^[\\d.]+)([bkmgtp]$)", Pattern.CASE_INSENSITIVE);
+        Pattern sizePattern2 = Pattern.compile("(^[\\d.]+)([kmgtp][b]$)", Pattern.CASE_INSENSITIVE);
+        sizeString = sizeString.trim();
+
+        // Add a default suffix if none is specified.
+        if (sizeString.matches("^.*\\d$"))
+            sizeString = sizeString + defaultSuffix;
+
+        Matcher matcher1 = sizePattern.matcher(sizeString);
+        Matcher matcher2 = sizePattern2.matcher(sizeString);
+        Map<String, Integer> suffixes = new HashMap<>();
+        suffixes.put("b", 0);
+        suffixes.put("k", 1);
+        suffixes.put("m", 2);
+        suffixes.put("g", 3);
+        suffixes.put("t", 4);
+        suffixes.put("p", 5);
+        suffixes.put("kb", 1);
+        suffixes.put("mb", 2);
+        suffixes.put("gb", 3);
+        suffixes.put("tb", 4);
+        suffixes.put("pb", 5);
+
+        boolean found1 = matcher1.find();
+        boolean found2 = matcher2.find();
+        Matcher matcher = found1 ? matcher1 : matcher2;
+
+        if (found1 || found2) {
+            BigInteger value;
+            String digits = matcher.group(1);
+            try {
+              value = new BigInteger(digits);
+            }
+            catch (NumberFormatException e) {
+              return defaultValue;
+            }
+            int power = suffixes.get(matcher.group(2).toLowerCase());
+            BigInteger multiplicand = BigInteger.valueOf(1024).pow(power);
+            value = value.multiply(multiplicand);
+            if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)
+              return Long.MAX_VALUE;
+            if (value.compareTo(BigInteger.valueOf(0)) < 0)
+              return defaultValue;
+
+            retVal = value.longValue();
+        }
+        else {
+            try {
+                retVal = Long.parseLong(sizeString);
+            }
+            catch (NumberFormatException e) {
+                return defaultValue;
+            }
+            if (retVal < 1)
+                retVal = defaultValue;
+        }
+        return retVal;
+    }
+
 
     private AMRMClientAsync<AMRMClient.ContainerRequest> initClient(Configuration conf) throws YarnException, IOException {
         AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {
