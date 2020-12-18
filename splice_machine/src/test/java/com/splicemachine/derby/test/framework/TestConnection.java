@@ -210,7 +210,7 @@ public class TestConnection implements Connection{
         return delegate.getSchema();
     }
     public void abort(Executor executor) throws SQLException {
-        //no-op
+        delegate.abort(executor);
     }
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
 //        delegate.setNetworkTimeout(executor, milliseconds);

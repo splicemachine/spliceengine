@@ -13,13 +13,16 @@
  */
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -30,6 +33,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
+@Category(SerialTest.class) // Not run in parallel since it is changing global DB configs
 public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
     private static final String SCHEMA = NumericTypesToStringTypesConversionIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
@@ -53,6 +57,21 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
                         row(-128,-1,987,-99887766,-.35,2E-2,-200,9.2,-0.12345678),
                         row(null,null,null,null,null,null,null,null,null)))
                 .create();
+    }
+
+    private void withNotation(int notation) throws Exception {
+        String notationStr = "";
+        switch (notation) {
+            case FloatingPointDataType.PLAIN:
+                notationStr = "plain";
+                break;
+            case FloatingPointDataType.NORMALIZED:
+                notationStr = "normalized";
+                break;
+            default:
+                assert false;
+        }
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.floatingPointNotation', '%s' )", notationStr));
     }
 
     private static final String queryTemplate = "select cast(%s as %s(%d)), cast(%s as %s(%d)), %s(%s), %s(%s) from test";
@@ -140,33 +159,42 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
 
     @Test
     public void testFloatToCharacterString() throws Exception {
-        String expected = "1    |   2   |   3    |   4   |\n" +
-                "----------------------------------\n" +
-                "-3.5E-1 |1.27E1 |-3.5E-1 |1.27E1 |\n" +
-                " 2.5E0  |1.27E1 | 2.5E0  |1.27E1 |\n" +
-                " NULL   |1.27E1 | NULL   |1.27E1 |";
+        String expected = "1   |  2  |  3   |  4  |\n" +
+                "--------------------------\n" +
+                "-0.35 |12.7 |-0.35 |12.7 |\n" +
+                " 2.5  |12.7 | 2.5  |12.7 |\n" +
+                "NULL  |12.7 |NULL  |12.7 |";
 
-        testHelper(expected, "f", "1.27E1", 7);
+        testHelper(expected, "f", "1.27E1", 5);
     }
 
-    // losing accuracy on 0.02, same in DB2
     @Test
     public void testRealToCharacterString() throws Exception {
-        String expected = "1          |    2     |         3          |    4     |\n" +
-                "----------------------------------------------------------------\n" +
-                "      -1.5E3        |1.175E-37 |      -1.5E3        |1.175E-37 |\n" +
-                "1.99999995529652E-2 |1.175E-37 |1.99999995529652E-2 |1.175E-37 |\n" +
-                "       NULL         |1.175E-37 |       NULL         |1.175E-37 |";
+        String expected = "1    |  2  |   3    |  4  |\n" +
+                "------------------------------\n" +
+                "-1500.0 |-0.7 |-1500.0 |-0.7 |\n" +
+                " 0.02   |-0.7 | 0.02   |-0.7 |\n" +
+                " NULL   |-0.7 | NULL   |-0.7 |";
 
-        testHelper(expected, "r", "1.175E-37", 24);
+        testHelper(expected, "r", "-7E-1", 7);
+
+        withNotation(FloatingPointDataType.NORMALIZED);
+        expected = "1   |   2    |   3   |   4    |\n" +
+                "----------------------------------\n" +
+                "-1.5E3 |-7.0E-1 |-1.5E3 |-7.0E-1 |\n" +
+                "2.0E-2 |-7.0E-1 |2.0E-2 |-7.0E-1 |\n" +
+                " NULL  |-7.0E-1 | NULL  |-7.0E-1 |";
+
+        testHelper(expected, "r", "-7E-1", 7);
+        withNotation(FloatingPointDataType.PLAIN);
     }
 
     @Test
     public void testDoubleToCharacterString() throws Exception {
         String expected = "1   |     2      |   3   |     4      |\n" +
                 "------------------------------------------\n" +
-                "-2.0E2 |1.79769E308 |-2.0E2 |1.79769E308 |\n" +
-                " 2.0E1 |1.79769E308 | 2.0E1 |1.79769E308 |\n" +
+                "-200.0 |1.79769E308 |-200.0 |1.79769E308 |\n" +
+                " 20.0  |1.79769E308 | 20.0  |1.79769E308 |\n" +
                 " NULL  |1.79769E308 | NULL  |1.79769E308 |";
 
         testHelper(expected, "d", "1.79769E+308", 12);
@@ -226,20 +254,25 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testFloatNumbersZeroDB2Format() throws Exception {
-        // DB2 outputs at least one decimal digit for all floating point numbers except zero
-        try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(0.0)), varchar(cast(0.0 as real))")) {
-            String expected =
-                    "1  | 2  |\n" +
-                    "----------\n" +
-                    "0E0 |0E0 |";
-            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
+    public void testFloatNumbersZeroNormalizedNotation() throws Exception {
+        // We output at least one decimal digit for all floating point numbers except zero
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        withNotation(FloatingPointDataType.NORMALIZED);
+        checkStringExpression("varchar(double(0.0))", "0E0", conn);
+        checkStringExpression("char(double(0.0))", "0E0                                                  ", conn);
+        checkStringExpression("varchar(cast(0.0 as real))", "0E0", conn);
+        checkStringExpression("char(cast(0.0 as real))", "0E0                     ", conn);
+        withNotation(FloatingPointDataType.PLAIN);
+        checkStringExpression("varchar(double(0.0))", "0.0", conn);
+        checkStringExpression("char(double(0.0))", "0.0                                                  ", conn);
+        checkStringExpression("varchar(cast(0.0 as real))", "0.0", conn);
+        checkStringExpression("char(cast(0.0 as real))", "0.0                     ", conn);
     }
 
     @Test
     public void testFloatNumbersRounding() throws Exception {
         // In converting floating-point values to string, rounding policy in DB2 is half-even.
+        withNotation(FloatingPointDataType.NORMALIZED);
         try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(123456789012344.5)) from sysibm.sysdummy1")) {
             String expected = "1          |\n" +
                     "---------------------\n" +
@@ -267,6 +300,7 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
                     "1.23456789012345E14 |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+        withNotation(FloatingPointDataType.PLAIN);
     }
 
     @Test
@@ -274,6 +308,7 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
         // Here, the value is an integer but in double type. In output format, there is not enough decimal
         // digits to hold the value. In DB2, it's the same behavior as rounding (half-even). But Java seems
         // to have half-up. The rounding option settings has no effect in this situation.
+        withNotation(FloatingPointDataType.NORMALIZED);
         try(ResultSet rs = methodWatcher.executeQuery("select varchar(double(1234567890123445)) from sysibm.sysdummy1")) {
             String expected = "1          |\n" +
                     "---------------------\n" +
@@ -301,7 +336,9 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
                     "1.23456789012345E15 |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+        withNotation(FloatingPointDataType.PLAIN);
     }
+
 }
 
 

@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1989-SNAPSHOT</version>
+        <version>3.1.0.1990-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -926,6 +926,9 @@
                     <name>spliceFast</name>
                 </property>
             </activation>
+            <properties>
+                <durability>ASYNC</durability>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -1076,6 +1079,7 @@
                                 <argument>${failTasksRandomly}</argument>
                                 <argument>${olap.log4j.config.uri}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -1091,6 +1095,7 @@
             </activation>
             <properties>
                 <memberNumber>1</memberNumber>
+                <durability>ASYNC</durability>
             </properties>
             <build>
                 <plugins>
@@ -1134,6 +1139,7 @@
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

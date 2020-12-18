@@ -1,0 +1,112 @@
+@Library('jenkins-shared-library')_ 
+
+// Define params
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
+node('splice-standalone'){
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]],
+        [$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key_id', vaultKey: 'access_key_id'],
+            [$class: 'VaultSecretValue', envVar: 'build_secret_key', vaultKey: 'access_key']]],
+    ]
+    slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
+    stage('Build Login') {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+            sh "aws configure set aws_access_key_id $build_secret_key_id"
+            sh "aws configure set aws_secret_access_key $build_secret_key"
+            sh "aws configure set region us-east-1"
+        }
+    }
+    try{
+        slackSend(channel: slackResponse.threadId, message: "Checking out code...")
+        stage('Checkout') {
+                // Get some code from a GitHub repository
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'branch-3.1']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                ])
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'branch-3.1']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                ])
+        }
+        slackSend(channel: slackResponse.threadId, message: "Build hdp3.1.5...")
+        stage("Build hdp3.1.5"){
+                // Run Maven on a Unix agent.
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+                dir('spliceengine'){
+                    sh """
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                    mvn -B -e --fail-at-end install -Pcore,hdp3.1.5,nsds2jar -DskipTests
+                    """
+                }
+                }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Deploy hdp3.1.5...")
+        stage("Deploy hdp3.1.5"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine'){
+                    sh '''
+                    export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
+                    cd splice_spark2/target
+                    export JAR=$(echo $SRCVER | grep '\\-SNAPSHOT')
+                    if [ -z "$JAR" ]; then
+                        aws s3 cp *-shaded.jar s3://splice-releases/$SRCVER/cluster/nsds/ --acl public-read
+                    fi
+                    '''
+                }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Build cdh6.3.0...")
+        stage("Build cdh6.3.0"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+                    sh """
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                    mvn -B -e --fail-at-end install -Pcore,cdh6.3.0,nsds2jar -DskipTests
+                    """
+                }
+                }
+        }
+        slackSend(channel: slackResponse.threadId, message: "Deploy cdh6.3.0...")
+        stage("Deploy cdh6.3.0"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine'){
+                    sh '''
+                    export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
+                    cd splice_spark2/target
+                    export JAR=$(echo $SRCVER | grep '\\-SNAPSHOT')
+                    if [ -z "$JAR" ]; then
+                        aws s3 cp *-shaded.jar s3://splice-releases/$SRCVER/cluster/nsds/ --acl public-read
+                    fi
+                    '''
+                }
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+    } finally {
+        archiveArtifacts artifacts: 'spliceengine/splice_spark2/target/*jar', allowEmptyArchive: true
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}
