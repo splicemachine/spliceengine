@@ -38,7 +38,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
-import java.util.List;
+import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.ScanCostFunction.computeSqrtLevel;
 
 /**
  *
@@ -130,14 +132,74 @@ public class SelectivityUtil {
             }
         }
         double selectivity = 1.d;
+        List<JoinPredicateSelectivity> predSelectivities = new ArrayList<>();
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
                 Predicate p = (Predicate) predList.getOptPredicate(i);
                 if (!isTheRightJoinPredicate(p, predicateType))
                     continue;
 
-                selectivity *= p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType);
+                predSelectivities.add(new JoinPredicateSelectivity(p, innerTable, QualifierPhase.FILTER_BASE,
+                                                           p.joinSelectivity(innerTable, innerCD, innerRowCount,
+                                                                             outerRowCount, selectivityJoinType)));
             }
+        }
+        if (predSelectivities.size() == 1)
+            selectivity = predSelectivities.get(0).getSelectivity();
+        else {
+            // Sort the selectivities and combine them using computeSqrtLevel
+            // as is done in ScanCostFunction.
+            Collections.sort(predSelectivities);
+
+            // Map from predicate number (in the order added to the map) to the
+            // selectivity of the predicate.
+            Map<Integer, JoinPredicateSelectivity> selectivityMap = new TreeMap<>();
+
+            // Map from column number to index into selectivityMap.
+            // This double lookup is done so that the main data structure
+            // holding selectivities has no duplicates.
+            Map<Integer,Integer> selectivityIndexMap = new HashMap<>();
+
+            int index = 0;
+            for (JoinPredicateSelectivity predicateSelectivity:predSelectivities) {
+                Predicate p = predicateSelectivity.getPredicate();
+                int tableNumber = innerTable.getTableNumber();
+                Set<Integer> columnSet = p.getReferencedColumns().get(tableNumber);
+                ReferencedColumnsMap referencedColumnsMap = p.getReferencedColumns();
+
+                Integer mapIndex = null;
+                if (columnSet != null) {
+                    for (Integer I : columnSet) {
+                        mapIndex = selectivityIndexMap.get(I);
+                        if (mapIndex != null)
+                            break;
+                    }
+                }
+                if (mapIndex != null) {
+                    // Compare selectivities of predicates with overlapping column sets and keep the
+                    // one with the lowest value.
+                    JoinPredicateSelectivity foundEntry = selectivityMap.get(mapIndex);
+                    if (predicateSelectivity.getSelectivity() < foundEntry.getSelectivity()) {
+                        selectivityMap.put(index, predicateSelectivity);
+                        Set<Integer> columnNumbers = referencedColumnsMap.get(tableNumber);
+                        for (Integer I:columnNumbers)
+                            selectivityIndexMap.put(I, mapIndex);
+                    }
+                }
+                else {
+                    selectivityMap.put(index, predicateSelectivity);
+                    if (columnSet != null)
+                        for (Integer I : columnSet)
+                            selectivityIndexMap.put(I, index);
+                    index++;
+                }
+            }
+            List<DefaultPredicateSelectivity> predicateSelectivities = new ArrayList<>(selectivityMap.size());
+            // Using a TreeMap, so the selectivities should still be in order.
+            predicateSelectivities.addAll(selectivityMap.values());
+
+            for (int i = 0; i < predicateSelectivities.size();i++)
+                selectivity = computeSqrtLevel(selectivity, i, predicateSelectivities.get(i));
         }
 
         //Left outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than

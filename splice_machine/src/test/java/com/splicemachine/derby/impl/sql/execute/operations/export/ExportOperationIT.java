@@ -124,14 +124,14 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "26,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "27,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "28,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "29,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "30,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "31,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "32,1000000000,2000000000000000,3.1415901184082E0,3.14159E0,2,2.34,varchar,c,2014-10-01,14:30:20\n",
+                        "25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n",
                 Files.toString(files[0], Charsets.UTF_8));
 
         try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
@@ -155,12 +155,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,3.14159E0,14:31:20,varchar1\n" +
-                        "26,3.14159E0,14:31:20,varchar1\n" +
-                        "27,3.14159E0,14:31:20,varchar1 space\n" +
-                        "28,3.14159E0,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159E0,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159E0,14:31:20,varchar1\n",
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -178,12 +178,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25|3.14159E0|14:31:20|varchar1\n" +
-                        "26|3.14159E0|14:31:20|varchar1\n" +
-                        "27|3.14159E0|14:31:20|varchar1 space\n" +
-                        "28|3.14159E0|14:31:20|varchar1 , comma\n" +
-                        "29|3.14159E0|14:31:20|\"varchar1 \"\" quote\"\n" +
-                        "30|3.14159E0|14:31:20|varchar1\n",
+                        "25|3.14159|14:31:20|varchar1\n" +
+                        "26|3.14159|14:31:20|varchar1\n" +
+                        "27|3.14159|14:31:20|varchar1 space\n" +
+                        "28|3.14159|14:31:20|varchar1 , comma\n" +
+                        "29|3.14159|14:31:20|\"varchar1 \"\" quote\"\n" +
+                        "30|3.14159|14:31:20|varchar1\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -201,12 +201,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25\t3.14159E0\t14:31:20\tvarchar1\n" +
-                        "26\t3.14159E0\t14:31:20\tvarchar1\n" +
-                        "27\t3.14159E0\t14:31:20\tvarchar1 space\n" +
-                        "28\t3.14159E0\t14:31:20\tvarchar1 , comma\n" +
-                        "29\t3.14159E0\t14:31:20\t\"varchar1 \"\" quote\"\n" +
-                        "30\t3.14159E0\t14:31:20\tvarchar1\n",
+                        "25\t3.14159\t14:31:20\tvarchar1\n" +
+                        "26\t3.14159\t14:31:20\tvarchar1\n" +
+                        "27\t3.14159\t14:31:20\tvarchar1 space\n" +
+                        "28\t3.14159\t14:31:20\tvarchar1 , comma\n" +
+                        "29\t3.14159\t14:31:20\t\"varchar1 \"\" quote\"\n" +
+                        "30\t3.14159\t14:31:20\tvarchar1\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -274,12 +274,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.bz2"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,3.14159E0,14:31:20,varchar1\n" +
-                        "26,3.14159E0,14:31:20,varchar1\n" +
-                        "27,3.14159E0,14:31:20,varchar1 space\n" +
-                        "28,3.14159E0,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159E0,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159E0,14:31:20,varchar1\n",
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
                 IOUtils.toString(new BZip2CompressorInputStream(new FileInputStream(files[0]))));
     }
 
@@ -297,12 +297,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,3.14159E0,14:31:20,varchar1\n" +
-                        "26,3.14159E0,14:31:20,varchar1\n" +
-                        "27,3.14159E0,14:31:20,varchar1 space\n" +
-                        "28,3.14159E0,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159E0,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159E0,14:31:20,varchar1\n",
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
 
@@ -320,12 +320,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,3.14159E0,14:31:20,varchar1\n" +
-                        "26,3.14159E0,14:31:20,varchar1\n" +
-                        "27,3.14159E0,14:31:20,varchar1 space\n" +
-                        "28,3.14159E0,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159E0,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159E0,14:31:20,varchar1\n",
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
 
@@ -673,12 +673,12 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "25,3.14159E0,14:31:20,\"varchar1\"\n" +
-                        "26,3.14159E0,14:31:20,\"varchar1\"\n" +
-                        "27,3.14159E0,14:31:20,\"varchar1 space\"\n" +
-                        "28,3.14159E0,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159E0,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159E0,14:31:20,\"varchar1\"\n",
+                        "25,3.14159,14:31:20,\"varchar1\"\n" +
+                        "26,3.14159,14:31:20,\"varchar1\"\n" +
+                        "27,3.14159,14:31:20,\"varchar1 space\"\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,\"varchar1\"\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 

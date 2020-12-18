@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -72,8 +73,8 @@ public class MDelete implements DataDelete{
     }
 
     @Override
-    public void skipWAL() {
-        // no-op in mem
+    public void setDurability(Durability durability) {
+        // no-op
     }
 
     @Override

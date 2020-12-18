@@ -14,6 +14,8 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.Durability;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -27,5 +29,5 @@ public interface DataDelete extends DataMutation{
 
     Iterable<DataCell> cells();
 
-    void skipWAL();
+    void setDurability(Durability durability);
 }

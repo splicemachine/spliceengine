@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -230,6 +231,7 @@ public class ConfigurationBuilder {
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
     public boolean olapCompactionAutomaticallyPurgeOldUpdates;
     public String olapServerMode;
+    public Durability durability;
 
 
     /**

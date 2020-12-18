@@ -25,6 +25,7 @@ import java.util.Map;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test_dao.TableDAO;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -43,12 +44,13 @@ import static org.junit.Assert.assertTrue;
  * @author Jeff Cunningham
  *         Date: 12/11/13
  */
-public class SpliceAdminIT extends SpliceUnitTest{
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+@SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE")
+public class SpliceAdminIT extends SpliceUnitTest {
+    final protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
-    protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict",CLASS_NAME,"(a int)");
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    final protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1", CLASS_NAME, "(a int)");
+    final protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict", CLASS_NAME, "(a int)");
+    final protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
@@ -112,10 +114,9 @@ public class SpliceAdminIT extends SpliceUnitTest{
 
     @Test
     public void testCreateResultSetNonPrintableChars() throws Exception {
-        String sql= "select * from (values ('ROWCOUNTOPERATIONIT','A','false','(1328,,1390605409509.0e0464ea3aae5b6eb559fd45e98d4ced. 0 MB)(1328,'ï¿½<hï¿½�,1390605409509.96302cceac907a55f22d48da10ca3392. 0 MB)')) foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)";
+        String sql = "select * from (values ('ROWCOUNTOPERATIONIT','A','false','(1328,,1390605409509.0e0464ea3aae5b6eb559fd45e98d4ced. 0 MB)(1328,'ï¿½<hï¿½�,1390605409509.96302cceac907a55f22d48da10ca3392. 0 MB)')) foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)";
 
-        try {
-            PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql);
+        try (PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql)) {
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Lexical error at line 1, column 127"));
             return;
@@ -127,27 +128,27 @@ public class SpliceAdminIT extends SpliceUnitTest{
     public void testGetConglomerateIDs() throws Exception {
         String TABLE_NAME = "ZONING";
         SpliceUnitTest.MyWatcher tableWatcher =
-                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
+                new SpliceUnitTest.MyWatcher(TABLE_NAME, CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
-        TestConnection conn=methodWatcher.getOrCreateConnection();
-        long[] conglomids = conn.getConglomNumbers(CLASS_NAME,TABLE_NAME);
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        long[] conglomids = conn.getConglomNumbers(CLASS_NAME, TABLE_NAME);
         assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
         }
         List<Long> expectedConglomIDs = new ArrayList<Long>();
-        for( Map m : tableCluster){
+        for (Map m : tableCluster) {
             if (m.get("TABLENAME").equals(TABLE_NAME)) {
                 expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
             }
         }
         assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
-                          expectedConglomIDs.containsAll(actualConglomIDs));
+                expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
     @Test
@@ -155,7 +156,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
     public void testGetConglomerateIDsAllInSchema() throws Exception {
         String TABLE_NAME = "ZONING1";
         SpliceUnitTest.MyWatcher tableWatcher =
-                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
+                new SpliceUnitTest.MyWatcher(TABLE_NAME, CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
@@ -168,18 +169,18 @@ public class SpliceAdminIT extends SpliceUnitTest{
             actualConglomIDs.add(conglomID);
         }
         List<Long> expectedConglomIDs = new ArrayList<Long>();
-        for( Map m : tableCluster){
+        for (Map m : tableCluster) {
             expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
         }
         assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
-                          expectedConglomIDs.containsAll(actualConglomIDs));
+                expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
     @Test
     public void testGetSchemaInfo() throws Exception {
         String TABLE_NAME = "ZONING2";
         SpliceUnitTest.MyWatcher tableWatcher =
-                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
+                new SpliceUnitTest.MyWatcher(TABLE_NAME, CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfo"));
@@ -197,14 +198,14 @@ public class SpliceAdminIT extends SpliceUnitTest{
         int size = 100;
         String TABLE_NAME = "SPLIT";
         SpliceUnitTest.MyWatcher tableWatcher =
-                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40) unique not null,i int)");
+                new SpliceUnitTest.MyWatcher(TABLE_NAME, CLASS_NAME, "(username varchar(40) unique not null,i int)");
         tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfoSplit"));
         try {
             PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?)", CLASS_NAME, TABLE_NAME));
-            for(int i=0;i<size;i++){
+            for (int i = 0; i < size; i++) {
                 ps.setInt(1, i);
-                ps.setString(2,Integer.toString(i+1));
+                ps.setString(2, Integer.toString(i + 1));
                 ps.executeUpdate();
             }
 //            spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
@@ -218,7 +219,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()", rs);
         System.out.println(fr.toString());
-         DbUtils.closeQuietly(rs);
+        DbUtils.closeQuietly(rs);
     }
 
     @Test
@@ -238,7 +239,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()", rs);
         System.out.println(fr.toString());
-        assertTrue(fr.size()>=1);
+        assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -248,54 +249,59 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()", rs);
         System.out.println(fr.toString());
-        assertTrue(fr.size()>=1);
+        assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
     @Test
     public void testGetCacheInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()");
-        ResultSet rs = cs.executeQuery();
-        while(rs.next()){
-            double hitRate = rs.getDouble("HitRate");
-            double missRate = rs.getDouble("MissRate");
-            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-            assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+        try( CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()") ) {
+            ResultSet rs = cs.executeQuery();
+            while (rs.next()) {
+                double hitRate = rs.getDouble("HitRate");
+                double missRate = rs.getDouble("MissRate");
+                assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+                assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
+            }
+            DbUtils.closeQuietly(rs);
         }
-        DbUtils.closeQuietly(rs);
     }
 
     @Test
     public void testGetTotalCacheInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TOTAL_CACHE_INFO()");
-        ResultSet rs = cs.executeQuery();
-        rs.next();
-        double hitRate = rs.getDouble("HitRate");
-        double missRate = rs.getDouble("MissRate");
-        assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-        assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
-        DbUtils.closeQuietly(rs);
+        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TOTAL_CACHE_INFO()");
+            ResultSet rs = cs.executeQuery() ) {
+            rs.next();
+            double hitRate = rs.getDouble("HitRate");
+            double missRate = rs.getDouble("MissRate");
+            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+            assertTrue(missRate <= 1 - hitRate + .0001 && missRate >= 1 - hitRate - .0001);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
     public void testGetSessionInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
-        ResultSet rs = cs.executeQuery();
-        rs.next();
-        String hostname = rs.getString("HOSTNAME");
-        int session = rs.getInt("SESSION");
-        DbUtils.closeQuietly(rs);
+        String hostname = ""; int session = 0;
+        try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+            ResultSet rs = cs.executeQuery() ) {
+            rs.next();
+            hostname = rs.getString("HOSTNAME");
+            session = rs.getInt("SESSION");
+            DbUtils.closeQuietly(rs);
+        }
 
-        CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
-        ResultSet rs2 = cs2.executeQuery();
-        rs2.next();
-        String hostname2 = rs2.getString("HOSTNAME");
-        int session2 = rs2.getInt("SESSION");
+        try(CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+            ResultSet rs2 = cs2.executeQuery() ) {
+            rs2.next();
+            String hostname2 = rs2.getString("HOSTNAME");
+            int session2 = rs2.getInt("SESSION");
 
-        Assert.assertEquals(hostname, hostname2);
-        Assert.assertNotEquals(session, session2);
+            Assert.assertEquals(hostname, hostname2);
+            Assert.assertNotEquals(session, session2);
 
-        DbUtils.closeQuietly(rs2);
+            DbUtils.closeQuietly(rs2);
+        }
     }
 
     @Test
@@ -304,28 +310,30 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REQUESTS()", rs);
         System.out.println(fr.toString());
-        assertTrue(fr.size()>=1);
+        assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
     @Test
     public void testGetRegionServerStatsInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 1);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
     public void testGetLoggers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGERS()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size() >= 80);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 80);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
@@ -334,27 +342,29 @@ public class SpliceAdminIT extends SpliceUnitTest{
         String origLevel = "FRED";
         String newLogLevel = "INFO";
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
-        cs.setString(1,logger);
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            origLevel = rs.getString(1);
+        cs.setString(1, logger);
+        try(ResultSet rs = cs.executeQuery()) {
+            while (rs.next()) {
+                origLevel = rs.getString(1);
+            }
         }
 
         try {
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL(?,?)");
-            cs.setString(1,logger);
+            cs.setString(1, logger);
             cs.setString(2, newLogLevel);
             cs.execute();
 
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
             cs.setString(1, logger);
-            rs = cs.executeQuery();
             String currentLogLevel = "FRED";
-            while (rs.next()) {
-                currentLogLevel = rs.getString(1);
+            try( ResultSet rs = cs.executeQuery() ) {
+                while (rs.next()) {
+                    currentLogLevel = rs.getString(1);
+                }
             }
-            Assert.assertNotEquals("FRED",currentLogLevel);
-            Assert.assertEquals(newLogLevel,currentLogLevel);
+            Assert.assertNotEquals("FRED", currentLogLevel);
+            Assert.assertEquals(newLogLevel, currentLogLevel);
         } finally {
             // reset to orig value
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL(?,?)");
@@ -362,19 +372,17 @@ public class SpliceAdminIT extends SpliceUnitTest{
             cs.setString(2, origLevel);
             cs.execute();
         }
-
-        DbUtils.closeQuietly(rs);
-
     }
 
     @Test
     public void testGetSpliceVersion() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
-        System.out.println(fr.toString());
-        assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
+        try( ResultSet rs = cs.executeQuery() ) {
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
+            System.out.println(fr.toString());
+            assertTrue(fr.size() >= 1);
+            DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test
@@ -390,7 +398,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         CallableStatement cs = null;
         try {
             cs = methodWatcher.prepareCall(
-                String.format("call SYSCS_UTIL.SYSCS_CREATE_USER('%s', '%s')", userName, userName));
+                    String.format("call SYSCS_UTIL.SYSCS_CREATE_USER('%s', '%s')", userName, userName));
             cs.execute();
         } catch (Exception e) {
             // Allow user exists error
@@ -401,10 +409,10 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = null;
         try {
             cs2 = methodWatcher.prepareCall(
-                String.format("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('%s', '%s')", schemaName, userName));
+                    String.format("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('%s', '%s')", schemaName, userName));
             cs2.execute();
             rs = methodWatcher.executeQuery(
-                String.format("SELECT AUTHORIZATIONID FROM SYS.SYSSCHEMAS WHERE SCHEMANAME='%s'", schemaName));
+                    String.format("SELECT AUTHORIZATIONID FROM SYS.SYSSCHEMAS WHERE SCHEMANAME='%s'", schemaName));
             assertTrue(rs.next());
             Assert.assertEquals(userName, rs.getString(1));
         } finally {
@@ -424,7 +432,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
             CallableStatement cs = methodWatcher.prepareCall(format("call syscs_util.SYSCS_SPLIT_TABLE('%s','%s')", CLASS_NAME, "IAMNOTHERE"));
             cs.executeUpdate();
         } catch (SQLException e) {
-            Assert.assertEquals("Message Mismatch","Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ",e.getMessage());
+            Assert.assertEquals("Message Mismatch", "Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ", e.getMessage());
         }
     }
 
@@ -437,6 +445,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
             Assert.assertEquals("Code Mismatch", SQLState.PARAMETER_CANNOT_BE_NULL, e.getSQLState());
         }
     }
+
     @Test
     public void testDictionaryDeletesNonHex() throws Exception {
         try {
@@ -457,8 +466,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
                     "s.schemaname = '%s' and t.tablename = '%s'", spliceSchemaWatcher.schemaName.toUpperCase(), dictionaryDeletes.tableName.toUpperCase());
             ResultSet rs = methodWatcher.executeQuery(query);
             assertTrue(rs.next());
-            String rowId  = rs.getString(1);
-            String tableId = rs.getString(2);
+            String rowId = rs.getString(1);
             assertFalse(rs.next());
 
             rs = methodWatcher.executeQuery("select c.conglomeratenumber from sys.systables t, sys.sysconglomerates c where t.tableid = c.tableid and " +
@@ -521,5 +529,25 @@ public class SpliceAdminIT extends SpliceUnitTest{
 
         // Cleanup
         spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser2')");
+    }
+
+    @Test
+    public void testListDirectory() throws Exception {
+        String path = getResourceDirectory() + "/parquet_simple_file_test";
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.LIST_DIRECTORY('" + path + "')") ) {
+            StringBuilder sb = new StringBuilder();
+            while( rs.next() ) {
+                sb.append(rs.getString(6) + "\n");
+            }
+            Assert.assertEquals(
+                    "_SUCCESS\n" +
+                            "partition1=AAA\n" +
+                            "partition1=BBB\n" +
+                            "partition1=CCC\n", sb.toString());
+        }
+
+        SpliceUnitTest.sqlExpectException(methodWatcher, "CALL SYSCS_UTIL.LIST_DIRECTORY('/not/existing/directory')",
+                "X0X14", false);
     }
 }

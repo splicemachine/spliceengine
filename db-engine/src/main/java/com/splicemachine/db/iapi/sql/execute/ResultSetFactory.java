@@ -2025,6 +2025,7 @@ NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
                                       String quoteChar,
                                       String quoteMode,
                                       String format,
+                                      String floatingPointNotation,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 

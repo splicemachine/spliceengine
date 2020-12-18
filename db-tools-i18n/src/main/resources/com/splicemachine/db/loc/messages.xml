@@ -4970,7 +4970,12 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <msg>
                 <name>XIE14.S</name>
                 <text>Unsupported quote mode: {0}</text>
-                <arg>compression</arg>
+                <arg>quote_mode</arg>
+            </msg>
+            <msg>
+                <name>XIE15.S</name>
+                <text>Unsupported floating point notation: {0}</text>
+                <arg>notation</arg>
             </msg>
         <msg>
                 <name>XIE0S.S</name>

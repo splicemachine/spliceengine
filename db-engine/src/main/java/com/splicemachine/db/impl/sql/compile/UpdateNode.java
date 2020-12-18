@@ -60,6 +60,7 @@ import org.apache.commons.lang3.SerializationUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -89,6 +90,9 @@ public final class UpdateNode extends DMLModStatementNode
 
     /* Column name for the RowLocation in the ResultSet */
     public static final String COLUMNNAME = "###RowLocationToUpdate";
+
+    /* Subquery name for updating from multi-column subquery case */
+    public static final String SUBQ_NAME = "UPDSBQ";
 
     /**
      * Initializer for an UpdateNode.
@@ -268,6 +272,72 @@ public final class UpdateNode extends DMLModStatementNode
         // the table descriptor should always be found.
         verifyTargetTable();
 
+        if (sel.getFromList().size() > 1) {
+            // Select items of the subquery may be expressions. However, a FromSubquery
+            // is not flattenable if it selects expressions. There are other restrictions
+            // that prevent a FromSubquery from being flattened, but this one can be
+            // lifted for update statements. Here, for each select item that is an
+            // expression, we pull it up to its corresponding top select result column
+            // and remove it from the inner select list. If it references columns that is
+            // not already selected, add them to the inner select list, too.
+            ResultColumnList selRCL = sel.getResultColumns();
+            ResultColumnList innerRCL = ((FromSubquery) sel.getFromList().elementAt(1)).getSubquery().getResultColumns();
+            assert selRCL.size() == innerRCL.size();
+
+            ResultColumnList toAppend = new ResultColumnList();
+            CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class, SubqueryNode.class);
+            for (int i = selRCL.size() - 1; i >= 0; i--) {
+                ResultColumn innerRC = innerRCL.elementAt(i);
+                ValueNode innerRCExpression = innerRC.getExpression();
+                if (!(innerRCExpression instanceof ColumnReference)) {
+                    innerRCExpression.accept(cnv);
+                    List<ColumnReference> crList = cnv.getList();
+                    for (ColumnReference cr : crList) {
+                        if (targetTable.getMatchingColumn(cr) == null) {
+                            toAppend.addResultColumn(cr.generateResultColumn());
+                            TableName crTblName = cr.getTableNameNode();
+                            cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
+                                    crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                        }
+                    }
+                    ResultColumn selRC = selRCL.elementAt(i);
+                    selRC.setExpression(innerRCExpression);
+                    innerRCL.removeElementAt(i);
+                    cnv.getList().clear();
+                }
+            }
+            for (ResultColumn rc : toAppend) {
+                if (innerRCL.getResultColumn(rc.getName()) == null) {
+                    innerRCL.addResultColumn(rc);
+                }
+            }
+
+            // Subquery's where clause may contain column references that uses table
+            // aliases defined inside the subquery. Once we transform the subquery into
+            // a derived table and generate an alias for it, those table aliases are
+            // not visible to the outer select anymore. In pulling the subquery where
+            // clause up, we need to add these columns to the subquery result column
+            // list if they are not selected, and then change their alias name to to
+            // the derived table alias name.
+            ValueNode whereClause = sel.getWhereClause();
+
+            if (whereClause != null) {
+                whereClause.accept(cnv);
+                List<ColumnReference> crList = cnv.getList();
+                for (ColumnReference cr : crList) {
+                    if (targetTable.getMatchingColumn(cr) == null) {
+                        if (innerRCL.getResultColumn(cr.getColumnName()) == null) {
+                            ResultColumn rc = cr.generateResultColumn();
+                            innerRCL.addResultColumn(rc);
+                        }
+                        TableName crTblName = cr.getTableNameNode();
+                        cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
+                                crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                    }
+                }
+            }
+        }
+
         /* OVERVIEW - We generate a new ResultColumn, CurrentRowLocation(), and
          * prepend it to the beginning of the source ResultColumnList.  This
          * will tell us which row(s) to update at execution time.  However,
@@ -339,9 +409,10 @@ public final class UpdateNode extends DMLModStatementNode
         resultFromList = resultSet.getFromList();
         // Splice fork - don't enforce this if special subquery syntax
         if (!isUpdateWithSubquery) {
-        if (SanityManager.DEBUG)
-        SanityManager.ASSERT(resultFromList.size() == 1,
-            "More than one table in result from list in an update.");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(resultFromList.size() == 1,
+                        "More than one table in result from list in an update.");
+            }
         }
 
         /* Normalize the SET clause's result column list for synonym */
@@ -1361,7 +1432,7 @@ public final class UpdateNode extends DMLModStatementNode
     /**
      * Check table name and then clear it from the result set columns.
      *
-     * @exception StandardExcepion if invalid column/table is specified.
+     * @exception StandardException if invalid column/table is specified.
      */
     private void checkTableNameAndScrubResultColumns(ResultColumnList rcl, boolean isUpdateWithSubquery)
             throws StandardException
@@ -1372,7 +1443,7 @@ public final class UpdateNode extends DMLModStatementNode
         for ( int i = 0; i < columnCount; i++ )
         {
             boolean foundMatchingTable = false;
-            ResultColumn    column = (ResultColumn) rcl.elementAt( i );
+            ResultColumn column = rcl.elementAt(i);
             String columnTableName = column.getTableName();
 
             if (columnTableName != null) {
@@ -1406,7 +1477,6 @@ public final class UpdateNode extends DMLModStatementNode
                 }
             }
 
-
             if (!isUpdateWithSubquery) {
                 /* The table name is
                  * unnecessary for an update.  More importantly, though, it
@@ -1427,7 +1497,7 @@ public final class UpdateNode extends DMLModStatementNode
                 String baseTableName = targetTable.getBaseTableName();
                 if (crn != null) {
                     ValueNode expression = column.getExpression();
-                    if (!column.updated() && expression != null && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
+                    if (!column.updated() && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
                         ((ColumnReference) expression).setTableNameNode(makeTableName(null,crn));
                 }
             }

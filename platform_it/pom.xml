@@ -927,6 +927,9 @@
                     <name>spliceFast</name>
                 </property>
             </activation>
+            <properties>
+                <durability>ASYNC</durability>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -1077,6 +1080,7 @@
                                 <argument>${failTasksRandomly}</argument>
                                 <argument>${olap.log4j.config.uri}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -1092,6 +1096,7 @@
             </activation>
             <properties>
                 <memberNumber>1</memberNumber>
+                <durability>ASYNC</durability>
             </properties>
             <build>
                 <plugins>
@@ -1135,6 +1140,7 @@
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
