@@ -75,7 +75,8 @@ public class ExportOperation extends SpliceBaseOperation {
                            String encoding,
                            String fieldSeparator,
                            String quoteCharacter,
-                           String quoteMode) throws StandardException {
+                           String quoteMode,
+                           String floatingPointNotation) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
 
         if (replicationCount <= 0 && replicationCount != ExportNode.DEFAULT_INT_VALUE) {
@@ -84,17 +85,10 @@ public class ExportOperation extends SpliceBaseOperation {
 
         this.source = source;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
-        this.exportParams = new ExportParams(exportPath, compression, format, replicationCount, encoding, fieldSeparator, quoteCharacter, quoteMode);
+        this.exportParams = new ExportParams(exportPath, compression, format, replicationCount, encoding,
+                fieldSeparator, quoteCharacter, quoteMode, floatingPointNotation);
         this.activation = activation;
-
-        try {
-            ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
-            checker.verify();
-            checker.cleanup();
-            init();
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        init();
     }
 
     @Override
@@ -152,6 +146,15 @@ public class ExportOperation extends SpliceBaseOperation {
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        try {
+            ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
+            checker.verify();
+            checker.cleanup();
+
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 

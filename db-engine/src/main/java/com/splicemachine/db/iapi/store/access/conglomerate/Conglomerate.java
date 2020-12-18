@@ -67,6 +67,12 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 public interface Conglomerate extends Storable, DataValueDescriptor
 {
+    /**
+     * Must be called after creation if the creation of the conglomerate is asynchronous before it can be used
+     * @throws StandardException
+     */
+    void awaitCreation() throws StandardException;
+
     // these are used to prioritize tables when they are re-loaded by hbase
     enum Priority
     {

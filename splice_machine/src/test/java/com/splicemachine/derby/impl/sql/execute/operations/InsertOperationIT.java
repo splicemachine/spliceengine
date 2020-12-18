@@ -19,9 +19,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.UsesLocalFS;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import splice.com.google.common.collect.Maps;
 
 import java.io.File;
@@ -472,6 +474,7 @@ public class InsertOperationIT {
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE") // delete/createNewFile
     @Test
+    @Category(UsesLocalFS.class)
     public void testInsertBlob() throws Exception {
         try(InputStream fin = new FileInputStream(getResourceDirectory() + "order_line_500K.csv")) {
             PreparedStatement ps = methodWatcher.prepareStatement("insert into FILES (name, doc) values (?,?)");

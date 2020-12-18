@@ -473,6 +473,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         } else {
             assert type.isDefaultOltp();
         }
+        if (sparkExecutionType.isSessionHinted()) {
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
+        } else {
+            assert sparkExecutionType.isUnspecified();
+        }
 
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
