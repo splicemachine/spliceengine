@@ -721,8 +721,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
     val combinedUpdText = updateText + whereClause + ")"
     
-    executeUpd(insertText)
-    executeUpd(combinedUpdText)
+    executeUpd(combinedUpdText)   // update
+    executeUpd(insertText)        // insert
   }
   
   /**
