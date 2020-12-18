@@ -19,6 +19,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TriggerBuilder;
+import com.splicemachine.test_dao.TriggerDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -32,18 +34,21 @@ import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
 
+import static com.splicemachine.pipeline.ErrorState.WRITE_WRITE_CONFLICT;
+
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class UpdatableResultSetIT {
 
     private static final String SCHEMA = UpdatableResultSetIT.class.getSimpleName().toUpperCase();
-    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    private static final SpliceWatcher  spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     protected static final String A_TABLE     = "A";
     protected static final String B_TABLE     = "B";
     protected static final String C_TABLE     = "C";
     protected static final String D_TABLE     = "D";
     protected static final String D_TABLE_IDX = "D_IDX";
+    protected static final String E_TABLE     = "E";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -53,10 +58,13 @@ public class UpdatableResultSetIT {
 
     private TestConnection conn;
     private String         connectionString;
+    private TriggerBuilder tb = new TriggerBuilder();
+    private TriggerDAO     triggerDAO;
 
     private static final String DEFAULT = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin";
     private static final String CONTROL = DEFAULT + ";useSpark=false";
     private static final String SPARK = DEFAULT + ";useSpark=true";
+    private String tableName;
 
     @Parameterized.Parameters(name = "with mode {0}")
     public static Collection<Object[]> data() {
@@ -71,22 +79,29 @@ public class UpdatableResultSetIT {
         this.connectionString = connectionString;
     }
 
+    private void prepareTableData(String tableName) throws SQLException {
+        conn.execute(String.format("INSERT INTO %s VALUES (2, 'helium')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (10, 'neon')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (18, 'argon')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (38, 'krypton')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (54, 'xenon')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (86, 'radon')", tableName));
+        conn.execute(String.format("INSERT INTO %s VALUES (118, 'oganesson')", tableName));
+    }
+
     @Before
     public void setUp() throws Exception{
         conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        triggerDAO = new TriggerDAO(conn);
         conn.setAutoCommit(true);
         conn.setSchema(SCHEMA);
         conn.execute("DELETE FROM A");
         conn.execute("DELETE FROM B");
         conn.execute("DELETE FROM C");
         conn.execute("DELETE FROM D");
-        conn.execute("INSERT INTO A VALUES (2, 'helium')");
-        conn.execute("INSERT INTO A VALUES (10, 'neon')");
-        conn.execute("INSERT INTO A VALUES (18, 'argon')");
-        conn.execute("INSERT INTO A VALUES (38, 'krypton')");
-        conn.execute("INSERT INTO A VALUES (54, 'xenon')");
-        conn.execute("INSERT INTO A VALUES (86, 'radon')");
-        conn.execute("INSERT INTO A VALUES (118, 'oganesson')");
+        triggerDAO.dropAllTriggers(SCHEMA, E_TABLE);
+        conn.execute("DELETE FROM E");
+        prepareTableData(A_TABLE);
     }
 
     @After
@@ -118,10 +133,11 @@ public class UpdatableResultSetIT {
 
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", C_TABLE)).create();
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int primary key, c2 varchar(20))", D_TABLE)).withIndex(String.format("create index %s on %s(c1)", D_TABLE_IDX, D_TABLE)).create();
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", E_TABLE)).create();
     }
 
-    private void tableAshouldBe(Object[][] expected) throws SQLException {
-        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM A ORDER BY C1 ASC")) {
+    private void tableShouldBe(String tableName, Object[][] expected) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM " + tableName + " ORDER BY C1 ASC")) {
             int row = 0;
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -143,7 +159,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{
+        tableShouldBe("A", new Object[][]{
                 {2, "HELIUM"},
                 {10, "NEON"},
                 {18, "ARGON"},
@@ -164,7 +180,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{
+        tableShouldBe("A", new Object[][]{
                 {2, "helium"},
                 {10, "neon"},
                 {18, "argon"},
@@ -183,7 +199,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{});
+        tableShouldBe("A", new Object[][]{});
     }
 
     @Test
@@ -197,7 +213,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{
+        tableShouldBe("A", new Object[][]{
                 {2, "helium"},
                 {54, "xenon"},
                 {86, "radon"},
@@ -218,7 +234,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{
+        tableShouldBe("A", new Object[][]{
                 {2, "helium"},
                 {2, "helium"},
                 {10, "neon"},
@@ -251,7 +267,7 @@ public class UpdatableResultSetIT {
                 }
             }
         }
-        tableAshouldBe(new Object[][]{
+        tableShouldBe("A", new Object[][]{
                 {2, "helium"},
                 {10, "neon"},
                 {18, "argon"},
@@ -421,6 +437,151 @@ public class UpdatableResultSetIT {
             Assert.assertEquals(expectedValue, result.getString(2));
             Assert.assertFalse(result.next());
         }
+    }
+
+    @Test
+    public void testInteractionWithTriggers() throws Exception {
+        conn.execute(tb.on(E_TABLE).named("trig01").after().update().row().referencing("old as o").then(String.format("INSERT INTO %s VALUES(o.c1 + 1019, o.c2)", E_TABLE)).build());
+        conn.execute(tb.on(E_TABLE).named("trig02").after().delete().row().referencing("old as o").then(String.format("INSERT INTO %s VALUES(o.c1 + 1693, o.c2)", E_TABLE)).build());
+        conn.execute(String.format("INSERT INTO %s VALUES (2, 'helium')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (10, 'neon')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (18, 'argon')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (38, 'krypton')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (54, 'xenon')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (86, 'radon')", E_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES (118, 'oganesson')", E_TABLE));
+        conn.execute(tb.on(E_TABLE).named("trig03").before().insert().row().referencing("new as n").then("SET n.c1 = n.c1 + 2957, n.c2 = n.c2").build());
+
+        // test update-interaction between updatable cursors and triggers.
+        try (PreparedStatement statement = conn.prepareStatement(String.format("SELECT * FROM %s", E_TABLE), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    resultSet.updateString(2, resultSet.getString(2).toUpperCase());
+                    resultSet.updateRow();
+                }
+            }
+        }
+        tableShouldBe(E_TABLE, new Object[][]{
+                {2, "HELIUM"},
+                {10, "NEON"},
+                {18, "ARGON"},
+                {38, "KRYPTON"},
+                {54, "XENON"},
+                {86, "RADON"},
+                {118, "OGANESSON"},
+                {1019 + 2957 + 2, "helium"},
+                {1019 + 2957 + 10, "neon"},
+                {1019 + 2957 + 18, "argon"},
+                {1019 + 2957 + 38, "krypton"},
+                {1019 + 2957 + 54, "xenon"},
+                {1019 + 2957 + 86, "radon"},
+                {1019 + 2957 + 118, "oganesson"},
+        });
+
+        // test delete-interaction between updatable cursors and triggers.
+        try (PreparedStatement statement = conn.prepareStatement(String.format("SELECT * FROM %s where c1 >= 1000", E_TABLE), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    resultSet.deleteRow();
+                }
+            }
+        }
+        tableShouldBe(E_TABLE, new Object[][]{
+                {2, "HELIUM"},
+                {10, "NEON"},
+                {18, "ARGON"},
+                {38, "KRYPTON"},
+                {54, "XENON"},
+                {86, "RADON"},
+                {118, "OGANESSON"},
+                { /*old value*/ (1019 + 2957 + 2)  + /* delete trigger */ 1693 + /* insert trigger */ 2957, "helium"},
+                { /*old value*/ (1019 + 2957 + 10) + /* delete trigger */ 1693 + /* insert trigger */ 2957, "neon"},
+                { /*old value*/ (1019 + 2957 + 18) + /* delete trigger */ 1693 + /* insert trigger */ 2957, "argon"},
+                { /*old value*/ (1019 + 2957 + 38) + /* delete trigger */ 1693 + /* insert trigger */ 2957, "krypton"},
+                { /*old value*/ (1019 + 2957 + 54) + /* delete trigger */ 1693 + /* insert trigger */ 2957, "xenon"},
+                { /*old value*/ (1019 + 2957 + 86) + /* delete trigger */ 1693 + /* insert trigger */ 2957, "radon"},
+                { /*old value*/ (1019 + 2957 + 118)+ /* delete trigger */ 1693 + /* insert trigger */ 2957, "oganesson"},
+        });
+
+        // test insert-interaction between updatable cursors and triggers.
+        try (PreparedStatement statement = conn.prepareStatement(String.format("SELECT * FROM %s where c1 >= 2000", E_TABLE), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    resultSet.moveToInsertRow();
+                    resultSet.updateInt(1, 5881);
+                    resultSet.updateString(2, "new row");
+                    resultSet.insertRow();
+                }
+            }
+        }
+        tableShouldBe(E_TABLE, new Object[][]{
+                {2, "HELIUM"},
+                {10, "NEON"},
+                {18, "ARGON"},
+                {38, "KRYPTON"},
+                {54, "XENON"},
+                {86, "RADON"},
+                {118, "OGANESSON"},
+                { (1019 + 2957 + 2)  + 1693 + 2957, "helium"},
+                { (1019 + 2957 + 10) + 1693 + 2957, "neon"},
+                { (1019 + 2957 + 18) + 1693 + 2957, "argon"},
+                { (1019 + 2957 + 38) + 1693 + 2957, "krypton"},
+                { (1019 + 2957 + 54) + 1693 + 2957, "xenon"},
+                { (1019 + 2957 + 86) + 1693 + 2957, "radon"},
+                { (1019 + 2957 + 118)+ 1693 + 2957, "oganesson"},
+                // inserted by the updatable cursor + modified by the insert triggered (+ 2957)
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"},
+                { /* updatable cursor addition */ 5881 + /* insert trigger */ 2957, "new row"}
+        });
+    }
+
+    private void testConcurrentUpdates(String tableName) throws Exception {
+        try (PreparedStatement statement = conn.prepareStatement(String.format("SELECT * FROM %s WHERE c1 = 18", tableName), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next(); // {18, "argon"}
+                // update {18, "argon"} with a concurrent connection
+                try(Connection conn2 = new TestConnection(DriverManager.getConnection(connectionString, new Properties()))) {
+                    conn2.setSchema(SCHEMA);
+                    try(Statement stmt2 = conn2.createStatement()) {
+                        stmt2.executeUpdate(String.format("UPDATE %s SET c1 = 1, c2 = 'hydrogen' WHERE c1 = 18", tableName));
+                    }
+                }
+                resultSet.updateString(2, resultSet.getString(2).toUpperCase());
+                try {
+                    resultSet.updateRow();
+                    Assert.fail("should've failed with an exception containing: Write Conflict detected between transactions");
+                } catch(Exception e) {
+                    Assert.assertTrue(e instanceof SQLException);
+                    SQLException sqlException = (SQLException)e;
+                    Assert.assertEquals(WRITE_WRITE_CONFLICT.getSqlState(), sqlException.getSQLState());
+                }
+            }
+        }
+        tableShouldBe(tableName, new Object[][]{
+                {1, "hydrogen"},
+                {2, "helium"},
+                {10, "neon"},
+                {38, "krypton"},
+                {54, "xenon"},
+                {86, "radon"},
+                {118, "oganesson"}
+        });
+    }
+
+    @Test
+    public void testWithConcurrentUpdatesOnTableWithoutPrimaryKeys() throws Exception {
+        testConcurrentUpdates(A_TABLE);
+    }
+
+    @Test
+    public void testWithConcurrentUpdatesOnPrimaryKeyColumns() throws Exception {
+        prepareTableData(D_TABLE);
+        testConcurrentUpdates(D_TABLE);
     }
 }
 
