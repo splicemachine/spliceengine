@@ -14,14 +14,15 @@
 
 package com.splicemachine.derby.lifecycle;
 
+import com.splicemachine.olap.OlapServerMaster;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Test static methods in HEngineSqlEnv.
+ * Test static methods in OlapServerMasterTest.
  */
 
-public class HEngineSqlEnvTest {
+public class OlapServerMasterTest {
 
     String yarnMemorySizeInMB;
     String sparkDynamicAllocationString;
@@ -35,7 +36,7 @@ public class HEngineSqlEnvTest {
     int    actual;
 
     private int calcExecutorCores() {
-        return HEngineSqlEnv.
+        return OlapServerMaster.
                calculateMaxExecutorCores(yarnMemorySizeInMB,
                                          sparkDynamicAllocationString,
                                          executorInstancesString,
@@ -96,7 +97,7 @@ public class HEngineSqlEnvTest {
     }
 
     private void testParse(String sizeString, long defaultValue, String defaultSuffix, long expected) {
-        long actual = HEngineSqlEnv.parseSizeString(sizeString, defaultValue, defaultSuffix);
+        long actual = OlapServerMaster.parseSizeString(sizeString, defaultValue, defaultSuffix);
         Assert.assertTrue("Unexpected maxExecutorCores estimate. \n Expected: " + expected + "\nActual: " + actual, actual == expected);
     }
 
