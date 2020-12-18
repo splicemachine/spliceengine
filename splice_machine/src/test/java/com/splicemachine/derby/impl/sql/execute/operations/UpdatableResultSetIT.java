@@ -443,13 +443,7 @@ public class UpdatableResultSetIT {
     public void testInteractionWithTriggers() throws Exception {
         conn.execute(tb.on(E_TABLE).named("trig01").after().update().row().referencing("old as o").then(String.format("INSERT INTO %s VALUES(o.c1 + 1019, o.c2)", E_TABLE)).build());
         conn.execute(tb.on(E_TABLE).named("trig02").after().delete().row().referencing("old as o").then(String.format("INSERT INTO %s VALUES(o.c1 + 1693, o.c2)", E_TABLE)).build());
-        conn.execute(String.format("INSERT INTO %s VALUES (2, 'helium')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (10, 'neon')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (18, 'argon')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (38, 'krypton')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (54, 'xenon')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (86, 'radon')", E_TABLE));
-        conn.execute(String.format("INSERT INTO %s VALUES (118, 'oganesson')", E_TABLE));
+        prepareTableData(E_TABLE);
         conn.execute(tb.on(E_TABLE).named("trig03").before().insert().row().referencing("new as n").then("SET n.c1 = n.c1 + 2957, n.c2 = n.c2").build());
 
         // test update-interaction between updatable cursors and triggers.
