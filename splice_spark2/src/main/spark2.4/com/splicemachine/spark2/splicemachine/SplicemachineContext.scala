@@ -1029,8 +1029,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
           " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
         val combinedUpdText = updateText + whereClause + ")"
         
-        executeUpdate(insertText)
-        executeUpdate(combinedUpdText)
+        executeUpdate(combinedUpdText)  // update
+        executeUpdate(insertText)       // insert
       }
     } finally {
       kafkaTopics.delete(topicName)
