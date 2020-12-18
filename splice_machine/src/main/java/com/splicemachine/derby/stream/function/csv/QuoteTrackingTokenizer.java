@@ -70,6 +70,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
         final List<String> bufferList;
         int size = 0;
         boolean sizeCached = false;
+        StringBuilder sb;
 
         public LazyStringBuilder() {
             this.bufferList = new ArrayList<String>(1000);
@@ -108,7 +109,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
         }
 
         public String toString() {
-            StringBuilder sb = new StringBuilder(length());
+            if(sb == null)
+                 sb = new StringBuilder(length());
+            else
+                sb.delete(0, sb.length());
             for (String cb : bufferList) {
                 sb.append(cb);
             }

@@ -34,7 +34,8 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
 
     private final CsvPreference preferences;
 
-    private final LineNumberReaderCR lnr;
+    private LineNumberReaderCR lnr;
+    private CsvLineReaderCR clr;
 
     /**
      * Constructs a new <tt>AbstractTokenizer</tt>, which reads the CSV file, line by line.
@@ -54,21 +55,28 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
             throw new NullPointerException("preferences should not be null");
         }
         this.preferences = preferences;
-        lnr = new LineNumberReaderCR(reader, skipCarriageReturn);
+        boolean b = true;
+        if(b)
+            clr = new CsvLineReaderCR(reader, skipCarriageReturn);
+        else
+            lnr = new LineNumberReaderCR(reader, skipCarriageReturn);
     }
 
     /**
      * Closes the underlying reader.
      */
     public void close() throws IOException {
-        lnr.close();
+        if( clr != null)
+            clr.close();
+        else
+            lnr.close();
     }
 
     /**
      * {@inheritDoc}
      */
     public int getLineNumber() {
-        return lnr.getLineNumber();
+        return clr != null ? clr.getLineNumber() : lnr.getLineNumber();
     }
 
     /**
@@ -80,7 +88,7 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
      *             If an I/O error occurs
      */
     protected String readLine() throws IOException {
-        return lnr.readLine();
+        return clr != null ? clr.readLine() : lnr.readLine();
     }
 
     /**

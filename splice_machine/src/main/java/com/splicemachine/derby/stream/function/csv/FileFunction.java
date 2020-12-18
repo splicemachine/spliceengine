@@ -16,17 +16,18 @@ package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -44,6 +45,7 @@ public class FileFunction extends AbstractFileFunction<String> {
     boolean initialized = false;
     MutableCSVTokenizer tokenizer;
     private CsvParserConfig config;
+    // oneLineRecord wasn't written/readExternal
 
     public FileFunction() {
         super();
@@ -55,6 +57,18 @@ public class FileFunction extends AbstractFileFunction<String> {
         super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
                 dateTimeFormat, timestampFormat, operationContext);
         config = new CsvParserConfig(preference, oneLineRecord, quotedEmptyIsNull, skipCarriageReturn);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        config.writeExternal(out);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        config = new CsvParserConfig(in);
     }
 
     /**
@@ -72,6 +86,7 @@ public class FileFunction extends AbstractFileFunction<String> {
             // pass the string to CSV tokenizer, this allows us to immediately
             // get rid of the string after reading it.
             checkPreference();
+            config.preferences = preference;
             List<Integer> valueSizeHints = null;
             SpliceOperation op = operationContext.getOperation();
             if (op instanceof VTIOperation) { // Currently, only VTI can provide the result set data types.

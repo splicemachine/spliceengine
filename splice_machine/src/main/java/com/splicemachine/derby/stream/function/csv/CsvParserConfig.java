@@ -1,5 +1,9 @@
 package com.splicemachine.derby.stream.function.csv;
 import org.supercsv.prefs.CsvPreference;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 /*
  * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
@@ -15,7 +19,7 @@ import org.supercsv.prefs.CsvPreference;
  */
 
 public class CsvParserConfig {
-    final CsvPreference preferences;
+    CsvPreference preferences;
     boolean oneLineRecord;
     boolean quotedEmptyIsNull;
     boolean skipCarriageReturn;
@@ -45,5 +49,18 @@ public class CsvParserConfig {
     public CsvParserConfig skipCarriageReturn(boolean value) {
         skipCarriageReturn = value;
         return this;
+    }
+
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(oneLineRecord);
+        out.writeBoolean(quotedEmptyIsNull);
+        out.writeBoolean(skipCarriageReturn);
+    }
+
+    CsvParserConfig(ObjectInput in) throws IOException {
+        oneLineRecord  = in.readBoolean();
+        quotedEmptyIsNull = in.readBoolean();
+        skipCarriageReturn = in.readBoolean();
+        preferences = null;
     }
 }

@@ -287,6 +287,8 @@ public class HdfsImportIT extends SpliceUnitTest {
                         ")")
                 .withIndex("CREATE INDEX cust_idx ON hdfsimportit.customers(email)")
                 .create();
+
+        setSkipCarriageReturn(conn,true);
     }
 
     private static File BADDIR;
@@ -2138,9 +2140,11 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
-    public void setSkipCarriageReturn(Boolean skipCR) throws Exception {
-        methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
-                "'splice.function.skipCarriageReturn', '" + skipCR + "' )");
+    public static void setSkipCarriageReturn(Connection conn, Boolean skipCR) throws Exception {
+        try( Statement s = conn.createStatement()) {
+            s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
+                    "'splice.function.skipCarriageReturn', '" + skipCR + "' )");
+        }
     }
 
     @Test
@@ -2166,7 +2170,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             for(String config : configs) {
                 for( Boolean skipCR : new Boolean[]{false, true}) {
                     methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
-                    setSkipCarriageReturn(skipCR);
+                    setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), skipCR);
                     String path = getResourceDirectory() + "newline.csv";
                     String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
 
@@ -2177,7 +2181,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             }
         }
         finally {
-            setSkipCarriageReturn(false);
+            setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), true);
         }
     }
 
