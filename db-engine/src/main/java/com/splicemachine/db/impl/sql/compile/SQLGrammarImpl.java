@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
-import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -618,22 +617,45 @@ class SQLGrammarImpl {
                                                ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
+        FromList fromList = (FromList) nodeFactory.getNode(
                 C_NodeTypes.FROM_LIST,
                 getContextManager());
-
         fromList.addFromTable(fromTable);
 
-        // Bring the subquery table(s) to the outer from list
-        SelectNode innerSelect = (SelectNode)((SubqueryNode)subQuery).getResultSet();
-        FromList innerFrom = innerSelect.getFromList();
-        List innerFromEntries = innerFrom.getNodes();
-        for (Object obj : innerFromEntries) {
-            assert obj instanceof FromTable;
-            fromList.addFromTable((FromTable)obj);
-        }
+        // Don't flatten the subquery here but build it as a derived table. If we
+        // want to flatten the subquery here, it has to be fully bound in order
+        // to cover many corner cases. That is not an easy task and would lead to
+        // even more hacky code.
+        // The derived table flattening logic in preprocess will be triggered to
+        // flatten the subquery.
+        SubqueryNode subq = (SubqueryNode) subQuery;
+        FromTable fromSubq = (FromTable) nodeFactory.getNode(
+                C_NodeTypes.FROM_SUBQUERY,
+                subq.getResultSet(),
+                subq.getOrderByList(),
+                subq.getOffset(),
+                subq.getFetchFirst(),
+                subq.hasJDBClimitClause(),
+                UpdateNode.SUBQ_NAME,
+                null,  /* derived RCL */
+                null,  /* optional table clause */
+                getContextManager());
+        fromList.addFromTable(fromSubq);
 
-        // Bring the subquery where clause to outer where clause
+        SelectNode innerSelect = (SelectNode) subq.getResultSet();
+        // Reject select star in subQuery. Otherwise, we need to bind subQuery to
+        // expand columns. Unfortunately, it is not easy at this time.
+        innerSelect.verifySelectStarSubquery(fromList, subq.getSubqueryType());
+
+        // A derived table cannot reference columns from tables that are in front of
+        // the derived table in the same from list. But correlation must be allowed
+        // in subquery for update statement. For this reason, pull where clause up
+        // early so that binding can be done successfully.
+        //
+        // Inner where clause may contain column references that uses table aliases
+        // defined inside the subquery. They need to be updated but it's not possible
+        // until at least tables are bound. For this reason, it's done in
+        // UpdateNode's bindStatement().
         ValueNode innerWhere = innerSelect.getWhereClause();
         ValueNode alteredWhereClause;
         if (whereClause != null) {
@@ -645,29 +667,35 @@ class SQLGrammarImpl {
         } else {
             alteredWhereClause = innerWhere;
         }
+        innerSelect.setWhereClause(null);
 
-        // Alter the passed in setClause to give it non-null expressions
-        // and to point to subqjuery table.
+        // Build column references as expressions to the results columns generated
+        // for set clause. If a result column is assigned with an expression,
+        // generate a name for that expression and still build column reference. It
+        // has to be this way because we generate an alias for the derived table.
+        // Once that's done, we wouldn't be able to access columns using an table
+        // aliases within the derived table.
         ResultColumnList innerRCL = innerSelect.getResultColumns();
         int inputSize = setClause.size();
+        if (inputSize != innerRCL.size()) {
+            throw StandardException.newException(SQLState.LANG_UNION_UNMATCHED_COLUMNS, "assignment in set clause");
+        }
         for (int index = 0; index < inputSize; index++)
         {
-            ResultColumn rc = ((ResultColumn) setClause.elementAt(index));
-            // String columnName = rc.getName();
-            ResultColumn innerResultColumn = ((ResultColumn)innerRCL.elementAt(index));
+            ResultColumn rc = setClause.elementAt(index);
+            ResultColumn innerResultColumn = innerRCL.elementAt(index);
             String innerColumnName = innerResultColumn.getName();
-            if (innerColumnName != null) {
-                // source is a case of single column
-                ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        innerColumnName,
-                        ((FromTable)innerFromEntries.get(0)).getTableName(),
-                        getContextManager());
-                rc.setExpression(colRef);
-            } else {
-                // source is an expression
-                rc.setExpression(innerResultColumn.getExpression());
+            if (innerColumnName == null) {
+                innerColumnName = "UPD_SUBQ_COL_" + index;
+                innerResultColumn.setName(innerColumnName);
+                innerResultColumn.setNameGenerated(true);
             }
+            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
+                    getContextManager());
+            rc.setExpression(colRef);
         }
 
         SelectNode resultSet = (SelectNode) nodeFactory.getNode(
@@ -963,8 +991,8 @@ class SQLGrammarImpl {
     /**
      * Gets a replace node based on the specified arguments.
      * @param stringValue the input string
-     * @param the from sub string
-     * @param the to string
+     * @param fromString from sub string
+     * @param toString to string
      * @exception StandardException thrown on error
      */
     ValueNode getReplaceNode(

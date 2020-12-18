@@ -497,14 +497,14 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.assertEquals(fileFormat + ": Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
             Assert.assertEquals(fileFormat + ": wrong exception message",
                     "1 attribute(s) defined but " + colTypes.length + " present in the external file : '" + file + "'. " +
-                            "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + types.getSuggestedTypes() + ");'.",
+                            "Suggested Schema is 'CREATE EXTERNAL TABLE T ( " + types.getSuggestedTypes() + " ) STORED AS " + fileFormat.toUpperCase()
+                            + " LOCATION '" + file + "';'.",
                     e.getMessage());
         }
     }
 
     // tests writing all columns types, null values, suggesting schema.
     @Test
-    @Ignore("DB-10033")
     public void testWriteReadFromSimpleExternalTable() throws Exception {
         for( String fileFormat : fileFormats )
             testWriteReadFromSimpleExternalTable(fileFormat);
@@ -751,8 +751,8 @@ public class ExternalTableIT extends SpliceUnitTest {
         // test schema suggestion on a given file
 
         String file = getResourceDirectory() + "parquet_sample_one";
-        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (column1 CHAR/VARCHAR(x), " +
-                "column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x)) PARTITIONED BY(partition1);'.";
+        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T ( column1 CHAR/VARCHAR(x), " +
+                "column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x) ) PARTITIONED BY( partition1 ) STORED AS PARQUET LOCATION '%s';'.";
         try{
             methodWatcher.executeUpdate("create external table testParquetErrorSuggestSchemaGiven" +
                                          " (col1 INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
@@ -760,7 +760,8 @@ public class ExternalTableIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
             Assert.assertEquals( "wrong exception message",
-                    "1 attribute(s) defined but 3 present in the external file : '" + file + "'." + suggested,
+                    "1 attribute(s) defined but 3 present in the external file : '" + file + "'." +
+                            String.format(suggested, file),
                     e.getMessage() );
         }
 
@@ -772,7 +773,8 @@ public class ExternalTableIT extends SpliceUnitTest {
             //Assert.assertEquals("Wrong Exception", INCONSISTENT_DATATYPE_ATTRIBUTES, e.getSQLState());
             Assert.assertEquals( "wrong exception message",
                     "The field 'DECIMAL_COL1':'DECIMAL(7,2)' defined in the table is not compatible with " +
-                    "the field 'column1':'CHAR/VARCHAR(x)' defined in the external file '" + file + "'." + suggested,
+                    "the field 'column1':'CHAR/VARCHAR(x)' defined in the external file '" + file + "'." +
+                            String.format(suggested, file),
                     e.getMessage() );
         }
     }
@@ -813,7 +815,8 @@ public class ExternalTableIT extends SpliceUnitTest {
                 Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
                 Assert.assertEquals("wrong exception message",
                         "1 attribute(s) defined but 12 present in the external file : '" + file + "'. " +
-                                "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + suggestedTypes + ");'.",
+                                "Suggested Schema is 'CREATE EXTERNAL TABLE T ( " + suggestedTypes + " ) " +
+                                "STORED AS PARQUET LOCATION '" + file + "';'.",
                         e.getMessage());
             }
         }
@@ -978,7 +981,8 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.assertEquals("Wrong Exception",
                                     "The field 'COL2':'CHAR/VARCHAR(x)' defined in the table is not compatible with " +
                                     "the field 'c1':'INT' defined in the external file '" + filename + "'. " +
-                                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (c0 INT, c1 INT, c2 INT);'.",
+                                    "Suggested Schema is 'CREATE EXTERNAL TABLE T ( c0 INT, c1 INT, c2 INT ) " +
+                                    "STORED AS AVRO LOCATION '" + filename + "';'.",
                     e.getMessage());
         }
     }
@@ -1036,7 +1040,8 @@ public class ExternalTableIT extends SpliceUnitTest {
                 Assert.assertEquals("wrong exception message",
                         numCols[i] + " attribute(s) defined but 3 present " +
                                 "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
-                                "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.", e.getMessage());
+                                "( _c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x) ) " +
+                                "STORED AS TEXTFILE LOCATION '" + file + "';'.", e.getMessage());
             }
         }
     }
@@ -2668,14 +2673,35 @@ public class ExternalTableIT extends SpliceUnitTest {
 
             String expectedError = "The field 'COLUMN_TWO':'%s' defined in the table is not compatible with the field " +
                     "'COLUMN_TWO':'INT' defined in the external file '%s'. " +
-                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (COLUMN_ONE INT, COLUMN_TWO INT) PARTITIONED BY(COLUMN_TWO);'.";
-            assureFailsMsg(String.format(create, "DATE", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "date",
-                    String.format(expectedError, "DATE", path));
-            assureFailsMsg(String.format(create, "BOOLEAN", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "boolean",
-                    String.format(expectedError, "BOOLEAN", path));
+                    "Suggested Schema is 'CREATE EXTERNAL TABLE T ( COLUMN_ONE INT, COLUMN_TWO INT ) PARTITIONED BY( COLUMN_TWO ) STORED AS PARQUET LOCATION '%s';'.";
+            assureFailsMsg(String.format(create, "DATE", path, path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "date",
+                    String.format(expectedError, "DATE", path, path));
+            assureFailsMsg(String.format(create, "BOOLEAN", path, path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "boolean",
+                    String.format(expectedError, "BOOLEAN", path, path));
         }
         else {
             Assert.fail("can't list " + path);
+        }
+    }
+
+    @Test
+    public void testAnalyzeExternalTable() throws Exception {
+        String path = getResourceDirectory() + "parquet_simple_file_test";
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.ANALYZE_EXTERNAL_TABLE('" + path + "')") ) {
+            StringBuilder sb = new StringBuilder();
+            while( rs.next() ) {
+                sb.append(rs.getString(1) + "\n");
+            }
+            String expected = "CREATE EXTERNAL TABLE T (\n" +
+                    " column1 CHAR/VARCHAR(x),\n" +
+                    " column2 CHAR/VARCHAR(x),\n" +
+                    " partition1 CHAR/VARCHAR(x) \n" +
+                    ") PARTITIONED BY(\n" +
+                    " partition1 \n" +
+                    ")\n" +
+                    " STORED AS PARQUET LOCATION '%s';\n";
+            Assert.assertEquals(String.format(expected, path),  sb.toString());
         }
     }
 }
