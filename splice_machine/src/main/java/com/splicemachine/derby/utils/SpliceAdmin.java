@@ -59,11 +59,15 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
+import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -71,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
@@ -79,6 +84,7 @@ import org.spark_project.guava.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -102,7 +108,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
 public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
         List<HostAndPort> servers;
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
@@ -149,6 +156,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0]=executeStatement(sb);
     }
 
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
         List<String> loggerLevels = new ArrayList<>();
 
@@ -1215,7 +1223,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     }
 
-
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
         List<HostAndPort> servers;
@@ -1298,10 +1306,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement s = connection.createStatement()) {
+                    s.execute("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
             }
         }
     }
@@ -1782,6 +1789,77 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
         return rows;
+    }
+
+    public static String getCurrentUserId() throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        return lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+    }
+
+    public static void ANALYZE_EXTERNAL_TABLE(String location, final ResultSet[] resultSet) throws IOException, SQLException {
+
+        GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, getCurrentUserId()+"_analyze",
+                    null, false, new CsvOptions(), null, null);
+
+        String[] res = result.getSuggestedSchema("\n").split("\n");
+        int maxLen = Arrays.stream(res).map(String::length).max(Integer::compareTo).get();
+
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("SCHEMA", Math.max(maxLen, 20));
+
+        for(String s : res ) {
+            resultHelper.newRow();
+            col1.set(s);
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
+    public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
+        DistributedFileSystem  fs = null;
+        try {
+            fs = SIDriver.driver().getFileSystem(location);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        try {
+            FileInfo fi1 = fs.getInfo(location);
+            if( fi1.exists() == false ) {
+                throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(location);
+            }
+
+            FileInfo files[] = fi1.listDir();
+            Arrays.sort(files, Comparator.comparing(FileInfo::fileName));
+
+            int maxLen = Arrays.stream(files).map(f -> f.fileName().length()).max(Integer::compareTo).get();
+            int pathColLen = Math.max(10, maxLen+2);
+
+            int ownerColLen = Arrays.stream(files).map(f -> f.getUser().length()).max(Integer::compareTo).get();
+            int groupColLen = Arrays.stream(files).map(f -> f.getGroup().length()).max(Integer::compareTo).get();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", ownerColLen+1);
+            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", groupColLen+1);
+            ResultHelper.TimestampColumn modtimeCol = resultHelper.addTimestamp("MODTIME", 30);
+            ResultHelper.BigintColumn  sizeCol      = resultHelper.addBigint("SIZE", 10);
+            ResultHelper.VarcharColumn permCol      = resultHelper.addVarchar("PERM", 12);
+            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", pathColLen );
+            for (FileInfo fi : files )
+            {
+                resultHelper.newRow();
+                pathCol.set( fi.fileName() );
+                ownerCol.set(fi.getUser());
+                groupCol.set(fi.getGroup());
+                modtimeCol.set( fi.getModificationTime() == 0 ? null : new DateTime(fi.getModificationTime()) );
+                sizeCol.set(fi.size());
+                permCol.set((fi.isDirectory() ? "d" : "-") + fi.getPermissionStr());
+            }
+            resultSet[0] = resultHelper.getResultSet();
+        } catch (IOException | StandardException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
