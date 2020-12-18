@@ -47,6 +47,8 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
+import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -468,6 +470,7 @@ public class GenericStatement implements Statement{
                 setDisableParallelTaskJoinCosting(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
                 setTimestampFormat(lcc, cc);
+                setFloatingPointNotation(lcc, cc);
                 setOuterJoinFlatteningDisabled(lcc, cc);
 
                 if (!cc.isSparkVersionInitialized()) {
@@ -770,6 +773,25 @@ public class GenericStatement implements Statement{
                 timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
             }
             cc.setTimestampFormat(timestampFormatString);
+        }
+    }
+
+    private void setFloatingPointNotation(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String floatingPointNotationString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.FLOATING_POINT_NOTATION);
+        if(floatingPointNotationString == null) {
+            cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
+        } else {
+            switch (floatingPointNotationString.toLowerCase()) {
+                case "plain":
+                    cc.setFloatingPointNotation(FloatingPointDataType.PLAIN);
+                    break;
+                case "normalized":
+                    cc.setFloatingPointNotation(FloatingPointDataType.NORMALIZED);
+                    break;
+                default:
+                    cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
+            }
         }
     }
 

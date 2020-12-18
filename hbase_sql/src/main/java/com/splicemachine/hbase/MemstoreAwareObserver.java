@@ -196,7 +196,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                 }
                 if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) &&
                         Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey()) &&
-                        Bytes.equals(serverName,Bytes.toBytes(((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort()))
+                        Bytes.toString(serverName).equalsIgnoreCase(((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getAddress().toString())
                         ) {
                     // Partition Hit
                     InternalScan iscan = new InternalScan(scan);

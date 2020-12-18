@@ -525,21 +525,23 @@ public class SpliceTransactionManager implements XATransactionController,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
                                    int[] collationIds, Properties properties, int temporaryFlag, Conglomerate.Priority priority)
                 throws StandardException {
-        return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
+        Conglomerate conglomerate = createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
                 temporaryFlag, null, priority);
+        conglomerate.awaitCreation();
+        return conglomerate.getContainerid();
     }
 
     @Override
-    public long createConglomerate(boolean isExternal, String implementation,
-                                   DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                   int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys,
-                                   Conglomerate.Priority priority)
+    public Conglomerate createConglomerateAsync(boolean isExternal, String implementation,
+                                                DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
+                                                int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys,
+                                                Conglomerate.Priority priority)
             throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
                 temporaryFlag, splitKeys, priority);
     }
 
-    private long createConglomerateInternal(boolean isExternal, String implementation,
+    private Conglomerate createConglomerateInternal(boolean isExternal, String implementation,
                                             DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
                                             int[] collationIds, Properties properties, int temporaryFlag,
                                             byte[][] splitKeys, Conglomerate.Priority priority)
@@ -571,7 +573,7 @@ public class SpliceTransactionManager implements XATransactionController,
         } else {
             accessmanager.conglomCacheAddEntry(conglomId, conglom);
         }
-        return conglomId;
+        return conglom;
     }
     /**
      * Create a conglomerate and populate it with rows from rowSource.
