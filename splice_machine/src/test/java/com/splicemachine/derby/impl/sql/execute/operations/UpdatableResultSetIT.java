@@ -13,8 +13,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.dbTesting.functionTests.util.streams.ByteAlphabet;
-import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetStream;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
@@ -29,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Collection;
@@ -303,7 +302,6 @@ public class UpdatableResultSetIT {
                                             "date('2020-12-14')," +
                                             "'c'," +
                                             "CAST (X'10' AS BLOB))");
-        ByteAlphabet a1 = ByteAlphabet.singleByte((byte) 8);
         try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM B", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -321,8 +319,8 @@ public class UpdatableResultSetIT {
                     resultSet.updateTimestamp(12, Timestamp.valueOf("2021-01-14 15:21:30.123456"));
                     resultSet.updateTime(13, Time.valueOf("16:21:30"));
                     resultSet.updateDate(14, Date.valueOf("2021-01-14"));
-                    if(connectionString.contains("userSpark=false")) { // DB-11070
-                        resultSet.updateBinaryStream(16, new LoopingAlphabetStream(1, a1), 1);
+                    if(connectionString.contains("useSpark=false")) { // DB-11070
+                        resultSet.updateBinaryStream(16, new ByteArrayInputStream(new byte[]{0x1}), 1);
                     }
                     resultSet.updateRow();
                 }
@@ -346,8 +344,8 @@ public class UpdatableResultSetIT {
                 Assert.assertEquals(Timestamp.valueOf("2021-01-14 15:21:30.123456"), resultSet.getTimestamp(12));
                 Assert.assertEquals(Time.valueOf("16:21:30"), resultSet.getTime(13));
                 Assert.assertEquals(Date.valueOf("2021-01-14"), resultSet.getDate(14));
-                if(connectionString.contains("userSpark=false")) { // DB-11070
-                    Assert.assertEquals(new LoopingAlphabetStream(1, a1).read(), resultSet.getBinaryStream(16).read());
+                if(connectionString.contains("useSpark=false")) { // DB-11070
+                    Assert.assertEquals(1, resultSet.getBinaryStream(16).read());
                 }
                 Assert.assertFalse(resultSet.next());
             }
