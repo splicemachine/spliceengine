@@ -412,10 +412,10 @@ public final class UpdateLoader implements LockOwner {
 		if (initDone)
 			return;
 
-		if (jarList != null && jarList.length > 0)
+		// Update the list from scratch so we remove
+		// any old jars that might be there.
+		if (jarList == null || jarList.length > 0)
 			jarPathList = new ArrayList<>();
-		else
-			jarPathList = null;
 
 		for (JarLoader aJarList : jarList) {
 			aJarList.initialize();

@@ -102,13 +102,11 @@ public class QueryJob implements Callable<Void>{
             }
             ah.reinitialize(null);
             activation = ah.getActivation();
-            if (activation != null) {
-                lcc = activation.getLanguageConnectionContext();
-                JavaSparkContext jsc = SpliceSpark.getContext();
-                if (jsc != null) {
-                    initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
-                    setSparkContextInLCC(jsc.sc(), lcc, initialApplicationJarsHash);
-                }
+            lcc = activation.getLanguageConnectionContext();
+            JavaSparkContext jsc = SpliceSpark.getContext();
+            if (jsc != null) {
+                initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
+                setSparkContextInLCC(jsc.sc(), lcc, initialApplicationJarsHash);
             }
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
