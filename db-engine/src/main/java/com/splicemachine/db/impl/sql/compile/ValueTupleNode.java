@@ -117,9 +117,9 @@ public class ValueTupleNode extends ValueNode {
     }
 
     @Override
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly) throws StandardException {
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException {
         for (ValueNode vn : tuple) {
-            if (!vn.categorize(referencedTabs, simplePredsOnly)) {
+            if (!vn.categorize(referencedTabs, referencedColumns, simplePredsOnly)) {
                 return false;
             }
         }

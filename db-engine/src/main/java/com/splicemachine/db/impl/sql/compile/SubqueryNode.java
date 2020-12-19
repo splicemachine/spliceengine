@@ -999,7 +999,7 @@ public class SubqueryNode extends ValueNode{
                  *    to restrict the left side of the join.
                  */
                     else if ((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
-                            ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
+                            ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), null, false)) &&
                             select.getWherePredicates().allPushable()) {
                         FromBaseTable fbt = singleFromBaseTable(select.getFromList());
 
@@ -1260,7 +1260,9 @@ public class SubqueryNode extends ValueNode{
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -1275,12 +1277,17 @@ public class SubqueryNode extends ValueNode{
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
+     * @param simplePredsOnly    Whether or not to consider method
+     *                            calls, field references and conditional nodes
+     *                            when building bit map
      * @return boolean        Whether or not source.expression is a ColumnReference
      * or a VirtualColumnNode.
      * @throws StandardException Thrown on error
      */
     @Override
-    public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException{
         /* We stop here when only considering simple predicates
          *  as we don't consider method calls when looking
          * for null invariant predicates.
@@ -2046,7 +2053,7 @@ public class SubqueryNode extends ValueNode{
         // no right operand, it cannot cause any problems for the flattening.
         if(leftOperand!=null){
             JBitSet tableSet=new JBitSet(numTables);
-            getRightOperand().categorize(tableSet,false);
+            getRightOperand().categorize(tableSet, null, false);
             // The query can be flattened to NOT EXISTS join only if the right
             // operand references the base table.
             flattenable=tableSet.get(fbt.getTableNumber());
