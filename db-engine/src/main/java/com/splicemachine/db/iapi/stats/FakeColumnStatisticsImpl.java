@@ -14,12 +14,7 @@
 
 package com.splicemachine.db.iapi.stats;
 
-import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.db.catalog.types.CatalogMessage;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.ProtoBufUtils;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -140,31 +135,15 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        CatalogMessage.FakeColumnStatisticsImpl columnStatistics = CatalogMessage.FakeColumnStatisticsImpl.newBuilder()
-                .setDvd(dvd.toProtobuf())
-                .setTotalCount(totalCount)
-                .setNullCount(nullCount)
-                .setCardinality(cardinality)
-                .setRpv(rpv)
-                .build();
-        ArrayUtil.writeByteArray(out, columnStatistics.toByteArray());
+        out.writeObject(dvd);
+        out.writeLong(totalCount);
+        out.writeLong(nullCount);
+        out.writeLong(cardinality);
+        out.writeLong(rpv);
     }
 
     @Override
-    protected void readExternalNew (ObjectInput in) throws IOException, ClassNotFoundException {
-        byte[] bs = ArrayUtil.readByteArray(in);
-        ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
-        CatalogMessage.FakeColumnStatisticsImpl columnStatistics =
-                CatalogMessage.FakeColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
-        dvd = ProtoBufUtils.fromProtobuf(columnStatistics.getDvd());
-        totalCount = columnStatistics.getTotalCount();
-        nullCount = columnStatistics.getNullCount();
-        cardinality = columnStatistics.getCardinality();
-        rpv = columnStatistics.getRpv();
-    }
-
-    @Override
-    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         dvd = (DataValueDescriptor)in.readObject();
         totalCount = in.readLong();
         nullCount = in.readLong();
