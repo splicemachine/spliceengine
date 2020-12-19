@@ -13,7 +13,6 @@
  */
 package com.splicemachine.spark.splicemachine.triggers
 
-import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
@@ -21,54 +20,102 @@ import org.scalatest.{FunSuite, Matchers}
 @RunWith(classOf[JUnitRunner])
 class TriggerIT extends FunSuite with TestContext with Matchers {
 
-  test("Test Insert with Trigger") {  // Added for DB-10707
-    import org.apache.spark.sql.types._
-
-    val sch = StructType(
-      StructField("I", IntegerType, false) ::
-      StructField("C", StringType, true) :: Nil
-    )
-
-    val t1 = s"$schema.foo"
-    val t2 = s"$schema.bar"
-    splicemachineContext.createTable(t1, sch, Seq("I") )
-    splicemachineContext.createTable(t2, sch, Seq("I") )
-
-    execute(s"""CREATE TRIGGER FOO_TRIGGER
+  def createInsertTrigger(): Unit =
+    execute(s"""CREATE TRIGGER INS_TRIGGER
                |AFTER INSERT ON $t1
                |REFERENCING NEW_TABLE AS NEW_ROWS
                |INSERT INTO $t2 (i,c) SELECT i,c FROM NEW_ROWS""".stripMargin)
 
-    splicemachineContext.insert(
-      dataframe(
-        rdd( Seq(
-          Row.fromSeq( Seq(1,"one") ),
-          Row.fromSeq( Seq(2,"two") ),
-          Row.fromSeq( Seq(3,"three") )
-        ) ),
-        sch
-      ),
-      t1
-    )
+  def dropInsertTrigger(): Unit =
+    execute( "DROP TRIGGER INS_TRIGGER" )
+  
+  def createUpdateRowTrigger(): Unit =
+    execute(s"""create trigger upd_row_trigger
+               |after update on $t1
+               |referencing new as new
+               |for each row
+               |insert into $t2 values (new.i, new.c)""".stripMargin)
 
-    def res: String => String = table => executeQuery(
-      s"select * from $table",
-      rs => {
-        var s = Seq.empty[String]
-        while( rs.next ) {
-          s = s :+ s"${rs.getInt(1)},${rs.getString(2)}"
-        }
-        s.sorted.mkString("; ")
-      }
-    ).asInstanceOf[String]
+  def dropUpdateRowTrigger(): Unit =
+    execute( "DROP TRIGGER upd_row_trigger" )
 
-    val res1 = res(t1)
-    val res2 = res(t2)
+  def createUpdateStatementTrigger(): Unit =
+    execute(s"""create trigger upd_st_trigger
+               |after update on $t1
+               |referencing new table as NT
+               |for each statement
+               |insert into $t2 select i,c from NT""".stripMargin)
 
-    splicemachineContext.dropTable(t1)
-    splicemachineContext.dropTable(t2)
+  def dropUpdateStatementTrigger(): Unit =
+    execute( "DROP TRIGGER upd_st_trigger" )
 
-    org.junit.Assert.assertEquals(res1, res2)
+  def truncateTables(): Unit = {
+    execute( s"TRUNCATE TABLE $t1" )
+    execute( s"TRUNCATE TABLE $t2" )
   }
 
+  def contentOf: String => String = table => executeQuery(
+    s"select * from $table",
+    rs => {
+      var s = Seq.empty[String]
+      while( rs.next ) {
+        s = s :+ s"${rs.getInt(1)},${rs.getString(2)}"
+      }
+      s.sorted.mkString("; ")
+    }
+  ).asInstanceOf[String]
+
+  val expectedT2ContentAfterUpdate = "1,won"
+
+  test("Test Insert with Trigger") {  // Added for DB-10707
+    truncateTables
+    createInsertTrigger
+    splicemachineContext.insert( df, t1 )
+    dropInsertTrigger
+    org.junit.Assert.assertEquals( contentOf(t1), contentOf(t2) )
+  }
+
+  test("Test Update with Row Trigger") {
+    truncateTables
+    createUpdateRowTrigger
+    splicemachineContext.insert( df, t1 )
+    splicemachineContext.update( dfUpd, t1 )
+    dropUpdateRowTrigger
+    org.junit.Assert.assertEquals( expectedT2ContentAfterUpdate, contentOf(t2) )
+  }
+
+  test("Test Update with Statement Trigger") {
+    truncateTables
+    createUpdateStatementTrigger
+    splicemachineContext.insert( df, t1 )
+    splicemachineContext.update( dfUpd, t1 )
+    dropUpdateStatementTrigger
+    org.junit.Assert.assertEquals( expectedT2ContentAfterUpdate, contentOf(t2) )
+  }
+
+  test("Test Merge Into with Insert Trigger") {
+    truncateTables
+    createInsertTrigger
+    splicemachineContext.mergeInto( df, t1 )
+    dropInsertTrigger
+    org.junit.Assert.assertEquals( contentOf(t1), contentOf(t2) )
+  }
+
+  test("Test Merge Into with Update Row Trigger") {
+    truncateTables
+    createUpdateRowTrigger
+    splicemachineContext.insert( df, t1 )
+    splicemachineContext.mergeInto( dfUpd, t1 )
+    dropUpdateRowTrigger
+    org.junit.Assert.assertEquals( expectedT2ContentAfterUpdate, contentOf(t2) )
+  }
+
+  test("Test Merge Into with Update Statement Trigger") {
+    truncateTables
+    createUpdateStatementTrigger
+    splicemachineContext.insert( df, t1 )
+    splicemachineContext.mergeInto( dfUpd, t1 )
+    dropUpdateStatementTrigger
+    org.junit.Assert.assertEquals( expectedT2ContentAfterUpdate, contentOf(t2) )
+  }
 }

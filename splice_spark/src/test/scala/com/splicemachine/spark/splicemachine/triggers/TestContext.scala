@@ -21,8 +21,8 @@ import com.splicemachine.spark.splicemachine._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.SparkContext
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
@@ -37,31 +37,57 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
   val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
 
-  val conf = new SparkConf().
-    setMaster("local[*]").
-    setAppName(s"$module.test.trigger").
-    set("spark.ui.enabled", "false").
-    set("spark.app.id", appID)
+  val t1 = s"$schema.foo"
+  val t2 = s"$schema.bar"
+
+  val dataSchema = StructType(
+    StructField("I", IntegerType, false) ::
+    StructField("C", StringType, true) :: Nil
+  )
+  
+  var df, dfUpd: DataFrame = _
 
   override def beforeAll() {
     spark = SpliceSpark.getSessionUnsafe
     spark.conf.set("spark.master", "local[*]")
-    spark.conf.set("spark.app.name", "test")
+    spark.conf.set("spark.app.name", s"$module.test.trigger")
     spark.conf.set("spark.ui.enabled", "false")
     spark.conf.set("spark.app.id", appID)
     sc = spark.sparkContext
 
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
+
+    splicemachineContext.createTable(t1, dataSchema, Seq("I") )
+    splicemachineContext.createTable(t2, dataSchema, Seq("I") )
+
+    df = dataframe(
+      rdd( Seq(
+        Row.fromSeq( Seq(1,"one") ),
+        Row.fromSeq( Seq(2,"two") ),
+        Row.fromSeq( Seq(3,"three") )
+      ) ),
+      dataSchema
+    )
+
+    dfUpd = dataframe(
+      rdd( Seq(
+        Row.fromSeq( Seq(1,"won") )
+      ) ),
+      dataSchema
+    )
   }
 
   override def afterAll() {
+    splicemachineContext.dropTable(t1)
+    splicemachineContext.dropTable(t2)
+    
     if (spark != null) spark.stop()
     if (sc != null) sc.stop()
   }
 
   def rdd(rows: Seq[Row]): RDD[Row] = spark.sparkContext.parallelize(rows)
 
-  def dataframe(rdd: RDD[Row], schema: StructType): Dataset[Row] = spark.createDataFrame( rdd , schema )
+  def dataframe(rdd: RDD[Row], schema: StructType): DataFrame = spark.createDataFrame( rdd , schema )
 
   def getConnection(): Connection = JdbcUtils.createConnectionFactory(
     new JDBCOptions(Map(
