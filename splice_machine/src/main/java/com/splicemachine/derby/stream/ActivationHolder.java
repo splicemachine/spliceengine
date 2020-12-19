@@ -259,7 +259,7 @@ public class ActivationHolder implements Externalizable {
                     so.init(context);
                 }
             }
-        } catch (Exception e) {
+        } catch (SQLException | StandardException | IOException e) {
             throw new RuntimeException(e);
         }
     }
