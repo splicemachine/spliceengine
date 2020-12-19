@@ -71,7 +71,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         }
         // If we've already committed to running on spark, due to running a substatement
         // of a statement chosen to run on spark, or for some other reason, stick with the decision.
-        if (op.isOlapServer())
+        if (op != null && op.isOlapServer())
             return new SparkDataSetProcessor();
 
         if (((BaseActivation)activation).datasetProcessorType().isOlap()) {
