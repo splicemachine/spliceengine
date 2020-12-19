@@ -3834,7 +3834,7 @@ public class FromBaseTable extends FromTable {
                         newAnd.getRightOperand(),
                         pred.getReferencedSet(),
                         getContextManager());
-                le.copyFields(pred);
+                le.copyFields(pred, false);
                 le.clearScanFlags();
                 if (pred.isStopKey()) {
                     le.markStopKey();
@@ -3855,7 +3855,7 @@ public class FromBaseTable extends FromTable {
                         newAnd,
                         pred.getReferencedSet(),
                         getContextManager());
-                ge.copyFields(pred);
+                ge.copyFields(pred, false);
                 ge.clearScanFlags();
                 if (pred.isStartKey()) {
                     ge.markStartKey();

@@ -498,5 +498,4 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             assertEquals("57014", se.getSQLState());
         }
     }
-
 }

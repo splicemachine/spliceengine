@@ -20,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,6 +29,7 @@ import java.nio.file.attribute.*;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -165,7 +167,7 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public boolean isEmptyDirectory()
+        public boolean isEmptyDirectory() throws IOException
         {
             if(!isDirectory()) return false;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
@@ -176,13 +178,11 @@ public class MemFileSystem extends DistributedFileSystem{
                     return false;
                 }
                 return true;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
             }
         }
 
         @Override
-        public long fileCount(){
+        public long recursiveFileCount() throws IOException {
             if(!isDirectory()) return 1l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -190,27 +190,17 @@ public class MemFileSystem extends DistributedFileSystem{
                     count++;
                 }
                 return count;
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
             }
         }
 
         @Override
-        public long spaceConsumed(){
-            try{
-                return Files.size(p);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+        public long spaceConsumed() throws IOException{
+            return size();
         }
 
         @Override
-        public long size(){
-            try{
-                return Files.size(p);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+        public long size() throws IOException{
+            return Files.size(p);
         }
 
         @Override
@@ -219,20 +209,20 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public String getUser(){
-            try{
+        public String getUser() {
+            try {
                 return Files.getOwner(p).getName();
-            }catch(IOException e){
+            } catch(Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
         @Override
-        public String getGroup(){
-            try{
-                PosixFileAttributes attrs = Files.getFileAttributeView(p,PosixFileAttributeView.class).readAttributes();
+        public String getGroup() {
+            try {
+                PosixFileAttributes attrs = Files.getFileAttributeView(p, PosixFileAttributeView.class).readAttributes();
                 return attrs.owner().getName();
-            }catch(IOException e){
+            } catch(Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -243,10 +233,10 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public String toSummary() {
+        public String toSummary() throws IOException {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(this.fileCount());
+            sb.append("\nFile Count = ").append(this.recursiveFileCount());
             sb.append("\nSize = ").append(size());
             return sb.toString();
         }
@@ -257,8 +247,27 @@ public class MemFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listRecursive(){
+        public FileInfo[] listFilesRecursive(){
             throw new UnsupportedOperationException("IMPLEMENT");
+        }
+        @Override
+        public FileInfo[] listDir() throws IOException {
+            return Files.list(p).map( path -> new PathInfo(path) ).toArray(PathInfo[]::new);
+        }
+
+        @Override
+        public String getPermissionStr() throws IOException {
+            Set<PosixFilePermission> s = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+            return PosixFilePermissions.toString(s);
+        }
+        @Override
+        public long getModificationTime() {
+            return p.toFile().lastModified();
+        }
+
+        @Override
+        public long recursiveSize() throws IOException {
+            return Files.size(p);
         }
     }
 }
