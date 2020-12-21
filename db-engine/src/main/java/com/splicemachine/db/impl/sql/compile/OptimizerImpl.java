@@ -1092,14 +1092,6 @@ public class OptimizerImpl implements Optimizer{
             }
         }
 
-        /*
-        ** Don't consider non-feasible join strategies.
-        */
-        if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
-            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
-            return;
-        }
-
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
@@ -1109,6 +1101,15 @@ public class OptimizerImpl implements Optimizer{
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
         }
+
+        /*
+        ** Don't consider non-feasible join strategies.
+        */
+        if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
+            return;
+        }
+
         /* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this, predicateList, outerCost, currentRowOrdering);
         /* reset the OuterJoin flag so that we can cost correctly if the outer optimizable later joins with
