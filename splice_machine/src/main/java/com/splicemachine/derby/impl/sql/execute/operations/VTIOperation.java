@@ -290,10 +290,19 @@ public class VTIOperation extends SpliceBaseOperation {
 
     private void executeFromTableDML() throws StandardException {
         if (fromTableDML_SPS != null) {
-            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+            Activation parentActivation = getActivation();
+            LanguageConnectionContext lcc = parentActivation.getLanguageConnectionContext();
             fromTableDML_SPS.setValid();
-            getActivation().setSingleExecution();
-            fromTableDML_ResultSet = fromTableDML_SPS.executeSubStatement(lcc, false, 0L);
+            Activation activation = fromTableDML_SPS.getActivation(lcc, false);
+            activation.setSingleExecution();
+
+            // We are sharing the query parameters with the outer activation
+            // because both statements were compiled together.
+            activation.setParameters(parentActivation.getParameterValueSet(),
+                                     fromTableDML_SPS.getParameterTypes());
+            fromTableDML_ResultSet =
+                fromTableDML_SPS.executeSubStatement(parentActivation,
+                                                     activation, false, 0L);
         }
     }
 

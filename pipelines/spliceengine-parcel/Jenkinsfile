@@ -1,0 +1,81 @@
+@Library('jenkins-shared-library')_
+
+// Define params
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
+def releases = ["cdh6.3.0","dbaas3.0"]
+
+def parallelStagesMap = releases.collectEntries {
+    ["${it}" : generateStage(it,slackResponse)]
+}
+
+
+def generateStage(platform,slackResponse) {
+    return {
+        def artifact_values  = [
+            [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+        ]
+        slackSend(channel: slackResponse.threadId, message: "Assembling secrets and variables...")
+        stage("stage: ${platform}") {
+            node('splice-standalone'){
+            slackSend(channel: slackResponse.threadId, message: "Checking out code...")
+            stage("Checkout") {
+                // Get some code from a GitHub repository
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                ])
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                ])
+            }
+            slackSend(channel: slackResponse.threadId, message: "Deploying Core $platform...")
+            stage("Deploy") {
+                dir('spliceengine'){
+                wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+                    sh """
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -DskipTests
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
+                    """
+                    sh """mvn -B --fail-at-end deploy -Pcore,${platform},ee,parcel,splicemachine-internal,splicemachine-external -DskipTests"""
+                }
+                }
+            }
+            }
+        }
+    }
+}
+
+
+
+node('splice-standalone'){
+    try{
+        stage("Initiate Parallel Stages"){
+                parallel parallelStagesMap
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}

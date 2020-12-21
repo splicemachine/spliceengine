@@ -167,7 +167,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (hashKeyColumns == null && skipKeyCheck) {
             // For full outer join, broadcast join is the default join strategy that can be applied
             // to any kinds of join predicate, so make the eligibility check more general
-            if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN &&
+            if ((outerCost.getJoinType() == JoinNode.FULLOUTERJOIN ||
+                 outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN) &&
                 (innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())) {
                 ap.setMissingHashKeyOK(true);

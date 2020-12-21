@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import java.sql.Types;
 
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -58,7 +59,7 @@ public class RefTypeCompiler extends BaseTypeCompiler
 	/**
 	 * @see TypeCompiler#getCastToCharWidth
 	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
 		if (SanityManager.DEBUG)
 			SanityManager.THROWASSERT( "getCastToCharWidth not implemented for SQLRef");

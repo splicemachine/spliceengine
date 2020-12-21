@@ -325,7 +325,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             rs.open();
         triggeringRow = rs.getCurrentRow();
         try {
-            if (triggerd.isRowTrigger())
+            if (triggerd != null && triggerd.isRowTrigger())
                 rs.close();
         } catch (StandardException e) {
             // ignore - close quietly.

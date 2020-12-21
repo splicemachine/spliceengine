@@ -110,7 +110,7 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
 							  operand.getTypeCompiler().
 								getCastToCharWidth(
-									operand.getTypeServices()));
+									operand.getTypeServices(), getCompilerContext()));
 			
 					operand =  (ValueNode)
 						getNodeFactory().getNode(
@@ -134,7 +134,7 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 		setType(new DataTypeDescriptor(operandType,
 				operand.getTypeServices().isNullable(),
 				operand.getTypeCompiler().
-					getCastToCharWidth(operand.getTypeServices())
+					getCastToCharWidth(operand.getTypeServices(), getCompilerContext())
 						)
 				);
 		//Result of upper()/lower() will have the same collation as the   

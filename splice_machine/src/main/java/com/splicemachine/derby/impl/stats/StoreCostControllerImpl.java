@@ -208,8 +208,8 @@ public class StoreCostControllerImpl implements StoreCostController {
             else {
                 try {
                     FileInfo fileInfo = ImportUtils.getImportFileInfo(td.getLocation());
-                    long rowCount = fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount;
-                    long heapSize = fileInfo !=null?fileInfo.size():(long) VTICosting.defaultEstimatedRowCount*100;
+                    long rowCount = fileInfo !=null?fileInfo.recursiveSize()/100:(long) VTICosting.defaultEstimatedRowCount;
+                    long heapSize = fileInfo !=null?fileInfo.recursiveSize():(long) VTICosting.defaultEstimatedRowCount*100;
                     if (defaultRowCount > 0) {
                         rowCount = defaultRowCount;
                         heapSize = rowCount * 100;

@@ -323,107 +323,8 @@ public class CastNode extends ValueNode
         if ((castOperand instanceof ConstantNode) &&
                 !(castOperand instanceof UntypedNullConstantNode))
         {
-            /* If the castOperand is a typed constant then we do the cast at
-             * bind time and return a constant of the correct type.
-             * NOTE: This could return an exception, but we're prepared to
-             * deal with that. (NumberFormatException, etc.)
-             * We only worry about the easy (and useful)
-             * converions at bind time.
-             * Here's what we support:
-             *            source                    destination
-             *            ------                    -----------
-             *            boolean                    boolean
-             *            boolean                    char
-             *            char                    boolean
-             *            char                    date/time/ts
-             *            char                    non-decimal numeric
-             *            date/time/ts            char
-             *            numeric                    char
-             *            numeric                    non-decimal numeric
-             */
-            /* RESOLVE - to be filled in. */
-            ValueNode retNode = this;
-            int          sourceJDBCTypeId = sourceCTI.getJDBCTypeId();
-            int          destJDBCTypeId = getTypeId().getJDBCTypeId();
-
-            switch (sourceJDBCTypeId)
-            {
-                case Types.BIT:
-                case Types.BOOLEAN:
-                    // (BIT is boolean)
-                    if (destJDBCTypeId == Types.BIT || destJDBCTypeId == Types.BOOLEAN)
-                    {
-                        retNode = castOperand;
-                    }
-                    else if (destJDBCTypeId == Types.CHAR)
-                    {
-                        BooleanConstantNode bcn = (BooleanConstantNode) castOperand;
-                        String booleanString = bcn.getValueAsString();
-                        retNode = (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                booleanString,
-                                ReuseFactory.getInteger(
-                                        getTypeServices().getMaximumWidth()),
-                                getContextManager());
-                    }
-                    break;
-
-                case Types.CHAR:
-                    retNode = getCastFromCharConstant(destJDBCTypeId);
-                    break;
-
-                case Types.DATE:
-                case Types.TIME:
-                case Types.TIMESTAMP:
-                    if (destJDBCTypeId == Types.CHAR)
-                    {
-                        DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
-                        String castValue;
-                        if (dvd instanceof SQLTimestamp) {
-                            int precision = getCompilerContext().getTimestampPrecision();
-                            if(SanityManager.DEBUG) {
-                                SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
-                            }
-                            ((SQLTimestamp) dvd).setPrecision(precision);
-                        }
-                        if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
-                            ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
-                            castValue = dvd.getString();
-                        } else {
-                            castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
-                        }
-                        retNode = (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                castValue,
-                                ReuseFactory.getInteger(
-                                        getTypeServices().getMaximumWidth()),
-                                getContextManager());
-                    }
-                    break;
-
-                case Types.DECIMAL:
-                    // ignore decimal -> decimal casts for now
-                    if (destJDBCTypeId == Types.DECIMAL ||
-                            destJDBCTypeId == Types.NUMERIC)
-                        break;
-                    // fall through
-                case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
-                case Types.TINYINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                case Types.BIGINT:
-                case Types.DOUBLE:
-                case Types.REAL:
-                    retNode = getCastFromNumericType(
-                            ((ConstantNode) castOperand).getValue(),
-                            destJDBCTypeId);
-                    break;
-                default:
-                    break;
-            }
-
             // Return the new constant if the cast was performed
-            return retNode;
+            return bindConstantCast();
         }
 
         return this;
@@ -846,7 +747,9 @@ public class CastNode extends ValueNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -861,6 +764,8 @@ public class CastNode extends ValueNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -870,10 +775,10 @@ public class CastNode extends ValueNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
             throws StandardException
     {
-        return castOperand.categorize(referencedTabs, simplePredsOnly);
+        return castOperand.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**
@@ -1038,12 +943,19 @@ public class CastNode extends ValueNode
                         "setStringFormat", "void", 1);
             }
             if (sourceCTI.isDateTimeTimeStampTypeId() && sourceCTI.getJDBCTypeId() == Types.TIMESTAMP) {
-                int precision = getCompilerContext().getTimestampPrecision();
+                String timestampFormat = getCompilerContext().getTimestampFormat();
+                String className = SQLTimestamp.class.getName();
                 mb.dup();
-                mb.cast("com.splicemachine.db.iapi.types.SQLTimestamp");
-                mb.push(precision);
-                mb.callMethod(VMOpcode.INVOKEVIRTUAL, "com.splicemachine.db.iapi.types.SQLTimestamp",
-                              "setPrecision", "void", 1);
+                mb.cast(className);
+                mb.push(timestampFormat);
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL, className, "setTimestampFormat", "void", 1);
+            }
+            if (sourceCTI.isFloatingPointTypeId()) {
+                String className = FloatingPointDataType.class.getName();
+                mb.dup();
+                mb.cast(className);
+                mb.push(getCompilerContext().getFloatingPointNotation());
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL, className, "setFloatingPointNotation", "void", 1);
             }
             if (isForSbcsData()) {
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
@@ -1108,7 +1020,7 @@ public class CastNode extends ValueNode
 
             mb.push(isNumber ? getTypeServices().getPrecision() : getTypeServices().getMaximumWidth());
             mb.push(getTypeServices().getScale());
-            mb.push(!sourceCTI.variableLength() ||
+            mb.push(!(sourceCTI.variableLength() || sourceCTI.getJDBCTypeId() == Types.TIMESTAMP) ||
                     isNumber ||
                     assignmentSemantics);
             mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.VariableSizeDataValue,
@@ -1143,15 +1055,17 @@ public class CastNode extends ValueNode
                 else if (this.targetCharType == Types.VARCHAR)
                     length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
             } else if(srcTypeId.isDateTimeTimeStampTypeId() && opndType.getJDBCTypeId() == Types.TIMESTAMP) {
-                int precision = getCompilerContext().getTimestampPrecision();
-                if(SanityManager.DEBUG) {
-                    SanityManager.ASSERT(precision >= Limits.MIN_TIMESTAMP_PRECISION && precision <= Limits.MAX_TIMESTAMP_PRECISION);
+                try {
+                    length = SQLTimestamp.getFormatLength(getCompilerContext().getTimestampFormat());
+                } catch(IllegalArgumentException e)
+                {
+                    // we shouldn't get here as GenericStatement should've checked that, but let's be defensive
+                    // and not throw
+                    length = getCompilerContext().getTimestampFormat().length() + 10;
                 }
-                length = precision == 0 ? Limits.MIN_TIMESTAMP_LENGTH : Limits.MIN_TIMESTAMP_LENGTH /* the trailing dot */ + 1 + precision;
             } else {
                 TypeId typeid = opndType.getTypeId();
                 length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(), -1);
-
             }
             if (length < 0)
                 length = 1;  // same default as in parser
@@ -1171,6 +1085,135 @@ public class CastNode extends ValueNode
             setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, length));
         }
 
+    }
+
+    private ValueNode bindConstantCast() throws StandardException {
+        /* If the castOperand is a typed constant then we do the cast at
+         * bind time and return a constant of the correct type.
+         * NOTE: This could return an exception, but we're prepared to
+         * deal with that. (NumberFormatException, etc.)
+         * We only worry about the easy (and useful)
+         * converions at bind time.
+         * Here's what we support:
+         *            source                    destination
+         *            ------                    -----------
+         *            boolean                    boolean
+         *            boolean                    char
+         *            char                       boolean
+         *            char                       date/time/ts
+         *            char                       non-decimal numeric
+         *            date/time/ts               char
+         *            numeric                    char
+         *            numeric                    non-decimal numeric
+         */
+        /* RESOLVE - to be filled in. */
+        ValueNode retNode = this;
+        int          sourceJDBCTypeId = sourceCTI.getJDBCTypeId();
+        int          destJDBCTypeId = getTypeId().getJDBCTypeId();
+
+        switch (sourceJDBCTypeId)
+        {
+            case Types.BIT:
+            case Types.BOOLEAN:
+                // (BIT is boolean)
+                if (destJDBCTypeId == Types.BIT || destJDBCTypeId == Types.BOOLEAN)
+                {
+                    retNode = castOperand;
+                }
+                else if (destJDBCTypeId == Types.CHAR)
+                {
+                    BooleanConstantNode bcn = (BooleanConstantNode) castOperand;
+                    String booleanString = bcn.getValueAsString();
+                    retNode = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.CHAR_CONSTANT_NODE,
+                            booleanString,
+                            ReuseFactory.getInteger(
+                                    getTypeServices().getMaximumWidth()),
+                            getContextManager());
+                }
+                break;
+
+            case Types.CHAR:
+                retNode = getCastFromCharConstant(destJDBCTypeId);
+                break;
+
+            case Types.DATE:
+            case Types.TIME:
+                if (destJDBCTypeId == Types.CHAR)
+                {
+                    DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
+                    String castValue;
+                    if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
+                        ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
+                        castValue = dvd.getString();
+                    } else {
+                        castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
+                    }
+                    retNode = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.CHAR_CONSTANT_NODE,
+                            castValue,
+                            ReuseFactory.getInteger(
+                                    getTypeServices().getMaximumWidth()),
+                            getContextManager());
+                }
+                break;
+            case Types.TIMESTAMP:
+                if (destJDBCTypeId == Types.CHAR)
+                {
+                    if(dateToStringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
+                        throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+                    }
+                    SQLTimestamp dvd = (SQLTimestamp) ((ConstantNode) castOperand).getValue();
+                    dvd.setTimestampFormat(getCompilerContext().getTimestampFormat());
+                    String castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
+                    SQLChar sqlChar = new SQLChar(castValue);
+                    int width = getTypeServices().getMaximumWidth();
+                    sqlChar.setWidth(width, -1, false);
+                    retNode = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.CHAR_CONSTANT_NODE,
+                            sqlChar.toString(),
+                            ReuseFactory.getInteger(width),
+                            getContextManager());
+                }
+                break;
+            case Types.DOUBLE:
+            case Types.REAL:
+                if (destJDBCTypeId == Types.CHAR) {
+                    FloatingPointDataType dvd = (FloatingPointDataType) ((ConstantNode) castOperand).getValue();
+                    dvd.setFloatingPointNotation(getCompilerContext().getFloatingPointNotation());
+                    String castValue = dvd.getString();
+                    retNode = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.CHAR_CONSTANT_NODE,
+                            castValue,
+                            ReuseFactory.getInteger(
+                                    getTypeServices().getMaximumWidth()),
+                            getContextManager());
+                } else {
+                    retNode = getCastFromNumericType(
+                            ((ConstantNode) castOperand).getValue(),
+                            destJDBCTypeId);
+                }
+                break;
+            case Types.DECIMAL:
+                // ignore decimal -> decimal casts for now
+                if (destJDBCTypeId == Types.DECIMAL ||
+                        destJDBCTypeId == Types.NUMERIC)
+                    break;
+                // fall through
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+                retNode = getCastFromNumericType(
+                        ((ConstantNode) castOperand).getValue(),
+                        destJDBCTypeId);
+                break;
+            default:
+                break;
+        }
+
+        return retNode;
     }
 
     /**
