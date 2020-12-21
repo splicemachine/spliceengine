@@ -54,7 +54,7 @@ import java.util.List;
  */
 public class IndexValueRow implements ExecIndexRow, Serializable {
 
-	private ExecRow valueRow;
+	private ExecRow                                     valueRow;
 
 	public IndexValueRow(ExecRow valueRow) {
 		 this.valueRow = valueRow;
@@ -427,5 +427,15 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	@Override
 	public void transfer(ExecRow execRow) throws StandardException {
 		valueRow.transfer(execRow);
+	}
+
+	@Override
+	public DataValueDescriptor[] getBaseRowCols() {
+		return valueRow.getBaseRowCols();
+	}
+
+	@Override
+	public void setBaseRowCols(DataValueDescriptor[] cols) {
+		valueRow.setBaseRowCols(cols);
 	}
 }

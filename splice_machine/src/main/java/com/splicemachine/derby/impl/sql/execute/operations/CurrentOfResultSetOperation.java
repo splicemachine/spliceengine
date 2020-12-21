@@ -196,7 +196,9 @@ public class CurrentOfResultSetOperation extends SpliceBaseOperation {
 
         // get the row from the base table, which is the real result
         // row for the CurrentOfResultSet
-        setCurrentRow(cursorRow);
+        ExecRow baseRow = cursor.getCurrentBaseRow();
+        baseRow.setKey(cursor.getCurrentRow().getKey());
+        setCurrentRow(baseRow);
 
         // if the source result set is a ScrollInsensitiveResultSet, and
         // the current row has been deleted (while the cursor was
@@ -233,9 +235,9 @@ public class CurrentOfResultSetOperation extends SpliceBaseOperation {
         // if (!rowLocation.rowExists())
         //     throw StandardException.newException(SQLState.LANG_NO_CURRENT_ROW, cursorName);
 
-        List<ExecRow> rows = new ArrayList<ExecRow>();
-        rows.add(cursorRow);
-        return new MaterializedControlDataSet<ExecRow>( rows );
+        List<ExecRow> rows = new ArrayList<>();
+        rows.add(getCurrentRow());
+        return new MaterializedControlDataSet<>( rows );
     }
 
     @Override

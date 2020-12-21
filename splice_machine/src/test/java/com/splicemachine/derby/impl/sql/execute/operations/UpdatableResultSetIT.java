@@ -48,6 +48,7 @@ public class UpdatableResultSetIT {
     protected static final String D_TABLE     = "D";
     protected static final String D_TABLE_IDX = "D_IDX";
     protected static final String E_TABLE     = "E";
+    protected static final String F_TABLE     = "F";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -100,6 +101,7 @@ public class UpdatableResultSetIT {
         conn.execute("DELETE FROM D");
         triggerDAO.dropAllTriggers(SCHEMA, E_TABLE);
         conn.execute("DELETE FROM E");
+        conn.execute("DELETE FROM F");
         prepareTableData(A_TABLE);
     }
 
@@ -133,6 +135,8 @@ public class UpdatableResultSetIT {
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", C_TABLE)).create();
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int primary key, c2 varchar(20))", D_TABLE)).withIndex(String.format("create index %s on %s(c1)", D_TABLE_IDX, D_TABLE)).create();
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", E_TABLE)).create();
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 char(36) not null, c2 char(8) not null, c3 char(36) not null, c4 timestamp not null, " +
+                                                                         "c5 decimal(10,0) not null, c6 char(1) not null, c7 varchar(10) for bit data not null default X'')", F_TABLE)).withConstraints("primary key(c1)").create();
     }
 
     private void tableShouldBe(String tableName, Object[][] expected) throws SQLException {
@@ -574,6 +578,80 @@ public class UpdatableResultSetIT {
     public void testWithConcurrentUpdatesOnPrimaryKeyColumns() throws Exception {
         prepareTableData(D_TABLE);
         testConcurrentUpdates(D_TABLE);
+    }
+
+    private void prepareTableFData() throws SQLException {
+        conn.execute(String.format("INSERT INTO %s VALUES('value0', 'value0', 'value0', '2020-12-21 20:54:09.123456', 3.14, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value1', 'value0', 'value1', '2020-12-20 20:54:09.123456', 3.15, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value2', 'value0', 'value2', '2020-12-19 20:54:09.123456', 3.16, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value3', 'value0', 'value3', '2020-12-18 20:54:09.123456', 3.17, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value4', 'value0', 'value4', '2020-12-17 20:54:09.123456', 3.18, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value5', 'value5', 'value5', '2020-12-16 20:54:09.123456', 3.18, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value6', 'value6', 'value6', '2020-12-15 20:54:09.123456', 3.20, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value7', 'value7', 'value7', '2020-12-14 20:54:09.123456', 3.21, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value8', 'value8', 'value8', '2020-12-13 20:54:09.123456', 3.22, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+        conn.execute(String.format("INSERT INTO %s VALUES('value9', 'value9', 'value9', '2020-12-12 20:54:09.123456', 3.23, 'A', CAST('abc' AS VARCHAR(32000) FOR BIT DATA))", F_TABLE));
+    }
+
+    private void tableFShouldBe(Object[][] expected) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(String.format("SELECT c3, c4, c7 FROM %s ORDER BY c3 ASC", F_TABLE))) {
+            int row = 0;
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    Assert.assertEquals(expected[row][0], resultSet.getString(1));
+                    Assert.assertEquals(expected[row][1], resultSet.getTimestamp(2));
+                    Assert.assertEquals(expected[row][2], resultSet.getString(3));
+                    row++;
+                }
+            }
+        }
+
+    }
+
+    @Test
+    public void testUpdatingPartialProjection() throws Exception {
+
+        prepareTableFData();
+        final String partialProjectionSql = String.format("SELECT c3, c4, c7 FROM %s WHERE c6 = 'A' AND c2 = ? AND c3 BETWEEN ? and ? OPTIMIZE FOR 1 ROWS WITH UR", F_TABLE);
+
+        tableFShouldBe(new Object[][]{
+                {"value0                              ", Timestamp.valueOf("2020-12-21 20:54:09.123456"), "616263"},
+                {"value1                              ", Timestamp.valueOf("2020-12-20 20:54:09.123456"), "616263"},
+                {"value2                              ", Timestamp.valueOf("2020-12-19 20:54:09.123456"), "616263"},
+                {"value3                              ", Timestamp.valueOf("2020-12-18 20:54:09.123456"), "616263"},
+                {"value4                              ", Timestamp.valueOf("2020-12-17 20:54:09.123456"), "616263"},
+                {"value5                              ", Timestamp.valueOf("2020-12-16 20:54:09.123456"), "616263"},
+                {"value6                              ", Timestamp.valueOf("2020-12-15 20:54:09.123456"), "616263"},
+                {"value7                              ", Timestamp.valueOf("2020-12-14 20:54:09.123456"), "616263"},
+                {"value8                              ", Timestamp.valueOf("2020-12-13 20:54:09.123456"), "616263"},
+                {"value9                              ", Timestamp.valueOf("2020-12-12 20:54:09.123456"), "616263"}
+        });
+
+        try (PreparedStatement statement = conn.prepareStatement(partialProjectionSql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            statement.setString(1, "value0");
+            statement.setString(2, "value0");
+            statement.setString(3, "value9");
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    resultSet.updateString(1, resultSet.getString(1).toUpperCase());
+                    resultSet.updateRow();
+                }
+            }
+        }
+
+        tableFShouldBe(new Object[][]{
+                {"VALUE0                              ", Timestamp.valueOf("2020-12-21 20:54:09.123456"), "616263"},
+                {"VALUE1                              ", Timestamp.valueOf("2020-12-20 20:54:09.123456"), "616263"},
+                {"VALUE2                              ", Timestamp.valueOf("2020-12-19 20:54:09.123456"), "616263"},
+                {"VALUE3                              ", Timestamp.valueOf("2020-12-18 20:54:09.123456"), "616263"},
+                {"VALUE4                              ", Timestamp.valueOf("2020-12-17 20:54:09.123456"), "616263"},
+                {"value5                              ", Timestamp.valueOf("2020-12-16 20:54:09.123456"), "616263"},
+                {"value6                              ", Timestamp.valueOf("2020-12-15 20:54:09.123456"), "616263"},
+                {"value7                              ", Timestamp.valueOf("2020-12-14 20:54:09.123456"), "616263"},
+                {"value8                              ", Timestamp.valueOf("2020-12-13 20:54:09.123456"), "616263"},
+                {"value9                              ", Timestamp.valueOf("2020-12-12 20:54:09.123456"), "616263"}
+        });
     }
 }
 

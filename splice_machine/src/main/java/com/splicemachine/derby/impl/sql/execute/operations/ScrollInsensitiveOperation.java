@@ -158,7 +158,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return "ScrollInsensitive"; //this class is never used
     }
 
-	public NoPutResultSet getSource() {
+	public SpliceOperation getSource() {
 		return this.source;
 	}
 

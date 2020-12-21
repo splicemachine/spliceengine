@@ -45,8 +45,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInforma
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stream.control.ControlUtils;
-import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
@@ -104,6 +102,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
     private long startTime = System.nanoTime();
+    private ExecRow currentBaseRow;
 
     public SpliceBaseOperation(){
         super();
@@ -542,6 +541,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             public ExecRow apply(@Nullable ExecRow execRow) {
                 getOperation().setCurrentRow(execRow);
                 getOperation().setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
+                if(isForUpdate() && execRow != null && execRow.getBaseRowCols() != null) {
+                    getOperation().setCurrentBaseRowLocation(new ValueRow(execRow.getBaseRowCols()));
+                }
                 return execRow;
             }
         });
@@ -1174,5 +1176,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public boolean isControlOnly() {
         return false;
+    }
+
+    @Override
+    public void setCurrentBaseRowLocation(ExecRow currentBaseRow){
+        this.currentBaseRow = currentBaseRow;
+    }
+
+    @Override
+    public ExecRow getCurrentBaseRow() throws StandardException {
+        return currentBaseRow;
     }
 }

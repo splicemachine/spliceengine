@@ -24,13 +24,16 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
  */
 public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, ExecRow, ExecRow> {
         protected SpliceOperation op;
+        private BaseRowLocatorFunction<SpliceOperation> locatorFunction;
         public ScrollInsensitiveFunction() {
             super();
+            locatorFunction = new BaseRowLocatorFunction<>();
         }
         protected boolean initialized = false;
 
         public ScrollInsensitiveFunction(OperationContext<SpliceOperation> operationContext) {
             super(operationContext);
+            locatorFunction = new BaseRowLocatorFunction<>();
         }
 
         @Override
@@ -43,8 +46,15 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, E
             op.setCurrentRow(execRow);
             op.setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
             this.operationContext.recordProduced();
-            if(!op.isForUpdate()) {
-                execRow.setKey(null);
+            if(execRow != null) {
+                if (!op.isForUpdate()) {
+                    execRow.setKey(null);
+                    execRow.setBaseRowCols(null);
+                } else {
+                    ExecRow baseRow = locatorFunction.call(operationContext);
+                    op.setCurrentBaseRowLocation(baseRow);
+                    execRow.setBaseRowCols(baseRow.getRowArray());
+                }
             }
             return execRow;
         }
