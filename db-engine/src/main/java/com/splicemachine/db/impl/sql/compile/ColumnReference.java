@@ -1528,4 +1528,12 @@ public class ColumnReference extends ValueNode {
     public boolean isSourceRowIdColumn() {
         return source != null && source.getExpression() instanceof CurrentRowLocationNode;
     }
+
+    public ResultColumn generateResultColumn() throws StandardException {
+        return (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                this.getColumnName(),
+                this.getClone(),
+                getContextManager());
+    }
 }
