@@ -224,8 +224,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0    // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;
@@ -241,8 +240,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0    // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;

@@ -2297,6 +2297,8 @@ public interface ResultSetFactory {
                                       String quoteChar,
                                       String quoteMode,
                                       String format,
+                                      String floatingPointNotation,
+                                      String timestampFormat,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 

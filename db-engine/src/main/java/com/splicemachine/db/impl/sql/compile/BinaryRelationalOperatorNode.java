@@ -729,7 +729,7 @@ public class BinaryRelationalOperatorNode
      * @see RelationalOperator#generateAbsoluteColumnId
      */
     public void generateAbsoluteColumnId(MethodBuilder mb,
-                                         Optimizable optTable){
+                                         Optimizable optTable) throws StandardException {
         // Get the absolute column position for the column
         int columnPosition=getAbsoluteColumnPosition(optTable);
         mb.push(columnPosition);
@@ -742,7 +742,7 @@ public class BinaryRelationalOperatorNode
      * @see RelationalOperator#generateRelativeColumnId
      */
     public void generateRelativeColumnId(MethodBuilder mb,
-                                         Optimizable optTable){
+                                         Optimizable optTable) throws StandardException {
         // Get the absolute column position for the column
         int columnPosition=getAbsoluteColumnPosition(optTable);
         // Convert the absolute to the relative 0-based column position
@@ -761,7 +761,7 @@ public class BinaryRelationalOperatorNode
      * @param optTable The Optimizable
      * @return The absolute 0-based column position of the ColumnReference
      */
-    private int getAbsoluteColumnPosition(Optimizable optTable){
+    private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
         List<ColumnReference> columnReferences;
         ConglomerateDescriptor bestCD;
         int columnPosition;
@@ -801,7 +801,7 @@ public class BinaryRelationalOperatorNode
         return columnPosition-1;
     }
 
-    private int getAbsoluteStoragePosition(Optimizable optTable){
+    private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
         List<ColumnReference> columnReferences;
         ConglomerateDescriptor bestCD;
         int columnPosition;

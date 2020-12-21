@@ -299,7 +299,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) {
+	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		mb.push(columnPosition);
@@ -309,7 +309,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) {
+	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		// Convert the absolute to the relative 0-based column position
@@ -329,7 +329,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	 *
 	 * @return The absolute 0-based column position of the ColumnReference
 	 */
-	private int getAbsoluteColumnPosition(Optimizable optTable) {
+	private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
 		ColumnReference	cr = (ColumnReference) operand;
 		int columnPosition;
 		ConglomerateDescriptor bestCD;
@@ -352,7 +352,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		return columnPosition - 1;
 	}
 
-    private int getAbsoluteStoragePosition(Optimizable optTable) {
+    private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
         ColumnReference	cr = (ColumnReference) operand;
         int columnPosition;
         ConglomerateDescriptor bestCD;

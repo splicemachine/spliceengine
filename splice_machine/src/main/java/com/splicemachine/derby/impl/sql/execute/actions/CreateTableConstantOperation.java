@@ -18,7 +18,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.*;
@@ -37,7 +36,6 @@ import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -70,12 +68,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
-import java.sql.SQLWarning;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class CreateTableConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateTableConstantOperation.class);
@@ -315,7 +308,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          * that lets us specify the conglomerate number then
          * we will need to handle it here.
          */
-        long conglomId = tc.createConglomerate(storedAs!=null,
+        Conglomerate conglomerate = tc.createConglomerateAsync(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
                 columnOrdering, //column sort order - not required for heap
@@ -325,11 +318,15 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
                 splitKeys, Conglomerate.Priority.NORMAL);
+
+        long conglomId = conglomerate.getContainerid();
+
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         try {
             if (tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
                 if (dd.databaseReplicationEnabled() || dd.schemaReplicationEnabled(schemaName)) {
+                    conglomerate.awaitCreation(); // if we are replicating, table has to be created
                     PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
                     admin.enableTableReplication(Long.toString(conglomId));
                 }
@@ -431,6 +428,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         if(storedAs != null) {
             externalTablesCreate(activation, txnId);
         }
+        conglomerate.awaitCreation();
     }
 
     private int[] createCollationIds() {
@@ -520,28 +518,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 StructType partitionColumns = getStructType(true);
 
                 CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
-                Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
-                                nonPartitionColumns, partitionColumns));
-                GetSchemaExternalResult result = null;
-                SConfiguration config = EngineDriver.driver().getConfiguration();
-
-                while (result == null) {
-                    try {
-                        result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException e) {
-                        //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                        Thread.currentThread().interrupt();
-                        throw new IOException(e);
-                    } catch (ExecutionException e) {
-                        throw Exceptions.rawIOException(e.getCause());
-                    } catch (TimeoutException e) {
-                        /*
-                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                         * head up and make sure that the client is still operating
-                         */
-                    }
-                }
+                GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, jobGroup,
+                        storedAs, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
 
                 boolean isCsv = storedAs.equalsIgnoreCase("t");
                 checkSchema(nonPartitionColumns, partitionColumns, result, isCsv);
@@ -687,7 +665,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         if (fullExSchema.fields().length != columnInfo.length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
                     columnInfo.length, fullExSchema.fields().length,
-                    location, externalSchema.getSuggestedSchema() );
+                    location, externalSchema.getSuggestedSchema("") );
         }
 
         // csv will infer all columns as strings currently, so don't do a check for types
@@ -717,7 +695,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
                         definedField.name(), ExternalTableUtils.getSqlTypeName(definedField.dataType()),
                         externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
-                        location, externalSchema.getSuggestedSchema());
+                        location, externalSchema.getSuggestedSchema(""));
             }
         }
     }

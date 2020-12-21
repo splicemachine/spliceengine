@@ -473,4 +473,44 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         spliceClassWatcher.rollback();
     }
 
+    @Test
+    public void testNestedFromSubquery() throws Exception {
+        if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
+            return;
+        }
+        spliceClassWatcher.executeUpdate(format("update t1 set (b1) = (select b2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                " cross join (select a3 from t3) where a1=a2)", this.joinStrategy, this.useSparkString));
+
+        String expected = "A1 |B1 |C1 |D1 |\n" +
+                "----------------\n" +
+                " 1 |10 | 1 | 1 |\n" +
+                " 1 |10 | 1 |11 |\n" +
+                " 2 | 2 | 2 | 2 |\n" +
+                " 2 | 2 | 2 |21 |\n" +
+                " 3 |30 | 3 | 3 |";
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testSelectAsteriskInSubquery() throws Exception {
+        try {
+            spliceClassWatcher.executeUpdate("update t1 set (b1) = (select * from (select b2 from t2))");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X38", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("'SELECT *' only allowed in EXISTS and NOT EXISTS subqueries."));
+        }
+    }
+
+    @Test
+    public void testSubqueryNumberOfColumnsMismatch() throws Exception {
+        try {
+            spliceClassWatcher.executeUpdate("update t1 set (b1, c1) = (select b2 from t2)");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X58", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("The number of columns on the left and right sides of the assignment in set clause must be the same."));
+        }
+    }
+
 }

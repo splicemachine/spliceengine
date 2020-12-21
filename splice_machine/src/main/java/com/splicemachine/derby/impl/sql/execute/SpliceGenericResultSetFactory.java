@@ -2300,6 +2300,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String quoteChar,
                                              String quoteMode,
                                              String format,
+                                             String floatingPointNotation,
+                                             String timestampFormat,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -2322,7 +2324,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 encoding,
                 fieldSeparator,
                 quoteChar,
-                quoteMode
+                quoteMode,
+                floatingPointNotation,
+                timestampFormat
         );
         op.markAsTopResultSet();
         return op;

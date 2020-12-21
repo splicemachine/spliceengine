@@ -667,7 +667,9 @@ public class ScanCostFunction{
      */
     public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
         for (int i = 0; i< holders.size();i++) {
-            selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
+            // Do not include join predicates unless join strategy is nested loop.
+            if (holders.get(i).shouldApplySelectivity())
+                selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
         }
         return selectivity;
     }
@@ -729,7 +731,7 @@ public class ScanCostFunction{
             BetweenOperatorNode bon = (BetweenOperatorNode) p.getAndNode().getLeftOperand();
             DataValueDescriptor start = ((ValueNode) bon.getRightOperandList().elementAt(0)).getKnownConstantValue();
             DataValueDescriptor stop  = ((ValueNode) bon.getRightOperandList().elementAt(1)).getKnownConstantValue();
-            columnHolder.add(new RangeSelectivity(scc, start, stop, true, true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+            columnHolder.add(new RangeSelectivity(scc, start, stop, true, true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
             return true;
         }
 
@@ -737,16 +739,16 @@ public class ScanCostFunction{
         int relationalOperator = relop.getOperator();
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
-                columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                columnHolder.add(new NotEqualsSelectivity(scc, forIndexExpr, colNum, phase, value, selectivityFactor, useExtrapolation));
+                columnHolder.add(new NotEqualsSelectivity(scc, forIndexExpr, colNum, phase, value, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
-                columnHolder.add(new NullSelectivity(scc, forIndexExpr, colNum, phase));
+                columnHolder.add(new NullSelectivity(scc, forIndexExpr, colNum, phase, p));
                 break;
             case RelationalOperator.IS_NOT_NULL_RELOP:
-                columnHolder.add(new NotNullSelectivity(scc, forIndexExpr, colNum, phase));
+                columnHolder.add(new NotNullSelectivity(scc, forIndexExpr, colNum, phase, p));
                 break;
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -759,7 +761,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -772,7 +774,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -785,7 +787,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -798,7 +800,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");
