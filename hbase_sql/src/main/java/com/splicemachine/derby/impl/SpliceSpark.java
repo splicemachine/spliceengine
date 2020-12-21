@@ -345,6 +345,7 @@ public class SpliceSpark {
 
          */
         conf.set("spark.sql.retainGroupColumns", "true");
+        conf.set("spark.sql.crossJoin.enabled", "true");
 
         // Uncomment to disable WholeStageCodeGen for debugging.
         // conf.set("spark.sql.codegen.wholeStage", "false");

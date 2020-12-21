@@ -877,4 +877,69 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             Assert.assertEquals("expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
         }
     }
+
+    @Test
+    public void testOuterBroadCastJoinWithSingleTableJoinPreds() throws Exception {
+        String sqlText = format("select * from " + t1 +
+                " left outer join " + t2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on t2.a2 = 1" , useSpark
+        );
+        String expected = "A1 |B1 |C1 |A2 |B2 |\n" +
+                            "--------------------\n" +
+                            " 1 | 2 | 3 | 1 |22 |";
+        testQuery(sqlText, expected, classWatcher);
+        String explainQuery = "explain " + sqlText;
+        rowContainsQuery(3, explainQuery, "BroadcastLeftOuterJoin", methodWatcher);
+
+        sqlText = format("select * from " + t1 +
+                " left outer join " + t2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on t2.a2 = 0" , useSpark);
+        expected = "A1 |B1 |C1 | A2  | B2  |\n" +
+                "------------------------\n" +
+                " 1 | 2 | 3 |NULL |NULL |";
+        testQuery(sqlText, expected, classWatcher);
+
+        sqlText = format("select * from " + t1 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                        " right outer join " + t2 +
+                        " on t2.a2 = 0" , useSpark);
+        expected = "A1  | B1  | C1  |A2 |B2 |\n" +
+                    "--------------------------\n" +
+                    "NULL |NULL |NULL | 1 |22 |\n" +
+                    "NULL |NULL |NULL | 4 |44 |";
+        testQuery(sqlText, expected, classWatcher);
+        explainQuery = "explain " + sqlText;
+        rowContainsQuery(4, explainQuery, "BroadcastLeftOuterJoin", methodWatcher);
+
+        sqlText = format("select * from " + t1 +
+                        " full outer join " + t2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                        " on t2.a2 = 0" , useSpark);
+        expected = "A1  | B1  | C1  | A2  | B2  |\n" +
+                    "------------------------------\n" +
+                    "  1  |  2  |  3  |NULL |NULL |\n" +
+                    "NULL |NULL |NULL |  1  | 22  |\n" +
+                    "NULL |NULL |NULL |  4  | 44  |";
+        testQuery(sqlText, expected, classWatcher);
+        explainQuery = "explain " + sqlText;
+        rowContainsQuery(3, explainQuery, "BroadcastFullOuterJoin", methodWatcher);
+
+        sqlText = format("select * from " + t1 +
+                " left outer join " + t2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on t2.a2 = 1 or t1.a1 = 1" , useSpark
+        );
+        expected = "A1 |B1 |C1 |A2 |B2 |\n" +
+                    "--------------------\n" +
+                    " 1 | 2 | 3 | 1 |22 |\n" +
+                    " 1 | 2 | 3 | 4 |44 |";
+        testQuery(sqlText, expected, classWatcher);
+        explainQuery = "explain " + sqlText;
+        rowContainsQuery(3, explainQuery, "BroadcastLeftOuterJoin", methodWatcher);
+
+        sqlText = format("select * from " + t1 +
+                " left outer join " + t2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on 1=1" , useSpark
+        );
+        testQuery(sqlText, expected, classWatcher);
+        explainQuery = "explain " + sqlText;
+        rowContainsQuery(3, explainQuery, "BroadcastLeftOuterJoin", methodWatcher);
+    }
 }
