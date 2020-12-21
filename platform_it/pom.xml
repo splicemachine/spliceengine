@@ -928,7 +928,7 @@
                 </property>
             </activation>
             <properties>
-                <durability>ASYNC</durability>
+                <durability>SYNC</durability>
             </properties>
             <build>
                 <plugins>
