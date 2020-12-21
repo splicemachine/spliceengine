@@ -2185,5 +2185,62 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testLoading() throws Exception {
+        String path = "/Users/martinrupp/testdata/TPCDS/1_reduced/web_sales.dat";
+        // 149 MB |
+        // CsvLineReaderCR 13.852 s, 13.563s -> 10MB/s
+        // LineReaderCR 13.706s
+        // oneline=true 11.647s
+        String create = "create table web_sales\n" +
+                "(\n" +
+                "    ws_sold_date_sk           integer                       ,\n" +
+                "    ws_sold_time_sk           integer                       ,\n" +
+                "    ws_ship_date_sk           integer                       ,\n" +
+                "    ws_item_sk                integer               not null,\n" +
+                "    ws_bill_customer_sk       integer                       ,\n" +
+                "    ws_bill_cdemo_sk          integer                       ,\n" +
+                "    ws_bill_hdemo_sk          integer                       ,\n" +
+                "    ws_bill_addr_sk           integer                       ,\n" +
+                "    ws_ship_customer_sk       integer                       ,\n" +
+                "    ws_ship_cdemo_sk          integer                       ,\n" +
+                "    ws_ship_hdemo_sk          integer                       ,\n" +
+                "    ws_ship_addr_sk           integer                       ,\n" +
+                "    ws_web_page_sk            integer                       ,\n" +
+                "    ws_web_site_sk            integer                       ,\n" +
+                "    ws_ship_mode_sk           integer                       ,\n" +
+                "    ws_warehouse_sk           integer                       ,\n" +
+                "    ws_promo_sk               integer                       ,\n" +
+                "    ws_order_number           integer               not null,\n" +
+                "    ws_quantity               integer                       ,\n" +
+                "    ws_wholesale_cost         decimal(7,2)                  ,\n" +
+                "    ws_list_price             decimal(7,2)                  ,\n" +
+                "    ws_sales_price            decimal(7,2)                  ,\n" +
+                "    ws_ext_discount_amt       decimal(7,2)                  ,\n" +
+                "    ws_ext_sales_price        decimal(7,2)                  ,\n" +
+                "    ws_ext_wholesale_cost     decimal(7,2)                  ,\n" +
+                "    ws_ext_list_price         decimal(7,2)                  ,\n" +
+                "    ws_ext_tax                decimal(7,2)                  ,\n" +
+                "    ws_coupon_amt             decimal(7,2)                  ,\n" +
+                "    ws_ext_ship_cost          decimal(7,2)                  ,\n" +
+                "    ws_net_paid               decimal(7,2)                  ,\n" +
+                "    ws_net_paid_inc_tax       decimal(7,2)                  ,\n" +
+                "    ws_net_paid_inc_ship      decimal(7,2)                  ,\n" +
+                "    ws_net_paid_inc_ship_tax  decimal(7,2)                  ,\n" +
+                "    ws_net_profit             decimal(7,2)                  ,\n" +
+                "    primary key (ws_item_sk, ws_order_number)\n" +
+                ")";
+
+        try {
+            methodWatcher.executeUpdate(create);
+            methodWatcher.executeQuery( String.format(
+                    "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', true, null)",
+                spliceSchemaWatcher.schemaName, "web_sales", path));
+        }
+        finally {
+            setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), true);
+        }
+    }
+
 
 }

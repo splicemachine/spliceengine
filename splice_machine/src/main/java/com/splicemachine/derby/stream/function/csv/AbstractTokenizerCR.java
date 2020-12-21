@@ -55,7 +55,7 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
             throw new NullPointerException("preferences should not be null");
         }
         this.preferences = preferences;
-        boolean b = true;
+        boolean b = false;
         if(b)
             clr = new CsvLineReaderCR(reader, skipCarriageReturn);
         else
