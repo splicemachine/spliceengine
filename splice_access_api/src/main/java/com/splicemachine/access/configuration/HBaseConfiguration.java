@@ -133,9 +133,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SERVERS_PATH = "/servers";
 
     /**
-     * Path in ZooKeeper for registering the number or spark nodes
+     * Path in ZooKeeper for registering maxExecutorCores
      */
-    public static final String SPARK_NUM_NODES_PATH = "/sparkNumNodes";
+    public static final String MAX_EXECUTOR_CORES = "/maxExecutorCores";
 
 
     public static final String DDL_PATH="/ddl";

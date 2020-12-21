@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import splice.com.google.common.base.Charsets;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -52,13 +53,14 @@ public class ExportParams implements Serializable {
     private char quoteChar = DEFAULT_QUOTE_CHAR;
     private QuoteMode quoteMode = DEFAULT_QUOTE_MODE;
     private int floatingPointNotation = FloatingPointDataType.PLAIN;
+    private String timestampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
 
     // for serialization
     public ExportParams() {
     }
 
     public ExportParams(String directory, String compression, String format, int replicationCount, String characterEncoding,
-                        String fieldDelimiter, String quoteChar, String quoteMode, String floatingPointNotation) throws StandardException {
+                        String fieldDelimiter, String quoteChar, String quoteMode, String floatingPointNotation, String timestampFormat) throws StandardException {
         setDirectory(directory);
         setFormat(format);
         setCompression(compression);
@@ -68,6 +70,7 @@ public class ExportParams implements Serializable {
         setQuoteChar(StringEscapeUtils.unescapeJava(quoteChar));
         setQuoteMode(quoteMode);
         setFloatingPointNotation(floatingPointNotation);
+        setTimestampFormat(timestampFormat);
     }
 
     /**
@@ -117,6 +120,10 @@ public class ExportParams implements Serializable {
 
     public int getFloatingPointNotation() {
         return floatingPointNotation;
+    }
+
+    public String getTimestampFormat() {
+        return timestampFormat;
     }
 
     // - - - - - - - - - - -
@@ -198,6 +205,12 @@ public class ExportParams implements Serializable {
                 default:
                     throw StandardException.newException(SQLState.UNSUPPORTED_FLOATING_POINT_NOTATION, floatingPointNotation);
             }
+        }
+    }
+
+    public void setTimestampFormat(String timestampFormat) {
+        if (!isBlank(timestampFormat)) {
+            this.timestampFormat = timestampFormat;
         }
     }
 
