@@ -96,6 +96,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   override def afterAll() {
     dropInternalTable
     dropSchema(schema)
+    splicemachineContext.columnNamesCaseSensitive(false)
     if (spark != null) spark.stop()
     if (sc != null) sc.stop()
   }
