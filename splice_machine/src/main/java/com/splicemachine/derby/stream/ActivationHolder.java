@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -70,6 +71,7 @@ public class ActivationHolder implements Externalizable {
     private boolean initialized = false;
     private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
     private String currentUser;
+    private SchemaDescriptor schemaDescriptor;
     private List<String> groupUsers = null;
     private ManagedCache<String, Optional<String>> propertyCache = null;
     private boolean serializeOperationList;
@@ -90,6 +92,7 @@ public class ActivationHolder implements Externalizable {
         }
         this.currentUser = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
+        this.schemaDescriptor = activation.getLanguageConnectionContext().getDefaultSchema(activation);
     }
 
     private void initOperation(Activation activation, SpliceOperation operation) {
@@ -203,6 +206,12 @@ public class ActivationHolder implements Externalizable {
             out.writeObject(groupUsers);
         } else
             out.writeBoolean(false);
+        if (schemaDescriptor != null) {
+            out.writeBoolean(true);
+            out.writeObject(schemaDescriptor);
+        } else {
+            out.writeBoolean(false);
+        }
         out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
     }
 
@@ -227,6 +236,7 @@ public class ActivationHolder implements Externalizable {
             activation = soi.getActivation(this, txnResource.getLcc());
             activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
             activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
+            activation.getLanguageConnectionContext().setDefaultSchema(activation, schemaDescriptor);
             SpliceOperation operation =
                     reinit ? (SpliceOperation)activation.execute() : (SpliceOperation)activation.getResultSet();
 
@@ -249,7 +259,7 @@ public class ActivationHolder implements Externalizable {
                     so.init(context);
                 }
             }
-        } catch (Exception e) {
+        } catch (SQLException | StandardException | IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -274,6 +284,11 @@ public class ActivationHolder implements Externalizable {
             groupUsers = (List<String>)in.readObject();
         } else
             groupUsers = null;
+        if (in.readBoolean()) {
+            schemaDescriptor = (SchemaDescriptor) in.readObject();
+        } else {
+            schemaDescriptor = null;
+        }
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
         if (!serializeOperationList) {
             init(txn, true);

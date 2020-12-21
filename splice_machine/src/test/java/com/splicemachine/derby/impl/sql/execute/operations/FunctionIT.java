@@ -41,10 +41,11 @@ import static org.junit.Assert.assertNull;
 public class FunctionIT extends SpliceUnitTest {
     protected static final String USER1 = "XIAYI";
     protected static final String PASSWORD1 = "xiayi";
+    protected static final String SCHEMA = FunctionIT.class.getSimpleName();
 
     private static final Logger LOG = Logger.getLogger(FunctionIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",FunctionIT.class.getSimpleName(),"(data double)");
     protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
@@ -1033,6 +1034,18 @@ public class FunctionIT extends SpliceUnitTest {
             checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as char(23))", "2154-11-28 18:46:52.123", conn);
             checkStringExpression("cast(ts as varchar(4)) from " + schemaName + ".TMM", "1960", conn);
             checkStringExpression("cast(ts as char(4)) from " + schemaName + ".TMM", "1960", conn);
+        }
+    }
+
+    @Test
+    public void testCurrentSchema() throws Exception {
+        // DB-11073
+        try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
+            try (ResultSet rs = conn.query("select current schema as out_, in_ from sysibm.sysdummy1, (select current schema as in_ from sysibm.sysdummy1)")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("FUNCTIONIT", rs.getString(1));
+                Assert.assertEquals("FUNCTIONIT", rs.getString(2));
+            }
         }
     }
 }

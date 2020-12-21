@@ -53,7 +53,7 @@ public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStrea
     public static ExportExecRowWriter initializeRowWriter(
             OutputStream outputStream, ExportParams exportParams, ResultColumnDescriptor[] exportColumns) throws IOException {
         CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, exportParams, exportColumns);
-        return new ExportExecRowWriter(writer, exportParams.getFloatingPointNotation());
+        return new ExportExecRowWriter(writer, exportParams.getFloatingPointNotation(), exportParams.getTimestampFormat());
     }
 
 }

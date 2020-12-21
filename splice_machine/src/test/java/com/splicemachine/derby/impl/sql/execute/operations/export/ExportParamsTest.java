@@ -26,7 +26,17 @@ public class ExportParamsTest {
     @Test
     public void constructor() throws StandardException {
 
-        ExportParams exportParams = new ExportParams("/dir", null, "csv", 42, "ascii", "F", "Q", "always", "normalized");
+        ExportParams exportParams = new ExportParams(
+                "/dir",
+                null,
+                "csv",
+                42,
+                "ascii",
+                "F",
+                "Q",
+                "always",
+                "normalized",
+                "yyyy/MM/dd HH:mm:ss.S");
 
         assertEquals("/dir", exportParams.getDirectory());
         assertEquals(ExportFile.COMPRESSION.NONE, exportParams.getCompression());
@@ -36,12 +46,13 @@ public class ExportParamsTest {
         assertEquals('Q', exportParams.getQuoteChar());
         assertEquals(ExportParams.QuoteMode.ALWAYS, exportParams.getQuoteMode());
         assertEquals(FloatingPointDataType.NORMALIZED, exportParams.getFloatingPointNotation());
+        assertEquals("yyyy/MM/dd HH:mm:ss.S", exportParams.getTimestampFormat());
     }
 
     @Test
     public void constructor_testDefaults() throws StandardException {
 
-        ExportParams exportParams = new ExportParams("/dir", "BZ2", "csv", -1, null, null, null, null, null);
+        ExportParams exportParams = new ExportParams("/dir", "BZ2", "csv", -1, null, null, null, null, null, null);
 
         assertEquals("/dir", exportParams.getDirectory());
         assertEquals(ExportFile.COMPRESSION.BZ2, exportParams.getCompression());
@@ -54,7 +65,7 @@ public class ExportParamsTest {
 
     @Test
     public void constructor_whileSpaceDelimitersAreAllowed() throws StandardException {
-        ExportParams exportParams = new ExportParams("/dir", "noNe", "csv", -1, null, " ", " ", null, null);
+        ExportParams exportParams = new ExportParams("/dir", "noNe", "csv", -1, null, " ", " ", null, null, null);
         assertEquals(' ', exportParams.getFieldDelimiter());
         assertEquals(' ', exportParams.getQuoteChar());
         assertEquals(ExportFile.COMPRESSION.NONE, exportParams.getCompression());
@@ -63,12 +74,12 @@ public class ExportParamsTest {
     @Test
     public void constructor_usingJavaEscapeSequencesToDesignateArbitraryUnicodeCharactersForDelimiters() throws StandardException {
 
-        ExportParams params1 = new ExportParams("/dir", "BZIP2", "csv", -1, null, "\\t", "\\n", null, null);
+        ExportParams params1 = new ExportParams("/dir", "BZIP2", "csv", -1, null, "\\t", "\\n", null, null, null);
         assertEquals("\t".charAt(0), params1.getFieldDelimiter());
         assertEquals("\n".charAt(0), params1.getQuoteChar());
         assertEquals(ExportFile.COMPRESSION.BZ2, params1.getCompression());
 
-        ExportParams params2 = new ExportParams("/dir", "gZIP ", "csv", -1, null, "\\u0300", "\\u0400", null, null);
+        ExportParams params2 = new ExportParams("/dir", "gZIP ", "csv", -1, null, "\\u0300", "\\u0400", null, null, null);
         assertEquals('\u0300', params2.getFieldDelimiter());
         assertEquals('\u0400', params2.getQuoteChar());
         assertEquals(ExportFile.COMPRESSION.GZ, params2.getCompression());
@@ -77,7 +88,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badExportDirectory() {
         try {
-            new ExportParams(null, "GZIP", "csv", 1, "UTF-8", ",", null, null, null);
+            new ExportParams(null, "GZIP", "csv", 1, "UTF-8", ",", null, null, null, null);
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'export path'='null'.", e.getMessage());
@@ -87,7 +98,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badCharacterEncoding() {
         try {
-            new ExportParams("/dir", "BZ2", "csv", 1, "NON_EXISTING_CHARSET", ",", null, null, null);
+            new ExportParams("/dir", "BZ2", "csv", 1, "NON_EXISTING_CHARSET", ",", null, null, null, null);
             fail();
         } catch (StandardException e) {
             assertEquals("Invalid parameter 'encoding'='NON_EXISTING_CHARSET'.", e.getMessage());
@@ -97,7 +108,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badFieldDelimiter() {
         try {
-            new ExportParams("/dir", "GZIP", "csv", 1, "UTF-8", ",,,", null, null, null);
+            new ExportParams("/dir", "GZIP", "csv", 1, "UTF-8", ",,,", null, null, null, null);
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'field delimiter'=',,,'.", e.getMessage());
@@ -108,7 +119,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badQuoteCharacter() {
         try {
-            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "||||", null, null);
+            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "||||", null, null, null);
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'quote character'='||||'.", e.getMessage());
@@ -118,7 +129,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_bad_QuoteMode() {
         try {
-            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "|", "FOO", null);
+            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "|", "FOO", null, null);
             fail();
         } catch (Exception e) {
             assertEquals("Unsupported quote mode: FOO", e.getMessage());
@@ -128,7 +139,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_bad_FloatingPointNotation() {
         try {
-            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "|", null, "FOO");
+            new ExportParams("/dir", "GZ", "csv", 1, "UTF-8", ",", "|", null, "FOO", null);
             fail();
         } catch (Exception e) {
             assertEquals("Unsupported floating point notation: FOO", e.getMessage());
