@@ -49,7 +49,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 import java.sql.Types;
@@ -86,7 +85,8 @@ public class ColumnDefinitionNode extends TableElementNode
     //column's increment value is not 0 at the time of create, or is not
     //getting set to 0 at the time of increment value modification.
     long                        autoinc_create_or_modify_Start_Increment;
-    boolean                        autoincrementVerify;
+    boolean                     autoincrementVerify;
+    boolean                     modifyDefaultSetEmptyDefault = false;
 
     //autoinc_create_or_modify_Start_Increment will be set to one of the
     //following 3 values.
@@ -125,18 +125,7 @@ public class ColumnDefinitionNode extends TableElementNode
                 defaultValue = ((UntypedNullConstantNode) defaultNode).convertDefaultNode(type);
             }
         } else if (defaultNode instanceof EmptyDefaultConstantNode) {
-            /* No DTS yet for MODIFY DEFAULT */
-            if (type != null) {
-                if (type.getTypeId().isDateTimeTimeStampTypeId()) {
-                    assert autoIncrementInfo == null;
-                    CurrentDatetimeOperatorNode currentDateTimeNode = new CurrentDatetimeOperatorNode(getContextManager());
-                    currentDateTimeNode.init(type.getTypeId());
-                    this.defaultNode = new DefaultNode();
-                    this.defaultNode.init(currentDateTimeNode, currentDateTimeNode.getMethodName());
-                } else {
-                    defaultValue = ((EmptyDefaultConstantNode) defaultNode).convertDefaultNode(type);
-                }
-            }
+            handleEmptyDefaultConstantNode();
         } else if (defaultNode instanceof GenerationClauseNode) {
             generationClauseNode = (GenerationClauseNode) defaultNode;
         } else {
@@ -895,6 +884,24 @@ public class ColumnDefinitionNode extends TableElementNode
                 printLabel(depth, "generationClause: ");
                 generationClauseNode.treePrint(depth + 1);
             }
+        }
+    }
+
+    void handleEmptyDefaultConstantNode() throws StandardException {
+        /* No DTS yet for MODIFY DEFAULT */
+        if (type != null) {
+            if (type.getTypeId().isDateTimeTimeStampTypeId()) {
+                CurrentDatetimeOperatorNode currentDateTimeNode = new CurrentDatetimeOperatorNode(getContextManager());
+                currentDateTimeNode.init(type.getTypeId());
+                this.defaultNode = new DefaultNode();
+                this.defaultNode.init(currentDateTimeNode, currentDateTimeNode.getMethodName());
+            } else {
+                defaultValue = ((EmptyDefaultConstantNode)getNodeFactory().getNode(
+                        C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE,
+                        getContextManager())).convertDefaultNode(type);
+            }
+        } else {
+            modifyDefaultSetEmptyDefault = true;
         }
     }
 }
