@@ -128,15 +128,16 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
-    boolean GetSkipCarriageReturnIn0D0A(SpliceOperation op) throws StandardException {
-        boolean defaultValue = CompilerContext.DEFAULT_SPLICE_SKIP_CARRIAGE_RETURN;
+    boolean GetPreserveLineEndings(SpliceOperation op) throws StandardException {
+        boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
         if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
             return defaultValue;
-        String skipCarriageReturnIn0D0AString =
-                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(), Property.SPLICE_SKIP_CARRIAGE_RETURN_IN_0D0A);
+        String preserveLineEndingsString =
+                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(),
+                        Property.PRESERVE_LINE_ENDINGS);
         try {
-            if (skipCarriageReturnIn0D0AString != null)
-                return Boolean.parseBoolean(skipCarriageReturnIn0D0AString);
+            if (preserveLineEndingsString != null)
+                return Boolean.parseBoolean(preserveLineEndingsString);
         } catch (Exception e) {
             // If the property value failed to convert to a boolean, don't throw an error,
             // just use the default setting.
@@ -160,21 +161,21 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
                 quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
             }
 
-            boolean skipCarriageReturnIn0D0A = GetSkipCarriageReturnIn0D0A(op);
-            if (oneLineRecords && skipCarriageReturnIn0D0A /* todo check if this is needed (SMTextInputFormat) */
+            boolean preserveLineEndings = GetPreserveLineEndings(op);
+            if (oneLineRecords && preserveLineEndings /* todo check if this is needed (SMTextInputFormat) */
                     && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                         columnIndex, timeFormat, dateTimeFormat, timestampFormat,
-                        true, operationContext, quotedEmptyIsNull, skipCarriageReturnIn0D0A), true);
+                        true, operationContext, quotedEmptyIsNull, preserveLineEndings), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
                 return streamSet.values(operationContext).flatMap(
                         new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex,
                                 timeFormat, dateTimeFormat, timestampFormat, charset,
-                                operationContext, quotedEmptyIsNull, skipCarriageReturnIn0D0A), true);
+                                operationContext, quotedEmptyIsNull, preserveLineEndings), true);
             }
         } finally {
             operationContext.popScope();

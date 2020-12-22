@@ -24,20 +24,20 @@ public class CsvParserConfig {
     CsvPreference preferences;
     boolean oneLineRecord;
     boolean quotedEmptyIsNull;
-    boolean skipCarriageReturnIn0D0A;
+    boolean preserveLineEndings;
 
     public CsvParserConfig(CsvPreference preferences) {
         this.preferences = preferences;
         this.oneLineRecord = false;
         this.quotedEmptyIsNull = false;
-        this.skipCarriageReturnIn0D0A = true;
+        this.preserveLineEndings = true;
     }
     public CsvParserConfig(CsvPreference preferences,
-                           boolean oneLineRecord, boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A) {
+                           boolean oneLineRecord, boolean quotedEmptyIsNull, boolean preserveLineEndings) {
         this.preferences = preferences;
         this.oneLineRecord = oneLineRecord;
         this.quotedEmptyIsNull = quotedEmptyIsNull;
-        this.skipCarriageReturnIn0D0A = skipCarriageReturnIn0D0A;
+        this.preserveLineEndings = preserveLineEndings;
     }
     public CsvParserConfig oneLineRecord(boolean value) {
         oneLineRecord = value;
@@ -48,21 +48,21 @@ public class CsvParserConfig {
         quotedEmptyIsNull = value;
         return this;
     }
-    public CsvParserConfig skipCarriageReturnIn0D0A(boolean value) {
-        skipCarriageReturnIn0D0A = value;
+    public CsvParserConfig preserveLineEndings(boolean value) {
+        preserveLineEndings = value;
         return this;
     }
 
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(oneLineRecord);
         out.writeBoolean(quotedEmptyIsNull);
-        out.writeBoolean(skipCarriageReturnIn0D0A);
+        out.writeBoolean(preserveLineEndings);
     }
 
     CsvParserConfig(ObjectInput in) throws IOException {
         oneLineRecord  = in.readBoolean();
         quotedEmptyIsNull = in.readBoolean();
-        skipCarriageReturnIn0D0A = in.readBoolean();
+        preserveLineEndings = in.readBoolean();
         preferences = null;
     }
 }

@@ -64,6 +64,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
     private final boolean oneLineRecord;
     private int oneLineRecordLength = 0;
     private boolean quotedEmptyIsNull;
+    final private boolean preserveLineEndings;
 
     private static class LazyStringBuilder {
 
@@ -148,7 +149,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
      */
     public QuoteTrackingTokenizer(Reader reader, CsvParserConfig config,
                                   final long scanThresold, final List<Integer> valueSizeHints) {
-        super(reader, config.preferences, config.skipCarriageReturnIn0D0A);
+        super(reader, config.preferences);
         this.quoteChar = config.preferences.getQuoteChar();
         this.delimeterChar = config.preferences.getDelimiterChar();
         this.surroundingSpacesNeedQuotes = config.preferences.isSurroundingSpacesNeedQuotes();
@@ -161,6 +162,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
         this.oneLineRecord = config.oneLineRecord;
         this.quotedEmptyIsNull = config.quotedEmptyIsNull;
         this.reader = reader;
+        this.preserveLineEndings = config.preserveLineEndings;
     }
 
     @Override
@@ -249,14 +251,15 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
     }
 
     private void appendToRowNewLine() {
+        String newline = preserveLineEndings ? getCurrentLineEnding() : String.valueOf(NEWLINE);
         if (checkExactSizeFirst) {
 
-            currentRow.append(String.valueOf(NEWLINE));
+            currentRow.append(newline);
 
         } else if (exactColumnSizes != null && !oneLineRecord) {
             rowIdx++; // simulate adding a newline by moving a sequence by one
         } else {
-            currentRow.append(String.valueOf(NEWLINE));
+            currentRow.append(newline);
         }
     }
 
@@ -357,11 +360,34 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
         charIndex++; // read next char of the line
     }
 
+    private void addNewLineToColumn()
+    {
+        if(preserveLineEndings)
+            addToColumn(NEWLINE);
+        else {
+            switch (getCurrentLineEndingType()) {
+                case ending0D:
+                    addToColumn('\r');
+                    return;
+                case ending0A:
+                    addToColumn('\n');
+                    return;
+                case ending0D0A:
+                    addToColumn('\r');
+                    addToColumn('\n');
+                    return;
+                case endingNone:
+                default:
+                    return;
+            }
+        }
+    }
+
     private void handleQuoteState() throws IOException {
         if (charIndex == getCurrentLine().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
             // (will update to 0 for next iteration), read in the next line, then continue to next character)
             charIndex = 0;
-            addToColumn(NEWLINE);
+            addNewLineToColumn();
             appendToRowNewLine(); // specific line terminator lost, \n will have to suffice
 
             checkLineErrors(quoteScopeStartingLine);

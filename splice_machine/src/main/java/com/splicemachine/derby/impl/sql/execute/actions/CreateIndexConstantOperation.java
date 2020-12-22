@@ -951,10 +951,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             boolean oneLineRecord = false;
-            boolean skipCarriageReturnIn0D0A = true;
+            boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                     null, timeFormat, dateFormat, timestampFormat, oneLineRecord, operationContext,
-                    quotedEmptyIsNull, skipCarriageReturnIn0D0A), true);
+                    quotedEmptyIsNull, preserveLineEndings), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {
