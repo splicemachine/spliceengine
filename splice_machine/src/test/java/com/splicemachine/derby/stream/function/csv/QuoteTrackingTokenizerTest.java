@@ -159,12 +159,15 @@ public class QuoteTrackingTokenizerTest {
     }
 
     @Test
-    public void testSkipCarriageReturnIn0D0A() throws Exception {
-        //String row = "abc\n\"a line\r\nis great\"\nefg\n";
+    public void testPreserveLineEndings() throws Exception {
         String row = "abc,\"a line\r\nis great\",\"another\nline!\",efg\n";
-        List<String> correctCols = Arrays.asList("abc", "a line\r\nis great", "another\nline!", "efg");
         BooleanList correctQuotes = BooleanList.wrap(false, true, true, false);
-        checkResults(row, correctCols, correctQuotes, true, false, correctCols.size(), false);
+        List<String> correctColsPreserved = Arrays.asList("abc", "a line\r\nis great", "another\nline!", "efg");
+        checkResults(row, correctColsPreserved, correctQuotes, true,
+                true, correctColsPreserved.size(), false);
+        List<String> correctColsNoPreserved = Arrays.asList("abc", "a line\nis great", "another\nline!", "efg");
+        checkResults(row, correctColsNoPreserved, correctQuotes, true,
+                false, correctColsNoPreserved.size(), false);
     }
 
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes,
