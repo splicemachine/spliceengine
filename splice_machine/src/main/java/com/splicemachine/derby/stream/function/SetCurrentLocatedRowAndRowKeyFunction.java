@@ -41,7 +41,9 @@ public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> e
     public ExecRow call(ExecRow locatedRow) throws Exception {
         getOperation().setCurrentRow(locatedRow);
         getOperation().setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
-        getOperation().setCurrentBaseRowLocation(locatorFunction.call(operationContext));
+        if(getOperation().isForUpdate()) {
+            getOperation().setCurrentBaseRowLocation(locatorFunction.apply(operationContext));
+        }
         StreamLogUtils.logOperationRecord(locatedRow, operationContext);
         return locatedRow;
     }

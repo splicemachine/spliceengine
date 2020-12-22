@@ -1074,7 +1074,6 @@
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
                                 <argument>-Dderby.infolog.append=true</argument>
-                                <argument>-Dderby.debug.true=DumpClassFile</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>file://${project.build.directory}/</argument>
                                 <argument>60000</argument>
