@@ -199,6 +199,10 @@
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-slf4j-impl</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-orc</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -927,7 +931,7 @@
                 </property>
             </activation>
             <properties>
-                <durability>ASYNC</durability>
+                <durability>SYNC</durability>
             </properties>
             <build>
                 <plugins>
