@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
-import com.splicemachine.derby.stream.function.csv.AbstractFileFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 
@@ -33,20 +32,20 @@ import java.util.*;
     public class StreamFileFunction extends AbstractFileFunction<InputStream> {
     private String charset;
     private boolean quotedEmptyIsNull;
-    private boolean skipCarriageReturnIn0D0A;
+    private boolean preserveLineEndings;
 
     public StreamFileFunction() {
         super();
     }
     public StreamFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex,
                               String timeFormat, String dateTimeFormat, String timestampFormat, String charset,
-                              OperationContext operationContext, boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A) {
+                              OperationContext operationContext, boolean quotedEmptyIsNull, boolean preserveLineEndings) {
         super(characterDelimiter,columnDelimiter,execRow,columnIndex,timeFormat,
                 dateTimeFormat,timestampFormat,operationContext);
         assert charset != null;
         this.charset = charset;
         this.quotedEmptyIsNull = quotedEmptyIsNull;
-        this.skipCarriageReturnIn0D0A = skipCarriageReturnIn0D0A;
+        this.preserveLineEndings = preserveLineEndings;
     }
 
     @Override
@@ -54,7 +53,7 @@ import java.util.*;
         super.writeExternal(out);
         out.writeUTF(charset);
         out.writeBoolean(quotedEmptyIsNull);
-        out.writeBoolean(skipCarriageReturnIn0D0A);
+        out.writeBoolean(preserveLineEndings);
     }
 
     @Override
@@ -62,7 +61,7 @@ import java.util.*;
         super.readExternal(in);
         charset = in.readUTF();
         quotedEmptyIsNull = in.readBoolean();
-        skipCarriageReturnIn0D0A = in.readBoolean();
+        preserveLineEndings = in.readBoolean();
     }
 
     @Override
@@ -72,7 +71,7 @@ import java.util.*;
         checkPreference();
 
         CsvParserConfig config = new CsvParserConfig(preference).oneLineRecord(false)
-                .quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturnIn0D0A(skipCarriageReturnIn0D0A);
+                .quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);
 
         return new Iterator<ExecRow>() {
                     private ExecRow nextRow;

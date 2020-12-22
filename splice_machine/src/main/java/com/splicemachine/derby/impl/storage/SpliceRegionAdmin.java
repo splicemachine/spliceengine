@@ -782,9 +782,11 @@ public class SpliceRegionAdmin {
 
         boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean preserveLineEndings = !PropertyUtil.getCachedDatabaseBoolean(
+                lcc, Property.PRESERVE_LINE_ENDINGS);
 
         CsvParserConfig config = new CsvParserConfig(preference)
-                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturnIn0D0A(true);
+                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);
         MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader, config,
                 EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
 
