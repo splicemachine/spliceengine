@@ -193,7 +193,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
-    boolean DEFAULT_SPLICE_SKIP_CARRIAGE_RETURN = true;
+    boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //

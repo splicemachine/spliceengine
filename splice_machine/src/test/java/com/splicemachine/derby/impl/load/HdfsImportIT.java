@@ -34,6 +34,7 @@ import splice.com.google.common.collect.Maps;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
@@ -2144,35 +2145,57 @@ public class HdfsImportIT extends SpliceUnitTest {
     public static void setSkipCarriageReturn(Connection conn, Boolean skipCR) throws Exception {
         try( Statement s = conn.createStatement()) {
             s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
-                    "'" + Property.SPLICE_SKIP_CARRIAGE_RETURN_IN_0D0A + "', '" + skipCR + "' )");
+                    "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + skipCR + "' )");
         }
     }
 
     @Test
     public void testLineEndings() throws Exception {
-
-        String[] configs = {
-                "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
-                "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)",
-                "call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
-            };
-
+        File tempDir = createTempDirectory(spliceSchemaWatcher.schemaName);
+        String path = tempDir.toString() + "/lineEndings.csv";
         try {
-            String strTakeCR = "V1       |C1 |\n" +
-                    "--------------------\n" +
-                    " Hello\r\nWorld  | 1 |\n" +
-                    "Hello\r\nNewline | 2 |";
-            String strSkipCR = "V1       |C1 |\n" +
-                    "-------------------\n" +
-                    " Hello\nWorld  | 1 |\n" +
-                    "Hello\nNewline | 2 |";
-            methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER)");
+            // we're using a file here to have better control over what \r and \n we use
+            // (otherwise needs special editor, git converting line endings etc.)
+            String data =
+                    "\"Hello\r\nWindows\"|1|Win\r\n" + // 0D0A = Windows
+                    "\"Hello\nUnix\"|2|unix\n" +       // 0A   = Unix
+                    "\"Hello\rMac\"|3|mac\r" +         // 0D   = Mac
+                    "\"ciao\"|4|ciao";                 // ends with EOF
+            Files.write(Paths.get(path), data.getBytes());
+
+            String[] configs = {
+                    //"call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
+                    "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)",
+                    //"call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
+                };
+
+            String strTakeCR ="V1       |C1 | V2  |\n" +
+                    "--------------------------\n" +
+                    "Hello\r\n" +
+                    "Windows | 1 | Win |\n" +
+                    "  Hello\n" +
+                    "Unix   | 2 |unix |\n" +
+                    "   Hello\r" +
+                    "Mac   | 3 | mac |\n" +
+                    "     ciao      | 4 |ciao |";
+
+            String strSkipCR ="V1       |C1 | V2  |\n" +
+                    "-------------------------\n" +
+                    "Hello\n" +
+                    "Windows | 1 | Win |\n" +
+                    " Hello\n" +
+                    "Unix   | 2 |unix |\n" +
+                    "  Hello\n" +
+                    "Mac   | 3 | mac |\n" +
+                    "    ciao      | 4 |ciao |";
+
+            methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER, v2 varchar(24))");
 
             for(String config : configs) {
                 for( Boolean skipCR : new Boolean[]{false, true}) {
                     methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
                     setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), skipCR);
-                    String path = getResourceDirectory() + "newline.csv";
+                    //String path = getResourceDirectory() + "newline.csv";
                     String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
 
                     methodWatcher.executeQuery(String.format(sql, spliceSchemaWatcher.schemaName, path));
@@ -2183,6 +2206,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         finally {
             setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), true);
+            File f = new File(path);
+            if (f.exists()) f.delete();
+            deleteTempDirectory(tempDir);
         }
     }
 
