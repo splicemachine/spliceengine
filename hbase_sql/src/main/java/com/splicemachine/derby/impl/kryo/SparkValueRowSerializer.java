@@ -146,10 +146,14 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         }
     }
 
-    DataValueDescriptor[] readDvds(Kryo kryo, Input input, int size) {
+    @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
+    DataValueDescriptor[] readDvds(Input input, int size) {
+
         int[] formatIds = new int[size];
         ExecRow execRow = new ValueRow(size);
+
         DataValueDescriptor[] rowTemplate = execRow.getRowArray();
+
         try {
             for (int i = 0; i < size; ++i) {
                 formatIds[i] = input.readInt(true);
@@ -205,7 +209,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         int size = input.readInt(true);
 
         T instance = newType(size);
-        DataValueDescriptor[] rowTemplate = readDvds(kryo, input, size);
+        DataValueDescriptor[] rowTemplate = readDvds(input, size);
         instance.setRowArray(rowTemplate);
         KeyHashDecoder decoder = getEncoder(rowTemplate).getDecoder();
 
@@ -217,7 +221,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
             if(hasBaseRow) {
                 size = input.readInt(true);
                 ValueRow baseRow = new ValueRow(size);
-                rowTemplate = readDvds(kryo, input, size);
+                rowTemplate = readDvds(input, size);
                 baseRow.setRowArray(rowTemplate);
                 decoder = getEncoder(rowTemplate).getDecoder();
                 decode(decoder, input, baseRow);
