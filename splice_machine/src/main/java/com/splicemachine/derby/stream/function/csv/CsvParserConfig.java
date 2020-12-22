@@ -24,20 +24,20 @@ public class CsvParserConfig {
     CsvPreference preferences;
     boolean oneLineRecord;
     boolean quotedEmptyIsNull;
-    boolean skipCarriageReturn;
+    boolean skipCarriageReturnIn0D0A;
 
     public CsvParserConfig(CsvPreference preferences) {
         this.preferences = preferences;
         this.oneLineRecord = false;
         this.quotedEmptyIsNull = false;
-        this.skipCarriageReturn = true;
+        this.skipCarriageReturnIn0D0A = true;
     }
     public CsvParserConfig(CsvPreference preferences,
-                           boolean oneLineRecord, boolean quotedEmptyIsNull, boolean skipCarriageReturn) {
+                           boolean oneLineRecord, boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A) {
         this.preferences = preferences;
         this.oneLineRecord = oneLineRecord;
         this.quotedEmptyIsNull = quotedEmptyIsNull;
-        this.skipCarriageReturn = skipCarriageReturn;
+        this.skipCarriageReturnIn0D0A = skipCarriageReturnIn0D0A;
     }
     public CsvParserConfig oneLineRecord(boolean value) {
         oneLineRecord = value;
@@ -48,21 +48,21 @@ public class CsvParserConfig {
         quotedEmptyIsNull = value;
         return this;
     }
-    public CsvParserConfig skipCarriageReturn(boolean value) {
-        skipCarriageReturn = value;
+    public CsvParserConfig skipCarriageReturnIn0D0A(boolean value) {
+        skipCarriageReturnIn0D0A = value;
         return this;
     }
 
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(oneLineRecord);
         out.writeBoolean(quotedEmptyIsNull);
-        out.writeBoolean(skipCarriageReturn);
+        out.writeBoolean(skipCarriageReturnIn0D0A);
     }
 
     CsvParserConfig(ObjectInput in) throws IOException {
         oneLineRecord  = in.readBoolean();
         quotedEmptyIsNull = in.readBoolean();
-        skipCarriageReturn = in.readBoolean();
+        skipCarriageReturnIn0D0A = in.readBoolean();
         preferences = null;
     }
 }
