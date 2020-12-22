@@ -251,15 +251,12 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
     }
 
     private void appendToRowNewLine() {
-        String newline = preserveLineEndings ? getCurrentLineEnding() : String.valueOf(NEWLINE);
         if (checkExactSizeFirst) {
-
-            currentRow.append(newline);
-
+            currentRow.append(preserveLineEndings ? getCurrentLineEnding() : String.valueOf(NEWLINE));
         } else if (exactColumnSizes != null && !oneLineRecord) {
             rowIdx++; // simulate adding a newline by moving a sequence by one
         } else {
-            currentRow.append(newline);
+            currentRow.append(preserveLineEndings ? getCurrentLineEnding() : String.valueOf(NEWLINE));
         }
     }
 
@@ -362,9 +359,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
 
     private void addNewLineToColumn()
     {
-        if(preserveLineEndings)
-            addToColumn(NEWLINE);
-        else {
+        if(preserveLineEndings) {
             switch (getCurrentLineEndingType()) {
                 case ending0D:
                     addToColumn('\r');
@@ -381,6 +376,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
                     return;
             }
         }
+        else
+            addToColumn(NEWLINE);
     }
 
     private void handleQuoteState() throws IOException {
