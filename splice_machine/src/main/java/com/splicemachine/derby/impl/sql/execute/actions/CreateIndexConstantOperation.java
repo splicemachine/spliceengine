@@ -950,13 +950,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-            // todo: can split keys contain multi-line strings? if no, then we should have oneLineRecord =true
-            // todo: if yes, skipCarriageReturn should be false
             boolean oneLineRecord = false;
-            boolean skipCarriageReturn = true;
+            boolean skipCarriageReturnIn0D0A = true;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                     null, timeFormat, dateFormat, timestampFormat, oneLineRecord, operationContext,
-                    quotedEmptyIsNull, skipCarriageReturn), true);
+                    quotedEmptyIsNull, skipCarriageReturnIn0D0A), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {
