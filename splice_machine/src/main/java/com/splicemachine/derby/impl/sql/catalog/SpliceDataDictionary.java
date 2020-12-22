@@ -1767,8 +1767,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 
