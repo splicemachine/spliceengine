@@ -153,8 +153,6 @@ class SpliceTestPlatformConfig {
         config.set("hbase.coprocessor.regionserver.classes", getRegionServerCoprocessorsAsString());
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
-        config.setInt("hbase.assignment.dispatch.wait.msec", 0); // remove 150ms pause when creating table
-        config.setInt("hbase.procedure.remote.dispatcher.max.queue.size", 0); // remove 150ms pause when creating table
 
         // Security
 
@@ -254,6 +252,9 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.client.ipc.pool.size",10);
         config.setInt("hbase.client.retries.number", 65); // increased because hbase.client.pause is low (10)
         config.setInt("hbase.rowlock.wait.duration",10);
+        config.setInt("hbase.assignment.dispatch.wait.msec", 0); // remove 150ms pause when creating table
+        config.setInt("hbase.procedure.remote.dispatcher.max.queue.size", 0); // remove 150ms pause when creating table
+        config.setInt("hbase.procedure.store.wal.sync.wait.msec", 5); // remove 100ms pause when storing Master procedures
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));

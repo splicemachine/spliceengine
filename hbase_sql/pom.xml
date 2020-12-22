@@ -624,5 +624,16 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 </project>

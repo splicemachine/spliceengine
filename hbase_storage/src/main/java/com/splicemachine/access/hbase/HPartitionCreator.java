@@ -158,7 +158,11 @@ public class HPartitionCreator implements PartitionCreator{
 
                 @Override
                 public Partition get() throws InterruptedException, ExecutionException {
-                    future.get();
+                    try {
+                        future.get(admin.getOperationTimeout()*10, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
                     return result;
                 }
 
