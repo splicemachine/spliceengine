@@ -51,7 +51,7 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, E
                     execRow.setKey(null);
                     execRow.setBaseRowCols(null);
                 } else {
-                    ExecRow baseRow = locatorFunction.call(operationContext);
+                    ExecRow baseRow = locatorFunction.apply(operationContext);
                     op.setCurrentBaseRowLocation(baseRow);
                     execRow.setBaseRowCols(baseRow.getRowArray());
                 }
