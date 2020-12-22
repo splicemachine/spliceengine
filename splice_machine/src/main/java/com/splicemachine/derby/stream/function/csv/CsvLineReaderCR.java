@@ -20,18 +20,11 @@ import java.io.IOException;
 import java.io.Reader;
 
 /**
- * A buffered CSV line reader.
- * With the option skipCarriageReturn we can define if carriage return (\r = 0x0D)
- * is meant to be skipped or considered part of the returned string.
- * e.g. input "Hello\r\nWorld!\n"
- * will return lines "Hello" and "World!" with skipCarriageReturn = true,
- * but will return "Hello\r" and "World!" with skipCarriageReturn = false.
- * This is meant for preserving line endings.
+ * A buffered CSV line reader which is able to return the current line ending's type via
+ * getCurrentLineEndingType / getCurrentLineEnding (like "\r\n", "\r", "\n", or "" = EOF)
  */
 public class CsvLineReaderCR {
     private final Reader reader;
-    private final boolean skipCarriageReturn;
-    private final boolean crNewline;    ;
     private final int configInitialStringBufferSize;
     private final int configBufferSize;
 
@@ -52,18 +45,16 @@ public class CsvLineReaderCR {
     @SuppressFBWarnings("URF_UNREAD_FIELD")
     LineEndingType currentLineEnding = LineEndingType.endingNone;
 
-    public CsvLineReaderCR(final Reader reader, boolean skipCarriageReturn, boolean crNewline) {
-        this(reader, skipCarriageReturn, crNewline, 80, 8192);
+    public CsvLineReaderCR(final Reader reader) {
+        this(reader, 80, 8192);
     }
 
-    public CsvLineReaderCR(final Reader reader, boolean skipCarriageReturn, boolean crNewline,
+    public CsvLineReaderCR(final Reader reader,
                            int configInitialStringBufferSize, int configBufferSize) {
         if( reader == null ) {
             throw new NullPointerException("reader should not be null");
         }
         this.reader = reader;
-        this.skipCarriageReturn = skipCarriageReturn;
-        this.crNewline = crNewline;
         this.configInitialStringBufferSize = configInitialStringBufferSize;
         this.configBufferSize = configBufferSize;
     }
@@ -131,7 +122,7 @@ public class CsvLineReaderCR {
             int start = bufferPos;
             for ( ;bufferPos < bufferSize; bufferPos++) {
                 c = bufferBytes[bufferPos];
-                if ((c == '\n') || (skipCarriageReturn && c == '\r')) break;
+                if (c == '\n' || c == '\r') break;
                 else crBefore = false;
             }
             // todo: maybe avoid using StringBuffer here totally by
@@ -158,23 +149,12 @@ public class CsvLineReaderCR {
             {
                 if( bufferPos+1 < bufferSize ) {
                     boolean is0A = bufferBytes[bufferPos+1] == '\n';
-                    if( is0A || crNewline) {
-                        // case 3
-                        currentLineEnding = is0A ? LineEndingType.ending0D0A :
-                                LineEndingType.ending0D;
-                        String res = getRes(start, bufferPos);
-                        bufferPos += is0A ? 2 : 1;
-                        return res;
-                    }
-                    else {
-                        if(!crNewline) {
-                            // case 4
-                            // \r in the middle like "AAA\rBBB\r\n"
-                            crBefore = true;
-                            appendToRes(start, bufferPos + 1);
-                            bufferPos++;
-                        }
-                    }
+                    // case 3
+                    currentLineEnding = is0A ? LineEndingType.ending0D0A :
+                            LineEndingType.ending0D;
+                    String res = getRes(start, bufferPos);
+                    bufferPos += is0A ? 2 : 1;
+                    return res;
                 }
                 else { // \r was last sign in buffer
                     appendToRes(start, bufferPos);
@@ -186,25 +166,29 @@ public class CsvLineReaderCR {
                         return getRes(0, 0);
                     }
                     boolean is0A = bufferBytes[0] == '\n';
-                    if( is0A || crNewline) {
-                        currentLineEnding = is0A ? LineEndingType.ending0D0A :
-                                LineEndingType.ending0D;
-                        // case 6
-                        // \r | \n
-                        if( is0A ) bufferPos = 1;
-                        currentLineEnding = LineEndingType.ending0D0A;
-                        return getRes(0, 0);
-                    }
-                    else {
-                        currentLineEnding = LineEndingType.ending0A;
-                        //res.append('\r');
-                        return getRes(0, 0);
-                        // case 7
-                        // \r | A
-                        // continue;
-                    }
+                    currentLineEnding = is0A ? LineEndingType.ending0D0A :
+                            LineEndingType.ending0D;
+                    // case 6
+                    // \r | \n
+                    if( is0A ) bufferPos = 1;
+                    return getRes(0, 0);
                 }
             }
+        }
+    }
+
+    public LineEndingType getCurrentLineEndingType() {
+        return currentLineEnding;
+    }
+
+    public String getCurrentLineEnding()
+    {
+        switch(currentLineEnding) {
+            case ending0D0A: return "\r\n";
+            case ending0D: return "\r";
+            case ending0A: return "\n";
+            default:
+                return "";
         }
     }
 }

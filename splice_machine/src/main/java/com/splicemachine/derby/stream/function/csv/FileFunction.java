@@ -53,10 +53,10 @@ public class FileFunction extends AbstractFileFunction<String> {
 
     public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
                         String dateTimeFormat, String timestampFormat, boolean oneLineRecord,
-                        OperationContext operationContext, boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A) {
+                        OperationContext operationContext, boolean quotedEmptyIsNull, boolean preserveLineEndings) {
         super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
                 dateTimeFormat, timestampFormat, operationContext);
-        config = new CsvParserConfig(preference, oneLineRecord, quotedEmptyIsNull, skipCarriageReturnIn0D0A);
+        config = new CsvParserConfig(preference, oneLineRecord, quotedEmptyIsNull, preserveLineEndings);
     }
 
     @Override

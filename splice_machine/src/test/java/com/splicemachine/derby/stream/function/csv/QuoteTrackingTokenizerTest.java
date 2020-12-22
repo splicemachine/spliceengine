@@ -145,7 +145,7 @@ public class QuoteTrackingTokenizerTest {
         String invalidRow = "\"hello\",\"wrong\ncell\",goodbye\n";
         try {
             CsvParserConfig config = new CsvParserConfig(CsvPreference.STANDARD_PREFERENCE)
-                    .oneLineRecord(true).quotedEmptyIsNull(true).skipCarriageReturnIn0D0A(true);
+                    .oneLineRecord(true).quotedEmptyIsNull(true).preserveLineEndings(true);
             QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), config);
             List<String> columns = new ArrayList<>();
             qtt.readColumns(columns);
@@ -174,11 +174,11 @@ public class QuoteTrackingTokenizerTest {
     }
 
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes,
-                                     boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A, int size,
+                                     boolean quotedEmptyIsNull, boolean preserveLineEndings, int size,
                                      boolean triggerScan) throws IOException {
         QuoteTrackingTokenizer qtt = null;
         CsvParserConfig config = new CsvParserConfig(CsvPreference.STANDARD_PREFERENCE)
-                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturnIn0D0A(skipCarriageReturnIn0D0A);
+                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);
         if(triggerScan) {
             qtt = new QuoteTrackingTokenizer(new StringReader(row), config,
                     1, Collections.nCopies(expectedColumns.size(), 10));
@@ -212,8 +212,6 @@ public class QuoteTrackingTokenizerTest {
 
     private static class CSVBuilder {
         private final boolean oneLineRecord;
-        private StringBuilder sb = new StringBuilder();
-
         private Random random = new Random();
 
         CSVBuilder(boolean oneLineRecord) {
