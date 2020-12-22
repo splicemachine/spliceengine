@@ -33,20 +33,20 @@ import java.util.*;
     public class StreamFileFunction extends AbstractFileFunction<InputStream> {
     private String charset;
     private boolean quotedEmptyIsNull;
-    private boolean skipCarriageReturn;
+    private boolean skipCarriageReturnIn0D0A;
 
     public StreamFileFunction() {
         super();
     }
     public StreamFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex,
                               String timeFormat, String dateTimeFormat, String timestampFormat, String charset,
-                              OperationContext operationContext, boolean quotedEmptyIsNull, boolean skipCarriageReturn) {
+                              OperationContext operationContext, boolean quotedEmptyIsNull, boolean skipCarriageReturnIn0D0A) {
         super(characterDelimiter,columnDelimiter,execRow,columnIndex,timeFormat,
                 dateTimeFormat,timestampFormat,operationContext);
         assert charset != null;
         this.charset = charset;
         this.quotedEmptyIsNull = quotedEmptyIsNull;
-        this.skipCarriageReturn = skipCarriageReturn;
+        this.skipCarriageReturnIn0D0A = skipCarriageReturnIn0D0A;
     }
 
     @Override
@@ -54,7 +54,7 @@ import java.util.*;
         super.writeExternal(out);
         out.writeUTF(charset);
         out.writeBoolean(quotedEmptyIsNull);
-        out.writeBoolean(skipCarriageReturn);
+        out.writeBoolean(skipCarriageReturnIn0D0A);
     }
 
     @Override
@@ -62,7 +62,7 @@ import java.util.*;
         super.readExternal(in);
         charset = in.readUTF();
         quotedEmptyIsNull = in.readBoolean();
-        skipCarriageReturn = in.readBoolean();
+        skipCarriageReturnIn0D0A = in.readBoolean();
     }
 
     @Override
@@ -72,7 +72,7 @@ import java.util.*;
         checkPreference();
 
         CsvParserConfig config = new CsvParserConfig(preference).oneLineRecord(false)
-                .quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturn(skipCarriageReturn);
+                .quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturnIn0D0A(skipCarriageReturnIn0D0A);
 
         return new Iterator<ExecRow>() {
                     private ExecRow nextRow;

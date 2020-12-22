@@ -46,7 +46,7 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
      * @throws NullPointerException
      *             if reader or preferences is null
      */
-    public AbstractTokenizerCR(final Reader reader, final CsvPreference preferences, boolean skipCarriageReturn) {
+    public AbstractTokenizerCR(final Reader reader, final CsvPreference preferences, boolean skipCarriageReturnIn0D0A) {
         if( reader == null ) {
             throw new NullPointerException("reader should not be null");
         }
@@ -54,7 +54,7 @@ public abstract class AbstractTokenizerCR implements ITokenizer {
             throw new NullPointerException("preferences should not be null");
         }
         this.preferences = preferences;
-        clr = new CsvLineReaderCR(reader, skipCarriageReturn, true);
+        clr = new CsvLineReaderCR(reader, skipCarriageReturnIn0D0A, true);
     }
 
     /**

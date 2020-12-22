@@ -784,7 +784,7 @@ public class SpliceRegionAdmin {
                 lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
 
         CsvParserConfig config = new CsvParserConfig(preference)
-                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturn(true);
+                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).skipCarriageReturnIn0D0A(true);
         MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader, config,
                 EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
 
