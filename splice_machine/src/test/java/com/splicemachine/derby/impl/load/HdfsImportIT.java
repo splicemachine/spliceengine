@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -2143,7 +2144,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public static void setSkipCarriageReturn(Connection conn, Boolean skipCR) throws Exception {
         try( Statement s = conn.createStatement()) {
             s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
-                    "'splice.function.skipCarriageReturn', '" + skipCR + "' )");
+                    "'" + Property.SPLICE_SKIP_CARRIAGE_RETURN_IN_0D0A + "', '" + skipCR + "' )");
         }
     }
 

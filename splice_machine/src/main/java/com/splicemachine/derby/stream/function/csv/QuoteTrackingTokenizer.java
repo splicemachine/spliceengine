@@ -148,7 +148,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
      */
     public QuoteTrackingTokenizer(Reader reader, CsvParserConfig config,
                                   final long scanThresold, final List<Integer> valueSizeHints) {
-        super(reader, config.preferences, config.skipCarriageReturn);
+        super(reader, config.preferences, config.skipCarriageReturnIn0D0A);
         this.quoteChar = config.preferences.getQuoteChar();
         this.delimeterChar = config.preferences.getDelimiterChar();
         this.surroundingSpacesNeedQuotes = config.preferences.isSurroundingSpacesNeedQuotes();
