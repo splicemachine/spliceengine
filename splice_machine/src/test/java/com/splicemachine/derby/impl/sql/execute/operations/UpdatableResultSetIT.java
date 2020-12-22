@@ -49,6 +49,7 @@ public class UpdatableResultSetIT {
     protected static final String D_TABLE_IDX = "D_IDX";
     protected static final String E_TABLE     = "E";
     protected static final String F_TABLE     = "F";
+    protected static final String F_TABLE_IDX = "F_IDX";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -136,7 +137,9 @@ public class UpdatableResultSetIT {
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int primary key, c2 varchar(20))", D_TABLE)).withIndex(String.format("create index %s on %s(c1)", D_TABLE_IDX, D_TABLE)).create();
         new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", E_TABLE)).create();
         new TableCreator(conn).withCreate(String.format("create table %s (c1 char(36) not null, c2 char(8) not null, c3 char(36) not null, c4 timestamp not null, " +
-                                                                         "c5 decimal(10,0) not null, c6 char(1) not null, c7 varchar(10) for bit data not null default X'')", F_TABLE)).withConstraints("primary key(c1)").create();
+                                                                         "c5 decimal(10,0) not null, c6 char(1) not null, c7 varchar(10) for bit data not null default X'')", F_TABLE))
+                .withConstraints("primary key(c1)")
+                .withIndex(String.format("create index %s on %s(c3)", F_TABLE_IDX, F_TABLE)).create();
     }
 
     private void tableShouldBe(String tableName, Object[][] expected) throws SQLException {
@@ -608,11 +611,10 @@ public class UpdatableResultSetIT {
 
     }
 
-    @Test
-    public void testUpdatingPartialProjection() throws Exception {
-
+    private void testUpdatingPartialProjectionInternal(boolean useIndex) throws Exception {
         prepareTableFData();
-        final String partialProjectionSql = String.format("SELECT c3, c4, c7 FROM %s WHERE c6 = 'A' AND c2 = ? AND c3 BETWEEN ? and ? OPTIMIZE FOR 1 ROWS WITH UR", F_TABLE);
+        final String partialProjectionSql = String.format("SELECT c3, c4, c7 FROM %s --splice-properties index=%s\n WHERE c6 = 'A' AND c2 = ? AND c3 BETWEEN ? and ? OPTIMIZE FOR 1 ROWS WITH UR",
+                                                          F_TABLE, (useIndex ? F_TABLE_IDX : "null"));
 
         tableFShouldBe(new Object[][]{
                 {"value0                              ", Timestamp.valueOf("2020-12-21 20:54:09.123456"), "616263"},
@@ -652,6 +654,16 @@ public class UpdatableResultSetIT {
                 {"value8                              ", Timestamp.valueOf("2020-12-13 20:54:09.123456"), "616263"},
                 {"value9                              ", Timestamp.valueOf("2020-12-12 20:54:09.123456"), "616263"}
         });
+    }
+
+    @Test
+    public void testUpdatingPartialProjection() throws Exception {
+        testUpdatingPartialProjectionInternal(false);
+    }
+
+    @Test
+    public void testUpdatingPartialProjectionWithIndexScan() throws Exception {
+        testUpdatingPartialProjectionInternal(true);
     }
 }
 

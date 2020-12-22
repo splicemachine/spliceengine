@@ -13,6 +13,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
@@ -21,19 +22,18 @@ import com.splicemachine.derby.impl.sql.execute.operations.ScrollInsensitiveOper
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
-public class BaseRowLocatorFunction <Op extends SpliceOperation> extends SpliceFunction<Op, OperationContext<Op>,ExecRow> {
+import java.util.function.Function;
+
+public class BaseRowLocatorFunction<Op extends SpliceOperation> {
 
     public BaseRowLocatorFunction() {
         super();
     }
 
-    @Override
-    public ExecRow call(OperationContext<Op> operationContext) throws Exception {
-
+    public ExecRow apply(OperationContext<Op> operationContext) throws StandardException {
         if(operationContext == null) {
             return null;
         }
-
         SpliceOperation op = operationContext.getOperation();
         while(op instanceof ProjectRestrictOperation || op instanceof ScrollInsensitiveOperation || op instanceof TableScanOperation || op instanceof IndexRowToBaseRowOperation) { // window operation also?
             if(op instanceof TableScanOperation || op instanceof IndexRowToBaseRowOperation) {
@@ -46,10 +46,5 @@ public class BaseRowLocatorFunction <Op extends SpliceOperation> extends SpliceF
             }
         }
         return null;
-    }
-
-    @Override
-    public boolean hasNativeSparkImplementation() {
-        return true;
     }
 }
