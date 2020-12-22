@@ -1042,7 +1042,7 @@
                 <zookeeper.version>3.4.5-cdh6.3.2</zookeeper.version>
                 <scala.binary.version>2.12</scala.binary.version>
                 <scala.version>2.12.12</scala.version>
-                <spark.version>3.0.0</spark.version>
+                <spark.version>3.0.1</spark.version>
                 <spark.major.version>spark3.0</spark.major.version>
                 <kafka.version>2.2.1-cdh6.3.2</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
