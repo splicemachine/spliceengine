@@ -33,11 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.loader.ClassFactoryContext;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -1000,13 +996,8 @@ public class OptimizerImpl implements Optimizer{
                 ** we can't really tell much by comparing the two, so for lack
                 ** of better alternative we look at the row counts.  See
                 ** CostEstimateImpl.compare() for more.
-                *
-                *  If the current access path's join strategy is null, that
-                *  means we just found a hinted join, so remember it as
-                *  our best.
                 */
-                if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized() ||
-                    curOpt.getCurrentAccessPath().getJoinStrategy() == null){
+                if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized()){
                     rememberBestCost(currentCost,Optimizer.NORMAL_PLAN);
 
                     // Since we just remembered all of the best plans,
@@ -2144,15 +2135,6 @@ public class OptimizerImpl implements Optimizer{
         assignedTableMap.xor(pullMe.getReferencedTableMap());
     }
 
-    private boolean isPreparedStatement() {
-        LanguageConnectionContext lcc =
-            (LanguageConnectionContext) ContextService.
-                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-        if (lcc == null || lcc.getActivationCount() < 1)
-            return false;
-        return lcc.getLastActivation().getPreparedStatement() != null;
-    }
-
     /**
      * Is the cost of this join order lower than the best one we've
      * found so far?  If so, remember it.
@@ -2197,17 +2179,6 @@ public class OptimizerImpl implements Optimizer{
         // Consider consolidating all these into nanoseconds in the future.
         if((bestCost.getEstimatedCost()/NANOS_TO_MILLIS)<timeLimit) {
             timeLimit=bestCost.getEstimatedCost()/NANOS_TO_MILLIS;
-
-            // Triggers and other prepared statements may have a very low
-            // cost estimate because the size of the involved trigger rows
-            // is not known up-front.  We don't want to quit query compilation
-            // early, resulting in a bad query plan or a plan which fails to
-            // pick up query hints, especially since the
-            // prepared statement does not need to be compiled on every
-            // invocation, just once in a while.  So, it is time well
-            // spent if it means we can compile a more optimal plan.
-            if (timeLimit < 2000 && isPreparedStatement())
-                timeLimit = 2000;
         }
 
         /*
