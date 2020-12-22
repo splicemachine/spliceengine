@@ -23,7 +23,7 @@ public class CsvLineReaderCRTest {
 
     }
     @Test
-    public void test1() throws IOException {
+    public void testSimple() throws IOException {
         test( "Hello\nWorld\n", new String[]{"Hello", "\n", "World", "\n"}, 1024);
         test( "Hello\r\nWorld\n", new String[]{"Hello", "\r\n", "World", "\n"}, 1024);
         test( "Hello\nWorld\r", new String[]{"Hello", "\n", "World", "\r"}, 1024);
@@ -32,7 +32,7 @@ public class CsvLineReaderCRTest {
     }
 
     @Test
-    public void test3() throws IOException {
+    public void testAllCases() throws IOException {
         boolean crNewline = true;
         test("", new String[]{}, 5);
 
@@ -65,8 +65,6 @@ public class CsvLineReaderCRTest {
 
         // CASE 7 : configBufferSize=5
         // 1234\rA
-    }
-    @Test    public void test4() throws IOException {
         test( "123456", new String[]{"123456", ""}, 5);
         test( "12345", new String[]{"12345", ""}, 5);
         test( "1234\rA", new String[]{"1234", "\r", "A", ""}, 5);

@@ -128,7 +128,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
-    boolean GetPreserveLineEndings(SpliceOperation op) throws StandardException {
+    boolean getPreserveLineEndings(SpliceOperation op) throws StandardException {
         boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
         if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
             return defaultValue;
@@ -161,8 +161,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
                 quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
             }
 
-            boolean preserveLineEndings = GetPreserveLineEndings(op);
-            if (oneLineRecords && preserveLineEndings /* todo check if this is needed (SMTextInputFormat) */
+            boolean preserveLineEndings = getPreserveLineEndings(op);
+            if (oneLineRecords && !preserveLineEndings
                     && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");

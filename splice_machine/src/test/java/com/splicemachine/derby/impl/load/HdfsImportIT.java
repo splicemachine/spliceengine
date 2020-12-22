@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -290,7 +291,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 .withIndex("CREATE INDEX cust_idx ON hdfsimportit.customers(email)")
                 .create();
 
-        setSkipCarriageReturn(conn,true);
+        setPreserveLineEndings(conn,false);
     }
 
     private static File BADDIR;
@@ -2142,10 +2143,10 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
-    public static void setSkipCarriageReturn(Connection conn, Boolean skipCR) throws Exception {
+    public static void setPreserveLineEndings(Connection conn, Boolean preserve) throws Exception {
         try( Statement s = conn.createStatement()) {
             s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
-                    "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + skipCR + "' )");
+                    "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + preserve + "' )");
         }
     }
 
@@ -2164,12 +2165,12 @@ public class HdfsImportIT extends SpliceUnitTest {
             Files.write(Paths.get(path), data.getBytes());
 
             String[] configs = {
-                    //"call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
+                    "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
                     "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)",
-                    //"call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
+                    "call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
                 };
 
-            String strTakeCR ="V1       |C1 | V2  |\n" +
+            String preserveStr ="V1       |C1 | V2  |\n" +
                     "--------------------------\n" +
                     "Hello\r\n" +
                     "Windows | 1 | Win |\n" +
@@ -2179,7 +2180,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                     "Mac   | 3 | mac |\n" +
                     "     ciao      | 4 |ciao |";
 
-            String strSkipCR ="V1       |C1 | V2  |\n" +
+            String noPreserveStr ="V1       |C1 | V2  |\n" +
                     "-------------------------\n" +
                     "Hello\n" +
                     "Windows | 1 | Win |\n" +
@@ -2192,20 +2193,19 @@ public class HdfsImportIT extends SpliceUnitTest {
             methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER, v2 varchar(24))");
 
             for(String config : configs) {
-                for( Boolean skipCR : new Boolean[]{false, true}) {
+                for( Boolean preserve : new Boolean[]{false, true}) {
                     methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
-                    setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), skipCR);
-                    //String path = getResourceDirectory() + "newline.csv";
+                    setPreserveLineEndings(methodWatcher.getOrCreateConnection(), preserve);
                     String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
 
                     methodWatcher.executeQuery(String.format(sql, spliceSchemaWatcher.schemaName, path));
                     SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from LINE_ENDINGS order by c1",
-                            skipCR ? strSkipCR : strTakeCR, false);
+                            preserve ? preserveStr : noPreserveStr, false);
                 }
             }
         }
         finally {
-            setSkipCarriageReturn(methodWatcher.getOrCreateConnection(), true);
+            setPreserveLineEndings(methodWatcher.getOrCreateConnection(), CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS);
             File f = new File(path);
             if (f.exists()) f.delete();
             deleteTempDirectory(tempDir);
