@@ -329,12 +329,29 @@ public class DeleteNode extends DMLModStatementNode
                     rowIdColumn.setName(COLUMNNAME);
                 }
 
-                rowLocationColumn =
-                        (ResultColumn) getNodeFactory().getNode(
-                                C_NodeTypes.RESULT_COLUMN,
-                                COLUMNNAME,
-                                rowIdColumn,
-                                getContextManager());
+                if(!cursorDelete) {
+                    ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                            C_NodeTypes.COLUMN_REFERENCE,
+                            rowIdColumn.getName(),
+                            null,
+                            getContextManager());
+                    columnReference.setSource(rowIdColumn);
+                    columnReference.setNestingLevel(targetTable.getLevel());
+                    columnReference.setSourceLevel(targetTable.getLevel());
+                    rowLocationColumn =
+                            (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.RESULT_COLUMN,
+                                    COLUMNNAME,
+                                    columnReference,
+                                    getContextManager());
+                } else {
+                    rowLocationColumn =
+                            (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.RESULT_COLUMN,
+                                    COLUMNNAME,
+                                    rowIdColumn,
+                                    getContextManager());
+                }
 
                 rowLocationColumn.bindResultColumnToExpression();
 
