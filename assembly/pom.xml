@@ -1086,6 +1086,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>
@@ -1097,7 +1098,6 @@
                                     <postinstallScriptlet>
                                         <script>chkconfig --add splice-regionserver</script>
                                     </postinstallScriptlet>
-                                    <directoryIncluded>false</directoryIncluded>
                                 </configuration>
                             </execution>
                             <execution>
@@ -1125,6 +1125,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>
@@ -1136,7 +1137,6 @@
                                     <postinstallScriptlet>
                                         <script>chkconfig --add splice-masterserver</script>
                                     </postinstallScriptlet>
-                                    <directoryIncluded>false</directoryIncluded>
                                 </configuration>
                             </execution>
                             <execution>
@@ -1177,6 +1177,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
@@ -1193,6 +1194,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
@@ -1200,6 +1202,7 @@
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>
@@ -1208,7 +1211,6 @@
                                     <installScriptlet>
                                         <script>mkdir -p %{buildroot}/etc/rc.d/init.d/</script>
                                     </installScriptlet>
-                                    <directoryIncluded>false</directoryIncluded>
                                 </configuration>
                             </execution>
                             <execution>
@@ -1235,6 +1237,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
@@ -1247,6 +1250,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
@@ -1264,6 +1268,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>
@@ -1272,7 +1277,6 @@
                                     <installScriptlet>
                                         <script>mkdir -p %{buildroot}/etc/rc.d/init.d/</script>
                                     </installScriptlet>
-                                    <directoryIncluded>false</directoryIncluded>
                                 </configuration>
                             </execution>
                             <execution>
@@ -1287,7 +1291,7 @@
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
                                     <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
-                                    <mappings>=
+                                    <mappings>
                                         <mapping>
                                             <directory>/opt/splice/default/bin/</directory>
                                             <configuration>true</configuration>
@@ -1308,6 +1312,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/splice/default/lib/</directory>
@@ -1340,6 +1345,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
@@ -1358,6 +1364,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/hbase-webapps</directory>
@@ -1370,6 +1377,7 @@
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/logs</directory>
@@ -1377,6 +1385,7 @@
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/lib</directory>
@@ -1400,6 +1409,7 @@
                                                     <location>/opt/splice/default/lib/javax.servlet-api-3.1.0.jar</location>
                                                 </softlinkSource>
                                             </sources>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>
@@ -1408,7 +1418,6 @@
                                     <preinstallScriptlet>
                                         <script>mkdir -p %{buildroot}/etc/rc.d/init.d/</script>
                                     </preinstallScriptlet>
-                                    <directoryIncluded>false</directoryIncluded>
                                 </configuration>
                             </execution>
                         </executions>

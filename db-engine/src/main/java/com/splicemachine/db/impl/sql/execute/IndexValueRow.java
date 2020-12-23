@@ -194,7 +194,7 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
          * class interface
          */
 	public String toString() {
-		return valueRow.toString();
+		return valueRow.toSimpleString();
 	}
 
 	@Override
@@ -315,7 +315,8 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 
     @Override
     public int hashCode() {
-        return valueRow.hashCode();
+	    Object row = valueRow;
+        return row.hashCode();
     }
 
 	@Override

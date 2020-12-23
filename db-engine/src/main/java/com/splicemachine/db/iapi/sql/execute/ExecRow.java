@@ -135,4 +135,27 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 
 	boolean equals(Object obj);
 
+    /**
+     * IntelliJ gets confused about ExecRow.toString() because Spark's Row interface defines a toString() method
+     * that overrides the one in Object, and IntelliJ sees it as an ambiguous call.
+     * This method breaks that ambiguity
+     */
+	default String toSimpleString() {
+        // NOTE: This method is required for external functionality (the
+        // consistency checker), so do not put it under SanityManager.DEBUG.
+        StringBuilder s = new StringBuilder("{ ");
+        DataValueDescriptor[] column = getRowArray();
+        for (int i = 0; i < column.length; i++)
+        {
+            if (column[i] == null)
+                s.append("null");
+            else
+                s.append(column[i].toString());
+            if (i < (column.length - 1))
+                s.append(", ");
+        }
+        s.append(" }");
+        return s.toString();
+    }
+
 }
