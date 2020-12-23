@@ -74,8 +74,12 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         cf = new ReflectClassesJava2();
     }
 
-    private void writeDvds(Kryo kryo, Output output, DataValueDescriptor[] dvds) {
+    @Override
+    public void write(Kryo kryo, Output output, T object) {
+
+        DataValueDescriptor[] dvds = object.getRowArray();
         int[] formatIds = EngineUtils.getFormatIds(dvds);
+        DataHash encoder = getEncoder(dvds);
         output.writeInt(formatIds.length, true);
         try {
             for (int i = 0; i < formatIds.length; ++i) {
@@ -106,54 +110,26 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         } catch(Exception e) {
             throw new RuntimeException(Throwables.getRootCause(e));
         }
-    }
-
-    private void encodeObject(Kryo kryo, Output output, DataHash encoder, byte[] key) throws StandardException {
-        // encode object
-        byte[] encoded = encoder.encode();
-        output.writeInt(encoded.length, true);
-        output.writeBytes(encoded);
-
-        // encode key
-        if(key == null) {
-            output.writeBoolean(false);
-        } else {
-            output.writeBoolean(true);
-            output.writeInt(key.length);
-            output.write(key);
-        }
-    }
-
-    @Override
-    public void write(Kryo kryo, Output output, T object) {
-        writeDvds(kryo, output, object.getRowArray());
-        DataHash encoder = getEncoder(object.getRowArray());
         encoder.setRow(object);
         try {
-            encodeObject(kryo, output, encoder, object.getKey());
-            DataValueDescriptor[] baseRowCols = object.getBaseRowCols();
-            if(baseRowCols == null) {
-                output.writeBoolean(false);
-            } else {
-                output.writeBoolean(true);
-                writeDvds(kryo, output, baseRowCols);
-                DataHash baseRowEncoder = getEncoder(baseRowCols);
-                baseRowEncoder.setRow(new ValueRow(baseRowCols));
-                encodeObject(kryo, output, baseRowEncoder, null); // not 100%
-            }
+            byte[] encoded = encoder.encode();
+            output.writeInt(encoded.length, true);
+            output.writeBytes(encoded);
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while serializing row " + object, e);
         }
     }
 
-    @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
-    DataValueDescriptor[] readDvds(Input input, int size) {
+    @Override
+    @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9844")
+    public T read(Kryo kryo, Input input, Class<T> type) {
+        int size = input.readInt(true);
+
+        T instance = newType(size);
 
         int[] formatIds = new int[size];
         ExecRow execRow = new ValueRow(size);
-
         DataValueDescriptor[] rowTemplate = execRow.getRowArray();
-
         try {
             for (int i = 0; i < size; ++i) {
                 formatIds[i] = input.readInt(true);
@@ -172,62 +148,26 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                     }
                 }
             }
-            return execRow.getRowArray();
         } catch (Exception e) {
             throw new RuntimeException(Throwables.getRootCause(e));
         }
-    }
 
-    private void decode(KeyHashDecoder decoder, Input input, ExecRow instance) throws StandardException {
+        instance.setRowArray(rowTemplate);
 
+        KeyHashDecoder decoder = getEncoder(rowTemplate).getDecoder();
         int length = input.readInt(true);
         int position = input.position();
 
-        // decode instance
-        if (position + length < input.limit()) {
-            decoder.set(input.getBuffer(), position, length);
-            decoder.decode(instance);
-            input.setPosition(position + length);
-        } else {
-            byte[] toDecode = input.readBytes(length);
-            decoder.set(toDecode, 0, length);
-            decoder.decode(instance);
-        }
-
-        // decode key
-        boolean hasKey = input.readBoolean();
-        if(hasKey) {
-            int keyLength = input.readInt();
-            instance.setKey(input.readBytes(keyLength));
-        }
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9844")
-    public T read(Kryo kryo, Input input, Class<T> type) {
-
-        int size = input.readInt(true);
-
-        T instance = newType(size);
-        DataValueDescriptor[] rowTemplate = readDvds(input, size);
-        instance.setRowArray(rowTemplate);
-        KeyHashDecoder decoder = getEncoder(rowTemplate).getDecoder();
-
         try {
-            decode(decoder, input, instance);
-
-            // read base row if exists
-            boolean hasBaseRow = input.readBoolean();
-            if(hasBaseRow) {
-                size = input.readInt(true);
-                ValueRow baseRow = new ValueRow(size);
-                rowTemplate = readDvds(input, size);
-                baseRow.setRowArray(rowTemplate);
-                decoder = getEncoder(rowTemplate).getDecoder();
-                decode(decoder, input, baseRow);
-                instance.setBaseRowCols(baseRow.getRowArray());
+            if (position + length < input.limit()) {
+                decoder.set(input.getBuffer(), position, length);
+                decoder.decode(instance);
+                input.setPosition(position + length);
+            } else {
+                byte[] toDecode = input.readBytes(length);
+                decoder.set(toDecode, 0, length);
+                decoder.decode(instance);
             }
-
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while deserializing row with template " + instance, e);
         }

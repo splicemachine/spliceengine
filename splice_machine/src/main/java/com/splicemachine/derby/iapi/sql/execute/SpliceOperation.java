@@ -433,11 +433,4 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     DataTypeDescriptor[] getResultColumnDataTypes();
 
     StructType schema() throws StandardException;
-
-    /**
-     * @return True if the operation should run exclusively in control, otherwise false.
-     */
-    boolean isControlOnly();
-
-    void setCurrentBaseRowLocation(ExecRow currentBaseRow);
 }
