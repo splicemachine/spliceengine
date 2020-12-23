@@ -182,12 +182,6 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         return ps;
     }
 
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        PreparedStatement ps = getOrCreateConnection().prepareStatement(sql, resultSetType, resultSetConcurrency);
-        statements.add(ps);
-        return ps;
-    }
-
     /**
      * Try closing connections gracefully from different threads, if that takes long it could be some queries are stuck,
      * so abort the connections forcefully instead

@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -49,7 +48,6 @@ public class IndexToBaseRowFilterPredicateFunction<Op extends SpliceOperation>
             if (!predOp.getRestriction().apply(locatedRow))
                 return false;
             predOp.setCurrentRow(locatedRow);
-            predOp.setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
             return true;
         } catch (Exception e) {
             throw new RuntimeException(e);

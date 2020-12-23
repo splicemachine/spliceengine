@@ -307,14 +307,6 @@ public class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResult
         return null;
     }
 
-    @Override
-    public ExecRow getCurrentBaseRow() {
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(isOpen, "resultSet expected to be open");
-        }
-        return null;
-    }
-
 
     /**
      * Clean up

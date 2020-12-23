@@ -17,33 +17,27 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ScrollInsensitiveOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 
+/**
+ *
+ *
+ */
 public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
-
-    private BaseRowLocatorFunction<Op> locatorFunction;
 
     public SetCurrentLocatedRowAndRowKeyFunction() {
         super();
-        locatorFunction = new BaseRowLocatorFunction<>();
     }
 
     public SetCurrentLocatedRowAndRowKeyFunction(OperationContext operationContext) {
         super(operationContext);
-        locatorFunction = new BaseRowLocatorFunction<>();
     }
 
     @Override
     public ExecRow call(ExecRow locatedRow) throws Exception {
         getOperation().setCurrentRow(locatedRow);
         getOperation().setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
-        if(getOperation().isForUpdate()) {
-            getOperation().setCurrentBaseRowLocation(locatorFunction.apply(operationContext));
-        }
         StreamLogUtils.logOperationRecord(locatedRow, operationContext);
         return locatedRow;
     }

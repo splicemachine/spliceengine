@@ -108,9 +108,4 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
          */
 		computeModifiedRows();
 	}
-
-	@Override
-	public boolean isControlOnly() {
-		return true;
-	}
 }
