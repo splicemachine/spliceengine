@@ -69,8 +69,4 @@ public interface CursorResultSet extends ResultSet {
 	 */
 	ExecRow getCurrentRow() throws StandardException;
 
-	/**
-	 * @return the current base row of the result set.
-	 */
-	ExecRow getCurrentBaseRow() throws StandardException;
 }

@@ -38,24 +38,22 @@ package com.splicemachine.db.impl.sql.execute;
  *
  */
 public abstract class CursorActivation 
-    extends BaseActivation
+	extends BaseActivation
 {
-    /**
-     * remember the cursor name
-     */
-    @Override
-    public void	setCursorName(String cursorName)
-    {
-        if (!isClosed())
-            super.setCursorName(cursorName);
-    }
+	/**
+	 * remember the cursor name
+	 */
+	public void	setCursorName(String cursorName) 
+	{
+		if (!isClosed())
+			super.setCursorName(cursorName);
+	}
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.Activation#isCursorActivation
-     */
-    @Override
-    public boolean isCursorActivation()
-    {
-        return true;
-    }
+	/**
+	 * @see com.splicemachine.db.iapi.sql.Activation#isCursorActivation
+	 */
+	public boolean isCursorActivation()
+	{
+		return true;
+	}
 }

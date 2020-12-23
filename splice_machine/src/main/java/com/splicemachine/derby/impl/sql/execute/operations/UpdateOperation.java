@@ -42,6 +42,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
@@ -73,20 +77,13 @@ public class UpdateOperation extends DMLWriteOperation{
 
     int[] pkCols;
     FormatableBitSet pkColumns;
-    boolean          updateCursor;
 
-    /**
-     * @param cursorUpdate if true, the execution of this operation is done exclusively in control.
-     * @throws StandardException
-     */
     public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, boolean cursorUpdate, String tableVersion,
-                           String fromTableDmlSpsDescriptorAsString)
-            throws StandardException {
+                           double optimizerEstimatedCost,String tableVersion, String fromTableDmlSpsDescriptorAsString)
+            throws StandardException, IOException{
         super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
               tableVersion, fromTableDmlSpsDescriptorAsString);
-        this.updateCursor = cursorUpdate;
         init();
     }
 
@@ -252,10 +249,5 @@ public class UpdateOperation extends DMLWriteOperation{
             finalizeNestedTransaction();
             operationContext.popScope();
         }
-    }
-
-    @Override
-    public boolean isControlOnly() {
-        return updateCursor;
     }
 }

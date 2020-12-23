@@ -380,9 +380,4 @@ public class TableScanOperation extends ScanOperation{
         }
         return true;
     }
-
-    @Override
-    public boolean isForUpdate(){
-        return forUpdate;
-    }
 }
