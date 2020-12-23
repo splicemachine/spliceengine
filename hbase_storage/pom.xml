@@ -201,4 +201,50 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>hdp3.1.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.0</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hdp3.1.5</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.1</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.1</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>cdh6.3.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage_2.1</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
