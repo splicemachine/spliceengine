@@ -158,7 +158,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return "ScrollInsensitive"; //this class is never used
     }
 
-	public NoPutResultSet getSource() {
+	public SpliceOperation getSource() {
 		return this.source;
 	}
 
@@ -221,10 +221,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN, name);
     }
-    public RowLocation getRowLocation() throws StandardException {
-        assert source!=null;
-        return source.getRowLocation();
-    }
+
     public void updateRow(ExecRow row, RowChanger rowChanger)
             throws StandardException {
 
