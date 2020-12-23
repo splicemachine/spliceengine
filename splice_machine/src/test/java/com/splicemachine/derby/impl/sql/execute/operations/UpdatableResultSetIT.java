@@ -50,6 +50,7 @@ public class UpdatableResultSetIT {
     protected static final String E_TABLE     = "E";
     protected static final String F_TABLE     = "F";
     protected static final String F_TABLE_IDX = "F_IDX";
+    protected static final String G_TABLE     = "G";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -103,6 +104,7 @@ public class UpdatableResultSetIT {
         triggerDAO.dropAllTriggers(SCHEMA, E_TABLE);
         conn.execute("DELETE FROM E");
         conn.execute("DELETE FROM F");
+        conn.execute("DELETE FROM G");
         prepareTableData(A_TABLE);
     }
 
@@ -140,6 +142,7 @@ public class UpdatableResultSetIT {
                                                                          "c5 decimal(10,0) not null, c6 char(1) not null, c7 varchar(10) for bit data not null default X'')", F_TABLE))
                 .withConstraints("primary key(c1)")
                 .withIndex(String.format("create index %s on %s(c3)", F_TABLE_IDX, F_TABLE)).create();
+        new TableCreator(conn).withCreate(String.format("create table %s (c1 int, c2 varchar(20))", G_TABLE)).create();
     }
 
     private void tableShouldBe(String tableName, Object[][] expected) throws SQLException {
@@ -664,6 +667,27 @@ public class UpdatableResultSetIT {
     @Test
     public void testUpdatingPartialProjectionWithIndexScan() throws Exception {
         testUpdatingPartialProjectionInternal(true);
+    }
+
+    @Test
+    public void testUpdatingSubqueryNotSupported() throws Exception {
+        prepareTableData(G_TABLE);
+        final String subquerySql = "SELECT c1, c2 FROM %s WHERE c2 in (select c2 FROM %s --splice-properties index=%s\nWHERE c1 >= ?)";
+        try (PreparedStatement statement = conn.prepareStatement(String.format(subquerySql, G_TABLE, A_TABLE, "null"), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            statement.setInt(1, 35);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    try {
+                        resultSet.updateString(2, resultSet.getString(1).toUpperCase());
+                    } catch(Exception e) {
+                        Assert.assertTrue(e instanceof SQLException);
+                        SQLException sqlException = (SQLException)e;
+                        Assert.assertTrue(sqlException.getMessage().contains("'updateString' not allowed because the ResultSet is not an updatable ResultSet."));
+                    }
+                }
+            }
+        }
     }
 }
 
