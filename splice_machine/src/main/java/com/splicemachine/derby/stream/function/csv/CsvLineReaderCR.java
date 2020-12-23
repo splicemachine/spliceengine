@@ -32,7 +32,7 @@ public class CsvLineReaderCR {
     private int bufferSize, bufferPos;
     private int lineNumber = 0;
 
-    private StringBuffer res = null;
+    private StringBuilder res = null;
     private boolean eof = false;
 
     public enum LineEndingType {
@@ -90,7 +90,7 @@ public class CsvLineReaderCR {
     {
         if(start == pos) return;
         if (res == null)
-            res = new StringBuffer(configInitialStringBufferSize);
+            res = new StringBuilder(configInitialStringBufferSize);
         res.append(bufferBytes, start, pos - start);
     }
 
