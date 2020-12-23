@@ -86,8 +86,7 @@ import java.util.*;
                                 return hasNext;
                             try {
                                 if (!initialized) {
-                                    // BUFFERED? it's buffered again...
-                                    reader = new BufferedReader(new InputStreamReader(s,charset));
+                                    reader = new InputStreamReader(s,charset);
                                     List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
                                     for(DataValueDescriptor dvd : execRow.getRowArray()) {
                                         valueSizeHints.add(dvd.estimateMemoryUsage());

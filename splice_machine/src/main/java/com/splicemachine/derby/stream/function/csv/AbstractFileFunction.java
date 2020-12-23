@@ -270,7 +270,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         }
     }
 
-    public void checkPreference() {
+    protected void checkPreference() {
         if (preference==null){
             SConfiguration config =EngineDriver.driver().getConfiguration();
             int maxQuotedLines = config.getImportMaxQuotedColumnLines();
