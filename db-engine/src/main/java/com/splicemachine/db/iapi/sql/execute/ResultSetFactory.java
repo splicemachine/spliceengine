@@ -191,7 +191,7 @@ public interface ResultSetFactory {
      * @throws StandardException thrown when unable to perform the delete
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
+                                 double optimizerEstimatedCost, boolean cursorDelete, String tableVersion,
                                  String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
                                  String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI)
             throws StandardException;
@@ -236,10 +236,15 @@ public interface ResultSetFactory {
      * @return the update operation as a result set.
      * @throws StandardException thrown when unable to perform the update
      */
-    ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-                                 GeneratedMethod checkGM, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
+    ResultSet getUpdateResultSet(NoPutResultSet source,
+                                 GeneratedMethod generationClauses,
+                                 GeneratedMethod checkGM,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost,
+                                 boolean updateCursor,
+                                 String tableVersion,
+                                 String explainPlan,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -1759,7 +1764,17 @@ NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
                                                         int defaultValueMapItem)
         throws StandardException;
 
-NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber);
+    /**
+     * A current of result set forms a result set on the
+     * current row of an open cursor.
+     * It is used to perform positioned operations such as
+     * positioned update and delete, using the result set paradigm.
+     *
+     * @param cursorName      the name of the cursor providing the row.
+     * @param resultSetNumber The resultSetNumber for the ResultSet
+     */
+    NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation,
+                                         int resultSetNumber) throws StandardException;
 
     NoPutResultSet getUnionResultSet(NoPutResultSet source1,
                                      NoPutResultSet source2,

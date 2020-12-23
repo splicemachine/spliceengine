@@ -99,6 +99,8 @@ public class DeleteNode extends DMLModStatementNode
     private Properties targetProperties;
     private String     bulkDeleteDirectory;
     private int[] colMap;
+    private Boolean cursorDelete;
+
     /**
      * Initializer for a DeleteNode.
      *
@@ -109,11 +111,13 @@ public class DeleteNode extends DMLModStatementNode
 
     public void init(Object targetTableName,
                      Object queryExpression,
-                     Object targetProperties)
+                     Object cursorDelete,
+                     Object targetProperties )
     {
         super.init(queryExpression);
         this.targetTableName = (TableName) targetTableName;
         this.targetProperties = (Properties) targetProperties;
+        this.cursorDelete = (Boolean)cursorDelete;
     }
 
     static public boolean isBulkDelete(Properties properties)
@@ -325,19 +329,11 @@ public class DeleteNode extends DMLModStatementNode
                     rowIdColumn.setName(COLUMNNAME);
                 }
 
-                ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rowIdColumn.getName(),
-                        null,
-                        getContextManager());
-                columnReference.setSource(rowIdColumn);
-                columnReference.setNestingLevel(targetTable.getLevel());
-                columnReference.setSourceLevel(targetTable.getLevel());
                 rowLocationColumn =
                         (ResultColumn) getNodeFactory().getNode(
                                 C_NodeTypes.RESULT_COLUMN,
                                 COLUMNNAME,
-                                columnReference,
+                                rowIdColumn,
                                 getContextManager());
 
                 rowLocationColumn.bindResultColumnToExpression();
@@ -728,6 +724,7 @@ public class DeleteNode extends DMLModStatementNode
 
         mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
         mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
+        mb.push(cursorDelete);
         mb.push(targetTableDescriptor.getVersion());
         if ("getDeleteResultSet".equals(resultSetGetter)) {
             mb.push(this.printExplainInformationForActivation());
@@ -748,7 +745,7 @@ public class DeleteNode extends DMLModStatementNode
             mb.push(isNoTriggerRIMode());
             argCount += 5;
         }
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+4);
 
         if(!isDependentTable && cascadeDelete)
         {

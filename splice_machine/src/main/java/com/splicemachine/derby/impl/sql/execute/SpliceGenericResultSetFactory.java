@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
+import com.splicemachine.derby.impl.sql.execute.operations.CurrentOfResultSetOperation;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -2086,6 +2087,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              GeneratedMethod checkGM,
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
+                                             boolean updateCursor,
                                              String tableVersion,
                                              String explainPlan,
                                              String fromTableDmlSpsDescriptorAsString) throws StandardException {
@@ -2093,7 +2095,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM,
                                                       source.getActivation(),optimizerEstimatedCost,
-                                                      optimizerEstimatedRowCount,tableVersion,
+                                                      optimizerEstimatedRowCount,
+                                                      updateCursor,
+                                                      tableVersion,
                                                       fromTableDmlSpsDescriptorAsString);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
@@ -2114,6 +2118,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getDeleteResultSet(NoPutResultSet source,
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
+                                             boolean cursorDelete,
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
@@ -2125,7 +2130,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem,
+                            optimizerEstimatedCost, cursorDelete, tableVersion, bulkDeleteDirectory, colMapRefItem,
                             fromTableDmlSpsDescriptorAsString, noTriggerRI);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
@@ -2403,7 +2408,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) {
-        throw new RuntimeException("Not Implemented");
+    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) throws StandardException {
+        return new CurrentOfResultSetOperation(cursorName, activation, resultSetNumber);
     }
 }
