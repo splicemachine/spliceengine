@@ -113,7 +113,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
             if(sb == null)
                  sb = new StringBuilder(length());
             else
-                sb.delete(0, sb.length());
+                sb.setLength(0);
             for (String cb : bufferList) {
                 sb.append(cb);
             }

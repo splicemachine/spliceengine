@@ -33,40 +33,41 @@ public class CsvLineReaderCRTest {
 
     @Test
     public void testAllCases() throws IOException {
-        boolean crNewline = true;
-        test("", new String[]{}, 5);
+        for (int size = 1; size <= 20; ++size) {
+            test("", new String[]{}, size);
 
-        // CASE 1 : configBufferSize=10
-        // 1234\n
-        test("1234\n", new String[]{"1234", "\n"}, 10);
-        // CASE 2 : configBufferSize=10
-        // 1234<EOF>
-        test("1234", new String[]{"1234", ""}, 10);
+            // CASE 1
+            // 1234\n
+            test("1234\n", new String[]{"1234", "\n"}, size);
+            // CASE 2
+            // 1234<EOF>
+            test("1234", new String[]{"1234", ""}, size);
 
-        // CASE 3 : configBufferSize=20
-        // 123\r\n123\r\n
-        test("123\r\n123\r\nabc\n", new String[]{"123", "\r\n", "123", "\r\n", "abc", "\n"}, 20);
+            // CASE 3
+            // 123\r\n123\r\n
+            test("123\r\n123\r\nabc\n", new String[]{"123", "\r\n", "123", "\r\n", "abc", "\n"}, size);
 
 
-        // CASE 4 : configBufferSize=20
-        // 123\r123\r\n
+            // CASE 4
+            // 123\r123\r\n
 
-        test("123\r123\r\nabc\n", new String[]{"123", "\r", "123", "\r\n", "abc", "\n"}, 20);
+            test("123\r123\r\nabc\n", new String[]{"123", "\r", "123", "\r\n", "abc", "\n"}, size);
 
-        // CASE 5 : configBufferSize=5
-        // 1234\r<EOF>
-        test("1234\r", new String[]{"1234", "\r"}, 5);
-        //test("1234\r", new String[]{"1234\r"}, false, 5);
+            // CASE 5
+            // 1234\r<EOF>
+            test("1234\r", new String[]{"1234", "\r"}, size);
+            //test("1234\r", new String[]{"1234\r"}, false, 5);
 
-        // CASE 6 : configBufferSize=5
-        // 1234\r\n
-        // abc\r\n
-        test("1234\r\nabc\r\n", new String[]{"1234", "\r\n", "abc", "\r\n"}, 5);
+            // CASE 6
+            // 1234\r\n
+            // abc\r\n
+                test("1234\r\nabc\r\n", new String[]{"1234", "\r\n", "abc", "\r\n"}, size);
 
-        // CASE 7 : configBufferSize=5
-        // 1234\rA
-        test( "123456", new String[]{"123456", ""}, 5);
-        test( "12345", new String[]{"12345", ""}, 5);
-        test( "1234\rA", new String[]{"1234", "\r", "A", ""}, 5);
+            // CASE 7
+            // 1234\rA
+            test( "123456", new String[]{"123456", ""}, size);
+            test( "12345", new String[]{"12345", ""}, size);
+            test( "1234\rA", new String[]{"1234", "\r", "A", ""}, size);
+        }
     }
 }

@@ -782,7 +782,7 @@ public class SpliceRegionAdmin {
 
         boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-        boolean preserveLineEndings = !PropertyUtil.getCachedDatabaseBoolean(
+        boolean preserveLineEndings = PropertyUtil.getCachedDatabaseBoolean(
                 lcc, Property.PRESERVE_LINE_ENDINGS);
 
         CsvParserConfig config = new CsvParserConfig(preference)
