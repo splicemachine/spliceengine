@@ -574,71 +574,65 @@ public class SITransactor implements Transactor{
                         conflictResults.addAdditive(txnId);
                         break;
                     case SIBLING:
-                        if(LOG.isTraceEnabled()){
-                            SpliceLogUtils.trace(LOG,"Write conflict on row "
-                                    +Bytes.toHex(commitCell.keyArray(),commitCell.keyOffset(),commitCell.keyLength()));
-                        }
-
-                        throw exceptionLib.writeWriteConflict(txnId,updateTransaction.getTxnId());
+                        throwWriteWriteConflict(updateTransaction, commitCell, txnId);
                 }
             }else{
                 // Committed transaction
                 if(globalCommitTs>updateTransaction.getBeginTimestamp()){
-                    if(LOG.isTraceEnabled()){
-                        SpliceLogUtils.trace(LOG,"Write conflict on row "
-                                +Bytes.toHex(commitCell.keyArray(),commitCell.keyOffset(),commitCell.keyLength()));
-                    }
-                    throw exceptionLib.writeWriteConflict(txnId,updateTransaction.getTxnId());
+                    throwWriteWriteConflict(updateTransaction, commitCell, txnId);
                 }
             }
         }
         return conflictResults;
     }
+
 
     private ConflictResults checkDataForConflict(TxnView updateTransaction,
                                                  ConflictResults conflictResults,
                                                  DataCell cell,
                                                  long dataTransactionId,
-                                                 TxnSupplier txnSupplier) throws IOException{
-        if(updateTransaction.getTxnId()!=dataTransactionId){
-            final TxnView dataTransaction=txnSupplier.getTransaction(dataTransactionId);
-            if(dataTransaction.getState()==Txn.State.ROLLEDBACK){
-                if (dataTransaction.getEffectiveBeginTimestamp() > updateTransaction.getEffectiveBeginTimestamp()) {
-                    // If we ignore this transaction it could mask other writes with which we do conflict, see DB-7582 and DB-7779 for details
-                    if(LOG.isTraceEnabled()){
-                        SpliceLogUtils.trace(LOG,"Write conflict on row "
-                                +Bytes.toHex(cell.keyArray(),cell.keyOffset(),cell.keyLength()));
-                    }
-                    throw exceptionLib.writeWriteConflict(dataTransactionId,updateTransaction.getTxnId());
-                }
-                return conflictResults; //can't conflict with a rolled back transaction
-            }
-            final ConflictType conflictType=updateTransaction.conflicts(dataTransaction);
-            switch(conflictType){
-                case CHILD:
-                    if(conflictResults==null){
-                        conflictResults=new ConflictResults();
-                    }
-                    conflictResults.addChild(dataTransactionId);
-                    break;
-                case ADDITIVE:
-                    if(conflictResults==null){
-                        conflictResults=new ConflictResults();
-                    }
-                    conflictResults.addAdditive(dataTransactionId);
-                    break;
-                case SIBLING:
-                    if(LOG.isTraceEnabled()){
-                        SpliceLogUtils.trace(LOG,"Write conflict on row "
-                                +Bytes.toHex(cell.keyArray(),cell.keyOffset(),cell.keyLength()));
-                    }
-                    throw exceptionLib.writeWriteConflict(dataTransactionId,updateTransaction.getTxnId());
-            }
+                                                 TxnSupplier txnSupplier) throws IOException {
+
+        if (updateTransaction.getTxnId() == dataTransactionId) {
+            return conflictResults;
         }
+
+        final TxnView dataTransaction = txnSupplier.getTransaction(dataTransactionId);
+
+        if (dataTransaction.getState() == Txn.State.ROLLEDBACK) {
+            if (dataTransaction.getEffectiveBeginTimestamp() > updateTransaction.getEffectiveBeginTimestamp()) {
+                // If we ignore this transaction it could mask other writes with which we do conflict, see DB-7582 and DB-7779 for details
+                throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
+            }
+            return conflictResults; //can't conflict with a rolled back transaction
+        }
+
+        final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
+
+        switch (conflictType) {
+            case CHILD: // fallthrough
+            case ADDITIVE:
+                if (conflictResults == null) {
+                    conflictResults = new ConflictResults();
+                }
+                conflictResults.addAdditive(dataTransactionId);
+                return conflictResults;
+            case SIBLING:
+                throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
+        }
+
         return conflictResults;
     }
 
     // Helpers
+
+    private void throwWriteWriteConflict(TxnView updateTransaction, DataCell cell, long dataTransactionId) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "Write conflict on row "
+                    + Bytes.toHex(cell.keyArray(), cell.keyOffset(), cell.keyLength()));
+        }
+        throw exceptionLib.writeWriteConflict(dataTransactionId, updateTransaction.getTxnId());
+    }
 
     private boolean isFlaggedForSITreatment(Attributable operation){
         return operation.getAttribute(SIConstants.SI_NEEDED)!=null;
