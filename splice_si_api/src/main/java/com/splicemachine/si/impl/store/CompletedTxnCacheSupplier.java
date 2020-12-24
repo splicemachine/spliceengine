@@ -80,7 +80,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
         return getTransaction(txnId, false);
     }
 
-    @SuppressFBWarnings(value = "SF_SWITCH_FALLTHROUGH", justification = "deliberate, cache Committed (or Ignored) transactions too")
     @Override
     @SuppressFBWarnings(value = "SF_SWITCH_FALLTHROUGH", justification = "intentional")
     public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
