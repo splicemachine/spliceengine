@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.utils.IteratorUtil;
 import splice.com.google.common.collect.Iterators;
 import com.google.protobuf.ByteString;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -53,68 +54,41 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
 
     @Override
     public TxnView call(TxnMessage.Txn message) throws Exception {
-        TxnMessage.TxnInfo info=message.getInfo();
-        if(info.getTxnId()<0) return null; //we didn't find it
 
-        long txnId=info.getTxnId();
-        long parentTxnId=info.getParentTxnid();
-        long beginTs=info.getBeginTs();
+        TxnMessage.TxnInfo info = message.getInfo();
+        if (info.getTxnId() < 0) {
+            return null; //we didn't find it
+        }
 
-        Txn.IsolationLevel isolationLevel=Txn.IsolationLevel.fromInt(info.getIsolationLevel());
+        long txnId = info.getTxnId();
+        long parentTxnId = info.getParentTxnid();
+        long beginTs = info.getBeginTs();
 
-        boolean hasAdditive=info.hasIsAdditive();
-        boolean additive=hasAdditive && info.getIsAdditive();
+        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromInt(info.getIsolationLevel());
 
-        long commitTs=message.getCommitTs();
-        long globalCommitTs=message.getGlobalCommitTs();
+        boolean hasAdditive = info.hasIsAdditive();
+        boolean additive = hasAdditive && info.getIsAdditive();
 
-        Txn.State state=Txn.State.fromInt(message.getState());
+        long commitTs = message.getCommitTs();
+        long globalCommitTs = message.getGlobalCommitTs();
 
-        final Iterator<ByteSlice> destinationTables;
-        if(info.hasDestinationTables()){
-            ByteString bs=info.getDestinationTables();
-            MultiFieldDecoder decoder=MultiFieldDecoder.wrap(bs.toByteArray());
-            destinationTables=new DecodingIterator(decoder){
-                @Override
-                protected void advance(MultiFieldDecoder decoder){
-                    decoder.skip();
-                }
-            };
-        }else
-            destinationTables= Iterators.emptyIterator();
+        Txn.State state = Txn.State.fromInt(message.getState());
 
-        long kaTime=-1l;
-        if(message.hasLastKeepAliveTime())
-            kaTime=message.getLastKeepAliveTime();
+        final Iterator<ByteSlice> destinationTables = IteratorUtil.getIterator(info.hasDestinationTables() ? info.getDestinationTables().toByteArray() : null);
 
-        Iterator<ByteSlice> destTablesIterator=new Iterator<ByteSlice>(){
+        long keepAliveTime = -1L;
+        if (message.hasLastKeepAliveTime()) {
+            keepAliveTime = message.getLastKeepAliveTime();
+        }
 
-            @Override
-            public boolean hasNext(){
-                return destinationTables.hasNext();
-            }
+        final Iterator<ByteSlice> conflictingTxnIdsIterator = IteratorUtil.getIterator(info.hasConflictingTxnIds() ? info.getConflictingTxnIds().toByteArray() : null);
 
-            @Override
-            public ByteSlice next(){
-                ByteSlice dSlice=destinationTables.next();
-                byte[] data= Encoding.decodeBytesUnsorted(dSlice.array(),dSlice.offset(),dSlice.length());
-                dSlice.set(data);
-                return dSlice;
-            }
-
-            @Override
-            public void remove(){
-                throw new UnsupportedOperationException();
-            }
-        };
-
-        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:supplier.getTransaction(parentTxnId);
-        return new InheritingTxnView(parentTxn,txnId,beginTs,
-                isolationLevel,
-                hasAdditive,additive,
-                true,true,
-                commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime,null);
+        TxnView parentTxn = parentTxnId < 0 ? Txn.ROOT_TRANSACTION : supplier.getTransaction(parentTxnId);
+        return new InheritingTxnView(parentTxn, txnId, beginTs,
+                                     isolationLevel,
+                                     hasAdditive, additive,
+                                     true, true,
+                                     commitTs, globalCommitTs,
+                                     state, destinationTables, keepAliveTime, null, conflictingTxnIdsIterator);
     }
-
 }

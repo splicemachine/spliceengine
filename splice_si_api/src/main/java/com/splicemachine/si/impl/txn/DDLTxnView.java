@@ -68,6 +68,7 @@ public class DDLTxnView extends AbstractTxnView {
     @Override public long getGlobalCommitTimestamp() { return txn.getGlobalCommitTimestamp(); }
     @Override public Iterator<ByteSlice> getDestinationTables() { return txn.getDestinationTables(); }
     @Override public boolean descendsFrom(TxnView potentialParent) { return txn.descendsFrom(potentialParent); }
+    @Override public Iterator<ByteSlice> getConflictingTxnIds() { return txn.getConflictingTxnIds(); }
 
     @Override
     public boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly) {

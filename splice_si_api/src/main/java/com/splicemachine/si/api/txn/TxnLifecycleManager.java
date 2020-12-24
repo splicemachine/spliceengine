@@ -176,6 +176,31 @@ public interface TxnLifecycleManager{
                               TaskId taskId) throws IOException;
 
     /**
+     * Begin a child transaction of the parent.
+     *
+     * @param parentTxn         the parent transaction, or {@code null} if this is a top-level transaction
+     * @param isolationLevel    the isolation level to use for reads
+     * @param additive          If this is a write transaction, whether it is considered "additive". If {@code true}, then
+     *                          this transaction will not throw Write/Write conflicts. If {@code destinationTable==null},
+     *                          then this is carried through until a writable transaction is created.
+     * @param destinationTable  a table to which writes are to proceed, or {@code null} if the transaction
+     *                          is to start as read-only.
+     * @param inMemory          whether to create an in memory subtransaction or not. Even if it's true we might create
+     *                          a persisted transaction if condition aren't met
+     * @param taskId            task identifier so that we can ignore conflicts with previous retries of the same task
+     * @param conflictingTxnIds list of conflicting transaction Ids
+     * @return a new child transaction
+     * @throws java.io.IOException if something goes wrong in creating the transaction
+     */
+    Txn beginChildTransaction(TxnView parentTxn,
+                              Txn.IsolationLevel isolationLevel,
+                              boolean additive,
+                              byte[] destinationTable,
+                              boolean inMemory,
+                              TaskId taskId,
+                              byte[] conflictingTxnIds) throws IOException;
+
+    /**
      * Elevate a transaction from a read-only transaction to one which allows writes. This
      * follows the lifecycle of
      * <p/>
@@ -240,7 +265,32 @@ public interface TxnLifecycleManager{
     Txn chainTransaction(TxnView parentTxn,
                          Txn.IsolationLevel isolationLevel,
                          boolean additive,
-                         byte[] destinationTable,Txn txnToCommit) throws IOException;
+                         byte[] destinationTable,
+                         Txn txnToCommit) throws IOException;
+
+    /**
+     * "Chains" a new transaction to the old one.
+     * <p/>
+     * "Chaining" is when one transaction is committed, and the commit timestamp that was generated
+     * for that transaction is used as the begin timestamp of the next transaction. It is used
+     * when a new transaction is desired, but no breaks in logical time are acceptable (such as during
+     * a DDL or other form of operation where a clear demarcation of times are required).
+     *
+     * @param parentTxn        the parent transaction, or {@code null} if this is a top-level transaction
+     * @param isolationLevel   the isolation level to use for reads
+     * @param additive         if the new transaction is to be additive.
+     * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
+     *                         is to start as read-only.
+     * @param txnToCommit      the transaction to commit.
+     * @param conflictingTxnIds list of conflicting transaction Ids
+     * @return a new transaction whose begin timestamp is the same as the commit timestamp of {@code txnToCommit}
+     */
+    Txn chainTransaction(TxnView parentTxn,
+                         Txn.IsolationLevel isolationLevel,
+                         boolean additive,
+                         byte[] destinationTable,
+                         Txn txnToCommit,
+                         byte[] conflictingTxnIds) throws IOException;
 
     /**
      * Puts this manager into Restore Mode, which would be deactivated after a reboot

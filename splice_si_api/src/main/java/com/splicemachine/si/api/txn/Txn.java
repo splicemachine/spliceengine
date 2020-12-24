@@ -212,6 +212,11 @@ public interface Txn extends TxnView{
         public TaskId getTaskId() {
             return null;
         }
+
+        @Override
+        public Iterator<ByteSlice> getConflictingTxnIds() {
+            return Collections.emptyIterator();
+        }
     };
 
     long newSubId();
@@ -450,6 +455,4 @@ public interface Txn extends TxnView{
      * @throws IOException if something goes wrong during the elevation
      */
     Txn elevateToWritable(byte[] writeTable) throws IOException;
-
-    TaskId getTaskId();
 }

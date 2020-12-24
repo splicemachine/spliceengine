@@ -25,6 +25,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -46,9 +47,9 @@ public class WritableTxn extends AbstractTxn{
     private Set<byte[]> tableWrites=new CopyOnWriteArraySet<>();
     private TaskId taskId;
     private ExceptionFactory exceptionFactory;
+    private Set<byte[]> conflictingTxnIds = new CopyOnWriteArraySet<>();
 
     public WritableTxn(){
-
     }
 
     public WritableTxn(long txnId,
@@ -59,7 +60,7 @@ public class WritableTxn extends AbstractTxn{
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        ExceptionFactory exceptionFactory){
-        this(txnId,beginTimestamp,parentRoot,isolationLevel,parentTxn,tc,isAdditive,null,null,exceptionFactory);
+        this(txnId,beginTimestamp,parentRoot,isolationLevel,parentTxn,tc,isAdditive,null,null,null,exceptionFactory);
     }
 
     public WritableTxn(long txnId,
@@ -71,6 +72,7 @@ public class WritableTxn extends AbstractTxn{
                        boolean isAdditive,
                        byte[] destinationTable,
                        TaskId taskId,
+                       byte[] conflictingTxnIds,
                        ExceptionFactory exceptionFactory){
         super(parentReference,txnId,beginTimestamp,isolationLevel);
         this.exceptionFactory = exceptionFactory;
@@ -79,8 +81,12 @@ public class WritableTxn extends AbstractTxn{
         this.isAdditive=isAdditive;
         this.taskId=taskId;
 
-        if(destinationTable!=null)
+        if(destinationTable!=null) {
             this.tableWrites.add(destinationTable);
+        }
+        if(conflictingTxnIds!=null) {
+            this.conflictingTxnIds.add(conflictingTxnIds);
+        }
     }
 
     public WritableTxn(Txn txn,TxnLifecycleManager tc,byte[] destinationTable,ExceptionFactory exceptionFactory){
@@ -232,16 +238,21 @@ public class WritableTxn extends AbstractTxn{
 
     public WritableTxn getReadUncommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_UNCOMMITTED,
-                parentTxn,tc,isAdditive,null,null,exceptionFactory);
+                parentTxn,tc,isAdditive,null,null,null, exceptionFactory);
     }
 
     public WritableTxn getReadCommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_COMMITTED,
-                parentTxn,tc,isAdditive,null,null,exceptionFactory);
+                parentTxn,tc,isAdditive,null,null,null, exceptionFactory);
     }
 
     @Override
     public TaskId getTaskId() {
         return taskId;
+    }
+
+    @Override
+    public Iterator<ByteSlice> getConflictingTxnIds() {
+        return new SliceIterator(conflictingTxnIds.iterator());
     }
 }

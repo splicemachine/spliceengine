@@ -19,6 +19,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.region.V2TxnDecoder;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.IteratorUtil;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class TxnTableRowPrinter implements IRowPrinter {
         result.add(Boolean.toString(txn.getInfo().getIsAdditive()));
         result.add(Long.toString(txn.getLastKeepAliveTime()));
         result.add(txn.getRollbackSubIdsList().toString());
-        final Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.getIterator(txn.getInfo().getDestinationTables());
+        final Iterator<ByteSlice> destinationTablesIterator = IteratorUtil.getIterator(txn.getInfo().getDestinationTables() == null ? null : txn.getInfo().getDestinationTables().toByteArray());
         List<String> tables = new ArrayList<>();
         while(destinationTablesIterator.hasNext()) {
             tables.add(Bytes.toString(destinationTablesIterator.next().array()));

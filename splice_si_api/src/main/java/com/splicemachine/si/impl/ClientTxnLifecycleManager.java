@@ -123,24 +123,34 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                      byte[] destinationTable,
                                      boolean inMemory,
                                      TaskId taskId) throws IOException {
+        return beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, inMemory, taskId, null);
+    }
 
-        if(parentTxn==null)
-            parentTxn=Txn.ROOT_TRANSACTION;
-        if(destinationTable!=null && !parentTxn.allowsWrites())
-            throw exceptionFactory.doNotRetry("Cannot create a writable child of a read-only transaction. Elevate the parent transaction("+parentTxn.getTxnId()+") first");
-        if(parentTxn.getState()!=Txn.State.ACTIVE)
-            throw exceptionFactory.doNotRetry("Cannot create a child of an inactive transaction. Parent: "+parentTxn);
-        if(destinationTable!=null){
+    @Override
+    public Txn beginChildTransaction(TxnView parentTxn,
+                              Txn.IsolationLevel isolationLevel,
+                              boolean additive,
+                              byte[] destinationTable,
+                              boolean inMemory,
+                              TaskId taskId,
+                              byte[] conflictingTxnIds) throws IOException {
+        if (parentTxn == null)
+            parentTxn = Txn.ROOT_TRANSACTION;
+        if (destinationTable != null && !parentTxn.allowsWrites())
+            throw exceptionFactory.doNotRetry("Cannot create a writable child of a read-only transaction. Elevate the parent transaction(" + parentTxn.getTxnId() + ") first");
+        if (parentTxn.getState() != Txn.State.ACTIVE)
+            throw exceptionFactory.doNotRetry("Cannot create a child of an inactive transaction. Parent: " + parentTxn);
+        if (destinationTable != null) {
             if (inMemory && parentTxn.allowsSubtransactions()) {
                 Txn parent = (Txn) parentTxn;
                 long subId = parent.newSubId();
                 if (subId <= SIConstants.SUBTRANSANCTION_ID_MASK)
-                    return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable, null);
+                    return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable, null, conflictingTxnIds);
             }
             long timestamp = getTimestamp();
-            return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable, taskId);
-        }else
-            return createReadableTransaction(isolationLevel,additive,parentTxn);
+            return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable, taskId, conflictingTxnIds);
+        } else
+            return createReadableTransaction(isolationLevel, additive, parentTxn);
     }
 
     @Override
@@ -149,35 +159,45 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                 boolean additive,
                                 byte[] destinationTable,
                                 Txn txnToCommit) throws IOException{
-        if(parentTxn==null)
-            parentTxn=Txn.ROOT_TRANSACTION;
-        if(destinationTable!=null){
+        return chainTransaction(parentTxn, isolationLevel, additive, destinationTable, txnToCommit, null);
+    }
+
+    @Override
+    public Txn chainTransaction(TxnView parentTxn,
+                         Txn.IsolationLevel isolationLevel,
+                         boolean additive,
+                         byte[] destinationTable,
+                         Txn txnToCommit,
+                         byte[] conflictingTxnIds) throws IOException {
+        if (parentTxn == null)
+            parentTxn = Txn.ROOT_TRANSACTION;
+        if (destinationTable != null) {
             /*
              * the new transaction must be writable, so we have to make sure that we generate a timestamp
              */
-            if(!parentTxn.allowsWrites())
-                throw exceptionFactory.doNotRetry("Cannot create a writable child of a read-only transaction. Elevate the parent transaction("+parentTxn.getTxnId()+") first");
-            if(!txnToCommit.allowsWrites())
-                throw exceptionFactory.doNotRetry("Cannot chain a writable transaction from a read-only transaction. Elevate the transaction("+txnToCommit.getTxnId()+") first");
+            if (!parentTxn.allowsWrites())
+                throw exceptionFactory.doNotRetry("Cannot create a writable child of a read-only transaction. Elevate the parent transaction(" + parentTxn.getTxnId() + ") first");
+            if (!txnToCommit.allowsWrites())
+                throw exceptionFactory.doNotRetry("Cannot chain a writable transaction from a read-only transaction. Elevate the transaction(" + txnToCommit.getTxnId() + ") first");
         }
 
-        if(!txnToCommit.allowsWrites() && Txn.ROOT_TRANSACTION.equals(parentTxn)){
+        if (!txnToCommit.allowsWrites() && Txn.ROOT_TRANSACTION.equals(parentTxn)) {
             /*
              * The transaction to commit is read only, but we need to create a new parent transaction,
              * so we cannot chain transactions
              */
-            throw exceptionFactory.doNotRetry("Cannot chain a read-only parent transaction from a read-only transaction. Elevate the transaction("+txnToCommit.getTxnId()+") first");
+            throw exceptionFactory.doNotRetry("Cannot chain a read-only parent transaction from a read-only transaction. Elevate the transaction(" + txnToCommit.getTxnId() + ") first");
         }
         txnToCommit.commit();
-        long oldTs=txnToCommit.getCommitTimestamp();
+        long oldTs = txnToCommit.getCommitTimestamp();
 
-        if(destinationTable!=null)
-            return createWritableTransaction(oldTs, 0, null, isolationLevel,additive,parentTxn,destinationTable, null);
-        else{
-            if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
-                return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,exceptionFactory,additive);
-            }else{
-                return ReadOnlyTxn.createReadOnlyTransaction(oldTs,parentTxn,oldTs,isolationLevel,additive,this,exceptionFactory);
+        if (destinationTable != null)
+            return createWritableTransaction(oldTs, 0, null, isolationLevel, additive, parentTxn, destinationTable, null, conflictingTxnIds);
+        else {
+            if (parentTxn.equals(Txn.ROOT_TRANSACTION)) {
+                return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs, oldTs, isolationLevel, this, exceptionFactory, additive);
+            } else {
+                return ReadOnlyTxn.createReadOnlyTransaction(oldTs, parentTxn, oldTs, isolationLevel, additive, this, exceptionFactory);
             }
         }
     }
@@ -260,7 +280,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           boolean additive,
                                           TxnView parentTxn,
                                           byte[] destinationTable,
-                                          TaskId taskId) throws IOException{
+                                          TaskId taskId,
+                                          byte[] conflictingTxnIds ) throws IOException{
 		if (restoreMode || replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0 &&
         Bytes.compareTo(destinationTable, "replication".getBytes(Charset.defaultCharset().name())) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));
@@ -272,7 +293,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 * transaction to the table.
 		 */
         WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentReference,
-                isolationLevel,parentTxn,this,additive,destinationTable,taskId,exceptionFactory);
+                isolationLevel,parentTxn,this,additive,destinationTable,taskId,conflictingTxnIds,exceptionFactory);
         if (subId == 0) {
             //record the transaction on the transaction table--network call
             store.recordNewTransaction(newTxn);

@@ -22,7 +22,7 @@ import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.V2TxnDecoder;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import com.splicemachine.utils.IteratorUtil;
 import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Longs;
@@ -39,7 +39,7 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -445,7 +445,9 @@ public class CoprocessorTxnStore implements TxnStore {
             taskId = new TaskId(ti.getStageId(), ti.getPartitionId(), ti.getTaskAttemptNumber());
         }
 
-        Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.getIterator(info.getDestinationTables());
+        Iterator<ByteSlice> destinationTablesIterator = IteratorUtil.getIterator(info.getDestinationTables() == null ? null : info.getDestinationTables().toByteArray());
+
+        Iterator<ByteSlice> conflictingTxnIdsIterator = IteratorUtil.getIterator(info.getDestinationTables() == null ? null : info.getDestinationTables().toByteArray());
 
         long kaTime = -1L;
         if (message.hasLastKeepAliveTime())
@@ -457,7 +459,7 @@ public class CoprocessorTxnStore implements TxnStore {
                                      hasAdditive, additive,
                                      true, true,
                                      commitTs, globalCommitTs,
-                                     state, destinationTablesIterator, kaTime, taskId);
+                                     state, destinationTablesIterator, kaTime, taskId, conflictingTxnIdsIterator);
     }
 
     private static byte[] getTransactionRowKey(long txnId){

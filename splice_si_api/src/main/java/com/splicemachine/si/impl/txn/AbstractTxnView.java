@@ -405,4 +405,9 @@ public abstract class AbstractTxnView implements TxnView {
     public TaskId getTaskId() {
         return null;
     }
+
+    @Override
+    public Iterator<ByteSlice> getConflictingTxnIds() {
+        return Collections.emptyIterator();
+    }
 }

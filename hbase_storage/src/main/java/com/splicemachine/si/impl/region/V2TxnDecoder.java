@@ -385,39 +385,6 @@ public class V2TxnDecoder implements TxnDecoder{
                             isAdditive, commitTs, globalTs, state, kaTime, Collections.emptyList(), null);
     }
 
-    public static Iterator<ByteSlice> getIterator(ByteString array) {
-        final Iterator<ByteSlice> byteSliceIterator;
-        if (array != null) {
-            MultiFieldDecoder dcd = MultiFieldDecoder.wrap(array.toByteArray());
-            byteSliceIterator = new DecodingIterator(dcd) {
-                @Override
-                protected void advance(MultiFieldDecoder decoder) {
-                    decoder.skip();
-                }
-            };
-        } else {
-            byteSliceIterator = Iterators.emptyIterator();
-        }
-
-        return new Iterator<ByteSlice>() {
-
-            final Iterator<ByteSlice> it = byteSliceIterator;
-
-            @Override
-            public boolean hasNext() {
-                return it.hasNext();
-            }
-
-            @Override
-            public ByteSlice next() {
-                ByteSlice dSlice = it.next();
-                byte[] data = Encoding.decodeBytesUnsorted(dSlice.array(), dSlice.offset(), dSlice.length());
-                dSlice.set(data);
-                return dSlice;
-            }
-        };
-    }
-
     private static List<Long> decodeRollbackIds(Cell rollbackIds) {
         if (rollbackIds == null)
             return Collections.emptyList();
