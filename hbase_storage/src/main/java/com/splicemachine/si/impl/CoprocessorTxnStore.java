@@ -396,49 +396,48 @@ public class CoprocessorTxnStore implements TxnStore {
         return commits.get();
     }
 
-    /**
-     * **************************************************************************************************************
+    /*
+     * private helper methods
      */
-        /*private helper methods*/
-    private TxnView decode(long queryId, TxnMessage.Txn message) throws IOException{
-        TxnMessage.TxnInfo info=message.getInfo();
-        if(info.getTxnId()<0) {
+
+    private TxnView decode(long queryId, TxnMessage.Txn message) throws IOException {
+        TxnMessage.TxnInfo info = message.getInfo();
+        if (info.getTxnId() < 0) {
             // we didn't find it
             if (ignoreMissingTransactions) {
                 // return committed mock transaction
                 return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
-                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,
-                        false, false,
-                        true, true,
-                        queryId, queryId,
-                        Txn.State.COMMITTED, Iterators.emptyIterator(), System.currentTimeMillis(), null);
-            }
-            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0) {
+                                             Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                                             false, false,
+                                             true, true,
+                                             queryId, queryId,
+                                             Txn.State.COMMITTED, Iterators.emptyIterator(), System.currentTimeMillis(), null);
+            } else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0) {
                 // return active mock transaction
                 return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
-                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,
-                        false, false,
-                        true, true,
-                        queryId, queryId,
-                        Txn.State.ACTIVE, Iterators.emptyIterator(), System.currentTimeMillis(), null);
+                                             Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                                             false, false,
+                                             true, true,
+                                             queryId, queryId,
+                                             Txn.State.ACTIVE, Iterators.emptyIterator(), System.currentTimeMillis(), null);
             } else {
-                 throw new TransactionMissing(queryId);
+                throw new TransactionMissing(queryId);
             }
         }
 
-        long txnId=info.getTxnId();
-        long parentTxnId=info.getParentTxnid();
-        long beginTs=info.getBeginTs();
+        long txnId = info.getTxnId();
+        long parentTxnId = info.getParentTxnid();
+        long beginTs = info.getBeginTs();
 
-        Txn.IsolationLevel isolationLevel=Txn.IsolationLevel.fromInt(info.getIsolationLevel());
+        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromInt(info.getIsolationLevel());
 
-        boolean hasAdditive=info.hasIsAdditive();
-        boolean additive=hasAdditive && info.getIsAdditive();
+        boolean hasAdditive = info.hasIsAdditive();
+        boolean additive = hasAdditive && info.getIsAdditive();
 
-        long commitTs=message.getCommitTs();
-        long globalCommitTs=message.getGlobalCommitTs();
+        long commitTs = message.getCommitTs();
+        long globalCommitTs = message.getGlobalCommitTs();
 
-        Txn.State state=Txn.State.fromInt(message.getState());
+        Txn.State state = Txn.State.fromInt(message.getState());
 
         TaskId taskId = null;
         if (info.hasTaskId()) {
@@ -446,71 +445,22 @@ public class CoprocessorTxnStore implements TxnStore {
             taskId = new TaskId(ti.getStageId(), ti.getPartitionId(), ti.getTaskAttemptNumber());
         }
 
-        Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.decodeDestinationTables(info.getDestinationTables());
+        Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.getIterator(info.getDestinationTables());
 
-        long kaTime=-1l;
-        if(message.hasLastKeepAliveTime())
-            kaTime=message.getLastKeepAliveTime();
+        long kaTime = -1L;
+        if (message.hasLastKeepAliveTime())
+            kaTime = message.getLastKeepAliveTime();
 
-        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:cache.getTransaction(parentTxnId);
-        return new InheritingTxnView(parentTxn,txnId,beginTs,
-                isolationLevel,
-                hasAdditive,additive,
-                true,true,
-                commitTs,globalCommitTs,
-                state, destinationTablesIterator,kaTime,taskId);
-    }
-
-    private byte[] encode(Txn txn){
-        List<ByteSlice> destinationTables=Lists.newArrayList(txn.getDestinationTables());
-        MultiFieldEncoder encoder=MultiFieldEncoder.create(8+destinationTables.size());
-        encoder.encodeNext(txn.getTxnId());
-
-        TxnView parentTxn=txn.getParentTxnView();
-        if(parentTxn!=null && parentTxn.getTxnId()>=0)
-            encoder=encoder.encodeNext(parentTxn.getTxnId());
-        else encoder.encodeEmpty();
-
-        encoder.encodeNext(txn.getBeginTimestamp())
-                .encodeNext(txn.getIsolationLevel().encode())
-                .encodeNext(txn.isAdditive());
-        if(txn.getState()==Txn.State.COMMITTED){
-            encoder=encoder.encodeNext(txn.getCommitTimestamp());
-        }else{
-            encoder.encodeEmpty();
-        }
-        /*
-         * We only use this method if we are recording a new transaction. Because of that, we leave
-         * off the effectiveCommitTimestamp(). Likely, we wouldn't use it anyway, because we don't have one
-         * yet, but on the off chance that we do, we'll let the Transaction Resolver on the coprocessor
-         * side handle it.
-         *
-         * However, we need this in place because we use the same encoding/decoding strategy in multiple
-         * places, so we have to adhere to the same policy
-         */
-        encoder.encodeEmpty();
-
-        encoder.encodeNext(txn.getState().getId());
-
-
-        //encode the destination tables
-        for(ByteSlice destTable : destinationTables){
-            encoder=encoder.encodeNextUnsorted(destTable);
-        }
-
-        return encoder.build();
+        TxnView parentTxn = parentTxnId < 0 ? Txn.ROOT_TRANSACTION : cache.getTransaction(parentTxnId);
+        return new InheritingTxnView(parentTxn, txnId, beginTs,
+                                     isolationLevel,
+                                     hasAdditive, additive,
+                                     true, true,
+                                     commitTs, globalCommitTs,
+                                     state, destinationTablesIterator, kaTime, taskId);
     }
 
     private static byte[] getTransactionRowKey(long txnId){
         return TxnUtils.getRowKey(txnId);
-    }
-
-    private void dealWithError(ServerRpcController controller) throws IOException{
-        if(!controller.failed()) return; //nothing to worry about
-        throw controller.getFailedOn();
-    }
-
-    public static void main(String... args) throws Exception{
-        System.out.println(Bytes.toStringBinary(getTransactionRowKey(4063485)));
     }
 }

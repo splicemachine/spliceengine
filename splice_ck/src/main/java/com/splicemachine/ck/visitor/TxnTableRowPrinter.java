@@ -41,7 +41,7 @@ public class TxnTableRowPrinter implements IRowPrinter {
         result.add(Boolean.toString(txn.getInfo().getIsAdditive()));
         result.add(Long.toString(txn.getLastKeepAliveTime()));
         result.add(txn.getRollbackSubIdsList().toString());
-        final Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.decodeDestinationTables(txn.getInfo().getDestinationTables());
+        final Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.getIterator(txn.getInfo().getDestinationTables());
         List<String> tables = new ArrayList<>();
         while(destinationTablesIterator.hasNext()) {
             tables.add(Bytes.toString(destinationTablesIterator.next().array()));

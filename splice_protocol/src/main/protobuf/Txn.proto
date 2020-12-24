@@ -36,6 +36,9 @@ message TxnInfo{
 
     //identifier of task associated with this transaction
     optional TaskId taskId = 8;
+
+    //list of all conflicting transaction Ids
+    optional bytes conflictingTxnIds = 9;
 }
 
 message Txn {

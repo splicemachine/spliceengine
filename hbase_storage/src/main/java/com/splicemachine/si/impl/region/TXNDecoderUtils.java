@@ -27,26 +27,54 @@ import java.util.List;
 
 public class TXNDecoderUtils {
 
-    public static TxnMessage.Txn composeValue(Cell destinationTables, IsolationLevel level, long txnId, long beginTs, long parentTs, boolean hasAdditive,
-                                              boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds, TxnMessage.TaskId taskId) {
+    public static TxnMessage.Txn composeValue(Cell destinationTables, Cell conflictingTxnIds, IsolationLevel level,
+                                              long txnId, long beginTs, long parentTs, boolean hasAdditive,
+                                              boolean additive, long commitTs, long globalCommitTs, Txn.State state,
+                                              long kaTime, List<Long> rollbackSubIds, TxnMessage.TaskId taskId) {
+
+        if (level == null) {
+            level = Txn.IsolationLevel.SNAPSHOT_ISOLATION;
+        }
+
+        TxnMessage.TxnInfo.Builder info = TxnMessage.TxnInfo
+                .newBuilder()
+                .setIsolationLevel(level.encode())
+                .setTxnId(txnId)
+                .setBeginTs(beginTs)
+                .setParentTxnid(parentTs);
+
         ByteString destTableBuffer = null;
-        if(destinationTables!=null){
+        if (destinationTables != null) {
             destTableBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(destinationTables));
         }
-        if (level == null)
-        	level = Txn.IsolationLevel.SNAPSHOT_ISOLATION;
-        TxnMessage.TxnInfo.Builder info = TxnMessage.TxnInfo.newBuilder().setIsolationLevel(level.encode())
-        		.setTxnId(txnId).setBeginTs(beginTs).setParentTxnid(parentTs);
-        if (destTableBuffer !=null)
-        	info.setDestinationTables(destTableBuffer);
-        if(hasAdditive)
-            info = info.setIsAdditive(additive);
-        if(taskId != null) {
-            info = info.setTaskId(taskId);
+        if (destTableBuffer != null) {
+            info.setDestinationTables(destTableBuffer);
         }
-        return TxnMessage.Txn.newBuilder().setInfo(info.build())
-                .setCommitTs(commitTs).setGlobalCommitTs(globalCommitTs).setState(state.getId())
-                .setLastKeepAliveTime(kaTime).addAllRollbackSubIds(rollbackSubIds).build();
 
+        if (hasAdditive) {
+            info.setIsAdditive(additive);
+        }
+
+        if (taskId != null) {
+            info.setTaskId(taskId);
+        }
+
+        ByteString conflictingTxnIdsBuffer = null;
+        if (conflictingTxnIds != null) {
+            conflictingTxnIdsBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(conflictingTxnIds));
+        }
+        if (conflictingTxnIdsBuffer != null) {
+            info.setConflictingTxnIds(conflictingTxnIdsBuffer);
+        }
+
+        return TxnMessage.Txn
+                .newBuilder()
+                .setInfo(info.build())
+                .setCommitTs(commitTs)
+                .setGlobalCommitTs(globalCommitTs)
+                .setState(state.getId())
+                .setLastKeepAliveTime(kaTime)
+                .addAllRollbackSubIds(rollbackSubIds)
+                .build();
     }
 }
