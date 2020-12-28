@@ -2155,7 +2155,8 @@ public class HdfsImportIT extends SpliceUnitTest {
         File tempDir = createTempDirectory(spliceSchemaWatcher.schemaName);
         String path = tempDir.toString() + "/lineEndings.csv";
         try {
-            // we're using a file here to have better control over what \r and \n we use
+            // we're writing a file here instead of having a file as resource
+            // to have better control over what \r and \n we use
             // (otherwise needs special editor, git converting line endings etc.)
             String data =
                     "\"Hello\r\nWindows\"|1|Win\r\n" + // 0D0A = Windows
@@ -2164,11 +2165,11 @@ public class HdfsImportIT extends SpliceUnitTest {
                     "\"ciao\"|4|ciao";                 // ends with EOF
             Files.write(Paths.get(path), data.getBytes());
 
-            String[] configs = {
-                    "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)",
-                    "call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)",
-                    "call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)"
-                };
+            List<String> configs = new ArrayList<>();
+            configs.add("call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
+            configs.add("call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
+            if( !isMemPlatform(spliceClassWatcher) ) // bulk import hfile not available on MEM platform
+                configs.add("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)");
 
             String preserveStr ="V1       |C1 | V2  |\n" +
                     "--------------------------\n" +

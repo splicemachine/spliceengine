@@ -1221,4 +1221,11 @@ public class SpliceUnitTest {
             Assert.assertEquals(expectedOutput, rs.getString(1));
         }
     }
+
+    public static boolean isMemPlatform(SpliceWatcher watcher) throws Exception{
+        try (ResultSet rs = watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
+    }
 }
