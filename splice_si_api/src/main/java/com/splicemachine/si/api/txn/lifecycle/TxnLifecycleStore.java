@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.api.txn.lifecycle;
 
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
 import com.splicemachine.si.api.txn.TxnTimeTravelResult;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.Pair;
@@ -52,4 +54,6 @@ public interface TxnLifecycleStore{
     TxnMessage.TaskId getTaskId(long txnId) throws IOException;
 
     Pair<Long, Long> getTxnAt(long ts) throws IOException;
+
+    void addConflictingTxnIds(long txnId, long[] conflictingTxnIds ) throws IOException;
 }

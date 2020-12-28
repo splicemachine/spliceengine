@@ -177,6 +177,11 @@ message TaskId {
     required int32 taskAttemptNumber = 5;
 }
 
+message AddConflictingTxnIdsRequest {
+    required int64 txnId = 1;
+    repeated int64 conflictingTxns = 2;
+}
+
 service TxnLifecycleService{
     /**
      * Begin a top-level <em>writable</em> transaction. The
@@ -229,4 +234,6 @@ service TxnLifecycleService{
     rpc rollbackTransactionsAfter(TxnRequest) returns (VoidResponse);
 
     rpc getTxnAt(TxnAtRequest) returns (TxnAtResponse);
+
+    rpc addConflictingTxnIds(AddConflictingTxnIdsRequest) returns (VoidResponse);
 }

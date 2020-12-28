@@ -311,4 +311,16 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             setControllerException(controller,ioe);
         }
     }
+
+    @Override
+    public void addConflictingTxnIds(RpcController controller,
+                                     TxnMessage.AddConflictingTxnIdsRequest request,
+                                     RpcCallback<TxnMessage.VoidResponse> done) {
+        try (RpcUtils.RootEnv ignored = RpcUtils.getRootEnv()) {
+            lifecycleStore.addConflictingTxnIds(request.getTxnId(), Longs.toArray(request.getConflictingTxnsList()));
+            done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        } catch (IOException ioe) {
+            setControllerException(controller, ioe);
+        }
+    }
 }

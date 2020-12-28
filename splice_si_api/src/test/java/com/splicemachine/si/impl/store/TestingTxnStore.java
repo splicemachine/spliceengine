@@ -426,4 +426,9 @@ public class TestingTxnStore implements TxnStore{
     public long getOldTransactions() {
         return 0;
     }
+
+    @Override
+    public void addConflictingTxnId(long txnId, long conflictingTxnId) {
+        // no op
+    }
 }

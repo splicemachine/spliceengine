@@ -17,11 +17,9 @@ package com.splicemachine.si.impl.region;
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnTimeTravelResult;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -35,14 +33,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -144,31 +140,8 @@ public class RegionTxnStore implements TxnPartition{
     public void addDestinationTable(long txnId,byte[] destinationTable) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"addDestinationTable txnId=%d, desinationTable",txnId,destinationTable);
-        Get get=new Get(getRowKey(txnId));
-        byte[] destTableQualifier=V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
-        get.addColumn(FAMILY,destTableQualifier);
-        /*
-         * We only need to check the new transaction format, because we will never attempt to elevate
-		 * a transaction created using the old transaction format.
-		 */
 
-        Result result=region.get(get);
-        //should never happen, this is in place to protect against programmer error
-        if(result==null||result==Result.EMPTY_RESULT)
-            throw new HReadOnlyModificationException("Transaction "+txnId+" is read-only, and was not properly elevated.");
-        Cell kv=result.getColumnLatestCell(FAMILY,destTableQualifier);
-        byte[] newBytes;
-        if(kv==null || kv.getValueLength()<=0){
-            newBytes=Encoding.encodeBytesUnsorted(destinationTable);
-        }else{
-            newBytes=new byte[destinationTable.length+kv.getValueLength()+1];
-            System.arraycopy(destinationTable,0,newBytes,0, destinationTable.length);
-            System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes, destinationTable.length+1,kv.getValueLength());
-        }
-        Put put=new Put(get.getRow());
-        put.setDurability(durability);
-        put.addColumn(FAMILY,destTableQualifier,newBytes);
-        region.put(put);
+        addBytes(txnId, V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES, destinationTable);
     }
 
     protected byte[] getRowKey(long txnId){
@@ -411,20 +384,26 @@ public class RegionTxnStore implements TxnPartition{
         region.put(put);
     }
 
-    /******************************************************************************************************************/
-	/*private helper methods*/
+    @Override
+    public void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException {
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"addConflictingTxnId txnId=%d, conflictingTxnId=%d",txnId, conflictingTxnId);
+
+        addBytes(txnId, V2TxnDecoder.CONFLICTING_TXN_IDS, Encoding.encode(conflictingTxnId));
+    }
+
+    /** private helper methods ****************************************************************************************/
 
     //easy reference for code clarity
     private static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
 
-
     private Scan setupScanOnRange(long afterTs,long beforeTs){
-			  /*
-			   * Get the bucket id for the region.
-			   *
-			   * The way the transaction table is built, a region may have an empty start
-			   * OR an empty end, but will never have both
-			   */
+        /*
+         * Get the bucket id for the region.
+         *
+         * The way the transaction table is built, a region may have an empty start
+         * OR an empty end, but will never have both
+         */
         byte[] startKey=Bytes.toBytes(afterTs);
         byte[] stopKey = Bytes.toBytes(beforeTs+1);
 
@@ -458,7 +437,6 @@ public class RegionTxnStore implements TxnPartition{
     private TxnMessage.Txn decode(long txnId,Result result) throws IOException{
         TxnMessage.Txn txn=newTransactionDecoder.decode(this,txnId,result);
         return txn;
-
     }
 
     private TxnMessage.Txn decode(List<Cell> keyValues) throws IOException{
@@ -578,5 +556,31 @@ public class RegionTxnStore implements TxnPartition{
         public void close() throws IOException{
             allTxns.close();
         }
+    }
+
+    private void addBytes(long txnId, byte[] identifier, byte[] payload) throws IOException {
+        Get get = new Get(getRowKey(txnId));
+        get.addColumn(FAMILY, identifier);
+        /*
+         * We only need to check the new transaction format, because we will never attempt to elevate
+         * a transaction created using the old transaction format.
+         */
+        Result result = region.get(get);
+        //should never happen, this is in place to protect against programmer error
+        if (result == null || result == Result.EMPTY_RESULT)
+            throw new HReadOnlyModificationException("Transaction " + txnId + " is read-only, and was not properly elevated.");
+        Cell kv = result.getColumnLatestCell(FAMILY, identifier);
+        byte[] newBytes;
+        if (kv == null || kv.getValueLength() <= 0) {
+            newBytes = Encoding.encode(payload);
+        } else {
+            byte[] asBytes = Encoding.encode(payload);
+            newBytes = new byte[asBytes.length + kv.getValueLength() + 1];
+            System.arraycopy(asBytes, 0, newBytes, 0, asBytes.length);
+            System.arraycopy(kv.getValueArray(), kv.getValueOffset(), newBytes, asBytes.length + 1, kv.getValueLength());
+        }
+        Put put = new Put(get.getRow());
+        put.addColumn(FAMILY, identifier, newBytes);
+        region.put(put);
     }
 }

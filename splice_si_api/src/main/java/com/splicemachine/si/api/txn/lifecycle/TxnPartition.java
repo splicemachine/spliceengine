@@ -197,4 +197,6 @@ public interface TxnPartition{
     TxnMessage.TaskId getTaskId(long txnId) throws IOException;
 
     Pair<Long, Long> getTxAt(long ts) throws IOException;
+
+    void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException;
 }

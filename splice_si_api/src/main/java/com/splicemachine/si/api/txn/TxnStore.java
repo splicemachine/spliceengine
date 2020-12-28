@@ -104,4 +104,6 @@ public interface TxnStore extends TxnSupplier{
     void setOldTransactions(long oldTransactions);
 
     long getOldTransactions();
+
+    void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException;
 }

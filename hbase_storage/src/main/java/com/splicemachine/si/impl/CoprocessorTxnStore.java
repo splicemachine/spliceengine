@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.ActiveTxnTracker;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
@@ -394,6 +395,20 @@ public class CoprocessorTxnStore implements TxnStore {
 
     public long commitCount(){
         return commits.get();
+    }
+
+    @Override
+    public void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException {
+        TxnView conflictingTxn = getTransaction(conflictingTxnId, false);
+        if (conflictingTxn == null) {
+            throw new IOException(String.format("could not find conflictingTxnId %d", conflictingTxnId));
+        }
+        Iterator<ByteSlice> iterator = conflictingTxn.getConflictingTxnIds();
+        TxnMessage.AddConflictingTxnIdsRequestOrBuilder request = TxnMessage.AddConflictingTxnIdsRequest.newBuilder();
+
+        while(iterator.hasNext()) {
+            Long txnIds = Bytes.toLong(iterator.next().array());
+        }
     }
 
     /*

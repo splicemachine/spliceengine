@@ -224,6 +224,22 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     }
 
     @Override
+    public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
+        // todo: optimize with fewer HBase put.
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock=lockStriper.get(beginTS).readLock();
+        acquireLock(lock);
+        try{
+            for(long conflictingTxnId : conflictingTxnIds) {
+                baseStore.addConflictingTxnId(txnId, conflictingTxnId);
+                baseStore.addConflictingTxnId(conflictingTxnId, txnId);
+            }
+        }finally{
+            unlock(lock);
+        }
+    }
+
+    @Override
     public long[] getActiveTransactionIds(byte[] destTable,long startId,long endId) throws IOException{
         if(endId<0)
             endId = Long.MAX_VALUE;
