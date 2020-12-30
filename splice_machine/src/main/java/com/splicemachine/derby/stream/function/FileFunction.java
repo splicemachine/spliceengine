@@ -27,8 +27,7 @@ import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -101,5 +100,19 @@ public class FileFunction extends AbstractFileFunction<String> {
             }
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        oneLineRecord = in.readBoolean();
+        quotedEmptyIsNull = in.readBoolean();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(oneLineRecord);
+        out.writeBoolean(quotedEmptyIsNull);
     }
 }
