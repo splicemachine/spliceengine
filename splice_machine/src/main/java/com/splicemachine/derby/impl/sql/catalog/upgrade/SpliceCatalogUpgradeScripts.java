@@ -21,6 +21,7 @@ import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.util.Comparator;
@@ -87,6 +88,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1993), new UpgradeStoredObjects(sdd, tc));
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     public void run(Properties startParams) throws StandardException{
         
         // Set the current version to upgrade from.
@@ -102,10 +104,8 @@ public class SpliceCatalogUpgradeScripts{
         }
         NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();
         for(Splice_DD_Version version : keys){
-            if(currentVersion!=null){
-                if(ddComparator.compare(version,currentVersion)<=0){
-                    continue;
-                }
+            if(ddComparator.compare(version,currentVersion)<=0){
+                continue;
             }
             UpgradeScript script=scripts.get(version);
             script.run(startParams);

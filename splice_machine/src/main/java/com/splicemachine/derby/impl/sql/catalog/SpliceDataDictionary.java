@@ -65,6 +65,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
@@ -654,6 +655,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return new SpliceSystemAggregatorGenerator(this);
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     protected void loadDictionaryTables(TransactionController tc,
                                         Properties startParams) throws StandardException{

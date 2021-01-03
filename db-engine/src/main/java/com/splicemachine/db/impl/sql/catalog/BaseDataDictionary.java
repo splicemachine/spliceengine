@@ -61,7 +61,10 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int          NUM_CORE = 4;
 	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
 
+	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
 	public static boolean READ_NEW_FORMAT = true;
+
+	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
 	public static boolean WRITE_NEW_FORMAT = true;
 
 	/**

@@ -23,6 +23,7 @@ import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -32,6 +33,7 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
         super(sdd, tc);
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     protected void upgradeSystemTables(Properties startParams) throws StandardException {
         try {
