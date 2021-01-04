@@ -460,6 +460,8 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 					// BLOB(MIN(A+B,2G))
 					resultLength.setValue(clobBlobHandling(rightType, leftType));
 					break;
+				default:
+					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.VARCHAR) {
 			switch (rightTypeId.getJDBCTypeId()) {
@@ -475,6 +477,8 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 				case Types.CLOB:
 					//operands VARCHAR(A), CLOB(B) then result is CLOB(MIN(A+B,2G))
 					resultLength.setValue(clobBlobHandling(rightType, leftType));
+					break;
+				default:
 					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.VARBINARY) {
@@ -494,6 +498,8 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 					//operands VARCHAR FOR BIT DATA(A), BLOB(B) then result is
 					// BLOB(MIN(A+B,2G))
 					resultLength.setValue(clobBlobHandling(rightType, leftType));
+					break;
+				default:
 					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.CLOB

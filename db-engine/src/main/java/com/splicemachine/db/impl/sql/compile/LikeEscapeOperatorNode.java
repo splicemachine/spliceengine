@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 import com.splicemachine.db.iapi.types.Like;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -108,7 +109,7 @@ import java.util.Vector;
     String because '\uffff' is not a valid character.
 
 **/
-
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
     /**************************************************************************
     * Fields of the class
