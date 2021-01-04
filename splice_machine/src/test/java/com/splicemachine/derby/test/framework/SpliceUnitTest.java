@@ -1206,6 +1206,14 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void checkNullExpression(String input, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try (ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertNull(rs.getObject(1));
+        }
+    }
+
     protected void checkExpressionType(String input, String expectedType, TestConnection conn) throws SQLException {
         String sql = format("select typeof(%s)", input);
         try(ResultSet rs = conn.query(sql)) {
