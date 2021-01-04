@@ -660,7 +660,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @throws ijException  if the cursor isn't scrollable
      * @throws SQLException if a database error occurs
      */
-    private void checkScrollableCursor(ResultSet rs, String operation)
+    static private void checkScrollableCursor(ResultSet rs, String operation)
             throws ijException, SQLException {
         if (rs.getType() == ResultSet.TYPE_FORWARD_ONLY) {
             throw ijException.forwardOnlyCursor(operation);
@@ -677,7 +677,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (absolute() not supported pre-JDBC2.0)
      */
-    ijResult absolute(ResultSet rs, int row)
+    static ijResult absolute(ResultSet rs, int row)
             throws SQLException {
         checkScrollableCursor(rs, "ABSOLUTE");
         // 0 is an *VALID* value for row
@@ -694,7 +694,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (relative() not supported pre-JDBC2.0)
      */
-    ijResult relative(ResultSet rs, int row)
+    static ijResult relative(ResultSet rs, int row)
             throws SQLException {
         checkScrollableCursor(rs, "RELATIVE");
         return new ijRowResult(rs, rs.relative(row));
@@ -709,7 +709,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (beforeFirst() not supported pre-JDBC2.0)
      */
-    ijResult beforeFirst(ResultSet rs)
+    static ijResult beforeFirst(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "BEFORE FIRST");
         rs.beforeFirst();
@@ -725,7 +725,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (first() not supported pre-JDBC2.0)
      */
-    ijResult first(ResultSet rs)
+    static ijResult first(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "FIRST");
         return new ijRowResult(rs, rs.first());
@@ -740,7 +740,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (afterLast() not supported pre-JDBC2.0)
      */
-    ijResult afterLast(ResultSet rs)
+    static ijResult afterLast(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "AFTER LAST");
         rs.afterLast();
@@ -756,7 +756,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (last() not supported pre-JDBC2.0)
      */
-    ijResult last(ResultSet rs)
+    static ijResult last(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "LAST");
         return new ijRowResult(rs, rs.last());
@@ -771,7 +771,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (previous() not supported pre-JDBC2.0)
      */
-    ijResult previous(ResultSet rs)
+    static ijResult previous(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "PREVIOUS");
         return new ijRowResult(rs, rs.previous());
@@ -785,7 +785,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (getRow() not supported pre-JDBC2.0)
      */
-    int getCurrentRowNumber(ResultSet rs)
+    static int getCurrentRowNumber(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "GETCURRENTROWNUMBER");
         return rs.getRow();

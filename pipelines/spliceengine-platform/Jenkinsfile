@@ -1,0 +1,108 @@
+@Library('jenkins-shared-library')_
+
+
+// Define params
+def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
+slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
+
+def releases = ["mem","cdh6.3.0", "hdp3.1.5"]
+
+def parallelStagesMap = releases.collectEntries {
+    ["${it}" : generateStage(it,slackResponse)]
+}
+
+def stages = [failFast: true]
+
+def generateStage(platform,slackResponse) { 
+    return {
+        def artifact_values  = [
+            [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+                [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+        ]
+        slackSend(channel: slackResponse.threadId, message: "Assembling Secrets...")
+        stage("stage: ${platform}") {
+        node('spliceengine'){
+            slackSend(channel: slackResponse.threadId, message: "Prep Node...")
+            stage('Prep Node') {
+                sh """
+                wget http://download.oracle.com/otn-pub/java/jdk/8u121-b13/e9e7ea248e2c4826b92b3f075a80e441/jdk-8u121-linux-x64.rpm; sudo yum localinstall jdk-8u121-linux-x64.rpm
+                sudo yum install curl epel-release git wget nmap rlwrap patch openssh-server openssh-clients openssh ntp nscd nc ftp -y
+                sudo sed -i '/requiretty/ s/^/#/' /etc/sudoers
+                sudo service nscd start  && sudo service ntpd start  && sudo service sshd start
+                wget https://downloads.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz -P /tmp
+                sudo tar xf /tmp/apache-maven-3.6.3-bin.tar.gz -C /opt
+                sudo ln -sfn /opt/apache-maven-3.6.3 /opt/maven
+                wget https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.9-bin.tar.gz -P /tmp
+                sudo tar xf /tmp/apache-ant-1.9.9-bin.tar.gz -C /opt
+                sudo ln -sfn /opt/apache-ant-1.9.9 /opt/ant
+                """
+            } 
+            slackSend(channel: slackResponse.threadId, message: "Checking out code...")
+            stage('Checkout') {
+                    // Get some code from a GitHub repository
+                    checkout([  
+                        $class: 'GitSCM', 
+                        branches: [[name: 'refs/heads/master']], 
+                        doGenerateSubmoduleConfigurations: false, 
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                        submoduleCfg: [], 
+                        userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                    ])
+                    checkout([  
+                        $class: 'GitSCM', 
+                        branches: [[name: 'refs/heads/master']], 
+                        doGenerateSubmoduleConfigurations: false, 
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                        submoduleCfg: [], 
+                        userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                    ])
+            }
+            slackSend(channel: slackResponse.threadId, message: "Build/Test $platform...")
+            stage("Build/Test"){
+            wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+                    // Run Maven on a Unix agent.
+                    dir('spliceengine'){
+                        sh """
+                        export JAVA_HOME=/usr/lib/jvm/jre-openjdk
+                        export M2_HOME=/opt/maven
+                        export ANT_HOME=/opt/ant
+                        export MAVEN_HOME=/opt/maven
+                        export PATH=/opt/ant/bin:/opt/maven/bin:${PATH}:${PATH}
+                        export MAVEN_OPTS="-Xmx4096m -Djava.awt.headless=true -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30 -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=YYYY-MM-dd|HH:mm:ss,SSS"
+                        mvn -B -e --fail-at-end clean install -Pcore -DskipTests
+                        cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                        sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                        sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                        mvn -B -e --fail-at-end install -Pcore,${platform},ee -Dexcluded.categories=com.splicemachine.test.SlowTest -Dmaven.test.redirectTestOutputToFile=true
+                        """
+                    }
+                }
+            }
+        }
+        }
+    }
+}
+
+
+node('splice-standalone'){
+    try{
+        stage("Initiate Parallel Stages"){
+                parallel parallelStagesMap
+        }
+        stage("Deploy Artifacts"){
+            build (job: 'spliceengine-hdp', propagate: false, wait: false)
+            build (job: 'spliceengine-parcel', propagate: false, wait: false)
+            build (job: 'spliceengine-mapr', propagate: false, wait: false)
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+    } finally {
+        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}

@@ -724,7 +724,9 @@ public class ColumnReference extends ValueNode {
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -749,6 +751,8 @@ public class ColumnReference extends ValueNode {
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -756,12 +760,14 @@ public class ColumnReference extends ValueNode {
      * @return boolean        Whether or not source.expression is a ColumnReference
      *                        or a VirtualColumnNode or a ConstantNode.
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(tableNumber >= 0,
                     "tableNumber is expected to be non-negative");
         referencedTabs.set(tableNumber);
+        if (referencedColumns != null)
+            referencedColumns.add(tableNumber, columnNumber);
 
         return ( ! replacesAggregate ) &&
                 ( ! replacesWindowFunctionCall ) &&
@@ -1598,5 +1604,13 @@ public class ColumnReference extends ValueNode {
     public int getColumnPositionForStatistics() {
         return replacesIndexExpression ? getSource().getSourceConglomerateColumnPosition()
                                        : getSource().getColumnPosition();
+    }
+
+    public ResultColumn generateResultColumn() throws StandardException {
+        return (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                this.getColumnName(),
+                this.getClone(),
+                getContextManager());
     }
 }

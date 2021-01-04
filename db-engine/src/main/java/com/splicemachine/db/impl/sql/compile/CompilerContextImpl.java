@@ -306,12 +306,21 @@ public class CompilerContextImpl extends ContextImpl
         timestampFormat = value;
     }
 
+    public void setFloatingPointNotation(int value)
+    {
+        floatingPointNotation = value;
+    }
+
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
     }
 
     public String getTimestampFormat() {
         return timestampFormat;
+    }
+
+    public int getFloatingPointNotation() {
+        return floatingPointNotation;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -1187,6 +1196,7 @@ public class CompilerContextImpl extends ContextImpl
     private       int                                 currentTimestampPrecision                    = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
 
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
+    private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;

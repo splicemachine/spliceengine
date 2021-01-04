@@ -272,6 +272,25 @@ public class SelectivityIT extends SpliceUnitTest {
                 BADDIR));
         ps.execute();
 
+        new TableCreator(conn)
+            .withCreate("create table t11 (a int, b int, c int, d int, e int)")
+            .withInsert("insert into t11 values(?,?,?,?,?)")
+            .withRows(rows(
+                row(1, 1, 1, 1, 1),
+                row(2, 2, 2, 2, 2),
+                row(3, 3, 3, 3, 3),
+                row(4, 4, 4, 4, 4),
+                row(5, 5, 5, 5, 5),
+                row(6, 6, 6, 6, 6),
+                row(7, 7, 7, 7, 7),
+                row(8, 8, 8, 8, 8),
+                row(9, 9, 9, 9, 9),
+                row(10, 10, 10, 10, 10))).create();
+
+        spliceClassWatcher.executeQuery(format(
+            "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T11', false)",
+            spliceSchemaWatcher.schemaName));
+
         spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1', false)",
                 spliceSchemaWatcher.schemaName));
@@ -795,6 +814,51 @@ public class SelectivityIT extends SpliceUnitTest {
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55 != 1000", methodWatcher));
         /* estimation should be the same as the total rows, as no rows should be excluded */
         Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount==5120);
+    }
+
+    @Test
+    @Ignore("DB-11083")
+    public void testJoinPredsWithOverlappingColumns() throws Exception {
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and b.a = c.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
+                                               ", t11 b --splice-properties joinStrategy=nestedloop\n" +
+                                               ", t11 c --splice-properties joinStrategy=nestedloop\n" +
+                            "where a.a = b.a and b.a = c.a and a.a = c.a","outputRows=10,",methodWatcher);
+
+        // Non-overlapping columns, use new method of combining selectivities.
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and b.b = c.b and a.c = c.c","outputRows=3,",methodWatcher);
+
+        rowContainsQuery(5,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and b.a = c.a and a.a = c.a " +
+                                              "and a.b = b.b and a.b = c.b","outputRows=3,",methodWatcher);
+
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 = b.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 b --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 c --splice-properties joinStrategy=nestedloop\n" +
+                             "where a.a = b.a and (a.b+a.a)/2 = b.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 between b.a-1 and b.a+1 and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 b --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 c --splice-properties joinStrategy=nestedloop\n" +
+                            "where a.a = b.a and (a.b+a.a)/2 between b.a-1 and b.a+1 and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (c.a+a.a)/2 <> b.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 b --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 c --splice-properties joinStrategy=nestedloop\n" +
+                            "where a.a = b.a and (c.a+a.a)/2 <> b.a and a.a = c.a","outputRows=10,",methodWatcher);
+
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c, t11 d, t11 e where a.a = b.a and b.a = c.a and c.a = d.a and d.a = e.a " +
+                                              "and a.a = c.a and a.a = d.a and a.a = e.a " +
+                                              "and b.a = d.a and b.a = e.a and c.a = e.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 b --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 c --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 d --splice-properties joinStrategy=nestedloop\n" +
+                            ", t11 e --splice-properties joinStrategy=nestedloop\n" +
+                              "where a.a = b.a and b.a = c.a and c.a = d.a and d.a = e.a " +
+                                              "and a.a = c.a and a.a = d.a and a.a = e.a " +
+                                              "and b.a = d.a and b.a = e.a and c.a = e.a","outputRows=10,",methodWatcher);
+
     }
 
 }

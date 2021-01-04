@@ -18,9 +18,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.UsesLocalFS;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
@@ -294,6 +296,7 @@ public class ForeignKeyActionIT {
     }
 
     @Test
+    @Category(UsesLocalFS.class)
     public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
             createDatabaseObjects3(s);

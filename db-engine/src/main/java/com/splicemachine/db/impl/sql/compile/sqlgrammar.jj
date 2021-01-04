@@ -1838,6 +1838,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
 |    <FIELD_SEPARATOR: "field_separator">
+|    <FLOATING_POINT_NOTATION: "floating_point_notation">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
@@ -1877,6 +1878,7 @@ TOKEN [IGNORE_CASE] :
 |    <MUMPS: "mumps">
 |    <NAME: "name">
 |    <NCLOB: "nclob">
+|    <NORMALIZED: "normalized">
 |    <NULLABLE: "nullable">
 |    <NULLS: "nulls">
 |    <NUMBER: "number">
@@ -1884,6 +1886,7 @@ TOKEN [IGNORE_CASE] :
 |    <OFFSET: "offset">
 |    <PASCAL: "pascal">
 |   <PHYSICAL: "physical">
+|    <PLAIN: "plain">
 |    <PLI: "pli">
 |    <PRECISION: "precision">
 |   <RECURSIVE: "recursive">
@@ -1951,6 +1954,7 @@ TOKEN [IGNORE_CASE] :
 |    <TIMESTAMP: "timestamp">
 |    <TIMESTAMPADD: "timestampadd">
 |    <TIMESTAMPDIFF: "timestampdiff">
+|    <TIMESTAMP_FORMAT: "timestamp_format">
 |    <TRUNC: "trunc">
 |    <TRUNCATE: "truncate">
 |    <TYPE: "type">
@@ -2000,7 +2004,7 @@ TOKEN [IGNORE_CASE] :
 |    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
-|	<EXPORT_KAFKA: "export_kafka">
+|    <EXPORT_KAFKA: "export_kafka">
 |    <FIRSTVALUE: "first_value">
 |    <LAG: "lag">
 |    <LASTVALUE: "last_value">
@@ -3111,6 +3115,41 @@ ValueNode exportQuoteMode() throws StandardException :
     }
 }
 
+String floatingPointNotationToken() throws StandardException :
+{
+}
+{
+    <PLAIN>
+    {
+        return "plain";
+    }
+|
+    <NORMALIZED>
+    {
+        return "normalized";
+    }
+}
+
+ValueNode floatingPointNotation() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = floatingPointNotationToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
 
 StatementNode
 exportStatement() throws StandardException :
@@ -3125,6 +3164,8 @@ exportStatement() throws StandardException :
     ValueNode quoteCharacter = null;
     ValueNode quoteMode = null;
     ValueNode fileType = null;
+    ValueNode floatingPointNotation = null;
+    ValueNode timestampFormat = null;
 }
 {
     <EXPORT>
@@ -3149,6 +3190,12 @@ exportStatement() throws StandardException :
         [
             <QUOTE_MODE> quoteMode = exportQuoteMode()
         ]
+        [
+            <FLOATING_POINT_NOTATION> floatingPointNotation = floatingPointNotation()
+        ]
+        [
+            <TIMESTAMP_FORMAT> timestampFormat = orExpression(null)
+        ]
         statementNode = preparableSQLDataStatement()
         {
             parameterList.addElement(exportPath);
@@ -3159,6 +3206,8 @@ exportStatement() throws StandardException :
             parameterList.addElement(quoteCharacter);
             parameterList.addElement(quoteMode);
             parameterList.addElement(fileType);
+            parameterList.addElement(floatingPointNotation);
+            parameterList.addElement(timestampFormat);
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                        statementNode,
                                        parameterList,
@@ -3168,11 +3217,13 @@ exportStatement() throws StandardException :
         // Legacy export
         methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
         {
-            parameterList.addElement(null); // null for legacy
+            parameterList.addElement(null); // null for legacy (quote mode)
             parameterList.addElement((CharConstantNode) nodeFactory.getNode(
                                      C_NodeTypes.CHAR_CONSTANT_NODE,
                                      "csv",
                                      getContextManager()));
+            parameterList.addElement(null); // null for legacy (floating point notation)
+            parameterList.addElement(null); // null for legacy (timestamp format)
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                        statementNode,
                                        parameterList,
@@ -3219,6 +3270,8 @@ binaryExportStatement() throws StandardException :
         actualParameterList.addElement(null);
         actualParameterList.addElement(null);
         actualParameterList.addElement(parameterList.elementAt(2));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    actualParameterList,
@@ -17379,6 +17432,7 @@ nonReservedKeyword()  :
     |    tok = <FIELD_SEPARATOR>
     |    tok = <FINAL>
     |    tok = <FIRSTVALUE>
+    |    tok = <FLOATING_POINT_NOTATION>
     |    tok = <FN>
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
@@ -17452,6 +17506,7 @@ nonReservedKeyword()  :
     |    tok = <NCLOB>
     |    tok = <NEW>
     |    tok = <NEW_TABLE>
+    |    tok = <NORMALIZED>
     |    tok = <NULLABLE>
     |    tok = <NULLS>
     |    tok = <NUMBER>
@@ -17474,6 +17529,7 @@ nonReservedKeyword()  :
     |    tok = <PASCAL>
     |    tok = <PASSING>
     |   tok = <PERCENTWORD>
+    |    tok = <PLAIN>
     |    tok = <PLI>
     |    tok = <PRECISION>
     |    tok = <PROPERTIES>
@@ -17551,6 +17607,7 @@ nonReservedKeyword()  :
     |    tok = <TIMESTAMPADD>
     |   tok = <TIMESTAMPFORMAT>
     |    tok = <TIMESTAMPDIFF>
+    |    tok = <TIMESTAMP_FORMAT>
     |   tok = <TRIGGER>
     |    tok = <TRUNCATE>
     |    tok = <TRUNCATE_END>
