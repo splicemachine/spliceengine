@@ -427,6 +427,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark3.0</artifactId>
                     <version>${project.version}</version>
+                    <classifier>dbaas3.0</classifier>
                 </dependency>
             </dependencies>
         </profile>
@@ -443,6 +444,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.3</artifactId>
                     <version>${project.version}</version>
+                    <classifier>hdp3.1.0</classifier>
                 </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
@@ -466,6 +468,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.3</artifactId>
                     <version>${project.version}</version>
+                    <classifier>hdp3.1.5</classifier>
                 </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
@@ -489,6 +492,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_sql_spark2.4</artifactId>
                     <version>${project.version}</version>
+                    <classifier>cdh6.3.0</classifier>
                 </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
