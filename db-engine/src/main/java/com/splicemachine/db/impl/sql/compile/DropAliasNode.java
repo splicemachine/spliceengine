@@ -175,6 +175,8 @@ public class DropAliasNode extends DDLStatementNode
 			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 				typeName = "TYPE";
 				break;
+			default:
+				break;
 		}
 		return typeName;
 	}

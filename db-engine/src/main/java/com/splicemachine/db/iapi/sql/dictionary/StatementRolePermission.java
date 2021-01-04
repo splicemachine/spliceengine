@@ -68,9 +68,6 @@ public class StatementRolePermission extends StatementPermission
                       Activation activation
                       ) throws StandardException
     {
-        DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
-
         // For now, only allowed for database owner
         if (lcc.currentUserIsDatabaseOwner(activation)) {
             return;

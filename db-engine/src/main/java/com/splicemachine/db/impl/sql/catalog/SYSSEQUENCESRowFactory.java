@@ -321,8 +321,6 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
     }
 
     public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
-        DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128);
-
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
         cdsl.add(
                 new ColumnDescriptor[]{

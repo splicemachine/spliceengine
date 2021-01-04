@@ -553,7 +553,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             assert authorizationDatabasesOwner.containsKey(spliceDbDesc.getUUID()) :"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
-            updateSystemProcedures(bootingTC);
+            updateSystemProcedures(spliceDbDesc, bootingTC);
 
             // read the system configuration setting about whether access restriction is enabled
             // and determine if sysvw.sysschemasview should be updated
@@ -6897,10 +6897,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc TransactionController
      * @throws StandardException Thrown on error
      */
-    protected void updateSystemProcedures(TransactionController tc) throws StandardException{
+    protected void updateSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException{
         // Update (or create) the system stored procedures if requested.
         if(updateSystemProcs){
-            createOrUpdateAllSystemProcedures(null, tc);
+            createOrUpdateAllSystemProcedures(dbDesc, tc);
         }
         // Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
         // It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
