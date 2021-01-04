@@ -59,18 +59,6 @@ public class FileFunction extends AbstractFileFunction<String> {
         config = new CsvParserConfig(preference, oneLineRecord, quotedEmptyIsNull, preserveLineEndings);
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        config.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        config = new CsvParserConfig(in);
-    }
-
     /**
      * Call Method for parsing the string into either a singleton List with a ExecRow or an empty list.
      *
@@ -119,14 +107,12 @@ public class FileFunction extends AbstractFileFunction<String> {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        oneLineRecord = in.readBoolean();
-        quotedEmptyIsNull = in.readBoolean();
+        config = new CsvParserConfig(in);
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(oneLineRecord);
-        out.writeBoolean(quotedEmptyIsNull);
+        config.writeExternal(out);
     }
 }
