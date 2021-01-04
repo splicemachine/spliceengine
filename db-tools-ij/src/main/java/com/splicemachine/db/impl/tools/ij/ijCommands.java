@@ -15,9 +15,11 @@ import java.util.Vector;
 // database resources are closed by caller
 @SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION"})
 public class ijCommands {
-    Connection theConnection;
-    ConnectionEnv currentConnEnv;
+    public Connection theConnection;
+    public ConnectionEnv currentConnEnv;
 
+
+    ijCommands() {}
     ijCommands(Connection theConnection, ConnectionEnv currentConnEnv)
     {
         this.theConnection = theConnection;
@@ -52,7 +54,7 @@ public class ijCommands {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getTables(null,schema,null,tableType);
+            rs = dbmd.getTables(null, Utils.escape(schema),null, tableType);
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs,"TABLE_SCHEM", 20),
@@ -83,7 +85,7 @@ public class ijCommands {
         haveConnection();
 
         DatabaseMetaData dbmd = theConnection.getMetaData();
-        return dbmd.getIndexInfo(null, schema, table, false, true);
+        return dbmd.getIndexInfo(null, Utils.escape(schema), Utils.escape(table), false, true);
     }
 
     /**
@@ -103,11 +105,6 @@ public class ijCommands {
 
         try {
             ResultSet rs = getIndexInfoForTable(schema, table);
-//            ColumnParameters[] columnParameters = new ColumnParameters[] {
-//                    new ColumnParameters( rs, "FUNCTION_SCHEM", 14),
-//                    new ColumnParameters( rs, "FUNCTION_NAME", 35),
-//                    new ColumnParameters( rs, "REMARKS", 80)
-//            };
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_SCHEM", 20),
                     new ColumnParameters( rs, "TABLE_NAME", 50),
@@ -139,7 +136,7 @@ public class ijCommands {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,null);
+            rs = dbmd.getProcedures(null, Utils.escape(schema),null);
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "PROCEDURE_SCHEM", 20),
@@ -172,7 +169,7 @@ public class ijCommands {
         ResultSet rs = null;
         try {
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedures(null,schema,proc);
+            rs = dbmd.getProcedures(null, Utils.escape(schema), Utils.escape(proc));
             if(!rs.next())
                 throw ijException.noSuchProcedure(proc);
         } finally {
@@ -193,7 +190,7 @@ public class ijCommands {
             verifyProcedureExists(schema,proc);
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getProcedureColumns(null,Utils.escape(schema),Utils.escape(proc),null);
+            rs = dbmd.getProcedureColumns(null,Utils.escape(schema), Utils.escape(proc),null);
 
             // Small subset of the result set fields available
             ColumnParameters[] columnParameters = new ColumnParameters[] {
@@ -222,7 +219,7 @@ public class ijCommands {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getPrimaryKeys(null,schema,table);
+            rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_NAME", 30),
@@ -261,7 +258,7 @@ public class ijCommands {
                         new Class[] { String.class,
                                 String.class,
                                 String.class});
-                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, schema, null});
+                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, Utils.escape(schema), null});
             } catch(NoSuchMethodException nsme) {
                 throw ijException.notAvailableForDriver(dbmd.getDriverName());
             } catch(IllegalAccessException iae) {
@@ -317,6 +314,35 @@ public class ijCommands {
             };
 
             return new ijResultSetResult(rs, columnParameters);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of databases from database metadata
+     */
+    public ijResult showDatabases() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            rs = theConnection.createStatement().executeQuery
+                ("SELECT DATABASENAME FROM SYSVW.SYSDATABASESVIEW");
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("DATABASENAME")
+            };
+            int[] columnWidths = new int[] {
+                36
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
         } catch (SQLException e) {
             try {
                 if(rs!=null)

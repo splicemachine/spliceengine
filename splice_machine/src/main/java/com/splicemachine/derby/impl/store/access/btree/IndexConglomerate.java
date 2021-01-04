@@ -194,6 +194,11 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
 
+    @Override
+    public void awaitCreation() throws StandardException {
+        // no-op
+    }
+
     /**
      * Drops a column from the hbase conglomerate.
      * <p>

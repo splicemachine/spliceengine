@@ -1479,6 +1479,8 @@ public interface Property {
 
     String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
 
+    String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
+
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";

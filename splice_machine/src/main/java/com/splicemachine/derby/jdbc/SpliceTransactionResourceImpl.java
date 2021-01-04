@@ -102,7 +102,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
-        boolean updated = false;
         try {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
@@ -110,7 +109,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
             cm = csf.newContextManager();
             csf.setCurrentContextManager(cm);
-            updated = true;
+            prepared = true;
 
             String userName = localUserName != null ? localUserName : username;
             ArrayList<String> grouplist = new ArrayList<>();
@@ -125,11 +124,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                     false, -1,
                     ipAddress, reuseTC);
 
-            prepared = true;
-
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);
-            if (updated)
+            if (prepared)
                 close();
             throw t;
         }

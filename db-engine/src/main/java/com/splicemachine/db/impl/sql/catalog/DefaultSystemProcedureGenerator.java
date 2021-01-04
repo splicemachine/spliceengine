@@ -356,6 +356,22 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         return procedures;
     }
 
+    static public List<Procedure> getSYSIBMProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sysIbmProcedures);
+        return procedures;
+    }
+    static public List<Procedure> getSQLProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sqlJProcedures);
+        return procedures;
+    }
+    static public List<Procedure> getSYSCSMProcedures() throws StandardException {
+        List<Procedure> procedures = new ArrayList<>();
+        procedures.addAll(sysCsProcedures);
+        return procedures;
+    }
+
     /**
      * Hook to be invoked only from {@link #getProcedures(DataDictionary, TransactionController)}
      * Do not call directly.
@@ -679,19 +695,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(LOB_STORED_PROCEDURE)
                     .integer("LOCATOR").build()
             ,
-            Procedure.newBuilder().name("CLOBGETPROSITIONFROMSTRING").numOutputParams(0).numResultSets(0)
-                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                    .integer("LOCATOR")
-                    .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
-                    .bigint("POS").build()
-            ,
             Procedure.newBuilder().name("CLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
                     .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
                     .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
                     .integer("LOCATOR")
                     .integer("SEARCHLOCATOR")
-                    .integer("POS").build()
+                    .bigint("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETLENGTH").numOutputParams(0).numResultSets(0)
                     .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))

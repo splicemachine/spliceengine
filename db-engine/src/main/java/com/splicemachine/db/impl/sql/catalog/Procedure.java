@@ -35,13 +35,16 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 
+import java.lang.reflect.Method;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,6 +71,99 @@ public class Procedure {
         this.isDeterministic = isDeterministic;
         this.returnType = returnType;
         this.ownerClass = ownerClass;
+    }
+
+    /**
+     * check that the class+method we're refering to actually exists
+     * @throws
+     */
+    public void check() throws Exception {
+        Class c = Class.forName(ownerClass);
+        Method methods[] = c.getDeclaredMethods();
+
+        StringBuilder errors = null;
+        String fullname = ownerClass + "." + name;
+        // todo
+        boolean foundName = false;
+        boolean found = false;
+        // to not consume resources in the 99.999% cases when we don't have an error, we run this once with error string
+        // generation, then if we have errors, with error string creation
+        for(boolean bReportError : new boolean[]{false, true})
+        {
+            if(bReportError){
+                errors = new StringBuilder(100);
+            }
+            for (Method m : methods) {
+                if (!m.getName().equals(name))
+                    continue;
+                foundName = true;
+                if (m.getParameterCount() != numResultSets + args.length) {
+                    if(errors != null)
+                        errors.append(" " + m.toGenericString() + ":\n  parameter count doesn't match: expected " + (numResultSets + args.length) + ", but actual " + m.getParameterCount() + "\n");
+                    continue;
+                }
+
+                /**
+                 * todo: use java types (needs some mappings though like int -> java.lang.Integer)
+                 * String expectedType = TypeId.getBuiltInTypeId(args[i].type.getJDBCTypeId()).getCorrespondingJavaTypeName();
+                 * String actualType = m.getParameterTypes()[i].getName();
+                 */
+                boolean hasError = false;
+                for (int i = 0; i < m.getParameterCount() - numResultSets; i++) {
+                    TypeDescriptorImpl tdi = (TypeDescriptorImpl) args[i].type;
+                    if (tdi == null) {
+                        if(errors != null)
+                            errors.append(" " + m.toGenericString() + ":\n  can't get args " + i + "\n");
+                        hasError = true;
+                        break;
+                    }
+                    String expectedType = tdi.getTypeName();
+
+                    String actualJavaType = m.getParameterTypes()[i].getName();
+
+                    String actualType = TypeId.getSQLTypeForJavaType(actualJavaType).getSQLTypeName();
+
+                    // this is a bit more complicated since there's not a one-to-one relationship
+                    // as getSQLTypeForJavaType suggests
+                    if (!(expectedType.equals("CHAR") && actualType.equals("VARCHAR"))
+                            && !(expectedType.equals("VARCHAR") && actualType.equals("[Ljava.lang.String;")) // String[]
+                            && !(expectedType.equals("VARCHAR () FOR BIT DATA") && actualType.equals("[B")) // byte[]
+                            && !(expectedType.equals("INTEGER") && actualType.equals("[I")) // int[]
+                            && expectedType.equals(actualType) == false) {
+                        if(errors != null)
+                            errors.append(" " + m.toGenericString() + ":\n  parameter " + i +
+                                " has wrong type: expected type is " + expectedType + ", but actual type is " + actualType + "\n");
+                        hasError = true;
+                        break;
+                    }
+                }
+                if (hasError) continue;
+                for (int i = 0; i < numResultSets; i++) {
+                    int k = i + args.length;
+                    String actualType = m.getParameterTypes()[k].getName();
+                    if (!actualType.equals("[Ljava.sql.ResultSet;")) {
+                        if(errors != null)
+                            errors.append(" " + m.toGenericString() + ":\n  parameter " + k +
+                                " needs to be java.sql.ResultSet, but is " + actualType + "\n");
+                        hasError = true;
+                        break;
+                    }
+                }
+                if (hasError) continue;
+                found = true;
+                break;
+            }
+            if (!foundName) {
+                throw new NoSuchMethodException("couldn't find function with name " + fullname);
+            }
+            if(!found)
+                continue; // run again with error reporting
+        }
+        if (foundName && !found) {
+            throw new NoSuchMethodException("could not find correct function with signature for " + ownerClass + "." + name + ":\n"
+                + errors.toString());
+        }
+
     }
 
     public String getName() {
@@ -142,7 +238,7 @@ public class Procedure {
     }
 
     public static class Builder{
-        private List/*<Arg>*/ args;
+        private List<Arg> args;
         private String name;
         private int numberOutputParameters;
         private int numResultSets;
@@ -167,7 +263,7 @@ public class Procedure {
         }
 
         private Builder(){
-            this.args = new ArrayList/*<Arg>*/();
+            this.args = new ArrayList<>();
         }
 
 
@@ -258,7 +354,7 @@ public class Procedure {
             return this;
         }
 
-        public Procedure build(){
+        public Procedure build() {
             assert name !=null;
             assert numberOutputParameters>=0;
             assert numResultSets>=0;
@@ -274,6 +370,12 @@ public class Procedure {
                     numResultSets,routineSqlControl,isDeterministic,returnType, ownerClass);
         }
 
+        // builds the procedure and checks validity
+        public Procedure buildCheck() throws Exception {
+            Procedure p = build();
+            p.check();
+            return p;
+        }
     }
 
     private static class Arg{

@@ -17,8 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -28,8 +30,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertNull;
 
 /**
  * @author Scott Fines
@@ -899,14 +902,14 @@ public class FunctionIT extends SpliceUnitTest {
         scalarFunctionExpectSuccess("dec2", true, "", "VARCHAR(20)", "2");
         // FIXME(DB-10938) Should be VARCHAR(42) instead of VARCHAR(35)
         scalarFunctionExpectSuccess("decfl1", true, "", "VARCHAR(35)", "1");
-        scalarFunctionExpectSuccess("floating1", true, "", "VARCHAR(24)", "1.0E0");
-        scalarFunctionExpectSuccess("floating2", true, "", "VARCHAR(24)", "2.0E0");
+        scalarFunctionExpectSuccess("floating1", true, "", "VARCHAR(53)", "1.0");
+        scalarFunctionExpectSuccess("floating2", true, "", "VARCHAR(24)", "2.0");
         scalarFunctionExpectSuccess("dec1", false, "", "CHAR(12)", "1           ");
         scalarFunctionExpectSuccess("dec2", false, "", "CHAR(20)", "2                   ");
         // FIXME(DB-10938) Should be CHAR(42) instead of CHAR(35)
         scalarFunctionExpectSuccess("decfl1", false, "", "CHAR(35)", "1                                  ");
-        scalarFunctionExpectSuccess("floating1", false, "", "CHAR(24)", "1.0E0                   ");
-        scalarFunctionExpectSuccess("floating2", false, "", "CHAR(24)", "2.0E0                   ");
+        scalarFunctionExpectSuccess("floating1", false, "", "CHAR(53)", "1.0                                                  ");
+        scalarFunctionExpectSuccess("floating2", false, "", "CHAR(24)", "2.0                     ");
 
         scalarFunctionExpectFailure("dec1", null, "1", "42846");
         scalarFunctionExpectFailure("dec2", null, "1", "42846");
@@ -1021,6 +1024,17 @@ public class FunctionIT extends SpliceUnitTest {
         scalarFunctionExpectFailure("bitchar2", false, "256", "42611");
         scalarFunctionExpectFailure("bitchar1", null, "ISO", "42846");
         scalarFunctionExpectFailure("bitchar2", null, "ISO", "42846");
+    }
+
+    @Test
+    public void testCastTimestampToCharTruncate() throws SQLException {
+        String schemaName = FunctionIT.class.getSimpleName();
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()){
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as varchar(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as char(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(ts as varchar(4)) from " + schemaName + ".TMM", "1960", conn);
+            checkStringExpression("cast(ts as char(4)) from " + schemaName + ".TMM", "1960", conn);
+        }
     }
 
     @Test

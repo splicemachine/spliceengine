@@ -876,10 +876,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * so that we can reuse the wrappers during an external
              * sort.
              */
-            conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
+            Conglomerate conglomerate = tc.createConglomerateAsync(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
                     splitKeys, Conglomerate.Priority.NORMAL);
+            conglomerate.awaitCreation();
+            conglomId = conglomerate.getContainerid();
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table
