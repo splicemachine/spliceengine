@@ -31,8 +31,8 @@ public class MemDropIndexConstantOperation extends AbstractDropIndexConstantOper
      * @param    tableName            The table name
      * @param    schemaName            Schema that index lives in.
      */
-    public MemDropIndexConstantOperation(String fullIndexName,String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId){
-        super(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId);
+    public MemDropIndexConstantOperation(String fullIndexName,String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId, UUID dbId){
+        super(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId, dbId);
     }
 
 }

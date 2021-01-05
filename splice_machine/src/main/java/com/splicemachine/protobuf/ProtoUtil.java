@@ -84,10 +84,11 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createUpdateSchemaOwner(long txnId, String schemaName, String ownerName, BasicUUID schemaUUID) {
+    public static DDLChange createUpdateSchemaOwner(long txnId, String schemaName, String ownerName, BasicUUID schemaUUID, BasicUUID dbId) {
         return DDLChange.newBuilder().setTxnId(txnId).setUpdateSchemaOwner(UpdateSchemaOwner.newBuilder()
                 .setSchemaName(schemaName)
                 .setOwnerName(ownerName)
+                .setDbUUID(transferDerbyUUID(dbId))
                 .setSchemaUUID(transferDerbyUUID(schemaUUID))
                 .build())
                 .setDdlChangeType(DDLChangeType.UPDATE_SCHEMA_OWNER)
@@ -135,11 +136,12 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createNotifyJarLoader(long txnId, boolean reload, boolean drop, String schemaName, String sqlName) {
+    public static DDLChange createNotifyJarLoader(long txnId, boolean reload, boolean drop, String schemaName, String sqlName, BasicUUID dbId) {
         return DDLChange.newBuilder().setTxnId(txnId).setNotifyJarLoader(NotifyJarLoader.newBuilder()
                 .setReload(reload)
                 .setDrop(drop)
                 .setSchemaName(schemaName==null?"":schemaName)
+                .setDbUUID(transferDerbyUUID(dbId))
                 .setSqlName(sqlName==null?"":sqlName)
                 .build())
                 .setDdlChangeType(DDLChangeType.NOTIFY_JAR_LOADER)
@@ -221,8 +223,9 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange dropSequence(long txnId, String schemaName, String sequenceName) {
+    public static DDLChange dropSequence(long txnId, String schemaName, String sequenceName, BasicUUID dbId) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropSequence(DropSequence.newBuilder()
+                .setDbUUID(transferDerbyUUID(dbId))
                 .setSchemaName(schemaName)
                 .setSequenceName(sequenceName))
                 .setDdlChangeType(DDLChangeType.DROP_SEQUENCE)
@@ -288,9 +291,10 @@ public class ProtoUtil {
         }
     }
 
-    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId, BasicUUID tableUUID, String schemaName, String indexName) {
+    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId, BasicUUID tableUUID, String schemaName, String indexName, BasicUUID dbId) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropIndex(DropIndex.newBuilder()
                 .setBaseConglomerate(tableConglomId)
+                .setDbUUID(transferDerbyUUID(dbId))
                 .setTableUUID(transferDerbyUUID(tableUUID))
                 .setSchemaName(schemaName)
                 .setIndexName(indexName)
@@ -489,10 +493,10 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createDropRole(long txnId, String roleName) {
+    public static DDLChange createDropRole(long txnId, String roleName, BasicUUID dbId) {
         return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.DROP_ROLE)
                 .setTxnId(txnId)
-                .setDropRole(DropRole.newBuilder().setRoleName(roleName).build())
+                .setDropRole(DropRole.newBuilder().setRoleName(roleName).setDbUUID(transferDerbyUUID(dbId)).build())
                 .build();
     }
 

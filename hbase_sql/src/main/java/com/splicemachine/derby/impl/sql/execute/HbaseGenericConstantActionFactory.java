@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
  */
 public class HbaseGenericConstantActionFactory extends SpliceGenericConstantActionFactory{
     @Override
-    public ConstantAction getDropIndexConstantAction(String fullIndexName,String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId){
-        return new HBaseDropIndexConstantOperation(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId);
+    public ConstantAction getDropIndexConstantAction(String fullIndexName, String indexName, String tableName, String schemaName, UUID tableId, long tableConglomerateId, UUID dbId){
+        return new HBaseDropIndexConstantOperation(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId, dbId);
     }
 }

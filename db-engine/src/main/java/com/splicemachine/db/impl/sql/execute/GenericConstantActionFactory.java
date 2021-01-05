@@ -188,16 +188,16 @@ public abstract class GenericConstantActionFactory {
 
     /**
      *     Make the ConstantAction for a CREATE INDEX statement.
-     * 
-     * @param forCreateTable Executed as part of a CREATE TABLE
+     *  @param forCreateTable Executed as part of a CREATE TABLE
      * @param unique            True means it will be a unique index
      * @param uniqueWithDuplicateNulls  True means index check and disallow
-     *                                  any duplicate key if key has no 
-     *                                  column with a null value.  If any 
-     *                                  column in the key has a null value,
-     *                                  no checking is done and insert will
-     *                                  always succeed.
+ *                                  any duplicate key if key has no
+ *                                  column with a null value.  If any
+ *                                  column in the key has a null value,
+ *                                  no checking is done and insert will
+ *                                  always succeed.
      * @param indexType         The type of index (BTREE, for example)
+     * @param dbId
      * @param schemaName        The schema that table (and index) lives in.
      * @param indexName         Name of the index
      * @param tableName         Name of table the index will be on
@@ -210,36 +210,36 @@ public abstract class GenericConstantActionFactory {
      */
     public abstract ConstantAction getCreateIndexConstantAction
     (
-        boolean              forCreateTable,
-        boolean              unique,
-        boolean              uniqueWithDuplicateNulls,
-        String               indexType,
-        String               schemaName,
-        String               indexName,
-        String               tableName,
-        UUID                 tableId,
-        String[]             columnNames,
-        DataTypeDescriptor[] indexColumnTypes,
-        boolean[]            isAscending,
-        boolean              isConstraint,
-        UUID                 conglomerateUUID,
-        boolean              excludeNulls,
-        boolean              excludeDefaults,
-        boolean              preSplit,
-        boolean              isLogicalKey,
-        boolean              sampling,
-        double               sampleFraction,
-        String               splitKeyPath,
-        String               hfilePath,
-        String               columnDelimiter,
-        String               characterDelimiter,
-        String               timestampFormat,
-        String               dateFormat,
-        String               timeFormat,
-        String[]             exprTexts,
-        ByteArray[]          exprBytecode,
-        String[]             generatedClassNames,
-        Properties           properties
+            boolean forCreateTable,
+            boolean unique,
+            boolean uniqueWithDuplicateNulls,
+            String indexType,
+            UUID dbId, String schemaName,
+            String indexName,
+            String tableName,
+            UUID tableId,
+            String[] columnNames,
+            DataTypeDescriptor[] indexColumnTypes,
+            boolean[] isAscending,
+            boolean isConstraint,
+            UUID conglomerateUUID,
+            boolean excludeNulls,
+            boolean excludeDefaults,
+            boolean preSplit,
+            boolean isLogicalKey,
+            boolean sampling,
+            double sampleFraction,
+            String splitKeyPath,
+            String hfilePath,
+            String columnDelimiter,
+            String characterDelimiter,
+            String timestampFormat,
+            String dateFormat,
+            String timeFormat,
+            String[] exprTexts,
+            ByteArray[] exprBytecode,
+            String[] generatedClassNames,
+            Properties properties
     );
 
 
@@ -498,24 +498,24 @@ public abstract class GenericConstantActionFactory {
     /**
      *    Make the ConstantAction for a DROP INDEX statement.
      *
-     *
-     *    @param    fullIndexName        Fully qualified index name
+     *     @param    fullIndexName        Fully qualified index name
      *    @param    indexName            Index name.
-     *    @param    tableName            The table name
-     *    @param    schemaName                    Schema that index lives in.
-     *  @param  tableId                UUID for table
-     *  @param  tableConglomerateId    heap conglomerate ID for table
+     * @param    tableName            The table name
+     * @param    schemaName                    Schema that index lives in.
+     * @param  tableId                UUID for table
+     * @param  tableConglomerateId    heap conglomerate ID for table
+     * @param dbId
      *
      */
     public abstract    ConstantAction    getDropIndexConstantAction
     (
-        String                fullIndexName,
-        String                indexName,
-        String                tableName,
-        String                schemaName,
-        UUID                tableId,
-        long                tableConglomerateId
-    );
+            String fullIndexName,
+            String indexName,
+            String tableName,
+            String schemaName,
+            UUID tableId,
+            long tableConglomerateId,
+            UUID dbId);
 
 
     /**
@@ -529,10 +529,11 @@ public abstract class GenericConstantActionFactory {
     /**
      *    Make the ConstantAction for a DROP ROLE statement.
      *
-     *    @param    roleName            role name to be dropped
+     * @param    roleName            role name to be dropped
+     * @param dbId
      *
      */
-    public abstract ConstantAction getDropRoleConstantAction(String roleName);
+    public abstract ConstantAction getDropRoleConstantAction(String roleName, UUID dbId);
 
     /**
      *    Make the ConstantAction for a DROP SEQUENCE statement.
@@ -546,11 +547,11 @@ public abstract class GenericConstantActionFactory {
 
     /**
      *    Make the ConstantAction for a DROP SCHEMA statement.
-     *
-     *    @param    schemaName            Table name.
+     *     @param    schemaName            Table name.
      *    @param    dropBehavior          Restrict or Cascade
+     * @param dbId
      */
-    public abstract ConstantAction    getDropSchemaConstantAction(String    schemaName, int dropBehavior);
+    public abstract ConstantAction    getDropSchemaConstantAction(String schemaName, int dropBehavior, UUID dbId);
 
 
     /**

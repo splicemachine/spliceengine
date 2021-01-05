@@ -71,6 +71,7 @@ message DropIndex {
         required UUID tableUUID = 3;
         required string schemaName = 4;
         required string indexName = 5;
+        optional UUID dbUUID = 6;
 }
 
 message DropSchema {
@@ -90,10 +91,12 @@ message DropTable {
 message DropSequence {
         required string schemaName = 1;
         required string sequenceName = 2;
+        optional UUID dbUUID = 3;
 }
 
 message DropRole {
         optional string roleName = 1;
+        optional UUID dbUUID = 2;
 }
 
 message DropDatabase {
@@ -189,6 +192,7 @@ message UpdateSchemaOwner {
         required string schemaName = 1;
         required string ownerName = 2;
         required UUID schemaUUID = 3;
+        optional UUID dbUUID = 4;
 }
 
 message GrantRevokeRole {
@@ -331,6 +335,7 @@ message NotifyJarLoader {
     optional bool drop = 2;
     optional string schemaName = 3;
     optional string sqlName = 4;
+    optional UUID dbUUID = 5;
 }
 
 message NotifyModifyClasspath {

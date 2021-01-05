@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -50,7 +51,6 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.primitives.Bytes;
@@ -523,7 +523,7 @@ public class SpliceDatabase extends BasicDatabase{
         SchemaDescriptor sd = dd.getSchemaDescriptor(null, util.getSchemaName(), null, true);
         try {
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null, null);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             com.splicemachine.db.catalog.UUID id = Monitor.getMonitor().getUUIDFactory().createUUID();
             final String jarExternalName = JarUtil.mkExternalName(
@@ -569,7 +569,13 @@ public class SpliceDatabase extends BasicDatabase{
 
         try {
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,true,util.getSchemaName(),util.getSqlName());
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader(
+                    ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(),
+                    false,
+                    true,
+                    util.getSchemaName(),
+                    util.getSqlName(),
+                    (BasicUUID) util.getDbId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             com.splicemachine.db.catalog.UUID id = fid.getUUID();
             dd.dropFileInfoDescriptor(fid);
@@ -599,7 +605,7 @@ public class SpliceDatabase extends BasicDatabase{
         try {
             // disable loads from this jar
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null, null);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             dd.dropFileInfoDescriptor(fid);
             final String jarExternalName =

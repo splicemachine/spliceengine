@@ -428,14 +428,20 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 LanguageConnectionContext lcc = transactionResource.getLcc();
-                // remove corresponding schema canche entry
-                dd.getDataDictionaryCache().schemaCacheRemove(lcc.getDatabaseId(), change.getUpdateSchemaOwner().getSchemaName());
-                dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getUpdateSchemaOwner().getSchemaUUID()));
+                DDLMessage.UpdateSchemaOwner uso = change.getUpdateSchemaOwner();
+                DataDictionaryCache cache = dd.getDataDictionaryCache();
+                // remove corresponding schema cache entry
+                if (uso.hasDbUUID()) {
+                    cache.schemaCacheRemove(ProtoUtil.getDerbyUUID(uso.getDbUUID()), uso.getSchemaName());
+                } else {
+                    cache.clearSchemaCache();
+                }
+                cache.oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(uso.getSchemaUUID()));
                 // clear permission cache as it has out-of-date permission info for the schema
-                dd.getDataDictionaryCache().clearPermissionCache();
+                cache.clearPermissionCache();
                 // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
-                dd.getDataDictionaryCache().clearOidTdCache();
-                dd.getDataDictionaryCache().clearNameTdCache();
+                cache.clearOidTdCache();
+                cache.clearNameTdCache();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -457,12 +463,18 @@ public class DDLUtils {
                 LanguageConnectionContext lcc = transactionResource.getLcc();
                 TransactionController tc = lcc.getTransactionExecute();
                 DDLMessage.DropIndex dropIndex = change.getDropIndex();
-                SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), dropIndex.getSchemaName(), tc, true);
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
-                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
+                SchemaDescriptor sd;
                 if (td != null) { // Table Descriptor transaction never committed
                     dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+                    sd = td.getSchemaDescriptor();
+                } else if (dropIndex.hasDbUUID()){
+                    sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getDbUUID()), dropIndex.getSchemaName(), tc, true);
+                } else { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                    // XXX (arnaud multidb) invalidate All conglomerate descriptor in that case?
+                    throw new IllegalStateException("preDropIndex called from a region server that does not support multidb");
                 }
+                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
                 if (cd != null) {
                     dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
                 }
@@ -602,12 +614,17 @@ public class DDLUtils {
                 dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
                 LanguageConnectionContext lcc = transactionResource.getLcc();
                 ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
-                cf.notifyModifyJar(change.getNotifyJarLoader().getReload());
-                if (change.getNotifyJarLoader().getDrop()) {
-                    SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), change.getNotifyJarLoader().getSchemaName(), null, true);
+                DDLMessage.NotifyJarLoader njl = change.getNotifyJarLoader();
+                cf.notifyModifyJar(njl.getReload());
+                if (njl.getDrop()) {
+                    if (!njl.hasDbUUID()) { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                        // XXX (arnaud multidb) invalidate all file info descriptor in that case?
+                        throw new IllegalStateException("preNotifyJarLoader called from a region server that does not support multidb");
+                    }
+                    SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(njl.getDbUUID()), njl.getSchemaName(), null, true);
                     if (sd ==null)
                         return;
-                    FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,change.getNotifyJarLoader().getSqlName());
+                    FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd, njl.getSqlName());
                     if (fid==null)
                         return;
                     dm.invalidateFor(fid, DependencyManager.DROP_JAR, transactionResource.getLcc());
@@ -680,7 +697,12 @@ public class DDLUtils {
                 DDLMessage.DropSequence dropSequence=change.getDropSequence();
                 LanguageConnectionContext lcc = transactionResource.getLcc();
                 TransactionController tc = lcc.getTransactionExecute();
-                SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), dropSequence.getSchemaName(),tc,true);
+                if (!dropSequence.hasDbUUID()){
+                    // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                    // XXX (arnaud multidb) invalidate All conglomerate descriptor in that case?
+                    throw new IllegalStateException("preDropSequence called from a region server that does not support multidb");
+                }
+                SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropSequence.getDbUUID()), dropSequence.getSchemaName(),tc,true);
                 if(sd==null) // Table Descriptor transaction never committed
                     return;
                 SequenceDescriptor seqDesc = dd.getSequenceDescriptor(sd,dropSequence.getSequenceName());
@@ -790,20 +812,26 @@ public class DDLUtils {
         TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);
-            String roleName = change.getDropRole().getRoleName();
+            DDLMessage.DropRole dropRole = change.getDropRole();
+            if (!dropRole.hasDbUUID()) {
+                // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                // XXX (arnaud multidb) invalidate All role descriptors in that case?
+                throw new IllegalStateException("preDropRole called from a region server that does not support multidb");
+            }
+            UUID dbId = ProtoUtil.getDerbyUUID(dropRole.getDbUUID());
             LanguageConnectionContext lcc = transactionResource.getLcc();
             RoleClosureIterator rci = dd.createRoleClosureIterator(
-                    lcc.getTransactionCompile(), roleName, false, lcc.getDatabaseId());
+                    lcc.getTransactionCompile(), dropRole.getRoleName(), false, dbId);
 
             String role;
             while ((role = rci.next()) != null) {
-                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
+                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, dbId);
                 if (r != null) {
                     dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, lcc);
                 }
             }
 
-            dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+            dd.getDataDictionaryCache().roleCacheRemove(dropRole.getRoleName());
             // role grant cache may have entries of this role being granted to others, so need to invalidate
             dd.getDataDictionaryCache().clearRoleGrantCache();
             // permission cache may have permission entries related to this role, so need to invalidate

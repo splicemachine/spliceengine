@@ -136,7 +136,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             String indexName = indexConglom.getObjectName();
             TableDescriptor td = consDesc.getTableDescriptor();
             String schemaName = td.getSchemaName();
-            dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
+            UUID dbId = td.getSchemaDescriptor().getDatabaseId();
+            dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName, dbId);
         }
 		/* If we don't need a new conglomerate then there's nothing
 		 * else to do.
@@ -269,7 +270,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         false,          // not part of create table 
                         false,          // not unique
                         true,           // create as unique when not null index
-                        cd.getIndexDescriptor().indexType(), 
+                        cd.getIndexDescriptor().indexType(),
+                        td.getSchemaDescriptor().getDatabaseId(),
                         td.getSchemaName(), 
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols,
@@ -386,7 +388,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 
     protected void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
                              SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc,
-                             String schemaName, String indexName) throws StandardException {
+                             String schemaName, String indexName, UUID dbId) throws StandardException {
         final long tableConglomId = td.getHeapConglomerateId();
         final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
         TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
@@ -398,7 +400,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             t = uTxn.getParentTxnView();
         }
         final TxnView userTxn = uTxn;
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName, (BasicUUID) dbId);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 }

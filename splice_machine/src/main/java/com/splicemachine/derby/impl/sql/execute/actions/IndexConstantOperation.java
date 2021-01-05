@@ -58,77 +58,80 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
-	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
-	public String indexName;
-	public String tableName;
-	public String schemaName;
+    private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
+    public String indexName;
+    public String tableName;
+    public String schemaName;
+    public UUID dbId;
     private int[] indexFormatIds;
     boolean distributed;
 
-    protected	IndexConstantOperation(UUID tableId){
+    protected    IndexConstantOperation(UUID tableId){
         super(tableId);
     }
 
     protected IndexConstantOperation() {}
-	/**
-	 *	Make the ConstantAction for a CREATE/DROP INDEX statement.
-	 *
-	 *	@param	tableId				The table uuid
-	 *	@param	indexName			Index name.
-	 *	@param	tableName			The table name
-	 *	@param	schemaName					Schema that index lives in.
-	 *
-	 */
-	protected	IndexConstantOperation(UUID tableId,
-								String indexName,
-								String tableName,
-								String schemaName) {
-		super(tableId);
-		this.indexName = indexName;
-		this.tableName = tableName;
-		this.schemaName = schemaName;
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(schemaName != null, "Schema name is null");
-	}
+    /**
+     *    Make the ConstantAction for a CREATE/DROP INDEX statement.
+     *
+     *    @param    tableId                The table uuid
+     *    @param    indexName            Index name.
+     *    @param    tableName            The table name
+     *    @param    schemaName                    Schema that index lives in.
+     *
+     */
+    protected    IndexConstantOperation(UUID tableId,
+                                String indexName,
+                                String tableName,
+                                String schemaName,
+                                UUID dbId) {
+        super(tableId);
+        this.indexName = indexName;
+        this.tableName = tableName;
+        this.schemaName = schemaName;
+        this.dbId = dbId;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(schemaName != null, "Schema name is null");
+    }
 
     // CLASS METHODS
 
-	/**
-	  *	Get the index name.
-	  *
-	  *	@return	the name of the index
-	  */
-    public	String	getIndexName() { 
-    	SpliceLogUtils.trace(LOG, "getIndexName %s",indexName);
-    	return indexName; 
+    /**
+      *    Get the index name.
+      *
+      *    @return    the name of the index
+      */
+    public    String    getIndexName() {
+        SpliceLogUtils.trace(LOG, "getIndexName %s",indexName);
+        return indexName;
     }
 
-	/**
-	 * Set the index name at execution time.
-	 * Useful for unnamed constraints which have a backing index.
-	 *
-	 * @param indexName		The (generated) index name.
-	 */
-	public void setIndexName(String indexName) {
-    	SpliceLogUtils.trace(LOG, "setIndexName %s",indexName);		
-		this.indexName = indexName;
-	}
+    /**
+     * Set the index name at execution time.
+     * Useful for unnamed constraints which have a backing index.
+     *
+     * @param indexName        The (generated) index name.
+     */
+    public void setIndexName(String indexName) {
+        SpliceLogUtils.trace(LOG, "setIndexName %s",indexName);
+        this.indexName = indexName;
+    }
 
-	@SuppressWarnings("unchecked")
-	@SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Dead variable is a side effect of writing data")
-	protected void populateIndex(TableDescriptor td,
+    @SuppressWarnings("unchecked")
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Dead variable is a side effect of writing data")
+    protected void populateIndex(TableDescriptor td,
                                  Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
                                  String          hfilePath,
-								 ExecRow         baseDefaultRow) throws StandardException {
+                                 ExecRow         baseDefaultRow) throws StandardException {
         // String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-		/*
-		 * Backfill the index with any existing data.
-		 *
-		 * It's possible that the index will be created on the same node as some system tables are located.
-		 */
+        /*
+         * Backfill the index with any existing data.
+         *
+         * It's possible that the index will be created on the same node as some system tables are located.
+         */
         Txn childTxn;
         try {
             LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
@@ -138,24 +141,24 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, indexTransaction, demarcationPoint,
                     tentativeIndex, baseDefaultRow, false, sparkHint);
 
-			String scope = this.getScopeName();
-			String prefix = StreamUtils.getScopeString(this);
-			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
-			if (distributed) {
-				OlapClient olapClient = EngineDriver.driver().getOlapClient();
-				Future<OlapResult> futureResult = null;
+            String scope = this.getScopeName();
+            String prefix = StreamUtils.getScopeString(this);
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
+            if (distributed) {
+                OlapClient olapClient = EngineDriver.driver().getOlapClient();
+                Future<OlapResult> futureResult = null;
                 OlapResult result = null;
                 SConfiguration config = EngineDriver.driver().getConfiguration();
-				if (hfilePath == null) {
+                if (hfilePath == null) {
                     futureResult = olapClient.submit(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
                             tentativeIndex, indexFormatIds));
-				}
-				else {
+                }
+                else {
                     ActivationHolder ah = new ActivationHolder(activation, null);
-					futureResult = olapClient.submit(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
+                    futureResult = olapClient.submit(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
                             indexFormatIds, false, hfilePath, td.getVersion(), indexName));
-				}
+                }
                 while (result == null) {
                     try {
                         result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -172,25 +175,25 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                          */
                     }
                 }
-			} else
-				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
+            } else
+                PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Bytes.toBytes(Long.toString(indexConglomId)));
     }
 
-	public String getScopeName() {
-		return String.format("%s %s", super.getScopeName(), indexName);
-	}
+    public String getScopeName() {
+        return String.format("%s %s", super.getScopeName(), indexName);
+    }
 
 
-	private static int MB = 1024*1024;
+    private static int MB = 1024*1024;
 
     public ScanSetBuilder<ExecRow> getIndexScanBuilder(TableDescriptor td,
                                                        TxnView indexTransaction,

@@ -1267,7 +1267,8 @@ public class TableElementList extends QueryTreeNodeVector {
                       tableName,
                       sd.getSchemaName(),
                       td.getUUID(),
-                      td.getHeapConglomerateId());
+                      td.getHeapConglomerateId(),
+                      sd.getDatabaseId());
         }
         else
         {
@@ -1281,6 +1282,7 @@ public class TableElementList extends QueryTreeNodeVector {
                     isUnique, 
                     isUniqueWithDuplicateNulls,
                     "BTREE", // indexType
+                    sd.getDatabaseId(),
                     sd.getSchemaName(),
                     indexName,
                     tableName,
@@ -1291,10 +1293,9 @@ public class TableElementList extends QueryTreeNodeVector {
                     isConstraint,
                     cdn.getBackingIndexUUID(),
                     excludeNulls,
-                    excludeDefaults,
-                    false,false,false,0,null,null,null,null,null,null,null,
-					new String[]{}, new ByteArray[]{}, new String[]{},
-                    checkIndexPageSizeProperty(cdn));
+                    excludeDefaults, false, false, false, 0, null, null, null, null, null, null,
+                    null, new String[]{}, new ByteArray[]{},
+                    new String[]{}, checkIndexPageSizeProperty(cdn));
         }
     }
     /**
