@@ -32,11 +32,11 @@ public class ijCommands {
             try {
                 String v = getVersion();
                 String res2[] = v.split("\\.");
-                // 3.0.1.1984
+                // e.g. 3.0.1.1984
                 if(res2.length != 4)
                     return Boolean.FALSE;
                 // changed escaping with DB-10890
-                else if( Integer.parseInt(res2[3]) >= 1988 )
+                else if( Integer.parseInt(res2[0]) >= 3 && Integer.parseInt(res2[3]) >= 1988 )
                     serverLikeFix = Boolean.TRUE;
                 else
                     serverLikeFix = Boolean.FALSE;
