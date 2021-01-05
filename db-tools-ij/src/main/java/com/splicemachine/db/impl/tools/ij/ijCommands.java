@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;
@@ -18,6 +19,33 @@ public class ijCommands {
     public Connection theConnection;
     public ConnectionEnv currentConnEnv;
 
+    Boolean serverLikeFix = null;
+    String getVersion() throws SQLException {
+        Statement stmt = theConnection.createStatement();
+        try (ResultSet rs = stmt.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()" ) ) {
+            rs.next();
+            return rs.getString(2);
+        }
+    }
+    boolean hasServerLikeFix() {
+        if(serverLikeFix == null) {
+            try {
+                String v = getVersion();
+                String res2[] = v.split("\\.");
+                // 3.0.1.1984
+                if(res2.length != 4)
+                    return Boolean.FALSE;
+                // changed escaping with DB-10890
+                else if( Integer.parseInt(res2[3]) >= 1988 )
+                    serverLikeFix = Boolean.TRUE;
+                else
+                    serverLikeFix = Boolean.FALSE;
+            } catch (Exception e) {
+                serverLikeFix = Boolean.FALSE;
+            }
+        }
+        return serverLikeFix;
+    }
 
     ijCommands() {}
     ijCommands(Connection theConnection, ConnectionEnv currentConnEnv)
@@ -219,8 +247,10 @@ public class ijCommands {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
-
+            if(hasServerLikeFix())
+                rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
+            else
+                rs = dbmd.getPrimaryKeys(null,schema,table);
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_NAME", 30),
                     new ColumnParameters( rs, "COLUMN_NAME", 30),
@@ -553,7 +583,10 @@ public class ijCommands {
                 }
             }
 
-            rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+            if(hasServerLikeFix())
+                rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+            else
+                rs = dbmd.getColumns(null,schema,table,null);
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_SCHEM", 20),
