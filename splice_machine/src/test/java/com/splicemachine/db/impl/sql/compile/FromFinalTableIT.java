@@ -135,7 +135,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void recordNumTables() throws Exception {
-        isMemPlatform = isMemPlatform();
+        isMemPlatform = isMemPlatform(spliceClassWatcher);
         dropObjects();
         vacuum();
         numTables = getNumTables();
@@ -177,14 +177,6 @@ public class FromFinalTableIT extends SpliceUnitTest {
         try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
             rs.next();
             return ((Integer)rs.getObject(1));
-        }
-    }
-
-    public static boolean
-    isMemPlatform() throws Exception{
-        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
-            rs.next();
-            return ((Boolean)rs.getObject(1));
         }
     }
 
