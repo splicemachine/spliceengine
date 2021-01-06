@@ -32,6 +32,7 @@ import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.sparksql.SparkSQLUtilsImpl;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
@@ -107,6 +108,7 @@ public class QueryJob implements Callable<Void>{
             if (jsc != null) {
                 initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
                 setSparkContextInLCC(jsc.sc(), lcc, initialApplicationJarsHash);
+                lcc.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
             }
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
@@ -193,6 +195,7 @@ public class QueryJob implements Callable<Void>{
         if (lcc == null)
             return;
         lcc.setSparkContext(sparkContext);
+        lcc.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
         lcc.addUserJarsToSparkContext();
     }
 
