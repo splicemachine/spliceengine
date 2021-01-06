@@ -69,11 +69,10 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.spark.SparkContext;
-import org.apache.spark.sql.SparkSession;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -355,8 +354,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
     private boolean compilingFromTableTempTrigger = false;
-    private SparkContext sparkContext = null;
+    private Object sparkContext = null;
     private int applicationJarsHashCode = 0;
+    private SparkSQLUtils sparkSQLUtils;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4060,12 +4060,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setSparkContext(SparkContext sparkContext) {
+    public void setSparkContext(Object sparkContext) {
         this.sparkContext = sparkContext;
     }
 
     @Override
-    public SparkContext getSparkContext() {
+    public Object getSparkContext() {
         return sparkContext;
     }
 
@@ -4096,16 +4096,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (applicationJarsHashCode == 0)
             return;
 
-        if (sparkContext == null)
+        if (sparkContext == null || sparkSQLUtils == null)
             return;
 
-        // If there is no change in loaded jars, the no need to add new jars to spark.
+        // If there is no change in loaded jars, there is no need to add new jars to spark.
         if (applicationJarsHashCode == this.applicationJarsHashCode)
             return;
 
         for (String jarPath:applicationJars)
-            sparkContext.addJar(jarPath);
+            sparkSQLUtils.addUserJarToSparkContext(sparkContext, jarPath);
 
         this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
+        this.sparkSQLUtils = sparkSQLUtils;
     }
 }
