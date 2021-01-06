@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.sparksql.SparkSQLUtilsImpl;
 import com.splicemachine.stream.QueryJob;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
@@ -117,6 +118,7 @@ public class BroadcastedActivation implements Externalizable {
                 if (jsc != null && lccFromContext != null) {
                     int initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
                     QueryJob.setSparkContextInLCC(jsc.sc(), lccFromContext, initialApplicationJarsHash);
+                    lccFromContext.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
                 }
             }
             return retval;
