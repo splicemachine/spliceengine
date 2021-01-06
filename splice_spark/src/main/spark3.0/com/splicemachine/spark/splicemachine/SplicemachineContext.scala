@@ -702,6 +702,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     executeUpd(combinedUpdText)   // update
     executeUpd(insertText)        // insert
   }
+  
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
