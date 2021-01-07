@@ -403,6 +403,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        String viewName = "SYSINDEXES";
+        TableDescriptor td = getTableDescriptor(viewName, sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 2, sysIBMSchemaDesc, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSIBM is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -679,6 +699,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createAliasToTableSystemView(tc);
 
         createIndexColumnUseViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
     }
 
     @Override
