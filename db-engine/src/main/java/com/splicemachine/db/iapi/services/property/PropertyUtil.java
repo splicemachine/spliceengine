@@ -332,7 +332,8 @@ public class PropertyUtil {
         Object obj = set.getProperty(key);
 
         // save in cache
-        lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
+        lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(
+                lcc.getTransactionCompile(), key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
         if (obj == null) { return null; }
         return obj.toString();
     }
