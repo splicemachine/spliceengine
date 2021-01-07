@@ -638,6 +638,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     }
 
     @Test
+    public void testJoinStrategyHintOnTargetTable() throws Exception {
+        String query ="explain update t4 --splice-properties joinStrategy=nestedloop\n" +
+                             "set (a4,b4) = (select 1,1 from t1 where c1 = a4)";
+
+        rowContainsQuery(3, query, "NestedLoopJoin", methodWatcher);
+    }
+
+    @Test
     public void testReportMissingTableStatistics() throws Exception {
         String query ="explain select * from t3";
         String[] expected = {
