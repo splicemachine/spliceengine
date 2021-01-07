@@ -38,9 +38,18 @@ public interface TxnStore extends TxnSupplier{
 
     void unregisterActiveTransaction(long txnId);
 
+    /**
+     * @return the oldest active transaction in the transaction store, or {@code Long.MAX_VALUE} if not active
+     * transactions are present.
+     * @note the returned transaction id doesn't necessarily correspond to the oldest overall active transaction in
+     * the system, for that you need to retrieve all the oldest active transaction across all striped transaction
+     * stores and choose the smallest one.
+     */
     Long oldestActiveTransaction();
 
     void rollback(long txnId) throws IOException;
+
+    void rollback(long txnId, long originatorTxnId) throws IOException;
 
     void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException;
 
@@ -105,5 +114,7 @@ public interface TxnStore extends TxnSupplier{
 
     long getOldTransactions();
 
-    void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException;
+    void addConflictingTxnIds(long txnId, long[] conflictingTxnId) throws IOException;
+
+    long[] getConflictingTxnIds(long txnId) throws IOException;
 }

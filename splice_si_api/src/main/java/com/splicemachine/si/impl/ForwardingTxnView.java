@@ -78,7 +78,4 @@ public abstract class ForwardingTxnView extends AbstractTxn {
         return delegate.getTaskId();
     }
 
-    @Override public Iterator<ByteSlice> getConflictingTxnIds() {
-        return delegate.getConflictingTxnIds();
-    }
 }

@@ -82,7 +82,7 @@ public class TestTransactionSetup {
 
         readController = new SITransactionReadController(txnSupplier);
 
-        transactor = new SITransactor(txnSupplier,
+        transactor = new SITransactor(txnStore,
                 txnOperationFactory,
                 testEnv.getBaseOperationFactory(),
                 testEnv.getOperationStatusFactory(),

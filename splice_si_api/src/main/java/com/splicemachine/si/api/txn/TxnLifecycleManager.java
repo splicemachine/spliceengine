@@ -198,7 +198,7 @@ public interface TxnLifecycleManager{
                               byte[] destinationTable,
                               boolean inMemory,
                               TaskId taskId,
-                              byte[] conflictingTxnIds) throws IOException;
+                              long[] conflictingTxnIds) throws IOException;
 
     /**
      * Elevate a transaction from a read-only transaction to one which allows writes. This
@@ -241,6 +241,8 @@ public interface TxnLifecycleManager{
      * @throws IOException If something goes wrong during the rollback
      */
     void rollback(long txnId) throws IOException;
+
+    void rollback(long txnId, long originatorTxnId) throws IOException;
 
     void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException;
 
@@ -290,7 +292,7 @@ public interface TxnLifecycleManager{
                          boolean additive,
                          byte[] destinationTable,
                          Txn txnToCommit,
-                         byte[] conflictingTxnIds) throws IOException;
+                         long[] conflictingTxnIds) throws IOException;
 
     /**
      * Puts this manager into Restore Mode, which would be deactivated after a reboot

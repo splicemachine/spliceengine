@@ -128,7 +128,7 @@ public class SIDriver {
         this.ignoreTxnSupplier = env.ignoreTxnSupplier();
         //noinspection unchecked
         this.transactor = new SITransactor(
-                this.txnSupplier,
+                this.txnStore,
                 this.txnOpFactory,
                 env.baseOperationFactory(),
                 this.operationStatusFactory,

@@ -14,6 +14,7 @@
 
 package com.splicemachine.ck.visitor;
 
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -48,6 +49,7 @@ public class TxnTableRowPrinter implements IRowPrinter {
             tables.add(Bytes.toString(destinationTablesIterator.next().array()));
         }
         result.add(tables.toString());
+        result.add(txn.getInfo().getConflictingTxnIdsList().toString());
         return result;
     }
 }

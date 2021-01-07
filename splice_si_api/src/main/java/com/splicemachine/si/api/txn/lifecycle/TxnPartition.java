@@ -131,6 +131,8 @@ public interface TxnPartition{
      */
     IOException cannotCommit(long txnId,Txn.State state);
 
+    IOException cannotRollback(long txnId, String message);
+
     /**
      * Record that the transaction was committed, and assign the committed timestamp to it.
      * <p/>
@@ -198,5 +200,9 @@ public interface TxnPartition{
 
     Pair<Long, Long> getTxAt(long ts) throws IOException;
 
-    void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException;
+    void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException;
+
+    TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException;
+
+    boolean contains(long txnId) throws IOException;
 }

@@ -47,7 +47,7 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 										@Override protected void encodeEmpty(MultiFieldEncoder fieldEncoder) { fieldEncoder.encodeEmptyDouble(); }
 										@Override protected byte[] empty() { return Encoding.encodedNullDouble(); }
 										@Override protected boolean nextIsNull(MultiFieldDecoder fieldDecoder) { return fieldDecoder.nextIsNullDouble(); }
-										@Override protected boolean isNull(byte[] data, int offset, int length) { return Encoding.isNullDOuble(data,offset,length); }
+										@Override protected boolean isNull(byte[] data, int offset, int length) { return Encoding.isNullDouble(data, offset, length); }
 										@Override public boolean isScalarType() { return false; }
 										@Override public boolean isFloatType() { return false; }
 										@Override public boolean isDoubleType() { return true; }

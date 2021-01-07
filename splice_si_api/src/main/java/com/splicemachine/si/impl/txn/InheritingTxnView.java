@@ -48,7 +48,7 @@ public class InheritingTxnView extends AbstractTxnView{
     private final Iterator<ByteSlice> destinationTables;
     private final long lastKaTime;
     private final TaskId taskId;
-    private final Iterator<ByteSlice> conflictingTxnIds;
+    private final long[] conflictingTxnIds;
 
     @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
     public InheritingTxnView(TxnView parentTxn,
@@ -117,7 +117,7 @@ public class InheritingTxnView extends AbstractTxnView{
              hasAdditive, isAdditive,
              hasAllowWrites, allowWrites,
              commitTimestamp, globalCommitTimestamp,
-             state, destinationTables, -1L, taskId, Collections.<ByteSlice>emptyIterator());
+             state, destinationTables, -1L, taskId, null);
     }
 
     public InheritingTxnView(TxnView parentTxn,
@@ -129,7 +129,7 @@ public class InheritingTxnView extends AbstractTxnView{
                              Txn.State state,
                              Iterator<ByteSlice> destinationTables,
                              long lastKaTime,TaskId taskId,
-                             Iterator<ByteSlice> conflictingTxnIds){
+                             long[] conflictingTxnIds){
         super(txnId,beginTimestamp,isolationLevel);
         this.hasAdditive=hasAdditive;
         this.isAdditive=isAdditive;
@@ -223,8 +223,4 @@ public class InheritingTxnView extends AbstractTxnView{
         return taskId;
     }
 
-    @Override
-    public Iterator<ByteSlice> getConflictingTxnIds(){
-        return conflictingTxnIds;
-    }
 }

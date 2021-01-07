@@ -14,8 +14,6 @@
 
 package com.splicemachine.encoding;
 
-import com.splicemachine.primitives.Bytes;
-
 import java.math.BigDecimal;
 
 /**
@@ -734,25 +732,17 @@ public final class Encoding {
         return DoubleEncoding.NULL_DOUBLE_BYTES_LENGTH;
     }
 
-   
     public static int encodedNullFloatLength() {
         return DoubleEncoding.NULL_FLOAT_BYTES_LENGTH;
     }
-    
 
-    public static void main(String... args) throws Exception{
-				byte b = (byte)0x01;
-				System.out.println(Bytes.toStringBinary(encode(104300001L, true)));
-				System.out.println(Bytes.toLong(Bytes.toBytesBinary("\\x00\\x00\\x00\\x00:\\xD6?\\x00")));
-
+    public static boolean isNullDouble(byte[] data, int offset, int length) {
+            return length == DoubleEncoding.NULL_DOUBLE_BYTES.length;
     }
 
-		public static boolean isNullDOuble(byte[] data, int offset, int length) {
-				return length == DoubleEncoding.NULL_DOUBLE_BYTES.length;
-		}
-		public static boolean isNullFloat(byte[] data, int offset,int length){
-				return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
-		}
+    public static boolean isNullFloat(byte[] data, int offset,int length){
+            return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
+    }
 
     public static byte[] encodeBytesUnsorted(byte[] array, int offset, int length) {
         return ByteEncoding.encodeUnsorted(array,offset,length);

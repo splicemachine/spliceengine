@@ -133,7 +133,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                               byte[] destinationTable,
                               boolean inMemory,
                               TaskId taskId,
-                              byte[] conflictingTxnIds) throws IOException {
+                              long[] conflictingTxnIds) throws IOException {
         if (parentTxn == null)
             parentTxn = Txn.ROOT_TRANSACTION;
         if (destinationTable != null && !parentTxn.allowsWrites())
@@ -168,7 +168,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                          boolean additive,
                          byte[] destinationTable,
                          Txn txnToCommit,
-                         byte[] conflictingTxnIds) throws IOException {
+                         long[] conflictingTxnIds) throws IOException {
         if (parentTxn == null)
             parentTxn = Txn.ROOT_TRANSACTION;
         if (destinationTable != null) {
@@ -259,6 +259,15 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public void rollback(long txnId, long originatorTxnId) throws IOException {
+        if(restoreMode){
+            return; // we are in restore mode, don't try to access the store
+        }
+        store.rollback(txnId, originatorTxnId);
+        //TODO -sf- add the transaction to the global cache?
+    }
+
+    @Override
     public void unregisterActiveTransaction(long txnId) throws IOException{
         store.unregisterActiveTransaction(txnId);
     }
@@ -281,7 +290,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           TxnView parentTxn,
                                           byte[] destinationTable,
                                           TaskId taskId,
-                                          byte[] conflictingTxnIds ) throws IOException{
+                                          long[] conflictingTxnIds ) throws IOException{
 		if (restoreMode || replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0 &&
         Bytes.compareTo(destinationTable, "replication".getBytes(Charset.defaultCharset().name())) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));

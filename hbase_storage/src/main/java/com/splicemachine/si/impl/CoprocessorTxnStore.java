@@ -16,13 +16,11 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.ActiveTxnTracker;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.region.V2TxnDecoder;
 import com.splicemachine.utils.IteratorUtil;
 import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.Lists;
@@ -43,7 +41,10 @@ import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
@@ -62,6 +63,7 @@ public class CoprocessorTxnStore implements TxnStore {
     private volatile long oldTransactions;
     private final boolean ignoreMissingTransactions;
     private final ActiveTxnTracker activeTransactions;
+    private final Map<Long, Set<Long>> conflictingTransactionsCache;
     
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -81,6 +83,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.timestampSource=timestampSource;
         this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
         this.activeTransactions = new ActiveTxnTracker();
+        this.conflictingTransactionsCache = new ConcurrentHashMap<>(1024);
     }
 
     @Override
@@ -150,6 +153,22 @@ public class CoprocessorTxnStore implements TxnStore {
         byte[] rowKey=getTransactionRowKey(txnId);
         TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
                 .setTxnId(txnId).setAction(TxnMessage.LifecycleAction.ROLLBACk).build();
+        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
+            table.lifecycleAction(rowKey,lifecycle);
+            rollbacks.incrementAndGet();
+        }
+    }
+
+    @Override
+    public void rollback(long txnId, long originatorTxnId) throws IOException {
+        byte[] rowKey=getTransactionRowKey(txnId);
+        TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage
+                    .TxnLifecycleMessage
+                    .newBuilder()
+                        .setTxnId(txnId)
+                        .setOriginatorTxnId(originatorTxnId)
+                        .setAction(TxnMessage.LifecycleAction.ROLLBACK_WITH_ORIGINATOR)
+                    .build();
         try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             table.lifecycleAction(rowKey,lifecycle);
             rollbacks.incrementAndGet();
@@ -398,16 +417,48 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
-    public void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException {
-        TxnView conflictingTxn = getTransaction(conflictingTxnId, false);
-        if (conflictingTxn == null) {
-            throw new IOException(String.format("could not find conflictingTxnId %d", conflictingTxnId));
+    public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
+        // check if the conflictingTxnId already exists in the txnId's list of conflicting transactions, if so, ignore it
+        Set<Long> conflictingTxnIdsSet;
+        if (conflictingTransactionsCache.containsKey(txnId)) {
+            conflictingTxnIdsSet = conflictingTransactionsCache.get(txnId);
+        } else {
+            conflictingTxnIdsSet = new HashSet<>(Longs.asList(getConflictingTxnIds(txnId)));
+            conflictingTransactionsCache.put(txnId, conflictingTxnIdsSet); // update cache
         }
-        Iterator<ByteSlice> iterator = conflictingTxn.getConflictingTxnIds();
-        TxnMessage.AddConflictingTxnIdsRequestOrBuilder request = TxnMessage.AddConflictingTxnIdsRequest.newBuilder();
+        Set<Long> newConflictingTxnIds = new HashSet<>(Longs.asList(conflictingTxnIds));
+        newConflictingTxnIds.removeIf(conflictingTxnIdsSet::contains);
+        if(!newConflictingTxnIds.isEmpty()) {
+            TxnMessage.AddConflictingTxnIdsRequest request = TxnMessage.AddConflictingTxnIdsRequest
+                    .newBuilder()
+                    .setTxnId(txnId)
+                    .addAllConflictingTxns(newConflictingTxnIds)
+                    .build();
+            try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
+                table.addConflictingTxnIds(getTransactionRowKey(txnId), request);
+            } catch (IOException e) {
+                throw e;
+            } catch (Throwable throwable) {
+                throw new IOException(throwable);
+            }
+            conflictingTransactionsCache.get(txnId).addAll(newConflictingTxnIds);
+        }
+    }
 
-        while(iterator.hasNext()) {
-            Long txnIds = Bytes.toLong(iterator.next().array());
+    @Override
+    public long[] getConflictingTxnIds(long txnId) throws IOException {
+        lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
+
+        byte[] rowKey=getTransactionRowKey(txnId );
+        TxnMessage.ConflictingTxnIdsRequest request=TxnMessage.ConflictingTxnIdsRequest.newBuilder().setTxnId(txnId).build();
+
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
+            TxnMessage.ConflictingTxnIdsResponse result = table.getConflictingTxnIds(rowKey, request);
+            return Longs.toArray(result.getConflictingTxnIdsList());
+        } catch (IOException e) {
+            throw e;
+        } catch(Throwable throwable){
+            throw new IOException(throwable);
         }
     }
 
@@ -462,8 +513,6 @@ public class CoprocessorTxnStore implements TxnStore {
 
         Iterator<ByteSlice> destinationTablesIterator = IteratorUtil.getIterator(info.getDestinationTables() == null ? null : info.getDestinationTables().toByteArray());
 
-        Iterator<ByteSlice> conflictingTxnIdsIterator = IteratorUtil.getIterator(info.getDestinationTables() == null ? null : info.getDestinationTables().toByteArray());
-
         long kaTime = -1L;
         if (message.hasLastKeepAliveTime())
             kaTime = message.getLastKeepAliveTime();
@@ -474,7 +523,7 @@ public class CoprocessorTxnStore implements TxnStore {
                                      hasAdditive, additive,
                                      true, true,
                                      commitTs, globalCommitTs,
-                                     state, destinationTablesIterator, kaTime, taskId, conflictingTxnIdsIterator);
+                                     state, destinationTablesIterator, kaTime, taskId, Longs.toArray(info.getConflictingTxnIdsList()));
     }
 
     private static byte[] getTransactionRowKey(long txnId){

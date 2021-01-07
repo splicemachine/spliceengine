@@ -97,7 +97,7 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory, TaskId taskId, byte[] conflictingTxnIds) throws IOException {
+    public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory, TaskId taskId, long[] conflictingTxnIds) throws IOException {
         Txn txn = lifecycleManager.beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, inMemory, taskId, conflictingTxnIds);
         afterStart(txn);
         return txn;
@@ -111,7 +111,7 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit, byte[] conflictingTxnIds) throws IOException {
+    public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit, long[] conflictingTxnIds) throws IOException {
         Txn txn = lifecycleManager.chainTransaction(parentTxn,isolationLevel, additive,destinationTable,txnToCommit, conflictingTxnIds);
         afterStart(txn);
         return txn;
@@ -136,6 +136,7 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     public String getReplicationRole() {
         return lifecycleManager.getReplicationRole();
     }
+
     @Override
     public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
         Txn txn1 = lifecycleManager.elevateTransaction(txn, destinationTable);
@@ -151,6 +152,11 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     @Override
     public void rollback(long txnId) throws IOException {
         lifecycleManager.rollback(txnId);
+    }
+
+    @Override
+    public void rollback(long txnId, long originatorTxnId) throws IOException {
+        lifecycleManager.rollback(txnId, originatorTxnId);
     }
 
     @Override

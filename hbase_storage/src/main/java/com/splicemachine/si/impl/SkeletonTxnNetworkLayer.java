@@ -175,6 +175,26 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         return result.build();
     }
 
+    @Override
+    public void addConflictingTxnIds(byte[] rowKey, final TxnMessage.AddConflictingTxnIdsRequest request) throws IOException {
+        TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
+        BlockingRpcCallback<TxnMessage.VoidResponse> done=new BlockingRpcCallback<>();
+        service.addConflictingTxnIds(controller,request,done);
+        dealWithError(controller);
+    }
+
+    @Override
+    public TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(byte[] rowKey, final TxnMessage.ConflictingTxnIdsRequest request) throws IOException {
+        TxnMessage.TxnLifecycleService service = getLifecycleService(rowKey);
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
+        BlockingRpcCallback<TxnMessage.ConflictingTxnIdsResponse> done = new BlockingRpcCallback<>();
+        service.getConflictingTxnIds(controller, request, done);
+        dealWithError(controller);
+        return done.get();
+    }
 
     protected abstract TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException;
 

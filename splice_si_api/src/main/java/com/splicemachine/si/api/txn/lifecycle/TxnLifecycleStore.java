@@ -37,6 +37,36 @@ public interface TxnLifecycleStore{
 
     void rollbackTransaction(long txnId) throws IOException;
 
+    /**
+     * This method is used in to rollback a transaction `txnId` when committing another transaction `originatorTxnId`.
+     *
+     * It is important to pass the originating transaction to be able to solve potential deadlocks as in this example:
+     *              Region1                                         Region2
+     *              =================================================================================
+     *              [T1] txn1 (conflicting with txn2)               [T1] txn2 (conflicting with txn1)
+     *              [T1] commit(txn1)                               [T1] commit(txn2)
+     *              [T1] lock(txn1)                                 [T1] lock(txn2)
+     *              [T1] ----- rollbackTransaction(txn2, txn1) ---> [T2]
+     *              [T2] <---- rollbackTransaction(txn1, txn2) ---- [T1]
+     *              [T2] lock(txn1) -- fails after some time
+     *                                                              [T2] lock(txn2) -- fails after some time
+     *                                                              [T2] check txn2 is commit-pending
+     *              [T2] check txn1 is commit-pending
+     *                                                              [T2] txn2 > txn1 => keep trying
+     *              [T2] txn1 < txn2 => fail
+     *              [T2] ---- failed to rollback txn1 ------------> [T1]
+     *                                                              [T1] fail to commit(txn2) and release lock on txn2
+     *                                                              [T2] eventually obtains lock(txn2)
+     *                                                              [T2] rollback txn2
+     *              [T1] <---- rollback txn2 succeeds ------------- [T2]
+     *              [T1] proceed and commit txn1
+     *
+     * @param txnId
+     * @param originatorTxnId
+     * @throws IOException
+     */
+    void rollbackTransaction(long txnId, long originatorTxnId) throws IOException;
+
     void rollbackSubtransactions(long txnId, long[] subIds) throws IOException;
 
     boolean keepAlive(long txnId) throws IOException;
@@ -48,7 +78,7 @@ public interface TxnLifecycleStore{
     Source<TxnMessage.Txn> getActiveTransactions(byte[] destTable, long startId, long endId) throws IOException;
 
     void rollbackTransactionsAfter(long txnId) throws IOException;
-    
+
     TxnMessage.Txn getOldTransaction(long txnId) throws IOException;
 
     TxnMessage.TaskId getTaskId(long txnId) throws IOException;
@@ -56,4 +86,6 @@ public interface TxnLifecycleStore{
     Pair<Long, Long> getTxnAt(long ts) throws IOException;
 
     void addConflictingTxnIds(long txnId, long[] conflictingTxnIds ) throws IOException;
+
+    TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException;
 }

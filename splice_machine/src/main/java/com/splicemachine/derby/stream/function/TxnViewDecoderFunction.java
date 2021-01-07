@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.utils.IteratorUtil;
+import org.python.google.common.primitives.Longs;
 import splice.com.google.common.collect.Iterators;
 import com.google.protobuf.ByteString;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -33,6 +34,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by jyuan on 10/19/15.
@@ -81,7 +83,7 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
             keepAliveTime = message.getLastKeepAliveTime();
         }
 
-        final Iterator<ByteSlice> conflictingTxnIdsIterator = IteratorUtil.getIterator(info.hasConflictingTxnIds() ? info.getConflictingTxnIds().toByteArray() : null);
+        final List<Long> conflictingTxnIdsIterator = info.getConflictingTxnIdsList();
 
         TxnView parentTxn = parentTxnId < 0 ? Txn.ROOT_TRANSACTION : supplier.getTransaction(parentTxnId);
         return new InheritingTxnView(parentTxn, txnId, beginTs,
@@ -89,6 +91,6 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
                                      hasAdditive, additive,
                                      true, true,
                                      commitTs, globalCommitTs,
-                                     state, destinationTables, keepAliveTime, null, conflictingTxnIdsIterator);
+                                     state, destinationTables, keepAliveTime, null, Longs.toArray(conflictingTxnIdsIterator));
     }
 }

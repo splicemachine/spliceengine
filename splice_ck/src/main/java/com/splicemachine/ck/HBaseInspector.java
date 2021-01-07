@@ -148,7 +148,8 @@ public class HBaseInspector {
         String region = SPLICE_PREFIX + HBaseConfiguration.TRANSACTION_TABLE;
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger,
                 TBL_TXN_COL0, TBL_TXN_COL1, TBL_TXN_COL2, TBL_TXN_COL3, TBL_TXN_COL4,
-                TBL_TXN_COL5, TBL_TXN_COL6, TBL_TXN_COL7, TBL_TXN_COL8, TBL_TXN_COL9);
+                TBL_TXN_COL5, TBL_TXN_COL6, TBL_TXN_COL7, TBL_TXN_COL8, TBL_TXN_COL9,
+                TBL_TXN_COL10);
         TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
 
         // scan for one more than the limit so the we know if we truncated

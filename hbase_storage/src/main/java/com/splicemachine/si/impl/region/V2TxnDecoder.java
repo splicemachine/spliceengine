@@ -16,7 +16,6 @@ package com.splicemachine.si.impl.region;
 
 import com.google.protobuf.ByteString;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.encoding.DecodingIterator;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -26,15 +25,14 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import splice.com.google.common.collect.Iterators;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -57,7 +55,7 @@ public class V2TxnDecoder implements TxnDecoder{
     static final byte[] DESTINATION_TABLE_QUALIFIER_BYTES=Bytes.toBytes("e"); //had to pick a letter that was unique
     static final byte[] ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES=Bytes.toBytes("r"); //had to pick a letter that was unique
     static final byte[] TASK_QUALIFIER_BYTES=Bytes.toBytes("v"); //had to pick a letter that was unique
-    static final byte[] CONFLICTING_TXN_IDS=Bytes.toBytes("w"); //had to pick a letter that was unique
+    static final byte[] CONFLICTING_TXN_IDS_BYTES =Bytes.toBytes("w"); //had to pick a letter that was unique
 
     private V2TxnDecoder(){ } //singleton instance
 
@@ -95,7 +93,7 @@ public class V2TxnDecoder implements TxnDecoder{
                 rollbackIds = kv;
             else if (CellUtils.singleMatchingColumn(kv, FAMILY, TASK_QUALIFIER_BYTES))
                 taskId = kv;
-            else if (CellUtils.singleMatchingColumn(kv, FAMILY, CONFLICTING_TXN_IDS))
+            else if (CellUtils.singleMatchingColumn(kv, FAMILY, CONFLICTING_TXN_IDS_BYTES))
                 conflictingTxnIds = kv;
         }
 
@@ -115,6 +113,12 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     @Override
+    public TxnMessage.ConflictingTxnIdsResponse decodeConflictingTxnIds(long txnId, Result result) {
+        Cell conflictingTxnIds = result.getColumnLatestCell(FAMILY, CONFLICTING_TXN_IDS_BYTES);
+        return TxnMessage.ConflictingTxnIdsResponse.newBuilder().addAllConflictingTxnIds(decodeLongArray(conflictingTxnIds)).build();
+    }
+
+    @Override
     public TxnMessage.Txn decode(RegionTxnStore txnStore, long txnId, Result result) {
 
         Cell dataKv = result.getColumnLatestCell(FAMILY, DATA_QUALIFIER_BYTES);
@@ -129,7 +133,7 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell kaTime = result.getColumnLatestCell(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
         Cell rollbackIds = result.getColumnLatestCell(FAMILY, ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES);
         Cell taskKv = result.getColumnLatestCell(FAMILY, TASK_QUALIFIER_BYTES);
-        Cell conflictingTxnIds = result.getColumnLatestCell(FAMILY, CONFLICTING_TXN_IDS);
+        Cell conflictingTxnIds = result.getColumnLatestCell(FAMILY, CONFLICTING_TXN_IDS_BYTES);
 
         return decodeInternal(txnStore, dataKv, kaTime, commitTsVal, globalTsVal, stateKv, destinationTables, txnId, rollbackIds, taskKv, conflictingTxnIds);
     }
@@ -170,7 +174,7 @@ public class V2TxnDecoder implements TxnDecoder{
      * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
      */
     @Override
-    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo, byte[] rowKey, Clock clock) {
+    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo, byte[] rowKey, Clock clock) throws IOException {
 
         MultiFieldEncoder encoder = MultiFieldEncoder.create(5);
 
@@ -222,9 +226,18 @@ public class V2TxnDecoder implements TxnDecoder{
         }
 
         // 6. column CONFLICTING_TXN_IDS
-        ByteString conflictingTxnIdsBuffer = txnInfo.getConflictingTxnIds();
-        if (conflictingTxnIdsBuffer != null && !conflictingTxnIdsBuffer.isEmpty()) {
-            put.addColumn(FAMILY, DESTINATION_TABLE_QUALIFIER_BYTES, conflictingTxnIdsBuffer.toByteArray());
+        List<Long> conflictingTxnIdsBuffer = txnInfo.getConflictingTxnIdsList();
+        if (!conflictingTxnIdsBuffer.isEmpty()) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            boolean first = true;
+            for (long id : txnInfo.getConflictingTxnIdsList()) {
+                if (!first) {
+                    baos.write(0);
+                }
+                baos.write(Encoding.encode(id));
+                first = false;
+            }
+            put.addColumn(FAMILY, DESTINATION_TABLE_QUALIFIER_BYTES, baos.toByteArray());
         }
 
         return put;
@@ -294,7 +307,7 @@ public class V2TxnDecoder implements TxnDecoder{
 
         long keepAliveTime = decodeKeepAlive(keepAliveKv, false);
 
-        List<Long> rollbackSubIds = decodeRollbackIds(rollbackIds);
+        List<Long> rollbackSubIds = decodeLongArray(rollbackIds);
         long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
         if (subId != 0 && rollbackSubIds.contains(subId)) {
             state = Txn.State.ROLLEDBACK;
@@ -305,7 +318,9 @@ public class V2TxnDecoder implements TxnDecoder{
             taskId = decodeTaskId(taskKv);
         }
 
-        TxnMessage.Txn decodedTxn = composeValue(destinationTables, conflictingTxnIds, level, txnId, beginTs, parentTxnId, hasAdditive,
+        List<Long> conflictingTxnIdsList = decodeLongArray(conflictingTxnIds);
+
+        TxnMessage.Txn decodedTxn = composeValue(destinationTables, conflictingTxnIdsList, level, txnId, beginTs, parentTxnId, hasAdditive,
                                                  isAdditive, commitTs, globalTs, state, keepAliveTime, rollbackSubIds,
                                                  taskId);
 
@@ -317,7 +332,7 @@ public class V2TxnDecoder implements TxnDecoder{
         return decodedTxn;
     }
 
-    private static TxnMessage.Txn composeValue(Cell destinationTables, Cell conflictingTxnIds, Txn.IsolationLevel level,
+    private static TxnMessage.Txn composeValue(Cell destinationTables, List<Long> conflictingTxnIds, Txn.IsolationLevel level,
                                           long txnId, long beginTs, long parentTs, boolean hasAdditive, boolean additive,
                                           long commitTs, long globalCommitTs, Txn.State state, long kaTime,
                                           List<Long> rollbackSubIds, TxnMessage.TaskId taskId) {
@@ -385,11 +400,11 @@ public class V2TxnDecoder implements TxnDecoder{
                             isAdditive, commitTs, globalTs, state, kaTime, Collections.emptyList(), null);
     }
 
-    private static List<Long> decodeRollbackIds(Cell rollbackIds) {
-        if (rollbackIds == null)
+    private static List<Long> decodeLongArray(Cell input) {
+        if (input == null)
             return Collections.emptyList();
         List<Long> ids = new ArrayList<>();
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(rollbackIds.getValueArray(), rollbackIds.getValueOffset(), rollbackIds.getValueLength());
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(input.getValueArray(), input.getValueOffset(), input.getValueLength());
         while (decoder.available()) {
             ids.add(decoder.decodeNextLong());
         }

@@ -34,6 +34,7 @@ import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.TxnRegion;
@@ -71,7 +72,7 @@ import static org.mockito.Mockito.*;
 @Category(ArchitectureSpecific.class)
 public class PartitionWriteHandlerTest{
     private static final KryoPool kp=new KryoPool(1);
-    private TxnSupplier testStore;
+    private TxnStore testStore;
     private OperationFactory opFactory;
     private OperationStatusFactory opStatusFactory;
     private ExceptionFactory ef;

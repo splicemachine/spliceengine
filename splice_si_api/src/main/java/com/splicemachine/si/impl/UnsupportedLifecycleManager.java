@@ -77,7 +77,7 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	}
 
 	@Override
-	public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory, TaskId taskId, byte[] conflictingTxnIds) throws IOException {
+	public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory, TaskId taskId, long[] conflictingTxnIds) throws IOException {
 		throw new UnsupportedOperationException("Cannot create new transactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
 
@@ -97,6 +97,11 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	}
 
 	@Override
+	public void rollback(long txnId, long originatorTxnId) throws IOException {
+		throw new UnsupportedOperationException("Cannot rollback a transaction with originator from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+	}
+
+	@Override
 	public void unregisterActiveTransaction(long txnId) throws IOException {
 		throw new UnsupportedOperationException("Cannot unregister active transactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
@@ -112,7 +117,7 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	}
 
 	@Override
-	public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit, byte[] conflictingTxnIds) throws IOException {
+	public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit, long[] conflictingTxnIds) throws IOException {
 		return null;
 	}
 
@@ -134,4 +139,5 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	public String getReplicationRole() {
 		throw new UnsupportedOperationException("Cannot get replication role from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
+
 }

@@ -213,10 +213,6 @@ public interface Txn extends TxnView{
             return null;
         }
 
-        @Override
-        public Iterator<ByteSlice> getConflictingTxnIds() {
-            return Collections.emptyIterator();
-        }
     };
 
     long newSubId();

@@ -24,9 +24,11 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.data.OperationFactory;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.data.StripedTxnLifecycleStore;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.RegionServerControl;
@@ -73,30 +75,35 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     });
 
     @Override
-    public void start(CoprocessorEnvironment env) throws IOException{
+    public void start(CoprocessorEnvironment env) throws IOException {
         try {
-            RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)env;
-            HRegion region=(HRegion)rce.getRegion();
+            RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) env;
+            HRegion region = (HRegion) rce.getRegion();
             HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
-            SConfiguration configuration=siEnv.configuration();
-            TableType table= EnvUtils.getTableType(configuration,rce);
+            SConfiguration configuration = siEnv.configuration();
+            TableType table = EnvUtils.getTableType(configuration, rce);
             Durability durability = toHBaseDurability(configuration.getDurability());
-            if(table.equals(TableType.TRANSACTION_TABLE)){
-                TransactionResolver resolver=resolverRef.get();
-                SIDriver driver=siEnv.getSIDriver();
-                assert driver!=null:"SIDriver Cannot be null";
+            if (table.equals(TableType.TRANSACTION_TABLE)) {
+                TransactionResolver resolver = resolverRef.get();
+                SIDriver driver = siEnv.getSIDriver();
+                assert driver != null : "SIDriver Cannot be null";
                 long txnKeepAliveTimeout = configuration.getTransactionTimeout();
-                @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
-                        driver.getTxnSupplier(),
-                        resolver,
-                        txnKeepAliveTimeout,
-                        new SystemClock(),
-                        durability);
-                TimestampSource timestampSource=driver.getTimestampSource();
+                @SuppressWarnings("unchecked") TxnPartition regionStore = new RegionTxnStore(region,
+                                                                          driver.getTxnSupplier(),
+                                                                          resolver,
+                                                                          txnKeepAliveTimeout,
+                                                                          new SystemClock(),
+                                                                          durability);
+                TimestampSource timestampSource = driver.getTimestampSource();
                 int txnLockStrips = configuration.getTransactionLockStripes();
-                lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
-                        new RegionServerControl(region, (RegionServerServices)rce.getOnlineRegions()),timestampSource);
-                isTxnTable=true;
+                ClientTxnLifecycleManager lifecycleManager = new ClientTxnLifecycleManager(timestampSource, siEnv.exceptionFactory());
+                lifecycleManager.setTxnStore(siEnv.txnStore());
+                lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,
+                                                              regionStore,
+                                                              new RegionServerControl(region, (RegionServerServices) rce.getOnlineRegions()),
+                                                              timestampSource,
+                                                              lifecycleManager);
+                isTxnTable = true;
             }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -173,6 +180,10 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                 case ROLLBACK_SUBTRANSACTIONS:
                     long[] ids = Longs.toArray(request.getRolledbackSubTxnsList());
                     rollbackSubtransactions(request.getTxnId(), ids);
+                    response=TxnMessage.ActionResponse.getDefaultInstance();
+                    break;
+                case ROLLBACK_WITH_ORIGINATOR:
+                    rollback(request.getTxnId(), request.getOriginatorTxnId());
                     response=TxnMessage.ActionResponse.getDefaultInstance();
                     break;
             }
@@ -280,6 +291,12 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         }
     }
 
+    public void rollback(long txnId, long originator) throws IOException{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            lifecycleStore.rollbackTransaction(txnId, originator);
+        }
+    }
+
     public boolean keepAlive(long txnId) throws IOException{
         try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             return lifecycleStore.keepAlive(txnId);
@@ -319,6 +336,18 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         try (RpcUtils.RootEnv ignored = RpcUtils.getRootEnv()) {
             lifecycleStore.addConflictingTxnIds(request.getTxnId(), Longs.toArray(request.getConflictingTxnsList()));
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        } catch (IOException ioe) {
+            setControllerException(controller, ioe);
+        }
+    }
+
+    @Override
+    public void getConflictingTxnIds(RpcController controller,
+                                     TxnMessage.ConflictingTxnIdsRequest request,
+                                     RpcCallback<TxnMessage.ConflictingTxnIdsResponse> done) {
+        try (RpcUtils.RootEnv ignored = RpcUtils.getRootEnv()) {
+            TxnMessage.ConflictingTxnIdsResponse response = lifecycleStore.getConflictingTxnIds(request.getTxnId());
+            done.run(response);
         } catch (IOException ioe) {
             setControllerException(controller, ioe);
         }

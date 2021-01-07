@@ -38,7 +38,7 @@ message TxnInfo{
     optional TaskId taskId = 8;
 
     //list of all conflicting transaction Ids
-    optional bytes conflictingTxnIds = 9;
+    repeated int64 conflictingTxnIds = 9;
 }
 
 message Txn {
@@ -130,6 +130,17 @@ enum LifecycleAction {
      */
     KEEPALIVE = 4;
     ROLLBACK_SUBTRANSACTIONS = 5;
+
+    /**
+     * Indicate that the transaction should be rolled back.
+     *
+     * It is very similar to ROLLBACK however it throws an exception in the following cases:
+     *
+     * - the transaction is already committed.
+     * - obtaining a lock to rollback has timed out and the transaction we're trying to rollback is in COMMIT_PENDING
+     *   state.
+     */
+    ROLLBACK_WITH_ORIGINATOR = 6;
 }
 
 message ActionResponse{
@@ -140,6 +151,7 @@ message TxnLifecycleMessage{
     required uint64 txnId = 1;
     required LifecycleAction action = 2;
     repeated uint64 rolledbackSubTxns = 3;
+    optional int64 originatorTxnId = 4;
 }
 
 message TxnRequest{
@@ -180,6 +192,14 @@ message TaskId {
 message AddConflictingTxnIdsRequest {
     required int64 txnId = 1;
     repeated int64 conflictingTxns = 2;
+}
+
+message ConflictingTxnIdsRequest{
+    required int64 txnId = 1;
+}
+
+message ConflictingTxnIdsResponse {
+    repeated int64 conflictingTxnIds = 1;
 }
 
 service TxnLifecycleService{
@@ -236,4 +256,6 @@ service TxnLifecycleService{
     rpc getTxnAt(TxnAtRequest) returns (TxnAtResponse);
 
     rpc addConflictingTxnIds(AddConflictingTxnIdsRequest) returns (VoidResponse);
+
+    rpc getConflictingTxnIds(ConflictingTxnIdsRequest) returns (ConflictingTxnIdsResponse);
 }

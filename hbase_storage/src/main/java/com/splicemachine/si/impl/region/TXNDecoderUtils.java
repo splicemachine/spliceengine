@@ -27,7 +27,7 @@ import java.util.List;
 
 public class TXNDecoderUtils {
 
-    public static TxnMessage.Txn composeValue(Cell destinationTables, Cell conflictingTxnIds, IsolationLevel level,
+    public static TxnMessage.Txn composeValue(Cell destinationTables, List<Long> conflictingTxnIds, IsolationLevel level,
                                               long txnId, long beginTs, long parentTs, boolean hasAdditive,
                                               boolean additive, long commitTs, long globalCommitTs, Txn.State state,
                                               long kaTime, List<Long> rollbackSubIds, TxnMessage.TaskId taskId) {
@@ -59,13 +59,7 @@ public class TXNDecoderUtils {
             info.setTaskId(taskId);
         }
 
-        ByteString conflictingTxnIdsBuffer = null;
-        if (conflictingTxnIds != null) {
-            conflictingTxnIdsBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(conflictingTxnIds));
-        }
-        if (conflictingTxnIdsBuffer != null) {
-            info.setConflictingTxnIds(conflictingTxnIdsBuffer);
-        }
+        info.addAllConflictingTxnIds(conflictingTxnIds);
 
         return TxnMessage.Txn
                 .newBuilder()

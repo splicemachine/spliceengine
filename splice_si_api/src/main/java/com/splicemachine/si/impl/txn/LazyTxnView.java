@@ -111,11 +111,6 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
-    public Iterator<ByteSlice> getConflictingTxnIds() {
-        return delegate.getConflictingTxnIds();
-    }
-
-    @Override
     public Txn.State getEffectiveState() {
         lookup(!inFinalState);
         return delegate.getEffectiveState();

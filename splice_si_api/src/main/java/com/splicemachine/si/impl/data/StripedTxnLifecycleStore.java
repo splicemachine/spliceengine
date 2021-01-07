@@ -14,10 +14,11 @@
 
 package com.splicemachine.si.impl.data;
 
-import com.splicemachine.concurrent.LongStripedSynchronizer;
-import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -28,6 +29,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -58,14 +61,20 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     private final TxnPartition baseStore;
     private final ServerControl serverControl;
     private final TimestampSource timestampSource;
+    private final TxnLifecycleManager lifecycleManager;
+    private final Set<Long> commitPendingTxns;
 
     public StripedTxnLifecycleStore(int numPartitions,
                                     TxnPartition baseStore,
-                                    ServerControl serverControl,TimestampSource timestampSource){
-        this.lockStriper=LongStripedSynchronizer.stripedReadWriteLock(numPartitions,false);
-        this.baseStore=baseStore;
-        this.serverControl=serverControl;
-        this.timestampSource=timestampSource;
+                                    ServerControl serverControl,
+                                    TimestampSource timestampSource,
+                                    TxnLifecycleManager lifecycleManager) {
+        this.lockStriper = LongStripedSynchronizer.stripedReadWriteLock(numPartitions, false);
+        this.baseStore = baseStore;
+        this.serverControl = serverControl;
+        this.timestampSource = timestampSource;
+        this.lifecycleManager = lifecycleManager;
+        this.commitPendingTxns = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -94,12 +103,24 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     @Override
     public long commitTransaction(long txnId) throws IOException{
         Lock lock=lockStriper.get(txnId).writeLock();
+        commitPendingTxns.add(txnId);
         acquireLock(lock);
         try{
+            TxnMessage.Txn txn = baseStore.getTransaction(txnId);
+            if(txn.hasInfo() && !txn.getInfo().getConflictingTxnIdsList().isEmpty()) {
+                // roll 'em back and propagate failures
+                for(long conflictingTxn : txn.getInfo().getConflictingTxnIdsList()) {
+                    if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
+                        rollbackTransaction(conflictingTxn, txnId);
+                    } else {
+                        lifecycleManager.rollback(conflictingTxn, txnId);
+                    }
+                }
+            }
             Txn.State state=baseStore.getState(txnId);
             if(state==null){
 //                LOG.warn("Attempting to commit a read-only transaction. Waste of a network call");
-                return -1l; //no need to acquire a new timestamp if we have a read-only transaction
+                return -1L; //no need to acquire a new timestamp if we have a read-only transaction
             }
             if(state==Txn.State.COMMITTED){
                 SpliceLogUtils.warn(LOG,"attempting to commit already committed txn=%d",txnId);
@@ -113,6 +134,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
             baseStore.recordCommit(txnId,commitTs);
             return commitTs;
         }finally{
+            commitPendingTxns.remove(txnId);
             unlock(lock);
         }
     }
@@ -135,6 +157,60 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                     baseStore.recordRollback(txnId);
             }
         }finally{
+            unlock(lock);
+        }
+    }
+
+    @Override
+    public void rollbackTransaction(long txnId, long originatorTxnId) throws IOException {
+        Lock lock = lockStriper.get(txnId).writeLock();
+        // make sure that the region doesn't close while we are working on it
+        serverControl.startOperation();
+        boolean lockAcquired = false;
+        while (!lockAcquired) {
+            try {
+                lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
+                if (!lockAcquired && commitPendingTxns.contains(txnId)) {
+                    if (originatorTxnId < txnId) { // simplest comparison that leads that
+                        throw baseStore.cannotRollback(txnId, String.format("deadlock avoidance, fail to rollback " +
+                                                                            "transaction %d since it is in " +
+                                                                            "commit-pending state with the originator %d",
+                                                            txnId, originatorTxnId));
+                    } else {
+                        continue; // keep trying, we'll eventually be able to
+                    }
+                }
+                try {
+                    /*
+                     * Checks if the client has disconnected while acquiring this lock.
+                     * If it has, we need to ensure that our lock is released (if it has been
+                     * acquired).
+                     */
+                    serverControl.ensureNetworkOpen();
+                } catch (IOException ioe) {
+                    if (lockAcquired) { // the lock was acquired, so it needs to be unlocked
+                        unlock(lock);
+                    }
+                    throw ioe;
+                }
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+        try {
+            Txn.State state = baseStore.getState(txnId);
+            if (state == null) {
+                return;
+            }
+            switch (state) {
+                case COMMITTED:
+                    throw baseStore.cannotRollback(txnId, String.format("transaction %d is already committed", txnId));
+                case ROLLEDBACK:
+                    return;
+                default:
+                    baseStore.recordRollback(txnId);
+            }
+        } finally {
             unlock(lock);
         }
     }
@@ -225,16 +301,24 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
-        // todo: optimize with fewer HBase put.
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-        Lock lock=lockStriper.get(beginTS).readLock();
+        Lock lock = lockStriper.get(beginTS).writeLock();
         acquireLock(lock);
-        try{
-            for(long conflictingTxnId : conflictingTxnIds) {
-                baseStore.addConflictingTxnId(txnId, conflictingTxnId);
-                baseStore.addConflictingTxnId(conflictingTxnId, txnId);
-            }
-        }finally{
+        try {
+            baseStore.addConflictingTxnIds(txnId, conflictingTxnIds);
+        } finally {
+            unlock(lock);
+        }
+    }
+
+    @Override
+    public TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock = lockStriper.get(beginTS).readLock();
+        acquireLock(lock);
+        try {
+            return baseStore.getConflictingTxnIds(beginTS);
+        } finally {
             unlock(lock);
         }
     }
@@ -257,34 +341,34 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     public void rollbackTransactionsAfter(long txnId) throws IOException {
         baseStore.rollbackTransactionsAfter(txnId);
     }
-    /* ***************************************************************************************************************/
-    /*private helper methods*/
+    /****** private helper methods *********************************************************************************/
+
     private void unlock(Lock lock) throws IOException{
         lock.unlock();
         serverControl.stopOperation();
     }
 
-    private void acquireLock(Lock lock) throws IOException{
-        //make sure that the region doesn't close while we are working on it
-
+    private void acquireLock(Lock lock) throws IOException {
+        // make sure that the region doesn't close while we are working on it
         serverControl.startOperation();
-        boolean shouldContinue=true;
-        while(shouldContinue){
-            try{
-                shouldContinue=!lock.tryLock(200,TimeUnit.MILLISECONDS);
-                try{
+        boolean lockAcquired = false;
+        while (!lockAcquired) {
+            try {
+                lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
+                try {
                     /*
                      * Checks if the client has disconnected while acquiring this lock.
-				     * If it has, we need to ensure that our lock is released (if it has been
-	 			     * acquired).
-    				 */
+                     * If it has, we need to ensure that our lock is released (if it has been
+                     * acquired).
+                     */
                     serverControl.ensureNetworkOpen();
-                }catch(IOException ioe){
-                    if(!shouldContinue) //the lock was acquired, so it needs to be unlocked
+                } catch (IOException ioe) {
+                    if (lockAcquired) { // the lock was acquired, so it needs to be unlocked
                         unlock(lock);
+                    }
                     throw ioe;
                 }
-            }catch(InterruptedException e){
+            } catch (InterruptedException e) {
                 throw new IOException(e);
             }
         }

@@ -23,10 +23,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.impl.HCannotCommitException;
-import com.splicemachine.si.impl.HReadOnlyModificationException;
-import com.splicemachine.si.impl.HTransactionTimeout;
-import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -40,6 +37,7 @@ import org.apache.log4j.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -91,6 +89,11 @@ public class RegionTxnStore implements TxnPartition{
     @Override
     public IOException cannotCommit(long txnId,Txn.State state){
         return new HCannotCommitException(txnId,state);
+    }
+
+    @Override
+    public IOException cannotRollback(long txnId, String message) {
+        return new HCannotRollbackException(txnId, message);
     }
 
     @Override
@@ -385,11 +388,43 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     @Override
-    public void addConflictingTxnId(long txnId, long conflictingTxnId) throws IOException {
+    public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"addConflictingTxnId txnId=%d, conflictingTxnId=%d",txnId, conflictingTxnId);
+            SpliceLogUtils.trace(LOG, "addConflictingTxnIds txnId=%d, conflictingTxnIds=%d", txnId, Arrays.toString(conflictingTxnIds));
 
-        addBytes(txnId, V2TxnDecoder.CONFLICTING_TXN_IDS, Encoding.encode(conflictingTxnId));
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Put put=new Put(getRowKey(beginTS));
+        put.setDurability(durability);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean first = true;
+        for (long id : conflictingTxnIds) {
+            if (!first) {
+                baos.write(0);
+            }
+            baos.write(Encoding.encode(id));
+            first = false;
+        }
+        put.addColumn(FAMILY, V2TxnDecoder.CONFLICTING_TXN_IDS_BYTES, baos.toByteArray());
+        region.put(put);
+    }
+
+    @Override
+    public TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException {
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getConflictingTxnIds txnId=%d",txnId);
+        Get get=new Get(getRowKey(txnId));
+        get.addColumn(FAMILY,V2TxnDecoder.CONFLICTING_TXN_IDS_BYTES);
+        Result result=region.get(get);
+        if(result==null||result==Result.EMPTY_RESULT) {
+            return TxnMessage.ConflictingTxnIdsResponse.getDefaultInstance();
+        }
+        return newTransactionDecoder.decodeConflictingTxnIds(txnId, result);
+    }
+
+    @Override
+    public boolean contains(long txnId) throws IOException {
+        return region.getRegionInfo().containsRow(getRowKey(txnId & SIConstants.TRANSANCTION_ID_MASK));
     }
 
     /** private helper methods ****************************************************************************************/

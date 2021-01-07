@@ -225,9 +225,4 @@ public interface TxnView extends Externalizable {
     boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly);
 
     TaskId getTaskId();
-
-    /**
-     * @return a list of all conflicting transaction Ids.
-     */
-    Iterator<ByteSlice> getConflictingTxnIds();
 }

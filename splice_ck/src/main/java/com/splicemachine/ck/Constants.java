@@ -49,6 +49,7 @@ public class Constants {
     public final static String TBL_TXN_COL7 = "keep alive time";
     public final static String TBL_TXN_COL8 = "rollback sub ids";
     public final static String TBL_TXN_COL9 = "target tables";
+    public final static String TBL_TXN_COL10 = "conflicting transactions";
 
     public final static int TBL_TXN_ID_IDX = 0;
     public final static int TBL_TXN_COMMIT_TS_IDX = 1;
@@ -60,6 +61,7 @@ public class Constants {
     public final static int TBL_TXN_KEEP_ALIVE_IDX = 7;
     public final static int TBL_TXN_ROLLBACK_SUB_IDX = 8;
     public final static int TBL_TXN_TARGET_TABLES_IDX = 9;
+    public final static int TBL_TXN_CONFLICTING_TXN_IDS = 10;
 
     public final static String TBL_COLTABLE_COL0 = "column index";
     public final static String TBL_COLTABLE_COL1 = "column name";

@@ -41,5 +41,9 @@ public interface TxnNetworkLayer extends AutoCloseable{
 
     TxnMessage.TxnAtResponse getTxnAt(final TxnMessage.TxnAtRequest request) throws IOException;
 
+    void addConflictingTxnIds(byte[] rowKey, final TxnMessage.AddConflictingTxnIdsRequest request) throws IOException;
+
+    TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(byte[] rowKey, final TxnMessage.ConflictingTxnIdsRequest request) throws IOException;
+
     void close() throws IOException;
 }

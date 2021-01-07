@@ -27,11 +27,8 @@ import com.splicemachine.utils.ByteSlice;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Longs;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * Simple Transaction store useful for Unit testing. NOT TO BE USED OUTSIDE OF TESTING. This is not thread safe!
@@ -136,6 +133,11 @@ public class TestingTxnStore implements TxnStore{
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
         txnHolder.txn=getRolledbackTxn(txn);
+    }
+
+    @Override
+    public void rollback(long txnId, long originatorTxnId) throws IOException{
+        rollback(txnId); // todo, proper logic w.r.t. originator.
     }
 
     private Txn getRolledbackSubtxns(long txnId, Txn txn, LongHashSet subtransactions) {
@@ -428,7 +430,12 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
-    public void addConflictingTxnId(long txnId, long conflictingTxnId) {
+    public void addConflictingTxnIds(long txnId, long[] conflictingTxnId) {
         // no op
+    }
+
+    @Override
+    public long[] getConflictingTxnIds(long txnId) throws IOException {
+        return null;
     }
 }

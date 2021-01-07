@@ -46,4 +46,6 @@ public interface TxnDecoder {
     TxnMessage.Txn decodeV1(RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 
     TxnMessage.TaskId decodeTaskId(RegionTxnStore regionTxnStore, long txnId, Result result) throws IOException;
+
+    TxnMessage.ConflictingTxnIdsResponse decodeConflictingTxnIds(long txnId, Result result) throws IOException;
 }
