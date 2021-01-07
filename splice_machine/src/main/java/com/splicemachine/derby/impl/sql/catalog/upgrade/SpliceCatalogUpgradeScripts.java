@@ -81,8 +81,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1989), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1992), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1992), new UpgradeScriptToAddSysIndexesViewInSYSIBM(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1992), new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
     }
     public void run() throws StandardException{
 

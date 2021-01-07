@@ -509,7 +509,6 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 			"         , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
 			"    WHERE \n" +
 			"          CONGLOMS.SCHEMAID = S.SCHEMAID \n" +
-			"      AND CONGLOMS.ISINDEX \n" +
 			"      AND CONGLOMS.DESCRIPTOR IS NOT NULL \n" +
 			"      AND NOT CONGLOMS.DESCRIPTOR.isOnExpression() \n" +
 			"      AND CONGLOMS.TABLEID = COLS.REFERENCEID \n" +
