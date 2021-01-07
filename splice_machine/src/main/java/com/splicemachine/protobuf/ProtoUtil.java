@@ -141,7 +141,7 @@ public class ProtoUtil {
                 .setReload(reload)
                 .setDrop(drop)
                 .setSchemaName(schemaName==null?"":schemaName)
-                .setDbUUID(transferDerbyUUID(dbId))
+                .setDbUUID(dbId==null?null:transferDerbyUUID(dbId))
                 .setSqlName(sqlName==null?"":sqlName)
                 .build())
                 .setDdlChangeType(DDLChangeType.NOTIFY_JAR_LOADER)
