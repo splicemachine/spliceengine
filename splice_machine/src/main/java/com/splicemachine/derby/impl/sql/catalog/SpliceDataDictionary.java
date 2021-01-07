@@ -1124,7 +1124,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DDLWatcher ddlWatcher=driver.ddlWatcher();
         if(xactMgr==null)
             xactMgr = getTransactionCompile();
-        return ddlWatcher.canWriteCache((TransactionManager)xactMgr);
+        return xactMgr != null && ddlWatcher.canWriteCache((TransactionManager)xactMgr);
     }
 
     @Override

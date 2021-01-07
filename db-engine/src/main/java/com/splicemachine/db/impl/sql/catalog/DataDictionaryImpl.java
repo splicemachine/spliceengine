@@ -7545,8 +7545,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             assert !booting:"booting is expected to be false";
 
             LanguageConnectionContext lcc=getLCC();
-            return lcc.getTransactionCompile();
-
+            return lcc == null ? null : lcc.getTransactionCompile();
         }
     }
 
