@@ -1038,6 +1038,16 @@ public class FunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testDb11089() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            try (ResultSet rs = conn.query("SELECT * FROM sysibm.sysdummy1 WHERE '?2,BL' NOT IN ( CAST('1969-12-16 17:40:41' AS VARCHAR(16)))")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("Y", rs.getString(1));
+            }
+        }
+    }
+
+    @Test
     public void testCurrentSchema() throws Exception {
         // DB-11073
         try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
