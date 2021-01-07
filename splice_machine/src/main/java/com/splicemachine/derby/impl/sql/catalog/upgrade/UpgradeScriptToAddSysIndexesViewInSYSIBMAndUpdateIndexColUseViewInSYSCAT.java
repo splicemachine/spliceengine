@@ -18,16 +18,17 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class UpgradeScriptToAddSysIndexesViewInSYSIBM extends UpgradeScriptBase {
-    public UpgradeScriptToAddSysIndexesViewInSYSIBM(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT extends UpgradeScriptBase {
+    public UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
         sdd.createSysIndexesViewInSysIBM(tc);
-
         SpliceLogUtils.info(LOG, "Catalog upgraded: added sysindexes view in SYSIBM schema");
 
+        sdd.createIndexColumnUseViewInSysCat(tc);
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added indexcoluse view in SYSCAT schema");
     }
 }
