@@ -12,6 +12,8 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // database resources are closed by caller
 @SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION"})
@@ -27,17 +29,26 @@ public class ijCommands {
             return rs.getString(2);
         }
     }
+
+    static public int[] parseVersion(String v) {
+        Pattern r = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d)*\\.(\\d*)(-.*)?");
+        Matcher m = r.matcher(v);
+        if( m.find() ) {
+            return new int[] {Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
+                    Integer.parseInt(m.group(3)), Integer.parseInt(m.group(4))};
+        }
+        else
+            return null;
+    }
+
+    // see DB-11101
     boolean hasServerLikeFix() {
         if(serverLikeFix == null) {
             try {
-                String v = getVersion();
-                String res2[] = v.split("\\.");
-                // e.g. 3.0.1.1984
-                if(res2.length != 4)
-                    return Boolean.FALSE;
-                // changed escaping with DB-10890
-                else if( Integer.parseInt(res2[0]) >= 3 && Integer.parseInt(res2[3]) >= 1988 )
+                int[] v = parseVersion(getVersion());
+                if(v != null && v[0] >= 3 && v[3] >= 1988 ){
                     serverLikeFix = Boolean.TRUE;
+                }
                 else
                     serverLikeFix = Boolean.FALSE;
             } catch (Exception e) {
