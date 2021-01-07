@@ -420,16 +420,16 @@ public class DataDictionaryCache {
         conglomerateCache.invalidate(conglomId);
     }
 
-    public DatabaseDescriptor databaseCacheFind(String dbName) throws StandardException {
-        if (!dd.canReadCache(null))
+    public DatabaseDescriptor databaseCacheFind(String dbName, TransactionController tc) throws StandardException {
+        if (!dd.canReadCache(tc))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("databaseCacheFind " + dbName);
         return databaseCache.getIfPresent(dbName);
     }
 
-    public void databaseCacheAdd(String dbName, DatabaseDescriptor descriptor) throws StandardException {
-        if (!dd.canWriteCache(null))
+    public void databaseCacheAdd(String dbName, DatabaseDescriptor descriptor, TransactionController tc) throws StandardException {
+        if (!dd.canWriteCache(tc))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("databaseCacheAdd" + dbName + " : " + descriptor);

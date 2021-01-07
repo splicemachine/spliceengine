@@ -1024,14 +1024,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          ** Manual lookup
          */
 
-        DatabaseDescriptor dd = dataDictionaryCache.databaseCacheFind(dbName);
+        DatabaseDescriptor dd = dataDictionaryCache.databaseCacheFind(dbName, tc);
         if (dd!=null)
             return dd;
 
         dd = locateDatabaseRow(dbName,tc);
 
         if (dd!=null)
-            dataDictionaryCache.databaseCacheAdd(dbName, dd);
+            dataDictionaryCache.databaseCacheAdd(dbName, dd, tc);
 
         if(dd==null && raiseError) {
             throw StandardException.newException(SQLState.LANG_DATABASE_DOES_NOT_EXIST, dbName);

@@ -40,27 +40,38 @@ import java.sql.SQLException;
 
 public class ConnectionUtil {
 
-	/**
-		Get the current LanguageConnectionContext.
-		Used by public api code that needs to ensure it
-		is in the context of a SQL connection.
+    /**
+        Get the current LanguageConnectionContext.
+        Used by public api code that needs to ensure it
+        is in the context of a SQL connection.
 
-		@exception SQLException Caller is not in the context of a connection.
-	*/
-	public static LanguageConnectionContext getCurrentLCC()
-		throws SQLException {
+        @exception SQLException Caller is not in the context of a connection.
+    */
+    public static LanguageConnectionContext getCurrentLCC()
+        throws SQLException {
+        return getCurrentLCC(true);
+    }
 
-			LanguageConnectionContext lcc = (LanguageConnectionContext)
-				ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+    /**
+     Get the current LanguageConnectionContext.
+     Used by public api code that needs to ensure it
+     is in the context of a SQL connection.
 
-			if (lcc == null)
-				throw new SQLException(
-							// No current connection
-							MessageService.getTextMessage(
-											SQLState.NO_CURRENT_CONNECTION),
-							SQLState.NO_CURRENT_CONNECTION,
-							ExceptionSeverity.SESSION_SEVERITY);
+     @param raiseError in case of error, if set, throws an exception, else returns null
+     @exception SQLException Caller is not in the context of a connection.
+     */
+    public static LanguageConnectionContext getCurrentLCC(boolean raiseError) throws SQLException {
+        LanguageConnectionContext lcc = (LanguageConnectionContext)
+                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 
-			return lcc;
-	}
+        if (lcc == null && raiseError)
+            throw new SQLException(
+                    // No current connection
+                    MessageService.getTextMessage(
+                            SQLState.NO_CURRENT_CONNECTION),
+                    SQLState.NO_CURRENT_CONNECTION,
+                    ExceptionSeverity.SESSION_SEVERITY);
+
+        return lcc;
+    }
 }

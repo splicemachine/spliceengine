@@ -203,6 +203,11 @@ public class MultiDatabaseIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testSuperfluousCreate() throws SQLException {
+        classWatcher.connectionBuilder().database(OTHER_DB).create(true).build();
+    }
+
+    @Test
     public void testDropDatabaseRestrictCascade() throws SQLException {
         String dbName = OTHER_DB + "_TEST_DROP_RESTRICT_CASCADE";
         classWatcher.connectionBuilder().database(dbName).create(true).build();
