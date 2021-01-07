@@ -228,6 +228,8 @@ public interface TxnLifecycleManager{
      * @return the commit timestamp for the committed transaction.
      * @throws com.splicemachine.si.api.CannotCommitException if the transaction was already rolled back by
      *                                                        another process (e.g. timeout)
+     * @throws com.splicemachine.si.api.CannotRollbackException if the transaction WW-conflicts with another transaction
+     *                                                          that is already committed
      * @throws IOException                                    if something goes wrong during the elevation
      */
     long commit(long txnId) throws IOException;

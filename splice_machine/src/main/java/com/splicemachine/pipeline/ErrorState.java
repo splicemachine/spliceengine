@@ -29,6 +29,7 @@ import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.impl.SavePointNotFoundException;
 import com.splicemachine.timestamp.api.TimestampIOException;
 
@@ -2023,6 +2024,20 @@ public enum ErrorState{
                 return super.newException(rootCause);
             CannotCommitException cce=(CannotCommitException)rootCause;
             return StandardException.newException(getSqlState(),cce.getTxnId());
+        }
+    },
+    CANNOT_ROLLBACK_CONFLICTING_TXN("SE031"){
+        @Override
+        public boolean accepts(Throwable t){
+            return super.accepts(t) || t instanceof CannotRollbackException;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof CannotRollbackException))
+                return super.newException(rootCause);
+            CannotRollbackException cre=(CannotRollbackException)rootCause;
+            return StandardException.newException(getSqlState(),cre.getOriginatingTxnId(), cre.getTxnId());
         }
     },
     DDL_TIMEOUT("SE017"),

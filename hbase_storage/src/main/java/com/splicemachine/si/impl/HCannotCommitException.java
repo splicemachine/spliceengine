@@ -40,10 +40,16 @@ public class HCannotCommitException extends DoNotRetryIOException implements Can
     }
 
     private long parseTxn(String message){
+        if(message == null) {
+            return -1;
+        }
         int openIndex=message.indexOf("[");
         int closeIndex=message.indexOf("]");
-        String txnNum=message.substring(openIndex+1,closeIndex);
-        return Long.parseLong(txnNum);
+        if(0 < openIndex && openIndex < closeIndex && closeIndex <= message.length()) {
+            String txnNum = message.substring(openIndex + 1, closeIndex);
+            return Long.parseLong(txnNum);
+        }
+        return -1;
     }
 
     public Txn.State getActualState(){

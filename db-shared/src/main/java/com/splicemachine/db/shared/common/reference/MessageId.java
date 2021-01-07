@@ -275,4 +275,5 @@ public interface MessageId {
     String LANG_DISABLE_STATS_FOR_KEYED_COLUMN           = "SE021";
     String LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED        = "SE026";
     String LANG_INVALID_FAKE_STATS                       = "SE027";
+    String CANNOT_ROLLBACK_CONFLICTING_TXN               = "SE031";
 }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import org.apache.hadoop.hbase.client.NoServerForRegionException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.net.ConnectTimeoutException;
@@ -96,6 +97,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
         t=Throwables.getRootCause(t);
         t=processPipelineException(t);
         if(t instanceof CannotCommitException) return true;
+        if(t instanceof CannotRollbackException) return true;
         else if(t instanceof CallTimeoutException) return true;
         else if(t instanceof DisconnectException) return true;
         else if(t instanceof FailedServerException) return true;

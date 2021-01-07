@@ -131,7 +131,7 @@ public interface TxnPartition{
      */
     IOException cannotCommit(long txnId,Txn.State state);
 
-    IOException cannotRollback(long txnId, String message);
+    IOException cannotRollback(long txnId, long originatingTxn, String message);
 
     /**
      * Record that the transaction was committed, and assign the committed timestamp to it.

@@ -14,29 +14,48 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
-public class HCannotRollbackException extends DoNotRetryIOException {
+public class HCannotRollbackException extends DoNotRetryIOException implements CannotRollbackException {
     private long txnId = -1;
+    private long originatingTxnId = -1;
 
-    public HCannotRollbackException(long txnId, String message) {
-        super(String.format("[%d]Transaction %d cannot be rolled back--%s", txnId, txnId, message));
+    public HCannotRollbackException(long txnId, long originatingTxn, String message) {
+        super(String.format("[%d](%d)Transaction %d cannot be rolled back by transaction %d--%s",
+                            txnId, originatingTxn, txnId, originatingTxn, message));
+        this.txnId = txnId;
+        this.originatingTxnId = originatingTxn;
     }
 
     public HCannotRollbackException(String message) {
         super(message);
     }
 
+    @Override
     public long getTxnId() {
-        if (txnId < 0)
-            txnId = parseTxn(getMessage());
+        if(txnId<0)
+            txnId=parseTxn(getMessage(), "[", "]");
         return txnId;
     }
 
-    private long parseTxn(String message) {
-        int openIndex = message.indexOf("[");
-        int closeIndex = message.indexOf("]");
-        String txnNum = message.substring(openIndex + 1, closeIndex);
-        return Long.parseLong(txnNum);
+    @Override
+    public long getOriginatingTxnId() {
+        if(originatingTxnId<0)
+            originatingTxnId=parseTxn(getMessage(), "(", ")");
+        return originatingTxnId;
+    }
+
+    private long parseTxn(String message, String start, String end){
+        if(message == null) {
+            return -1;
+        }
+        int openIndex=message.indexOf(start);
+        int closeIndex=message.indexOf(end);
+        if(0 < openIndex && openIndex < closeIndex && closeIndex <= message.length()) {
+            String txnNum = message.substring(openIndex + 1, closeIndex);
+            return Long.parseLong(txnNum);
+        }
+        return -1;
     }
 }

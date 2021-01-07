@@ -172,10 +172,10 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                 lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
                 if (!lockAcquired && commitPendingTxns.contains(txnId)) {
                     if (originatorTxnId < txnId) { // simplest comparison that leads that
-                        throw baseStore.cannotRollback(txnId, String.format("deadlock avoidance, fail to rollback " +
+                        throw baseStore.cannotRollback(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
                                                                             "transaction %d since it is in " +
                                                                             "commit-pending state with the originator %d",
-                                                            txnId, originatorTxnId));
+                                                        txnId, originatorTxnId));
                     } else {
                         continue; // keep trying, we'll eventually be able to
                     }
@@ -204,7 +204,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
             }
             switch (state) {
                 case COMMITTED:
-                    throw baseStore.cannotRollback(txnId, String.format("transaction %d is already committed", txnId));
+                    throw baseStore.cannotRollback(txnId, originatorTxnId, String.format("transaction %d is already committed", txnId));
                 case ROLLEDBACK:
                     return;
                 default:

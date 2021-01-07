@@ -92,8 +92,8 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     @Override
-    public IOException cannotRollback(long txnId, String message) {
-        return new HCannotRollbackException(txnId, message);
+    public IOException cannotRollback(long txnId, long originatingTxn, String message) {
+        return new HCannotRollbackException(txnId, originatingTxn, message);
     }
 
     @Override
