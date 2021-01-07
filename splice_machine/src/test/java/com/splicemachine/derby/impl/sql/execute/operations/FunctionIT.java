@@ -1058,5 +1058,11 @@ public class FunctionIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testDb11090() throws Exception {
+        // DB-11090
+        checkNullExpression("CAST(NULL AS INT) NOT IN (1)", methodWatcher.getOrCreateConnection());
+    }
 }
 
