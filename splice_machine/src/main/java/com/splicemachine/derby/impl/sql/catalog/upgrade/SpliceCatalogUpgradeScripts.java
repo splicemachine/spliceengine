@@ -50,11 +50,21 @@ public class SpliceCatalogUpgradeScripts{
                 version.getMinorVersionNumber(), version.getPatchVersionNumber(), sprint), script));
     }
 
-    // master / branch-3.0 / branch-3.1
-    // baseVersion1 = 2.8.0 / 2.8.0 / 2.8.0
-    // baseVersion2 = 3.1.0 / 3.1.0 / 3.0.0 // 3. fork
-    // baseVersion3 = 3.1.0 / 3.1.0 / 3.0.1 // hickup on branch 3.0
-    // baseVersion4 = 3.2.0 / 3.1.0 / 3.0.1 // 3.2 fork
+    // Upgrade scripts should be mostly the same on master/3.0/3.1.
+    // However the base versions (i.e. major.minor.patch without sprint) are different.
+    // e.g. UpgradeScriptToAddSysNaturalNumbersTable is for sprint 1985, which is [baseVersion4, 1985].
+    // that means on master = 3.2.0.1985, branch-3.0 = 3.1.0.1985, branch-3.0 = 3.0.1.1985.
+
+    // following table gives an overview over different base versions in the branches
+    //                 master | branch-3.0 | branch-3.1 | remarks
+    // baseVersion1 =  2.8.0  |   2.8.0    |   2.8.0    |
+    // baseVersion2 =  3.1.0  |   3.1.0    |   3.0.0    | 2.8 -> 3.x fork
+    // baseVersion3 =  3.1.0  |   3.1.0    |   3.0.1    | hickup on branch 3.0
+    // baseVersion4 =  3.2.0  |   3.1.0    |   3.0.1    | 3.2 fork
+    // ...
+    // baseVersionX = ...                               | add here new versions
+    //
+    // also check SpliceCatalogUpgradeScriptsTest for some unit tests for this.
 
     static final public Splice_DD_Version baseVersion1 = new Splice_DD_Version(null, 2, 8, 0);
     static final public Splice_DD_Version baseVersion2 = new Splice_DD_Version(null, 3, 0, 0);

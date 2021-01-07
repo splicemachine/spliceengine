@@ -36,6 +36,7 @@ public class SpliceCatalogUpgradeScriptsTest {
         return s.replace("VERSION2", SpliceCatalogUpgradeScripts.baseVersion2.toString())
                 .replace("VERSION3", SpliceCatalogUpgradeScripts.baseVersion3.toString())
                 .replace("VERSION4", SpliceCatalogUpgradeScripts.baseVersion4.toString());
+        // add more base versions here.
     }
 
     @Test
