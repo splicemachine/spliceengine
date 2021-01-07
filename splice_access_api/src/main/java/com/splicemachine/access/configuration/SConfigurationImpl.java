@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -195,6 +196,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final boolean ignoreMissingTxns;
     private final long systablesMinRetentionPeriod;
     private final Durability durability;
+    private final ConflictResolutionStrategy conflictResolutionStrategy;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -779,6 +781,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public Durability getDurability() {
         return durability;
     }
+    @Override
+    public ConflictResolutionStrategy getConflictResolutionStrategy() {
+        return conflictResolutionStrategy;
+    }
 
     // SQLConfiguration
     @Override
@@ -1148,6 +1154,7 @@ public final class SConfigurationImpl implements SConfiguration {
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
         durability = builder.durability;
+        conflictResolutionStrategy = builder.conflictResolutionStrategy;
         systablesMinRetentionPeriod = builder.systablesMinRetentionPeriod;
         maxCheckTableErrors = builder.maxCheckTableErrors;
         rollForwardQueueSize = builder.rollForwardQueueSize;

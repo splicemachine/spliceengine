@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -187,6 +188,7 @@ public class ConfigurationBuilder {
     public CompilerContext.NewMergeJoinExecutionType newMergeJoin;
     public int splitsPerRegionMin;
     public String foreignKeyChecker;
+    public ConflictResolutionStrategy conflictResolutionStrategy;
 
     // PipelineConfiguration
     public int coreWriterThreads;

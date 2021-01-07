@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.kvpair.KVPair;
@@ -63,6 +64,9 @@ public class SITransactor implements Transactor{
     private final TxnOperationFactory txnOperationFactory;
     private final TxnStore txnStore;
 
+    private boolean conflictResolutionStrategyIsSet;
+    private ConflictResolutionStrategy conflictResolutionStrategy;
+
     public SITransactor(TxnStore txnStore,
                         TxnOperationFactory txnOperationFactory,
                         OperationFactory opFactory,
@@ -74,6 +78,8 @@ public class SITransactor implements Transactor{
         this.operationStatusLib = operationStatusLib;
         this.exceptionLib = exceptionFactory;
         this.defaultConstraintChecker = operationStatusLib.getNoOpConstraintChecker();
+        this.conflictResolutionStrategyIsSet = false;
+        this.conflictResolutionStrategy = ConflictResolutionStrategy.valueOf(SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -155,6 +161,7 @@ public class SITransactor implements Transactor{
                                            boolean skipConflictDetection,
                                            boolean skipWAL, boolean rollforward) throws IOException{
         ensureTransactionAllowsWrites(txn);
+        setConflictResolutionStrategyIfNecessary();
         return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL,rollforward);
     }
 
@@ -247,6 +254,16 @@ public class SITransactor implements Transactor{
                 LOG.warn("Exception while trying to roll forward after conflict detection", t);
             }
             releaseLocksForKvBatch(lockPairs);
+        }
+    }
+
+    private void setConflictResolutionStrategyIfNecessary() {
+        if (!conflictResolutionStrategyIsSet) {
+            SIDriver driver = SIDriver.driver();
+            conflictResolutionStrategy = driver != null ?
+                    driver.getConfiguration().getConflictResolutionStrategy() :
+                    ConflictResolutionStrategy.valueOf(SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
+            conflictResolutionStrategyIsSet = true;
         }
     }
 
@@ -617,9 +634,14 @@ public class SITransactor implements Transactor{
                 conflictResults.addAdditive(dataTransactionId);
                 return conflictResults;
             case SIBLING:
-                // think about batching.
-                txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(table, kvPair, txnSupplier));
-                // throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
+                switch(conflictResolutionStrategy) {
+                    case IMMEDIATE:
+                        throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
+                        break;
+                    case DEFERRED:
+                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(table, kvPair, txnSupplier));
+                        break;
+                }
         }
 
         return conflictResults;

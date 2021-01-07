@@ -237,6 +237,8 @@ public interface SConfiguration {
 
     Durability getDurability();
 
+    ConflictResolutionStrategy getConflictResolutionStrategy();
+
     // Olap configurations
 
     int getOlapClientWaitTime();

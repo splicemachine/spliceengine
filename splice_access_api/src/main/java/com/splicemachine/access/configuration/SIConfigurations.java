@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
@@ -180,6 +181,10 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String DURABILITY = "splice.txn.durability";
     public static final String DEFAULT_DURABILITY = "SYNC";
 
+    // write-write conflict resolution strategy
+    public static final String CONFLICT_RESOLUTION_STRATEGY = "splice.txn.conflictResolutionStrategy";
+    public static final String DEFAULT_CONFLICT_RESOLUTION_STRATEGY = "IMMEDIATE";
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.completedTxnConcurrency  = configurationSource.getInt(completedTxnConcurrency, DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
@@ -218,8 +223,16 @@ public class SIConfigurations implements ConfigurationDefault {
         try {
             builder.durability = Durability.valueOf(durability);
         } catch (IllegalArgumentException ex) {
-            LOG.error("Couldn't parse durability option: " + durability);
+            LOG.error(String.format("Couldn't parse %s option: '%s'", DURABILITY, durability));
             builder.durability = Durability.SYNC;
+        }
+
+        String conflictResolutionStrategyString = configurationSource.getString(CONFLICT_RESOLUTION_STRATEGY, DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
+        try {
+            builder.conflictResolutionStrategy = ConflictResolutionStrategy.valueOf(conflictResolutionStrategyString);
+        } catch (IllegalArgumentException ex) {
+            LOG.error(String.format("Couldn't parse %s option: '%s'", CONFLICT_RESOLUTION_STRATEGY, conflictResolutionStrategyString));
+            builder.conflictResolutionStrategy = ConflictResolutionStrategy.IMMEDIATE;
         }
     }
 }
