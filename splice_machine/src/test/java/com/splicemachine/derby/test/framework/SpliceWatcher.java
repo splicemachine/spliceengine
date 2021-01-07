@@ -443,4 +443,13 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             return rs.getString(index);
         }
     }
+
+    public int executeGetInt(String sql, int index) throws SQLException {
+        try( Statement s = getOrCreateConnection().createStatement();
+             ResultSet rs = s.executeQuery(sql))
+        {
+            Assert.assertTrue(rs.next());
+            return rs.getInt(index);
+        }
+    }
 }

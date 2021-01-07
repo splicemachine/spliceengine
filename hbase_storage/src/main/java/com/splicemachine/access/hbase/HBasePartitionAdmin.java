@@ -24,6 +24,7 @@ import java.sql.SQLWarning;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import splice.com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -755,6 +756,11 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         admin.enableTable(tn);
     }
 
+    public static Stream<org.apache.hadoop.hbase.client.TableDescriptor> getToUpgradeStream(
+            List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptors) {
+        return tableDescriptors.stream().filter( td -> td.getPriority() != getPriorityShouldHave(td));
+    }
+
     public static int upgradeTablePrioritiesFromList(Admin admin,
                                                      List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptors)
             throws Exception
@@ -762,9 +768,7 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         final int NUM_THREADS = 10;
         ExecutorService executor = null;
         try {
-
-            List<Callable<Void>> upgradeTasks = tableDescriptors.stream()
-                    .filter( td -> td.getPriority() != getPriorityShouldHave(td))
+            List<Callable<Void>> upgradeTasks = getToUpgradeStream(tableDescriptors)
                     .map( td -> (Callable<Void>) () -> {
                         setHTablePriority(admin, td.getTableName(), td, getPriorityShouldHave(td));
                         return null;
