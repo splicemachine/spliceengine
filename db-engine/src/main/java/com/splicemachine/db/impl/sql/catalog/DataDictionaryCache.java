@@ -658,8 +658,8 @@ public class DataDictionaryCache {
         this.propertyCache = propertyCache;
     }
 
-    public void propertyCacheAdd(String key, Optional<String> optional) throws StandardException {
-        if (!dd.canWriteCache(null))
+    public void propertyCacheAdd(TransactionController tc, String key, Optional<String> optional) throws StandardException {
+        if (!dd.canWriteCache(tc))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("propertyCacheAdd " + key);
