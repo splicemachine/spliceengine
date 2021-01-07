@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ This file is part of Splice Machine.
   ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
   ~ GNU Affero General Public License as published by the Free Software Foundation, either
@@ -177,8 +176,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>01J04</name>
-                <text>The class '{0}' for column '{1}' does not implement java.io.Serializable or java.sql.SQLData.
-                    Instances must implement one of these interfaces to allow them to be stored.
+                <text>The class '{0}' for column '{1}' does not implement java.io.Serializable or java.sql.SQLData. Instances must implement one of these interfaces to allow them to be stored.
                 </text>
                 <arg>className</arg>
                 <arg>columnName</arg>
@@ -186,8 +184,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>01J05</name>
-                <text>Database upgrade succeeded. The upgraded database is now ready for use. Revalidating stored
-                    prepared statements failed. See next exception for details of failure.
+                <text>Database upgrade succeeded. The upgraded database is now ready for use. Revalidating stored prepared statements failed. See next exception for details of failure.
                 </text>
             </msg>
 
@@ -216,15 +213,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>01J12</name>
-                <text>Unable to obtain message text from server. See the next exception. The stored procedure
-                    SYSIBM.SQLCAMESSAGE is not installed on the server. Please contact your database administrator.
+                <text>Unable to obtain message text from server. See the next exception. The stored procedure SYSIBM.SQLCAMESSAGE is not installed on the server. Please contact your database administrator.
                 </text>
             </msg>
 
             <msg>
                 <name>01J13</name>
-                <text>Number of rows returned ({0}) is too large to fit in an integer; the value returned will be
-                    truncated.
+                <text>Number of rows returned ({0}) is too large to fit in an integer; the value returned will be truncated.
                 </text>
                 <arg>number</arg>
             </msg>
@@ -236,8 +231,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>01J15</name>
-                <text>Your password will expire in {0} day(s). Please use the SYSCS_UTIL.SYSCS_MODIFY_PASSWORD procedure
-                    to change your password in database '{1}'.
+                <text>Your password will expire in {0} day(s). Please use the SYSCS_UTIL.SYSCS_MODIFY_PASSWORD procedure to change your password in database '{1}'.
                 </text>
                 <arg>remainingDays</arg>
                 <arg>databaseName</arg>
@@ -245,8 +239,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>01J16</name>
-                <text>Your password is stale. To protect the database, you should update your password soon. Please use
-                    the SYSCS_UTIL.SYSCS_MODIFY_PASSWORD procedure to change your password in database '{0}'.
+                <text>Your password is stale. To protect the database, you should update your password soon. Please use the SYSCS_UTIL.SYSCS_MODIFY_PASSWORD procedure to change your password in database '{0}'.
                 </text>
                 <arg>databaseName</arg>
             </msg>
@@ -268,8 +261,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>07004</name>
-                <text>Parameter {0} is an {1} procedure parameter and must be registered with
-                    CallableStatement.registerOutParameter before execution.
+                <text>Parameter {0} is an {1} procedure parameter and must be registered with CallableStatement.registerOutParameter before execution.
                 </text>
                 <arg>parameterName</arg>
                 <arg>procedureName</arg>
@@ -293,36 +285,31 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08001.C.10</name>
-                <text>A connection could not be established because the security token is larger than the maximum
-                    allowed by the network protocol.
+                <text>A connection could not be established because the security token is larger than the maximum allowed by the network protocol.
                 </text>
             </msg>
 
             <msg>
                 <name>08001.C.11</name>
-                <text>A connection could not be established because the user id has a length of zero or is larger than
-                    the maximum allowed by the network protocol.
+                <text>A connection could not be established because the user id has a length of zero or is larger than the maximum allowed by the network protocol.
                 </text>
             </msg>
 
             <msg>
                 <name>08001.C.12</name>
-                <text>A connection could not be established because the password has a length of zero or is larger than
-                    the maximum allowed by the network protocol.
+                <text>A connection could not be established because the password has a length of zero or is larger than the maximum allowed by the network protocol.
                 </text>
             </msg>
 
             <msg>
                 <name>08001.C.13</name>
-                <text>A connection could not be established because the external name (EXTNAM) has a length of zero or
-                    is larger than the maximum allowed by the network protocol.
+                <text>A connection could not be established because the external name (EXTNAM) has a length of zero or is larger than the maximum allowed by the network protocol.
                 </text>
             </msg>
 
             <msg>
                 <name>08001.C.14</name>
-                <text>A connection could not be established because the server name (SRVNAM) has a length of zero or is
-                    larger than the maximum allowed by the network protocol.
+                <text>A connection could not be established because the server name (SRVNAM) has a length of zero or is larger than the maximum allowed by the network protocol.
                 </text>
             </msg>
 
@@ -379,8 +366,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08001.C.9</name>
-                <text>A connection could not be established because the database name '{0}' is larger than the maximum
-                    length allowed by the network protocol.
+                <text>A connection could not be established because the database name '{0}' is larger than the maximum length allowed by the network protocol.
                 </text>
                 <arg>databaseName</arg>
             </msg>
@@ -438,8 +424,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08004.C.5</name>
-                <text>User '{0}' cannot (re)encrypt database '{1}'. Only the database owner can perform this
-                    operation.
+                <text>User '{0}' cannot (re)encrypt database '{1}'. Only the database owner can perform this operation.
                 </text>
                 <arg>authorizationID</arg>
                 <arg>databaseName</arg>
@@ -447,8 +432,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08004.C.6</name>
-                <text>User '{0}' cannot hard upgrade database '{1}'. Only the database owner can perform this
-                    operation.
+                <text>User '{0}' cannot hard upgrade database '{1}'. Only the database owner can perform this operation.
                 </text>
                 <arg>authorizationID</arg>
                 <arg>databaseName</arg>
@@ -462,8 +446,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08004.C.8</name>
-                <text>User '{0}' cannot issue a replication operation on database '{1}'. Only the database owner can
-                    perform this operation.
+                <text>User '{0}' cannot issue a replication operation on database '{1}'. Only the database owner can perform this operation.
                 </text>
                 <arg>authorizationID</arg>
                 <arg>databaseName</arg>
@@ -493,10 +476,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08004.C.12</name>
-                <text>Connection authentication failure occurred. Either the supplied credentials were invalid, or the
-                    database uses a password encryption scheme not compatible with the strong password substitution
-                    security mechanism. If this error started after upgrade, refer to the release note for DERBY-4483
-                    for options.
+                <text>Connection authentication failure occurred. Either the supplied credentials were invalid, or the database uses a password encryption scheme not compatible with the strong password substitution security mechanism. If this error started after upgrade, refer to the release note for DERBY-4483 for options.
                 </text>
             </msg>
 
@@ -512,8 +492,7 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>08006.C.1</name>
-                <text>An error occurred during connect reset and the connection has been terminated. See chained
-                    exceptions for details.
+                <text>An error occurred during connect reset and the connection has been terminated. See chained exceptions for details.
                 </text>
             </msg>
             <msg>
@@ -530,15 +509,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08006.C.4</name>
-                <text>An error occurred during a deferred connect reset and the connection has been terminated. See
-                    chained exceptions for details.
+                <text>An error occurred during a deferred connect reset and the connection has been terminated. See chained exceptions for details.
                 </text>
             </msg>
 
             <msg>
                 <name>08006.C.5</name>
-                <text>Insufficient data while reading from the network - expected a minimum of {0} bytes and received
-                    only {1} bytes. The connection has been terminated.
+                <text>Insufficient data while reading from the network - expected a minimum of {0} bytes and received only {1} bytes. The connection has been terminated.
                 </text>
                 <arg>number</arg>
                 <arg>number</arg>
@@ -546,8 +523,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08006.C.6</name>
-                <text>Attempt to fully materialize lob data that is too large for the JVM. The connection has been
-                    terminated.
+                <text>Attempt to fully materialize lob data that is too large for the JVM. The connection has been terminated.
                 </text>
             </msg>
 
@@ -558,8 +534,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>08006.C.9</name>
-                <text>Can't execute statement while in Restore Mode. Reboot database after restore operation is
-                    finished.
+                <text>Can't execute statement while in Restore Mode. Reboot database after restore operation is finished.
                 </text>
             </msg>
             <msg>
@@ -683,8 +658,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>22003.S.0</name>
-                <text>The modified row count was larger than can be held in an integer which is required by the JDBC
-                    spec. The real modified row count was {0}.
+                <text>The modified row count was larger than can be held in an integer which is required by the JDBC spec. The real modified row count was {0}.
                 </text>
                 <arg>modifiedRowCount</arg>
             </msg>
@@ -790,8 +764,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>2200H.S</name>
-                <text>Sequence generator '{0}.{1}' does not cycle. No more values can be obtained from this sequence
-                    generator.
+                <text>Sequence generator '{0}.{1}' does not cycle. No more values can be obtained from this sequence generator.
                 </text>
                 <arg>schemaName</arg>
                 <arg>sequenceName</arg>
@@ -826,8 +799,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>22011.S.1</name>
-                <text>The range specified for the substring with offset {0} and len {1} is out of range for the String:
-                    {2}.
+                <text>The range specified for the substring with offset {0} and len {1} is out of range for the String: {2}.
                 </text>
                 <arg>offset</arg>
                 <arg>len</arg>
@@ -847,8 +819,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>22014</name>
-                <text>The start position for LOCATE is invalid; it must be a positive integer. The index to start the
-                    search from is '{2}'. The string to search for is '{0}'. The string to search from is '{1}'.
+                <text>The start position for LOCATE is invalid; it must be a positive integer. The index to start the search from is '{2}'. The string to search for is '{0}'. The string to search from is '{1}'.
                 </text>
                 <arg>startIndex</arg>
                 <arg>searchString</arg>
@@ -857,8 +828,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>22015</name>
-                <text>The '{0}' function is not allowed on the following set of types. First operand is of type '{1}'.
-                    Second operand is of type '{2}'. Third operand (start position) is of type '{3}'.
+                <text>The '{0}' function is not allowed on the following set of types. First operand is of type '{1}'. Second operand is of type '{2}'. Third operand (start position) is of type '{3}'.
                 </text>
                 <arg>functionName</arg>
                 <arg>typeName</arg>
@@ -874,16 +844,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>22019</name>
-                <text>Invalid escape sequence, '{0}'. The escape string must be exactly one character. It cannot be a
-                    null or more than one character.
+                <text>Invalid escape sequence, '{0}'. The escape string must be exactly one character. It cannot be a null or more than one character.
                 </text>
                 <arg>sequenceName</arg>
             </msg>
 
             <msg>
                 <name>22020</name>
-                <text>Invalid trim string, '{0}'. The trim string must be exactly one character or NULL. It cannot be
-                    more than one character.
+                <text>Invalid trim string, '{0}'. The trim string must be exactly one character or NULL. It cannot be more than one character.
                 </text>
                 <arg>string</arg>
             </msg>
@@ -896,15 +864,13 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>22025</name>
-                <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any
-                    other character or be at the end of the pattern.
+                <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.
                 </text>
             </msg>
 
             <msg>
                 <name>22027</name>
-                <text>The built-in TRIM() function only supports a single trim character. The LTRIM() and RTRIM()
-                    built-in functions support multiple trim characters.
+                <text>The built-in TRIM() function only supports a single trim character. The LTRIM() and RTRIM() built-in functions support multiple trim characters.
                 </text>
             </msg>
 
@@ -926,8 +892,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>2201Y</name>
-                <text>Invalid LEAD, LAG for OFFSET, must be greater or equal to 0 and less than Integer.MAX_VALUE. Got
-                    '{0}'.
+                <text>Invalid LEAD, LAG for OFFSET, must be greater or equal to 0 and less than Integer.MAX_VALUE. Got '{0}'.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -995,8 +960,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>23503</name>
-                <text>{2} on table '{1}' caused a violation of foreign key constraint '{0}' for key {3}. The statement
-                    has been rolled back.
+                <text>{2} on table '{1}' caused a violation of foreign key constraint '{0}' for key {3}. The statement has been rolled back.
                 </text>
                 <arg>value</arg>
                 <arg>tableName</arg>
@@ -1006,8 +970,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>23505</name>
-                <text>The statement was aborted because it would have caused a duplicate key value in a unique or
-                    primary key constraint or unique index identified by '{0}' defined on '{1}'.
+                <text>The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by '{0}' defined on '{1}'.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -1023,8 +986,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>23514</name>
-                <text>foreign key {0} caused an attempt to set some not-nullable columns in table {1} to null. The
-                    statement has been rolled back.
+                <text>foreign key {0} caused an attempt to set some not-nullable columns in table {1} to null. The statement has been rolled back.
                 </text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
@@ -1079,8 +1041,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>25505</name>
-                <text>A read-only user or a user in a read-only database is not permitted to disable read-only mode on a
-                    connection.
+                <text>A read-only user or a user in a read-only database is not permitted to disable read-only mode on a connection.
                 </text>
             </msg>
 
@@ -1194,8 +1155,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>40001</name>
-                <text>A lock could not be obtained due to a deadlock, cycle of locks and waiters is:
-                    {0}. The selected victim is XID : {1}.
+                <text>A lock could not be obtained due to a deadlock, cycle of locks and waiters is: {0}. The selected victim is XID : {1}.
                 </text>
                 <arg>lockCycle</arg>
                 <arg>transactionID</arg>
@@ -1203,8 +1163,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>40XC0</name>
-                <text>Dead statement. This may be caused by catching a transaction severity error inside this
-                    statement.
+                <text>Dead statement. This may be caused by catching a transaction severity error inside this statement.
                 </text>
             </msg>
 
@@ -1252,8 +1211,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>40XT4</name>
-                <text>An attempt was made to close a transaction that was still active. The transaction has been
-                    aborted.
+                <text>An attempt was made to close a transaction that was still active. The transaction has been aborted.
                 </text>
             </msg>
 
@@ -1264,8 +1222,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>40XT6</name>
-                <text>Database is in quiescent state, cannot activate transaction. Please wait for a moment till it
-                    exits the quiescent state.
+                <text>Database is in quiescent state, cannot activate transaction. Please wait for a moment till it exits the quiescent state.
                 </text>
             </msg>
 
@@ -1449,15 +1406,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>4251G</name>
-                <text>Please set derby.authentication.builtin.algorithm to a valid message digest algorithm. The current
-                    authentication scheme is too weak to be used by NATIVE authentication.
+                <text>Please set derby.authentication.builtin.algorithm to a valid message digest algorithm. The current authentication scheme is too weak to be used by NATIVE authentication.
                 </text>
             </msg>
 
             <msg>
                 <name>4251H</name>
-                <text>Invalid NATIVE authentication specification. Please set derby.authentication.provider to a value
-                    of the form NATIVE:$credentialsDB or NATIVE:$credentialsDB:LOCAL (at the system level).
+                <text>Invalid NATIVE authentication specification. Please set derby.authentication.provider to a value of the form NATIVE:$credentialsDB or NATIVE:$credentialsDB:LOCAL (at the system level).
                 </text>
             </msg>
 
@@ -1480,8 +1435,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>4251L</name>
-                <text>The derby.authentication.provider property specifies '{0}' as the name of the credentials
-                    database. This is not a valid name for a database.
+                <text>The derby.authentication.provider property specifies '{0}' as the name of the credentials database. This is not a valid name for a database.
                 </text>
                 <arg>dbName</arg>
             </msg>
@@ -1507,8 +1461,7 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>42601</name>
-                <text>In an ALTER TABLE statement, the column '{0}' has been specified as NOT NULL and either the
-                    DEFAULT clause was not specified or was specified as DEFAULT NULL.
+                <text>In an ALTER TABLE statement, the column '{0}' has been specified as NOT NULL and either the DEFAULT clause was not specified or was specified as DEFAULT NULL.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -1548,8 +1501,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42610</name>
-                <text>All the arguments to the '{0}' function cannot be parameters. The function needs at least one
-                    argument that is not a parameter.
+                <text>All the arguments to the '{0}' function cannot be parameters. The function needs at least one argument that is not a parameter.
                 </text>
                 <arg>functionName</arg>
             </msg>
@@ -1594,8 +1546,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42803</name>
-                <text>An expression containing the column '{0}' appears in the SELECT list and is not part of a GROUP BY
-                    clause.
+                <text>An expression containing the column '{0}' appears in the SELECT list and is not part of a GROUP BY clause.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -1615,10 +1566,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42818</name>
-                <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must
-                    also have matching collation. If collation does not match, a possible solution is to cast operands
-                    to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE
-                    CAST(tablename AS VARCHAR(128)) = 'T1')
+                <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must also have matching collation. If collation does not match, a possible solution is to cast operands to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE CAST(tablename AS VARCHAR(128)) = 'T1')
                 </text>
                 <arg>type</arg>
                 <arg>type</arg>
@@ -1662,8 +1610,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42837</name>
-                <text>ALTER TABLE '{0}' specified attributes for column '{1}' that are not compatible with the existing
-                    column.
+                <text>ALTER TABLE '{0}' specified attributes for column '{1}' that are not compatible with the existing column.
                 </text>
                 <arg>tableName</arg>
                 <arg>columnName</arg>
@@ -1696,15 +1643,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42878</name>
-                <text>The ORDER BY clause of a SELECT UNION statement only supports unqualified column references and
-                    column position numbers. Other expressions are not currently supported.
+                <text>The ORDER BY clause of a SELECT UNION statement only supports unqualified column references and column position numbers. Other expressions are not currently supported.
                 </text>
             </msg>
 
             <msg>
                 <name>42879</name>
-                <text>The ORDER BY clause may not contain column '{0}', since the query specifies DISTINCT and that
-                    column does not appear in the query result.
+                <text>The ORDER BY clause may not contain column '{0}', since the query specifies DISTINCT and that column does not appear in the query result.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -1808,8 +1753,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42962</name>
-                <text>Long column type column or parameter '{0}' not permitted in declared global temporary tables or
-                    procedure definitions.
+                <text>Long column type column or parameter '{0}' not permitted in declared global temporary tables or procedure definitions.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -1821,10 +1765,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>429BX</name>
-                <text>Invalid index expression: '{0}'. An index expression must contain at least one column reference
-                    and not any subqueries, aggregate functions, window functions, nondeterminstic functions,
-                    user-defined functions, sequence references, parameters, or disallowed functions. Also, it must
-                    return a scalar value which can be indexed.
+                <text>Invalid index expression: '{0}'. An index expression must contain at least one column reference and not any subqueries, aggregate functions, window functions, nondeterminstic functions, user-defined functions, sequence references, parameters, or disallowed functions. Also, it must return a scalar value which can be indexed.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -1849,10 +1790,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X04</name>
-                <text>Column '{0}' is either not in any table in the FROM list or appears within a join specification
-                    and is outside the scope of the join specification or appears in a HAVING clause and is not in the
-                    GROUP BY list. If this is a CREATE or ALTER TABLE statement then '{0}' is not a column in the target
-                    table.
+                <text>Column '{0}' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE statement then '{0}' is not a column in the target table.
                 </text>
                 <arg>columnName</arg>
                 <arg>columnName</arg>
@@ -1877,8 +1815,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X08</name>
-                <text>The constructor for class '{0}' cannot be used as an external virtual table because the class does
-                    not implement '{1}'.
+                <text>The constructor for class '{0}' cannot be used as an external virtual table because the class does not implement '{1}'.
                 </text>
                 <arg>className</arg>
                 <arg>constructorName</arg>
@@ -1929,16 +1866,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X17</name>
-                <text>In the Properties list of a FROM clause, the value '{0}' is not valid as a joinOrder
-                    specification. Only the values FIXED and UNFIXED are valid.
+                <text>In the Properties list of a FROM clause, the value '{0}' is not valid as a joinOrder specification. Only the values FIXED and UNFIXED are valid.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>42X19</name>
-                <text>The WHERE or HAVING clause or CHECK CONSTRAINT definition is a '{0}' expression. It must be a
-                    BOOLEAN expression.
+                <text>The WHERE or HAVING clause or CHECK CONSTRAINT definition is a '{0}' expression. It must be a BOOLEAN expression.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -1969,8 +1904,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X26</name>
-                <text>The class '{0}' for column '{1}' does not exist or is inaccessible. This can happen if the class
-                    is not public.
+                <text>The class '{0}' for column '{1}' does not exist or is inaccessible. This can happen if the class is not public.
                 </text>
                 <arg>className</arg>
                 <arg>columnName</arg>
@@ -2012,8 +1946,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X32</name>
-                <text>The number of columns in the derived column list must match the number of columns in table
-                    '{0}'.
+                <text>The number of columns in the derived column list must match the number of columns in table '{0}'.
                 </text>
                 <arg>tableName</arg>
             </msg>
@@ -2060,15 +1993,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X40</name>
-                <text>A NOT statement has an operand that is not boolean . The operand of NOT must evaluate to TRUE,
-                    FALSE, or UNKNOWN.
+                <text>A NOT statement has an operand that is not boolean . The operand of NOT must evaluate to TRUE, FALSE, or UNKNOWN.
                 </text>
             </msg>
 
             <msg>
                 <name>42X41</name>
-                <text>In the Properties clause of a FROM list, the property '{0}' is not valid (the property was being
-                    set to '{1}').
+                <text>In the Properties clause of a FROM list, the property '{0}' is not valid (the property was being set to '{1}').
                 </text>
                 <arg>propertyName</arg>
                 <arg>value</arg>
@@ -2082,8 +2013,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X43</name>
-                <text>The ResultSetMetaData returned for the class/object '{0}' was null. In order to use this class as
-                    an external virtual table, the ResultSetMetaData cannot be null.
+                <text>The ResultSetMetaData returned for the class/object '{0}' was null. In order to use this class as an external virtual table, the ResultSetMetaData cannot be null.
                 </text>
                 <arg>className</arg>
             </msg>
@@ -2129,10 +2059,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X50</name>
-                <text>No method was found that matched the method call {0}.{1}({2}), tried all combinations of object
-                    and primitive types and any possible type conversion for any parameters the method call may have.
-                    The method might exist but it is not public and/or static, or the parameter types are not method
-                    invocation convertible.
+                <text>No method was found that matched the method call {0}.{1}({2}), tried all combinations of object and primitive types and any possible type conversion for any parameters the method call may have. The method might exist but it is not public and/or static, or the parameter types are not method invocation convertible.
                 </text>
                 <arg>methodName</arg>
                 <arg>value</arg>
@@ -2174,16 +2101,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X56</name>
-                <text>The number of columns in the view column list does not match the number of columns in the
-                    underlying query expression in the view definition for '{0}'.
+                <text>The number of columns in the view column list does not match the number of columns in the underlying query expression in the view definition for '{0}'.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>42X57</name>
-                <text>The getColumnCount() for external virtual table '{0}' returned an invalid value '{1}'. Valid
-                    values are greater than or equal to 1.
+                <text>The getColumnCount() for external virtual table '{0}' returned an invalid value '{1}'. Valid values are greater than or equal to 1.
                 </text>
                 <arg>tableName</arg>
                 <arg>value</arg>
@@ -2229,8 +2154,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X64</name>
-                <text>In the Properties list, the invalid value '{0}' was specified for the useStatistics property. The
-                    only valid values are TRUE or FALSE.
+                <text>In the Properties list, the invalid value '{0}' was specified for the useStatistics property. The only valid values are TRUE or FALSE.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -2249,8 +2173,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X68</name>
-                <text>No field '{0}' was found belonging to class '{1}'. It may be that the field exists, but it is not
-                    public, or that the class does not exist or is not public.
+                <text>No field '{0}' was found belonging to class '{1}'. It may be that the field exists, but it is not public, or that the class does not exist or is not public.
                 </text>
                 <arg>fieldName</arg>
                 <arg>className</arg>
@@ -2258,8 +2181,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X69</name>
-                <text>It is not allowed to reference a field ('{0}') using a referencing expression of the Java
-                    primitive type '{1}'.
+                <text>It is not allowed to reference a field ('{0}') using a referencing expression of the Java primitive type '{1}'.
                 </text>
                 <arg>fieldName</arg>
                 <arg>type</arg>
@@ -2267,8 +2189,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X70</name>
-                <text>The number of columns in the table column list does not match the number of columns in the
-                    underlying query expression in the table definition for '{0}'.
+                <text>The number of columns in the table column list does not match the number of columns in the underlying query expression in the table definition for '{0}'.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -2282,8 +2203,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X72</name>
-                <text>No static field '{0}' was found belonging to class '{1}'. The field might exist, but it is not
-                    public and/or static, or the class does not exist or the class is not public.
+                <text>No static field '{0}' was found belonging to class '{1}'. The field might exist, but it is not public and/or static, or the class does not exist or the class is not public.
                 </text>
                 <arg>fieldName</arg>
                 <arg>className</arg>
@@ -2291,8 +2211,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X73</name>
-                <text>Method resolution for signature {0}.{1}({2}) was ambiguous. (No single maximally specific
-                    method.)
+                <text>Method resolution for signature {0}.{1}({2}) was ambiguous. (No single maximally specific method.)
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -2306,8 +2225,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X75</name>
-                <text>No constructor was found with the signature {0}({1}). It may be that the parameter types are not
-                    method invocation convertible.
+                <text>No constructor was found with the signature {0}({1}). It may be that the parameter types are not method invocation convertible.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -2315,8 +2233,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X76</name>
-                <text>At least one column, '{0}', in the primary key being added is nullable. All columns in a primary
-                    key must be non-nullable.
+                <text>At least one column, '{0}', in the primary key being added is nullable. All columns in a primary key must be non-nullable.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -2362,8 +2279,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X84</name>
-                <text>Index '{0}' was created to enforce constraint '{1}'. It can only be dropped by dropping the
-                    constraint.
+                <text>Index '{0}' was created to enforce constraint '{1}'. It can only be dropped by dropping the constraint.
                 </text>
                 <arg>index</arg>
                 <arg>constraintName</arg>
@@ -2391,8 +2307,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42X88</name>
-                <text>A conditional has a non-Boolean operand. The operand of a conditional must evaluate to TRUE,
-                    FALSE, or UNKNOWN.
+                <text>A conditional has a non-Boolean operand. The operand of a conditional must evaluate to TRUE, FALSE, or UNKNOWN.
                 </text>
             </msg>
 
@@ -2454,8 +2369,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42XA0</name>
-                <text>The generation clause for column '{0}' has data type '{1}', which cannot be assigned to the
-                    column's declared data type.
+                <text>The generation clause for column '{0}' has data type '{1}', which cannot be assigned to the column's declared data type.
                 </text>
                 <arg>columnName</arg>
                 <arg>datatypeName</arg>
@@ -2494,8 +2408,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42XA6</name>
-                <text>'{0}' is a generated column. It cannot be part of a foreign key whose referential action for
-                    DELETE is SET NULL or SET DEFAULT, or whose referential action for UPDATE is CASCADE.
+                <text>'{0}' is a generated column. It cannot be part of a foreign key whose referential action for DELETE is SET NULL or SET DEFAULT, or whose referential action for UPDATE is CASCADE.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -2515,16 +2428,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42XA9</name>
-                <text>Column '{0}' needs an explicit datatype. The datatype can be omitted only for columns with
-                    generation clauses.
+                <text>Column '{0}' needs an explicit datatype. The datatype can be omitted only for columns with generation clauses.
                 </text>
                 <arg>columnName</arg>
             </msg>
 
             <msg>
                 <name>42XAA</name>
-                <text>The NEW value of generated column '{0}' is mentioned in the BEFORE action of a trigger. This is
-                    not allowed.
+                <text>The NEW value of generated column '{0}' is mentioned in the BEFORE action of a trigger. This is not allowed.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -2565,9 +2476,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42XAH</name>
-                <text>A NEXT VALUE FOR expression may not appear in many contexts, including WHERE, ON, HAVING, ORDER
-                    BY, DISTINCT, CASE, GENERATION, and AGGREGATE clauses as well as WINDOW functions and CHECK
-                    constraints.
+                <text>A NEXT VALUE FOR expression may not appear in many contexts, including WHERE, ON, HAVING, ORDER BY, DISTINCT, CASE, GENERATION, and AGGREGATE clauses as well as WINDOW functions and CHECK constraints.
                 </text>
             </msg>
 
@@ -2585,8 +2494,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y00</name>
-                <text>Class '{0}' does not implement com.splicemachine.db.iapi.db.AggregateDefinition and thus cannot
-                    be used as an aggregate expression.
+                <text>Class '{0}' does not implement com.splicemachine.db.iapi.db.AggregateDefinition and thus cannot be used as an aggregate expression.
                 </text>
                 <arg>className</arg>
             </msg>
@@ -2617,8 +2525,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y04</name>
-                <text>Cannot create a procedure or function with EXTERNAL NAME '{0}' because it is not a list separated
-                    by periods. The expected format is &lt;full java path&gt;.&lt;method name&gt;.
+                <text>Cannot create a procedure or function with EXTERNAL NAME '{0}' because it is not a list separated by periods. The expected format is &lt;full java path&gt;.&lt;method name&gt;.
                 </text>
                 <arg>name</arg>
             </msg>
@@ -2647,8 +2554,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y10</name>
-                <text>A table constructor that is not in an INSERT statement has all ? parameters in one of its columns.
-                    For each column, at least one of the rows must have a non-parameter.
+                <text>A table constructor that is not in an INSERT statement has all ? parameters in one of its columns. For each column, at least one of the rows must have a non-parameter.
                 </text>
             </msg>
 
@@ -2672,8 +2578,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y16</name>
-                <text>No public static method '{0}' was found in class '{1}'. The method might exist, but it is not
-                    public, or it is not static.
+                <text>No public static method '{0}' was found in class '{1}'. The method might exist, but it is not public, or it is not static.
                 </text>
                 <arg>methodName</arg>
                 <arg>className</arg>
@@ -2716,22 +2621,19 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y29</name>
-                <text>The SELECT list of a non-grouped query contains at least one invalid expression. When the SELECT
-                    list contains at least one aggregate then all entries must be valid aggregate expressions.
+                <text>The SELECT list of a non-grouped query contains at least one invalid expression. When the SELECT list contains at least one aggregate then all entries must be valid aggregate expressions.
                 </text>
             </msg>
 
             <msg>
                 <name>42Y30</name>
-                <text>The SELECT list of a grouped query contains at least one invalid expression. If a SELECT list has
-                    a GROUP BY, the list may only contain valid grouping expressions and valid aggregate expressions.
+                <text>The SELECT list of a grouped query contains at least one invalid expression. If a SELECT list has a GROUP BY, the list may only contain valid grouping expressions and valid aggregate expressions.
                 </text>
             </msg>
 
             <msg>
                 <name>42Y32</name>
-                <text>Aggregator class '{0}' for aggregate '{1}' on type {2} does not implement
-                    com.splicemachine.db.iapi.sql.execute.ExecAggregator.
+                <text>Aggregator class '{0}' for aggregate '{1}' on type {2} does not implement com.splicemachine.db.iapi.sql.execute.ExecAggregator.
                 </text>
                 <arg>className</arg>
                 <arg>aggregateName</arg>
@@ -2753,17 +2655,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y35</name>
-                <text>Column reference '{0}' is invalid. When the SELECT list contains at least one aggregate then all
-                    entries must be valid aggregate expressions.
+                <text>Column reference '{0}' is invalid. When the SELECT list contains at least one aggregate then all entries must be valid aggregate expressions.
                 </text>
                 <arg>reference</arg>
             </msg>
 
             <msg>
                 <name>42Y36</name>
-                <text>Column reference '{0}' is invalid, or is part of an invalid expression. For a SELECT list with a
-                    GROUP BY, the columns and expressions being selected may only contain valid grouping expressions and
-                    valid aggregate expressions.
+                <text>Column reference '{0}' is invalid, or is part of an invalid expression. For a SELECT list with a GROUP BY, the columns and expressions being selected may only contain valid grouping expressions and valid aggregate expressions.
                 </text>
                 <arg>reference</arg>
             </msg>
@@ -2776,16 +2675,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y38</name>
-                <text>insertMode = replace is not permitted on an insert where the target table, '{0}', is referenced in
-                    the SELECT.
+                <text>insertMode = replace is not permitted on an insert where the target table, '{0}', is referenced in the SELECT.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>42Y39</name>
-                <text>'{0}' may not appear in a CHECK CONSTRAINT definition because it may return non-deterministic
-                    results.
+                <text>'{0}' may not appear in a CHECK CONSTRAINT definition because it may return non-deterministic results.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -2819,8 +2716,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y44</name>
-                <text>Invalid key '{0}' specified in the Properties list of a FROM list. The case-sensitive keys that
-                    are currently supported are '{1}'.
+                <text>Invalid key '{0}' specified in the Properties list of a FROM list. The case-sensitive keys that are currently supported are '{1}'.
                 </text>
                 <arg>key</arg>
                 <arg>key</arg>
@@ -2828,8 +2724,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y45</name>
-                <text>VTI '{0}' cannot be bound because it is a special trigger VTI and this statement is not part of a
-                    trigger action or WHEN clause.
+                <text>VTI '{0}' cannot be bound because it is a special trigger VTI and this statement is not part of a trigger action or WHEN clause.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -2843,8 +2738,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y47</name>
-                <text>Invalid Properties list in FROM list. The hint {0} needs (true/false) and does not support
-                    '{1}'.
+                <text>Invalid Properties list in FROM list. The hint {0} needs (true/false) and does not support '{1}'.
                 </text>
                 <arg>hintName</arg>
                 <arg>value</arg>
@@ -2852,8 +2746,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y48</name>
-                <text>Invalid Properties list in FROM list. Either there is no named constraint '{0}' on table '{1}' or
-                    the constraint does not have a backing index.
+                <text>Invalid Properties list in FROM list. Either there is no named constraint '{0}' on table '{1}' or the constraint does not have a backing index.
                 </text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
@@ -2886,8 +2779,7 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>42Y53</name>
-                <text>Invalid Properties list in FROM list. The hint splits needs a positive integer and does not
-                    support '{0}'.
+                <text>Invalid Properties list in FROM list. The hint splits needs a positive integer and does not support '{0}'.
                 </text>
                 <arg>tableName</arg>
             </msg>
@@ -2901,8 +2793,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y56</name>
-                <text>Invalid join strategy '{0}' specified in Properties list on table '{1}'. The currently supported
-                    values for a join strategy are: {2}.
+                <text>Invalid join strategy '{0}' specified in Properties list on table '{1}'. The currently supported values for a join strategy are: {2}.
                 </text>
                 <arg>strategyValue</arg>
                 <arg>tableName</arg>
@@ -2931,8 +2822,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y60</name>
-                <text>Invalid value, '{0}', specified for hashLoadFactor override. Value must be greater than 0.0 and
-                    less than or equal to 1.0.
+                <text>Invalid value, '{0}', specified for hashLoadFactor override. Value must be greater than 0.0 and less than or equal to 1.0.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -2952,9 +2842,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y63</name>
-                <text>Hash join requires an optimizable equijoin predicate on a column in the selected index or heap. An
-                    optimizable equijoin predicate does not exist on any column in table or index '{0}'. Use the 'index'
-                    optimizer override to specify such an index or the heap on table '{1}'.
+                <text>Hash join requires an optimizable equijoin predicate on a column in the selected index or heap. An optimizable equijoin predicate does not exist on any column in table or index '{0}'. Use the 'index' optimizer override to specify such an index or the heap on table '{1}'.
                 </text>
                 <arg>index</arg>
                 <arg>tableName</arg>
@@ -2985,17 +2873,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y69</name>
-                <text>No valid execution plan was found for this statement. This is usually because an infeasible join
-                    strategy was chosen, or because an index was chosen which prevents the chosen join strategy from
-                    being used.
+                <text>No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.
                 </text>
                 <!--                <text>No valid execution plan was found for this statement. This may have one of two causes: either you specified a hash join strategy when hash join is not allowed (no optimizable equijoin) or you are attempting to join two external virtual tables, each of which references the other, and so the statement cannot be evaluated.  </text> -->
             </msg>
 
             <msg>
                 <name>42Y70</name>
-                <text>The user specified an illegal join order. This could be caused by a join column from an inner
-                    table being passed as a parameter to an external virtual table.
+                <text>The user specified an illegal join order. This could be caused by a join column from an inner table being passed as a parameter to an external virtual table.
                 </text>
             </msg>
 
@@ -3007,16 +2892,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y82</name>
-                <text>System generated stored prepared statement '{0}' that cannot be dropped using DROP STATEMENT. It
-                    is part of a trigger.
+                <text>System generated stored prepared statement '{0}' that cannot be dropped using DROP STATEMENT. It is part of a trigger.
                 </text>
                 <arg>statement</arg>
             </msg>
 
             <msg>
                 <name>42Y83</name>
-                <text>An untyped null is not permitted as an argument to aggregate {0}. Please cast the null to a
-                    suitable type.
+                <text>An untyped null is not permitted as an argument to aggregate {0}. Please cast the null to a suitable type.
                 </text>
                 <arg>aggregateName</arg>
             </msg>
@@ -3029,15 +2912,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y85</name>
-                <text>The DEFAULT keyword is only allowed in a VALUES clause when the VALUES clause appears within an
-                    INSERT statement.
+                <text>The DEFAULT keyword is only allowed in a VALUES clause when the VALUES clause appears within an INSERT statement.
                 </text>
             </msg>
 
             <msg>
                 <name>42Y86</name>
-                <text>Invalid session property '{0}' specified. The case-insensitive session properties that are
-                    currently supported are '{1}'.
+                <text>Invalid session property '{0}' specified. The case-insensitive session properties that are currently supported are '{1}'.
                 </text>
                 <arg>sessionPropertyName</arg>
                 <arg>propertyNameList</arg>
@@ -3058,8 +2939,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y89</name>
-                <text>Invalid key '{0}' specified in the Properties list of a subquery. The case-sensitive key that is
-                    currently supported is just '{1}'.
+                <text>Invalid key '{0}' specified in the Properties list of a subquery. The case-sensitive key that is currently supported is just '{1}'.
                 </text>
                 <arg>key</arg>
                 <arg>list</arg>
@@ -3084,22 +2964,19 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Y93</name>
-                <text>Illegal REFERENCING clause: only one name is permitted for each type of transition
-                    variable/table.
+                <text>Illegal REFERENCING clause: only one name is permitted for each type of transition variable/table.
                 </text>
             </msg>
 
             <msg>
                 <name>42Y94</name>
-                <text>An AND or OR has a non-boolean operand. The operands of AND and OR must evaluate to TRUE, FALSE,
-                    or UNKNOWN.
+                <text>An AND or OR has a non-boolean operand. The operands of AND and OR must evaluate to TRUE, FALSE, or UNKNOWN.
                 </text>
             </msg>
 
             <msg>
                 <name>42Y95</name>
-                <text>The '{0}' operator with a left operand type of '{1}' and a right operand type of '{2}' is not
-                    supported.
+                <text>The '{0}' operator with a left operand type of '{1}' and a right operand type of '{2}' is not supported.
                 </text>
                 <arg>operatorName</arg>
                 <arg>operandType</arg>
@@ -3149,16 +3026,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Z17</name>
-                <text>Invalid length specified for column '{0}'. Length must be greater than the current column
-                    length.
+                <text>Invalid length specified for column '{0}'. Length must be greater than the current column length.
                 </text>
                 <arg>columnName</arg>
             </msg>
 
             <msg>
                 <name>42Z18</name>
-                <text>Column '{0}' is part of a foreign key constraint '{1}'. To alter the length of this column, you
-                    should drop the constraint first, perform the ALTER TABLE, and then recreate the constraint.
+                <text>Column '{0}' is part of a foreign key constraint '{1}'. To alter the length of this column, you should drop the constraint first, perform the ALTER TABLE, and then recreate the constraint.
                 </text>
                 <arg>columnName</arg>
                 <arg>constraintName</arg>
@@ -3166,9 +3041,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Z19</name>
-                <text>Column '{0}' is being referenced by at least one foreign key constraint '{1}'. To alter the length
-                    of this column, you should drop referencing constraints, perform the ALTER TABLE and then recreate
-                    the constraints.
+                <text>Column '{0}' is being referenced by at least one foreign key constraint '{1}'. To alter the length of this column, you should drop referencing constraints, perform the ALTER TABLE and then recreate the constraints.
                 </text>
                 <arg>columnName</arg>
                 <arg>constraintName</arg>
@@ -3176,16 +3049,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Z20</name>
-                <text>Column '{0}' cannot be made nullable. It is part of a primary key or unique constraint, which
-                    cannot have any nullable columns.
+                <text>Column '{0}' cannot be made nullable. It is part of a primary key or unique constraint, which cannot have any nullable columns.
                 </text>
                 <arg>columnName</arg>
             </msg>
 
             <msg>
                 <name>42Z20.S.1</name>
-                <text>Column '{0}' cannot be made nullable. It is part of a primary key, which cannot have any nullable
-                    columns.
+                <text>Column '{0}' cannot be made nullable. It is part of a primary key, which cannot have any nullable columns.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -3198,8 +3069,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42Z22</name>
-                <text>Invalid type specified for identity column '{0}'. The only valid types for identity columns are
-                    BIGINT, INT and SMALLINT.
+                <text>Invalid type specified for identity column '{0}'. The only valid types for identity columns are BIGINT, INT and SMALLINT.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -3389,9 +3259,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZA0</name>
-                <text>Statement too complex. Try rewriting the query to remove complexity. Eliminating many duplicate
-                    expressions or breaking up the query and storing interim results in a temporary table can often help
-                    resolve this error.
+                <text>Statement too complex. Try rewriting the query to remove complexity. Eliminating many duplicate expressions or breaking up the query and storing interim results in a temporary table can often help resolve this error.
                 </text>
             </msg>
 
@@ -3403,8 +3271,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZA2</name>
-                <text>Operand of LIKE predicate with type {0} and collation {1} is not compatable with LIKE pattern
-                    operand with type {2} and collation {3}.
+                <text>Operand of LIKE predicate with type {0} and collation {1} is not compatable with LIKE pattern operand with type {2} and collation {3}.
                 </text>
                 <arg>type</arg>
                 <arg>value</arg>
@@ -3414,8 +3281,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZA3</name>
-                <text>The table will have collation type {0} which is different than the collation of the schema {1}
-                    hence this operation is not supported .
+                <text>The table will have collation type {0} which is different than the collation of the schema {1} hence this operation is not supported .
                 </text>
                 <arg>type</arg>
                 <arg>type</arg>
@@ -3433,8 +3299,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZB3</name>
-                <text>XML is not allowed as the datatype of a user-defined aggregate or of a column returned by a table
-                    function.
+                <text>XML is not allowed as the datatype of a user-defined aggregate or of a column returned by a table function.
                 </text>
             </msg>
 
@@ -3474,15 +3339,13 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>42ZC3</name>
-                <text>A user defined aggregate may not have the name of an aggregate defined by the SQL Standard or the
-                    name of a builtin Derby function having one argument: '{0}'
+                <text>A user defined aggregate may not have the name of an aggregate defined by the SQL Standard or the name of a builtin Derby function having one argument: '{0}'
                 </text>
                 <arg>aggregateName</arg>
             </msg>
             <msg>
                 <name>42ZC4</name>
-                <text>User defined aggregate '{0}'.'{1}' is bound to external class '{2}'. The parameter types of that
-                    class could not be resolved.
+                <text>User defined aggregate '{0}'.'{1}' is bound to external class '{2}'. The parameter types of that class could not be resolved.
                 </text>
                 <arg>schemaName</arg>
                 <arg>aggregateName</arg>
@@ -3491,8 +3354,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZC6</name>
-                <text>User defined aggregate '{0}'.'{1}' was declared to have this input Java type: '{2}'. This does not
-                    extend the following actual bounding input Java type: '{3}'.
+                <text>User defined aggregate '{0}'.'{1}' was declared to have this input Java type: '{2}'. This does not extend the following actual bounding input Java type: '{3}'.
                 </text>
                 <arg>schemaName</arg>
                 <arg>aggregateName</arg>
@@ -3502,8 +3364,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZC7</name>
-                <text>User defined aggregate '{0}'.'{1}' was declared to have this return Java type: '{2}'. This does
-                    not extend the following actual bounding return Java type: '{3}'.
+                <text>User defined aggregate '{0}'.'{1}' was declared to have this return Java type: '{2}'. This does not extend the following actual bounding return Java type: '{3}'.
                 </text>
                 <arg>schemaName</arg>
                 <arg>aggregateName</arg>
@@ -3513,8 +3374,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZC8</name>
-                <text>Implementing class '{0}' for user defined aggregate '{1}'.'{2}' could not be instantiated or was
-                    malformed. Detailed message follows: {3}
+                <text>Implementing class '{0}' for user defined aggregate '{1}'.'{2}' could not be instantiated or was malformed. Detailed message follows: {3}
                 </text>
                 <arg>className</arg>
                 <arg>schemaName</arg>
@@ -3560,16 +3420,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZD5</name>
-                <text>In the Properties list, the invalid value '{0}' was specified for the
-                    tableLimitForExhaustiveSearch property. Expecting a positive integer.
+                <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>42ZD6</name>
-                <text>Scalar MIN and MAX functions do not accept arguments of type LOB, XML, array, cursor, row, or
-                    structured type.
+                <text>Scalar MIN and MAX functions do not accept arguments of type LOB, XML, array, cursor, row, or structured type.
                 </text>
             </msg>
 
@@ -3593,8 +3451,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>42ZE0</name>
-                <text>Invalid decimal character '{0}'. The character is not allowed to be a digit, plus sign, minus
-                    sign, or blank.
+                <text>Invalid decimal character '{0}'. The character is not allowed to be a digit, plus sign, minus sign, or blank.
                 </text>
                 <arg>decimalCharacter</arg>
             </msg>
@@ -3633,24 +3490,21 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>43002</name>
-                <text>The truncate function was provided an operand which it does not know how to handle: '{0}'. It
-                    requires a DATE, TIMESTAMP, INTEGER or DECIMAL type.
+                <text>The truncate function was provided an operand which it does not know how to handle: '{0}'. It requires a DATE, TIMESTAMP, INTEGER or DECIMAL type.
                 </text>
                 <arg>operand</arg>
             </msg>
 
             <msg>
                 <name>43003</name>
-                <text>The truncate function expects a right-side argument of type CHAR for an operand of type DATE or
-                    TIMESTAMP but got: '{0}'.
+                <text>The truncate function expects a right-side argument of type CHAR for an operand of type DATE or TIMESTAMP but got: '{0}'.
                 </text>
                 <arg>truncValue</arg>
             </msg>
 
             <msg>
                 <name>43004</name>
-                <text>The truncate function expects a right-side argument of type INTEGER for an operand of type DECIMAL
-                    but got: '{0}'.
+                <text>The truncate function expects a right-side argument of type INTEGER for an operand of type DECIMAL but got: '{0}'.
                 </text>
                 <arg>truncValue</arg>
             </msg>
@@ -3663,8 +3517,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>43006</name>
-                <text>The truncate function got an unknown right-side trunc value for operand type '{0}': '{1}'.
-                    Acceptable values are: '{2}'.
+                <text>The truncate function got an unknown right-side trunc value for operand type '{0}': '{1}'. Acceptable values are: '{2}'.
                 </text>
                 <arg>operand</arg>
                 <arg>truncValue</arg>
@@ -3697,8 +3550,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>57017.C</name>
-                <text>There is no available conversion for the source code page, {0}, to the target code page, {1}. The
-                    connection has been terminated.
+                <text>There is no available conversion for the source code page, {0}, to the target code page, {1}. The connection has been terminated.
                 </text>
                 <arg>codePage</arg>
                 <arg>codePage</arg>
@@ -3712,8 +3564,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>58009.C.10</name>
-                <text>Network protocol exception: only one of the VCM, VCS length can be greater than 0. The connection
-                    has been terminated.
+                <text>Network protocol exception: only one of the VCM, VCS length can be greater than 0. The connection has been terminated.
                 </text>
             </msg>
 
@@ -3724,8 +3575,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>58009.C.12</name>
-                <text>Network protocol exception: actual code point, {0}, does not match expected code point, {1}. The
-                    connection has been terminated.
+                <text>Network protocol exception: actual code point, {0}, does not match expected code point, {1}. The connection has been terminated.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -3733,36 +3583,31 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>58009.C.13</name>
-                <text>Network protocol exception: DDM collection contains less than 4 bytes of data. The connection has
-                    been terminated.
+                <text>Network protocol exception: DDM collection contains less than 4 bytes of data. The connection has been terminated.
                 </text>
             </msg>
 
             <msg>
                 <name>58009.C.14</name>
-                <text>Network protocol exception: collection stack not empty at end of same id chain parse. The
-                    connection has been terminated.
+                <text>Network protocol exception: collection stack not empty at end of same id chain parse. The connection has been terminated.
                 </text>
             </msg>
 
             <msg>
                 <name>58009.C.15</name>
-                <text>Network protocol exception: DSS length not 0 at end of same id chain parse. The connection has
-                    been terminated.
+                <text>Network protocol exception: DSS length not 0 at end of same id chain parse. The connection has been terminated.
                 </text>
             </msg>
 
             <msg>
                 <name>58009.C.16</name>
-                <text>Network protocol exception: DSS chained with same id at end of same id chain parse. The connection
-                    has been terminated.
+                <text>Network protocol exception: DSS chained with same id at end of same id chain parse. The connection has been terminated.
                 </text>
             </msg>
 
             <msg>
                 <name>58009.C.17</name>
-                <text>Network protocol exception: end of stream prematurely reached while reading InputStream, parameter
-                    #{0}. The connection has been terminated.
+                <text>Network protocol exception: end of stream prematurely reached while reading InputStream, parameter #{0}. The connection has been terminated.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -3779,46 +3624,40 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>58009.C.20</name>
-                <text>Network protocol exception: only one of NVCM, NVCS can be non-null. The connection has been
-                    terminated.
+                <text>Network protocol exception: only one of NVCM, NVCS can be non-null. The connection has been terminated.
                 </text>
             </msg>
 
             <msg>
                 <name>58009.C.21</name>
-                <text>Network protocol exception: SCLDTA length, {0}, is invalid for RDBNAM. The connection has been
-                    terminated.
+                <text>Network protocol exception: SCLDTA length, {0}, is invalid for RDBNAM. The connection has been terminated.
                 </text>
                 <arg>length</arg>
             </msg>
             <msg>
                 <name>58009.C.7</name>
-                <text>Network protocol exception: SCLDTA length, {0}, is invalid for RDBCOLID. The connection has been
-                    terminated.
+                <text>Network protocol exception: SCLDTA length, {0}, is invalid for RDBCOLID. The connection has been terminated.
                 </text>
                 <arg>length</arg>
             </msg>
 
             <msg>
                 <name>58009.C.8</name>
-                <text>Network protocol exception: SCLDTA length, {0}, is invalid for PKGID. The connection has been
-                    terminated.
+                <text>Network protocol exception: SCLDTA length, {0}, is invalid for PKGID. The connection has been terminated.
                 </text>
                 <arg>length</arg>
             </msg>
 
             <msg>
                 <name>58009.C.9</name>
-                <text>Network protocol exception: PKGNAMCSN length, {0}, is invalid at SQLAM {1}. The connection has
-                    been terminated.
+                <text>Network protocol exception: PKGNAMCSN length, {0}, is invalid at SQLAM {1}. The connection has been terminated.
                 </text>
                 <arg>length</arg>
                 <arg>value</arg>
             </msg>
             <msg>
                 <name>58010.C</name>
-                <text>A network protocol error was encountered. A connection could not be established because the
-                    manager {0} at level {1} is not supported by the server.
+                <text>A network protocol error was encountered. A connection could not be established because the manager {0} at level {1} is not supported by the server.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -3844,8 +3683,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>58017.C</name>
-                <text>The DDM parameter value 0x{0} is not supported. An input host variable may not be within the range
-                    the server supports. The connection has been terminated.
+                <text>The DDM parameter value 0x{0} is not supported. An input host variable may not be within the range the server supports. The connection has been terminated.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -3858,8 +3696,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0A00.S</name>
-                <text>The select list mentions column '{0}' twice. This is not allowed in queries with GROUP BY or
-                    HAVING clauses. Try aliasing one of the conflicting columns to a unique name.
+                <text>The select list mentions column '{0}' twice. This is not allowed in queries with GROUP BY or HAVING clauses. Try aliasing one of the conflicting columns to a unique name.
                 </text>
                 <arg>columnName</arg>
             </msg>
@@ -3891,8 +3728,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X0D.S</name>
-                <text>Invalid column array length '{0}'. To return generated keys, column array must be of length 1 and
-                    contain only the identity column.
+                <text>Invalid column array length '{0}'. To return generated keys, column array must be of length 1 and contain only the identity column.
                 </text>
                 <arg>columnArrayLength</arg>
             </msg>
@@ -3936,8 +3772,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X57.S</name>
-                <text>An attempt was made to put a Java value of type '{0}' into a SQL value, but there is no
-                    corresponding SQL type. The Java value is probably the result of a method call or field access.
+                <text>An attempt was made to put a Java value of type '{0}' into a SQL value, but there is no corresponding SQL type. The Java value is probably the result of a method call or field access.
                 </text>
                 <arg>type</arg>
             </msg>
@@ -3950,9 +3785,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X61.S</name>
-                <text>The values for column '{4}' in index '{0}' and table '{1}.{2}' do not match for row location {3}.
-                    The value in the index is '{5}', while the value in the base table is '{6}'. The full index key,
-                    including the row location, is '{7}'. The suggested corrective action is to recreate the index.
+                <text>The values for column '{4}' in index '{0}' and table '{1}.{2}' do not match for row location {3}. The value in the index is '{5}', while the value in the base table is '{6}'. The full index key, including the row location, is '{7}'. The suggested corrective action is to recreate the index.
                 </text>
                 <arg>columnName</arg>
                 <arg>indexName</arg>
@@ -3966,9 +3799,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X62.S</name>
-                <text>Inconsistency found between table '{0}' and index '{1}'. Error when trying to retrieve row
-                    location '{2}' from the table. The full index key, including the row location, is '{3}'. The
-                    suggested corrective action is to recreate the index.
+                <text>Inconsistency found between table '{0}' and index '{1}'. Error when trying to retrieve row location '{2}' from the table. The full index key, including the row location, is '{3}'. The suggested corrective action is to recreate the index.
                 </text>
                 <arg>tableName</arg>
                 <arg>indexName</arg>
@@ -3984,8 +3815,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X67.S</name>
-                <text>Columns of type '{0}' may not be used in CREATE INDEX, ORDER BY, GROUP BY, UNION, INTERSECT,
-                    EXCEPT or DISTINCT statements because comparisons are not supported for that type.
+                <text>Columns of type '{0}' may not be used in CREATE INDEX, ORDER BY, GROUP BY, UNION, INTERSECT, EXCEPT or DISTINCT statements because comparisons are not supported for that type.
                 </text>
                 <arg>type</arg>
             </msg>
@@ -4016,8 +3846,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0X95.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because there is an open ResultSet dependent
-                    on that object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because there is an open ResultSet dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4037,8 +3866,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y23.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because VIEW '{2}' is dependent on that
-                    object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because VIEW '{2}' is dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4047,8 +3875,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y24.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because STATEMENT '{2}' is dependent on that
-                    object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because STATEMENT '{2}' is dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4057,8 +3884,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y25.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because {2} '{3}' is dependent on that
-                    object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because {2} '{3}' is dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4075,8 +3901,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y28.S</name>
-                <text>Index '{0}' cannot be created on system table '{1}'. Users cannot create indexes on system
-                    tables.
+                <text>Index '{0}' cannot be created on system table '{1}'. Users cannot create indexes on system tables.
                 </text>
                 <arg>indexName</arg>
                 <arg>tableName</arg>
@@ -4084,8 +3909,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y29.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because TABLE '{2}' is dependent on that
-                    object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because TABLE '{2}' is dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4094,8 +3918,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y30.S</name>
-                <text>Operation '{0}' cannot be performed on object '{1}' because ROUTINE '{2}' is dependent on that
-                    object.
+                <text>Operation '{0}' cannot be performed on object '{1}' because ROUTINE '{2}' is dependent on that object.
                 </text>
                 <arg>operationName</arg>
                 <arg>objectName</arg>
@@ -4104,8 +3927,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y31.S</name>
-                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because {1} '{2}' has dependent(s) from
-                    outside the schema.
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because {1} '{2}' has dependent(s) from outside the schema.
                 </text>
                 <arg>schemaName</arg>
                 <arg>objectType</arg>
@@ -4123,8 +3945,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y33.S</name>
-                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because cyclic dependency between '{1}' and
-                    '{2}' has been detected.
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because cyclic dependency between '{1}' and '{2}' has been detected.
                 </text>
                 <arg>schemaName</arg>
                 <arg>objectName1</arg>
@@ -4140,9 +3961,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y41.S</name>
-                <text>Constraint '{0}' is invalid because the referenced table {1} has no primary key. Either add a
-                    primary key to {1} or explicitly specify the columns of a unique constraint that this foreign key
-                    references.
+                <text>Constraint '{0}' is invalid because the referenced table {1} has no primary key. Either add a primary key to {1} or explicitly specify the columns of a unique constraint that this foreign key references.
                 </text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
@@ -4151,16 +3970,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y42.S</name>
-                <text>Constraint '{0}' is invalid: the types of the foreign key columns do not match the types of the
-                    referenced columns.
+                <text>Constraint '{0}' is invalid: the types of the foreign key columns do not match the types of the referenced columns.
                 </text>
                 <arg>constraintName</arg>
             </msg>
 
             <msg>
                 <name>X0Y43.S</name>
-                <text>Constraint '{0}' is invalid: the number of columns in {0} ({1}) does not match the number of
-                    columns in the referenced key ({2}).
+                <text>Constraint '{0}' is invalid: the number of columns in {0} ({1}) does not match the number of columns in the referenced key ({2}).
                 </text>
                 <arg>constraintName</arg>
                 <arg>value</arg>
@@ -4170,8 +3987,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y44.S</name>
-                <text>Constraint '{0}' is invalid: there is no unique or primary key constraint on table '{1}' that
-                    matches the number and types of the columns in the foreign key.
+                <text>Constraint '{0}' is invalid: there is no unique or primary key constraint on table '{1}' that matches the number and types of the columns in the foreign key.
                 </text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
@@ -4179,8 +3995,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y45.S</name>
-                <text>Foreign key constraint '{0}' cannot be added to or enabled on table {1} because one or more
-                    foreign keys do not have matching referenced keys.
+                <text>Foreign key constraint '{0}' cannot be added to or enabled on table {1} because one or more foreign keys do not have matching referenced keys.
                 </text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
@@ -4201,9 +4016,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y55.S</name>
-                <text>The number of rows in the base table does not match the number of rows in at least 1 of the
-                    indexes on the table. Index '{0}' on table '{1}.{2}' has {3} rows, but the base table has {4} rows.
-                    The suggested corrective action is to recreate the index.
+                <text>The number of rows in the base table does not match the number of rows in at least 1 of the indexes on the table. Index '{0}' on table '{1}.{2}' has {3} rows, but the base table has {4} rows. The suggested corrective action is to recreate the index.
                 </text>
                 <arg>indexName</arg>
                 <arg>schemaNamet</arg>
@@ -4221,32 +4034,28 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y57.S</name>
-                <text>A non-nullable column cannot be added to table '{0}' because the table contains at least one row.
-                    Non-nullable columns can only be added to empty tables.
+                <text>A non-nullable column cannot be added to table '{0}' because the table contains at least one row. Non-nullable columns can only be added to empty tables.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>X0Y60.S</name>
-                <text>Primary Key cannot be added to or dropped from table '{0}' because the table contains at least one
-                    row. Primary key can only be added to/dropped from empty tables.
+                <text>Primary Key cannot be added to or dropped from table '{0}' because the table contains at least one row. Primary key can only be added to/dropped from empty tables.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>X0Y58.S</name>
-                <text>Attempt to add a primary key constraint to table '{0}' failed because the table already has a
-                    constraint of that type. A table can only have a single primary key constraint.
+                <text>Attempt to add a primary key constraint to table '{0}' failed because the table already has a constraint of that type. A table can only have a single primary key constraint.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>X0Y59.S</name>
-                <text>Attempt to add or enable constraint(s) on table '{1}' failed because the table contains {2} row(s)
-                    that violate the following check constraint(s): {0}.
+                <text>Attempt to add or enable constraint(s) on table '{1}' failed because the table contains {2} row(s) that violate the following check constraint(s): {0}.
                 </text>
                 <arg>tableName</arg>
                 <arg>rowName</arg>
@@ -4255,31 +4064,27 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y63.S</name>
-                <text>The command on table '{0}' failed because null data was found in the primary key or unique
-                    constraint/index column(s). All columns in a primary or unique index key must not be null.
+                <text>The command on table '{0}' failed because null data was found in the primary key or unique constraint/index column(s). All columns in a primary or unique index key must not be null.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>X0Y63.S.1</name>
-                <text>The command on table '{0}' failed because null data was found in the primary key/index column(s).
-                    All columns in a primary key must not be null.
+                <text>The command on table '{0}' failed because null data was found in the primary key/index column(s). All columns in a primary key must not be null.
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>X0Y66.S</name>
-                <text>Cannot issue commit in a nested connection when there is a pending operation in the parent
-                    connection.
+                <text>Cannot issue commit in a nested connection when there is a pending operation in the parent connection.
                 </text>
             </msg>
 
             <msg>
                 <name>X0Y67.S</name>
-                <text>Cannot issue rollback in a nested connection when there is a pending operation in the parent
-                    connection.
+                <text>Cannot issue rollback in a nested connection when there is a pending operation in the parent connection.
                 </text>
             </msg>
 
@@ -4320,8 +4125,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y77.S</name>
-                <text>Cannot issue set transaction isolation statement on a global transaction that is in progress
-                    because it would have implicitly committed the global transaction.
+                <text>Cannot issue set transaction isolation statement on a global transaction that is in progress because it would have implicitly committed the global transaction.
                 </text>
             </msg>
 
@@ -4332,8 +4136,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y78.S.1</name>
-                <text>{0}.executeQuery() cannot be called because multiple result sets were returned. Use {1}.execute()
-                    to obtain multiple results.
+                <text>{0}.executeQuery() cannot be called because multiple result sets were returned. Use {1}.execute() to obtain multiple results.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -4341,8 +4144,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y78.S.2</name>
-                <text>{0}.executeQuery() was called but no result set was returned. Use {1}.executeUpdate() for
-                    non-queries.
+                <text>{0}.executeQuery() was called but no result set was returned. Use {1}.executeUpdate() for non-queries.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -4362,9 +4164,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y83.S</name>
-                <text>WARNING: While deleting a row from a table the index row for base table row {0} was not found in
-                    index with conglomerate id {1}. This problem has automatically been corrected as part of the delete
-                    operation.
+                <text>WARNING: While deleting a row from a table the index row for base table row {0} was not found in index with conglomerate id {1}. This problem has automatically been corrected as part of the delete operation.
                 </text>
                 <arg>rowName</arg>
                 <arg>id</arg>
@@ -4372,17 +4172,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y84.T</name>
-                <text>Too much contention on sequence {0}. This is probably caused by an uncommitted scan of the
-                    SYS.SYSSEQUENCES catalog. Do not query this catalog directly. Instead, use the
-                    SYSCS_UTIL.SYSCS_PEEK_AT_SEQUENCE function to view the current value of a query generator.
+                <text>Too much contention on sequence {0}. This is probably caused by an uncommitted scan of the SYS.SYSSEQUENCES catalog. Do not query this catalog directly. Instead, use the SYSCS_UTIL.SYSCS_PEEK_AT_SEQUENCE function to view the current value of a query generator.
                 </text>
                 <arg>sequenceName</arg>
             </msg>
 
             <msg>
                 <name>X0Y85.S</name>
-                <text>The Splice property '{0}' identifies a class which cannot be instantiated: '{1}'. See the next
-                    exception for details.
+                <text>The Splice property '{0}' identifies a class which cannot be instantiated: '{1}'. See the next exception for details.
                 </text>
                 <arg>propertyName</arg>
                 <arg>className</arg>
@@ -4390,8 +4187,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>X0Y86.S</name>
-                <text>Splice could not obtain the locks needed to release the unused, preallocated values for the
-                    sequence '{0}'.'{1}'. As a result, unexpected gaps may appear in this sequence.
+                <text>Splice could not obtain the locks needed to release the unused, preallocated values for the sequence '{0}'.'{1}'. As a result, unexpected gaps may appear in this sequence.
                 </text>
                 <arg>schemaName</arg>
                 <arg>sequenceName</arg>
@@ -4469,8 +4265,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCX2.S</name>
-                <text>Initializing cipher with a boot password that is too short. The password must be at least {0}
-                    characters long.
+                <text>Initializing cipher with a boot password that is too short. The password must be at least {0} characters long.
                 </text>
                 <arg>number</arg>
             </msg>
@@ -4514,8 +4309,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXC.S</name>
-                <text>Encryption algorithm '{0}' does not exist. Please check that the chosen provider '{1}' supports
-                    this algorithm.
+                <text>Encryption algorithm '{0}' does not exist. Please check that the chosen provider '{1}' supports this algorithm.
                 </text>
                 <arg>algorithmName</arg>
                 <arg>providerName</arg>
@@ -4545,8 +4339,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXH.S</name>
-                <text>The encryptionAlgorithm '{0}' is not in the correct format. The correct format is
-                    algorithm/feedbackMode/NoPadding.
+                <text>The encryptionAlgorithm '{0}' is not in the correct format. The correct format is algorithm/feedbackMode/NoPadding.
                 </text>
                 <arg>algorithmName</arg>
             </msg>
@@ -4560,23 +4353,19 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXJ.S</name>
-                <text>The application is using a version of the Java Cryptography Extension (JCE) earlier than 1.2.1.
-                    Please upgrade to JCE 1.2.1 and try the operation again.
+                <text>The application is using a version of the Java Cryptography Extension (JCE) earlier than 1.2.1. Please upgrade to JCE 1.2.1 and try the operation again.
                 </text>
             </msg>
 
             <msg>
                 <name>XBCXK.S</name>
-                <text>The given encryption key does not match the encryption key used when creating the database. Please
-                    ensure that you are using the correct encryption key and try again.
+                <text>The given encryption key does not match the encryption key used when creating the database. Please ensure that you are using the correct encryption key and try again.
                 </text>
             </msg>
 
             <msg>
                 <name>XBCXL.S</name>
-                <text>The verification process for the encryption key was not successful. This could have been caused by
-                    an error when accessing the appropriate file to do the verification process. See next exception for
-                    details.
+                <text>The verification process for the encryption key was not successful. This could have been caused by an error when accessing the appropriate file to do the verification process. See next exception for details.
                 </text>
             </msg>
 
@@ -4587,8 +4376,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXN.S</name>
-                <text>The external encryption key contains one or more illegal characters. Allowed characters for a
-                    hexadecimal number are 0-9, a-f and A-F.
+                <text>The external encryption key contains one or more illegal characters. Allowed characters for a hexadecimal number are 0-9, a-f and A-F.
                 </text>
             </msg>
 
@@ -4599,8 +4387,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXP.S</name>
-                <text>Cannot re-encrypt the database with a new boot password or an external encryption key when there
-                    is a global transaction in the prepared state.
+                <text>Cannot re-encrypt the database with a new boot password or an external encryption key when there is a global transaction in the prepared state.
                 </text>
             </msg>
 
@@ -4622,8 +4409,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXT.S</name>
-                <text>Cannot re-encrypt a database with a new boot password or an external encryption key, when database
-                    is in the log archive mode.
+                <text>Cannot re-encrypt a database with a new boot password or an external encryption key, when database is in the log archive mode.
                 </text>
             </msg>
 
@@ -4641,9 +4427,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBCXW.S</name>
-                <text>The message digest algorithm '{0}' is not supported by any of the available cryptography
-                    providers. Please install a cryptography provider that supports that algorithm, or specify another
-                    algorithm in the derby.authentication.builtin.algorithm property.
+                <text>The message digest algorithm '{0}' is not supported by any of the available cryptography providers. Please install a cryptography provider that supports that algorithm, or specify another algorithm in the derby.authentication.builtin.algorithm property.
                 </text>
                 <arg>algorithmName</arg>
             </msg>
@@ -4661,8 +4445,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM02.D</name>
-                <text>Startup failed due to missing functionality for {0}. Please ensure your classpath includes the
-                    correct Splice software.
+                <text>Startup failed due to missing functionality for {0}. Please ensure your classpath includes the correct Splice software.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -4692,9 +4475,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0A.D</name>
-                <text>The database directory '{0}' exists. However, it does not contain the expected '{1}' file. Perhaps
-                    Splice was brought down in the middle of creating this database. You may want to delete this
-                    directory and try creating the database again.
+                <text>The database directory '{0}' exists. However, it does not contain the expected '{1}' file. Perhaps Splice was brought down in the middle of creating this database. You may want to delete this directory and try creating the database again.
                 </text>
                 <arg>directoryName</arg>
                 <arg>servicePropertiesName</arg>
@@ -4716,8 +4497,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0G.D</name>
-                <text>Failed to start encryption engine. Please make sure you are running Java 2 and have downloaded an
-                    encryption provider such as jce and put it in your class path.
+                <text>Failed to start encryption engine. Please make sure you are running Java 2 and have downloaded an encryption provider such as jce and put it in your class path.
                 </text>
             </msg>
 
@@ -4754,10 +4534,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0M.D</name>
-                <text>Error creating an instance of a class named '{0}'. This class name was the value of the
-                    derby.authentication.provider property and was expected to be the name of an application-supplied
-                    implementation of com.splicemachine.db.authentication.UserAuthenticator. The underlying problem
-                    was: {1}
+                <text>Error creating an instance of a class named '{0}'. This class name was the value of the derby.authentication.provider property and was expected to be the name of an application-supplied implementation of com.splicemachine.db.authentication.UserAuthenticator. The underlying problem was: {1}
                 </text>
                 <arg>className</arg>
                 <arg>detail</arg>
@@ -4776,8 +4553,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0Q.D</name>
-                <text>File {0} not found. Please make sure that backup copy is the correct one and it is not
-                    corrupted.
+                <text>File {0} not found. Please make sure that backup copy is the correct one and it is not corrupted.
                 </text>
                 <arg>fileName</arg>
             </msg>
@@ -4824,9 +4600,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0X.D</name>
-                <text>Supplied territory description '{0}' is invalid, expecting ln[_CO[_variant]]
-                    ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-3166 country codes, see
-                    java.util.Locale.
+                <text>Supplied territory description '{0}' is invalid, expecting ln[_CO[_variant]] ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-3166 country codes, see java.util.Locale.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -4846,16 +4620,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XBM0Y.D</name>
-                <text>Backup database directory {0} not found. Please make sure that the specified backup path is
-                    right.
+                <text>Backup database directory {0} not found. Please make sure that the specified backup path is right.
                 </text>
                 <arg>directoryName</arg>
             </msg>
 
             <msg>
                 <name>XBM0Z.D</name>
-                <text>Unable to copy file '{0}' to '{1}'. Please make sure that there is enough space and permissions
-                    are correct.
+                <text>Unable to copy file '{0}' to '{1}'. Please make sure that there is enough space and permissions are correct.
                 </text>
                 <arg>fileName</arg>
                 <arg>fileName</arg>
@@ -4899,8 +4671,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL10.S</name>
-                <text>A PreparedStatement has been recompiled and the parameters have changed. If you are using JDBC you
-                    must prepare the statement again.
+                <text>A PreparedStatement has been recompiled and the parameters have changed. If you are using JDBC you must prepare the statement again.
                 </text>
             </msg>
 
@@ -4913,8 +4684,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL13.S</name>
-                <text>The parameter position '{0}' is out of range. The number of parameters for this prepared statement
-                    is '{1}'.
+                <text>The parameter position '{0}' is out of range. The number of parameters for this prepared statement is '{1}'.
                 </text>
                 <arg>parameterPosition</arg>
                 <arg>number</arg>
@@ -4930,8 +4700,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL15.S</name>
-                <text>A ClassCastException occurred when calling the compareTo() method on an object '{0}'. The
-                    parameter to compareTo() is of class '{1}'.
+                <text>A ClassCastException occurred when calling the compareTo() method on an object '{0}'. The parameter to compareTo() is of class '{1}'.
                 </text>
                 <arg>object</arg>
                 <arg>className</arg>
@@ -4964,9 +4733,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL21.S</name>
-                <text>You are trying to execute a Data Definition statement (CREATE, DROP, or ALTER) while preparing a
-                    different statement. This is not allowed. It can happen if you execute a Data Definition statement
-                    from within a static initializer of a Java class that is being used from within a SQL statement.
+                <text>You are trying to execute a Data Definition statement (CREATE, DROP, or ALTER) while preparing a different statement. This is not allowed. It can happen if you execute a Data Definition statement from within a static initializer of a Java class that is being used from within a SQL statement.
                 </text>
             </msg>
 
@@ -4984,8 +4751,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL24.S</name>
-                <text>Parameter {0} appears to be an output parameter, but it has not been so designated by
-                    registerOutParameter(). If it is not an output parameter, then it has to be set to type {1}.
+                <text>Parameter {0} appears to be an output parameter, but it has not been so designated by registerOutParameter(). If it is not an output parameter, then it has to be set to type {1}.
                 </text>
                 <arg>parameterName</arg>
                 <arg>type</arg>
@@ -4993,8 +4759,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL25.S</name>
-                <text>Parameter {0} cannot be registered to be of type {1} because it maps to type {2} and they are
-                    incompatible.
+                <text>Parameter {0} cannot be registered to be of type {1} because it maps to type {2} and they are incompatible.
                 </text>
                 <arg>parameterName</arg>
                 <arg>type</arg>
@@ -5025,77 +4790,61 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL33.S</name>
-                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The
-                    relationship is self-referencing and a self-referencing relationship already exists with the SET
-                    NULL delete rule.)
+                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.)
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>XCL34.S</name>
-                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The
-                    relationship forms a cycle of two or more tables that cause the table to be delete-connected to
-                    itself (all other delete rules in the cycle would be CASCADE)).
+                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>XCL35.S</name>
-                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The
-                    relationship causes the table to be delete-connected to the indicated table through multiple
-                    relationships and the delete rule of the existing relationship is SET NULL.).
+                <text>The table cannot be defined as a dependent of table {0} because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>XCL36.S</name>
-                <text>The delete rule of foreign key must be {0}. (The referential constraint is self-referencing and an
-                    existing self-referencing constraint has the indicated delete rule (NO ACTION, RESTRICT or
-                    CASCADE).)
+                <text>The delete rule of foreign key must be {0}. (The referential constraint is self-referencing and an existing self-referencing constraint has the indicated delete rule (NO ACTION, RESTRICT or CASCADE).)
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XCL37.S</name>
-                <text>The delete rule of foreign key must be {0}. (The referential constraint is self-referencing and
-                    the table is dependent in a relationship with a delete rule of CASCADE.)
+                <text>The delete rule of foreign key must be {0}. (The referential constraint is self-referencing and the table is dependent in a relationship with a delete rule of CASCADE.)
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XCL38.S</name>
-                <text>the delete rule of foreign key must be {0}. (The relationship would cause the table to be
-                    delete-connected to the same table through multiple relationships and such relationships must have
-                    the same delete rule (NO ACTION, RESTRICT or CASCADE).)
+                <text>the delete rule of foreign key must be {0}. (The relationship would cause the table to be delete-connected to the same table through multiple relationships and such relationships must have the same delete rule (NO ACTION, RESTRICT or CASCADE).)
                 </text>
                 <arg>ruleName</arg>
             </msg>
 
             <msg>
                 <name>XCL39.S</name>
-                <text>The delete rule of foreign key cannot be CASCADE. (A self-referencing constraint exists with a
-                    delete rule of SET NULL, NO ACTION or RESTRICT.)
+                <text>The delete rule of foreign key cannot be CASCADE. (A self-referencing constraint exists with a delete rule of SET NULL, NO ACTION or RESTRICT.)
                 </text>
             </msg>
 
             <msg>
                 <name>XCL40.S</name>
-                <text>The delete rule of foreign key cannot be CASCADE. (The relationship would form a cycle that would
-                    cause a table to be delete-connected to itself. One of the existing delete rules in the cycle is not
-                    CASCADE, so this relationship may be definable if the delete rule is not CASCADE.)
+                <text>The delete rule of foreign key cannot be CASCADE. (The relationship would form a cycle that would cause a table to be delete-connected to itself. One of the existing delete rules in the cycle is not CASCADE, so this relationship may be definable if the delete rule is not CASCADE.)
                 </text>
             </msg>
 
             <msg>
                 <name>XCL41.S</name>
-                <text>the delete rule of foreign key can not be CASCADE. (The relationship would cause another table to
-                    be delete-connected to the same table through multiple paths with different delete rules or with
-                    delete rule equal to SET NULL.)
+                <text>the delete rule of foreign key can not be CASCADE. (The relationship would cause another table to be delete-connected to the same table through multiple paths with different delete rules or with delete rule equal to SET NULL.)
                 </text>
             </msg>
 
@@ -5134,8 +4883,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL48.S</name>
-                <text>TRUNCATE TABLE is not permitted on '{0}' because unique/primary key constraints on this table are
-                    referenced by enabled foreign key constraints from other tables.
+                <text>TRUNCATE TABLE is not permitted on '{0}' because unique/primary key constraints on this table are referenced by enabled foreign key constraints from other tables.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -5149,8 +4897,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCL50.S</name>
-                <text>Upgrading the database from a previous version is not supported. The database being accessed is at
-                    version level '{0}', this software is at version level '{1}'.
+                <text>Upgrading the database from a previous version is not supported. The database being accessed is at version level '{0}', this software is at version level '{1}'.
                 </text>
                 <arg>versionNumber</arg>
                 <arg>versionNumber</arg>
@@ -5204,8 +4951,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCXE0.S</name>
-                <text>You are trying to do an operation that uses the territory of the database, but the database does
-                    not have a territory.
+                <text>You are trying to do an operation that uses the territory of the database, but the database does not have a territory.
                 </text>
             </msg>
 
@@ -5237,22 +4983,19 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XCY04.S</name>
-                <text>Invalid syntax for optimizer overrides. The syntax should be -- SPLICE-PROPERTIES propertyName =
-                    value [, propertyName = value]*
+                <text>Invalid syntax for optimizer overrides. The syntax should be -- SPLICE-PROPERTIES propertyName = value [, propertyName = value]*
                 </text>
             </msg>
 
             <msg>
                 <name>XCY05.S.2</name>
-                <text>Invalid setting of the derby.authentication.provider property. This property is already set to
-                    enable NATIVE authentication and cannot be changed.
+                <text>Invalid setting of the derby.authentication.provider property. This property is already set to enable NATIVE authentication and cannot be changed.
                 </text>
             </msg>
 
             <msg>
                 <name>XCY05.S.3</name>
-                <text>Invalid setting of the derby.authentication.provider property. To enable NATIVE authentication,
-                    use the SYSCS_UTIL.SYSCS_CREATE_USER procedure to store credentials for the database owner.
+                <text>Invalid setting of the derby.authentication.provider property. To enable NATIVE authentication, use the SYSCS_UTIL.SYSCS_CREATE_USER procedure to store credentials for the database owner.
                 </text>
             </msg>
 
@@ -5450,8 +5193,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XIE12.S</name>
-                <text>There was {0} RegionServer failures during a write with WAL disabled, the transaction has to
-                    rollback to avoid data loss.
+                <text>There was {0} RegionServer failures during a write with WAL disabled, the transaction has to rollback to avoid data loss.
                 </text>
                 <arg>details</arg>
             </msg>
@@ -5472,30 +5214,21 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>XIE0S.S</name>
-                <text>The export operation was not performed, because the specified output file ({0}) already exists.
-                    Export processing will not overwrite an existing file, even if the process has permissions to write
-                    to that file, due to security concerns, and to avoid accidental file damage. Please either change
-                    the output file name in the export procedure arguments to specify a file which does not exist, or
-                    delete the existing file, then retry the export operation.
+                <text>The export operation was not performed, because the specified output file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the output file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.
                 </text>
                 <arg>fileName</arg>
             </msg>
 
             <msg>
                 <name>XIE0T.S</name>
-                <text>The export operation was not performed, because the specified large object auxiliary file ({0})
-                    already exists. Export processing will not overwrite an existing file, even if the process has
-                    permissions to write to that file, due to security concerns, and to avoid accidental file damage.
-                    Please either change the large object auxiliary file name in the export procedure arguments to
-                    specify a file which does not exist, or delete the existing file, then retry the export operation.
+                <text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.
                 </text>
                 <arg>fileName</arg>
             </msg>
 
             <msg>
                 <name>XIE0U.S</name>
-                <text>The export operation was not performed, because the specified parameter (replicationCount) is less
-                    than or equal to zero.
+                <text>The export operation was not performed, because the specified parameter (replicationCount) is less than or equal to zero.
                 </text>
             </msg>
 
@@ -5644,11 +5377,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ045.S</name>
-                <text>Invalid or (currently) unsupported isolation level, '{0}', passed to
-                    Connection.setTransactionIsolation(). The currently supported values are
-                    java.sql.Connection.TRANSACTION_SERIALIZABLE, java.sql.Connection.TRANSACTION_REPEATABLE_READ,
-                    java.sql.Connection.TRANSACTION_READ_COMMITTED, and
-                    java.sql.Connection.TRANSACTION_READ_UNCOMMITTED.
+                <text>Invalid or (currently) unsupported isolation level, '{0}', passed to Connection.setTransactionIsolation(). The currently supported values are java.sql.Connection.TRANSACTION_SERIALIZABLE, java.sql.Connection.TRANSACTION_REPEATABLE_READ, java.sql.Connection.TRANSACTION_READ_COMMITTED, and java.sql.Connection.TRANSACTION_READ_UNCOMMITTED.
                 </text>
                 <arg>levelName</arg>
             </msg>
@@ -5681,15 +5410,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ057.S</name>
-                <text>Cannot commit a global transaction using the Connection, commit processing must go thru XAResource
-                    interface.
+                <text>Cannot commit a global transaction using the Connection, commit processing must go thru XAResource interface.
                 </text>
             </msg>
 
             <msg>
                 <name>XJ058.S</name>
-                <text>Cannot rollback a global transaction using the Connection, commit processing must go thru
-                    XAResource interface.
+                <text>Cannot rollback a global transaction using the Connection, commit processing must go thru XAResource interface.
                 </text>
             </msg>
 
@@ -5725,8 +5452,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ063.S</name>
-                <text>Invalid parameter value '{0}' for Statement.setMaxRows(int maxRows). Parameter value must be &gt;=
-                    0.
+                <text>Invalid parameter value '{0}' for Statement.setMaxRows(int maxRows). Parameter value must be &gt;= 0.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -5783,8 +5509,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ073.S</name>
-                <text>The data in this BLOB or CLOB is no longer available. The BLOB/CLOB's transaction may be
-                    committed, its connection closed or it has been freed.
+                <text>The data in this BLOB or CLOB is no longer available. The BLOB/CLOB's transaction may be committed, its connection closed or it has been freed.
                 </text>
             </msg>
 
@@ -5802,8 +5527,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ077.S</name>
-                <text>Got an exception when trying to read the first byte/character of the BLOB/CLOB pattern using
-                    getBytes/getSubString.
+                <text>Got an exception when trying to read the first byte/character of the BLOB/CLOB pattern using getBytes/getSubString.
                 </text>
             </msg>
 
@@ -5846,8 +5570,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ086.S</name>
-                <text>This method cannot be invoked while the cursor is not on the insert row or if the concurrency of
-                    this ResultSet object is CONCUR_READ_ONLY.
+                <text>This method cannot be invoked while the cursor is not on the insert row or if the concurrency of this ResultSet object is CONCUR_READ_ONLY.
                 </text>
             </msg>
 
@@ -5911,8 +5634,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ100.S</name>
-                <text>The scale supplied by the registerOutParameter method does not match with the setter method.
-                    Possible loss of precision!
+                <text>The scale supplied by the registerOutParameter method does not match with the setter method. Possible loss of precision!
                 </text>
             </msg>
 
@@ -6021,8 +5743,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ125.S</name>
-                <text>This method should only be called on ResultSet objects that are scrollable (type
-                    TYPE_SCROLL_INSENSITIVE).
+                <text>This method should only be called on ResultSet objects that are scrollable (type TYPE_SCROLL_INSENSITIVE).
                 </text>
             </msg>
 
@@ -6074,9 +5795,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ208.S</name>
-                <text>Non-atomic batch failure. The batch was submitted, but at least one exception occurred on an
-                    individual member of the batch. Use getNextException() to retrieve the exceptions for specific
-                    batched elements.
+                <text>Non-atomic batch failure. The batch was submitted, but at least one exception occurred on an individual member of the batch. Use getNextException() to retrieve the exceptions for specific batched elements.
                 </text>
             </msg>
 
@@ -6092,8 +5811,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ211.S</name>
-                <text>Non-recoverable chain-breaking exception occurred during batch processing. The batch is terminated
-                    non-atomically.
+                <text>Non-recoverable chain-breaking exception occurred during batch processing. The batch is terminated non-atomically.
                 </text>
             </msg>
 
@@ -6115,15 +5833,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ215.S</name>
-                <text>You cannot invoke other java.sql.Clob/java.sql.Blob methods after calling the free() method or
-                    after the Blob/Clob's transaction has been committed or rolled back.
+                <text>You cannot invoke other java.sql.Clob/java.sql.Blob methods after calling the free() method or after the Blob/Clob's transaction has been committed or rolled back.
                 </text>
             </msg>
 
             <msg>
                 <name>XJ216.S</name>
-                <text>The length of this BLOB/CLOB is not available yet. When a BLOB or CLOB is accessed as a stream,
-                    the length is not available until the entire stream has been processed.
+                <text>The length of this BLOB/CLOB is not available yet. When a BLOB or CLOB is accessed as a stream, the length is not available until the entire stream has been processed.
                 </text>
             </msg>
             <msg>
@@ -6195,8 +5911,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XN014.S</name>
-                <text>Encountered an Exception while reading from the stream specified by parameter #{0}. The remaining
-                    data expected by the server has been filled with 0x0. The Exception had this message: {1}.
+                <text>Encountered an Exception while reading from the stream specified by parameter #{0}. The remaining data expected by the server has been filled with 0x0. The Exception had this message: {1}.
                 </text>
                 <arg>value</arg>
                 <arg>messageText</arg>
@@ -6204,16 +5919,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XN015.S</name>
-                <text>Network protocol error: the specified size of the InputStream, parameter #{0}, is less than the
-                    actual InputStream length.
+                <text>Network protocol error: the specified size of the InputStream, parameter #{0}, is less than the actual InputStream length.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XN016.S</name>
-                <text>Encountered an Exception while trying to verify the length of the stream specified by parameter
-                    #{0}. The Exception had this message: {1}.
+                <text>Encountered an Exception while trying to verify the length of the stream specified by parameter #{0}. The Exception had this message: {1}.
                 </text>
                 <arg>value</arg>
                 <arg>messageText</arg>
@@ -6221,16 +5934,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XN017.S</name>
-                <text>End of stream prematurely reached while reading the stream specified by parameter #{0}. The
-                    remaining data expected by the server has been filled with 0x0.
+                <text>End of stream prematurely reached while reading the stream specified by parameter #{0}. The remaining data expected by the server has been filled with 0x0.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XN018.S</name>
-                <text>Network protocol error: the specified size of the Reader, parameter #{0}, is less than the actual
-                    InputStream length.
+                <text>Network protocol error: the specified size of the Reader, parameter #{0}, is less than the actual InputStream length.
                 </text>
                 <arg>value</arg>
             </msg>
@@ -6280,8 +5991,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE04.C.1</name>
-                <text>Could not establish a connection to the peer of the replicated database '{0}' on address
-                    '{1}:{2}'.
+                <text>Could not establish a connection to the peer of the replicated database '{0}' on address '{1}:{2}'.
                 </text>
                 <arg>dbname</arg>
                 <arg>hostname</arg>
@@ -6296,9 +6006,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE05.C</name>
-                <text>The log files on the primary and replica are not in synch for replicated database '{0}'. The
-                    master log instant is {1}:{2}, whereas the replica log instant is {3}:{4}. This is FATAL for
-                    replication - replication will be stopped.
+                <text>The log files on the primary and replica are not in synch for replicated database '{0}'. The master log instant is {1}:{2}, whereas the replica log instant is {3}:{4}. This is FATAL for replication - replication will be stopped.
                 </text>
                 <arg>dbname</arg>
                 <arg>primaryfile</arg>
@@ -6309,8 +6017,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE06</name>
-                <text>The connection attempts to the replication replica for the database {0} exceeded the specified
-                    timeout period.
+                <text>The connection attempts to the replication replica for the database {0} exceeded the specified timeout period.
                 </text>
                 <arg>dbname</arg>
             </msg>
@@ -6322,8 +6029,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE08</name>
-                <text>Replication replica mode started successfully for database '{0}'. Connection refused because the
-                    database is in replication replica mode.
+                <text>Replication replica mode started successfully for database '{0}'. Connection refused because the database is in replication replica mode.
                 </text>
                 <arg>dbname</arg>
             </msg>
@@ -6337,8 +6043,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE10</name>
-                <text>Conflicting attributes specified. See reference manual for attributes allowed in combination with
-                    replication attribute '{0}'.
+                <text>Conflicting attributes specified. See reference manual for attributes allowed in combination with replication attribute '{0}'.
                 </text>
                 <arg>attribute</arg>
             </msg>
@@ -6352,8 +6057,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE12</name>
-                <text>Replication network protocol error for database '{0}'. Expected message type '{1}', but received
-                    type '{2}'.
+                <text>Replication network protocol error for database '{0}'. Expected message type '{1}', but received type '{2}'.
                 </text>
                 <arg>dbname</arg>
                 <arg>expectedtype</arg>
@@ -6380,8 +6084,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE23</name>
-                <text>Replication master cannot be started since unlogged operations are in progress, unfreeze to allow
-                    unlogged operations to complete and restart replication
+                <text>Replication master cannot be started since unlogged operations are in progress, unfreeze to allow unlogged operations to complete and restart replication
                 </text>
             </msg>
 
@@ -6392,9 +6095,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE41.C</name>
-                <text>Replication operation 'failover' or 'stopReplica' refused on the replica database because the
-                    connection with the primary is working. Issue the 'failover' or 'stopPrimary' operation on the
-                    primary database instead.
+                <text>Replication operation 'failover' or 'stopReplica' refused on the replica database because the connection with the primary is working. Issue the 'failover' or 'stopPrimary' operation on the primary database instead.
                 </text>
             </msg>
 
@@ -6406,8 +6107,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XRE43</name>
-                <text>Unexpected error when trying to stop replication replica mode. To stop repliation replica mode,
-                    use operation 'stopReplica' or 'failover'.
+                <text>Unexpected error when trying to stop replication replica mode. To stop repliation replica mode, use operation 'stopReplica' or 'failover'.
                 </text>
             </msg>
 
@@ -6534,8 +6234,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSCB2.S</name>
-                <text>The required property {0} not found in the property list given to createConglomerate() for a btree
-                    secondary index.
+                <text>The required property {0} not found in the property list given to createConglomerate() for a btree secondary index.
                 </text>
                 <arg>propertyName</arg>
             </msg>
@@ -6547,8 +6246,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSCB4.S</name>
-                <text>A method on a btree open scan has been called prior to positioning the scan on the first row (i.e.
-                    no next() call has been made yet). The current state of the scan is ({0}).
+                <text>A method on a btree open scan has been called prior to positioning the scan on the first row (i.e. no next() call has been made yet). The current state of the scan is ({0}).
                 </text>
                 <arg>value</arg>
             </msg>
@@ -6560,16 +6258,13 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSCB6.S</name>
-                <text>Limitation: Record of a btree secondary index cannot be updated or inserted due to lack of space
-                    on the page. Use the parameters derby.storage.pageSize and/or derby.storage.pageReservedSpace to
-                    work around this limitation.
+                <text>Limitation: Record of a btree secondary index cannot be updated or inserted due to lack of space on the page. Use the parameters derby.storage.pageSize and/or derby.storage.pageReservedSpace to work around this limitation.
                 </text>
             </msg>
 
             <msg>
                 <name>XSCB7.S</name>
-                <text>An internal error was encountered during a btree scan - current_rh is null = {0}, position key is
-                    null = {1}.
+                <text>An internal error was encountered during a btree scan - current_rh is null = {0}, position key is null = {1}.
                 </text>
                 <arg>value</arg>
                 <arg>value</arg>
@@ -6621,8 +6316,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSCH5.S</name>
-                <text>In a base table there was a mismatch between the requested column number {0} and the maximum
-                    number of columns {1}.
+                <text>In a base table there was a mismatch between the requested column number {0} and the maximum number of columns {1}.
                 </text>
                 <arg>number</arg>
                 <arg>number</arg>
@@ -6662,9 +6356,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDA3.S</name>
-                <text>Limitation: Record cannot be updated or inserted due to lack of space on the page. Use the
-                    parameters derby.storage.pageSize and/or derby.storage.pageReservedSpace to work around this
-                    limitation.
+                <text>Limitation: Record cannot be updated or inserted due to lack of space on the page. Use the parameters derby.storage.pageSize and/or derby.storage.pageReservedSpace to work around this limitation.
                 </text>
             </msg>
 
@@ -6686,8 +6378,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDA7.S</name>
-                <text>Restore of a serializable or SQLData object of class {0}, attempted to read more data than was
-                    originally stored
+                <text>Restore of a serializable or SQLData object of class {0}, attempted to read more data than was originally stored
                 </text>
                 <arg>className</arg>
             </msg>
@@ -6706,8 +6397,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDAA.S</name>
-                <text>Illegal time stamp {0}, either time stamp is from a different page or of incompatible
-                    implementation
+                <text>Illegal time stamp {0}, either time stamp is from a different page or of incompatible implementation
                 </text>
                 <arg>value</arg>
             </msg>
@@ -6767,16 +6457,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDAM.S</name>
-                <text>Exception during restore of a SQLData object of class {0}. The specified class cannot be
-                    instantiated.
+                <text>Exception during restore of a SQLData object of class {0}. The specified class cannot be instantiated.
                 </text>
                 <arg>className</arg>
             </msg>
 
             <msg>
                 <name>XSDAN.S</name>
-                <text>Exception during restore of a SQLData object of class {0}. The specified class encountered an
-                    illegal access exception.
+                <text>Exception during restore of a SQLData object of class {0}. The specified class encountered an illegal access exception.
                 </text>
                 <arg>className</arg>
             </msg>
@@ -6820,8 +6508,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDB4.D</name>
-                <text>Page {0} is at version {1}, the log file contains change version {2}, either there are log records
-                    of this page missing, or this page did not get written out to disk properly.
+                <text>Page {0} is at version {1}, the log file contains change version {2}, either there are log records of this page missing, or this page did not get written out to disk properly.
                 </text>
                 <arg>page</arg>
                 <arg>versionNumber</arg>
@@ -6842,9 +6529,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDB7.D</name>
-                <text>WARNING: Splice (instance {0}) is attempting to boot the database {1} even though Splice (instance
-                    {2}) may still be active. Only one instance of Splice should boot a database at a time. Severe and
-                    non-recoverable corruption can result and may have already occurred.
+                <text>WARNING: Splice (instance {0}) is attempting to boot the database {1} even though Splice (instance {2}) may still be active. Only one instance of Splice should boot a database at a time. Severe and non-recoverable corruption can result and may have already occurred.
                 </text>
                 <arg>value</arg>
                 <arg>databaseName</arg>
@@ -6853,14 +6538,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDB8.D</name>
-                <text>WARNING: Splice (instance {0}) is attempting to boot the database {1} even though Splice (instance
-                    {2}) may still be active. Only one instance of Splice should boot a database at a time. Severe and
-                    non-recoverable corruption can result if 2 instances of Splice boot on the same database at the same
-                    time. The derby.database.forceDatabaseLock=true property has been set, so the database will not boot
-                    until the db.lck is no longer present. Normally this file is removed when the first instance of
-                    Splice to boot on the database exits, but it may be left behind in some shutdowns. It will be
-                    necessary to remove the file by hand in that case. It is important to verify that no other VM is
-                    accessing the database before deleting the db.lck file by hand.
+                <text>WARNING: Splice (instance {0}) is attempting to boot the database {1} even though Splice (instance {2}) may still be active. Only one instance of Splice should boot a database at a time. Severe and non-recoverable corruption can result if 2 instances of Splice boot on the same database at the same time. The derby.database.forceDatabaseLock=true property has been set, so the database will not boot until the db.lck is no longer present. Normally this file is removed when the first instance of Splice to boot on the database exits, but it may be left behind in some shutdowns. It will be necessary to remove the file by hand in that case. It is important to verify that no other VM is accessing the database before deleting the db.lck file by hand.
                 </text>
                 <arg>value</arg>
                 <arg>databaseName</arg>
@@ -6888,8 +6566,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDBC.D</name>
-                <text>Write of container information to page 0 of container {0} failed. See nested error for more
-                    information.
+                <text>Write of container information to page 0 of container {0} failed. See nested error for more information.
                 </text>
                 <arg>container</arg>
             </msg>
@@ -6914,8 +6591,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDF2.S</name>
-                <text>Exception during creation of file {0} for container, file could not be removed. The exception was:
-                    {1}.
+                <text>Exception during creation of file {0} for container, file could not be removed. The exception was: {1}.
                 </text>
                 <arg>fileName</arg>
                 <arg>value</arg>
@@ -6959,8 +6635,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDFD.S</name>
-                <text>Different page image read on 2 I/Os on Page {0}, first image has incorrect checksum, second image
-                    has correct checksum. Page images follows: {1} {2}
+                <text>Different page image read on 2 I/Os on Page {0}, first image has incorrect checksum, second image has correct checksum. Page images follows: {1} {2}
                 </text>
                 <arg>page</arg>
                 <arg>value</arg>
@@ -6981,10 +6656,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDFI.S</name>
-                <text>Error encountered while trying to write data to disk during database recovery. Check that the
-                    database disk is not full. If it is then delete unnecessary files, and retry connecting to the
-                    database. It is also possible that the file system is read only, or the disk has failed, or some
-                    other problem with the media. System encountered error while processing page {0}.
+                <text>Error encountered while trying to write data to disk during database recovery. Check that the database disk is not full. If it is then delete unnecessary files, and retry connecting to the database. It is also possible that the file system is read only, or the disk has failed, or some other problem with the media. System encountered error while processing page {0}.
                 </text>
                 <arg>page</arg>
             </msg>
@@ -7003,8 +6675,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDG1.D</name>
-                <text>Page {0} could not be written to disk, please check if the disk is full, or if a file system
-                    limit, such as a quota or a maximum file size, has been reached.
+                <text>Page {0} could not be written to disk, please check if the disk is full, or if a file system limit, such as a quota or a maximum file size, has been reached.
                 </text>
                 <arg>page</arg>
             </msg>
@@ -7033,24 +6704,21 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDG6.D</name>
-                <text>Data segment directory not found in {0} backup during restore. Please make sure that backup copy
-                    is the right one and it is not corrupted.
+                <text>Data segment directory not found in {0} backup during restore. Please make sure that backup copy is the right one and it is not corrupted.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XSDG7.D</name>
-                <text>Directory {0} could not be removed during restore. Please make sure that permissions are
-                    correct.
+                <text>Directory {0} could not be removed during restore. Please make sure that permissions are correct.
                 </text>
                 <arg>directoryName</arg>
             </msg>
 
             <msg>
                 <name>XSDG8.D</name>
-                <text>Unable to copy directory '{0}' to '{1}' during restore. Please make sure that there is enough
-                    space and permissions are correct.
+                <text>Unable to copy directory '{0}' to '{1}' during restore. Please make sure that there is enough space and permissions are correct.
                 </text>
                 <arg>directoryName</arg>
                 <arg>value</arg>
@@ -7058,8 +6726,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSDG9.D</name>
-                <text>Splice thread received an interrupt during a disk I/O operation, please check your application for
-                    the source of the interrupt.
+                <text>Splice thread received an interrupt during a disk I/O operation, please check your application for the source of the interrupt.
                 </text>
             </msg>
 
@@ -7077,8 +6744,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLA1.D</name>
-                <text>Log Record has been sent to the stream, but it cannot be applied to the store (Object {0}). This
-                    may cause recovery problems also.
+                <text>Log Record has been sent to the stream, but it cannot be applied to the store (Object {0}). This may cause recovery problems also.
                 </text>
                 <arg>object</arg>
             </msg>
@@ -7095,9 +6761,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLA4.D</name>
-                <text>Cannot write to the log, most likely the log is full. Please delete unnecessary files. It is also
-                    possible that the file system is read only, or the disk has failed, or some other problems with the
-                    media.
+                <text>Cannot write to the log, most likely the log is full. Please delete unnecessary files. It is also possible that the file system is read only, or the disk has failed, or some other problems with the media.
                 </text>
             </msg>
 
@@ -7133,24 +6797,21 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAB.D</name>
-                <text>Cannot find log file {0}, please make sure your logDevice property is properly set with the
-                    correct path separator for your platform.
+                <text>Cannot find log file {0}, please make sure your logDevice property is properly set with the correct path separator for your platform.
                 </text>
                 <arg>logfileName</arg>
             </msg>
 
             <msg>
                 <name>XSLAC.D</name>
-                <text>Database at {0} have incompatible format with the current version of software, it may have been
-                    created by or upgraded by a later version.
+                <text>Database at {0} have incompatible format with the current version of software, it may have been created by or upgraded by a later version.
                 </text>
                 <arg>value</arg>
             </msg>
 
             <msg>
                 <name>XSLAD.D</name>
-                <text>log Record at instant {2} in log file {3} corrupted. Expected log record length {0}, real length
-                    {1}.
+                <text>log Record at instant {2} in log file {3} corrupted. Expected log record length {0}, real length {1}.
                 </text>
                 <arg>value</arg>
                 <arg>logfileName</arg>
@@ -7181,8 +6842,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAJ.D</name>
-                <text>The logging system has been marked to shut down due to an earlier problem and will not allow any
-                    more operations until the system shuts down and restarts.
+                <text>The logging system has been marked to shut down due to an earlier problem and will not allow any more operations until the system shuts down and restarts.
                 </text>
             </msg>
 
@@ -7194,8 +6854,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAL.D</name>
-                <text>log record size {2} exceeded the maximum allowable log file size {3}. Error encountered in log
-                    file {0}, position {1}.
+                <text>log record size {2} exceeded the maximum allowable log file size {3}. Error encountered in log file {0}, position {1}.
                 </text>
                 <arg>value</arg>
                 <arg>number</arg>
@@ -7211,8 +6870,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAN.D</name>
-                <text>Database at {0} has an incompatible format with the current version of the software. The database
-                    was created by or upgraded by version {1}.
+                <text>Database at {0} has an incompatible format with the current version of the software. The database was created by or upgraded by version {1}.
                 </text>
                 <arg>value</arg>
                 <arg>versionNumber</arg>
@@ -7239,8 +6897,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAR.D</name>
-                <text>Unable to copy log file '{0}' to '{1}' during restore. Please make sure that there is enough space
-                    and permissions are correct.
+                <text>Unable to copy log file '{0}' to '{1}' during restore. Please make sure that there is enough space and permissions are correct.
                 </text>
                 <arg>logfileName</arg>
                 <arg>value</arg>
@@ -7248,16 +6905,14 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLAS.D</name>
-                <text>Log directory {0} not found in backup during restore. Please make sure that backup copy is the
-                    correct one and it is not corrupted.
+                <text>Log directory {0} not found in backup during restore. Please make sure that backup copy is the correct one and it is not corrupted.
                 </text>
                 <arg>directoryName</arg>
             </msg>
 
             <msg>
                 <name>XSLAT.D</name>
-                <text>The log directory '{0}' exists. The directory might belong to another database. Check that the
-                    location specified for the logDevice attribute is correct.
+                <text>The log directory '{0}' exists. The directory might belong to another database. Check that the location specified for the logDevice attribute is correct.
                 </text>
                 <arg>directoryName</arg>
             </msg>
@@ -7270,8 +6925,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSLB1.S</name>
-                <text>Log operation {0} encounters error writing itself out to the log stream, this could be caused by
-                    an errant log operation or internal log buffer full due to excessively large log operation.
+                <text>Log operation {0} encounters error writing itself out to the log stream, this could be caused by an errant log operation or internal log buffer full due to excessively large log operation.
                 </text>
                 <arg>logOperation</arg>
             </msg>
@@ -7369,8 +7023,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSRSA.S</name>
-                <text>Cannot backup the database when unlogged operations are uncommitted. Please commit the
-                    transactions with backup blocking operations.
+                <text>Cannot backup the database when unlogged operations are uncommitted. Please commit the transactions with backup blocking operations.
                 </text>
             </msg>
 
@@ -7392,8 +7045,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSRSE.S</name>
-                <text>Unable to enable the enterprise Manager. Enterprise services are disabled. Contact your Splice
-                    Machine representative to enable.
+                <text>Unable to enable the enterprise Manager. Enterprise services are disabled. Contact your Splice Machine representative to enable.
                 </text>
             </msg>
 
@@ -7404,8 +7056,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XSRSG.S</name>
-                <text>SpliceMachine Enterprise services are disabled and so will not run on an encrypted host. Contact
-                    your Splice Machine representative to enable.
+                <text>SpliceMachine Enterprise services are disabled and so will not run on an encrypted host. Contact your Splice Machine representative to enable.
                 </text>
             </msg>
 
@@ -8627,8 +8278,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>54023</name>
-                <text>The limit for the number of parameters for a procedure has been exceeded. Limit is {0} and number
-                    of parameters for procedure {1} are {2}.
+                <text>The limit for the number of parameters for a procedure has been exceeded. Limit is {0} and number of parameters for procedure {1} are {2}.
                 </text>
                 <arg>number</arg>
                 <arg>procedureName</arg>
@@ -8666,8 +8316,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XJ050.U</name>
-                <text>Database requires upgrade from version {0}, set the attribute 'upgrade=true' on the JDBC
-                    connection URL to allow upgrade to version {1}.
+                <text>Database requires upgrade from version {0}, set the attribute 'upgrade=true' on the JDBC connection URL to allow upgrade to version {1}.
                 </text>
                 <arg>oldVersion</arg>
                 <arg>newVersion</arg>
@@ -8693,8 +8342,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>XML00</name>
-                <text>Failed to locate '{0}' API or implementation classes. XML operations are not permitted unless
-                    these classes are in your classpath.
+                <text>Failed to locate '{0}' API or implementation classes. XML operations are not permitted unless these classes are in your classpath.
                 </text>
                 <arg>xmlPackageName</arg>
             </msg>
@@ -8840,8 +8488,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>C000</name>
-                <text>Wrote class {0} to file {1}. Please provide support with the file and the following exception
-                    information: {2}
+                <text>Wrote class {0} to file {1}. Please provide support with the file and the following exception information: {2}
                 </text>
                 <arg>className</arg>
                 <arg>fileName</arg>
@@ -8910,10 +8557,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>D001</name>
-                <text>:
-                    Booting Splice version {0}: instance {1}
-                    on database directory {2} with class loader {3}
-                    Loaded from {4}
+                <text>: Booting Splice version {0}: instance {1} on database directory {2} with class loader {3} Loaded from {4}
                 </text>
                 <arg>spliceVersion</arg>
                 <arg>id</arg>
@@ -8924,8 +8568,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>D002</name>
-                <text>:
-                    Shutting down instance {0} on database directory {1} with class loader {2}
+                <text>: Shutting down instance {0} on database directory {1} with class loader {2}
                 </text>
                 <arg>id</arg>
                 <arg>dbDirectory</arg>
@@ -8990,9 +8633,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>D013</name>
-                <text>WARNING: The database is booted with {0}={1}. In this mode, it is possible that database may not
-                    be able to recover, committed transactions may be lost, database may be in an inconsistent state.
-                    Please use this mode only when these consequences are acceptable
+                <text>WARNING: The database is booted with {0}={1}. In this mode, it is possible that database may not be able to recover, committed transactions may be lost, database may be in an inconsistent state. Please use this mode only when these consequences are acceptable
                 </text>
                 <arg>durabilityProperty</arg>
                 <arg>noSync</arg>
@@ -9208,8 +8849,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>J109</name>
-                <text>Detected an improper TCP/IP client configuration. Unable to determine the IP address of your local
-                    host: '{0}'. Make sure your client machine has a properly configured IP address.
+                <text>Detected an improper TCP/IP client configuration. Unable to determine the IP address of your local host: '{0}'. Make sure your client machine has a properly configured IP address.
                 </text>
                 <arg>errorMessage</arg>
             </msg>
@@ -9271,23 +8911,19 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>J122</name>
-                <text>a command requesting services of the database was issued prior to the command requesting access to
-                    database (ACCRDB)
+                <text>a command requesting services of the database was issued prior to the command requesting access to database (ACCRDB)
                 </text>
             </msg>
 
             <msg>
                 <name>J123</name>
-                <text>the requested command encountered an unarchitected and implementation-specific condition for which
-                    there was no architected message (additional information may be available in the derby.log file on
-                    the server)
+                <text>the requested command encountered an unarchitected and implementation-specific condition for which there was no architected message (additional information may be available in the derby.log file on the server)
                 </text>
             </msg>
 
             <msg>
                 <name>J124</name>
-                <text>the access relational database (ACCRDB) command cannot be issued because the database is already
-                    currently accessed
+                <text>the access relational database (ACCRDB) command cannot be issued because the database is already currently accessed
                 </text>
             </msg>
 
@@ -9324,8 +8960,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>J131</name>
-                <text>A PROTOCOL Data Stream Syntax Error was detected. Reason: 0x{0}. Plaintext connection attempt to
-                    an SSL enabled server?
+                <text>A PROTOCOL Data Stream Syntax Error was detected. Reason: 0x{0}. Plaintext connection attempt to an SSL enabled server?
                 </text>
                 <arg>hexNumber</arg>
             </msg>
@@ -9353,8 +8988,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>J136</name>
-                <text>There was an XA transaction associated with the connection being closed. The transaction is going
-                    to be rolled back. The transaction Xid is {0}.
+                <text>There was an XA transaction associated with the connection being closed. The transaction is going to be rolled back. The transaction Xid is {0}.
                 </text>
                 <arg>transactionXid</arg>
             </msg>
@@ -9479,9 +9113,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>L020</name>
-                <text>WARNING: The database was at least at one time booted with {0}={1}. As a result of this mode being
-                    used, it is possible that the database may not be able to recover, committed transactions may be
-                    lost, and the database may be in an inconsistent state. This may cause unexpected errors.
+                <text>WARNING: The database was at least at one time booted with {0}={1}. As a result of this mode being used, it is possible that the database may not be able to recover, committed transactions may be lost, and the database may be in an inconsistent state. This may cause unexpected errors.
                 </text>
                 <arg>testModeProperty</arg>
                 <arg>testMode</arg>
@@ -9489,9 +9121,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>L021</name>
-                <text>WARNING: The database was either previously booted or is currently booted with {0} set to {1}.
-                    Note that this mode {0}={1} does not guarantee recoverability, and is probably what might have
-                    caused this boot error.
+                <text>WARNING: The database was either previously booted or is currently booted with {0} set to {1}. Note that this mode {0}={1} does not guarantee recoverability, and is probably what might have caused this boot error.
                 </text>
                 <arg>testModeProperty</arg>
                 <arg>testMode</arg>
@@ -9500,8 +9130,7 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>L022</name>
-                <text>WARNING: Due to a permissions issue accessing the log files, the status of the database has been
-                    changed to read only.
+                <text>WARNING: Due to a permissions issue accessing the log files, the status of the database has been changed to read only.
                 </text>
             </msg>
         </family>
@@ -9601,10 +9230,7 @@ so the product will default to showing a correct English message. -->
             <msg>
                 <name>M001</name>
                 <text>
-                    # ********************************************************************
-                    # *** Please do NOT edit this file. ***
-                    # *** CHANGING THE CONTENT OF THIS FILE MAY CAUSE DATA CORRUPTION. ***
-                    # ********************************************************************
+                    # ******************************************************************** # *** Please do NOT edit this file. *** # *** CHANGING THE CONTENT OF THIS FILE MAY CAUSE DATA CORRUPTION. *** # ********************************************************************
                 </text>
             </msg>
 
@@ -9648,8 +9274,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE003</name>
-                <text>Unable to write data to table {0} after {1} attempts. Please contact your system administrator for
-                    more assistance
+                <text>Unable to write data to table {0} after {1} attempts. Please contact your system administrator for more assistance
                 </text>
                 <arg>tableName</arg>
                 <arg>attemptCount</arg>
@@ -9657,23 +9282,20 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE004</name>
-                <text>A region for conglomerate {0} is offline. Please contact your system administrator for more
-                    assistance
+                <text>A region for conglomerate {0} is offline. Please contact your system administrator for more assistance
                 </text>
                 <arg>tableName</arg>
             </msg>
 
             <msg>
                 <name>SE005</name>
-                <text>A region is too busy to receive requests at this time. Please contact your system administrator
-                    for more assistance
+                <text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance
                 </text>
             </msg>
 
             <msg>
                 <name>SE006.C.3</name>
-                <text>The ZooKeeper connection could not be adequately maintained. Please contact your system
-                    administrator for more assistance
+                <text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance
                 </text>
             </msg>
 
@@ -9710,8 +9332,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE013</name>
-                <text>Unable to complete DDL operation {0}. There are long-running active transactions which affect it.
-                    Please wait until transactions {1} complete, or kill them.
+                <text>Unable to complete DDL operation {0}. There are long-running active transactions which affect it. Please wait until transactions {1} complete, or kill them.
                 </text>
                 <arg>operation</arg>
                 <arg>transactions</arg>
@@ -9726,8 +9347,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE015</name>
-                <text>Unable to commit transaction {0}. It either timed out, or was rolled back by an administrative
-                    action or indirectly by a committed conflicting transaction.
+                <text>Unable to commit transaction {0}. It either timed out, or was rolled back by an administrative action or indirectly by a committed conflicting transaction.
                 </text>
                 <arg>txn</arg>
             </msg>
@@ -9759,8 +9379,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE020</name>
-                <text>Setting write throughput to {0}, which is lower than 10,000 rows/second. This may cause
-                    exceptionally poor performance
+                <text>Setting write throughput to {0}, which is lower than 10,000 rows/second. This may cause exceptionally poor performance
                 </text>
                 <arg>throughput</arg>
             </msg>
@@ -9803,8 +9422,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE026</name>
-                <text>Cannot enable statistics extrapolation for column {0}: Column type {1} does not support
-                    extrapolation.
+                <text>Cannot enable statistics extrapolation for column {0}: Column type {1} does not support extrapolation.
                 </text>
                 <arg>column</arg>
                 <arg>columnType</arg>
@@ -9840,8 +9458,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>SE031</name>
-                <text>Committing transaction {0} is not possible since it conflicts with transaction {1} which is
-                    committed already
+                <text>Committing transaction {0} is not possible since it conflicts with transaction {1} which is committed already
                 </text>
                 <arg>txn</arg>
                 <arg>conflictingTxn</arg>
@@ -9920,8 +9537,7 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>BR014</name>
-                <text>A concurrent backup with ID {0} is running. Please wait until it completes or call
-                    syscs_util.syscs_cancel_backup({1}) to cancel it.
+                <text>A concurrent backup with ID {0} is running. Please wait until it completes or call syscs_util.syscs_cancel_backup({1}) to cancel it.
                 </text>
                 <arg>backupId</arg>
                 <arg>backupId</arg>
@@ -9954,21 +9570,18 @@ so the product will default to showing a correct English message. -->
             </msg>
             <msg>
                 <name>BR021</name>
-                <text>Incremental backup is not enabled. Please follow Splice Machine documentation to enable
-                    incremental backup.
+                <text>Incremental backup is not enabled. Please follow Splice Machine documentation to enable incremental backup.
                 </text>
             </msg>
             <msg>
                 <name>BR022</name>
-                <text>Cannot restore database to timestamp {0} because the database was created after the specified
-                    timestamp.
+                <text>Cannot restore database to timestamp {0} because the database was created after the specified timestamp.
                 </text>
                 <arg>timestamp</arg>
             </msg>
             <msg>
                 <name>BR023</name>
-                <text>Cannot restore database to transaction {0} because the backup was created before the specified
-                    transaction ID.
+                <text>Cannot restore database to transaction {0} because the backup was created before the specified transaction ID.
                 </text>
                 <arg>txnId</arg>
             </msg>
@@ -10147,8 +9760,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>EXT23</name>
-                <text>{0} attribute(s) defined but {1} present in the external file : '{2}'. Suggested Schema is
-                    '{3}'.
+                <text>{0} attribute(s) defined but {1} present in the external file : '{2}'. Suggested Schema is '{3}'.
                 </text>
                 <arg>definedAttributeCount</arg>
                 <arg>externalAttributeCount</arg>
@@ -10158,8 +9770,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>EXT24</name>
-                <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in
-                    the external file '{4}'. Suggested Schema is '{5}'.
+                <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in the external file '{4}'. Suggested Schema is '{5}'.
                 </text>
                 <arg>definedAttributeName</arg>
                 <arg>definedAttributeDataType</arg>
@@ -10264,8 +9875,7 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>TS002</name>
-                <text>Cannot calculate encoded region name for the split key, because primary key is not defined for
-                    table {0}.{1}
+                <text>Cannot calculate encoded region name for the split key, because primary key is not defined for table {0}.{1}
                 </text>
                 <arg>schemaName</arg>
                 <arg>tableName</arg>
