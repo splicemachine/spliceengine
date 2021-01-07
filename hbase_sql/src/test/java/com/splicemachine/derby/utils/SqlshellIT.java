@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.impl.tools.ij.Main;
+import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
@@ -13,6 +14,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class SqlshellIT {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
@@ -365,6 +367,11 @@ public class SqlshellIT {
             execute("maximumdisplaywidth 256;\n", "");
             execute("DROP TABLE TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME IF EXISTS");
         }
+    }
 
+    @Test
+    public void testHasServerLikeFix() {
+        Assert.assertEquals(Arrays.toString(ijCommands.parseVersion("3.2.0.1992")), "[3, 2, 0, 1992]");
+        Assert.assertEquals(Arrays.toString(ijCommands.parseVersion("2.8.0.1973-SNAPSHOT")), "[2, 8, 0, 1973]");
     }
 }
