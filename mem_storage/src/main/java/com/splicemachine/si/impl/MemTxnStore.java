@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -55,6 +55,7 @@ public class MemTxnStore implements TxnStore{
     private final long txnTimeOutIntervalMs;
     private final ExceptionFactory exceptionFactory;
     private final ActiveTxnTracker activeTransactions;
+    private Set<Long> commitPendingTxns;
 
 
     public MemTxnStore(Clock clock,TimestampSource commitTsGenerator,ExceptionFactory exceptionFactory,long txnTimeOutIntervalMs){
@@ -65,6 +66,7 @@ public class MemTxnStore implements TxnStore{
         this.exceptionFactory = exceptionFactory;
         this.clock = clock;
         this.activeTransactions = new ActiveTxnTracker();
+        this.commitPendingTxns = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -177,6 +179,48 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
+    public void rollback(long txnId, long originatorTxnId) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock = lockStriper.get(beginTS).writeLock();
+        // make sure that the region doesn't close while we are working on it
+        boolean lockAcquired = false;
+        while (!lockAcquired) {
+            try {
+                lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
+                if (!lockAcquired && commitPendingTxns.contains(txnId)) {
+                    if (originatorTxnId < txnId) { // simplest comparison that leads that
+                        throw new IOException(String.format("deadlock avoidance, fail to rollback " +
+                                                                    "transaction %d since it is in " +
+                                                                    "commit-pending state with the originator %d",
+                                                            txnId, originatorTxnId));
+                    }
+                    // otherwise keep trying, we'll eventually be able to
+                }
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+        try {
+            TxnHolder txnHolder = txnMap.get(beginTS);
+            Txn txn = txnHolder.txn;
+            Txn.State state = txn.getState();
+            if (state == null) {
+                return;
+            }
+            switch (state) {
+                case COMMITTED:
+                    throw new IOException(String.format("transaction %d is already committed", txnId));
+                case ROLLEDBACK:
+                    return;
+                default:
+                    txnHolder.txn = getRolledbackTxn(txnId, txn);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
     public void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 
@@ -241,12 +285,18 @@ public class MemTxnStore implements TxnStore{
     @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9844")
     public long commit(long txnId) throws IOException{
         ReadWriteLock readWriteLock=lockStriper.get(txnId);
+        commitPendingTxns.add(txnId);
         Lock wl=readWriteLock.writeLock();
         wl.lock();
         try{
             TxnHolder txnHolder=txnMap.get(txnId);
             if(txnHolder==null) throw new MCannotCommitException(txnId,null);
-
+            if(txnHolder.conflictingTxns != null && !txnHolder.conflictingTxns.isEmpty()) {
+                // roll 'em back and propagate failures
+                for(long conflictingTxn : txnHolder.conflictingTxns) {
+                   rollback(conflictingTxn, txnId);
+                }
+            }
             final Txn txn=txnHolder.txn;
             if(txn.getEffectiveState()==Txn.State.ROLLEDBACK)
                 throw new MCannotCommitException(txnId,Txn.State.ROLLEDBACK);
@@ -298,6 +348,7 @@ public class MemTxnStore implements TxnStore{
             };
             return commitTs;
         }finally{
+            commitPendingTxns.remove(txnId);
             wl.unlock();
         }
     }
@@ -490,18 +541,18 @@ public class MemTxnStore implements TxnStore{
     private static class TxnHolder{
         private volatile Txn txn;
         private volatile long keepAliveTs;
+        private volatile Set<Long> conflictingTxns;
 
         private TxnHolder(Txn txn,long keepAliveTs){
             this.txn=txn;
             this.keepAliveTs=keepAliveTs;
+            conflictingTxns=new HashSet<>();
         }
 
         @Override
         public String toString(){
-            return "TxnHolder{"+
-                    "txn="+txn+
-                    ", keepAliveTs="+keepAliveTs+
-                    '}';
+            return String.format("TxnHolder{txn=%s, keepAliveTs=%d, conflictingTxns=%s}",
+                                 txn, keepAliveTs, conflictingTxns.toString());
         }
     }
 
@@ -518,5 +569,31 @@ public class MemTxnStore implements TxnStore{
     @Override
     public long getOldTransactions() {
         return 0;
+    }
+
+    @Override
+    public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
+        long beginTs = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock wl=lockStriper.get(beginTs).writeLock();
+        wl.lock();
+        try{
+            TxnHolder txnHolder=txnMap.get(beginTs);
+            txnHolder.conflictingTxns.addAll(Longs.asList(conflictingTxnIds));
+        }finally{
+            wl.unlock();
+        }
+    }
+
+    @Override
+    public long[] getConflictingTxnIds(long txnId) throws IOException {
+        long beginTs = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock rl=lockStriper.get(beginTs).readLock();
+        rl.lock();
+        try{
+            TxnHolder txnHolder=txnMap.get(txnId);
+            return Longs.toArray(txnHolder.conflictingTxns);
+        }finally{
+            rl.unlock();
+        }
     }
 }
