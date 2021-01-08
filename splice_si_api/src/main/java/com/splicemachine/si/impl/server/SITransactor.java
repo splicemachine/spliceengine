@@ -589,6 +589,9 @@ public class SITransactor implements Transactor{
                         break;
                     case SIBLING:
                         throwWriteWriteConflict(updateTransaction, commitCell, txnId);
+                    case NONE: // fallthrough
+                    default:
+                        return conflictResults;
                 }
             }else{
                 // Committed transaction
