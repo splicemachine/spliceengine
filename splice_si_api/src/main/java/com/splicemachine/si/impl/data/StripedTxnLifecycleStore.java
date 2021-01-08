@@ -27,8 +27,10 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import splice.com.google.common.primitives.Longs;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -302,10 +304,12 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-        Lock lock = lockStriper.get(beginTS).writeLock();
+        Lock lock = lockStriper.get(beginTS).writeLock(); // no way to upgrade read lock to write lock ... stick to write lock.
         acquireLock(lock);
+        Set<Long> result = new HashSet<>(baseStore.getConflictingTxnIds(txnId).getConflictingTxnIdsList());
+        result.addAll(Longs.asList(conflictingTxnIds));
         try {
-            baseStore.addConflictingTxnIds(txnId, conflictingTxnIds);
+            baseStore.addConflictingTxnIds(txnId, Longs.toArray(result));
         } finally {
             unlock(lock);
         }

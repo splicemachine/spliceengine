@@ -183,7 +183,7 @@ public class SIConfigurations implements ConfigurationDefault {
 
     // write-write conflict resolution strategy
     public static final String CONFLICT_RESOLUTION_STRATEGY = "splice.txn.conflictResolutionStrategy";
-    public static final String DEFAULT_CONFLICT_RESOLUTION_STRATEGY = "IMMEDIATE";
+    public static final String DEFAULT_CONFLICT_RESOLUTION_STRATEGY = ConflictResolutionStrategy.DEFERRED.toString();
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
