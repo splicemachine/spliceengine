@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;
@@ -11,6 +12,8 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // database resources are closed by caller
 @SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION"})
@@ -18,6 +21,42 @@ public class ijCommands {
     public Connection theConnection;
     public ConnectionEnv currentConnEnv;
 
+    Boolean serverLikeFix = null;
+    String getVersion() throws SQLException {
+        Statement stmt = theConnection.createStatement();
+        try (ResultSet rs = stmt.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()" ) ) {
+            rs.next();
+            return rs.getString(2);
+        }
+    }
+
+    static public int[] parseVersion(String v) {
+        Pattern r = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d)*\\.(\\d*)(-.*)?");
+        Matcher m = r.matcher(v);
+        if( m.find() ) {
+            return new int[] {Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
+                    Integer.parseInt(m.group(3)), Integer.parseInt(m.group(4))};
+        }
+        else
+            return null;
+    }
+
+    // see DB-11101
+    boolean hasServerLikeFix() {
+        if(serverLikeFix == null) {
+            try {
+                int[] v = parseVersion(getVersion());
+                if(v != null && v[0] >= 3 && v[3] >= 1988 ){
+                    serverLikeFix = Boolean.TRUE;
+                }
+                else
+                    serverLikeFix = Boolean.FALSE;
+            } catch (Exception e) {
+                serverLikeFix = Boolean.FALSE;
+            }
+        }
+        return serverLikeFix;
+    }
 
     ijCommands() {}
     ijCommands(Connection theConnection, ConnectionEnv currentConnEnv)
@@ -219,8 +258,10 @@ public class ijCommands {
             haveConnection();
 
             DatabaseMetaData dbmd = theConnection.getMetaData();
-            rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
-
+            if(hasServerLikeFix())
+                rs = dbmd.getPrimaryKeys(null,Utils.escape(schema),Utils.escape(table));
+            else
+                rs = dbmd.getPrimaryKeys(null,schema,table);
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_NAME", 30),
                     new ColumnParameters( rs, "COLUMN_NAME", 30),
@@ -553,7 +594,10 @@ public class ijCommands {
                 }
             }
 
-            rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+            if(hasServerLikeFix())
+                rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+            else
+                rs = dbmd.getColumns(null,schema,table,null);
 
             ColumnParameters[] columnParameters = new ColumnParameters[] {
                     new ColumnParameters( rs, "TABLE_SCHEM", 20),
