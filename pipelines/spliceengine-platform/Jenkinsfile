@@ -56,7 +56,7 @@ def generateStage(platform,slackResponse) {
                         export PATH=/opt/ant/bin:/opt/maven/bin:${PATH}:${PATH}
                         export MAVEN_OPTS="-Xmx4096m -Djava.awt.headless=true -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30 -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=YYYY-MM-dd|HH:mm:ss,SSS"
                         mvn -B -e --fail-at-end clean install -Pcore -DskipTests
-                        cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                        cp pipelines/template/settings.xml ~/.m2/settings.xml
                         sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                         sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                         mvn -B -e --fail-at-end install -Pcore,${platform},ee -Dexcluded.categories=com.splicemachine.test.SlowTest -Dmaven.test.redirectTestOutputToFile=true
