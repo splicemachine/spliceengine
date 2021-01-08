@@ -68,17 +68,12 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   val internalJDBCOptions = new JDBCOptions(internalOptions)
 
-  val conf = new SparkConf().
-    setMaster("local[*]").
-    setAppName("test").
-    set("spark.ui.enabled", "false").
-    set("spark.app.id", appID)
-
   val testRow = List(0,200)
 
   override def beforeAll() {
     spark = SpliceSpark.getSessionUnsafe
     sqlContext = spark.sqlContext
+    ThisVersionSpecificItems.beforeAll(spark)
     spark.conf.set("spark.master", "local[*]")
     spark.conf.set("spark.app.name", "test")
     spark.conf.set("spark.ui.enabled", "false")
