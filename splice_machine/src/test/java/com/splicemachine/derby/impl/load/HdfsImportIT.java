@@ -183,6 +183,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     private static SpliceTableWatcher  multiPK = new SpliceTableWatcher("withpk",spliceSchemaWatcher.schemaName,
             "(a int primary key)");
 
+    protected static SpliceTableWatcher cacheNPEtest = new SpliceTableWatcher("cacheNPEtest", spliceSchemaWatcher
+            .schemaName, "(c1 int)");
 
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
             spliceSchemaWatcher.schemaName,
@@ -219,6 +221,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher25)
             .around(spliceTableWatcher26)
             .around(spliceTableWatcher27)
+            .around(cacheNPEtest)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -2192,5 +2195,23 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
+    @Test // DB-11113/DB-11117 fix LCC NPE when using getPreserveLineEndings in SpliceFileVTI
+    public void testPropertiesCacheNPE() throws Exception {
+        String path = getResourceDirectory() + "load_replace1.csv";
+        String vti = "new com.splicemachine.derby.vti.SpliceFileVTI('" + path + "', NULL,'|', NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) AS T(A INTEGER)";
+        methodWatcher.executeUpdate("TRUNCATE TABLE cacheNPEtest");
+        methodWatcher.executeUpdate("INSERT INTO cacheNPEtest SELECT * from " + vti);
+        String expected =
+                "C1 | A |\n" +
+                        "--------\n" +
+                        " 1 | 1 |\n" +
+                        " 2 | 2 |\n" +
+                        " 3 | 3 |\n" +
+                        " 4 | 4 |\n" +
+                        " 5 | 5 |";
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                "SELECT * from cacheNPEtest, " + vti + " --splice-properties joinStrategy=broadcast\n" +
+                        "WHERE A=c1", expected, false);
+    }
 
 }
