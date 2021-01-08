@@ -817,7 +817,6 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-11083")
     public void testJoinPredsWithOverlappingColumns() throws Exception {
         rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and b.a = c.a and a.a = c.a","outputRows=10,",methodWatcher);
         rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
