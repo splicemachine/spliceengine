@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
@@ -57,13 +58,17 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -97,6 +102,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
     private long startTime = System.nanoTime();
+    private ExecRow currentBaseRow;
 
     public SpliceBaseOperation(){
         super();
@@ -529,7 +535,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         isOpen = true;
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
         remoteQueryClient.submit();
-        execRowIterator = remoteQueryClient.getIterator();
+        execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
+            @Nullable
+            @Override
+            public ExecRow apply(@Nullable ExecRow execRow) {
+                getOperation().setCurrentRow(execRow);
+                getOperation().setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
+                if(isForUpdate() && execRow != null && execRow.getBaseRowCols() != null) {
+                    getOperation().setCurrentBaseRowLocation(new ValueRow(execRow.getBaseRowCols()));
+                }
+                return execRow;
+            }
+        });
     }
 
     @Override
@@ -1154,5 +1171,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     public boolean isFromTableStatement() {
         return false;
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return false;
+    }
+
+    @Override
+    public void setCurrentBaseRowLocation(ExecRow currentBaseRow){
+        this.currentBaseRow = currentBaseRow;
+    }
+
+    @Override
+    public ExecRow getCurrentBaseRow() throws StandardException {
+        return currentBaseRow;
     }
 }
