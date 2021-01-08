@@ -49,7 +49,7 @@ node('splice-standalone'){
                 wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                     sh """
                     mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
-                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end install -Pcore,cdh3.0,ee,parcel
