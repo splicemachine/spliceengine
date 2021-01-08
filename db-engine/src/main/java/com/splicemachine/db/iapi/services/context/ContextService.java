@@ -47,8 +47,8 @@ public final class ContextService{
 
     private static volatile ContextService factory;
     private static volatile boolean stopped;
-    private static int highWaterMark = 1000;
 
+    private int highWaterMark = 1000;
     private HeaderPrintWriter errorStream;
 
     /**
@@ -396,7 +396,7 @@ public final class ContextService{
 
         synchronized(allContexts) {
             allContexts.add(cm);
-            if (allContexts.size() > highWaterMark) {
+            if (allContexts.size() >= highWaterMark) {
                 highWaterMark += 100;
                 LOG.warn("memoryLeakTrace:allContexts " + allContexts.size());
             }
