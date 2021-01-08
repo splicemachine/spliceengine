@@ -85,6 +85,7 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean initialFileInput;
     private boolean firstRun = true;
     private LocalizedOutput out = null;
+    private LocalizedOutput outBackup = null;
     private Hashtable ignoreErrors;
     private boolean doSpool = false;
     private boolean omitHeader = false;
@@ -208,24 +209,19 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    /**
-     * run ij over the specified input, sending output to the
-     * specified output. Any prior input and output will be lost.
-     *
-     * @param in  source for input to ij
-     * @param out sink for output from ij
-     */
-    public void go(LocalizedInput[] in, LocalizedOutput out)
-            throws ijFatalException {
-        this.out = out;
-
-        ijParser.setConnection(connEnv[currCE], (numConnections > 1));
+    public void goStart(LocalizedInput[] in)
+    {
         fileInput = initialFileInput = (!in[currCE].isStandardInput());
-
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
+        runScriptGuts();
+    }
 
+    public void init(LocalizedOutput out)
+    {
+        this.out = out;
+        ijParser.setConnection(connEnv[currCE], (numConnections > 1));
         if (firstRun) {
             for (int i = connEnv.length - 1; i >= 0; i--) { // print out any initial warnings...
                 Connection c = connEnv[i].getConnection();
@@ -237,9 +233,21 @@ public class utilMain implements java.security.PrivilegedAction {
 
             supportIJProperties(connEnv[currCE]);
         }
-        runScriptGuts();
+    }
+    /**
+     * run ij over the specified input, sending output to the
+     * specified output. Any prior input and output will be lost.
+     *
+     * @param in  source for input to ij
+     * @param out sink for output from ij
+     */
+    public void go(LocalizedInput[] in, LocalizedOutput out)
+            throws ijFatalException {
+        init(out);
+        goStart(in);
         cleanupGo(in);
     }
+
 
     /**
      * Support to run a script. Performs minimal setup
@@ -308,9 +316,10 @@ public class utilMain implements java.security.PrivilegedAction {
                 if (doSpool) {
                     assert out.getOutputStream() instanceof ForkOutputStream;
                     ForkOutputStream fos = (ForkOutputStream) (out.getOutputStream());
-                    fos.setWriteToOut(false); // do not write the command twice to std output
+                    if(!fileInput)
+                        fos.setWriteToOut(false); // do not write the command twice to std output
                     try {
-                        out.println(command + ";");
+                        out.println(command + terminator);
                         out.flush();
                     } finally {
                         fos.setWriteToOut(true);
@@ -338,7 +347,7 @@ public class utilMain implements java.security.PrivilegedAction {
                     long endTime;
 
                     if (fileInput && !doSpool) {
-                        out.println(command + ";");
+                        out.println(command + terminator);
                         out.flush();
                     }
 
@@ -409,7 +418,7 @@ public class utilMain implements java.security.PrivilegedAction {
      *
      * @param in
      */
-    private void cleanupGo(LocalizedInput[] in) {
+    public void cleanupGo(LocalizedInput[] in) {
 
         // we need to close all sessions when done; otherwise we have
         // a problem when a single VM runs successive IJ threads
@@ -809,8 +818,8 @@ public class utilMain implements java.security.PrivilegedAction {
                 out.println(langUtil.getTextMessage("IJ_SpoolError", path));
                 return;
             }
-            this.out.close();
-            this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
+            this.outBackup = this.out;
+            this.out = new LocalizedOutput(new ForkOutputStream(this.out.getOutputStream(), new FileOutputStream(f)));
             doSpool = true;
         } catch (IOException e) {
             out.println(langUtil.getTextMessage("IJ_SpoolError", path));
@@ -824,7 +833,7 @@ public class utilMain implements java.security.PrivilegedAction {
             doSpool = false;
             this.out.flush();
             this.out.close();
-            this.out = new LocalizedOutput(System.out);
+            this.out = this.outBackup;
         }
     }
 
