@@ -273,7 +273,7 @@ public interface TransactionController
      * Get reference to access factory which started this transaction.
      * <p>
      *
-	 * @return The AccessFactory which started this transaction.
+     * @return The AccessFactory which started this transaction.
      **/
 	AccessFactory getAccessManager();
 
@@ -361,62 +361,62 @@ public interface TransactionController
 
 	@return The identifier to be used to open the conglomerate later.
 
-	 @exception  StandardException  if the conglomerate could
+    @exception  StandardException  if the conglomerate could
 	not be created for some reason.
     *
-	 * @param implementation Specifies what kind of conglomerate to create.
-	 THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
-	 For now, use "BTREE" or "heap" for a local access manager.
-	 * @param template A row which describes the prototypical
-  row that the conglomerate will be holding.
-  Typically this row gives the conglomerate
-  information about the number and type of
-  columns it will be holding.  The implementation
-  may require a specific subclass of row type.
-  Note that the createConglomerate call reads the template and makes a copy
-  of any necessary information from the template, no reference to the
-  template is kept (and thus this template can be re-used in subsequent
-  calls - such as openScan()).  This field is required when creating either
-  a heap or btree conglomerate.
-	 * @param columnOrder Specifies the colummns sort order.
-Useful only when the conglomerate is of type BTREE, default
-value is 'null', which means all columns needs to be sorted in
-Ascending order.
-	 * @param collationIds Specifies the collation id of each of the columns
-in the new conglomerate.  Collation id along with format id may be used
-to create DataValueDescriptor's which may subsequently be used for
-comparisons.  For instance the correct collation specific order and
-searching is maintained by correctly specifying the collation id of
-the columns in the index when the index is created.
-	 * @param properties Implementation-specific properties of the
-conglomerate.
-	 * @param  temporaryFlag
-Where temporaryFlag can have the following values:
-IS_DEFAULT		- no bit is set.
-IS_TEMPORARY	- if set, the conglomerate is temporary
-IS_KEPT			- only looked at if IS_TEMPORARY,
-				  if set, the temporary container is not
-				  removed automatically by store when
-				  transaction terminates.
+    * @param implementation Specifies what kind of conglomerate to create.
+    THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
+    For now, use "BTREE" or "heap" for a local access manager.
+    * @param template A row which describes the prototypical
+      row that the conglomerate will be holding.
+      Typically this row gives the conglomerate
+      information about the number and type of
+      columns it will be holding.  The implementation
+      may require a specific subclass of row type.
+      Note that the createConglomerate call reads the template and makes a copy
+      of any necessary information from the template, no reference to the
+      template is kept (and thus this template can be re-used in subsequent
+      calls - such as openScan()).  This field is required when creating either
+      a heap or btree conglomerate.
+    * @param columnOrder Specifies the colummns sort order.
+        Useful only when the conglomerate is of type BTREE, default
+        value is 'null', which means all columns needs to be sorted in
+        Ascending order.
+    * @param collationIds Specifies the collation id of each of the columns
+        in the new conglomerate.  Collation id along with format id may be used
+        to create DataValueDescriptor's which may subsequently be used for
+        comparisons.  For instance the correct collation specific order and
+        searching is maintained by correctly specifying the collation id of
+        the columns in the index when the index is created.
+    * @param properties Implementation-specific properties of the
+        conglomerate.
+    * @param  temporaryFlag
+        Where temporaryFlag can have the following values:
+        IS_DEFAULT		- no bit is set.
+        IS_TEMPORARY	- if set, the conglomerate is temporary
+        IS_KEPT			- only looked at if IS_TEMPORARY,
+                         if set, the temporary container is not
+                         removed automatically by store when
+                         transaction terminates.
 
-If IS_TEMPORARY is set, the conglomerate is temporary.
-Temporary conglomerates are only visible through the transaction
-controller that created them.  Otherwise, they are opened,
-scanned, and dropped in the same way as permanent conglomerates.
-Changes to temporary conglomerates persist across commits, but
-temporary conglomerates are truncated on abort (or rollback
-to savepoint).  Updates to temporary conglomerates are not
-locked or logged.
+        If IS_TEMPORARY is set, the conglomerate is temporary.
+        Temporary conglomerates are only visible through the transaction
+        controller that created them.  Otherwise, they are opened,
+        scanned, and dropped in the same way as permanent conglomerates.
+        Changes to temporary conglomerates persist across commits, but
+        temporary conglomerates are truncated on abort (or rollback
+        to savepoint).  Updates to temporary conglomerates are not
+        locked or logged.
 
-A temporary conglomerate is only visible to the	transaction
-controller that created it, even if the conglomerate IS_KEPT
-when the transaction termination.
+        A temporary conglomerate is only visible to the	transaction
+        controller that created it, even if the conglomerate IS_KEPT
+        when the transaction termination.
 
-All temporary conglomerate is removed by store when the
-conglomerate controller is destroyed, or if it is dropped by an explicit
-dropConglomerate.  If Derby reboots, all temporary
-conglomerates are removed.
-	 * @param priority*/
+        All temporary conglomerate is removed by store when the
+        conglomerate controller is destroyed, or if it is dropped by an explicit
+        dropConglomerate.  If Derby reboots, all temporary
+        conglomerates are removed.
+    * @param priority*/
     long createConglomerate(
         boolean                 isExternal,
         String                  implementation,
@@ -441,10 +441,10 @@ conglomerates are removed.
             throws StandardException;
 
 	/** Tags this conglomerate with the transaction Id that dropped it, in order
-	 * to resolve whether or not we can VACUUM it later on
-	 * @param conglomerateId
-	 * @throws StandardException
-	 */
+     * to resolve whether or not we can VACUUM it later on
+     * @param conglomerateId
+     * @throws StandardException
+     */
 	void markConglomerateDropped(
 			long conglomerateId)
 			throws StandardException;
@@ -603,7 +603,7 @@ conglomerates are removed.
 	ColumnOrdering[]		columnOrder,
     int[]                   collationIds,
     Properties              properties,
-    int			            temporaryFlag,
+    int                     temporaryFlag,
     long                    orig_conglomId,
     RowLocationRetRowSource rowSource,
 	long[] rowCount
@@ -671,7 +671,7 @@ conglomerates are removed.
 	@param conglomId The identifier of the conglomerate to drop.
 
 	@exception StandardException if the conglomerate could not be
-	 dropped for some reason.
+     dropped for some reason.
     **/
     void dropConglomerate(long conglomId)
 		throws StandardException;
@@ -680,9 +680,9 @@ conglomerates are removed.
      * For debugging, find the conglomid given the containerid.
      * <p>
      *
-	 * @return the conglomid, which contains the container with containerid.
+     * @return the conglomid, which contains the container with containerid.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     long findConglomid(long containerid)
 		throws StandardException;
@@ -693,10 +693,10 @@ conglomerates are removed.
      * Will have to change if we ever have more than one container in 
      * a conglomerate.
      *
-	 * @return the containerid of container implementing conglomerate with 
+     * @return the containerid of container implementing conglomerate with
      *             "conglomid."
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     long findContainerid(long conglomid)
 		throws StandardException;
@@ -795,9 +795,9 @@ conglomerates are removed.
      *                                 works correctly if a commit can be lost
      *                                 on system crash.
      *
-	 * @return The new nested user transaction.
+     * @return The new nested user transaction.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
 	TransactionController startNestedUserTransaction(
 			boolean readOnly,
@@ -808,47 +808,47 @@ conglomerates are removed.
      * Get a nested internal transaction.
      * <p>
      * A nested internal transaction is used in place of a user transaction
-	 * when a DML statement is executing its operation tree and a new writable
-	 * child transaction needs to be created with the possibility that within
-	 * that statement another substatement may be run, requiring a nested transaction.
-	 *
-	 * @param readOnly True to begin a readOnly transaction, otherwise false.
-	 * @param destinationTable The byte representation of the conglomerate
-	 *                         number of the target table as a String.
-	 * @param inMemoryTxn If true, attempt to begin the child transaction
-	 *                    as an in-memory transaction.  This is only
-	 *                    applicable to non-Spark queries.
-	 * @return SpliceInternalTransactionManager object for tracking the latest child transaction.
-	 *
-	 * @notes The purpose of this method is to produce a new SpliceInternalTransactionManager
-	 * in the current context which will return the most recent child transaction upon
-	 * call to LanguageConnectionContext.getTransactionExecute().  This is the main method
-	 * which is used to determine which parent transaction to use when beginning a new
-	 * child transaction.  Previously, triggers nested inside triggers did not create the
-	 * inside trigger's transaction as a child of the outer trigger's transaction, but instead
-	 * as a child of the top-level DMLWriteOperation.  Having triggers use sibling transactions
-	 * adds the need to do early committing of transactions so that one trigger's written rows
-	 * are visible to the other trigger, and causes problems if we need to roll back.
-	 * With fully nested triggers, a child trigger can see a parent trigger's written rows
-	 * while the parent transaction is still active, so we never have to get in a situation
-	 * where we need to roll back a committed transaction.
-	 * Once this TransactionController is created, it should be pushed to the context via
-	 * LanguageConnectionContext.pushNestedTransaction, and popped via popNestedTransaction
-	 * once the executing operation is finished.
-	 * Once the initial TransactionController is pushed, subsequent child transactions can
-	 * be pushed to the transaction stack via:
-	 *   lcc.getTransactionExecute().getRawStoreXact().pushInternalTransaction(childTxn);
-	 *
-	 * SpliceInternalTransactionManager cannot be used to set or release savepoints or commit
-	 * transactions.  It is merely used for providing a means to pick the proper parent
-	 * transaction for any new internally-created child transactions.
-	 *
-	 */
+     * when a DML statement is executing its operation tree and a new writable
+     * child transaction needs to be created with the possibility that within
+     * that statement another substatement may be run, requiring a nested transaction.
+     *
+     * @param readOnly True to begin a readOnly transaction, otherwise false.
+     * @param destinationTable The byte representation of the conglomerate
+     *                         number of the target table as a String.
+     * @param inMemoryTxn If true, attempt to begin the child transaction
+     *                    as an in-memory transaction.  This is only
+     *                    applicable to non-Spark queries.
+     * @return SpliceInternalTransactionManager object for tracking the latest child transaction.
+     *
+     * @notes The purpose of this method is to produce a new SpliceInternalTransactionManager
+     * in the current context which will return the most recent child transaction upon
+     * call to LanguageConnectionContext.getTransactionExecute().  This is the main method
+     * which is used to determine which parent transaction to use when beginning a new
+     * child transaction.  Previously, triggers nested inside triggers did not create the
+     * inside trigger's transaction as a child of the outer trigger's transaction, but instead
+     * as a child of the top-level DMLWriteOperation.  Having triggers use sibling transactions
+     * adds the need to do early committing of transactions so that one trigger's written rows
+     * are visible to the other trigger, and causes problems if we need to roll back.
+     * With fully nested triggers, a child trigger can see a parent trigger's written rows
+     * while the parent transaction is still active, so we never have to get in a situation
+     * where we need to roll back a committed transaction.
+     * Once this TransactionController is created, it should be pushed to the context via
+     * LanguageConnectionContext.pushNestedTransaction, and popped via popNestedTransaction
+     * once the executing operation is finished.
+     * Once the initial TransactionController is pushed, subsequent child transactions can
+     * be pushed to the transaction stack via:
+     *   lcc.getTransactionExecute().getRawStoreXact().pushInternalTransaction(childTxn);
+     *
+     * SpliceInternalTransactionManager cannot be used to set or release savepoints or commit
+     * transactions.  It is merely used for providing a means to pick the proper parent
+     * transaction for any new internally-created child transactions.
+     *
+     */
 	TransactionController startNestedInternalTransaction(
-	        boolean readOnly,
+            boolean readOnly,
             byte[] destinationTable,
 			boolean inMemoryTxn)
-	    throws StandardException;
+        throws StandardException;
 
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
 
@@ -876,7 +876,7 @@ conglomerates are removed.
      *      db.storage.pageReservedSpace
      *      db.storage.pageSize
      *
-	 * @return The superset of properties that "users" can specify.
+     * @return The superset of properties that "users" can specify.
      *
      **/
     Properties getUserCreateConglomPropList();
@@ -891,13 +891,13 @@ conglomerates are removed.
      * <p>
      * The close method is on the ConglomerateController interface.
      *
-	 * @return a ConglomerateController to manipulate the conglomerate.
+     * @return a ConglomerateController to manipulate the conglomerate.
      *
      * @param conglomId         The identifier of the conglomerate to open.
      *
-	 * @param hold              If true, will be maintained open over commits.
+     * @param hold              If true, will be maintained open over commits.
      *
-	 * @param open_mode         Specifiy flags to control opening of table.  
+     * @param open_mode         Specifiy flags to control opening of table.
      *                          OPENMODE_FORUPDATE - if set open the table for
      *                          update otherwise open table shared.
      *
@@ -908,7 +908,7 @@ conglomerates are removed.
      *                          ISOLATION_REPEATABLE_READ or 
      *                          ISOLATION_SERIALIZABLE).
      *
-	 * @exception  StandardException  if the conglomerate could not be opened 
+     * @exception  StandardException  if the conglomerate could not be opened
      *                                for some reason.  Throws 
      *                                SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST
      *                                if the conglomId being requested does not
@@ -940,10 +940,10 @@ conglomerates are removed.
      * @see DynamicCompiledOpenConglomInfo
      * @see StaticCompiledOpenConglomInfo
      *
-	 * @return The identifier to be used to open the conglomerate later.
+     * @return The identifier to be used to open the conglomerate later.
      *
-	 * @param hold              If true, will be maintained open over commits.
-	 * @param open_mode         Specifiy flags to control opening of table.  
+     * @param hold              If true, will be maintained open over commits.
+     * @param open_mode         Specifiy flags to control opening of table.
      * @param lock_level        One of (MODE_TABLE, MODE_RECORD).
      * @param isolation_level   The isolation level to lock the conglomerate at.
      *                          One of (ISOLATION_READ_COMMITTED, 
@@ -954,7 +954,7 @@ conglomerates are removed.
      * @param dynamic_info      object returned from
      *                          getDynamicCompiledConglomInfo() call on this id.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     ConglomerateController openCompiledConglomerate(
     boolean                         hold,
@@ -977,8 +977,8 @@ conglomerates are removed.
 	with two columns, where the 0-th column is named 'x', and the 1st
 	column is named 'y'.  The values of the columns are as follows:
 	<blockquote><pre>
-	  x: 1 3 4 4 4 5 5 5 6 7 9
-	  y: 1 1 2 4 6 2 4 6 1 1 1
+      x: 1 3 4 4 4 5 5 5 6 7 9
+      y: 1 1 2 4 6 2 4 6 1 1 1
 	</blockquote></pre>
 	<P>
 	A {start key, search op} pair of {{5.2}, GE} would position on
@@ -1208,7 +1208,7 @@ conglomerates are removed.
      * @see DynamicCompiledOpenConglomInfo
      * @see StaticCompiledOpenConglomInfo
      *
-	 * @return The identifier to be used to open the conglomerate later.
+     * @return The identifier to be used to open the conglomerate later.
      *
      * @param open_mode             see openScan()
      * @param lock_level            see openScan()
@@ -1224,7 +1224,7 @@ conglomerates are removed.
      * @param dynamic_info      object returned from
      *                          getDynamicCompiledConglomInfo() call on this id.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
 	ScanController openCompiledScan(
 		boolean                         hold,
@@ -1250,9 +1250,9 @@ conglomerates are removed.
      * of rows from the conglomerate.
      * <p>
      *
-	 * @return The GroupFetchScanController to be used to fetch the rows.
+     * @return The GroupFetchScanController to be used to fetch the rows.
      *
-	 * @param conglomId             see openScan()
+     * @param conglomId             see openScan()
      * @param open_mode             see openScan()
      * @param lock_level            see openScan()
      * @param isolation_level       see openScan()
@@ -1263,7 +1263,7 @@ conglomerates are removed.
      * @param stopKeyValue          see openScan()
      * @param stopSearchOperator    see openScan()
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see ScanController
      * @see GroupFetchScanController
@@ -1293,13 +1293,13 @@ conglomerates are removed.
      * @return The open StoreCostController.
      *
      * @param conglomerateDescriptor The identifier of the conglomerate to open.
-	 *
-	 * @param skipDictionaryStats Whether we should fetch real stats from dictionary or just fake it
-	 *
-	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
-	 * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
-	 *
+     * @param skipDictionaryStats Whether we should fetch real stats from dictionary or just fake it
+     *
+     * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
+     *
+     * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
+     *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
@@ -1315,9 +1315,9 @@ conglomerates are removed.
      * on SanityManager.DEBUG.
      * <p>
      *
-	 * @return String with debugging information.
+     * @return String with debugging information.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
 	String debugOpened() throws StandardException;
 
@@ -1364,11 +1364,11 @@ conglomerates are removed.
      * threads as necessary.
      * <p>
      *
-	 * @return The static compiled information.
+     * @return The static compiled information.
      *
      * @param conglomId The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
 	StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
 			long conglomId)
@@ -1386,11 +1386,11 @@ conglomerates are removed.
      * evaluation, ...
      * <p>
      *
-	 * @return The dynamic information.
+     * @return The dynamic information.
      *
      * @param conglomId The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
 	DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo(
 			long conglomId)
@@ -1414,11 +1414,11 @@ conglomerates are removed.
      * <p>
      * @param implParameters  Properties which help in choosing 
      *                        implementation-specific sort options.  If null, a
-	 *                        "generally useful" sort will be used.
+     *                        "generally useful" sort will be used.
      *
-	 * @return The open StoreCostController.
+     * @return The open StoreCostController.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
@@ -1532,16 +1532,16 @@ conglomerates are removed.
      * which is bumped every time a commit or abort is issued.
      * <p>
      *
-	 * @return The a string which identifies the transaction.  
+     * @return The a string which identifies the transaction.
      **/
 	String getTransactionIdString();
 
 	/**
      * Get string id of the transaction that would be when the Transaction
-	 * is IN active state. This method increments the Tx id of  current Tx
-	 * object if it is in idle state. 
-	 * Note: Use this method only  getTransactionIdString() is not suitable.
-	 * @return The string which identifies the transaction.  
+     * is IN active state. This method increments the Tx id of  current Tx
+     * object if it is in idle state.
+     * Note: Use this method only  getTransactionIdString() is not suitable.
+     * @return The string which identifies the transaction.
      **/
 	String getActiveStateTxIdString();
 
@@ -1562,14 +1562,14 @@ conglomerates are removed.
     /**
      * Reveals whether the transaction has ever read or written data.
      *
-	 * @return true If the transaction has never read or written data.
+     * @return true If the transaction has never read or written data.
      **/
 	boolean isIdle();
 
     /**
      * Reveals whether the transaction is a global or local transaction.
      *
-	 * @return true If the transaction was either started by 
+     * @return true If the transaction was either started by
      *         AccessFactory.startXATransaction() or was morphed to a global
      *         transaction by calling createXATransactionFromLocalTransaction().
      * 
@@ -1582,7 +1582,7 @@ conglomerates are removed.
     /**
      * Reveals whether the transaction is read only.
      *
-	 * @return true If the transaction is read only to this point.
+     * @return true If the transaction is read only to this point.
      *
      **/
 	boolean isPristine();
@@ -1594,10 +1594,10 @@ conglomerates are removed.
 
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-                    Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-                    A String value for kindOfSavepoint would mean it is SQL savepoint
-                    A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+    @param kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+                Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+                A String value for kindOfSavepoint would mean it is SQL savepoint
+                A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
     @return returns savepoint position in the stack.
 
 	@exception StandardException  Standard Derby exception policy.  A 
@@ -1627,10 +1627,10 @@ conglomerates are removed.
     @param name               The identifier of the SavePoint to roll back to.
     @param close_controllers  boolean indicating whether or not the controller 
                               should close open controllers.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-	  Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-	  A String value for kindOfSavepoint would mean it is SQL savepoint
-	  A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+    @param kindOfSavepoint    A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+           Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+           A String value for kindOfSavepoint would mean it is SQL savepoint
+           A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
     @return returns savepoint position in the stack.
 
 	@exception StandardException  Standard Derby exception policy.  A 
@@ -1651,10 +1651,10 @@ conglomerates are removed.
 	"one" (including those made since "two") and release savepoint "two".
 
     @param name     The user provided name of the savepoint.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-	  Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-	  A String value for kindOfSavepoint would mean it is SQL savepoint
-	  A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+    @param kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+           Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+           A String value for kindOfSavepoint would mean it is SQL savepoint
+           A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 	@return returns savepoint position in the stack.
 
 	@exception StandardException  Standard Derby exception policy.  A 
@@ -1666,8 +1666,8 @@ conglomerates are removed.
 	/**
      * Convert a local transaction to a global transaction.
      * <p>
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Tbis controller allows one to manipulate a
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Tbis controller allows one to manipulate a
      * global XA conforming transaction.
      * <p>
      * Must only be called a previous local transaction was created and exists
@@ -1686,9 +1686,9 @@ conglomerates are removed.
      * @param branch_id The branch qualifier of the Xid - ie. 
      *                  Xid.getBranchQaulifier()
      * 	
-	 * @exception StandardException Standard exception policy.
-	 * @see TransactionController
-	 **/
+     * @exception StandardException Standard exception policy.
+     * @see TransactionController
+     **/
 	/* XATransactionController */ Object createXATransactionFromLocalTransaction(
     int                     format_id,
     byte[]                  global_id,
@@ -1705,12 +1705,12 @@ conglomerates are removed.
 	long getActiveStateTxId();
 
 	/**
-	 * The ScanController.close() method has been called on "scan".
-	 * <p>
-	 * Take whatever cleanup action is appropriate to a closed scan.  It is
-	 * likely this routine will remove references to the scan object that it
-	 * was maintaining for cleanup purposes.
-	 *
-	 **/
+     * The ScanController.close() method has been called on "scan".
+     * <p>
+     * Take whatever cleanup action is appropriate to a closed scan.  It is
+     * likely this routine will remove references to the scan object that it
+     * was maintaining for cleanup purposes.
+     *
+     **/
 	void closeMe(ScanController scan);
 }
