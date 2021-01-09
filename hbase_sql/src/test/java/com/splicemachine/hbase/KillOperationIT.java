@@ -130,6 +130,7 @@ public class KillOperationIT {
     }
 
     @BeforeClass
+    @AfterClass
     public static void killRunningOperations() throws Exception {
         TestUtils.killRunningOperations(spliceClassWatcher);
     }

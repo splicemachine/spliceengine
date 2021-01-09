@@ -1384,6 +1384,24 @@ public class IndexIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testIndexOnExpressionsMetadata() throws Exception {
+        String tableName = "TEST_IDX_EXPR_META";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), LOWER(C), I + 3, MOD(I, 3) DESC)", tableName, tableName));
+
+        try(ResultSet rs = methodWatcher.executeQuery(format("select * from syscat.indexcoluse where indname = '%s_IDX'", tableName))) {
+            String expected =
+                    "INDSCHEMA |        INDNAME        | COLNAME |COLSEQ |COLORDER | COLLATIONSCHEMA | COLLATIONNAME | VIRTUAL |  TEXT    |\n" +
+                    "-----------------------------------------------------------------------------------------------------------------------\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   1   |    A    |      NULL       |     NULL      |    S    |UPPER(C)  |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   2   |    A    |      NULL       |     NULL      |    S    |LOWER(C)  |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   3   |    A    |      NULL       |     NULL      |    S    |  I + 3   |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   4   |    D    |      NULL       |     NULL      |    S    |MOD(I, 3) |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     // ===============================================================================
     // Index expression tests - qualify and query
     // ===============================================================================
@@ -1677,6 +1695,37 @@ public class IndexIT extends SpliceUnitTest{
                 "--------\n" +
                 " 0 | 0 |\n" +
                 " 3 |10 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionsAsDisjunctiveTerms() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_DISJ";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2), d + i)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('ghi', 30, 3.3), ('xyz', 40, 3.3)", tableName));
+
+        String query = format("select upper(c) from %s --splice-properties index=%s_IDX \n" +
+                "  where mod(i,2) = 1 or upper(c) in ('abc', 'def')", tableName, tableName);
+
+        /* check plan */
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",     // should be directly on top of IndexScan and no IndexLookup in between
+                "IndexScan[TEST_INDEX_EXPR_DISJ_IDX",
+                "[((TEST_INDEX_EXPR_DISJ_IDX_col2[0:2] = 1) or ((TEST_INDEX_EXPR_DISJ_IDX_col1[0:1] IN (abc ,def )) or false))]"
+        };
+        rowContainsQuery(new int[]{3,4,4}, "explain " + query, methodWatcher, expectedOps);
+
+        /* check result */
+        String expected = "1  |\n" +
+                "-----\n" +
+                "ABC |\n" +
+                "JKL |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

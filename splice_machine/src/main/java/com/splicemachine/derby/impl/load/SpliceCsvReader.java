@@ -18,7 +18,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import com.splicemachine.derby.stream.function.QuoteTrackingTokenizer;
+import com.splicemachine.derby.stream.function.csv.CsvParserConfig;
+import com.splicemachine.derby.stream.function.csv.QuoteTrackingTokenizer;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
@@ -43,17 +44,18 @@ public class SpliceCsvReader implements Iterator<List<String>> {
      *
      * @param reader
      *            the reader
-     * @param preferences
-     *            the CSV preferences
+     * @param config
+     *            CSV reader config
      * @throws NullPointerException
      *             if reader or preferences are null
      */
-    public SpliceCsvReader(Reader reader, CsvPreference preferences, boolean quotedEmptyIsNull) {
-        this.tokenizer = new QuoteTrackingTokenizer(reader,preferences, false, quotedEmptyIsNull);
+    public SpliceCsvReader(Reader reader, CsvParserConfig config) {
+        this(reader, config, -1, null);
     }
 
-    public SpliceCsvReader(Reader reader, CsvPreference preferences, boolean quotedEmptyIsNull, long scanThreshold, List<Integer> valueSizesHint) {
-        this.tokenizer = new QuoteTrackingTokenizer(reader,preferences,false, quotedEmptyIsNull, scanThreshold, valueSizesHint);
+    public SpliceCsvReader(Reader reader, CsvParserConfig config, long scanThreshold, List<Integer> valueSizesHint) {
+
+        this.tokenizer = new QuoteTrackingTokenizer(reader, config, scanThreshold, valueSizesHint);
     }
 
     @Override

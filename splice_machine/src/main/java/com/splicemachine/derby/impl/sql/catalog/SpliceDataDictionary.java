@@ -351,6 +351,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -372,7 +391,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
@@ -382,12 +402,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
@@ -627,6 +644,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
     }
 
     @Override
@@ -830,8 +849,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1748,8 +1767,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 

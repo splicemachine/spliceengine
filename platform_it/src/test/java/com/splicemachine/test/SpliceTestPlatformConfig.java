@@ -140,7 +140,8 @@ class SpliceTestPlatformConfig {
                                        Integer derbyPort,
                                        boolean failTasksRandomly,
                                        String olapLog4jConfig,
-                                       boolean secure) {
+                                       boolean secure,
+                                       String durability) {
 
         Configuration config = HConfiguration.unwrapDelegate();
 
@@ -250,8 +251,11 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
-        config.setInt("hbase.client.retries.number", 35);
+        config.setInt("hbase.client.retries.number", 65); // increased because hbase.client.pause is low (10)
         config.setInt("hbase.rowlock.wait.duration",10);
+        config.setInt("hbase.assignment.dispatch.wait.msec", 0); // remove 150ms pause when creating table
+        config.setInt("hbase.procedure.remote.dispatcher.max.queue.size", 0); // remove 150ms pause when creating table
+        config.setInt("hbase.procedure.store.wal.sync.wait.msec", 5); // remove 100ms pause when storing Master procedures
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
@@ -272,7 +276,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.balancer.statusPeriod",300000000); // 5000 minutes
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
-        config.setLong("hbase.client.pause", 100);
+        config.setLong("hbase.client.pause", 10); // make sure we don't wait too long for async procedures (create table)
 
         //
         // Compaction Controls
@@ -322,7 +326,8 @@ class SpliceTestPlatformConfig {
         //
         // Splice
         //
-        
+
+        config.set("splice.txn.durability", durability);
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);

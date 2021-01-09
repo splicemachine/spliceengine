@@ -51,8 +51,7 @@ import java.util.*;
 
 public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements OptimizableList{
     Properties properties;
-    // RESOLVE: The default should be false
-    boolean fixedJoinOrder=true;
+    boolean fixedJoinOrder=false;
     // true by default.
     boolean useStatistics=true;
 
@@ -498,14 +497,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @throws StandardException Thrown on error
      * @return ResultColumn    The matching ResultColumn
      */
-    public ResultColumn bindColumnReference(ColumnReference columnReference) throws StandardException{
+    public ValueNode bindColumnReference(ColumnReference columnReference) throws StandardException{
         boolean columnNameMatch=false;
         boolean tableNameMatch=false;
         FromTable fromTable;
         int currentLevel;
         int previousLevel=-1;
+        int matchingIndex = -1;
+        boolean ambiguousColumnMatch = false;
         ResultColumn matchingRC=null;
-        ResultColumn resultColumn;
         String crTableName=columnReference.getTableName();
 
         /*
@@ -533,31 +533,16 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             /* Simpler to always set previousLevel then to test and set */
             previousLevel=currentLevel;
 
-            resultColumn=fromTable.getMatchingColumn(columnReference);
+            ResultColumn resultColumn=fromTable.getMatchingColumn(columnReference);
 
             if(resultColumn!=null){
-                if(!columnNameMatch){
-                    /* TableNumbers and column numbers are set in the CR in the
-                     * underlying FromTable.  This ensures that they get the
-                     * table number/column number from the underlying table,
-                     * not the join node.  This is important for being able to
-                     * push predicates down through join nodes.
-                     */
-                    matchingRC=resultColumn;
-                    columnReference.setSource(resultColumn);
-                    /* Set the nesting level at which the CR appears and the nesting level
-                     * of its source RC.
-                     */
-                    columnReference.setNestingLevel(((FromTable)elementAt(0)).getLevel());
-                    columnReference.setSourceLevel(currentLevel);
-                    columnNameMatch=true;
-
-                    if(fromTable.isPrivilegeCollectionRequired())
-                        getCompilerContext().addRequiredColumnPriv(resultColumn.getTableColumnDescriptor());
-                }else{
-                    throw StandardException.newException(SQLState.LANG_AMBIGUOUS_COLUMN_NAME,
-                            columnReference.getSQLColumnName());
+                if(columnNameMatch) {
+                    ambiguousColumnMatch = true;
+                    break;
                 }
+                matchingRC = resultColumn;
+                matchingIndex = index;
+                columnNameMatch=true;
             }
 
             /* Remember if we get a match on the exposed table name, so that
@@ -566,7 +551,37 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             tableNameMatch=tableNameMatch || (crTableName!=null && crTableName.equals(fromTable.getExposedName()));
         }
 
-        return matchingRC;
+
+        if (matchingRC != null && !ambiguousColumnMatch) {
+            /* TableNumbers and column numbers are set in the CR in the
+             * underlying FromTable.  This ensures that they get the
+             * table number/column number from the underlying table,
+             * not the join node.  This is important for being able to
+             * push predicates down through join nodes.
+             */
+            columnReference.setSource(matchingRC);
+            /* Set the nesting level at which the CR appears and the nesting level
+             * of its source RC.
+             */
+            fromTable=(FromTable)elementAt(matchingIndex);
+            columnReference.setNestingLevel(((FromTable) elementAt(0)).getLevel());
+            columnReference.setSourceLevel(fromTable.getLevel());
+
+            if (fromTable.isPrivilegeCollectionRequired())
+                getCompilerContext().addRequiredColumnPriv(matchingRC.getTableColumnDescriptor());
+        } else {
+            // not found in normal table, check if it is an alias?
+            ValueNode node = getAlias(columnReference);
+            if (node == null) {
+                String error = ambiguousColumnMatch ? SQLState.LANG_AMBIGUOUS_COLUMN_NAME : SQLState.LANG_COLUMN_NOT_FOUND;
+                throw StandardException.newException(error, columnReference.getSQLColumnName());
+            }
+            // if found, REPLACE this alias-referencing node with the expression the alias is pointing to
+            return node;
+        }
+
+
+        return columnReference;
     }
 
     /**

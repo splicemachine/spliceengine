@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -70,6 +71,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -354,6 +356,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
     private boolean compilingFromTableTempTrigger = false;
+    private Object sparkContext = null;
+    private int applicationJarsHashCode = 0;
+    private SparkSQLUtils sparkSQLUtils;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -474,6 +479,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
         } else {
             assert type.isDefaultOltp();
+        }
+        if (sparkExecutionType.isSessionHinted()) {
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
+        } else {
+            assert sparkExecutionType.isUnspecified();
         }
 
 
@@ -4056,5 +4066,64 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return basicDatabase.getAccessFactory();
         }
         return null;
+
+    @Override      
+    public boolean isSparkJob() {
+        return sparkContext != null;
+    }
+
+    @Override
+    public void setSparkContext(Object sparkContext) {
+        this.sparkContext = sparkContext;
+    }
+
+    @Override
+    public Object getSparkContext() {
+        return sparkContext;
+    }
+
+    @Override
+    public void setApplicationJarsHashCode(int applicationJarsHashCode) {
+        this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public int getApplicationJarsHashCode() {
+        return applicationJarsHashCode;
+    }
+
+    @Override
+    public void addUserJarsToSparkContext() {
+        if (!isSparkJob())
+            return;
+        LanguageConnectionFactory lcf = getLanguageConnectionFactory();
+        if (lcf == null)
+            return;
+        ClassFactory cf = lcf.getClassFactory();
+        if (cf == null)
+            return;
+        List<String> applicationJars = cf.getApplicationJarPaths();
+        if (applicationJars == null)
+            return;
+        int applicationJarsHashCode = cf.getApplicationJarsHashCode();
+        if (applicationJarsHashCode == 0)
+            return;
+
+        if (sparkContext == null || sparkSQLUtils == null)
+            return;
+
+        // If there is no change in loaded jars, there is no need to add new jars to spark.
+        if (applicationJarsHashCode == this.applicationJarsHashCode)
+            return;
+
+        for (String jarPath:applicationJars)
+            sparkSQLUtils.addUserJarToSparkContext(sparkContext, jarPath);
+
+        this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
+        this.sparkSQLUtils = sparkSQLUtils;
     }
 }
