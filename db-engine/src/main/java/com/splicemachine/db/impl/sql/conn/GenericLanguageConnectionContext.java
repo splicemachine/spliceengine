@@ -4062,11 +4062,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public AccessFactory getSpliceAccessManager() {
         if (db instanceof BasicDatabase) {
-            BasicDatabase basicDatabase = (BasicDatabase)db;
+            BasicDatabase basicDatabase = (BasicDatabase) db;
             return basicDatabase.getAccessFactory();
         }
         return null;
-
+    }
+    
     @Override      
     public boolean isSparkJob() {
         return sparkContext != null;
