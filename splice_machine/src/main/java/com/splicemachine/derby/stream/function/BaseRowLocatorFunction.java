@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012 - 2020 Splice Machine, Inc.
- *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -14,42 +13,38 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScrollInsensitiveOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
 
-public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
+import java.util.function.Function;
 
-    private BaseRowLocatorFunction<Op> locatorFunction;
+public class BaseRowLocatorFunction<Op extends SpliceOperation> {
 
-    public SetCurrentLocatedRowAndRowKeyFunction() {
+    public BaseRowLocatorFunction() {
         super();
-        locatorFunction = new BaseRowLocatorFunction<>();
     }
 
-    public SetCurrentLocatedRowAndRowKeyFunction(OperationContext operationContext) {
-        super(operationContext);
-        locatorFunction = new BaseRowLocatorFunction<>();
-    }
-
-    @Override
-    public ExecRow call(ExecRow locatedRow) throws Exception {
-        getOperation().setCurrentRow(locatedRow);
-        getOperation().setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
-        if(getOperation().isForUpdate()) {
-            getOperation().setCurrentBaseRowLocation(locatorFunction.apply(operationContext));
+    public ExecRow apply(OperationContext<Op> operationContext) throws StandardException {
+        if(operationContext == null) {
+            return null;
         }
-        StreamLogUtils.logOperationRecord(locatedRow, operationContext);
-        return locatedRow;
-    }
-
-    @Override
-    public boolean hasNativeSparkImplementation() {
-        return true;
+        SpliceOperation op = operationContext.getOperation();
+        while(op instanceof ProjectRestrictOperation || op instanceof ScrollInsensitiveOperation || op instanceof TableScanOperation || op instanceof IndexRowToBaseRowOperation) { // window operation also?
+            if(op instanceof TableScanOperation || op instanceof IndexRowToBaseRowOperation) {
+                return op.getCurrentRow();
+            }
+            if(op instanceof ProjectRestrictOperation) {
+                op = ((ProjectRestrictOperation) op).getSource();
+            } else {
+                op = ((ScrollInsensitiveOperation) op).getSource();
+            }
+        }
+        return null;
     }
 }

@@ -56,6 +56,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.SparkSQLUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -1491,4 +1492,17 @@ public interface LanguageConnectionContext extends Context {
 
     boolean isCompilingFromTableTempTrigger();
 
+    void addUserJarsToSparkContext();
+
+    boolean isSparkJob();
+
+    void setSparkContext(Object sparkContext);
+
+    Object getSparkContext();
+
+    void setApplicationJarsHashCode(int applicationJarsHashCode);
+
+    int getApplicationJarsHashCode();
+
+    void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
 }
