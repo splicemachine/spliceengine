@@ -55,7 +55,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>3.0.1.1992</version>
+        <version>3.0.1.1993-SNAPSHOT</version>
     </parent>
     <build>
         <plugins>
