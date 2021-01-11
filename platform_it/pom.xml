@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1990-SNAPSHOT</version>
+        <version>3.2.0.1992-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -198,6 +198,10 @@
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-orc</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -926,6 +930,9 @@
                     <name>spliceFast</name>
                 </property>
             </activation>
+            <properties>
+                <durability>SYNC</durability>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -1076,6 +1083,7 @@
                                 <argument>${failTasksRandomly}</argument>
                                 <argument>${olap.log4j.config.uri}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -1091,6 +1099,7 @@
             </activation>
             <properties>
                 <memberNumber>1</memberNumber>
+                <durability>ASYNC</durability>
             </properties>
             <build>
                 <plugins>
@@ -1134,6 +1143,7 @@
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
                                 <argument>${secure}</argument>
+                                <argument>${durability}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

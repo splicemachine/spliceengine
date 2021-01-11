@@ -19,8 +19,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.UsesLocalFS;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -226,6 +228,7 @@ public class CreateTableIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(UsesLocalFS.class)
     public void testCreateTableIfNotExists_ExternalTable() throws Exception {
         testCreateTableIfNotExists("external");
     }

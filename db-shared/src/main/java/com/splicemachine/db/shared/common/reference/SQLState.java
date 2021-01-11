@@ -1947,6 +1947,7 @@ public interface SQLState {
     String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR = "XIE12.S";
     String UNSUPPORTED_COMPRESSION_FORMAT          = "XIE13.S";
     String UNSUPPORTED_QUOTE_MODE                  = "XIE14.S";
+    String UNSUPPORTED_FLOATING_POINT_NOTATION     = "XIE15.S";
 
 
     /*

@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1990-SNAPSHOT</version>
+        <version>3.2.0.1992-SNAPSHOT</version>
     </parent>
     <artifactId>spark_sql</artifactId>
     <name>Spark SQL API Access</name>
@@ -83,6 +83,11 @@
             <artifactId>scalamock-scalatest-support_${scala.binary.version}</artifactId>
             <version>${scalamock.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>

@@ -253,56 +253,6 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertTrue( msg.contains("duplicate key value") )
   }
 
-  test("Test Insert with Trigger") {
-    import org.apache.spark.sql.types._
-
-    val sch = StructType(
-      StructField("I", IntegerType, false) ::
-      StructField("C", StringType, true) :: Nil
-    )
-
-    val t1 = s"$schema.foo"
-    val t2 = s"$schema.bar"
-    splicemachineContext.createTable(t1, sch, Seq("I") )
-    splicemachineContext.createTable(t2, sch, Seq("I") )
-    
-    execute(s"""CREATE TRIGGER FOO_TRIGGER
-               |AFTER INSERT ON $t1
-               |REFERENCING NEW_TABLE AS NEW_ROWS
-               |INSERT INTO $t2 (i,c) SELECT i,c FROM NEW_ROWS""".stripMargin)
-
-    splicemachineContext.insert(
-      dataframe(
-        rdd( Seq( 
-          Row.fromSeq( Seq(1,"one") ),
-          Row.fromSeq( Seq(2,"two") ),
-          Row.fromSeq( Seq(3,"three") )
-        ) ),
-        sch
-      ),
-      t1
-    )
-
-    def res: String => String = table => executeQuery(
-      s"select * from $table",
-      rs => {
-        var s = Seq.empty[String]
-        while( rs.next ) {
-          s = s :+ s"${rs.getInt(1)},${rs.getString(2)}"
-        }
-        s.sorted.mkString("; ")
-      }
-    ).asInstanceOf[String]
-    
-    val res1 = res(t1)
-    val res2 = res(t2)
-
-    splicemachineContext.dropTable(t1)
-    splicemachineContext.dropTable(t2)
-
-    org.junit.Assert.assertEquals(res1, res2)
-  }
-
   test("Test Bulk Import") {
     dropInternalTable
     createInternalTable
@@ -368,7 +318,11 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
+    checkTestRow("Upsert as Update")
+  }
+
+  def checkTestRow(testId: String): Unit =
+    org.junit.Assert.assertEquals(s"$testId Failed!",
       (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
       executeQuery(
         s"select * from $internalTN",
@@ -396,7 +350,6 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         }
       ).asInstanceOf[String]
     )
-  }
 
   test("Test Upsert as Insert") {
     dropInternalTable
@@ -404,34 +357,25 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
-      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
-      executeQuery(
-        s"select * from $internalTN",
-        rs => {
-          rs.next
-          List(
-            rs.getBoolean(1),
-            rs.getString(2),
-            rs.getDate(3),
-            rs.getBigDecimal(4),
-            rs.getDouble(5),
-            rs.getInt(6),
-            rs.getInt(7),
-            rs.getFloat(8),
-            rs.getShort(9),
-            rs.getTime(10),
-            rs.getTimestamp(11),
-            rs.getString(12),
-            rs.getBigDecimal(13),
-            rs.getInt(14),
-            rs.getString(15),
-            rs.getFloat(16),
-            rs.getInt(17)
-          ).mkString(", ")
-        }
-      ).asInstanceOf[String]
-    )
+    checkTestRow("Upsert as Insert")
+  }
+
+  test("Test MergeInto as Update") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Update")
+  }
+
+  test("Test MergeInto as Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Insert")
   }
 
   test("Test Inserting Null") {

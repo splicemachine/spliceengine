@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import splice.com.google.common.base.Charsets;
 import org.apache.commons.lang3.StringEscapeUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -50,13 +52,15 @@ public class ExportParams implements Serializable {
     private char fieldDelimiter = DEFAULT_FIELD_DELIMITER;
     private char quoteChar = DEFAULT_QUOTE_CHAR;
     private QuoteMode quoteMode = DEFAULT_QUOTE_MODE;
+    private int floatingPointNotation = FloatingPointDataType.PLAIN;
+    private String timestampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
 
     // for serialization
     public ExportParams() {
     }
 
     public ExportParams(String directory, String compression, String format, int replicationCount, String characterEncoding,
-                        String fieldDelimiter, String quoteChar, String quoteMode) throws StandardException {
+                        String fieldDelimiter, String quoteChar, String quoteMode, String floatingPointNotation, String timestampFormat) throws StandardException {
         setDirectory(directory);
         setFormat(format);
         setCompression(compression);
@@ -65,6 +69,8 @@ public class ExportParams implements Serializable {
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
         setQuoteChar(StringEscapeUtils.unescapeJava(quoteChar));
         setQuoteMode(quoteMode);
+        setFloatingPointNotation(floatingPointNotation);
+        setTimestampFormat(timestampFormat);
     }
 
     /**
@@ -110,6 +116,14 @@ public class ExportParams implements Serializable {
 
     public QuoteMode getQuoteMode() {
         return quoteMode;
+    }
+
+    public int getFloatingPointNotation() {
+        return floatingPointNotation;
+    }
+
+    public String getTimestampFormat() {
+        return timestampFormat;
     }
 
     // - - - - - - - - - - -
@@ -173,6 +187,30 @@ public class ExportParams implements Serializable {
             } else {
                 throw StandardException.newException(SQLState.UNSUPPORTED_QUOTE_MODE, quoteMode);
             }
+        }
+    }
+
+    public void setFloatingPointNotation(String floatingPointNotation) throws StandardException {
+        if (floatingPointNotation != null) {
+            floatingPointNotation = floatingPointNotation.trim().toUpperCase();
+        }
+        if (floatingPointNotation != null && floatingPointNotation.length() > 0) {
+            switch (floatingPointNotation) {
+                case "PLAIN":
+                    this.floatingPointNotation = FloatingPointDataType.PLAIN;
+                    break;
+                case "NORMALIZED":
+                    this.floatingPointNotation = FloatingPointDataType.NORMALIZED;
+                    break;
+                default:
+                    throw StandardException.newException(SQLState.UNSUPPORTED_FLOATING_POINT_NOTATION, floatingPointNotation);
+            }
+        }
+    }
+
+    public void setTimestampFormat(String timestampFormat) {
+        if (!isBlank(timestampFormat)) {
+            this.timestampFormat = timestampFormat;
         }
     }
 

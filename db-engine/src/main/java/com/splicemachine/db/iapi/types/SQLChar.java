@@ -1588,12 +1588,12 @@ public class SQLChar
 
     public void setValue(double theValue)  throws StandardException
     {
-        setValue(NumberDataType.toDB2String(theValue));
+        setValue(Double.toString(theValue));
     }
 
     public void setValue(float theValue)  throws StandardException
     {
-        setValue(NumberDataType.toDB2String(theValue));
+        setValue(Float.toString(theValue));
     }
 
     public void setValue(short theValue)  throws StandardException
@@ -2032,7 +2032,7 @@ public class SQLChar
                     // We can address this later when we more deeply look into
                     // error and warning propagation.
                     Activation activation = statementContext.getActivation();
-                    if (activation != null) {
+                    if (activation != null && activation.getResultSet() != null) {
                         activation.getResultSet().addWarning(warning);
                     }
                 }

@@ -4991,6 +4991,7 @@ class DRDAConnThread extends Thread {
                 break;
             }
             case DRDAConstants.DRDA_TYPE_NDECIMAL:
+            case DRDAConstants.DRDA_TYPE_NDECFLOAT:
             {
                 int precision = (paramLenNumBytes >> 8) & 0xff;
                 int scale = paramLenNumBytes & 0xff;
