@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -27,14 +28,12 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.Partition;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
 public class HBaseController extends SpliceController{
@@ -91,6 +90,10 @@ public class HBaseController extends SpliceController{
                         openSpliceConglomerate.getConglomerate().getContainerid(), Arrays.toString(row.getRowArray())));
             try {
                 DataPut put = opFactory.newDataPut(trans.getTxnInformation(), SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
+                Properties properties = openSpliceConglomerate.getTransactionManager().getProperties();
+                if(properties != null && properties.getProperty("FORCE_WRITE_WRITE_CONFLICT") != null) {
+                    put.addAttribute(SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT, SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT_VALUE);
+                }
                 encodeRow(row.getRowArray(), put, null, null);
                 rowLocations[i].setValue(put.key());
                 puts.add(put);
@@ -124,6 +127,10 @@ public class HBaseController extends SpliceController{
         try{
 
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),loc.getBytes());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
+
+            if(openSpliceConglomerate.getTransactionManager().getConflictResolutionStrategy() == TransactionController.ConflictResolutionStrategy.IMMEDIATE) {
+                put.addAttribute(SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT, SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT_VALUE);
+            }
 
             encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
             htable.put(put);

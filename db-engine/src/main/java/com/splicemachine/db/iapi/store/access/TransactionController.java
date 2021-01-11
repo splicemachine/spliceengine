@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 
 import java.util.Properties;
 
@@ -89,7 +90,7 @@ public interface TransactionController
      * to be opened with record level locking (but the system may override
      * this choice and provide table level locking instead).  
      **/
-	int MODE_RECORD    = 6;
+    int MODE_RECORD    = 6;
     /**
      * Constant used for the lock_level argument to openConglomerate() and 
      * openScan() calls.  Pass in MODE_TABLE if you want the conglomerate
@@ -97,7 +98,7 @@ public interface TransactionController
      * system will never use record level locking for the open scan or 
      * controller.
      **/
-	int MODE_TABLE     = 7;
+    int MODE_TABLE     = 7;
 
     /**
      * Constants used for the isolation_level argument to openConglomerate() and
@@ -117,7 +118,7 @@ public interface TransactionController
      *
      * ONLY USED INTERNALLY BY ACCESS, NOT VALID FOR EXTERNAL USERS.
      **/
-	int ISOLATION_NOLOCK = 0;
+    int ISOLATION_NOLOCK = 0;
 
     /**
      * No locks are requested for data that is read only.  Uncommitted data
@@ -134,7 +135,7 @@ public interface TransactionController
      * TODO - work in progress to support this locking mode in the 5.1 
      * storage system.  
      **/
-	int ISOLATION_READ_UNCOMMITTED = 1;
+    int ISOLATION_READ_UNCOMMITTED = 1;
 
     /**
      * No lost updates, no dirty reads, only committed data is returned.  
@@ -143,7 +144,7 @@ public interface TransactionController
      * possibly instantaneous duration locks) are set
      * on data that is read.  
      **/
-	int ISOLATION_READ_COMMITTED = 2;
+    int ISOLATION_READ_COMMITTED = 2;
 
     /**
      * No lost updates, no dirty reads, only committed data is returned.  
@@ -153,7 +154,7 @@ public interface TransactionController
      * on data that is read.  Read locks are requested for "zero" duration,
      * thus upon return from access no read row lock is held.
      **/
-	int ISOLATION_READ_COMMITTED_NOHOLDLOCK = 3;
+    int ISOLATION_READ_COMMITTED_NOHOLDLOCK = 3;
 
     /**
      * Read and write locks are held until end of transaction, but no
@@ -165,7 +166,7 @@ public interface TransactionController
      * read can be coded with the right isolation level, and will just work when
      * store provided real repeatable read isolation.
      **/
-	int ISOLATION_REPEATABLE_READ = 4;
+    int ISOLATION_REPEATABLE_READ = 4;
 
     /**
      * Gray's isolation degree 3, "Serializable, Repeatable Read".	Note that
@@ -173,7 +174,7 @@ public interface TransactionController
      * phantom protection under MODE_TABLE, while others can support this
      * under MODE_RECORD.
      **/
-	int ISOLATION_SERIALIZABLE = 5;
+    int ISOLATION_SERIALIZABLE = 5;
 
     /**
      * Constants used for the flag argument to openConglomerate() and 
@@ -200,7 +201,7 @@ public interface TransactionController
      * rows in the scan.  So to enable update locks for an updating scan one
      * provides (OPENMODE_FORUPDATE | OPENMODE_USE_UPDATE_LOCKS)
      **/
-	int OPENMODE_USE_UPDATE_LOCKS      = 0x00001000;
+    int OPENMODE_USE_UPDATE_LOCKS      = 0x00001000;
 
     /**
      * Use this mode to the openConglomerate() call which opens the base
@@ -211,7 +212,7 @@ public interface TransactionController
      * successfully opened before opening the base table so that
      * proper locking protocol is followed.
      **/
-	int OPENMODE_SECONDARY_LOCKED      = 0x00002000;
+    int OPENMODE_SECONDARY_LOCKED      = 0x00002000;
 
     /**
      * Use this mode to the openConglomerate() call used to open the
@@ -223,12 +224,12 @@ public interface TransactionController
      * successfully opened before opening the secondaryindex so that
      * proper locking protocol is followed.
      **/
-	int OPENMODE_BASEROW_INSERT_LOCKED = 0x00004000;
+    int OPENMODE_BASEROW_INSERT_LOCKED = 0x00004000;
 
     /**
      * open table for update, if not specified table will be opened for read.
      **/
-	int OPENMODE_FORUPDATE             = 0x00000004;
+    int OPENMODE_FORUPDATE             = 0x00000004;
 
     /**
      * Use this mode to the openConglomerate() call used to just get the
@@ -236,7 +237,7 @@ public interface TransactionController
      * Any operations other than close() performed on the "opened" container
      * will fail.
      **/
-	int OPENMODE_FOR_LOCK_ONLY         = 0x00000040;
+    int OPENMODE_FOR_LOCK_ONLY         = 0x00000040;
 
     /**
      * The table lock request will not wait.
@@ -247,66 +248,95 @@ public interface TransactionController
      * wait if the application has not set a 0 timeout and if the call does
      * not have a wait parameter (like OpenConglomerate.fetch().
      **/
-	int OPENMODE_LOCK_NOWAIT           = 0x00000080;
+    int OPENMODE_LOCK_NOWAIT           = 0x00000080;
 
     /**
      * Constants used for the countOpen() call.
      **/
-	int OPEN_CONGLOMERATE   = 0x01;
+    int OPEN_CONGLOMERATE   = 0x01;
     int OPEN_SCAN           = 0x02;
     int OPEN_CREATED_SORTS  = 0x03;
     int OPEN_SORT           = 0x04;
     int OPEN_TOTAL          = 0x05;
 
 
-	byte IS_DEFAULT	=	(byte) 0x00; // initialize the flag
-	byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
-	byte IS_KEPT		=	(byte) 0x02; // no auto remove
+    byte IS_DEFAULT	=	(byte) 0x00; // initialize the flag
+    byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
+    byte IS_KEPT		=	(byte) 0x02; // no auto remove
 
+    /**
+     * Conflict resolution strategies.
+     */
+    enum ConflictResolutionStrategy {
+        NOT_SET(0),
+        IMMEDIATE(1),
+        DEFERRED(2);
+
+        int index = 1;
+        ConflictResolutionStrategy(int index) {
+            this.index = index;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public static ConflictResolutionStrategy fromInt(int index) {
+            switch(index) {
+                case 1:
+                    return IMMEDIATE;
+                case 2:
+                    return DEFERRED;
+                case 0: // fallthrough
+                default:
+                    return NOT_SET;
+            }
+        }
+    }
 
     /**************************************************************************
      * Interfaces previously defined in TcAccessIface:
      **************************************************************************
      */
-	
+
     /**
      * Get reference to access factory which started this transaction.
      * <p>
      *
-	 * @return The AccessFactory which started this transaction.
+     * @return The AccessFactory which started this transaction.
      **/
-	AccessFactory getAccessManager();
+    AccessFactory getAccessManager();
 
-	/**
-	Check whether a conglomerate exists.
+    /**
+    Check whether a conglomerate exists.
 
-	@param  conglomId  The identifier of the conglomerate to check for.
+    @param  conglomId  The identifier of the conglomerate to check for.
 
-	@return  true if the conglomerate exists, false otherwise.
+    @return  true if the conglomerate exists, false otherwise.
 
-	@exception StandardException   only thrown if something goes
-	wrong in the lower levels.
-	**/
+    @exception StandardException   only thrown if something goes
+    wrong in the lower levels.
+    **/
     boolean conglomerateExists(long conglomId)
-		throws StandardException;
+        throws StandardException;
 
     /**
     Create a conglomerate.
-	<p>
-	Currently, only "heap"'s and ""btree secondary index"'s are supported, 
+    <p>
+    Currently, only "heap"'s and ""btree secondary index"'s are supported,
     and all the features are not completely implemented.  
     For now, create conglomerates like this:
-	<p>
-	<blockquote><pre>
-		TransactionController tc;
-		long conglomId = tc.createConglomerate(
-			"heap", // we're requesting a heap conglomerate
-			template, // a populated template is required for heap and btree.
+    <p>
+    <blockquote><pre>
+        TransactionController tc;
+        long conglomId = tc.createConglomerate(
+            "heap", // we're requesting a heap conglomerate
+            template, // a populated template is required for heap and btree.
             null, // no column order
             null, // default collation order for all columns
-			null, // default properties
-			0); // not temporary
-	</blockquote></pre>
+            null, // default properties
+            0); // not temporary
+    </blockquote></pre>
 
     Each implementation of a conglomerate takes a possibly different set
     of properties.  The "heap" implementation currently takes no properties.
@@ -359,15 +389,15 @@ public interface TransactionController
     location and since all row locations will be unique  all rows inserted
     into the index will be differentiated (at least) by row location.
 
-	@return The identifier to be used to open the conglomerate later.
+    @return The identifier to be used to open the conglomerate later.
 
-	 @exception  StandardException  if the conglomerate could
-	not be created for some reason.
+     @exception  StandardException  if the conglomerate could
+    not be created for some reason.
     *
-	 * @param implementation Specifies what kind of conglomerate to create.
-	 THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
-	 For now, use "BTREE" or "heap" for a local access manager.
-	 * @param template A row which describes the prototypical
+     * @param implementation Specifies what kind of conglomerate to create.
+     THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
+     For now, use "BTREE" or "heap" for a local access manager.
+     * @param template A row which describes the prototypical
   row that the conglomerate will be holding.
   Typically this row gives the conglomerate
   information about the number and type of
@@ -378,26 +408,26 @@ public interface TransactionController
   template is kept (and thus this template can be re-used in subsequent
   calls - such as openScan()).  This field is required when creating either
   a heap or btree conglomerate.
-	 * @param columnOrder Specifies the colummns sort order.
+     * @param columnOrder Specifies the colummns sort order.
 Useful only when the conglomerate is of type BTREE, default
 value is 'null', which means all columns needs to be sorted in
 Ascending order.
-	 * @param collationIds Specifies the collation id of each of the columns
+     * @param collationIds Specifies the collation id of each of the columns
 in the new conglomerate.  Collation id along with format id may be used
 to create DataValueDescriptor's which may subsequently be used for
 comparisons.  For instance the correct collation specific order and
 searching is maintained by correctly specifying the collation id of
 the columns in the index when the index is created.
-	 * @param properties Implementation-specific properties of the
+     * @param properties Implementation-specific properties of the
 conglomerate.
-	 * @param  temporaryFlag
+     * @param  temporaryFlag
 Where temporaryFlag can have the following values:
 IS_DEFAULT		- no bit is set.
 IS_TEMPORARY	- if set, the conglomerate is temporary
 IS_KEPT			- only looked at if IS_TEMPORARY,
-				  if set, the temporary container is not
-				  removed automatically by store when
-				  transaction terminates.
+                  if set, the temporary container is not
+                  removed automatically by store when
+                  transaction terminates.
 
 If IS_TEMPORARY is set, the conglomerate is temporary.
 Temporary conglomerates are only visible through the transaction
@@ -416,7 +446,7 @@ All temporary conglomerate is removed by store when the
 conglomerate controller is destroyed, or if it is dropped by an explicit
 dropConglomerate.  If Derby reboots, all temporary
 conglomerates are removed.
-	 * @param priority*/
+     * @param priority*/
     long createConglomerate(
         boolean                 isExternal,
         String                  implementation,
@@ -444,49 +474,49 @@ conglomerates are removed.
         Conglomerate.Priority priority)
             throws StandardException;
 
-	/** Tags this conglomerate with the transaction Id that dropped it, in order
-	 * to resolve whether or not we can VACUUM it later on
-	 * @param conglomerateId
-	 * @throws StandardException
-	 */
-	void markConglomerateDropped(
-			long conglomerateId)
-			throws StandardException;
+    /** Tags this conglomerate with the transaction Id that dropped it, in order
+     * to resolve whether or not we can VACUUM it later on
+     * @param conglomerateId
+     * @throws StandardException
+     */
+    void markConglomerateDropped(
+            long conglomerateId)
+            throws StandardException;
 
-	/**
-	Create a conglomerate and load (filled) it with rows that comes from the
-	row source without loggging.  
+    /**
+    Create a conglomerate and load (filled) it with rows that comes from the
+    row source without loggging.
 
- 	<p>Individual rows that are loaded into the conglomerate are not
- 	logged. After this operation, the underlying database must be backed up
- 	with a database backup rather than an transaction log backup (when we have
- 	them). This warning is put here for the benefit of future generation.
+    <p>Individual rows that are loaded into the conglomerate are not
+    logged. After this operation, the underlying database must be backed up
+    with a database backup rather than an transaction log backup (when we have
+    them). This warning is put here for the benefit of future generation.
 
-	<p>
-	This function behaves the same as @see createConglomerate except it also
-	populates the conglomerate with rows from the row source and the rows that
-	are inserted are not logged.
+    <p>
+    This function behaves the same as @see createConglomerate except it also
+    populates the conglomerate with rows from the row source and the rows that
+    are inserted are not logged.
 
     @param implementation Specifies what kind of conglomerate to create.
-	THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
+    THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
     For now, use "BTREE" or "heap" for a local access manager.
 
     @param template A row which describes the prototypical
-	row that the conglomerate will be holding.
-	Typically this row gives the conglomerate
-	information about the number and type of
-	columns it will be holding.  The implementation
-	may require a specific subclass of row type.
+    row that the conglomerate will be holding.
+    Typically this row gives the conglomerate
+    information about the number and type of
+    columns it will be holding.  The implementation
+    may require a specific subclass of row type.
     Note that the createConglomerate call reads the template and makes a copy
     of any necessary information from the template, no reference to the
     template is kept (and thus this template can be re-used in subsequent
     calls - such as openScan()).  This field is required when creating either
     a heap or btree conglomerate.
 
-	@param columnOrder Specifies the colummns sort order.
-	Useful only when the conglomerate is of type BTREE, default
-	value is 'null', which means all columns needs to be sorted in 
-	Ascending order.
+    @param columnOrder Specifies the colummns sort order.
+    Useful only when the conglomerate is of type BTREE, default
+    value is 'null', which means all columns needs to be sorted in
+    Ascending order.
 
     @param collationIds Specifies the collation id of each of the columns
     in the new conglomerate.  Collation id along with format id may be used
@@ -495,50 +525,50 @@ conglomerates are removed.
     searching is maintained by correctly specifying the collation id of 
     the columns in the index when the index is created.
 
-	@param properties Implementation-specific properties of the
-	conglomerate.  
+    @param properties Implementation-specific properties of the
+    conglomerate.
 
-	@param rowSource the interface to recieve rows to load into the
-	conglomerate. 
+    @param rowSource the interface to recieve rows to load into the
+    conglomerate.
 
-	@param rowCount - if not null the number of rows loaded into the table
-	will be returned as the first element of the array.
+    @param rowCount - if not null the number of rows loaded into the table
+    will be returned as the first element of the array.
 
-	@exception StandardException if the conglomerate could not be created or
-	loaded for some reason.  Throws 
+    @exception StandardException if the conglomerate could not be created or
+    loaded for some reason.  Throws
     SQLState.STORE_CONGLOMERATE_DUPLICATE_KEY_EXCEPTION if
-	the conglomerate supports uniqueness checks and has been created to
-	disallow duplicates, and one of the rows being loaded had key columns which
-	were duplicate of a row already in the conglomerate.
-	**/
+    the conglomerate supports uniqueness checks and has been created to
+    disallow duplicates, and one of the rows being loaded had key columns which
+    were duplicate of a row already in the conglomerate.
+    **/
     long createAndLoadConglomerate(
-	boolean 				isExternal,
+    boolean 				isExternal,
     String                  implementation,
     DataValueDescriptor[]   template,
-	ColumnOrdering[]		columnOrder,
+    ColumnOrdering[]		columnOrder,
     int[]                   collationIds,
     Properties              properties,
     int                     temporaryFlag,
     RowLocationRetRowSource rowSource,
-	long[]                  rowCount)
+    long[]                  rowCount)
     throws StandardException;
 
-	/**
+    /**
     Recreate a conglomerate and possibly load it with new rows that come from
     the new row source.
 
-	<p>
-	This function behaves the same as @see createConglomerate except it also
-	populates the conglomerate with rows from the row source and the rows that
-	are inserted are not logged.
+    <p>
+    This function behaves the same as @see createConglomerate except it also
+    populates the conglomerate with rows from the row source and the rows that
+    are inserted are not logged.
 
-	<p>Individual rows that are loaded into the conglomerate are not
-	logged. After this operation, the underlying database must be backed up
-	with a database backup rather than an transaction log backup (when we have
-	them). This warning is put here for the benefit of future generation.
+    <p>Individual rows that are loaded into the conglomerate are not
+    logged. After this operation, the underlying database must be backed up
+    with a database backup rather than an transaction log backup (when we have
+    them). This warning is put here for the benefit of future generation.
 
     @param implementation Specifies what kind of conglomerate to create.
-	THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
+    THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
     For now, use "BTREE" or "heap" for a local access manager.
 
     @param recreate_ifempty If false, and the rowsource used to load the new
@@ -551,21 +581,21 @@ conglomerates are removed.
                             created and it's conglomid will be returned.
 
     @param template A row which describes the prototypical
-	row that the conglomerate will be holding.
-	Typically this row gives the conglomerate
-	information about the number and type of
-	columns it will be holding.  The implementation
-	may require a specific subclass of row type.
+    row that the conglomerate will be holding.
+    Typically this row gives the conglomerate
+    information about the number and type of
+    columns it will be holding.  The implementation
+    may require a specific subclass of row type.
     Note that the createConglomerate call reads the template and makes a copy
     of any necessary information from the template, no reference to the
     template is kept (and thus this template can be re-used in subsequent
     calls - such as openScan()).  This field is required when creating either
     a heap or btree conglomerate.
 
-	@param columnOrder  Specifies the colummns sort order.
-	Useful only when the conglomerate is of type BTREE, default
-	value is 'null', which means all columns needs to be sorted in 
-	Ascending order.
+    @param columnOrder  Specifies the colummns sort order.
+    Useful only when the conglomerate is of type BTREE, default
+    value is 'null', which means all columns needs to be sorted in
+    Ascending order.
 
     @param collationIds Specifies the collation id of each of the columns
     in the new conglomerate.  Collation id along with format id may be used
@@ -574,44 +604,44 @@ conglomerates are removed.
     searching is maintained by correctly specifying the collation id of 
     the columns in the index when the index is created.
 
-	@param properties Implementation-specific properties of the conglomerate.  
+    @param properties Implementation-specific properties of the conglomerate.
 
     @param  temporaryFlag  If true, the conglomerate is temporary.
-	Temporary conglomerates are only visible through the transaction
-	controller that created them.  Otherwise, they are opened,
-	scanned, and dropped in the same way as permanent conglomerates.
-	Changes to temporary conglomerates persist across commits, but
-	temporary conglomerates are truncated on abort (or rollback
-	to savepoint).  Updates to temporary conglomerates are not 
-	locked or logged.
+    Temporary conglomerates are only visible through the transaction
+    controller that created them.  Otherwise, they are opened,
+    scanned, and dropped in the same way as permanent conglomerates.
+    Changes to temporary conglomerates persist across commits, but
+    temporary conglomerates are truncated on abort (or rollback
+    to savepoint).  Updates to temporary conglomerates are not
+    locked or logged.
 
-	@param orig_conglomId The conglomid of the original conglomerate.
+    @param orig_conglomId The conglomid of the original conglomerate.
 
-	@param rowSource interface to receive rows to load into the conglomerate. 
+    @param rowSource interface to receive rows to load into the conglomerate.
 
-	@param rowCount - if not null the number of rows loaded into the table
-	will be returned as the first element of the array.
+    @param rowCount - if not null the number of rows loaded into the table
+    will be returned as the first element of the array.
 
     @exception StandardException if the conglomerate could not be created or
-	loaded for some reason.  Throws 
+    loaded for some reason.  Throws
     SQLState.STORE_CONGLOMERATE_DUPLICATE_KEY_EXCEPTION if
-	the conglomerate supports uniqueness checks and has been created to
-	disallow duplicates, and one of the rows being loaded had key columns which
-	were duplicate of a row already in the conglomerate.
-	**/
+    the conglomerate supports uniqueness checks and has been created to
+    disallow duplicates, and one of the rows being loaded had key columns which
+    were duplicate of a row already in the conglomerate.
+    **/
     long recreateAndLoadConglomerate(
-	boolean					isExternal,
+    boolean					isExternal,
     String                  implementation,
     boolean                 recreate_ifempty,
     DataValueDescriptor[]   template,
-	ColumnOrdering[]		columnOrder,
+    ColumnOrdering[]		columnOrder,
     int[]                   collationIds,
     Properties              properties,
     int			            temporaryFlag,
     long                    orig_conglomId,
     RowLocationRetRowSource rowSource,
-	long[] rowCount
-	)
+    long[] rowCount
+    )
         throws StandardException;
 
     /**
@@ -633,22 +663,22 @@ conglomerates are removed.
     After this call has been made, all fetches of this column from rows that
     existed in the table prior to this call will return "null".
 
-	@param conglomId        The identifier of the conglomerate to alter.
-	@param column_id        The column number to add this column at.
-	@param template_column  An instance of the column to be added to table.
-	@param collation_id     Collation id of the added column.
+    @param conglomId        The identifier of the conglomerate to alter.
+    @param column_id        The column number to add this column at.
+    @param template_column  An instance of the column to be added to table.
+    @param collation_id     Collation id of the added column.
 
-	@exception StandardException Only some types of conglomerates can support
+    @exception StandardException Only some types of conglomerates can support
         adding a column, for instance "heap" conglomerates support adding a 
         column while "btree" conglomerates do not.  If the column can not be
         added an exception will be thrown.
     **/
-	void addColumnToConglomerate(
-			long conglomId,
-			int column_id,
-			Storable template_column,
-			int collation_id)
-		throws StandardException;
+    void addColumnToConglomerate(
+            long conglomId,
+            int column_id,
+            Storable template_column,
+            int collation_id)
+        throws StandardException;
 
 
 
@@ -661,35 +691,35 @@ conglomerates are removed.
      @exception StandardException Only base conglomerates support.  If the column can not be
      dropped an exception will be thrown.
      **/
-	void dropColumnFromConglomerate(
-			long conglomId,
-			int column_id)
+    void dropColumnFromConglomerate(
+            long conglomId,
+            int column_id)
             throws StandardException;
 
 
     /**
     Drop a conglomerate.  The conglomerate must not be open in
-	the current transaction.  This also means that there must
-	not be any active scans on it.
+    the current transaction.  This also means that there must
+    not be any active scans on it.
 
-	@param conglomId The identifier of the conglomerate to drop.
+    @param conglomId The identifier of the conglomerate to drop.
 
-	@exception StandardException if the conglomerate could not be
-	 dropped for some reason.
+    @exception StandardException if the conglomerate could not be
+     dropped for some reason.
     **/
     void dropConglomerate(long conglomId)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * For debugging, find the conglomid given the containerid.
      * <p>
      *
-	 * @return the conglomid, which contains the container with containerid.
+     * @return the conglomid, which contains the container with containerid.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     long findConglomid(long containerid)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * For debugging, find the containerid given the conglomid.
@@ -697,13 +727,13 @@ conglomerates are removed.
      * Will have to change if we ever have more than one container in 
      * a conglomerate.
      *
-	 * @return the containerid of container implementing conglomerate with 
+     * @return the containerid of container implementing conglomerate with
      *             "conglomid."
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     long findContainerid(long conglomid)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Get an nested user transaction.
@@ -799,13 +829,13 @@ conglomerates are removed.
      *                                 works correctly if a commit can be lost
      *                                 on system crash.
      *
-	 * @return The new nested user transaction.
+     * @return The new nested user transaction.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	TransactionController startNestedUserTransaction(
-			boolean readOnly,
-			boolean flush_log_on_xact_end)
+    TransactionController startNestedUserTransaction(
+            boolean readOnly,
+            boolean flush_log_on_xact_end)
         throws StandardException;
 
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
@@ -834,7 +864,7 @@ conglomerates are removed.
      *      db.storage.pageReservedSpace
      *      db.storage.pageSize
      *
-	 * @return The superset of properties that "users" can specify.
+     * @return The superset of properties that "users" can specify.
      *
      **/
     Properties getUserCreateConglomPropList();
@@ -849,13 +879,13 @@ conglomerates are removed.
      * <p>
      * The close method is on the ConglomerateController interface.
      *
-	 * @return a ConglomerateController to manipulate the conglomerate.
+     * @return a ConglomerateController to manipulate the conglomerate.
      *
      * @param conglomId         The identifier of the conglomerate to open.
      *
-	 * @param hold              If true, will be maintained open over commits.
+     * @param hold              If true, will be maintained open over commits.
      *
-	 * @param open_mode         Specifiy flags to control opening of table.  
+     * @param open_mode         Specifiy flags to control opening of table.
      *                          OPENMODE_FORUPDATE - if set open the table for
      *                          update otherwise open table shared.
      *
@@ -866,7 +896,7 @@ conglomerates are removed.
      *                          ISOLATION_REPEATABLE_READ or 
      *                          ISOLATION_SERIALIZABLE).
      *
-	 * @exception  StandardException  if the conglomerate could not be opened 
+     * @exception  StandardException  if the conglomerate could not be opened
      *                                for some reason.  Throws 
      *                                SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST
      *                                if the conglomId being requested does not
@@ -879,7 +909,7 @@ conglomerates are removed.
     int                             open_mode,
     int                             lock_level,
     int                             isolation_level)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Open a conglomerate for use, optionally include "compiled" info.  
@@ -898,10 +928,10 @@ conglomerates are removed.
      * @see DynamicCompiledOpenConglomInfo
      * @see StaticCompiledOpenConglomInfo
      *
-	 * @return The identifier to be used to open the conglomerate later.
+     * @return The identifier to be used to open the conglomerate later.
      *
-	 * @param hold              If true, will be maintained open over commits.
-	 * @param open_mode         Specifiy flags to control opening of table.  
+     * @param hold              If true, will be maintained open over commits.
+     * @param open_mode         Specifiy flags to control opening of table.
      * @param lock_level        One of (MODE_TABLE, MODE_RECORD).
      * @param isolation_level   The isolation level to lock the conglomerate at.
      *                          One of (ISOLATION_READ_COMMITTED, 
@@ -912,7 +942,7 @@ conglomerates are removed.
      * @param dynamic_info      object returned from
      *                          getDynamicCompiledConglomInfo() call on this id.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     ConglomerateController openCompiledConglomerate(
     boolean                         hold,
@@ -921,55 +951,55 @@ conglomerates are removed.
     int                             isolation_level,
     StaticCompiledOpenConglomInfo   static_info,
     DynamicCompiledOpenConglomInfo  dynamic_info)
-		throws StandardException;
+        throws StandardException;
 
 
-	/**
-	Open a scan on a conglomerate.  The scan will return all
-	rows in the conglomerate which are between the
-	positions defined by {startKeyValue, startSearchOperator} and
-	{stopKeyValue, stopSearchOperator}, which also match the qualifier.
-	<P>
-	The way that starting and stopping keys and operators are used
-	may best be described by example. Say there's an ordered conglomerate
-	with two columns, where the 0-th column is named 'x', and the 1st
-	column is named 'y'.  The values of the columns are as follows:
-	<blockquote><pre>
-	  x: 1 3 4 4 4 5 5 5 6 7 9
-	  y: 1 1 2 4 6 2 4 6 1 1 1
-	</blockquote></pre>
-	<P>
-	A {start key, search op} pair of {{5.2}, GE} would position on
-	{x=5, y=2}, whereas the pair {{5}, GT} would position on {x=6, y=1}.
-	<P>
-	Partial keys are used to implement partial key scans in SQL.
-	For example, the SQL "select * from t where x = 5" would
-	open a scan on the conglomerate (or a useful index) of t
-	using a starting position partial key of {{5}, GE} and
-	a stopping position partial key of {{5}, GT}.
-	<P>
-	Some more examples:
-	<p>
-	<blockquote><pre>
-	+-------------------+------------+-----------+--------------+--------------+
-	| predicate         | start key  | stop key  | rows         | rows locked  |
-	|                   | value | op | value |op | returned     |serialization |
-	+-------------------+-------+----+-------+---+--------------+--------------+
-	| x = 5             | {5}   | GE | {5}   |GT |{5,2} .. {5,6}|{4,6} .. {5,6}|
-	| x > 5             | {5}   | GT | null  |   |{6,1} .. {9,1}|{5,6} .. {9,1}|
-	| x >= 5            | {5}   | GE | null  |   |{5,2} .. {9,1}|{4,6} .. {9,1}|
-	| x <= 5            | null  |    | {5}   |GT |{1,1} .. {5,6}|first .. {5,6}|
-  	| x < 5             | null  |    | {5}   |GE |{1,1} .. {4,6}|first .. {4,6}|
-	| x >= 5 and x <= 7 | {5},  | GE | {7}   |GT |{5,2} .. {7,1}|{4,6} .. {7,1}|
-	| x = 5  and y > 2  | {5,2} | GT | {5}   |GT |{5,4} .. {5,6}|{5,2} .. {5,6}|
-	| x = 5  and y >= 2 | {5,2} | GE | {5}   |GT |{5,2} .. {5,6}|{4,6} .. {5,6}|
-	| x = 5  and y < 5  | {5}   | GE | {5,5} |GE |{5,2} .. {5,4}|{4,6} .. {5,4}|
-	| x = 2             | {2}   | GE | {2}   |GT | none         |{1,1} .. {1,1}|
-	+-------------------+-------+----+-------+---+--------------+--------------+
-	</blockquote></pre>
-	<P>
-	As the above table implies, the underlying scan may lock
-	more rows than it returns in order to guarantee serialization.
+    /**
+    Open a scan on a conglomerate.  The scan will return all
+    rows in the conglomerate which are between the
+    positions defined by {startKeyValue, startSearchOperator} and
+    {stopKeyValue, stopSearchOperator}, which also match the qualifier.
+    <P>
+    The way that starting and stopping keys and operators are used
+    may best be described by example. Say there's an ordered conglomerate
+    with two columns, where the 0-th column is named 'x', and the 1st
+    column is named 'y'.  The values of the columns are as follows:
+    <blockquote><pre>
+      x: 1 3 4 4 4 5 5 5 6 7 9
+      y: 1 1 2 4 6 2 4 6 1 1 1
+    </blockquote></pre>
+    <P>
+    A {start key, search op} pair of {{5.2}, GE} would position on
+    {x=5, y=2}, whereas the pair {{5}, GT} would position on {x=6, y=1}.
+    <P>
+    Partial keys are used to implement partial key scans in SQL.
+    For example, the SQL "select * from t where x = 5" would
+    open a scan on the conglomerate (or a useful index) of t
+    using a starting position partial key of {{5}, GE} and
+    a stopping position partial key of {{5}, GT}.
+    <P>
+    Some more examples:
+    <p>
+    <blockquote><pre>
+    +-------------------+------------+-----------+--------------+--------------+
+    | predicate         | start key  | stop key  | rows         | rows locked  |
+    |                   | value | op | value |op | returned     |serialization |
+    +-------------------+-------+----+-------+---+--------------+--------------+
+    | x = 5             | {5}   | GE | {5}   |GT |{5,2} .. {5,6}|{4,6} .. {5,6}|
+    | x > 5             | {5}   | GT | null  |   |{6,1} .. {9,1}|{5,6} .. {9,1}|
+    | x >= 5            | {5}   | GE | null  |   |{5,2} .. {9,1}|{4,6} .. {9,1}|
+    | x <= 5            | null  |    | {5}   |GT |{1,1} .. {5,6}|first .. {5,6}|
+    | x < 5             | null  |    | {5}   |GE |{1,1} .. {4,6}|first .. {4,6}|
+    | x >= 5 and x <= 7 | {5},  | GE | {7}   |GT |{5,2} .. {7,1}|{4,6} .. {7,1}|
+    | x = 5  and y > 2  | {5,2} | GT | {5}   |GT |{5,4} .. {5,6}|{5,2} .. {5,6}|
+    | x = 5  and y >= 2 | {5,2} | GE | {5}   |GT |{5,2} .. {5,6}|{4,6} .. {5,6}|
+    | x = 5  and y < 5  | {5}   | GE | {5,5} |GE |{5,2} .. {5,4}|{4,6} .. {5,4}|
+    | x = 2             | {2}   | GE | {2}   |GT | none         |{1,1} .. {1,1}|
+    +-------------------+-------+----+-------+---+--------------+--------------+
+    </blockquote></pre>
+    <P>
+    As the above table implies, the underlying scan may lock
+    more rows than it returns in order to guarantee serialization.
     <P>
     For each row which meets the start and stop position, as described above
     the row is "qualified" to see whether it should be returned.  The
@@ -1016,8 +1046,8 @@ conglomerates are removed.
     if (qualifier != null)
     {
         <blockquote><pre>
-		for (int and_clause; and_clause < qualifier.length; and_clause++)
-		{
+        for (int and_clause; and_clause < qualifier.length; and_clause++)
+        {
             boolean or_qualifies = false;
 
             for (int or_clause; or_clause < qualifier[and_clause].length; or_clause++)
@@ -1057,13 +1087,13 @@ conglomerates are removed.
     </blockquote></pre>
 
 
-	@param conglomId The identifier of the conglomerate
-	to open the scan for.
+    @param conglomId The identifier of the conglomerate
+    to open the scan for.
 
-	@param hold If true, this scan will be maintained open over
-	commits.
+    @param hold If true, this scan will be maintained open over
+    commits.
 
-	@param open_mode         Specifiy flags to control opening of table.  
+    @param open_mode         Specifiy flags to control opening of table.
                              OPENMODE_FORUPDATE - if set open the table for
                              update otherwise open table shared.
 
@@ -1074,34 +1104,34 @@ conglomerates are removed.
                              ISOLATION_REPEATABLE_READ or 
                              ISOLATION_SERIALIZABLE).
 
-	@param scanColumnList A description of which columns to return from 
+    @param scanColumnList A description of which columns to return from
     every fetch in the scan.  template, and scanColumnList
     work together to describe the row to be returned by the scan - see RowUtil
     for description of how these three parameters work together to describe
     a "row".
 
-	@param startKeyValue  An indexable row which holds a 
-	(partial) key value which, in combination with the
-	startSearchOperator, defines the starting position of
-	the scan.  If null, the starting position of the scan
-	is the first row of the conglomerate.
+    @param startKeyValue  An indexable row which holds a
+    (partial) key value which, in combination with the
+    startSearchOperator, defines the starting position of
+    the scan.  If null, the starting position of the scan
+    is the first row of the conglomerate.
     The startKeyValue must only reference columns included
     in the scanColumnList.
-	
-	@param startSearchOperator an operator which defines
-	how the startKeyValue is to be searched for.  If 
-    startSearchOperation is ScanController.GE, the scan starts on
-	the first row which is greater than or equal to the 
-	startKeyValue.  If startSearchOperation is ScanController.GT,
-	the scan starts on the first row whose key is greater than
-	startKeyValue.  The startSearchOperation parameter is 
-	ignored if the startKeyValue parameter is null.
 
-	@param qualifier A 2 dimensional array encoding a conjunctive normal
+    @param startSearchOperator an operator which defines
+    how the startKeyValue is to be searched for.  If
+    startSearchOperation is ScanController.GE, the scan starts on
+    the first row which is greater than or equal to the
+    startKeyValue.  If startSearchOperation is ScanController.GT,
+    the scan starts on the first row whose key is greater than
+    startKeyValue.  The startSearchOperation parameter is
+    ignored if the startKeyValue parameter is null.
+
+    @param qualifier A 2 dimensional array encoding a conjunctive normal
     form (CNF) datastructure of of qualifiers which, applied
-	to each key, restrict the rows returned by the scan.  Rows
-	for which the CNF expression returns false are not
-	returned by the scan. If null, all rows are returned.
+    to each key, restrict the rows returned by the scan.  Rows
+    for which the CNF expression returns false are not
+    returned by the scan. If null, all rows are returned.
     Qualifiers can only reference columns which are included in the
     scanColumnList.  The column id that a qualifier returns is the
     column id the table, not the column id in the partial row being
@@ -1109,44 +1139,44 @@ conglomerates are removed.
 
     For detailed description of 2-dimensional array passing @see Qualifier
 
-	@param stopKeyValue  An indexable row which holds a 
-	(partial) key value which, in combination with the
-	stopSearchOperator, defines the ending position of
-	the scan.  If null, the ending position of the scan
-	is the last row of the conglomerate.
+    @param stopKeyValue  An indexable row which holds a
+    (partial) key value which, in combination with the
+    stopSearchOperator, defines the ending position of
+    the scan.  If null, the ending position of the scan
+    is the last row of the conglomerate.
     The stopKeyValue must only reference columns included
     in the scanColumnList.
-	
-	@param stopSearchOperator an operator which defines
-	how the stopKeyValue is used to determine the scan stopping
-	position. If stopSearchOperation is ScanController.GE, the scan 
-	stops just before the first row which is greater than or
-	equal to the stopKeyValue.  If stopSearchOperation is
-	ScanController.GT, the scan stops just before the first row whose
-	key is greater than	startKeyValue.  The stopSearchOperation
-	parameter is ignored if the stopKeyValue parameter is null.
 
- 	@exception StandardException if the scan could not be
-	opened for some reason.  Throws SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST
+    @param stopSearchOperator an operator which defines
+    how the stopKeyValue is used to determine the scan stopping
+    position. If stopSearchOperation is ScanController.GE, the scan
+    stops just before the first row which is greater than or
+    equal to the stopKeyValue.  If stopSearchOperation is
+    ScanController.GT, the scan stops just before the first row whose
+    key is greater than	startKeyValue.  The stopSearchOperation
+    parameter is ignored if the stopKeyValue parameter is null.
+
+    @exception StandardException if the scan could not be
+    opened for some reason.  Throws SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST
     if the conglomId being requested does not exist for some reason (ie. 
     someone has dropped it).
 
     @see RowUtil
     @see ScanController
-	**/
-	ScanController openScan(
-		long                            conglomId,
-		boolean                         hold,
-		int                             open_mode,
+    **/
+    ScanController openScan(
+        long                            conglomId,
+        boolean                         hold,
+        int                             open_mode,
         int                             lock_level,
         int                             isolation_level,
-		FormatableBitSet                scanColumnList,
-		DataValueDescriptor[]           startKeyValue,
-		int                             startSearchOperator,
-		Qualifier                       qualifier[][],
-		DataValueDescriptor[]           stopKeyValue,
-		int                             stopSearchOperator)
-			throws StandardException;
+        FormatableBitSet                scanColumnList,
+        DataValueDescriptor[]           startKeyValue,
+        int                             startSearchOperator,
+        Qualifier                       qualifier[][],
+        DataValueDescriptor[]           stopKeyValue,
+        int                             stopSearchOperator)
+            throws StandardException;
 
 
     /**
@@ -1166,7 +1196,7 @@ conglomerates are removed.
      * @see DynamicCompiledOpenConglomInfo
      * @see StaticCompiledOpenConglomInfo
      *
-	 * @return The identifier to be used to open the conglomerate later.
+     * @return The identifier to be used to open the conglomerate later.
      *
      * @param open_mode             see openScan()
      * @param lock_level            see openScan()
@@ -1182,22 +1212,22 @@ conglomerates are removed.
      * @param dynamic_info      object returned from
      *                          getDynamicCompiledConglomInfo() call on this id.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	ScanController openCompiledScan(
-		boolean                         hold,
-		int                             open_mode,
+    ScanController openCompiledScan(
+        boolean                         hold,
+        int                             open_mode,
         int                             lock_level,
         int                             isolation_level,
-		FormatableBitSet                scanColumnList,
-		DataValueDescriptor[]           startKeyValue,
-		int                             startSearchOperator,
-		Qualifier                       qualifier[][],
-		DataValueDescriptor[]           stopKeyValue,
-		int                             stopSearchOperator,
+        FormatableBitSet                scanColumnList,
+        DataValueDescriptor[]           startKeyValue,
+        int                             startSearchOperator,
+        Qualifier                       qualifier[][],
+        DataValueDescriptor[]           stopKeyValue,
+        int                             stopSearchOperator,
         StaticCompiledOpenConglomInfo   static_info,
         DynamicCompiledOpenConglomInfo  dynamic_info)
-			throws StandardException;
+            throws StandardException;
 
 
     /**
@@ -1208,9 +1238,9 @@ conglomerates are removed.
      * of rows from the conglomerate.
      * <p>
      *
-	 * @return The GroupFetchScanController to be used to fetch the rows.
+     * @return The GroupFetchScanController to be used to fetch the rows.
      *
-	 * @param conglomId             see openScan()
+     * @param conglomId             see openScan()
      * @param open_mode             see openScan()
      * @param lock_level            see openScan()
      * @param isolation_level       see openScan()
@@ -1221,24 +1251,24 @@ conglomerates are removed.
      * @param stopKeyValue          see openScan()
      * @param stopSearchOperator    see openScan()
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see ScanController
      * @see GroupFetchScanController
      **/
-	GroupFetchScanController openGroupFetchScan(
-		long                            conglomId,
-		boolean                         hold,
-		int                             open_mode,
+    GroupFetchScanController openGroupFetchScan(
+        long                            conglomId,
+        boolean                         hold,
+        int                             open_mode,
         int                             lock_level,
         int                             isolation_level,
-		FormatableBitSet                         scanColumnList,
-		DataValueDescriptor[]           startKeyValue,
-		int                             startSearchOperator,
-		Qualifier                       qualifier[][],
-		DataValueDescriptor[]           stopKeyValue,
-		int                             stopSearchOperator)
-			throws StandardException;
+        FormatableBitSet                         scanColumnList,
+        DataValueDescriptor[]           startKeyValue,
+        int                             startSearchOperator,
+        Qualifier                       qualifier[][],
+        DataValueDescriptor[]           stopKeyValue,
+        int                             stopSearchOperator)
+            throws StandardException;
 
     /**
      * Return an open StoreCostController for the given conglomid.
@@ -1251,13 +1281,13 @@ conglomerates are removed.
      * @return The open StoreCostController.
      *
      * @param conglomerateDescriptor The identifier of the conglomerate to open.
-	 *
-	 * @param skipDictionaryStats Whether we should fetch real stats from dictionary or just fake it
-	 *
-	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
-	 * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
-	 *
+     * @param skipDictionaryStats Whether we should fetch real stats from dictionary or just fake it
+     *
+     * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
+     *
+     * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
+     *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
@@ -1273,17 +1303,17 @@ conglomerates are removed.
      * on SanityManager.DEBUG.
      * <p>
      *
-	 * @return String with debugging information.
+     * @return String with debugging information.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	String debugOpened() throws StandardException;
+    String debugOpened() throws StandardException;
 
 
-	/**
-		Get an object to handle non-transactional files.
-	*/
-	FileResource getFileHandler();
+    /**
+        Get an object to handle non-transactional files.
+    */
+    FileResource getFileHandler();
 
     /**
      * Return an object that when used as the compatibility space for a lock
@@ -1291,7 +1321,7 @@ conglomerates are removed.
      * call to <code>getOwner()</code> on that object, guarantees that the lock
      * will be removed on a commit or an abort.
      */
-	CompatibilitySpace getLockSpace();
+    CompatibilitySpace getLockSpace();
 
     /**
      * Tell this transaction whether it should time out immediately if a lock
@@ -1307,7 +1337,7 @@ conglomerates are removed.
      * @see com.splicemachine.db.iapi.services.locks.LockOwner#noWait()
      * @see com.splicemachine.db.iapi.store.raw.Transaction#setNoLockWait(boolean)
      */
-	void setNoLockWait(boolean noWait);
+    void setNoLockWait(boolean noWait);
 
     /**
      * Return static information about the conglomerate to be included in a
@@ -1322,15 +1352,15 @@ conglomerates are removed.
      * threads as necessary.
      * <p>
      *
-	 * @return The static compiled information.
+     * @return The static compiled information.
      *
      * @param conglomId The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
-			long conglomId)
-		throws StandardException;
+    StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
+            long conglomId)
+        throws StandardException;
 
     /**
      * Return dynamic information about the conglomerate to be dynamically 
@@ -1344,15 +1374,15 @@ conglomerates are removed.
      * evaluation, ...
      * <p>
      *
-	 * @return The dynamic information.
+     * @return The dynamic information.
      *
      * @param conglomId The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo(
-			long conglomId)
-		throws StandardException;
+    DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo(
+            long conglomId)
+        throws StandardException;
 
     /**************************************************************************
      * Interfaces previously defined in TcLogIface:
@@ -1372,11 +1402,11 @@ conglomerates are removed.
      * <p>
      * @param implParameters  Properties which help in choosing 
      *                        implementation-specific sort options.  If null, a
-	 *                        "generally useful" sort will be used.
+     *                        "generally useful" sort will be used.
      *
-	 * @return The open StoreCostController.
+     * @return The open StoreCostController.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
@@ -1387,23 +1417,23 @@ conglomerates are removed.
      **************************************************************************
      */
 
-	/**
-	Return true if any transaction is blocked (even if not by this one).
+    /**
+    Return true if any transaction is blocked (even if not by this one).
 
-	*/
-	boolean anyoneBlocked();
+    */
+    boolean anyoneBlocked();
 
-	/**
-	Abort all changes made by this transaction since the last commit, abort
-	or the point the transaction was started, whichever is the most recent.
-	All savepoints within this transaction are released, and all resources
-	are released (held or non-held).
+    /**
+    Abort all changes made by this transaction since the last commit, abort
+    or the point the transaction was started, whichever is the most recent.
+    All savepoints within this transaction are released, and all resources
+    are released (held or non-held).
 
-	@exception StandardException Only exceptions with severities greater than
-	ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
-	**/
-	void abort()
-		throws StandardException;
+    @exception StandardException Only exceptions with severities greater than
+    ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
+    **/
+    void abort()
+        throws StandardException;
 
     /**
      * "Elevate" the underlying transaction to one that allows writes. This
@@ -1413,30 +1443,30 @@ conglomerates are removed.
      * @param tableName the name of the table to elevate
      * @throws StandardException If something goes wrong during elevation
      */
-	void elevate(String tableName) throws StandardException;
+    void elevate(String tableName) throws StandardException;
 
-	/**
-	Commit this transaction.  All savepoints within this transaction are 
+    /**
+    Commit this transaction.  All savepoints within this transaction are
     released.  All non-held conglomerates and scans are closed.
 
-	@exception StandardException Only exceptions with severities greater than
-	ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
-	If an exception is thrown, the transaction will not (necessarily) have 
+    @exception StandardException Only exceptions with severities greater than
+    ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
+    If an exception is thrown, the transaction will not (necessarily) have
     been aborted.  The standard error handling mechanism is expected to do the 
     appropriate cleanup.  In other words, if commit() encounters an error, the 
     exception is propagated up to the the standard exception handler, which 
     initiates cleanupOnError() processing, which will eventually abort the 
     transaction.
-	**/
-	void commit()
-		throws StandardException;
+    **/
+    void commit()
+        throws StandardException;
 
-	/**
-	"Commit" this transaction without sync'ing the log.  Everything else is
-	identical to commit(), use this at your own risk.
+    /**
+    "Commit" this transaction without sync'ing the log.  Everything else is
+    identical to commit(), use this at your own risk.
 
-	<BR>bits in the commitflag can turn on to fine tuned the "commit":
-	KEEP_LOCKS                          - no locks will be released by the 
+    <BR>bits in the commitflag can turn on to fine tuned the "commit":
+    KEEP_LOCKS                          - no locks will be released by the
                                           commit and no post commit processing 
                                           will be initiated.  If, for some 
                                           reasons, the locks cannot be kept 
@@ -1456,28 +1486,28 @@ conglomerates are removed.
                                           do this initialization.  Will fail
                                           if called on a transaction which
                                           has done any updates.
-	@see TransactionController#commit
+    @see TransactionController#commit
 
-	@exception StandardException Only exceptions with severities greater than
-	ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
-	If an exception is thrown, the transaction will not (necessarily) have 
+    @exception StandardException Only exceptions with severities greater than
+    ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
+    If an exception is thrown, the transaction will not (necessarily) have
     been aborted.  The standard error handling mechanism is expected to do the 
     appropriate cleanup.  In other words, if commit() encounters an error, the 
     exception is propagated up to the the standard exception handler, which 
     initiates cleanupOnError() processing, which will eventually abort the 
     transaction.
-	**/
-	void commitNoSync(int commitflag)
-		throws StandardException;
+    **/
+    void commitNoSync(int commitflag)
+        throws StandardException;
 
-	int RELEASE_LOCKS                          = 0x1;
-	int KEEP_LOCKS                             = 0x2;
+    int RELEASE_LOCKS                          = 0x1;
+    int KEEP_LOCKS                             = 0x2;
     int READONLY_TRANSACTION_INITIALIZATION    = 0x4;
 
-	/**
-	Abort the current transaction and pop the context.
-	**/
-	void destroy();
+    /**
+    Abort the current transaction and pop the context.
+    **/
+    void destroy();
 
     /**
      * Get string id of the transaction.
@@ -1490,44 +1520,44 @@ conglomerates are removed.
      * which is bumped every time a commit or abort is issued.
      * <p>
      *
-	 * @return The a string which identifies the transaction.  
+     * @return The a string which identifies the transaction.
      **/
-	String getTransactionIdString();
+    String getTransactionIdString();
 
-	/**
+    /**
      * Get string id of the transaction that would be when the Transaction
-	 * is IN active state. This method increments the Tx id of  current Tx
-	 * object if it is in idle state. 
-	 * Note: Use this method only  getTransactionIdString() is not suitable.
-	 * @return The string which identifies the transaction.  
+     * is IN active state. This method increments the Tx id of  current Tx
+     * object if it is in idle state.
+     * Note: Use this method only  getTransactionIdString() is not suitable.
+     * @return The string which identifies the transaction.
      **/
-	String getActiveStateTxIdString();
+    String getActiveStateTxIdString();
 
     /**
      * First step of 2-phase commit for a data dictionary change. Makes sure all
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *before* the transaction that makes the change is committed.
      */
-	void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException;
+    void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException;
 
     /**
      * Final step of 2-phase commit for a data dictionary change. Makes sure all
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *after* the transaction that makes the change is committed.
      */
-	void commitDataDictionaryChange() throws StandardException;
+    void commitDataDictionaryChange() throws StandardException;
 
     /**
      * Reveals whether the transaction has ever read or written data.
      *
-	 * @return true If the transaction has never read or written data.
+     * @return true If the transaction has never read or written data.
      **/
-	boolean isIdle();
+    boolean isIdle();
 
     /**
      * Reveals whether the transaction is a global or local transaction.
      *
-	 * @return true If the transaction was either started by 
+     * @return true If the transaction was either started by
      *         AccessFactory.startXATransaction() or was morphed to a global
      *         transaction by calling createXATransactionFromLocalTransaction().
      * 
@@ -1535,40 +1565,40 @@ conglomerates are removed.
      * @see TransactionController#createXATransactionFromLocalTransaction
      *
      **/
-	boolean isGlobal();
+    boolean isGlobal();
 
     /**
      * Reveals whether the transaction is read only.
      *
-	 * @return true If the transaction is read only to this point.
+     * @return true If the transaction is read only to this point.
      *
      **/
-	boolean isPristine();
+    boolean isPristine();
 
-	/**
-	Release the save point of the given name. Releasing a savepoint removes all
-	knowledge from this transaction of the named savepoint and any savepoints
-	set since the named savepoint was set.
+    /**
+    Release the save point of the given name. Releasing a savepoint removes all
+    knowledge from this transaction of the named savepoint and any savepoints
+    set since the named savepoint was set.
 
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
     @return returns savepoint position in the stack.
 
-	@exception StandardException  Standard Derby exception policy.  A 
+    @exception StandardException  Standard Derby exception policy.  A
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
-	**/
-	int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+    **/
+    int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
-	Rollback all changes made since the named savepoint was set. The named
-	savepoint is not released, it remains valid within this transaction, and
-	thus can be named it future rollbackToSavePoint() calls. Any savepoints
-	set since this named savepoint are released (and their changes rolled back).
+    /**
+    Rollback all changes made since the named savepoint was set. The named
+    savepoint is not released, it remains valid within this transaction, and
+    thus can be named it future rollbackToSavePoint() calls. Any savepoints
+    set since this named savepoint are released (and their changes rolled back).
     <p>
     if "close_controllers" is true then all conglomerates and scans are closed
     (held or non-held).  
@@ -1585,47 +1615,47 @@ conglomerates are removed.
     @param name               The identifier of the SavePoint to roll back to.
     @param close_controllers  boolean indicating whether or not the controller 
                               should close open controllers.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-	  Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-	  A String value for kindOfSavepoint would mean it is SQL savepoint
-	  A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+      @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+      A String value for kindOfSavepoint would mean it is SQL savepoint
+      A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
     @return returns savepoint position in the stack.
 
-	@exception StandardException  Standard Derby exception policy.  A 
+    @exception StandardException  Standard Derby exception policy.  A
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
-	**/
-	int rollbackToSavePoint(
-			String name,
-			boolean close_controllers, Object kindOfSavepoint)
+    **/
+    int rollbackToSavePoint(
+            String name,
+            boolean close_controllers, Object kindOfSavepoint)
         throws StandardException;
 
 
-	/**
-	Set a save point in the current transaction. A save point defines a point in
-	time in the transaction that changes can be rolled back to. Savepoints
-	can be nested and they behave like a stack. Setting save points "one" and
-	"two" and the rolling back "one" will rollback all the changes made since
-	"one" (including those made since "two") and release savepoint "two".
+    /**
+    Set a save point in the current transaction. A save point defines a point in
+    time in the transaction that changes can be rolled back to. Savepoints
+    can be nested and they behave like a stack. Setting save points "one" and
+    "two" and the rolling back "one" will rollback all the changes made since
+    "one" (including those made since "two") and release savepoint "two".
 
     @param name     The user provided name of the savepoint.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-	  Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-	  A String value for kindOfSavepoint would mean it is SQL savepoint
-	  A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
-	@return returns savepoint position in the stack.
+      @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+      A String value for kindOfSavepoint would mean it is SQL savepoint
+      A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+    @return returns savepoint position in the stack.
 
-	@exception StandardException  Standard Derby exception policy.  A 
+    @exception StandardException  Standard Derby exception policy.  A
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
-	**/
-	int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+    **/
+    int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
+    /**
      * Convert a local transaction to a global transaction.
      * <p>
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Tbis controller allows one to manipulate a
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Tbis controller allows one to manipulate a
      * global XA conforming transaction.
      * <p>
      * Must only be called a previous local transaction was created and exists
@@ -1644,14 +1674,14 @@ conglomerates are removed.
      * @param branch_id The branch qualifier of the Xid - ie. 
      *                  Xid.getBranchQaulifier()
      * 	
-	 * @exception StandardException Standard exception policy.
-	 * @see TransactionController
-	 **/
-	/* XATransactionController */ Object createXATransactionFromLocalTransaction(
+     * @exception StandardException Standard exception policy.
+     * @see TransactionController
+     **/
+    /* XATransactionController */ Object createXATransactionFromLocalTransaction(
     int                     format_id,
     byte[]                  global_id,
     byte[]                  branch_id)
-		throws StandardException;
+        throws StandardException;
 
 
     boolean isElevated();
@@ -1660,15 +1690,19 @@ conglomerates are removed.
 
     void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
 
-	long getActiveStateTxId();
+    long getActiveStateTxId();
 
-	/**
-	 * The ScanController.close() method has been called on "scan".
-	 * <p>
-	 * Take whatever cleanup action is appropriate to a closed scan.  It is
-	 * likely this routine will remove references to the scan object that it
-	 * was maintaining for cleanup purposes.
-	 *
-	 **/
-	void closeMe(ScanController scan);
+    void setConflictResolutionStrategy(ConflictResolutionStrategy conflictResolutionStrategy);
+
+    ConflictResolutionStrategy getConflictResolutionStrategy();
+
+    /**
+     * The ScanController.close() method has been called on "scan".
+     * <p>
+     * Take whatever cleanup action is appropriate to a closed scan.  It is
+     * likely this routine will remove references to the scan object that it
+     * was maintaining for cleanup purposes.
+     *
+     **/
+    void closeMe(ScanController scan);
 }

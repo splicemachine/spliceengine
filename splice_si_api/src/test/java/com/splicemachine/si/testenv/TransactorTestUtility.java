@@ -18,6 +18,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -153,6 +154,10 @@ public class TransactorTestUtility {
         Assert.assertTrue("Expected a WriteConflict exception, but got <"+e.getClass()+">",e instanceof WriteConflict);
     }
 
+    public void assertRollbackException(IOException e) {
+        e = testEnv.getExceptionFactory().processRemoteException(e);
+        Assert.assertTrue("Expected a WriteConflict exception, but got <"+e.getClass()+">",e instanceof CannotRollbackException);
+    }
 
     private static void insertField(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                     Txn txn,String name,int index,Object fieldValue) throws IOException {

@@ -98,6 +98,7 @@ public class SpliceTransactionManager implements XATransactionController,
      * The ID of the current ddl change coordination.
      */
     private List<String> currentDDLChanges;
+    private ConflictResolutionStrategy conflictResolutionStrategy;
 
     /**************************************************************************
      * Constructors for This class:
@@ -126,6 +127,7 @@ public class SpliceTransactionManager implements XATransactionController,
         } else {
             tempCongloms = null; // allocated on demand
         }
+        this.conflictResolutionStrategy = ConflictResolutionStrategy.NOT_SET;
     }
 
     protected SpliceTransactionManager(SpliceAccessManager myaccessmanager,
@@ -1909,5 +1911,15 @@ public class SpliceTransactionManager implements XATransactionController,
         if(rawtran!=null)
             return getRawTransaction().getActiveStateTxn().getTxnId();
         return -1;
+    }
+
+    @Override
+    public void setConflictResolutionStrategy(ConflictResolutionStrategy conflictResolutionStrategy) {
+        this.conflictResolutionStrategy = conflictResolutionStrategy;
+    }
+
+    @Override
+    public ConflictResolutionStrategy getConflictResolutionStrategy() {
+        return conflictResolutionStrategy;
     }
 }

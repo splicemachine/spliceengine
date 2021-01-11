@@ -935,9 +935,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         if (tc == null) { //bug 4821 - tc will passed null if we want to use the user transaction
             tc = lcc.getTransactionExecute();
         }
-        String savepointName = "DD_SAVEPOINT-" + java.util.UUID.randomUUID();
         try {
-            tc.setSavePoint(savepointName, null);
+            tc.setConflictResolutionStrategy(TransactionController.ConflictResolutionStrategy.IMMEDIATE);
             dd.updateSPS(this,
                     tc,
                     recompile,
@@ -947,7 +946,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         } catch (StandardException se) {
             // This can fail since multiple threads/clusters can recompile sps descriptors
             // especially after collecting stats on sys tables.
-            tc.rollbackToSavePoint(savepointName, false, null);
         }
     }
 

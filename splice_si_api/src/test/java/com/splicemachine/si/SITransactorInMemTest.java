@@ -24,6 +24,7 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ForwardingTxnView;
@@ -278,19 +279,20 @@ public class SITransactorInMemTest {
         Assert.assertEquals("joe012 age=20 job=null", testUtility.read(t1, "joe012"));
         Assert.assertEquals("joe012 absent", testUtility.read(t2, "joe012"));
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
+        testUtility.insertAge(t2, "joe012", 30);
+        Assert.assertEquals("joe012 age=20 job=null", testUtility.read(t1, "joe012"));
+        t1.commit();
         try {
-            testUtility.insertAge(t2, "joe012", 30);
-            Assert.fail("was able to insert age");
-        } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
+            t2.commit();
+            Assert.fail();
+        } catch (IOException dnrio) {
+            Assert.assertTrue("Was not a CannotRollbackException!",dnrio instanceof CannotRollbackException);
+            CannotRollbackException cce = (CannotRollbackException)dnrio;
+            Assert.assertEquals("Incorrect transaction id!",t1.getTxnId(),cce.getTxnId());
+            Assert.assertEquals("Incorrect originating transaction id!",t2.getTxnId(),cce.getOriginatingTxnId());
         } finally {
             t2.rollback();
         }
-        Assert.assertEquals("joe012 age=20 job=null", testUtility.read(t1, "joe012"));
-        t1.commit();
-        error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
-        t2.commit(); //should not work, probably need to change assertion
-        Assert.fail("Was able to commit a rolled back transaction");
     }
 
     @Test
@@ -305,18 +307,23 @@ public class SITransactorInMemTest {
         Assert.assertEquals("joe142 age=20 job=null", testUtility.read(t1, "joe142"));
         Assert.assertEquals("joe142 absent", testUtility.read(t2, "joe142"));
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
-        try {
-            testUtility.insertAge(t2, "joe142", 30);
-            Assert.fail();
-        } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
-        }
+        testUtility.insertAge(t2, "joe142", 30);
         // can still use a transaction after a write conflict
         testUtility.insertAge(t2, "bob142", 30);
         Assert.assertEquals("bob142 age=30 job=null", testUtility.read(t2, "bob142"));
         Assert.assertEquals("joe142 age=20 job=null", testUtility.read(t1, "joe142"));
         t1.commit();
-        t2.commit();
+        try {
+            t2.commit();
+            Assert.fail();
+        } catch (IOException dnrio) {
+            Assert.assertTrue("Was not a CannotRollbackException!", dnrio instanceof CannotRollbackException);
+            CannotRollbackException cce = (CannotRollbackException) dnrio;
+            Assert.assertEquals("Incorrect transaction id!", t1.getTxnId(), cce.getTxnId());
+            Assert.assertEquals("Incorrect originating transaction id!", t2.getTxnId(), cce.getOriginatingTxnId());
+        } finally {
+            t2.rollback();
+        }
     }
 
     @Test
@@ -599,16 +606,18 @@ public class SITransactorInMemTest {
         testUtility.insertAge(t1, "joe2", 20);
 
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
+        testUtility.deleteRow(t2, "joe2");
+
+        Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
+        t1.commit();
         try {
-            testUtility.deleteRow(t2, "joe2");
+            t2.commit();
             Assert.fail("No Write conflict was detected!");
         } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
+            testUtility.assertRollbackException(e);
         } finally {
             t2.rollback();
         }
-        Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
-        t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         error.expectMessage(String.format("[%1$d]Transaction %1$d cannot be committed--it is in the %2$s state",t2.getTxnId(),Txn.State.ROLLEDBACK));
         t2.commit();
@@ -626,24 +635,17 @@ public class SITransactorInMemTest {
 
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         Assert.assertEquals("joe013 age=20 job=null",testUtility.read(t2,"joe013"));
-        try {
-            testUtility.insertAge(t2, "joe013", 21);
-            Assert.fail("No WriteConflict thrown!");
-        } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-            t2.rollback();
-        }
+        testUtility.insertAge(t2, "joe013", 21);
         Assert.assertEquals("joe013 absent", testUtility.read(t1, "joe013"));
         t1.commit();
         try {
             t2.commit();
             Assert.fail();
         } catch (IOException dnrio) {
-            Assert.assertTrue("Was not a CannotCommitException!",dnrio instanceof CannotCommitException);
-            CannotCommitException cce = (CannotCommitException)dnrio;
-            Assert.assertEquals("Incorrect transaction id!",t2.getTxnId(),cce.getTxnId());
-            Assert.assertEquals("Incorrect cannot-commit state",Txn.State.ROLLEDBACK,cce.getActualState());
+            Assert.assertTrue("Was not a CannotRollbackException!",dnrio instanceof CannotRollbackException);
+            CannotRollbackException cce = (CannotRollbackException)dnrio;
+            Assert.assertEquals("Incorrect transaction id!",t1.getTxnId(),cce.getTxnId());
+            Assert.assertEquals("Incorrect transaction id!",t2.getTxnId(),cce.getOriginatingTxnId());
         }
 
         Txn t3 = control.beginTransaction();
@@ -1372,9 +1374,9 @@ public class SITransactorInMemTest {
         child.commit();
 
         Txn other = control.beginTransaction(Txn.IsolationLevel.READ_COMMITTED, DESTINATION_TABLE);
+        testUtility.insertAge(other, "joe34", 21);
         try {
-            testUtility.insertAge(other, "joe34", 21);
-            Assert.fail("No write conflict detected");
+            other.commit();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1405,12 +1407,11 @@ public class SITransactorInMemTest {
         Txn child = control.beginChildTransaction(parent, DESTINATION_TABLE);
         testUtility.insertAge(child, "joe36", 22);
         child.commit();
-
+        testUtility.insertAge(other, "joe36", 21);
         try {
-            testUtility.insertAge(other, "joe36", 21);
-            Assert.fail();
+            other.commit();
         } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
+            testUtility.assertRollbackException(e);
         } finally {
             other.rollback();
         }
@@ -1906,14 +1907,7 @@ public class SITransactorInMemTest {
         Txn t2 = control.beginChildTransaction(t1v, t1.getIsolationLevel(), DESTINATION_TABLE);
         Txn t3 = control.beginChildTransaction(t1v, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe31", 21);
-        try {
-            testUtility.insertJob(t3, "moe31", "baker");
-            Assert.fail();
-        } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-            t3.rollback();
-        }
+        testUtility.insertJob(t3, "moe31", "baker");
     }
 
     @Test
@@ -1987,19 +1981,18 @@ public class SITransactorInMemTest {
         Assert.assertEquals("joe116 age=null job=null", testUtility.read(t1, "joe116"));
         Assert.assertEquals("joe116 absent", testUtility.read(t2, "joe116"));
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
+        testUtility.insertAge(t2, "joe116", 30);
+
+        Assert.assertEquals("joe116 age=null job=null", testUtility.read(t1, "joe116"));
+        t1.commit();
         try {
-            testUtility.insertAge(t2, "joe116", 30);
+            t2.commit();
             Assert.fail("Allowed insertion");
         } catch (IOException e) {
-            testUtility.assertWriteConflict(e);
+            testUtility.assertRollbackException(e);
         } finally {
             t2.rollback();
         }
-        Assert.assertEquals("joe116 age=null job=null", testUtility.read(t1, "joe116"));
-        t1.commit();
-        error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
-        t2.commit();
-        Assert.fail("Was able to comit a rolled back transaction");
     }
 
     @Test
