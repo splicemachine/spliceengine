@@ -35,7 +35,7 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
 
     @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
-    protected void upgradeSystemTables(Properties startParams) throws StandardException {
+    protected void upgradeSystemTables() throws StandardException {
         try {
             dropUnusedTable();
             BaseDataDictionary.WRITE_NEW_FORMAT = true;

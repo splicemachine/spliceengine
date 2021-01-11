@@ -15,6 +15,8 @@
 package com.splicemachine.utils;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A ByteSlice that keeps an on-demand cached version of
  * a byte copy. This way, calling getByteCopy() will not create
@@ -94,8 +96,9 @@ public class CachedByteSlice extends ByteSlice {
         return super.toString() + " cachedCopy.length=" + (cachedCopy == null ? 0 : cachedCopy.length);
     }
 
+
+    @SuppressFBWarnings(value = "CN_IDIOM_NO_SUPER_CALL", justification = "intentional")
     @Override
-    @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
     public ByteSlice clone(){
         if(array()==null) return new CachedByteSlice();
         if(cachedCopy!=null)

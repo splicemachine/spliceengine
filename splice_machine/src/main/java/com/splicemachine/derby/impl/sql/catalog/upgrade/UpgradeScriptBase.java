@@ -53,18 +53,14 @@ public class UpgradeScriptBase implements UpgradeScript {
         }
     }
 
-    protected void upgradeSystemTables(Properties startParams) throws StandardException {
-        upgradeSystemTables();
-    }
 
     protected void upgradeSystemTables() throws StandardException {
     }
 
     protected void upgradeSystemFunctions() throws StandardException {
     }
-
-    public void run(Properties startParams) throws StandardException{
-    	upgradeSystemTables(startParams);
+    public void run() throws StandardException{
+    	upgradeSystemTables();
     	upgradeSystemFunctions();
     }
 }

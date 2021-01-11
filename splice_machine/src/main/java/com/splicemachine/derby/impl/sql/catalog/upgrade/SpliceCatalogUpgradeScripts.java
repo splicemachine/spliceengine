@@ -21,6 +21,7 @@ import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.util.*;
 
@@ -104,7 +105,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1985, new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
-        addUpgradeScript(baseVersion4, 1993,  new UpgradeStoredObjects(sdd, tc));
+        addUpgradeScript(baseVersion4, 1993, new UpgradeStoredObjects(sdd, tc));
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
@@ -141,6 +142,7 @@ public class SpliceCatalogUpgradeScripts{
         LOG.info("upgrade done.");
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     public void runUpgrades(Splice_DD_Version catalogVersion) throws StandardException{
         LOG.info("Catalog is on version " + catalogVersion + ". checking for upgrades...");
 

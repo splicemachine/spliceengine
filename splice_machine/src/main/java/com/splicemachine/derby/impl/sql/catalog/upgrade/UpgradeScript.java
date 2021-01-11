@@ -22,5 +22,5 @@ import java.util.Properties;
  * Created by jyuan on 10/17/14.
  */
 public interface UpgradeScript {
-    void run(Properties startParams) throws StandardException;
+    void run() throws StandardException;
 }
