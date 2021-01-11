@@ -15,7 +15,7 @@ public class UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS extends Upgrad
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.updateSystemViewForSysConglomerates(tc);
+        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATEINSCHEMAS");
 
         SpliceLogUtils.info(LOG, "Catalog upgraded: updated system view sysvw.sysconglomerateinschemas");
 

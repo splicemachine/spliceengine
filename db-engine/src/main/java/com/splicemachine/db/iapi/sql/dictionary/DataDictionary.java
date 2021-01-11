@@ -468,9 +468,8 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
-    SchemaDescriptor getSystemSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSystemSchemaDescriptor();
 
     /**
      * Get the descriptor for the SYSIBM schema. Schema descriptors include
@@ -480,9 +479,8 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
-    SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSysIBMSchemaDescriptor();
 
     /**
      * Get the descriptor for the SYSCS_UTIL schema. Schema descriptors include
@@ -504,11 +502,10 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
     //used in Splice, don't remove
     @SuppressWarnings("unused")
-    SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSysFunSchemaDescriptor();
 
     /**
      * Get the descriptor for the declared global temporary table schema which is always named "SESSION".
