@@ -201,7 +201,7 @@ public class ConstraintConstantOperationIT {
         } catch (SQLException e) {
             // expected
            Assert.assertEquals("Operation on table 'EMPNAME' caused a violation of foreign key constraint " +
-                                   "'EMP_ID_FK' for key (EMPID).  The statement has been rolled back.", e.getLocalizedMessage());
+                                   "'EMP_ID_FK' for key (EMPID). The statement has been rolled back.", e.getLocalizedMessage());
         }
     }
 

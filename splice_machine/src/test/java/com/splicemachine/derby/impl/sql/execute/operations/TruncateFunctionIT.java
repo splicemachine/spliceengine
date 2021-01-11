@@ -635,7 +635,7 @@ public class TruncateFunctionIT {
             Assert.assertEquals("Column 'X' is either not in any table in the FROM list or appears within a join " +
                                     "specification and is outside the scope of the join specification or appears in " +
                                     "a HAVING clause and is not in the GROUP BY list. If this is a CREATE or " +
-                                    "ALTER TABLE  statement then 'X' is not a column in the target table.",
+                                    "ALTER TABLE statement then 'X' is not a column in the target table.",
                                 e.getLocalizedMessage());
         }
     }

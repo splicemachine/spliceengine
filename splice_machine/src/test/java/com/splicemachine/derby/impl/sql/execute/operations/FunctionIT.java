@@ -775,6 +775,7 @@ public class FunctionIT extends SpliceUnitTest {
     @Test
     public void testLengthOfCastToVarchar() throws Exception {
         // See DB-10618
+        methodWatcher.executeUpdate("drop table if exists testLengthOfCastToVarchar");
         methodWatcher.executeUpdate("create table testLengthOfCastToVarchar (v varchar(10))");
         String sql = "select length(coalesce(max(substr(v,1,1)),char('',2))) from testLengthOfCastToVarchar --splice-properties useSpark=%s\n";
         try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
