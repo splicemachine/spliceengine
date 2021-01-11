@@ -478,6 +478,9 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
             return;
         }
+
+        // inline syntax with list of columns in parentheses
+        // where clause is part of the subquery
         spliceClassWatcher.executeUpdate(format("update t1 set (b1) = (select b2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
                 " cross join (select a3 from t3) where a1=a2)", this.joinStrategy, this.useSparkString));
 
@@ -490,6 +493,91 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
                 " 3 |30 | 3 | 3 |";
         try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // UPDATE ... FROM, single subquery
+        // where clause is also part of the subquery
+        spliceClassWatcher.executeUpdate(format("update t1 set b1 = b2" +
+                " from (select a2, b2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                " cross join (select a3 from t3)) where a1=a2", this.joinStrategy, this.useSparkString));
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // UPDATE ... FROM, from list
+        // where clause is part of the update statement
+        spliceClassWatcher.executeUpdate(format("update t1 set b1 = b2" +
+                " from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                "    , (select a3 from t3) where a1=a2", this.joinStrategy, this.useSparkString));
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testSetExpressionsFrom() throws Exception {
+        if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
+            return;
+        }
+
+        spliceClassWatcher.executeUpdate(format("update t1 set b1 = b2 + 1" +
+                " from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                " cross join (select a3 from t3) where a1=a2", this.joinStrategy, this.useSparkString));
+
+        String expected = "A1 |B1 |C1 |D1 |\n" +
+                "----------------\n" +
+                " 1 |11 | 1 | 1 |\n" +
+                " 1 |11 | 1 |11 |\n" +
+                " 2 | 2 | 2 | 2 |\n" +
+                " 2 | 2 | 2 |21 |\n" +
+                " 3 |31 | 3 | 3 |";
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testExpressionsInBothSetAndSubquery() throws Exception {
+        if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
+            return;
+        }
+
+        spliceClassWatcher.executeUpdate(format("update t1 set b1 = col + 2" +
+                " from (select b2 + 1 as col, a2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                " cross join (select a3 from t3)) where a1=a2", this.joinStrategy, this.useSparkString));
+
+        String expected = "A1 |B1 |C1 |D1 |\n" +
+                "----------------\n" +
+                " 1 |13 | 1 | 1 |\n" +
+                " 1 |13 | 1 |11 |\n" +
+                " 2 | 2 | 2 | 2 |\n" +
+                " 2 | 2 | 2 |21 |\n" +
+                " 3 |33 | 3 | 3 |";
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from t1")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    /* DB-6509
+     * It's quite intuitive to write the following query that "where a1=a2" is in the subquery
+     * in from list. But there is a subtle difference. The parentheses syntax has the subquery
+     * in UPDATE statement level. The FROM syntax, however, has the subquery in a from list.
+     * The actual subquery in UPDATE statement level is built from this from list. That means
+     * the subquery written by user is not in the adjacent nesting level of T1. Thus, it can't
+     * references columns in T1. To make correlations, one has to use the WHERE clause in the
+     * UPDATE statement. Check testNestedFromSubquery() for correct queries.
+     */
+    @Test
+    public void testSubtleCorrelationSemanticInFromSyntax() throws Exception {
+        try {
+            spliceClassWatcher.executeUpdate(format("update t1 set b1 = b2" +
+                " from (select b2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+                " cross join (select a3 from t3) where a1=a2)", this.joinStrategy, this.useSparkString));
+        } catch (SQLException e) {
+            Assert.assertEquals("42X04", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Column 'A1' is either not in any table in the FROM list or appears"));
         }
     }
 
@@ -510,6 +598,24 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals("42X58", e.getSQLState());
             Assert.assertTrue(e.getMessage().contains("The number of columns on the left and right sides of the assignment in set clause must be the same."));
+        }
+    }
+
+    @Test
+    public void testUpdateFromSubquerySyntaxError() throws Exception {
+        /* Adding a pair of parentheses to the LHS of the assignment in set clause
+         * triggers the parsing rule of
+         *     <LEFT_PAREN> column_list <RIGHT_PAREN> <EQ> update_source
+         * which is the same semantic as the alternative syntax
+         *     UPDATE ... SET ... FROM ... WHERE ...
+         * One can choose either of them but not both.
+         */
+        try {
+            spliceClassWatcher.executeUpdate("update t1 set (b1) = b2" +
+                    " from t2, t3 where a1 = a2");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X67", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Invalid UPDATE statement syntax."));
         }
     }
 

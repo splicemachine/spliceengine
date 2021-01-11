@@ -919,7 +919,7 @@ public interface SQLState {
     String LANG_INVALID_STATISTICS_SPEC                                    = "42X64";
     String LANG_INDEX_NOT_FOUND                                            = "42X65";
     String LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX                         = "42X66";
-    //42X67
+    String LANG_INVALID_UPDATE_STATEMENT                                   = "42X67";
     String LANG_NO_FIELD_FOUND                                             = "42X68";
     String LANG_PRIMITIVE_REFERENCING_EXPRESSION                           = "42X69";
     String LANG_TABLE_DEFINITION_R_C_L_MISMATCH                            = "42X70";
