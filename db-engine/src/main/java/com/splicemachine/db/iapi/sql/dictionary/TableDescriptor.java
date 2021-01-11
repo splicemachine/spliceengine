@@ -1008,26 +1008,22 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     @Override
     public String toString(){
-        if(SanityManager.DEBUG){
-            String tempString=
-                    "\n"+"schema: "+schemaDesctiptor+"\n"+
-                            "tableName: "+tableName+"\n"+
-                            "oid: "+oid+" tableType: "+tableType+"\n"+
-                            "conglomerateDescriptorList: "+conglomerateDescriptorList+"\n"+
-                            "columnDescriptorList: "+columnDescriptorList+"\n"+
-                            "constraintDescriptorList: "+constraintDescriptorList+"\n"+
-                            "heapConglomNumber: "+heapConglomNumber+"\n";
-            if(tableType==TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE){
-                tempString=tempString+"onCommitDeleteRows: "+"\n"+
-                        onCommitDeleteRows+"\n";
-                tempString=tempString+"onRollbackDeleteRows: "+"\n"+
-                        onRollbackDeleteRows;
-            }else
-                tempString=tempString+"lockGranularity: "+lockGranularity;
-            return tempString;
-        }else{
-            return "";
-        }
+        String tempString=
+                "\n"+"schema: "+schemaDesctiptor+"\n"+
+                        "tableName: "+tableName+"\n"+
+                        "oid: "+oid+" tableType: "+tableType+"\n"+
+                        "conglomerateDescriptorList: "+conglomerateDescriptorList+"\n"+
+                        "columnDescriptorList: "+columnDescriptorList+"\n"+
+                        "constraintDescriptorList: "+constraintDescriptorList+"\n"+
+                        "heapConglomNumber: "+heapConglomNumber+"\n";
+        if(tableType==TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE){
+            tempString=tempString+"onCommitDeleteRows: "+"\n"+
+                    onCommitDeleteRows+"\n";
+            tempString=tempString+"onRollbackDeleteRows: "+"\n"+
+                    onRollbackDeleteRows;
+        }else
+            tempString=tempString+"lockGranularity: "+lockGranularity;
+        return tempString;
     }
 
     /**

@@ -222,7 +222,7 @@ public class DataDictionaryCache {
     public TableDescriptor nameTdCacheRemove(TableKey tableKey) throws StandardException {
         TableDescriptor td = nameTdCache.getIfPresent(tableKey);
         if (LOG.isDebugEnabled())
-            LOG.debug("nameTdCacheInvalidate " + tableKey + (td != null ? " found" : " null"));
+            LOG.debug("nameTdCacheInvalidate " + tableKey + (td != null ? " found: " + td : " null"));
         nameTdCache.invalidate(tableKey);
         return td;
     }
