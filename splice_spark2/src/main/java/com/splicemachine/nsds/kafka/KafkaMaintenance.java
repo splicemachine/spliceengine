@@ -20,11 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -41,7 +37,13 @@ public class KafkaMaintenance {
         return AdminClient.create( props );
     }
     
-    public static void deleteOldTopics(String kafkaServers, String dataFileName, long ageCutoffMinutes)  throws Exception {
+    public static void deleteOldTopics(
+        String kafkaServers,
+        String dataFileName,
+        long ageCutoffMinutes,
+        List<String> prefixToDelete,
+        List<String> prefixToKeep
+    ) throws Exception {
         LOG.info( "Instantiating Kafka client" );
         AdminClient admin = adminClient( kafkaServers );
 
@@ -85,6 +87,8 @@ public class KafkaMaintenance {
         Set<String> undeletedTopicNames = undeleted.stream().map(ln -> ln.split(delim)[0]).collect(Collectors.toSet());
         Set<String> newTopics = topicNamesInKafka.stream()
             .filter(t -> ! undeletedTopicNames.contains(t))
+            .filter(t -> prefixToDelete == null ? true : prefixToDelete.stream().anyMatch(prefix -> t.startsWith(prefix)) )
+            .filter(t -> prefixToKeep == null ? true : ! prefixToKeep.stream().anyMatch(prefix -> t.startsWith(prefix)) )
             .map(t -> t + delim + now.toEpochMilli() )
             .collect(Collectors.toSet());
         
@@ -96,19 +100,36 @@ public class KafkaMaintenance {
 
     /**
      * 
-     * @param args args[0] Kafka Bootstrap Servers; args[1] path to topics file
+     * @param args args[0] Kafka Bootstrap Servers; args[1] path to topics file.
+     *             Optional: args[3] Topic age cutoff in minutes
+     *             args[4] Comma-separated list of topic prefixes to delete, topics with other prefixes will not be deleted
+     *             args[5] Comma-separated list of topic prefixes to keep, topics with other prefixes will be deleted
      */
     public static void main(String[] args) {
         try {
             if( args.length < 2 ) {
-                System.out.println("Required params: Kafka Bootstrap Servers, Path to topics file. Optional: Topic age cutoff in minutes.");
+                System.out.println(
+                    "Required params: Kafka Bootstrap Servers, Path to topics file."
+                    + "  Optional: Topic age cutoff in minutes,"
+                    + " Comma-separated list of topic prefixes to delete,"
+                    + " Comma-separated list of topic prefixes to keep."
+                );
                 System.exit(1);
             }
             long ageCutoffMinutes = 24*60;
             if( args.length >= 3 ) {
                 ageCutoffMinutes = Long.parseLong( args[2] );
             }
-            KafkaMaintenance.deleteOldTopics( args[0] , args[1] , ageCutoffMinutes );
+            List<String> prefixToDelete = null;
+            if( args.length >= 4 ) {
+                prefixToDelete = Arrays.asList( args[3].split(",") );
+            }
+            List<String> prefixToKeep = null;
+            if( args.length >= 5 ) {
+                prefixToKeep = Arrays.asList( args[4].split(",") );
+            }
+
+            KafkaMaintenance.deleteOldTopics( args[0] , args[1] , ageCutoffMinutes , prefixToDelete , prefixToKeep );
         } catch(Exception e) {
             System.out.println(e);
         }
