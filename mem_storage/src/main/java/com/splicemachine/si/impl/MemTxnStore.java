@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.constants.SIConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Lists;
@@ -189,10 +190,10 @@ public class MemTxnStore implements TxnStore{
                 lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
                 if (!lockAcquired && commitPendingTxns.contains(txnId)) {
                     if (originatorTxnId < txnId) { // simplest comparison that leads that
-                        throw new IOException(String.format("deadlock avoidance, fail to rollback " +
-                                                                    "transaction %d since it is in " +
-                                                                    "commit-pending state with the originator %d",
-                                                            txnId, originatorTxnId));
+                        throw new MCannotRollbackException(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
+                                                                                                         "transaction %d since it is in " +
+                                                                                                         "commit-pending state with the originator %d",
+                                                                                                 txnId, originatorTxnId));
                     }
                     // otherwise keep trying, we'll eventually be able to
                 }
@@ -209,7 +210,7 @@ public class MemTxnStore implements TxnStore{
             }
             switch (state) {
                 case COMMITTED:
-                    throw new IOException(String.format("transaction %d is already committed", txnId));
+                    throw new MCannotRollbackException(txnId, originatorTxnId, String.format("transaction %d is already committed", txnId));
                 case ROLLEDBACK:
                     return;
                 default:
