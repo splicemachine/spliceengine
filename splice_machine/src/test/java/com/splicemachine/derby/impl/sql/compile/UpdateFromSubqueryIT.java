@@ -496,7 +496,7 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         }
 
         // UPDATE ... FROM, single subquery
-        // where clause is also part of the subquery
+        // where clause is part of the update statement
         spliceClassWatcher.executeUpdate(format("update t1 set b1 = b2" +
                 " from (select a2, b2 from t2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
                 " cross join (select a3 from t3)) where a1=a2", this.joinStrategy, this.useSparkString));
