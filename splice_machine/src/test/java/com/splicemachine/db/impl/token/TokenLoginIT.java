@@ -41,6 +41,7 @@ public class TokenLoginIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testLoginWithSpliceKey() throws SQLException {
         String url = "jdbc:splice://localhost:1527/splicedb;user=%s;authenticator=splice_jwt_pub;token=%s";
         String userName = TEST_USER_NAME;
