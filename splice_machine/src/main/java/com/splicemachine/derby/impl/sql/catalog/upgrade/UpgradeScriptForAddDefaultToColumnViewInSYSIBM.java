@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -28,7 +29,7 @@ public class UpgradeScriptForAddDefaultToColumnViewInSYSIBM extends UpgradeScrip
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.updateColumnViewInSysIBM(tc);
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
 
         // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in sysIBM
         sdd.updateMetadataSPSes(tc);

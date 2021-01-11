@@ -183,7 +183,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         /* 7th column is DefaultRole */
         row.setColumn(7, new SQLChar(isDefaultRole? "Y" : "N"));
 
-        /* 8th column is DefaultRole */
+        /* 8th column is DatabaseId*/
         row.setColumn(8, new SQLChar(databaseId));
 
         return row;

@@ -919,7 +919,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException {
+    public SchemaDescriptor getSystemSchemaDescriptor() {
         return systemSchemaDesc;
     }
 
@@ -950,7 +950,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysIBMSchemaDescriptor(){
         return sysIBMSchemaDesc;
     }
 
@@ -965,7 +965,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysFunSchemaDescriptor(){
         return sysFunSchemaDesc;
     }
 
@@ -1069,35 +1069,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             dbId = getLCC().getDatabaseId();
         }
 
-        switch (schemaName) {
-            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
-                return getSystemSchemaDescriptor();
-            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
-                // oh you are really asking SYSIBM, if this db is soft upgraded
-                // from pre 52, I may have 2 versions for you, one on disk
-                // (user SYSIBM), one imaginary (builtin). The
-                // one on disk (real one, if it exists), should always be used.
-                if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                    return getSysIBMSchemaDescriptor();
-                }
-                break;
-            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
-                return sysIBMADMSchemaDesc;
-            //case SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME:
-            //    return getSystemUtilSchemaDescriptor();
-            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
-                return getSysFunSchemaDescriptor();
-            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
-                return sysViewSchemaDesc;
-            default:
-                break;
+        SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
+        if (sd != null) {
+            return sd;
         }
 
         /*
         ** Manual lookup
         */
-
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(dbId, schemaName, tc);
+        sd = dataDictionaryCache.schemaCacheFind(dbId, schemaName, tc);
         if (sd!=null)
             return sd;
 
@@ -1116,6 +1096,35 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }else{
             return sd;
         }
+    }
+
+    public SchemaDescriptor getSystemWideSchemaDescriptor(String schemaName) {
+        switch (schemaName) {
+            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
+                return getSystemSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
+                // oh you are really asking SYSIBM, if this db is soft upgraded
+                // from pre 52, I may have 2 versions for you, one on disk
+                // (user SYSIBM), one imaginary (builtin). The
+                // one on disk (real one, if it exists), should always be used.
+                if(dictionaryVersion == null || dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2)){
+                    return getSysIBMSchemaDescriptor();
+                }
+                break;
+            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
+                return sysIBMADMSchemaDesc;
+            //case SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME:
+            //    return getSystemUtilSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
+                return getSysFunSchemaDescriptor();
+            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
+                return sysViewSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME:
+                return sysCatSchemaDesc;
+            default:
+                break;
+        }
+        return null;
     }
 
     /**
@@ -6313,7 +6322,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
-        String dbId = getSpliceDatabaseDescriptor().getUUID().toString();
+        String dbId = spliceDbDesc.getUUID().toString();
         updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, aid, tc);
         updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, aid, tc);
         updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, aid, tc);
@@ -6329,7 +6338,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
 
         // now reset our understanding of who owns the database
-        resetDatabaseOwner(tc);
+        resetSpliceDbOwner(tc, spliceDbDesc.getUUID());
     }
 
     /**
@@ -6884,7 +6893,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
-        resetDatabaseOwner(tc);
+        resetSpliceDbOwner(tc, spliceDbDesc.getUUID());
 
         softwareVersion.upgradeIfNeeded(dictionaryVersion,tc,startParams);
     }
@@ -6913,12 +6922,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * a separately callable method.
      *
      * @param tc TransactionController
+     * @param spliceDbUUID
      * @throws StandardException Thrown on error
      */
-    public void resetDatabaseOwner(TransactionController tc) throws StandardException{
-        SchemaDescriptor sd=locateSchemaRow(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc); // XXX(arnaud multidb) this should be DB specific
+    public void resetSpliceDbOwner(TransactionController tc, UUID spliceDbUUID) throws StandardException{
+        SchemaDescriptor sd=locateSchemaRow(spliceDbUUID, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc);
         String owner = sd.getAuthorizationId();
-        authorizationDatabasesOwner.put(spliceDbDesc.getUUID(), owner);
+        authorizationDatabasesOwner.put(spliceDbUUID, owner);
 
         systemSchemaDesc.setAuthorizationId(owner);
         sysIBMSchemaDesc.setAuthorizationId(owner);

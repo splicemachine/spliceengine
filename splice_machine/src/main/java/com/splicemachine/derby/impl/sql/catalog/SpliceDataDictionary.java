@@ -94,12 +94,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl replicationTable = null;
     private volatile TabInfoImpl naturalNumbersTable = null;
     private volatile TabInfoImpl ibmConnectionTable = null;
+    private volatile TabInfoImpl databaseTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
     private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
+
+    public static final SystemViewDefinitions viewDefinitions = new SystemViewDefinitions();
 
     @Override
     public SystemProcedureGenerator getSystemProcedures(){
@@ -247,7 +250,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " is created!");
     }
 
-    private String getSchemaViewSQL() {
+    String getSchemaViewSQL() {
         SConfiguration configuration=SIDriver.driver().getConfiguration();
         String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
         String schemaViewSQL;
@@ -271,109 +274,28 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         //create AllRoles view
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
 
-        // create syssequencesView
-        // XXX (arnaud, multidb) Add this new view to an upgrade script
-        createOneSystemView(tc, SYSSEQUENCES_CATALOG_NUM, "SYSSEQUENCESVIEW", 0, sysVWSchema, SYSSEQUENCESRowFactory.SYSSEQUENCES_VIEW_SQL);
-
-        createOneSystemView(tc, SYSROLES_CATALOG_NUM, "SYSALLROLES", 0, sysVWSchema, SYSROLESRowFactory.ALLROLES_VIEW_SQL);
-
-        // create sysschemasview
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, getSchemaViewSQL());
-
-        // create conglomeratesInSchemas view
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
-
-        // create systablesView
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLESVIEW", 0, sysVWSchema, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
-
-        // create syscolumnsView
-        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
-
-        // create sysdatabasesView
-        createOneSystemView(tc, SYSDATABASES_CATALOG_NUM, "SYSDATABASESVIEW", 0, sysVWSchema, SYSDATABASESRowFactory.SYSDATABASES_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSALLROLES");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATEINSCHEMAS");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSDATABASESVIEW");
 
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 
     public void createTableColumnViewInSysIBM(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-
-        /**
-         * handle syscolumns in sysibm
-         */
-        // check the existence of syscolumns view in sysibm
-        TableDescriptor td = getTableDescriptor("SYSCOLUMNS", sysIBMSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
-
-        /**
-         * handle systables in sysibm
-         */
-        td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
-
-        SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
     }
 
     public void createKeyColumnUseViewInSysIBM(TransactionController tc) throws StandardException {
-        TableDescriptor td = getTableDescriptor("SYSKEYCOLUSE", sysIBMSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
-
-        SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSKEYCOLUSE");
     }
 
     public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
-        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysCatSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
-
-        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+        createOrUpdateSystemView(tc, "SYSCAT", "INDEXCOLUSE");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -431,83 +353,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
         addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
 
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL");
+        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL_INFO");
+        createOrUpdateSystemView(tc, "SYSIBMADM", "APPLICATIONS");
 
         SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }
 
-    private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
+    private TabInfoImpl getDatabaseTable() throws StandardException {
+        if (databaseTable == null) {
+            databaseTable = new TabInfoImpl(new SYSDATABASESRowFactory(uuidFactory, exFactory, dvf, this));
+        }
+        initSystemIndexVariables(databaseTable);
+        return databaseTable;
+    }
+
+    public void createSysDatabaseTableAndAddDatabaseIdColumnsToSysTables(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
 
-        /**
-         * handle syscolumns in sysibm or sysvw
-         */
-        // check the existence of syscolumns view in sysibm or sysvw
-        TableDescriptor td = getTableDescriptor(tableName, schemaDescriptor, tc);
+        // Create SYS.SYSDATABASES
+        TabInfoImpl databaseTableInfo = getDatabaseTable();
+        addTableIfAbsent(tc, systemSchemaDesc, databaseTableInfo, null, null);
 
-        Boolean needUpdate = true;
-        // drop it if it exists
-        if (td != null) {
-            ColumnDescriptor cd = td.getColumnDescriptor(SYSCOLUMNSRowFactory.DEFAULT_COLUMN);
-            if (cd != null)
-                needUpdate = false;
-        }
-
-        if (needUpdate) {
-            if (td != null) {
-                ViewDescriptor vd = getViewDescriptor(td);
-                // drop the view deifnition
-                dropAllColumnDescriptors(td.getUUID(), tc);
-                dropViewDescriptor(vd, tc);
-                dropTableDescriptor(td, schemaDescriptor, tc);
-            }
-
-            // add new view deifnition
-            createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, tableName, viewIndex, schemaDescriptor, viewDef);
-
-            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", tableName, schemaDescriptor.getSchemaName()));
-        }
-    }
-
-
-    public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
-        updateColumnViewInSys(tc, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
-    }
-
-    public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
-        updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
-    }
-
-    public void addBaseTableSchemaColumnToTableViewInSysibm(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-
-        TableDescriptor td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
-
-        Boolean needUpdate = true;
-        if (td != null) {
-            ColumnDescriptor cd = td.getColumnDescriptor("BASE_SCHEMA");
-            if (cd != null)
-                needUpdate = false;
-        }
-
-        if (needUpdate) {
-            if (td != null) {
-                ViewDescriptor vd = getViewDescriptor(td);
-                // drop the view deifnition
-                dropAllColumnDescriptors(td.getUUID(), tc);
-                dropViewDescriptor(vd, tc);
-                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-            }
-
-            // add new view deifnition
-            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM, 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
-
-            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", "SYSTABLES", sysIBMSchemaDesc.getSchemaName()));
-        }
+        // Add first row to it
+        UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
+        String owner = locateSchemaRow(databaseID, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc).getAuthorizationId();
+        spliceDbDesc = new DatabaseDescriptor(this, DatabaseDescriptor.STD_DB_NAME, owner, databaseID);
+        addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -526,7 +398,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         // create tablestats view in sysvw schema
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-        createOneSystemView(tc, SYSTABLESTATS_CATALOG_NUM, "SYSTABLESTATISTICS", 0, sysVWSchema, SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL );
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESTATISTICS");
 
 
         // drop table descriptor corresponding to the columnstats view
@@ -540,7 +412,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             dropTableDescriptor(td, sd, tc);
         }
         // create columnstats view in sysvw schema
-        createOneSystemView(tc, SYSCOLUMNSTATS_CATALOG_NUM, "SYSCOLUMNSTATISTICS", 0, sysVWSchema, SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL );
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSTATISTICS");
 
         SpliceLogUtils.info(LOG, "move stats views to the sysvw schema");
     }
@@ -1644,7 +1516,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         tc.commit();
 
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
         tc.elevate("dictionary");
 
         SConfiguration configuration=SIDriver.driver().getConfiguration();
@@ -1652,25 +1523,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
 
         // check sysschemasview
-        TableDescriptor td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
-        String schemaViewSQL = getSchemaViewSQL();
-
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-            boolean needUpdate = !vd.getViewText().equals(schemaViewSQL);
-
-            // view definition matches the setting, no update needed
-            if (!needUpdate) return;
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysVWSchema, tc);
-
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, schemaViewSQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
 
         // we need to re-generate the metadataSPS due to the definition change of sysschemasview
         updateMetadataSPSes(tc);
@@ -1679,30 +1532,31 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + metadataRestrictionEnabled);
     }
 
-    public void updateSystemViewForSysConglomerates(TransactionController tc) throws StandardException {
+    public void createOrUpdateSystemView(TransactionController tc, SchemaDescriptor viewSchema, int catalogNum, String viewName, int viewIndex, String viewSql) throws StandardException {
         tc.elevate("dictionary");
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        // check sysconglomerateinschemas view
-        TableDescriptor td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysVWSchema, tc);
+        TableDescriptor td = getTableDescriptor(viewName, viewSchema, tc);
         if (td != null) {
             ViewDescriptor vd = getViewDescriptor(td);
-            boolean needUpdate = !vd.getViewText().equals(SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+            boolean needUpdate = !vd.getViewText().equals(viewSql);
 
             // view definition matches the setting, no update needed
-            if (!needUpdate) return;
+            if (!needUpdate)
+                return;
 
-            // drop the view deifnition
+            // drop the view definition
             dropAllColumnDescriptors(td.getUUID(), tc);
             dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysVWSchema, tc);
-
+            dropTableDescriptor(td, viewSchema, tc);
         }
 
-        // add new view deifnition
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+        // add new view definition
+        createOneSystemView(tc, catalogNum, viewName, viewIndex, viewSchema, viewSql);
 
-        SpliceLogUtils.info(LOG, "SYSVW.SYSCONGLOMERATEINSCHEMAS is updated!");
+        SpliceLogUtils.info(LOG, String.format("%s.%s is updated!", viewSchema.getSchemaName(), viewName));
+    }
+
+    public void createOrUpdateSystemView(TransactionController tc, String schemaName, String viewName) throws StandardException {
+        viewDefinitions.createOrUpdateView(tc, this, schemaName, viewName);
     }
 
     public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
@@ -1713,23 +1567,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return;
         }
 
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        // create systablepermsView
-        createOneSystemView(tc, SYSTABLEPERMS_CATALOG_NUM, "SYSTABLEPERMSVIEW", 0, sysVWSchema, SYSTABLEPERMSRowFactory.SYSTABLEPERMS_VIEW_SQL);
-
-        // create sysschemapermsView
-        createOneSystemView(tc, SYSSCHEMAPERMS_CATALOG_NUM, "SYSSCHEMAPERMSVIEW", 0, sysVWSchema, SYSSCHEMAPERMSRowFactory.SYSSCHEMAPERMS_VIEW_SQL);
-
-        // create syscolpermsView
-        createOneSystemView(tc, SYSCOLPERMS_CATALOG_NUM, "SYSCOLPERMSVIEW", 0, sysVWSchema, SYSCOLPERMSRowFactory.SYSCOLPERMS_VIEW_SQL);
-
-        // create sysroutinepermsView
-        createOneSystemView(tc, SYSROUTINEPERMS_CATALOG_NUM, "SYSROUTINEPERMSVIEW", 0, sysVWSchema, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL);
-
-        // create syspermsView
-        createOneSystemView(tc, SYSPERMS_CATALOG_NUM, "SYSPERMSVIEW", 0, sysVWSchema, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL);
-
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLEPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMAPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSROUTINEPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSPERMSVIEW");
 
         SpliceLogUtils.info(LOG, "System Views for permission tables created in SYSVW!");
     }
@@ -1755,10 +1597,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return;
         }
 
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
         // create sysaliastotableview
-        createOneSystemView(tc, SYSALIASES_CATALOG_NUM, "SYSALIASTOTABLEVIEW", 0, sysVWSchema, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSALIASTOTABLEVIEW");
 
         SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
     }
@@ -1813,15 +1653,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
             // now upgrade the views if necessary
-            TableDescriptor td1 = getTableDescriptor(SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, sysViewSchemaDesc, tc);
-            if (td1 != null) {
-                ViewDescriptor vd1 = getViewDescriptor(td1);
-                dropAllColumnDescriptors(td1.getUUID(), tc);
-                dropViewDescriptor(vd1, tc);
-                dropTableDescriptor(td1, sysViewSchemaDesc, tc);
-            }
-            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, 0,
-                    sysViewSchemaDesc, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
+            createOrUpdateSystemView(tc, "SYSVW", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME);
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
