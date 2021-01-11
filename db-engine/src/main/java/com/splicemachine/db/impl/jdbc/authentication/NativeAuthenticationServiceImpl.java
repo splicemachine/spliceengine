@@ -77,7 +77,7 @@ import java.util.Properties;
  * </p>
  *
  */
-public final class NativeAuthenticationServiceImpl
+public class NativeAuthenticationServiceImpl
 	extends AuthenticationServiceBase implements UserAuthenticator
 {
     ///////////////////////////////////////////////////////////////////////////////////

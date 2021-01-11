@@ -185,6 +185,8 @@ public class ClientDriver implements java.sql.Driver {
             String key = (String) keys.nextElement();
             if (key.equals(Attribute.USERNAME_ATTR) ||
                     key.equals(Attribute.PASSWORD_ATTR) ||
+                    key.equals(Attribute.USER_TOKEN) ||
+                    key.equals(Attribute.USER_TOKEN_AUTHENTICATOR) ||
                     key.equals(Attribute.SSL_ATTR))
                 continue;
             longDatabase.append(";").append(key).append("=").append(augmentedProperties.getProperty(key));

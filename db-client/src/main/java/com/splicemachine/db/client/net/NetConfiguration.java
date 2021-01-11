@@ -175,6 +175,9 @@ public class NetConfiguration {
     // Indicates Kerberos authentication.
     public static final int SECMEC_KERSEC = 0x0B;
 
+    // Indicates Token authentication.
+    public static final int SECMEC_TOKEN = 0x0E;
+
     // list of security mechanisms supported by this driver
     static final int[] SECMGR_SECMECS = {NetConfiguration.SECMEC_EUSRIDPWD,
                                          NetConfiguration.SECMEC_USRENCPWD,
@@ -183,7 +186,8 @@ public class NetConfiguration {
                                          NetConfiguration.SECMEC_EUSRIDDTA,
                                          NetConfiguration.SECMEC_EUSRPWDDTA,
                                          NetConfiguration.SECMEC_USRSSBPWD,
-                                         NetConfiguration.SECMEC_KERSEC};
+                                         NetConfiguration.SECMEC_KERSEC,
+                                         NetConfiguration.SECMEC_TOKEN};
 
 
     // IEEE ASCII constant.

@@ -331,6 +331,10 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
             return (short) NetConfiguration.SECMEC_KERSEC;
         }
 
+        if (properties.containsKey(Attribute.USER_TOKEN)) {
+            return (short) NetConfiguration.SECMEC_TOKEN;
+        }
+
         String securityMechanismString =
             properties.getProperty(Attribute.CLIENT_SECURITY_MECHANISM);
 
@@ -1216,5 +1220,13 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
 
     public static String getClientKeytab(Properties properties) {
         return properties.getProperty(Attribute.CLIENT_KERBEROS_KEYTAB);
+    }
+
+    public static String getUserToken(Properties properties) {
+        return properties.getProperty(Attribute.USER_TOKEN);
+    }
+
+    public static String getUserTokenAuthenticator(Properties properties) {
+        return properties.getProperty(Attribute.USER_TOKEN_AUTHENTICATOR);
     }
 }

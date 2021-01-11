@@ -949,6 +949,10 @@ public interface Property {
 
     String AUTHENTICATION_PROVIDER_KERBEROS =
             "KERBEROS";
+
+    String AUTHENTICATION_PROVIDER_JWT_TOKEN =
+            "TOKEN";
+
     String AUTHENTICATION_SERVER_PARAMETER =
             "derby.authentication.server";
 
