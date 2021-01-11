@@ -471,6 +471,11 @@ public class NetConnection extends ClientConnection {
             case NetConfiguration.SECMEC_KERSEC: // Kerberos
                 flowKERSECconnect();
                 break;
+            case NetConfiguration.SECMEC_TOKEN: // Token
+                checkUser(user_);
+                flowUSRIDTokenconnect(authenticator, token);
+                break;
+
             default:
                 throw new SqlException(agent_.logWriter_, 
                     new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
@@ -2161,6 +2166,17 @@ public class NetConnection extends ClientConnection {
 
     public void setServerPrincipal(String serverPrincipal) {
         this.serverPrincipal = serverPrincipal;
+    }
+
+    private void flowUSRIDTokenconnect(String authenticator, String token) throws SqlException {
+        flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_TOKEN,
+                null); // publicKey
+        flowSecurityCheck(targetSecmec_, //securityMechanism
+                user_,
+                null,
+                (authenticator + "|" + token).getBytes(), //encryptedUserid
+                null); //encryptedPassword
+        flowAccessRdb();
     }
 }
 

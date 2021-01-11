@@ -1,0 +1,22 @@
+package com.splicemachine.db.impl.token;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
+public class OktaAccessTokenVerifierIT {
+
+    @Ignore
+    @Test(expected = io.jsonwebtoken.ExpiredJwtException.class)
+    public void testOktaAccessTokenVerifier() throws StandardException {
+        String oktaToken = "eyJraWQiOiJlR2I0R1o0VGVRejZzV0dtU3otY1NtcFNuR0JtbUlEUlVweVlDMTdkemljIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiIwMHUzM2hramZhRVdHQUtpYjVkNiIsIm5hbWUiOiJJZ29yIFByYXpuaWsiLCJlbWFpbCI6InByYXpuaWtpZ29yQHlhaG9vLmNvbSIsInZlciI6MSwiaXNzIjoiaHR0cHM6Ly9kZXYtOTUwMzE4Ni5va3RhLmNvbS9vYXV0aDIvZGVmYXVsdCIsImF1ZCI6IjBvYTMzaHk3YzdmRXlKQUdjNWQ2IiwiaWF0IjoxNjA5NDE0NzQ5LCJleHAiOjE2MDk0MTgzNDksImp0aSI6IklELlJQbjUyRm9UcFUxLTNrQWhfVm9xMldEVXJuVWoxWThEZHBEQVh5THhKcjgiLCJhbXIiOlsicHdkIl0sImlkcCI6IjAwbzMzaGtmbXc4d0Flczg1NWQ2Iiwibm9uY2UiOiJLNHMxTjBqMTRVUktRdUNGeG9OaXRDd3NiZ21iRGZRQjg0M2dYbnBwMEw4IiwicHJlZmVycmVkX3VzZXJuYW1lIjoicHJhem5pa2lnb3JAeWFob28uY29tIiwiYXV0aF90aW1lIjoxNjA5NDA2NjM1LCJhdF9oYXNoIjoiZjJwQWlXSmoxMGxMb2REYTRTSi14dyIsImRiX3VzZXIiOiJpZ29yIn0.T0s6bhAp2LHjzler56jaoogm41rUVqKYGkHgPAG9PoxAlBvD7daU0aTBLT2QvkErWDrsJYLifKPGrgniSfIVjiLmVnJr5Dwj9ku4MRiqJ8i-nlNFC6rTcKogVi0bg02AzBVVP_96XYSRMh9m_xN1Pr1NjUhxCoBHnuSPeB3tN6BCYg-JR_WQfFMe_qpbTeiT1WlxEGYduYTVwHg54aLNyJFVlPKiuv9ptZI5ZtOCSuYez09eUZZ5Wu6sYWnFVMbtcRoW6gCedaVqXj2NJpzod01-dz66aCqENC21LZ626UQej-Qe4CLFNQtsOtinu3yxUDv745JBiQp93k3dhnd0yg\n";
+
+        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, "https://dev-9503186.okta.com/oauth2/default");
+        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_OKTA_CLIENT_ID, "0oa33hy7c7fEyJAGc5d6");
+        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
+
+        Assert.assertEquals("igor", AccessTokenVerifierFactory.createVerifier("okta_oauth").decodeUsername(oktaToken));
+    }
+
+}

@@ -1556,6 +1556,18 @@ class DRDAConnThread extends Thread {
             p.put(Attribute.DRDA_KERSEC_AUTHENTICATED, Boolean.toString(gssContext.isEstablished()));
         }
 
+        if (database.securityMechanism == CodePoint.SECMEC_TOKEN) {
+            p.put(Attribute.DRDA_SECMEC,
+                    String.valueOf(database.securityMechanism));
+            String tokenValue = new String(database.passwordSubstitute);
+            String tokenParts[] = tokenValue.split("\\|");
+            if (tokenParts.length !=2 ) {
+                return CodePoint.SECCHKCD_SECTKNMISSING_OR_INVALID;
+            }
+            p.put(Attribute.USER_TOKEN_AUTHENTICATOR, tokenParts[0]);
+            p.put(Attribute.USER_TOKEN, tokenParts[1]);
+        }
+
         String ip = ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/","");
         String userid = this.getDatabase().userId;
         try {
@@ -2032,7 +2044,8 @@ class DRDAConnThread extends Thread {
                         // for plain text userid,password USRIDPWD, and USRIDONL
                         // no need of decryptionManager
                         if (securityMechanism != CodePoint.SECMEC_USRIDPWD &&
-                                securityMechanism != CodePoint.SECMEC_USRIDONL)
+                                securityMechanism != CodePoint.SECMEC_USRIDONL &&
+                                securityMechanism != CodePoint.SECMEC_TOKEN)
                         {
                             if (securityMechanism == CodePoint.SECMEC_KERSEC) {
 
@@ -3246,8 +3259,9 @@ class DRDAConnThread extends Thread {
                         (database.securityMechanism !=
                                         CodePoint.SECMEC_USRSSBPWD) &&
                         (database.securityMechanism !=
-                                        CodePoint.SECMEC_KERSEC))
-
+                                        CodePoint.SECMEC_KERSEC) &&
+                        (database.securityMechanism !=
+                                        CodePoint.SECMEC_TOKEN))
                     {
                         securityCheckCode = CodePoint.SECCHKCD_SECTKNMISSING_OR_INVALID;
                         reader.skipBytes();
@@ -3313,6 +3327,9 @@ class DRDAConnThread extends Thread {
                                     database.passwordSubstitute, 0,
                                     database.passwordSubstitute.length);
                         }
+                    }
+                    else if (database.securityMechanism == CodePoint.SECMEC_TOKEN) {
+                        database.passwordSubstitute = reader.readBytes();
                     }
                     else {
                         try {

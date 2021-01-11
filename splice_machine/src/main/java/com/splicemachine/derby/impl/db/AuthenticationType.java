@@ -19,6 +19,6 @@ package com.splicemachine.derby.impl.db;
  *         Date: 1/11/16
  */
 public enum AuthenticationType {
-    NONE,LDAP,NATIVE,CUSTOM,KERBEROS
+    NONE,LDAP,NATIVE,CUSTOM,KERBEROS,TOKEN
 }
 

@@ -226,6 +226,9 @@ public class SpliceDatabase extends BasicDatabase{
             case CUSTOM:
                 configureCustomAuth(configuration);
                 break;
+            case TOKEN:
+                configureTokenAuth(configuration);
+                break;
             default:// Default is Native with warning:
                 configureNative(configuration,true);
         }
@@ -247,6 +250,13 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.database.sqlAuthorization","true");
         SpliceLogUtils.info(LOG,"using Kerberos to authorize Splice Machine");
         System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_KERBEROS);
+    }
+
+    private void configureTokenAuth(SConfiguration config){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        SpliceLogUtils.info(LOG,"using Token to authorize Splice Machine");
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_JWT_TOKEN);
     }
 
     private void configureLDAPAuth(SConfiguration config){
