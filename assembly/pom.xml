@@ -225,6 +225,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_storage_2.0</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -245,6 +246,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_storage_2.1</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -265,6 +267,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_storage_2.1</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
