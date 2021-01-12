@@ -517,6 +517,27 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testUpdateMultipleColumnsUsingFromSyntax() throws Exception {
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE " +
+                " SET EMAIL_ADDRESS = EMAIL_ADDRESS " +
+                "   , DIM_PROFILE_KEY1 = DIM_PROFILE_KEY1 " +
+                " FROM DIM_PROFILE2 --splice-properties joinStrategy=%s, useSpark=%s \n" +
+                " WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1 " +
+                "   AND DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2", this.joinStrategy, this.useSparkString));
+
+        String expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+                "------------------------------------------------------------------------------\n" +
+                "        1        |        1        |            NULL             |    11     |\n" +
+                "        2        |        2        |        mork@ork.pnt         |    22     |\n" +
+                "        3        |        3        |betelgeuse@eastcorinth.vt.us |   NULL    |\n" +
+                "        4        |        4        |            NULL             |   NULL    |";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery("select * from DIM_PROFILE")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testSetExpressionsFrom() throws Exception {
         if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
             return;
