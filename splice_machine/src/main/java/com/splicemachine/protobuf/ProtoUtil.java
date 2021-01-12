@@ -365,8 +365,8 @@ public class ProtoUtil {
     }
 
 
-    public static DDLChange createRollbackDatabase(long txnId) {
-        return DDLChange.newBuilder().setTxnId(txnId).setDdlChangeType(DDLChangeType.ROLLBACK_DATABASE).build();
+    public static DDLChange createLeaveRestoreMode(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDdlChangeType(DDLChangeType.LEAVE_RESTORE_MODE).build();
     }
 
     public static DDLChange createDropPKConstraint(long txnId, long newConglomId, long oldConglomId,

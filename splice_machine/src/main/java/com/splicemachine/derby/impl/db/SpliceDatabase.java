@@ -438,9 +438,15 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_ALIAS:
                     case CREATE_VIEW:
                         break;
-                    case ROLLBACK_DATABASE:
+                    case LEAVE_RESTORE_MODE:
                         SIDriver.driver().getTxnSupplier().invalidate();
                         SIDriver.driver().getIgnoreTxnSupplier().refresh();
+                        dataDictionary.getDataDictionaryCache().clearAll();
+                        SIDriver.driver().lifecycleManager().leaveRestoreMode();
+                        allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                        for (Context context : allContexts) {
+                            ((LanguageConnectionContext) context).leaveRestoreMode();
+                        }
                         break;
                     default:
                         break;

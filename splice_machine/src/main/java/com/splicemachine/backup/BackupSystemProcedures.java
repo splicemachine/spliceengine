@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
@@ -662,8 +663,10 @@ public class BackupSystemProcedures {
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
+            TransactionController tc=lcc.getTransactionExecute();
+            tc.elevate("rollback");
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            
+
             long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
 
             // Set Restore Mode to prevent other workloads from running
@@ -671,13 +674,17 @@ public class BackupSystemProcedures {
             String changeId = DDLUtils.notifyMetadataChange(change);
             
             // Rollback
-//            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.rollbackDatabase(transactionId, currentTxId);
-
-            SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
             
             // Finish Restore Mode
             DDLUtils.finishMetadataChange(changeId);
+
+            // Leave restore mode to allow other workload
+            change = ProtoUtil.createLeaveRestoreMode(currentTxId);
+            changeId = DDLUtils.notifyMetadataChange(change);
+            DDLUtils.finishMetadataChange(changeId);
+
+            SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database rollback error", t);
