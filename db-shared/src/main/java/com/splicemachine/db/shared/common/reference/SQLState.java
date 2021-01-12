@@ -837,6 +837,7 @@ public interface SQLState {
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                  = "42831.S.1";
     String LANG_DB2_REPLACEMENT_ERROR                         = "42815.S.713";
     String LANG_DB2_MULTINARY_DATATYPE_MISMATCH               = "42815.S.171";
+    String LANG_DB2_INVALID_DATETIME_EXPR                     = "42816";
     String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL           = "42820";
     String LANG_DB2_LIKE_SYNTAX_ERROR                         = "42824";
     String LANG_INVALID_FK_COL_FOR_SETNULL                    = "42834";
