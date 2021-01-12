@@ -350,6 +350,15 @@ public class TransactionImpl extends BaseTransaction {
     public boolean isRestoreMode() {
         return lifecycleManager != null && lifecycleManager.isRestoreMode();
     }
+
+    @Override
+    public void ignoreConflicts(boolean doIgnore) {
+        Txn txn = getTxn();
+        if (txn != null) {
+            lifecycleManager.ignoreConflicts(getTxn().getTxnId(), doIgnore);
+        }
+    }
+
     /*****************************************************************************************************************/
     /*private helper methods*/
     private Txn doElevate(byte[] writeTable,Txn currentTxn,TxnView elevatedParent) throws IOException{

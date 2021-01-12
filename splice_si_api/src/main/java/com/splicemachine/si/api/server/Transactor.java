@@ -40,9 +40,7 @@ public interface Transactor{
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
                                     TxnView txn,
-                                    boolean forceImmediateConflictDetection,
-                                    ConstraintChecker constraintChecker
-                                    ) throws IOException;
+                                    ConstraintChecker constraintChecker) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
                                     RollForward rollForward,
@@ -52,9 +50,7 @@ public interface Transactor{
                                     TxnView txn,
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
-                                    boolean skipWAL,
-                                    boolean rollforward,
-                                    boolean forceImmediateConflictDetection) throws IOException;
+                                    boolean skipWAL, boolean rollforward) throws IOException;
 
     void setDefaultConstraintChecker(ConstraintChecker constraintChecker);
 }

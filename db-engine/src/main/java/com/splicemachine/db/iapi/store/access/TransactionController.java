@@ -40,8 +40,8 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -1692,10 +1692,6 @@ conglomerates are removed.
 
     long getActiveStateTxId();
 
-    void setConflictResolutionStrategy(ConflictResolutionStrategy conflictResolutionStrategy);
-
-    ConflictResolutionStrategy getConflictResolutionStrategy();
-
     /**
      * The ScanController.close() method has been called on "scan".
      * <p>
@@ -1705,4 +1701,6 @@ conglomerates are removed.
      *
      **/
     void closeMe(ScanController scan);
+
+    void ignoreConflicts(boolean ignore);
 }

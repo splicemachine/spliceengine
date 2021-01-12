@@ -1914,12 +1914,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void setConflictResolutionStrategy(ConflictResolutionStrategy conflictResolutionStrategy) {
-        this.conflictResolutionStrategy = conflictResolutionStrategy;
-    }
-
-    @Override
-    public ConflictResolutionStrategy getConflictResolutionStrategy() {
-        return conflictResolutionStrategy;
+    public void ignoreConflicts(boolean ignore) {
+        rawtran.ignoreConflicts(ignore);
     }
 }

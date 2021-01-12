@@ -15,7 +15,6 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.access.util.ByteComparisons;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -26,11 +25,7 @@ import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataPut;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
-
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.List;
 import java.util.Map;
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
@@ -42,28 +37,8 @@ import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
  */
 class SITransactorUtil{
 
-    static class Key implements Externalizable {
-
-        public Key() {}
-
-        TxnView txnView;
-        TransactionController.ConflictResolutionStrategy conflictResolutionStrategy;
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeInt(conflictResolutionStrategy.getIndex());
-            txnView.writeExternal(out);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            this.conflictResolutionStrategy = TransactionController.ConflictResolutionStrategy.fromInt(in.readInt());
-            txnView.readExternal(in);
-        }
-    }
-
-    public static Map<Key,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
-                                                                                TxnOperationFactory txnOperationFactory) throws IOException{
+    public static Map<TxnView,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
+                                                                                   TxnOperationFactory txnOperationFactory) throws IOException{
 
         /*
          * Here we convert a Put into a KVPair.
@@ -90,9 +65,9 @@ class SITransactorUtil{
          * To be frank, this is only here to support legacy code without needing to rewrite everything under
          * the sun. You should almost certainly NOT use it.
          */
-        Map<Key, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
+        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
         for(DataPut mutation : mutations){
-            Key key = getKey(mutation, txnOperationFactory);
+            TxnView txnView = txnOperationFactory.fromWrites(mutation);
             boolean isDelete=getDeletePutAttribute(mutation);
             byte[] row=mutation.key();
             Iterable<DataCell> dataValues=mutation.cells();
@@ -106,10 +81,10 @@ class SITransactorUtil{
 
                 isSIDataOnly=false;
                 byte[] value=data.value();
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(key);
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnView);
                 if(familyMap==null){
                     familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(key,familyMap);
+                    kvPairMap.put(txnView,familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
                 if(columnMap==null){
@@ -131,10 +106,10 @@ class SITransactorUtil{
                 byte[] family=DEFAULT_FAMILY_BYTES;
                 byte[] column=PACKED_COLUMN_BYTES;
                 byte[] value= {};
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(key);
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnView);
                 if(familyMap==null){
                     familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(key,familyMap);
+                    kvPairMap.put(txnView,familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
                 if(columnMap==null){
@@ -151,15 +126,6 @@ class SITransactorUtil{
         }
 
         return kvPairMap;
-    }
-
-    private static Key getKey(DataPut mutation, TxnOperationFactory txnOperationFactory) throws IOException {
-        Key result = new Key();
-        result.txnView = txnOperationFactory.fromWrites(mutation);
-        result.conflictResolutionStrategy = mutation.getAttribute(SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT) == null
-                                                                     ? TransactionController.ConflictResolutionStrategy.NOT_SET
-                                                                     : TransactionController.ConflictResolutionStrategy.IMMEDIATE;
-        return result;
     }
 
     private static boolean getDeletePutAttribute(Attributable operation){

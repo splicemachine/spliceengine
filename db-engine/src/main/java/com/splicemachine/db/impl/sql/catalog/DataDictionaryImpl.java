@@ -3571,9 +3571,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         boolean[] bArray=new boolean[2];
 
         /*
-        ** Partial update
+        * Partial update, temporarily ignore collecting conflicting txns, many conflicting txns could arise
+        * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
+        * sys tables.
         */
-        ti.updateRow(keyRow1,row,SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID,bArray,updCols,tc);
+        try {
+            tc.ignoreConflicts(true);
+            ti.updateRow(keyRow1, row, SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, bArray, updCols, tc);
+        } finally {
+            tc.ignoreConflicts(false);
+        }
 
         /*
         ** If we don't need to update the parameter
@@ -3634,7 +3641,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         0,0,0,parameterId-1);
 
-                updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
+                /*
+                 * temporarily ignore collecting conflicting txns, many conflicting txns could arise
+                 * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
+                 * sys tables.
+                 */
+                try {
+                    tc.ignoreConflicts(true);
+                    updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
+                } finally {
+                    tc.ignoreConflicts(false);
+                }
             }
         }
     }

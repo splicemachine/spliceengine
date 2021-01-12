@@ -126,6 +126,7 @@ public class ConflictResolutionStrategyIT extends SpliceUnitTest {
 
         private Harness when() { return this; } // lexical sugar
         private Harness and() { return this; } // lexical sugar
+        private Harness then() { return this; } // lexical sugar
 
         private Harness createTxn(String name) throws Exception {
             Transaction txn = new Transaction(this);
@@ -205,6 +206,20 @@ public class ConflictResolutionStrategyIT extends SpliceUnitTest {
             Harness updates(String tableName, int row, int newValue) throws SQLException {
                 try(Statement statement = connection.createStatement()) {
                     statement.executeUpdate(String.format("update %s set col1 = %s where col1 = %s", tableName, newValue, row));
+                }
+                return harness;
+            }
+
+            Harness deletes(String tableName, int row) throws SQLException {
+                try(Statement statement = connection.createStatement()) {
+                    statement.executeUpdate(String.format("delete from %s where col1 = %s", tableName, row));
+                }
+                return harness;
+            }
+
+            Harness inserts(String tableName, int row) throws SQLException {
+                try(Statement statement = connection.createStatement()) {
+                    statement.executeUpdate(String.format("insert into %s values %s", tableName, row));
                 }
                 return harness;
             }
@@ -294,6 +309,38 @@ public class ConflictResolutionStrategyIT extends SpliceUnitTest {
                 .then("txn2").shouldFailToCommitWithMessage("Unable to commit transaction !txn2!. It either timed out, or was rolled back by an administrative action or indirectly by a committed conflicting transaction.")
                 .and("txn1").shouldFailToCommitWithMessage("Unable to commit transaction !txn1!. It either timed out, or was rolled back by an administrative action or indirectly by a committed conflicting transaction.")
                 .and().tableShouldContain("t1", 300, 310, 320, 4)
+                .and().finish();
+    }
+
+    @Test
+    public void testConflictResolutionAtCommitTimeWriteDeleteOverlap() throws Exception {
+        Assume.assumeTrue("test ignored because cluster is running with IMMEDIATE conflict resolution strategy", conflictResolutionStrategyIsDeferred());
+        Harness harness = new Harness();
+        harness.when().createTable("t1")
+                .and().createTxn("txn1")
+                .and().createTxn("txn2")
+
+                .and("txn1").inserts("t1", 1)
+                .and("txn2").deletes("t1", 1)
+                .and("txn2").commits()
+                .and("txn1").commits()
+                .then().tableShouldContain("t1", 1)
+                .and().finish();
+    }
+
+    @Test
+    public void testConflictResolutionAtCommitTimeWriteWriteDeleteOverlap() throws Exception {
+        Assume.assumeTrue("test ignored because cluster is running with IMMEDIATE conflict resolution strategy", conflictResolutionStrategyIsDeferred());
+        Harness harness = new Harness();
+        harness.when().createTable("t1", 10)
+                .and().createTxn("txn1")
+                .and().createTxn("txn2")
+
+                .and("txn2").deletes("t1", 10)
+                .and("txn1").inserts("t1", 10)
+                .and("txn2").commits()
+                .and("txn1").commits()
+                .then().tableShouldContain("t1", 10)
                 .and().finish();
     }
 }

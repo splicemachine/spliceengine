@@ -64,6 +64,7 @@ public class CoprocessorTxnStore implements TxnStore {
     private final boolean ignoreMissingTransactions;
     private final ActiveTxnTracker activeTransactions;
     private final Map<Long, Set<Long>> conflictingTransactionsCache;
+    private final Set<Long> txnsWithIgnoredConflicts;
     
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -84,6 +85,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
         this.activeTransactions = new ActiveTxnTracker();
         this.conflictingTransactionsCache = new ConcurrentHashMap<>(1024);
+        this.txnsWithIgnoredConflicts = ConcurrentHashMap.newKeySet(1024);
     }
 
     @Override
@@ -418,6 +420,10 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
+        if(txnsWithIgnoredConflicts.contains(txnId)) {
+            return;
+        }
+
         // check if the conflictingTxnId already exists in the txnId's list of conflicting transactions, if so, ignore it
         Set<Long> conflictingTxnIdsSet;
         if (conflictingTransactionsCache.containsKey(txnId)) {
@@ -459,6 +465,16 @@ public class CoprocessorTxnStore implements TxnStore {
             throw e;
         } catch(Throwable throwable){
             throw new IOException(throwable);
+        }
+    }
+
+    @Override
+    public void ignoreConflicts(long txnId, boolean doIgnore) {
+        // no op
+        if(doIgnore) {
+            txnsWithIgnoredConflicts.add(txnId);
+        } else {
+            txnsWithIgnoredConflicts.remove(txnId);
         }
     }
 

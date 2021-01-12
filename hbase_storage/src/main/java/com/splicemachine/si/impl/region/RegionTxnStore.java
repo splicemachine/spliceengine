@@ -607,12 +607,11 @@ public class RegionTxnStore implements TxnPartition{
         Cell kv = result.getColumnLatestCell(FAMILY, identifier);
         byte[] newBytes;
         if (kv == null || kv.getValueLength() <= 0) {
-            newBytes = Encoding.encode(payload);
+            newBytes = Encoding.encodeBytesUnsorted(payload);
         } else {
-            byte[] asBytes = Encoding.encode(payload);
-            newBytes = new byte[asBytes.length + kv.getValueLength() + 1];
-            System.arraycopy(asBytes, 0, newBytes, 0, asBytes.length);
-            System.arraycopy(kv.getValueArray(), kv.getValueOffset(), newBytes, asBytes.length + 1, kv.getValueLength());
+            newBytes = new byte[payload.length + kv.getValueLength() + 1];
+            System.arraycopy(payload, 0, newBytes, 0, payload.length);
+            System.arraycopy(kv.getValueArray(), kv.getValueOffset(), newBytes, payload.length + 1, kv.getValueLength());
         }
         Put put = new Put(get.getRow());
         put.addColumn(FAMILY, identifier, newBytes);

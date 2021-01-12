@@ -438,4 +438,9 @@ public class TestingTxnStore implements TxnStore{
     public long[] getConflictingTxnIds(long txnId) throws IOException {
         return null;
     }
+
+    @Override
+    public void ignoreConflicts(long txnId, boolean doIgnore) {
+        // no op
+    }
 }

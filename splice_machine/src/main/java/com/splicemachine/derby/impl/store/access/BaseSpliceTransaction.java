@@ -201,4 +201,8 @@ public abstract class BaseSpliceTransaction<T extends BaseTransaction> implement
     public boolean isRestoreMode() {
         return transaction.isRestoreMode();
     }
+
+    public void ignoreConflicts(boolean doIgnore) {
+        transaction.ignoreConflicts(doIgnore);
+    }
 }

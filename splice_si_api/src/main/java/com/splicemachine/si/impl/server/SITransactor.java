@@ -21,7 +21,6 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -103,10 +102,10 @@ public class SITransactor implements Transactor{
             return new MutationStatus[0];
         }
 
-        Map<SITransactorUtil.Key, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations, txnOperationFactory);
+        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
         final Map<byte[], MutationStatus> statusMap= Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-        for(Map.Entry<SITransactorUtil.Key, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
-            SITransactorUtil.Key key=entry.getKey();
+        for(Map.Entry<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
+            TxnView txnId=entry.getKey();
             Map<byte[], Map<byte[], List<KVPair>>> familyMap=entry.getValue();
             for(Map.Entry<byte[], Map<byte[], List<KVPair>>> familyEntry : familyMap.entrySet()){
                 byte[] family=familyEntry.getKey();
@@ -117,9 +116,7 @@ public class SITransactor implements Transactor{
                         assert input != null;
                         return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                     }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,key.txnView,
-                                                             key.conflictResolutionStrategy == TransactionController.ConflictResolutionStrategy.IMMEDIATE,
-                                                             defaultConstraintChecker);
+                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,defaultConstraintChecker);
                     for(int i=0;i<statuses.length;i++){
                         byte[] row=kvPairs.get(i).getRowKey();
                         MutationStatus status=statuses[i];
@@ -144,15 +141,13 @@ public class SITransactor implements Transactor{
 
     @Override
     public MutationStatus[] processKvBatch(Partition table,
-                                            RollForward rollForward,
-                                            byte[] defaultFamilyBytes,
-                                            byte[] packedColumnBytes,
-                                            Collection<KVPair> toProcess,
-                                            TxnView txn,
-                                            boolean forceImmediateConflictDetection,
-                                            ConstraintChecker constraintChecker) throws IOException {
-        return processKvBatch(table, rollForward, defaultFamilyBytes, packedColumnBytes, toProcess, txn, constraintChecker, false, false, false,
-                              forceImmediateConflictDetection);
+                                           RollForward rollForward,
+                                           byte[] defaultFamilyBytes,
+                                           byte[] packedColumnBytes,
+                                           Collection<KVPair> toProcess,
+                                           TxnView txn,
+                                           ConstraintChecker constraintChecker) throws IOException{
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false, false);
     }
 
     @Override
@@ -164,12 +159,10 @@ public class SITransactor implements Transactor{
                                            TxnView txn,
                                            ConstraintChecker constraintChecker,
                                            boolean skipConflictDetection,
-                                           boolean skipWAL, boolean rollforward,
-                                           boolean forceImmediateConflictDetection) throws IOException {
+                                           boolean skipWAL, boolean rollforward) throws IOException{
         ensureTransactionAllowsWrites(txn);
         setConflictResolutionStrategyIfNecessary();
-        return processInternal(table, rollForward, txn, defaultFamilyBytes, packedColumnBytes, toProcess, constraintChecker,
-                               skipConflictDetection, skipWAL, rollforward, forceImmediateConflictDetection);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL,rollforward);
     }
 
     @Override
@@ -188,8 +181,7 @@ public class SITransactor implements Transactor{
                                              Collection<KVPair> mutations,
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
-                                             boolean skipWAL, boolean rollforward,
-                                             boolean forceImmediateConflictDetection) throws IOException{
+                                             boolean skipWAL, boolean rollforward) throws IOException{
         int size = mutations.size();
         MutationStatus[] finalStatus=new MutationStatus[size];
         Pair<KVPair, Lock>[] lockPairs=new Pair[size];
@@ -222,8 +214,8 @@ public class SITransactor implements Transactor{
              * the region can't close until after this method is complete, we don't need the calls.
              */
             IntObjectHashMap<DataPut> writes=checkConflictsForKvBatch(table,conflictRollForward,lockPairs,
-                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,
-                    skipConflictDetection,skipWAL,supplier,rollforward, forceImmediateConflictDetection);
+                                                                      conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,
+                                                                      skipConflictDetection,skipWAL,supplier,rollforward);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
@@ -292,8 +284,7 @@ public class SITransactor implements Transactor{
                                                                ConstraintChecker constraintChecker,
                                                                TxnFilter constraintStateFilter,
                                                                MutationStatus[] finalStatus, boolean skipConflictDetection,
-                                                               boolean skipWAL, TxnSupplier supplier, boolean rollforward,
-                                                               boolean forceImmediateConflictDetection) throws IOException {
+                                                               boolean skipWAL, TxnSupplier supplier, boolean rollforward) throws IOException {
         IntObjectHashMap<DataPut> finalMutationsToWrite = new IntObjectHashMap(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
@@ -325,7 +316,7 @@ public class SITransactor implements Transactor{
                 if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
                     try {
-                        conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier, table, kvPair, forceImmediateConflictDetection);
+                        conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier, table, kvPair);
                     } catch (IOException ioe) {
                         if (ioe instanceof WriteConflict) {
                             finalStatus[i] = operationStatusLib.failure(ioe);
@@ -519,9 +510,7 @@ public class SITransactor implements Transactor{
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private ConflictResults ensureNoWriteConflict(TxnView updateTransaction, KVPair.Type updateType, DataResult row,
-                                                  ConflictRollForward conflictRollForward, TxnSupplier txnSupplier,
-                                                  Partition table, KVPair kvPair, boolean forceImmediateConflictDetection) throws IOException{
+    private ConflictResults ensureNoWriteConflict(TxnView updateTransaction, KVPair.Type updateType, DataResult row, ConflictRollForward conflictRollForward, TxnSupplier txnSupplier, Partition table, KVPair kvPair) throws IOException{
 
         DataCell commitTsKeyValue=row.commitTimestamp();
 
@@ -542,7 +531,7 @@ public class SITransactor implements Transactor{
         conflictRollForward.handle(tombstoneKeyValue);
         if(tombstoneKeyValue!=null){
             long dataTransactionId=tombstoneKeyValue.version();
-            conflictResults=checkDataForConflict(updateTransaction, conflictResults, tombstoneKeyValue, dataTransactionId, txnSupplier, table, kvPair, forceImmediateConflictDetection);
+            conflictResults=checkDataForConflict(updateTransaction,conflictResults,tombstoneKeyValue,dataTransactionId,txnSupplier, table, kvPair);
             conflictResults=(conflictResults==null)?new ConflictResults():conflictResults;
             conflictResults.setHasTombstone(hasCurrentTransactionTombstone(updateTransaction,tombstoneKeyValue,txnSupplier));
         }
@@ -550,7 +539,7 @@ public class SITransactor implements Transactor{
         conflictRollForward.handle(userDataKeyValue);
         if(userDataKeyValue!=null){
             long dataTransactionId=userDataKeyValue.version();
-            conflictResults=checkDataForConflict(updateTransaction,conflictResults,userDataKeyValue,dataTransactionId,txnSupplier, table, kvPair, forceImmediateConflictDetection);
+            conflictResults=checkDataForConflict(updateTransaction,conflictResults,userDataKeyValue,dataTransactionId,txnSupplier, table, kvPair);
         }
         // FK counter -- can only conflict with DELETE
         if(updateType==KVPair.Type.DELETE){
@@ -558,7 +547,7 @@ public class SITransactor implements Transactor{
             conflictRollForward.handle(fkCounterKeyValue);
             if(fkCounterKeyValue!=null){
                 long dataTransactionId=fkCounterKeyValue.valueAsLong();
-                conflictResults=checkDataForConflict(updateTransaction, conflictResults, fkCounterKeyValue, dataTransactionId, txnSupplier, table, kvPair, forceImmediateConflictDetection);
+                conflictResults=checkDataForConflict(updateTransaction,conflictResults,fkCounterKeyValue,dataTransactionId,txnSupplier, table, kvPair);
             }
         }
 
@@ -621,8 +610,7 @@ public class SITransactor implements Transactor{
                                                  long dataTransactionId,
                                                  TxnSupplier txnSupplier,
                                                  Partition table,
-                                                 KVPair kvPair,
-                                                 boolean forceImmediateConflictDetection) throws IOException {
+                                                 KVPair kvPair) throws IOException {
 
         if (updateTransaction.getTxnId() == dataTransactionId) {
             return conflictResults;
@@ -641,23 +629,24 @@ public class SITransactor implements Transactor{
         final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
 
         switch (conflictType) {
-            case CHILD: // fallthrough
+            case CHILD:
+                if (conflictResults == null) {
+                    conflictResults = new ConflictResults();
+                }
+                conflictResults.addChild(dataTransactionId);
+                break;
             case ADDITIVE:
                 if (conflictResults == null) {
                     conflictResults = new ConflictResults();
                 }
                 conflictResults.addAdditive(dataTransactionId);
-                return conflictResults;
+                break;
             case SIBLING:
-                if(forceImmediateConflictDetection) {
-                    throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
-                }
                 switch(conflictResolutionStrategy) {
                     case IMMEDIATE:
                         throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
                         break;
                     case DEFERRED:
-                        //throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
                         txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(table, kvPair, txnSupplier));
                         break;
                 }
@@ -682,7 +671,7 @@ public class SITransactor implements Transactor{
         while(iterator.hasNext()) {
             long txnId = iterator.next().version();
             TxnView txnView = txnSupplier.getTransaction(txnId);
-            if(txnView.getState() == Txn.State.ACTIVE) {
+            if(txnView.getEffectiveState() == Txn.State.ACTIVE) {
                 activeTx.add(txnId & SIConstants.TRANSANCTION_ID_MASK);
             }
         }

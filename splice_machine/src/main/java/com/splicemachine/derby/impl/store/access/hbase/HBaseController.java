@@ -18,7 +18,6 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -28,12 +27,14 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.Partition;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 
 public class HBaseController extends SpliceController{
@@ -54,7 +55,7 @@ public class HBaseController extends SpliceController{
             assert row != null : "Cannot insert a null row!";
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("batchInsert into conglom %d row %s with txnId %s",
-                        openSpliceConglomerate.getConglomerate().getContainerid(), (Arrays.toString(row.getRowArray())), trans.getTxnInformation()));
+                                        openSpliceConglomerate.getConglomerate().getContainerid(), (Arrays.toString(row.getRowArray())), trans.getTxnInformation()));
             try {
                 DataPut put = opFactory.newDataPut(trans.getTxnInformation(), SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
                 encodeRow(row.getRowArray(), put, null, null);
@@ -82,18 +83,14 @@ public class HBaseController extends SpliceController{
     @Override
     public void batchInsertAndFetchLocation(ExecRow[] rows, RowLocation[] rowLocations) throws StandardException {
         List<DataPut> puts = new ArrayList();
-       int i = 0;
+        int i = 0;
         for (ExecRow row: rows) {
             assert row != null : "Cannot insert into a null row!";
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("insertAndFetchLocation --> into conglom %d row %s",
-                        openSpliceConglomerate.getConglomerate().getContainerid(), Arrays.toString(row.getRowArray())));
+                                        openSpliceConglomerate.getConglomerate().getContainerid(), Arrays.toString(row.getRowArray())));
             try {
                 DataPut put = opFactory.newDataPut(trans.getTxnInformation(), SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-                Properties properties = openSpliceConglomerate.getTransactionManager().getProperties();
-                if(properties != null && properties.getProperty("FORCE_WRITE_WRITE_CONFLICT") != null) {
-                    put.addAttribute(SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT, SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT_VALUE);
-                }
                 encodeRow(row.getRowArray(), put, null, null);
                 rowLocations[i].setValue(put.key());
                 puts.add(put);
@@ -127,10 +124,6 @@ public class HBaseController extends SpliceController{
         try{
 
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),loc.getBytes());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-
-            if(openSpliceConglomerate.getTransactionManager().getConflictResolutionStrategy() == TransactionController.ConflictResolutionStrategy.IMMEDIATE) {
-                put.addAttribute(SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT, SIConstants.SI_FORCE_THROW_ON_WW_CONFLICT_VALUE);
-            }
 
             encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
             htable.put(put);

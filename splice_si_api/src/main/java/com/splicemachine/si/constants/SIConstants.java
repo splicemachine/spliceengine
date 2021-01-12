@@ -78,7 +78,6 @@ public class SIConstants {
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
     public static final String SI_COUNT_STAR = "M";
-    public static final String SI_FORCE_THROW_ON_WW_CONFLICT = "W";
 
     //common SI fields
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
@@ -99,7 +98,6 @@ public class SIConstants {
     public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = {};
     public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
-    public static final byte[] SI_FORCE_THROW_ON_WW_CONFLICT_VALUE = {};
 
     public static final String TOKEN_ACL_NAME = "ta";
 

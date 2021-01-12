@@ -133,4 +133,9 @@ public class PastTransactionImpl extends TransactionImpl {
     public boolean allowsWrites(){
         return false;
     }
+
+    @Override
+    public void ignoreConflicts(boolean doIgnore) {
+        throw new UnsupportedOperationException("Can't ignore conflicts in PastTransaction txn");
+    }
 }

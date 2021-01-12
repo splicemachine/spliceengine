@@ -280,6 +280,14 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         store.rollbackSubtransactions(txnId, rolledback);
     }
 
+    @Override
+    public void ignoreConflicts(long txnId, boolean doIgnore) {
+        if(restoreMode){
+            return; // we are in restore mode, don't try to access the store
+        }
+        store.ignoreConflicts(txnId, doIgnore);
+    }
+
     /**********************************************************************************************************/
         /*private helper method*/
     private Txn createWritableTransaction(long timestamp,

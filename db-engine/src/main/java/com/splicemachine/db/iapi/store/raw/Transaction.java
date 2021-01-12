@@ -40,6 +40,8 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 
+import java.io.IOException;
+
 /**
 */
 
@@ -395,4 +397,6 @@ public interface Transaction {
 		throws StandardException;
 
 	boolean isRestoreMode();
+
+	void ignoreConflicts(boolean doIgnore);
 }

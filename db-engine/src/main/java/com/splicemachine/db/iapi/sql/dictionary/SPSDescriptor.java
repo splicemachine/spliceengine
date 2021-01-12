@@ -936,7 +936,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             tc = lcc.getTransactionExecute();
         }
         try {
-            tc.setConflictResolutionStrategy(TransactionController.ConflictResolutionStrategy.IMMEDIATE);
             dd.updateSPS(this,
                     tc,
                     recompile,

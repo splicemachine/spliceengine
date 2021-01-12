@@ -86,7 +86,13 @@ public class TransactionViewImpl extends BaseTransaction {
         //otherwise, it's a no-op
     }
 
+    @Override
     public void setTxn(Txn txn) {
         this.txn = txn;
+    }
+
+    @Override
+    public void ignoreConflicts(boolean doIgnore) {
+        throw new UnsupportedOperationException("Cannot ignoreConflicts from SpliceTransactionView");
     }
 }
