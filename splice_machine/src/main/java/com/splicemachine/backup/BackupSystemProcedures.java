@@ -32,10 +32,13 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
@@ -660,9 +663,21 @@ public class BackupSystemProcedures {
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.rollbackDatabase(transactionId, lcc.getTransactionExecute().getActiveStateTxId());
+            
+            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
+
+            // Set Restore Mode to prevent other workloads from running
+            DDLMessage.DDLChange change = ProtoUtil.createRestoreMode(currentTxId);
+            String changeId = DDLUtils.notifyMetadataChange(change);
+            
+            // Rollback
+//            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.rollbackDatabase(transactionId, currentTxId);
 
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
+            
+            // Finish Restore Mode
+            DDLUtils.finishMetadataChange(changeId);
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database rollback error", t);
