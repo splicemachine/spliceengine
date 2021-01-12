@@ -121,11 +121,18 @@ public class KafkaMaintenance {
                 ageCutoffMinutes = Long.parseLong( args[2] );
             }
             List<String> prefixToDelete = null;
-            if( args.length >= 4 ) {
+            if( args.length >= 4 && !args[3].isEmpty() ) {
                 prefixToDelete = Arrays.asList( args[3].split(",") );
             }
             List<String> prefixToKeep = null;
-            if( args.length >= 5 ) {
+            if( args.length >= 5 && !args[4].isEmpty() ) {
+                if( !args[3].isEmpty() && !args[4].isEmpty() ) {
+                    throw new Exception(
+                        "Not supporting delete prefixes and keep prefixes at the same time. Populate one or the other."
+                            + "  Delete: " + args[3]
+                            + "  Keep: " + args[4]
+                    );
+                }
                 prefixToKeep = Arrays.asList( args[4].split(",") );
             }
 
