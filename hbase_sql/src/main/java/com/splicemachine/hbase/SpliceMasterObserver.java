@@ -58,6 +58,7 @@ import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -211,16 +212,17 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
         SConfiguration conf = HConfiguration.getConfiguration();
         if (conf.getOlapServerExternal()) {
             OlapServerMaster.Mode mode = OlapServerMaster.Mode.valueOf(conf.getOlapServerMode());
-            if (mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
-                String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
-                try {
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                } catch (Exception e) {
-                    throw new IOException(e);
-                }
-            } else {
+
+            String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
+            try {
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_RESTART_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.getRecoverableZooKeeper().getZooKeeper().setData(root + HBaseConfiguration.OLAP_SERVER_RESTART_PATH, "0".getBytes(Charset.defaultCharset().name()),  -1);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            if (!mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
                 try {
                     manager.registerNetworkService(new DatabaseLifecycleService() {
                         List<OlapServerSubmitter> serverSubmitters;

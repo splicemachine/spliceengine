@@ -192,7 +192,8 @@ class SpliceTestPlatformConfig {
         //
         // Networking
         //
-        config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
+        config.set("hbase.zookeeper.quorum", "127.0.0.1");
+        config.setInt("hbase.zookeeper.property.clientPort", 2181);
         config.setInt("hbase.master.port", masterPort);
         config.setInt("hbase.master.info.port", masterInfoPort);
         config.setInt("hbase.regionserver.port", regionServerPort);
