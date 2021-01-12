@@ -24,9 +24,20 @@ $props is the path to the directory containing the splice log4j properties file,
 localhost:9092 is the host and port of the Kafka server,
 and /tmp/km.dat is a data file that will be written by KafkaMaintenance.
 
-An optional parameter that may be added is the number of minutes for the age cutoff. 
+Optional Parameters
+
+The first optional parameter that may be added is the number of minutes for the age cutoff. 
 A topic won't be deleted until it's older than the cutoff.
 It defaults to the number of minutes in a day.
+
+The second optional parameter is a comma-separated list of prefixes of topic names to delete.
+Topics with other prefixes will not be deleted.
+
+The third optional parameter is a comma-separated list of prefixes of topic names to keep.
+Topics with other prefixes will be deleted.
+
+The second and third optional params are mutually exclusive.
+To use the third, pass "" (a pair of double-quotes) for the second.
 
 #### Kafka Maintenance Set Up on Bare Metal
 
