@@ -25,12 +25,7 @@ public class UpgradeScriptToAddMultiDatabaseSupport extends UpgradeScriptBase {
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        // Create new database table
-
-        // Add databaseid columns to all affected tables
-        // role
-        // schema
-        // users
+        sdd.createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(tc);
 
         // Refresh views
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");

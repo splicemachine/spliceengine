@@ -8496,6 +8496,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return retval;
     }
 
+    public TabInfoImpl getTabInfoByNumber(int catalogNumber) throws StandardException {
+        if (catalogNumber < coreInfo.length) {
+            return coreInfo[catalogNumber];
+        } else {
+            return getNonCoreTIByNumber(catalogNumber);
+        }
+    }
+
     protected void initSystemIndexVariables(TabInfoImpl ti) throws StandardException{
         int numIndexes=ti.getNumberOfIndexes();
 

@@ -21,37 +21,6 @@ public class UpgradeScriptForTriggerMultipleStatements extends UpgradeScriptBase
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        ConglomerateController heapCC = null;
-        try {
-            TabInfoImpl tII = sdd.getNonCoreTIByNumber(DataDictionary.SYSTRIGGERS_CATALOG_NUM);
-            TableDescriptor td =
-               sdd.getTableDescriptor( tII.getCatalogRowFactory().getCatalogName(),
-                                       sdd.getSystemSchemaDescriptor(), tc );
-            long conglomID = td.getHeapConglomerateId();
-            heapCC=tc.openConglomerate(conglomID,
-                                       false,0,
-                                       TransactionController.MODE_RECORD,
-                                       TransactionController.ISOLATION_REPEATABLE_READ);
-            // If upgrade has already been done, and we somehow got here again by
-            // mistake, don't re-add the multistatement triggers columns to the systriggers
-            // conglomerate descriptor.
-            if (heapCC instanceof HBaseController) {
-                HBaseController hCC = (HBaseController)heapCC;
-                if (hCC.getConglomerate().getFormat_ids().length >= 20) {
-                    return;
-                }
-            }
-            heapCC.close();
-            heapCC = null;
-            sdd.upgrade_addColumns(tII.getCatalogRowFactory(), new int[]{19,20}, tc);
-            SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table sys.systriggers");
-        }
-        catch (Exception e) {
-            SpliceLogUtils.info(LOG, "Attempt to upgrade sys.systriggers failed.  Please check if it has already been upgraded and contains the correct number of columns: 20.");
-        }
-        finally {
-            if (heapCC != null)
-                heapCC.close();
-        }
+        sdd.upgradeAddColumnToSystemTable(tc, DataDictionary.SYSTRIGGERS_CATALOG_NUM, new int[]{19, 20});
     }
 }
