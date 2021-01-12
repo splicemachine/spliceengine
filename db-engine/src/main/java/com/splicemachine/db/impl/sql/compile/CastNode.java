@@ -1030,47 +1030,58 @@ public class CastNode extends ValueNode
     }
 
     private void setTypeForCharVarcharFunction() throws StandardException {
-        DataTypeDescriptor opndType = castOperand.getTypeServices();
+        final DataTypeDescriptor opndType = castOperand.getTypeServices();
         int length = requestedStringLength;
         if (length == -1) {
-            TypeId srcTypeId = opndType.getTypeId();
-            if (srcTypeId.isNumericTypeId()) {
-                length = opndType.getPrecision() + 1; // 1 for the sign
-                if (opndType.getScale() > 0)
-                    length += 1;               // 1 for the decimal .
-            }
-            /*
-             * Derby-1132 : The length for the target type was calculated
-             * incorrectly while Char & Varchar functions were used. Thus
-             * adding the check for Char & Varchar and calculating the
-             * length based on the operand type.
-             */
-            else if (srcTypeId.isStringTypeId() || srcTypeId.isBitTypeId()) {
-                length = opndType.getMaximumWidth();
-
-                // Truncate the target type width to the max width of the
-                // data type
+            if (castOperand.requiresTypeFromContext()) {
+                /* Derived length of an untyped argument of a built-in function, same as DB2
+                 * References:
+                 * [1] https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html
+                 * [2] https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000735.html#r0000735__arglength
+                 */
                 if (this.targetCharType == Types.CHAR)
-                    length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
+                    length = 127;
                 else if (this.targetCharType == Types.VARCHAR)
-                    length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
-            } else if(srcTypeId.isDateTimeTimeStampTypeId() && opndType.getJDBCTypeId() == Types.TIMESTAMP) {
-                try {
-                    length = SQLTimestamp.getFormatLength(getCompilerContext().getTimestampFormat());
-                } catch(IllegalArgumentException e)
-                {
-                    // we shouldn't get here as GenericStatement should've checked that, but let's be defensive
-                    // and not throw
-                    length = getCompilerContext().getTimestampFormat().length() + 10;
-                }
+                    length = 254;
             } else {
-                TypeId typeid = opndType.getTypeId();
-                length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(), -1);
+                TypeId srcTypeId = opndType.getTypeId();
+                if (srcTypeId.isNumericTypeId()) {
+                    length = opndType.getPrecision() + 1; // 1 for the sign
+                    if (opndType.getScale() > 0)
+                        length += 1;               // 1 for the decimal .
+                }
+                /*
+                 * Derby-1132 : The length for the target type was calculated
+                 * incorrectly while Char & Varchar functions were used. Thus
+                 * adding the check for Char & Varchar and calculating the
+                 * length based on the operand type.
+                 */
+                else if (srcTypeId.isStringTypeId() || srcTypeId.isBitTypeId()) {
+                    length = opndType.getMaximumWidth();
+
+                    // Truncate the target type width to the max width of the
+                    // data type
+                    if (this.targetCharType == Types.CHAR)
+                        length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
+                    else if (this.targetCharType == Types.VARCHAR)
+                        length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
+                } else if (srcTypeId.isDateTimeTimeStampTypeId() && opndType.getJDBCTypeId() == Types.TIMESTAMP) {
+                    try {
+                        length = SQLTimestamp.getFormatLength(getCompilerContext().getTimestampFormat());
+                    } catch (IllegalArgumentException e) {
+                        // we shouldn't get here as GenericStatement should've checked that, but let's be defensive
+                        // and not throw
+                        length = getCompilerContext().getTimestampFormat().length() + 10;
+                    }
+                } else {
+                    TypeId typeid = opndType.getTypeId();
+                    length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(), -1);
+                }
             }
             if (length < 0)
                 length = 1;  // same default as in parser
         }
-        if (castOperand.getTypeServices().getTypeId().isBitTypeId()) {
+        if (opndType != null && opndType.getTypeId().isBitTypeId()) {
             switch (targetCharType) {
                 case Types.CHAR:
                     setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BINARY, length));
