@@ -25,8 +25,12 @@ import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 /**
  * Created by jyuan on 10/30/17.
@@ -88,7 +92,35 @@ public class IgnoreTxnSupplier {
                     }
                 }
             }
+            cache = combineOverlappingRanges(cache);
         }
+    }
+
+    static Set<Pair<Long, Long>> combineOverlappingRanges(Set<Pair<Long, Long>> cache) {
+        BiPredicate<Pair<Long, Long>, Pair<Long, Long>> overlapping = (a, b) ->
+            (a.getFirst() <= b.getFirst() && b.getFirst() <= a.getSecond()) ||
+            (a.getFirst() <= b.getSecond() && b.getSecond() <= a.getSecond());
+        BiFunction<Pair<Long, Long>, Pair<Long, Long>, Pair<Long, Long>> combine = (a, b) ->
+            new Pair<Long, Long>(
+                a.getFirst() < b.getFirst() ? a.getFirst() : b.getFirst(),
+                a.getSecond() > b.getSecond() ? a.getSecond() : b.getSecond()
+            );
+        Set<Pair<Long, Long>> newCache = new HashSet<>();
+        Set<Pair<Long, Long>> discard = new HashSet<>();
+        List<Pair<Long, Long>> ranges = new ArrayList<>(cache);
+        while( ! ranges.isEmpty() ) {
+            Pair<Long, Long> r0 = ranges.remove(0);
+            for( Pair<Long, Long> r : ranges ) {
+                if( overlapping.test(r, r0) ) {
+                    r0 = combine.apply(r, r0);
+                    discard.add(r);
+                }
+            }
+            newCache.add(r0);
+            ranges.removeAll( discard );
+            discard.clear();
+        }
+        return newCache;
     }
 
     private DataResultScanner openScanner(Partition table) throws IOException {
