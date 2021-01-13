@@ -418,6 +418,12 @@
             <id>dbaas3.0</id>
             <dependencies>
                 <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>hbase_pipeline</artifactId>
                     <version>${project.version}</version>
@@ -496,17 +502,6 @@
                 </dependency>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>dbaas3.0</id>
-            <dependencies>
-                <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-avro_${scala.binary.version}</artifactId>
                     <version>${spark.version}</version>
