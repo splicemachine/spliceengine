@@ -24,7 +24,7 @@ splice> insert into t1 values (1) , (2) , (3) , (4);
 splice> insert into t2 values (1) , (2) , (3) , (4);
 4 rows inserted/updated/deleted
 splice> delete from t1;
-ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> drop table t2;
 0 rows inserted/updated/deleted
 splice> --simple cascade delete
@@ -903,7 +903,7 @@ splice> insert into t1 values (1) , (2) , (3) , (4) , (5) , (6) , (7) , (8) ;
 splice> insert into t2  values (1) , (2) , (3) , (4) , (5) , (6) , (7) , (8) ;
 8 rows inserted/updated/deleted
 splice> delete from t1;
-ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> select * from t2;
 B          
 -----------
@@ -941,7 +941,7 @@ splice> insert into t2 values(2, 3);
 splice> -- should fail
 -- parent row can not be deleted because of a dependent relationship from another table
 delete from t1 where a =1;
-ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> drop table t2;
 0 rows inserted/updated/deleted
 splice> --do the same case as above with RESTRICT
@@ -954,7 +954,7 @@ splice> insert into t2 values(2, 3);
 1 row inserted/updated/deleted
 splice> --following delete should throw constraint violations error
 delete from t1 where a =1;
-ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> drop table t2;
 0 rows inserted/updated/deleted
 splice> drop table t1;
@@ -982,7 +982,7 @@ splice> commit;
 splice> -- this update should fail
 -- parent row can not be deleted because of a dependent relationship from another table
 update t1 set a = 7 where a =1;
-ERROR 23503: UPDATE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> -- should pass because no foreign key constraints are violated
 update t1 set b = 7 where a =1;
 1 row inserted/updated/deleted
@@ -1011,7 +1011,7 @@ splice> insert into t2 values(2, 3);
 splice> commit;
 splice> --following update should throw an error
 update t1 set a = 7 where a =1;
-ERROR 23503: UPDATE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'T1' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> select * from t1 ;
 A          |B          
 -----------------------
@@ -2564,23 +2564,23 @@ splice> -- should fail
 autocommit off;
 splice> prepare sdelete as 'delete from t1 where a = ?' ;
 splice> execute sdelete using 'values (1)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (3).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (3). The statement has been rolled back.
 splice> execute sdelete using 'values (4)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (6).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (6). The statement has been rolled back.
 splice> execute sdelete using 'values (7)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (9).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (9). The statement has been rolled back.
 splice> execute sdelete using 'values (10)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (12).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (12). The statement has been rolled back.
 splice> execute sdelete using 'values (13)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (15).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (15). The statement has been rolled back.
 splice> execute sdelete using 'values (16)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (18).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (18). The statement has been rolled back.
 splice> execute sdelete using 'values (19)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (21).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (21). The statement has been rolled back.
 splice> execute sdelete using 'values (22)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (24).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (24). The statement has been rolled back.
 splice> execute sdelete using 'values (25)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (27).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (27). The statement has been rolled back.
 splice> commit;
 splice> autocommit on;
 splice> select * from t1 ;
@@ -2641,23 +2641,23 @@ splice> insert into t3 values (3) , (6), (9), (12), (15), (18), (21), (24), (27)
 splice> autocommit off;
 splice> prepare sdelete as 'delete from t1 where a = ?' ;
 splice> execute sdelete using 'values (1)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (3).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (3). The statement has been rolled back.
 splice> execute sdelete using 'values (4)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (6).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (6). The statement has been rolled back.
 splice> execute sdelete using 'values (7)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (9).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (9). The statement has been rolled back.
 splice> execute sdelete using 'values (10)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (12).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (12). The statement has been rolled back.
 splice> execute sdelete using 'values (13)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (15).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (15). The statement has been rolled back.
 splice> execute sdelete using 'values (16)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (18).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (18). The statement has been rolled back.
 splice> execute sdelete using 'values (19)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (21).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (21). The statement has been rolled back.
 splice> execute sdelete using 'values (22)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (24).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (24). The statement has been rolled back.
 splice> execute sdelete using 'values (25)';
-ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (27).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'T2' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (27). The statement has been rolled back.
 splice> commit;
 splice> autocommit on;
 splice> select * from t1 ;

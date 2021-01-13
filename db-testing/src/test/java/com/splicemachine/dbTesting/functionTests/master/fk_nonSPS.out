@@ -53,7 +53,7 @@ values
 	(2,1,666),
 	(1,1,0),
 	(0, 1, 0);
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,666).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,666). The statement has been rolled back.
 splice> drop table f;
 0 rows inserted/updated/deleted
 splice> CALL WAIT_FOR_POST_COMMIT();
@@ -100,7 +100,7 @@ values
 	(13,null,null),
 	(14,1,2),
 	(15,666, 1);
-ERROR 23503: INSERT on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (666).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (666). The statement has been rolled back.
 splice> -- now a test for depenencies.
 -- the insert will create new index conglomerate numbers,
 -- so we want to test that a statement with a constraint
@@ -141,7 +141,7 @@ execute dx;
 1 row inserted/updated/deleted
 splice> -- will fail, no key 1 in x
 execute iy;
-ERROR 23503: INSERT on table 'Y' caused a violation of foreign key constraint 'FK' for key (1).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'Y' caused a violation of foreign key constraint 'FK' for key (1). The statement has been rolled back.
 splice> rollback;
 splice> commit;
 splice> execute iy;
@@ -585,9 +585,9 @@ insert into f values (1,1);
 1 row inserted/updated/deleted
 splice> -- fail
 insert into f values (2,1);
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1). The statement has been rolled back.
 splice> insert into f values (1,2);
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2). The statement has been rolled back.
 splice> -- nulls are ok
 insert into f values (1,null);
 1 row inserted/updated/deleted
@@ -597,21 +597,21 @@ splice> insert into f values (1,null);
 1 row inserted/updated/deleted
 splice> -- update on pk, fail
 update p set x = 2;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set y = 2;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set x = 1, y = 2;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set x = 2, y = 1;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set x = 2, y = 2;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> -- ok
 update p set x = 1, y = 1;
 1 row inserted/updated/deleted
 splice> -- delete pk, fail
 delete from p;
-ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> -- delete fk, ok
 delete from f;
 4 rows inserted/updated/deleted
@@ -619,13 +619,13 @@ splice> insert into f values (1,1);
 1 row inserted/updated/deleted
 splice> -- update fk, fail
 update f set x = 2;
-ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1). The statement has been rolled back.
 splice> update f set y = 2;
-ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2). The statement has been rolled back.
 splice> update f set x = 1, y = 2;
-ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (1,2). The statement has been rolled back.
 splice> update f set x = 2, y = 1;
-ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (2,1). The statement has been rolled back.
 splice> -- update fk, ok
 update f set x = 1, y = 1;
 1 row inserted/updated/deleted
@@ -659,7 +659,7 @@ update p set x = x+1, y = y+1;
 2 rows inserted/updated/deleted
 splice> -- fail
 update p set x = x+1, y = y+1;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (2,2).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (2,2). The statement has been rolled back.
 splice> -- 
 -- BOUNDARY CONDITIONS
 --
@@ -702,7 +702,7 @@ X          |Y
 1          |1          
 splice> -- fail
 update p set x = 666 where current of c;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> close c;
 splice> get cursor  c as 'select * from f for update of x';
 splice> next c;
@@ -711,7 +711,7 @@ X          |Y
 1          |1          
 splice> -- fail
 update f set x = 666 where current of c;
-ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (666,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'F' caused a violation of foreign key constraint 'FK' for key (666,1). The statement has been rolled back.
 splice> close c;
 splice> commit;
 splice> autocommit on;
@@ -737,17 +737,17 @@ update p set x = x+1, y = y+1;
 5 rows inserted/updated/deleted
 splice> -- error, fk1
 update p set x = x+1;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set y = y+1;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> update p set x = x+1, y = y+1;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> -- fail of fk3
 update p set y = 666 where y = 3;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK3' for key (3,3).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK3' for key (3,3). The statement has been rolled back.
 splice> -- fail of fk2
 update p set x = 666 where x = 2;
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK2' for key (2,2).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK2' for key (2,2). The statement has been rolled back.
 splice> -- cleanup
 drop table f;
 0 rows inserted/updated/deleted
@@ -772,7 +772,7 @@ update s set y = 1;
 1 row inserted/updated/deleted
 splice> -- fail
 update s set z = 2;
-ERROR 23503: UPDATE on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (2).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (2). The statement has been rolled back.
 splice> -- ok
 update s set z = 1;
 1 row inserted/updated/deleted
@@ -806,7 +806,7 @@ X          |Y          |Z
 2          |NULL       |1          
 splice> -- fail 
 update s set x = 0 where x = 1;
-ERROR 23503: UPDATE on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'S' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> --
 -- Now we are going to do a short but sweet
 -- check to make sure we are actually hitting
@@ -828,10 +828,10 @@ update p set x = x+1, y=y+1;
 2 rows inserted/updated/deleted
 splice> -- fail
 delete from p where y = 1;
-ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> -- fail
 insert into f values (1,1,4);
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,4).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,4). The statement has been rolled back.
 splice> delete from f;
 1 row inserted/updated/deleted
 splice> delete from p;
@@ -850,7 +850,7 @@ update p set x = x+1, y=y+1 where x < (select max(x)+10000 from p);
 2 rows inserted/updated/deleted
 splice> -- fail
 delete from p where y = 1 and y in (select y from p);
-ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK' for key (1,1). The statement has been rolled back.
 splice> -- inserts
 create table f2 (x int, t smallint, y int);
 0 rows inserted/updated/deleted
@@ -858,7 +858,7 @@ splice> insert into f2 values (1,1,4);
 1 row inserted/updated/deleted
 splice> -- fail
 insert into f select * from f2;
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,4).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (1,4). The statement has been rolled back.
 splice> -- ok
 insert into f2 values (1,1,1);
 1 row inserted/updated/deleted
@@ -914,7 +914,7 @@ splice> prepare sp as
 	'insert into p values (1,1,1,1)';
 splice> -- fail
 execute sf;
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'xxxxGENERATED-IDxxxx' for key (1). The statement has been rolled back.
 splice> -- ok
 execute sp;
 1 row inserted/updated/deleted

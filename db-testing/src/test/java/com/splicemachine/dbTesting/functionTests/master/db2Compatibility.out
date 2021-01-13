@@ -980,7 +980,7 @@ ERROR 23513: The check constraint 'CC' was violated while performing an INSERT o
 splice> insert into testconst2( col1, col2, col3) values( 'a', 'a', 1);
 1 row inserted/updated/deleted
 splice> insert into testconst2( col1, col2, col3) values( 'z', 'b', 1);
-ERROR 23503: INSERT on table 'TESTCONST2' caused a violation of foreign key constraint 'FK' for key (z      ).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'TESTCONST2' caused a violation of foreign key constraint 'FK' for key (z      ). The statement has been rolled back.
 splice> insert into testconst2( col1, col2, col3) values( 'a', 'a', 1);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'UK' defined on 'TESTCONST2'.
 splice> -- beetle 5204

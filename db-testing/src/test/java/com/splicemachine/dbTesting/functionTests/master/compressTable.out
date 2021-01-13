@@ -300,7 +300,7 @@ splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'F', 0);
 splice> insert into f values (1, 1, 1);
 1 row inserted/updated/deleted
 splice> insert into f values (2, 2, 2);
-ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,2).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,2). The statement has been rolled back.
 splice> insert into p values ('2', 2, '2', 2);
 1 row inserted/updated/deleted
 splice> insert into f values (2, 2, 2);
@@ -324,7 +324,7 @@ splice> insert into pf values (3,1), (4, 2);
 splice> insert into pf values (3,1);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'P' defined on 'PF'.
 splice> insert into pf values (5,6);
-ERROR 23503: INSERT on table 'PF' caused a violation of foreign key constraint 'F' for key (6).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'PF' caused a violation of foreign key constraint 'F' for key (6). The statement has been rolled back.
 splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               

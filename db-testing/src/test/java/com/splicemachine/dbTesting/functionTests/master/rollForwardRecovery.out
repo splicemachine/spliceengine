@@ -143,7 +143,7 @@ ERROR 23505: The statement was aborted because it would have caused a duplicate 
 splice> --add a value that does not exits in the parent table
 --to make reference indexes are fine.
 insert into t2 values(999);
-ERROR 23503: INSERT on table 'T2' caused a violation of foreign key constraint 'C1' for key (999).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'T2' caused a violation of foreign key constraint 'C1' for key (999). The statement has been rolled back.
 splice> ---REGULAR UNLOGGED CASES , BUT LOGGED WHEN ARCHIVE MODE IS ENABLED.
 --compress table 
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T1', 0);
@@ -290,7 +290,7 @@ splice> insert into t3 (c1) values(101);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'PK1' defined on 'T3'.
 splice> --folowing should throw foreign key violations error.
 insert into t4 values(9999);
-ERROR 23503: INSERT on table 'T4' caused a violation of foreign key constraint 'FK1' for key (9999).  The statement has been rolled back.
+ERROR 23503: INSERT on table 'T4' caused a violation of foreign key constraint 'FK1' for key (9999). The statement has been rolled back.
 splice> connect 'wombat;shutdown=true';
 ERROR 08006: Database 'wombat' shutdown.
 splice> disconnect;

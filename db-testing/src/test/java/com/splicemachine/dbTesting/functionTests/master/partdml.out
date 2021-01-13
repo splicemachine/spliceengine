@@ -611,7 +611,7 @@ splice> rollback;
 splice> --pk update
 -- only this update should fail, does not satisfy fk1
 update p set ccharForBitData = x'22', cchar = CAST(unindexed as CHAR(10));
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11). The statement has been rolled back.
 splice> values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 1                                                                                                                                                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -627,11 +627,11 @@ Index Scan ResultSet for P using constraint PK2 at read committed isolation leve
 Bit set of columns fetched={0, 1}
 splice> rollback;
 splice> update p set unindexed = 666, cchar = 'fail';
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11). The statement has been rolled back.
 splice> rollback;
 splice> -- only this update should fail, does not satisfy fk1
 update p set ccharForBitData = x'66' where ccharForBitData = x'22';
-ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (22        ,22).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'P' caused a violation of foreign key constraint 'FK1' for key (22        ,22). The statement has been rolled back.
 splice> values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 1                                                                                                                                                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -658,10 +658,10 @@ TableScan
 Bit set of columns fetched={0, 1, 2, 3, 4}
 splice> rollback;
 splice> update basic set cdec = cdec+1.1, cint = cint, ccharForBitData = ccharForBitData, cchar = cchar;
-ERROR 23503: UPDATE on table 'BASIC' caused a violation of foreign key constraint 'FK2' for key (4.40).  The statement has been rolled back.
+ERROR 23503: UPDATE on table 'BASIC' caused a violation of foreign key constraint 'FK2' for key (4.40). The statement has been rolled back.
 splice> rollback;
 splice> delete from p where cdec = 1.1;
-ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11).  The statement has been rolled back.
+ERROR 23503: DELETE on table 'P' caused a violation of foreign key constraint 'FK1' for key (11        ,11). The statement has been rolled back.
 splice> rollback;
 splice> -- clean up
 drop function getScanCols;
