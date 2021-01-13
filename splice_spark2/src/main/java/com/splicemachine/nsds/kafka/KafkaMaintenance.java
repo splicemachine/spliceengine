@@ -126,7 +126,7 @@ public class KafkaMaintenance {
             }
             List<String> prefixToKeep = null;
             if( args.length >= 5 && !args[4].isEmpty() ) {
-                if( !args[3].isEmpty() && !args[4].isEmpty() ) {
+                if( !args[3].isEmpty() ) {
                     throw new Exception(
                         "Not supporting delete prefixes and keep prefixes at the same time. Populate one or the other."
                             + "  Delete: " + args[3]
