@@ -83,14 +83,12 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
             keepAliveTime = message.getLastKeepAliveTime();
         }
 
-        final List<Long> conflictingTxnIdsIterator = info.getConflictingTxnIdsList();
-
         TxnView parentTxn = parentTxnId < 0 ? Txn.ROOT_TRANSACTION : supplier.getTransaction(parentTxnId);
         return new InheritingTxnView(parentTxn, txnId, beginTs,
                                      isolationLevel,
                                      hasAdditive, additive,
                                      true, true,
                                      commitTs, globalCommitTs,
-                                     state, destinationTables, keepAliveTime, null, Longs.toArray(conflictingTxnIdsIterator));
+                                     state, destinationTables, keepAliveTime, null);
     }
 }

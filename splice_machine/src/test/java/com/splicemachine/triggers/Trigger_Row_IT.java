@@ -512,7 +512,7 @@ public class Trigger_Row_IT {
         }
         catch (Exception e) {
             String message = e.getLocalizedMessage();
-            Assert.assertTrue(message.compareTo("Operation on table 'CAS3' caused a violation of foreign key constraint 'TEST_ROLLBACK' for key (STR_F).  The statement has been rolled back.") == 0);
+            Assert.assertTrue(message.compareTo("Operation on table 'CAS3' caused a violation of foreign key constraint 'TEST_ROLLBACK' for key (STR_F). The statement has been rolled back.") == 0);
         }
     }
 

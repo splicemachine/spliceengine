@@ -18,7 +18,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
-import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -349,14 +348,6 @@ public class TransactionImpl extends BaseTransaction {
     @Override
     public boolean isRestoreMode() {
         return lifecycleManager != null && lifecycleManager.isRestoreMode();
-    }
-
-    @Override
-    public void ignoreConflicts(boolean doIgnore) {
-        Txn txn = getTxn();
-        if (txn != null) {
-            lifecycleManager.ignoreConflicts(getTxn().getTxnId(), doIgnore);
-        }
     }
 
     /*****************************************************************************************************************/

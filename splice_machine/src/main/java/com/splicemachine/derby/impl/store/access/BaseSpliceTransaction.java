@@ -202,7 +202,4 @@ public abstract class BaseSpliceTransaction<T extends BaseTransaction> implement
         return transaction.isRestoreMode();
     }
 
-    public void ignoreConflicts(boolean doIgnore) {
-        transaction.ignoreConflicts(doIgnore);
-    }
 }

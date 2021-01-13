@@ -33,6 +33,7 @@ import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
 
+import static com.splicemachine.pipeline.ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN;
 import static com.splicemachine.pipeline.ErrorState.WRITE_WRITE_CONFLICT;
 
 @Category(value = {SerialTest.class})

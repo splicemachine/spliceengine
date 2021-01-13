@@ -149,6 +149,4 @@ public abstract class BaseTransaction implements Transaction {
     public boolean isRestoreMode() {
         return false;
     }
-
-    public abstract void ignoreConflicts(boolean doIgnore);
 }

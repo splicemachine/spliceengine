@@ -74,8 +74,8 @@ public class ForeignKeyAlterDropTableIT {
             s.executeUpdate("alter table C add constraint FK1 foreign key (a) references P(a)");
 
             // then -- the foreign key constraint is still enforced
-            assertQueryFail("delete from P where a=1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
-            assertQueryFail("insert into C values(222)","Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            assertQueryFail("delete from P where a=1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A). The statement has been rolled back.");
+            assertQueryFail("insert into C values(222)","Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A). The statement has been rolled back.");
             // then -- we can still insert values into the child that do exist in parent
             s.executeUpdate("insert into C values(2)");
             // then -- we can still delete unreferenced values from the parent
@@ -119,7 +119,7 @@ public class ForeignKeyAlterDropTableIT {
             s.executeUpdate("insert into C values(1)");
 
             // given -- we can't delete from P because of the FK constraint
-            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A). The statement has been rolled back.");
 
             // when -- we drop the FK constraint
             s.executeUpdate("alter table C drop constraint FK1");
@@ -162,7 +162,7 @@ public class ForeignKeyAlterDropTableIT {
             s.executeUpdate("insert into C values(1)");
 
             // given -- we can't delete from P because of the FK constraint
-            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A). The statement has been rolled back.");
 
             // when -- we drop C
             s.executeUpdate("drop table C");
@@ -204,7 +204,7 @@ public class ForeignKeyAlterDropTableIT {
             s.execute("create table C(i int)");
             s.execute("alter table C add constraint FK  foreign key (i) references P");
             s.execute("insert into c values 1");
-            String error = "Operation on table 'P' caused a violation of foreign key constraint 'FK' for key (I).  The statement has been rolled back.";
+            String error = "Operation on table 'P' caused a violation of foreign key constraint 'FK' for key (I). The statement has been rolled back.";
             try {
                 s.execute("delete from P where i=1");
                 fail("Expect Constraint violation");

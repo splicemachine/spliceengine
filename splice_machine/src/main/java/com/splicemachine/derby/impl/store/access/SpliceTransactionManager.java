@@ -98,7 +98,6 @@ public class SpliceTransactionManager implements XATransactionController,
      * The ID of the current ddl change coordination.
      */
     private List<String> currentDDLChanges;
-    private ConflictResolutionStrategy conflictResolutionStrategy;
 
     /**************************************************************************
      * Constructors for This class:
@@ -127,7 +126,6 @@ public class SpliceTransactionManager implements XATransactionController,
         } else {
             tempCongloms = null; // allocated on demand
         }
-        this.conflictResolutionStrategy = ConflictResolutionStrategy.NOT_SET;
     }
 
     protected SpliceTransactionManager(SpliceAccessManager myaccessmanager,
@@ -1915,6 +1913,6 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public void ignoreConflicts(boolean ignore) {
-        rawtran.ignoreConflicts(ignore);
+        SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
     }
 }

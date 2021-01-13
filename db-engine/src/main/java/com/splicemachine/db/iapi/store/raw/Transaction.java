@@ -398,5 +398,4 @@ public interface Transaction {
 
 	boolean isRestoreMode();
 
-	void ignoreConflicts(boolean doIgnore);
 }

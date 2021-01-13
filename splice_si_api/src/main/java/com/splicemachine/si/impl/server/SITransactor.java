@@ -647,7 +647,7 @@ public class SITransactor implements Transactor{
                         throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
                         break;
                     case DEFERRED:
-                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(updateTransaction.getTxnId(), table, kvPair, txnSupplier));
+                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(updateTransaction, table, kvPair, txnSupplier, cell));
                         break;
                 }
         }
@@ -657,7 +657,7 @@ public class SITransactor implements Transactor{
 
     // Helpers
 
-    private long[] getDataActiveTransactions(long txnId, Partition table, KVPair kvPair, TxnSupplier txnSupplier) throws IOException {
+    private long[] getDataActiveTransactions(TxnView txn, Partition table, KVPair kvPair, TxnSupplier txnSupplier, DataCell cell) throws IOException {
         DataGet dataGet = opFactory.newGet(kvPair.getRowKey(), null);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
@@ -670,12 +670,15 @@ public class SITransactor implements Transactor{
         Set<Long> activeTx = new HashSet<>();
         while(iterator.hasNext()) {
             long dataTxnId = iterator.next().version();
-            if((dataTxnId & SIConstants.TRANSANCTION_ID_MASK) == txnId) {
+            if((dataTxnId & SIConstants.TRANSANCTION_ID_MASK) == txn.getTxnId()) {
                 continue;
             }
             TxnView txnView = txnSupplier.getTransaction(dataTxnId);
-            if(txnView.getEffectiveState() == Txn.State.ACTIVE) {
+            Txn.State state = txnView.getEffectiveState();
+            if(state == Txn.State.ACTIVE) {
                 activeTx.add(dataTxnId & SIConstants.TRANSANCTION_ID_MASK);
+            } else if(state == Txn.State.COMMITTED && txnView.getCommitTimestamp() > txn.getBeginTimestamp()) { // bail out
+                throwWriteWriteConflict(txn, cell, dataTxnId);
             }
         }
         return Longs.toArray(activeTx);

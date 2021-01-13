@@ -539,7 +539,7 @@ public class CoprocessorTxnStore implements TxnStore {
                                      hasAdditive, additive,
                                      true, true,
                                      commitTs, globalCommitTs,
-                                     state, destinationTablesIterator, kaTime, taskId, Longs.toArray(info.getConflictingTxnIdsList()));
+                                     state, destinationTablesIterator, kaTime, taskId);
     }
 
     private static byte[] getTransactionRowKey(long txnId){
