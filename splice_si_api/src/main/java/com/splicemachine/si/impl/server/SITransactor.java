@@ -647,7 +647,7 @@ public class SITransactor implements Transactor{
                         throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
                         break;
                     case DEFERRED:
-                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(table, kvPair, txnSupplier));
+                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(updateTransaction.getTxnId(), table, kvPair, txnSupplier));
                         break;
                 }
         }
@@ -657,7 +657,7 @@ public class SITransactor implements Transactor{
 
     // Helpers
 
-    private long[] getDataActiveTransactions(Partition table, KVPair kvPair, TxnSupplier txnSupplier) throws IOException {
+    private long[] getDataActiveTransactions(long txnId, Partition table, KVPair kvPair, TxnSupplier txnSupplier) throws IOException {
         DataGet dataGet = opFactory.newGet(kvPair.getRowKey(), null);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
@@ -669,10 +669,13 @@ public class SITransactor implements Transactor{
         Iterator<DataCell> iterator = result.iterator();
         Set<Long> activeTx = new HashSet<>();
         while(iterator.hasNext()) {
-            long txnId = iterator.next().version();
-            TxnView txnView = txnSupplier.getTransaction(txnId);
+            long dataTxnId = iterator.next().version();
+            if((dataTxnId & SIConstants.TRANSANCTION_ID_MASK) == txnId) {
+                continue;
+            }
+            TxnView txnView = txnSupplier.getTransaction(dataTxnId);
             if(txnView.getEffectiveState() == Txn.State.ACTIVE) {
-                activeTx.add(txnId & SIConstants.TRANSANCTION_ID_MASK);
+                activeTx.add(dataTxnId & SIConstants.TRANSANCTION_ID_MASK);
             }
         }
         return Longs.toArray(activeTx);

@@ -11,7 +11,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -55,7 +55,7 @@ public class ConflictResolutionStrategyIT extends SpliceUnitTest {
             try(Statement statement = conn.createStatement()) {
                 try(ResultSet rs = statement.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_REGION_SERVER_CONFIG_INFO(null, 0)")) {
                     while(rs.next()) { // there is a bug in SYSCS_GET_REGION_SERVER_CONFIG_INFO that prevents filtering with first input parameter.
-                        if(rs.getString(2).equals("conflictResolutionStrategy")) {
+                        if(rs.getString(2).equals("conflicPipelineTesttResolutionStrategy")) {
                             if(rs.getString(3).equals(ConflictResolutionStrategy.DEFERRED.toString())) {
                                 conflictResolutionStrategy = ConflictResolutionStrategy.DEFERRED;
                             } else {

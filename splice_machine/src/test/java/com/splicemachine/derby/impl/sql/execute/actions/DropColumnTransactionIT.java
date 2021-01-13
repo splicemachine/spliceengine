@@ -322,27 +322,29 @@ public class DropColumnTransactionIT {
     @Test
     public void testDropColumnFromtwoTransactionsThrowsActiveTransactions() throws Exception {
         conn1.createStatement().execute("alter table " + table + " drop column b");
-        try{
-            conn2.createStatement().execute("alter table " + table+" drop column b");
-            Assert.fail("No write conflict detected!");
-        }catch(SQLException se){
-            Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
-                                ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
-        }
+        conn2.createStatement().execute("alter table " + table+" drop column b");
 
         // conn1 sees column B dropped
         ResultSet rs = conn1.query("select * from "+ table);
         Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
 
-        // conn2 still sees column B, since conn1 has not committed
+        // conn2 sees column B dropped
         rs = conn2.query("select * from "+ table);
-        Assert.assertEquals("Metadata returning incorrect column count!", 2, rs.getMetaData().getColumnCount());
+        Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
 
         // new connection still sees column B, since conn1 has not committed
         rs = classWatcher.createConnection().query("select * from "+ table);
         Assert.assertEquals("Metadata returning incorrect column count!", 2, rs.getMetaData().getColumnCount());
 
         conn1.commit();
+
+        try{
+            conn2.commit();
+            Assert.fail("should not be able to commit since a conflicting transaction already committed!");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
+                                ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN.getSqlState(),se.getSQLState());
+        }
 
         // new connection does not see column B, since conn1 has committed
         rs = classWatcher.createConnection().query("select * from "+ table);

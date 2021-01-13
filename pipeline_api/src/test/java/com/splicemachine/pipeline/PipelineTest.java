@@ -32,6 +32,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.*;
@@ -228,14 +229,18 @@ public class PipelineTest{
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn2)){
             KVPair data=encode("scott3",null,30);
             callBuffer.add(data);
-            try{
-                callBuffer.flushBufferAndWait();
-                Assert.fail("Did not throw a WriteConflict exception");
-            }catch(ExecutionException ee){
-                Throwable t=ee.getCause();
-                t=testEnv.pipelineExceptionFactory().processPipelineException(t);
-                Assert.assertTrue("Did not throw a Write conflict: instead: "+t,t instanceof WriteConflict);
-            }
+            callBuffer.flushBufferAndWait();
+        }
+
+        txn1.commit();
+
+        try{
+            txn2.commit();
+            Assert.fail("Did not throw a CannotRollbackException exception");
+        }catch(IOException oe){
+            Assert.assertTrue("Did not throw a CannotRollbackException : instead: "+oe,oe instanceof CannotRollbackException);
+        } finally {
+            txn2.rollback();
         }
     }
 

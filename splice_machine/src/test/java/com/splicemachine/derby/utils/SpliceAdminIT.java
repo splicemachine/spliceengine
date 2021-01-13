@@ -432,7 +432,7 @@ public class SpliceAdminIT extends SpliceUnitTest {
             CallableStatement cs = methodWatcher.prepareCall(format("call syscs_util.SYSCS_SPLIT_TABLE('%s','%s')", CLASS_NAME, "IAMNOTHERE"));
             cs.executeUpdate();
         } catch (SQLException e) {
-            Assert.assertEquals("Message Mismatch", "Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ", e.getMessage());
+            Assert.assertEquals("Message Mismatch", "Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.", e.getMessage());
         }
     }
 

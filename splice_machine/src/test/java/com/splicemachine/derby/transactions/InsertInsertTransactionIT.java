@@ -17,6 +17,7 @@ package com.splicemachine.derby.transactions;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -214,14 +215,18 @@ public class InsertInsertTransactionIT {
         long conn2Count = conn2.count("select * from " + table + " where a = "+a);
         Assert.assertEquals("Rows are visible that aren't supposed to be!", 0, conn2Count);
 
-        try{
-            preparedStatement = conn2.prepareStatement("insert into " + table + " (a,b) values (?,?)");
-            preparedStatement.setInt(1,a);
-            preparedStatement.setInt(2,b);
+        preparedStatement = conn2.prepareStatement("insert into " + table + " (a,b) values (?,?)");
+        preparedStatement.setInt(1,a);
+        preparedStatement.setInt(2,b);
+        preparedStatement.execute();
 
-            preparedStatement.execute();
+        conn1.commit();
+
+        try{
+            conn2.commit();
         }catch(SQLException se){
-            Assert.assertTrue("Incorrect exception thrown! Error state=" + se.getSQLState(), se.getSQLState().equals("SE014"));
+            Assert.assertEquals("Incorrect error type: " + se.getMessage(),
+                                ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN.getSqlState(), se.getSQLState());
             throw se;
         }
     }

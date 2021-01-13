@@ -266,10 +266,13 @@ public class AddColumnTransactionIT {
 
         try{
             a.createStatement().execute("alter table "+ addedTable3+" add column c int with default 2");
+            b.commit();
+            a.commit();
             Assert.fail("Did not catch an exception!");
         }catch(SQLException se){
-            System.err.printf("%s:%s%n",se.getSQLState(),se.getMessage());
-            assertEquals("Incorrect error message!",ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
+            assertEquals("Incorrect error message!",ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN.getSqlState(),se.getSQLState());
+        }finally {
+            a.rollback();
         }
     }
 

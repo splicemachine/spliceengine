@@ -297,6 +297,9 @@ public class MemTxnStore implements TxnStore{
             if(txnHolder.conflictingTxns != null && !txnHolder.conflictingTxns.isEmpty()) {
                 // roll 'em back and propagate failures
                 for(long conflictingTxn : txnHolder.conflictingTxns) {
+                    if(conflictingTxn == txnId) {
+                        continue;
+                    }
                    rollback(conflictingTxn, txnId);
                 }
             }

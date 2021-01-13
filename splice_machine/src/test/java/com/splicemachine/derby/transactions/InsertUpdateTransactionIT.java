@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -232,13 +233,15 @@ public class InsertUpdateTransactionIT {
         insertPs.setInt(1,a);
         insertPs.setInt(2,b+1);
 
+        insertPs.executeUpdate(); //should throw WWConflict
+
+        conn2.commit();
         try{
-            insertPs.executeUpdate(); //should throw WWConflict
-            Assert.fail("Did not see a write write conflict");
+            conn1.commit();
+            Assert.fail("should not be able to commit since a conflicting transaction already committed!");
         }catch(SQLException se){
-            System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
-            //SE014 = ErrorState.WRITE_WRITE_CONFLICT
-            Assert.assertEquals("Incorrect error message!","SE014",se.getSQLState());
+            Assert.assertEquals("Incorrect error type: " + se.getMessage(),
+                                ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN.getSqlState(), se.getSQLState());
         }
     }
 

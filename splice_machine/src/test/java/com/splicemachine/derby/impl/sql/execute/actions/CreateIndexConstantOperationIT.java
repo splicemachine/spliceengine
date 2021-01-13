@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.ErrorState;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -46,7 +47,6 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "T1";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-    private static final String WRITE_WRITE_CONFLICT="SE014";
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME, tableDef);
@@ -132,19 +132,17 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
 
         Connection c2 = methodWatcher.createConnection();
         c2.setAutoCommit(false);
-        try {
-            c2.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1235,'JC',0500,0630)");
-            Assert.fail("Didn't raise write-conflict exception");
-        } catch (Exception e) {
-            // ignore;
-        }
+        c2.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1235,'JC',0500,0630)");
+
         Connection c3 = methodWatcher.createConnection();
         c3.setAutoCommit(false);
+        c3.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1236,'JC',0500,0630)");
+        c3.commit();
         try {
-            c3.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1236,'JC',0500,0630)");
-            Assert.fail("Didn't raise write-conflict exception");
+            c2.commit();
+            Assert.fail("Didn't raise cannot commit exception");
         } catch (SQLException e) {
-            Assert.assertEquals("Didn't detect write-write conflict", WRITE_WRITE_CONFLICT,e.getSQLState());
+            Assert.assertEquals("Didn't detect write-write conflict", ErrorState.CANNOT_COMMIT.getSqlState(), e.getSQLState());
         }
     }
 

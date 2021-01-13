@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -27,6 +28,7 @@ import org.junit.runner.Description;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
@@ -47,23 +49,23 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
             .around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?)", CLASS_NAME, TABLE_NAME_1));
-					s.setInt(1, 1);
-					s.setInt(2, 10);
-					s.execute();
-					
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?)", CLASS_NAME, TABLE_NAME_1));
+                    s.setInt(1, 1);
+                    s.setInt(2, 10);
+                    s.execute();
+                    
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
 
-		});
+        });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -73,29 +75,33 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
     @Test
     public void testUpdateWriteWriteRollbackConcurrent() throws Exception {
 
-    	Connection c1 = methodWatcher.createConnection();
-    	c1.setAutoCommit(false);
-    	PreparedStatement ps1 = c1.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
-    	ps1.setInt(1, 100);
-    	ps1.setInt(2, 1);
-    	ps1.execute();
+        Connection c1 = methodWatcher.createConnection();
+        c1.setAutoCommit(false);
+        PreparedStatement ps1 = c1.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
+        ps1.setInt(1, 100);
+        ps1.setInt(2, 1);
+        ps1.execute();
 
+        Connection c2 = methodWatcher.createConnection();
+        c2.setAutoCommit(false);
+        PreparedStatement ps2 = c2.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
+        ps2.setInt(1, 1000);
+        ps2.setInt(2, 1);
+        ps2.execute();
 
-    	Connection c2 = methodWatcher.createConnection();
-    	c2.setAutoCommit(false);
-    	try { // catch problem with rollback
-    		try { // catch write-write conflict
-    			PreparedStatement ps2 = c2.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
-    			ps2.setInt(1, 1000);
-    			ps2.setInt(2, 1);
-    			ps2.execute();   				
-    			Assert.fail("Didn't raise write-conflict exception");
-    		} catch (Exception e) {
-    			c2.rollback();
-    		}
-    	} catch (Exception e) {
-    		Assert.fail("Unexpected exception " + e);
-    	}
+        c1.commit();
+        try { // catch problem with rollback
+            try { // catch write-write conflict
+                c2.commit();
+                Assert.fail("should not be able to commit since a conflicting transaction already committed!");
+            } catch (SQLException se) {
+                Assert.assertEquals("Incorrect error type: " + se.getMessage(),
+                                    ErrorState.CANNOT_ROLLBACK_CONFLICTING_TXN.getSqlState(), se.getSQLState());
+                c2.rollback();
+            }
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception " + e);
+        }
     }
     
 

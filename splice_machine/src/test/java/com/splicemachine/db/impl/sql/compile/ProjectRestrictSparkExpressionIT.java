@@ -769,8 +769,8 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "DATEs cannot be added. The operation is undefined.",
             "The 'EXTRACT DAY' function is not allowed on the 'DECIMAL' type.",
             "The resulting value is outside the range for the data type DECIMAL/NUMERIC(31,30).",
-            "Columns of type 'DATE' cannot hold values of type 'DECIMAL'. ",
-            "Columns of type 'DOUBLE' cannot hold values of type 'DATE'. ",
+            "Columns of type 'DATE' cannot hold values of type 'DECIMAL'.",
+            "Columns of type 'DOUBLE' cannot hold values of type 'DATE'.",
             "The resulting value is outside the range for the data type INTEGER."
         };
 
