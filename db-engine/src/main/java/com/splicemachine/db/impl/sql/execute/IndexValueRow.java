@@ -49,225 +49,225 @@ import java.util.BitSet;
 import java.util.List;
 
 /**
-	Mapper of ValueRow into ExecIndexRow. 
+    Mapper of ValueRow into ExecIndexRow.
 
  */
 public class IndexValueRow implements ExecIndexRow, Serializable {
 
-	private ExecRow valueRow;
+    private ExecRow valueRow;
 
-	public IndexValueRow(ExecRow valueRow) {
-		 this.valueRow = valueRow;
-	}
+    public IndexValueRow(ExecRow valueRow) {
+         this.valueRow = valueRow;
+    }
 
-	@Override
-	public int size() {
-		return valueRow.size();
-	}
+    @Override
+    public int size() {
+        return valueRow.size();
+    }
 
-	@Override
-	public int length() {
-		return valueRow.length();
-	}
+    @Override
+    public int length() {
+        return valueRow.length();
+    }
 
-	@Override
-	public StructType schema() {
-		return valueRow.schema();
-	}
+    @Override
+    public StructType schema() {
+        return valueRow.schema();
+    }
 
-	@Override
-	public Object apply(int i) {
-		return valueRow.apply(i);
-	}
+    @Override
+    public Object apply(int i) {
+        return valueRow.apply(i);
+    }
 
-	@Override
-	public Object get(int i) {
-		return valueRow.get(i);
-	}
+    @Override
+    public Object get(int i) {
+        return valueRow.get(i);
+    }
 
-	@Override
-	public boolean isNullAt(int i) {
-		return valueRow.isNullAt(i);
-	}
+    @Override
+    public boolean isNullAt(int i) {
+        return valueRow.isNullAt(i);
+    }
 
-	@Override
-	public boolean getBoolean(int i) {
-		return valueRow.getBoolean(i);
-	}
+    @Override
+    public boolean getBoolean(int i) {
+        return valueRow.getBoolean(i);
+    }
 
-	@Override
-	public byte getByte(int i) {
-		return valueRow.getByte(i);
-	}
+    @Override
+    public byte getByte(int i) {
+        return valueRow.getByte(i);
+    }
 
-	@Override
-	public short getShort(int i) {
-		return valueRow.getShort(i);
-	}
+    @Override
+    public short getShort(int i) {
+        return valueRow.getShort(i);
+    }
 
-	@Override
-	public int getInt(int i) {
-		return valueRow.getInt(i);
-	}
+    @Override
+    public int getInt(int i) {
+        return valueRow.getInt(i);
+    }
 
-	@Override
-	public long getLong(int i) {
-		return valueRow.getLong(i);
-	}
+    @Override
+    public long getLong(int i) {
+        return valueRow.getLong(i);
+    }
 
-	@Override
-	public float getFloat(int i) {
-		return valueRow.getFloat(i);
-	}
+    @Override
+    public float getFloat(int i) {
+        return valueRow.getFloat(i);
+    }
 
-	@Override
-	public double getDouble(int i) {
-		return valueRow.getDouble(i);
-	}
+    @Override
+    public double getDouble(int i) {
+        return valueRow.getDouble(i);
+    }
 
-	@Override
-	public String getString(int i) {
-		return valueRow.getString(i);
-	}
+    @Override
+    public String getString(int i) {
+        return valueRow.getString(i);
+    }
 
-	@Override
-	public BigDecimal getDecimal(int i) {
-		return valueRow.getDecimal(i);
-	}
+    @Override
+    public BigDecimal getDecimal(int i) {
+        return valueRow.getDecimal(i);
+    }
 
-	@Override
-	public Date getDate(int i) {
-		return valueRow.getDate(i);
-	}
+    @Override
+    public Date getDate(int i) {
+        return valueRow.getDate(i);
+    }
 
-	@Override
-	public Timestamp getTimestamp(int i) {
-		return valueRow.getTimestamp(i);
-	}
+    @Override
+    public Timestamp getTimestamp(int i) {
+        return valueRow.getTimestamp(i);
+    }
 
-	@Override
-	public <T> Seq<T> getSeq(int i) {
-		return valueRow.getSeq(i);
-	}
+    @Override
+    public <T> Seq<T> getSeq(int i) {
+        return valueRow.getSeq(i);
+    }
 
-	@Override
-	public <T> List<T> getList(int i) {
-		return valueRow.getList(i);
-	}
+    @Override
+    public <T> List<T> getList(int i) {
+        return valueRow.getList(i);
+    }
 
-	@Override
-	public <K, V> Map<K, V> getMap(int i) {
-		return valueRow.getMap(i);
-	}
+    @Override
+    public <K, V> Map<K, V> getMap(int i) {
+        return valueRow.getMap(i);
+    }
 
-	@Override
-	public <K, V> java.util.Map<K, V> getJavaMap(int i) {
-		return valueRow.getJavaMap(i);
-	}
+    @Override
+    public <K, V> java.util.Map<K, V> getJavaMap(int i) {
+        return valueRow.getJavaMap(i);
+    }
 
-	@Override
-	public Row getStruct(int i) {
-		return valueRow.getStruct(i);
-	}
+    @Override
+    public Row getStruct(int i) {
+        return valueRow.getStruct(i);
+    }
 
-	@Override
-	public <T> T getAs(int i) {
-		return valueRow.getAs(i);
-	}
+    @Override
+    public <T> T getAs(int i) {
+        return valueRow.getAs(i);
+    }
 
-	@Override
-	public <T> T getAs(String s) {
-		return valueRow.getAs(s);
-	}
+    @Override
+    public <T> T getAs(String s) {
+        return valueRow.getAs(s);
+    }
 
-	@Override
-	public int fieldIndex(String s) {
-		return valueRow.fieldIndex(s);
-	}
+    @Override
+    public int fieldIndex(String s) {
+        return valueRow.fieldIndex(s);
+    }
 
-	@Override
-	public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
-		return valueRow.getValuesMap(seq);
-	}
+    @Override
+    public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
+        return valueRow.getValuesMap(seq);
+    }
 
-	/*
+    /*
          * class interface
          */
-	public String toString() {
-		return valueRow.toSimpleString();
-	}
+    public String toString() {
+        return valueRow.toSimpleString();
+    }
 
-	@Override
-	public Row copy() {
-		return null;
-	}
+    @Override
+    public Row copy() {
+        return null;
+    }
 
-	@Override
-	public boolean anyNull() {
-		return false;
-	}
+    @Override
+    public boolean anyNull() {
+        return false;
+    }
 
 
-	/**
-		Get the array form of the row that Access expects.
+    /**
+        Get the array form of the row that Access expects.
 
-		@see ExecRow#getRowArray
-	*/
-	public DataValueDescriptor[] getRowArray() {
-		return valueRow.getRowArray();
-	}
+        @see ExecRow#getRowArray
+    */
+    public DataValueDescriptor[] getRowArray() {
+        return valueRow.getRowArray();
+    }
 
-	/**	@see ExecRow#getRowArray */
-	public void setRowArray(DataValueDescriptor[] value) 
-	{
-		valueRow.setRowArray(value);
-	}
+    /**	@see ExecRow#getRowArray */
+    public void setRowArray(DataValueDescriptor[] value)
+    {
+        valueRow.setRowArray(value);
+    }
 
-	/**
-		Get a clone of the array form of the row that Access expects.
+    /**
+        Get a clone of the array form of the row that Access expects.
 
-		@see ExecRow#getRowArray
-	*/
-	public DataValueDescriptor[] getRowArrayClone() 
-	{
-		return valueRow.getRowArrayClone();
-	}
+        @see ExecRow#getRowArray
+    */
+    public DataValueDescriptor[] getRowArrayClone()
+    {
+        return valueRow.getRowArrayClone();
+    }
 
-	// this is the actual current # of columns
-	public int nColumns() {
-		return valueRow.nColumns();
-	}
+    // this is the actual current # of columns
+    public int nColumns() {
+        return valueRow.nColumns();
+    }
 
-	/*
-	 * Row interface
-	 */
-	// position is 1-based
-	public DataValueDescriptor	getColumn (int position) throws StandardException {
-		return valueRow.getColumn(position);
-	}
+    /*
+     * Row interface
+     */
+    // position is 1-based
+    public DataValueDescriptor	getColumn (int position) throws StandardException {
+        return valueRow.getColumn(position);
+    }
 
-	// position is 1-based.
-	public void setColumn(int position, DataValueDescriptor col) {
-		valueRow.setColumn(position, col);
-	}
+    // position is 1-based.
+    public void setColumn(int position, DataValueDescriptor col) {
+        valueRow.setColumn(position, col);
+    }
 
-	// position is 1-based.
-	public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
-		valueRow.setColumnValue(position, col);
-	}
+    // position is 1-based.
+    public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
+        valueRow.setColumnValue(position, col);
+    }
 
-	// position is 1-based
-	public ExecRow getClone() {
-		return new IndexValueRow(valueRow.getClone());
-	}
+    // position is 1-based
+    public ExecRow getClone() {
+        return new IndexValueRow(valueRow.getClone());
+    }
 
-	public ExecRow getClone(FormatableBitSet clonedCols) {
-		return new IndexValueRow(valueRow.getClone(clonedCols));
-	}
+    public ExecRow getClone(FormatableBitSet clonedCols) {
+        return new IndexValueRow(valueRow.getClone(clonedCols));
+    }
 
-	public ExecRow getNewNullRow() {
-		return new IndexValueRow(valueRow.getNewNullRow());
-	}
+    public ExecRow getNewNullRow() {
+        return new IndexValueRow(valueRow.getNewNullRow());
+    }
 
     /**
      * Reset all columns in the row array to null values.
@@ -276,79 +276,78 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
         valueRow.resetRowArray();
     }
 
-	// position is 1-based
-	public DataValueDescriptor cloneColumn(int columnPosition)
-	{
-		return valueRow.cloneColumn(columnPosition);
-	}
+    // position is 1-based
+    public DataValueDescriptor cloneColumn(int columnPosition)
+    {
+        return valueRow.cloneColumn(columnPosition);
+    }
 
-	/*
-	 * ExecIndexRow interface
-	 */
+    /*
+     * ExecIndexRow interface
+     */
 
-	public void orderedNulls(int columnPosition) {
-		if (SanityManager.DEBUG) {
-			SanityManager.THROWASSERT("Not expected to be called");
-		}
-	}
+    public void orderedNulls(int columnPosition) {
+        if (SanityManager.DEBUG) {
+            SanityManager.THROWASSERT("Not expected to be called");
+        }
+    }
 
-	public boolean areNullsOrdered(int columnPosition) {
-		if (SanityManager.DEBUG) {
-			SanityManager.THROWASSERT("Not expected to be called");
-		}
+    public boolean areNullsOrdered(int columnPosition) {
+        if (SanityManager.DEBUG) {
+            SanityManager.THROWASSERT("Not expected to be called");
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Turn the ExecRow into an ExecIndexRow.
-	 */
-	public void execRowToExecIndexRow(ExecRow valueRow)
-	{
-		this.valueRow = valueRow;
-	}
+    /**
+     * Turn the ExecRow into an ExecIndexRow.
+     */
+    public void execRowToExecIndexRow(ExecRow valueRow)
+    {
+        this.valueRow = valueRow;
+    }
 
-	public void getNewObjectArray() 
-	{
-		valueRow.getNewObjectArray();
-	}
+    public void getNewObjectArray()
+    {
+        valueRow.getNewObjectArray();
+    }
 
     @Override
     public int hashCode() {
-	    Object row = valueRow;
-        return row.hashCode();
+        return valueRow.hashCode();
     }
 
-	@Override
-	public Seq<Object> toSeq() {
-		return null;
-	}
+    @Override
+    public Seq<Object> toSeq() {
+        return null;
+    }
 
-	@Override
-	public String mkString() {
-		return null;
-	}
+    @Override
+    public String mkString() {
+        return null;
+    }
 
-	@Override
-	public String mkString(String s) {
-		return null;
-	}
+    @Override
+    public String mkString(String s) {
+        return null;
+    }
 
-	@Override
-	public String mkString(String s, String s1, String s2) {
-		return null;
-	}
+    @Override
+    public String mkString(String s, String s1, String s2) {
+        return null;
+    }
 
-	@Override
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         IndexValueRow that = (IndexValueRow) o;
 
-		return valueRow != null ? valueRow.equals(that.valueRow) : that.valueRow == null;
+        return valueRow != null ? valueRow.equals(that.valueRow) : that.valueRow == null;
 
-	}
+    }
     @Override
     public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
         ValueRow key = new ValueRow(keyColumns.length);
@@ -381,52 +380,62 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
         return valueRow.compareTo(compareKeys,row);
     }
 
-	@Override
-	public StructType createStructType(int[] baseColumnMap) {
-		return valueRow.createStructType(baseColumnMap);
-	}
+    @Override
+    public StructType createStructType(int[] baseColumnMap) {
+        return valueRow.createStructType(baseColumnMap);
+    }
 
-	@Override
-	public Row getSparkRow() {
-		return valueRow.getSparkRow();
-	}
+    @Override
+    public Row getSparkRow() {
+        return valueRow.getSparkRow();
+    }
 
-	@Override
-	public ExecRow fromSparkRow(Row row) {
-		return valueRow.fromSparkRow(row);
-	}
+    @Override
+    public ExecRow fromSparkRow(Row row) {
+        return valueRow.fromSparkRow(row);
+    }
 
-	public int compareTo(ExecRow o) {
-		return valueRow.compareTo(o);
-	}
+    public int compareTo(ExecRow o) {
+        return valueRow.compareTo(o);
+    }
 
-	@Override
-	public int compare(ExecRow o1, ExecRow o2) {
-		return o1.compareTo(o2);
-	}
+    @Override
+    public int compare(ExecRow o1, ExecRow o2) {
+        return o1.compareTo(o2);
+    }
 
-	@Override
-	public long getRowSize() throws StandardException {
-		return valueRow.getRowSize();
-	}
+    @Override
+    public long getRowSize() throws StandardException {
+        return valueRow.getRowSize();
+    }
 
-	@Override
-	public long getRowSize(BitSet validColumns) throws StandardException {
-		return valueRow.getRowSize(validColumns);
-	}
+    @Override
+    public long getRowSize(BitSet validColumns) throws StandardException {
+        return valueRow.getRowSize(validColumns);
+    }
 
-	@Override
-	public byte[] getKey() {
-		return valueRow.getKey();
-	}
+    @Override
+    public byte[] getKey() {
+        return valueRow.getKey();
+    }
 
-	@Override
-	public void setKey(byte[] key) {
-		valueRow.setKey(key);
-	}
+    @Override
+    public void setKey(byte[] key) {
+        valueRow.setKey(key);
+    }
 
-	@Override
-	public void transfer(ExecRow execRow) throws StandardException {
-		valueRow.transfer(execRow);
-	}
+    @Override
+    public void transfer(ExecRow execRow) throws StandardException {
+        valueRow.transfer(execRow);
+    }
+
+    @Override
+    public DataValueDescriptor[] getBaseRowCols() {
+        return valueRow.getBaseRowCols();
+    }
+
+    @Override
+    public void setBaseRowCols(DataValueDescriptor[] cols) {
+        valueRow.setBaseRowCols(cols);
+    }
 }

@@ -63,6 +63,18 @@ public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
 
+    public static void GET_REPLICATION_PROGRESS(ResultSet[] resultSets) throws StandardException, SQLException {
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        long ts = replicationManager.getReplicationProgress();
+        if (ts > 0) {
+            DateTime dateTime = new DateTime(ts);
+            resultSets[0] = ProcedureUtils.generateResult("Replication progress", dateTime.toString());
+        }
+        else {
+            resultSets[0] = ProcedureUtils.generateResult("Error", "Information not available");
+        }
+    }
+
     public static void REPLICATION_ENABLED(String schemaName, String tableName, ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             schemaName = EngineUtils.validateSchema(schemaName);

@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -185,7 +188,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long fileCount(){
+        public long recursiveFileCount(){
             if(!isDirectory()) return 0l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -208,7 +211,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long size(){
+        public long recursiveSize(){
             try{
                 return Files.size(p);
             }catch(IOException e){
@@ -232,7 +235,7 @@ public class TestingFileSystem extends DistributedFileSystem{
 
         @Override
         public String getGroup(){
-            throw new UnsupportedOperationException("IMPLEMENT");
+            return "memGroup";
         }
 
         @Override
@@ -244,8 +247,8 @@ public class TestingFileSystem extends DistributedFileSystem{
         public String toSummary() {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(this.fileCount());
-            sb.append("\nSize = ").append(size());
+            sb.append("\nFile Count = ").append(this.recursiveFileCount());
+            sb.append("\nSize = ").append(recursiveSize());
             return sb.toString();
         }
 
@@ -255,8 +258,37 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listRecursive(){
+        public FileInfo[] listFilesRecursive(){
             throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public FileInfo[] listDir(){
+            try {
+                return Files.list(p).map( path -> new PathInfo(path) ).toArray(PathInfo[]::new);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        public String getPermissionStr() {
+            try {
+                Set<PosixFilePermission> s = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+                return PosixFilePermissions.toString(s);
+            } catch (IOException e) {
+                return "err";
+            }
+        }
+
+        @Override
+        public long getModificationTime() {
+            return p.toFile().lastModified();
+        }
+        @Override
+        public long size(){
+            return recursiveSize();
         }
 
     }

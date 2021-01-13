@@ -12,12 +12,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
@@ -34,17 +32,20 @@ import java.util.*;
     public class StreamFileFunction extends AbstractFileFunction<InputStream> {
     private String charset;
     private boolean quotedEmptyIsNull;
+    private boolean preserveLineEndings;
 
     public StreamFileFunction() {
         super();
     }
-    public StreamFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                        String dateTimeFormat, String timestampFormat, String charset, OperationContext operationContext, boolean quotedEmptyIsNull) {
+    public StreamFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex,
+                              String timeFormat, String dateTimeFormat, String timestampFormat, String charset,
+                              OperationContext operationContext, boolean quotedEmptyIsNull, boolean preserveLineEndings) {
         super(characterDelimiter,columnDelimiter,execRow,columnIndex,timeFormat,
                 dateTimeFormat,timestampFormat,operationContext);
         assert charset != null;
         this.charset = charset;
         this.quotedEmptyIsNull = quotedEmptyIsNull;
+        this.preserveLineEndings = preserveLineEndings;
     }
 
     @Override
@@ -52,6 +53,7 @@ import java.util.*;
         super.writeExternal(out);
         out.writeUTF(charset);
         out.writeBoolean(quotedEmptyIsNull);
+        out.writeBoolean(preserveLineEndings);
     }
 
     @Override
@@ -59,6 +61,7 @@ import java.util.*;
         super.readExternal(in);
         charset = in.readUTF();
         quotedEmptyIsNull = in.readBoolean();
+        preserveLineEndings = in.readBoolean();
     }
 
     @Override
@@ -66,6 +69,9 @@ import java.util.*;
         if (operationContext.isFailed())
             return Collections.<ExecRow>emptyList().iterator();
         checkPreference();
+
+        CsvParserConfig config = new CsvParserConfig(preference).oneLineRecord(false)
+                .quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);
 
         return new Iterator<ExecRow>() {
                     private ExecRow nextRow;
@@ -80,12 +86,12 @@ import java.util.*;
                                 return hasNext;
                             try {
                                 if (!initialized) {
-                                    reader = new BufferedReader(new InputStreamReader(s,charset));
+                                    reader = new InputStreamReader(s,charset);
                                     List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
                                     for(DataValueDescriptor dvd : execRow.getRowArray()) {
                                         valueSizeHints.add(dvd.estimateMemoryUsage());
                                     }
-                                    spliceCsvReader = new SpliceCsvReader(reader, preference, quotedEmptyIsNull,
+                                    spliceCsvReader = new SpliceCsvReader(reader, config,
                                             EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(),valueSizeHints);
                                     initialized = true;
                                 }

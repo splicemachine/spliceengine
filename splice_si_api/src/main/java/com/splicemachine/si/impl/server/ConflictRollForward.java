@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.txn.Txn;
@@ -75,7 +76,7 @@ public class ConflictRollForward {
             DataPut put = opFactory.newPut(bs);
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version(), Bytes.toBytes(txn.getEffectiveCommitTimestamp()));
             put.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-            put.skipWAL();
+            put.setDurability(Durability.NONE);
             mutations.add(put);
         } else {
             DataDelete delete = opFactory.newDelete(bs);
@@ -85,7 +86,7 @@ public class ConflictRollForward {
             delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES, cell.version());
             delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version());
             delete.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-            delete.skipWAL();
+            delete.setDurability(Durability.NONE);
             mutations.add(delete);
         }
     }

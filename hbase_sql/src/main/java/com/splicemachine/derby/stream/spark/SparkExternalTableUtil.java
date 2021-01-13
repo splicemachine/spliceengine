@@ -26,7 +26,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.spark.splicemachine.PartitionSpec;
 import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
 import com.splicemachine.system.CsvOptions;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -198,18 +197,20 @@ public class SparkExternalTableUtil {
     public static String getSuggestedSchema(StructType externalSchema, FileInfo fileInfo) {
         StructType partition_schema = null;
         if( fileInfo != null ) {
-            FileInfo[] fileInfos = fileInfo.listRecursive();
+            FileInfo[] fileInfos = fileInfo.listFilesRecursive();
             List<Path> files = Arrays.stream(fileInfos).map(s -> new Path(s.fullPath())).collect(toList());
             Set<Path> basePaths = Collections.singleton(new Path(fileInfo.fullPath()));
             PartitionSpec partitionSpec = parsePartitionsFromFiles(files, true, basePaths,
                     null, null);
             partition_schema = partitionSpec.partitionColumns();
         }
-        String res = ExternalTableUtils.getSuggestedSchema(externalSchema, partition_schema);
+        StringBuilder sb = new StringBuilder();
+        ExternalTableUtils.getSuggestedSchema(sb, externalSchema, partition_schema, "");
+        sb.append( ";" );
         if( fileInfo == null ) {
-            res = res + " (note: could not check path, so no PARTITIONED BY information available)";
+            sb.append(" (note: could not check path, so no PARTITIONED BY information available)");
         }
-        return res;
+        return sb.toString();
     }
 
     static String getSuggestedSchema(StructType externalSchema, String location) {

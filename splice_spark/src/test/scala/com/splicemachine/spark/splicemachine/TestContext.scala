@@ -155,12 +155,6 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   val externalJDBCOptions = new JDBCOptions(externalOptions)
 
-  val conf = new SparkConf().
-    setMaster("local[*]").
-    setAppName("test").
-    set("spark.ui.enabled", "false").
-    set("spark.app.id", appID)
-
   val testRow = List(false, "abcde", java.sql.Date.valueOf("2014-03-11"),
     new BigDecimal(4.44, new java.math.MathContext(15)).setScale(2),
     5.5, 0, 0L, 8.8f, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
@@ -172,6 +166,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   override def beforeAll() {
     spark = SpliceSpark.getSessionUnsafe
     sqlContext = spark.sqlContext
+    ThisVersionSpecificItems.beforeAll(spark)
     spark.conf.set("spark.master", "local[*]")
     spark.conf.set("spark.app.name", "test")
     spark.conf.set("spark.ui.enabled", "false")
