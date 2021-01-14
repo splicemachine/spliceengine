@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.store.raw.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -200,5 +201,27 @@ public abstract class BaseSpliceTransaction<T extends BaseTransaction> implement
 
     public boolean isRestoreMode() {
         return transaction.isRestoreMode();
+    }
+
+    /**
+	 * Push a transaction to the transaction stack.
+	 * It is expected that this is not a user transaction (savepoint),
+	 * but a transaction generated internally for execution
+	 * of nested operations in an operation tree.
+	 */
+    public void pushInternalTransaction(Txn txn) throws StandardException {
+        transaction.pushInternalTransaction(txn);
+    }
+
+    /**
+	 * Pop the last transaction pushed to the transaction stack.
+	 * It is expected that this is called in a code path where no
+	 * user transactions could possibly have been created in between the
+	 * last call to pushInternalTransaction and the call to
+	 * popInternalTransaction (in other words, this is for use in
+	 * query execution code only, and not parser code).
+	 */
+    public void popInternalTransaction() throws StandardException {
+        transaction.popInternalTransaction();
     }
 }
