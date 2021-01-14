@@ -105,6 +105,17 @@ public class UpdateOperationIT {
                 .withRows(rows(row(8, 1000, "GGG"), row(10, 1000, "III")))
                 .create();
 
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE T (" +
+                            "ID CHAR(36) NOT NULL " +
+                            ",TABLE_PK1 CHAR(36) NOT NULL " +
+                            ",TS_COL TIMESTAMP NOT NULL default " +
+                            ",COL4 CHAR(1) NOT NULL DEFAULT '', " +
+                            "a int, primary key(a))")
+                .withIndex("create index t_idx on T(COL4, TABLE_PK1)")
+                .withIndex("create index uni_idx on T(TABLE_PK1,TS_COL)")
+                .create();
+
         try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
             cs.setString(1,SCHEMA);
             cs.execute();
@@ -721,4 +732,62 @@ public class UpdateOperationIT {
                 SpliceUnitTest.getExplainMessage(1,"explain update updateoperationit.alias1 set (a1) = (select a2 from updateoperationit.alias2 y)",methodWatcher).contains("Update"));
     }
 
+    @Test
+    public void testUpdateDoesntCorruptIndex() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+
+        try (Statement s = conn.createStatement()) {
+            String sql = "INSERT INTO T VALUES ('id', 'pk', '1970-01-01 14:52:56.296', '0', 1)";
+            s.executeUpdate(sql);
+
+            /* update Q1 -- simple update*/
+            sql = "UPDATE T SET COL4 = 'X'";
+            int n = s.executeUpdate(sql);
+            Assert.assertEquals("Incorrect number of rows updated", 1, n);
+
+            String expected =
+            "TS_COL          |\n" +
+            "-------------------------\n" +
+            "1970-01-01 14:52:56.296 |";
+
+            try (ResultSet rs = methodWatcher.executeQuery("select TS_COL from T --splice-properties index=uni_idx")) {
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+
+            sql = "DELETE FROM T";
+            s.executeUpdate(sql);
+
+            expected =  "1 |\n" +
+                        "----\n" +
+                        " 0 |";
+            try (ResultSet rs = methodWatcher.executeQuery("select count(*) from T --splice-properties index=uni_idx")) {
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+            try (ResultSet rs = methodWatcher.executeQuery("select count(*) from T --splice-properties index=t_idx")) {
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+
+        } finally {
+            // roll back the update
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
+        }
+    }
+
+    @Test
+    public void testUpdatePrimaryKeyAfterDropAddColumn() throws Exception {
+        methodWatcher.execute("drop table if exists DB_9929");
+        methodWatcher.execute("create table DB_9929(K integer primary key, v integer)");
+        methodWatcher.execute("alter table DB_9929 DROP COLUMN V");
+        methodWatcher.execute("alter table DB_9929 ADD COLUMN V INTEGER");
+        methodWatcher.execute("insert into DB_9929 values (1, 42)");
+        methodWatcher.execute("update DB_9929 SET K = 18");
+        try (ResultSet rs = methodWatcher.executeQuery("select * from DB_9929")) {
+            rs.next();
+            Assert.assertEquals(18, rs.getInt(1));
+            Assert.assertEquals(42, rs.getInt(2));
+        }
+    }
 }

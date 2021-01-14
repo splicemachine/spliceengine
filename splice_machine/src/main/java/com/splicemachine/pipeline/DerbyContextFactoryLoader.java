@@ -106,39 +106,27 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
     @Override
     public void load(TxnView txn) throws IOException, InterruptedException{
-        SpliceTransactionResourceImpl transactionResource;
-        try{
-            transactionResource=new SpliceTransactionResourceImpl();
-            boolean prepared=false;
-            try{
-                prepared=transactionResource.marshallTransaction(txn);
+        try (SpliceTransactionResourceImpl transactionResource=new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
 
-                DataDictionary dataDictionary=transactionResource.getLcc().getDataDictionary();
-                ConglomerateDescriptor conglomerateDescriptor=dataDictionary.getConglomerateDescriptor(conglomId);
+            DataDictionary dataDictionary=transactionResource.getLcc().getDataDictionary();
+            ConglomerateDescriptor conglomerateDescriptor=dataDictionary.getConglomerateDescriptor(conglomId);
 
-                if(conglomerateDescriptor!=null){
-                    dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
-                    //Hbase scan
-                    TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+            if(conglomerateDescriptor!=null){
+                dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+                //Hbase scan
+                TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
-                    if(td!=null){
-                        startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
-                    }
+                if(td!=null){
+                    startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
                 }
-            }catch(SQLException e){
-                SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
-                        "off so that other writes can try again",e);
-                throw new IndexNotSetUpException(e);
-            }catch(StandardException|IOException e){
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+conglomId+", aborting",e);
-            }finally{
-                if(prepared)
-                    transactionResource.close();
             }
-        }catch(SQLException e) {
-            SpliceLogUtils.error(LOG, "Unable to acquire a database connection, aborting write, but backing" +
-                    "off so that other writes can try again", e);
+        }catch(SQLException e){
+            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
+                    "off so that other writes can try again",e);
             throw new IndexNotSetUpException(e);
+        }catch(StandardException|IOException e){
+            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+conglomId+", aborting",e);
         }
     }
 
@@ -216,11 +204,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     }
 
     private boolean indexSharedByConstraint(DDLMessage.DDLChange ddlChange, TxnView txn, long indexConglomId) {
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
-        try {
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
             DataDictionary dd =transactionResource.getLcc().getDataDictionary();
             UUID tableId = ProtoUtil.getDerbyUUID(ddlChange.getDropIndex().getTableUUID());
             TableDescriptor td = dd.getTableDescriptor(tableId);
@@ -235,9 +220,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             return count > 1;
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (prepared)
-                transactionResource.close();
         }
     }
     /* ****************************************************************************************************************/
@@ -277,15 +259,15 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             switch(cDescriptor.getConstraintType()){
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     constraintFactories.add(buildPrimaryKey(cDescriptor,osf,pef));
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor);
+                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, lcc);
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor,osf,pef);
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor);
+                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, lcc);
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     ForeignKeyConstraintDescriptor fkConstraintDescriptor=(ForeignKeyConstraintDescriptor)cDescriptor;
-                    fkGroup.buildForeignKeyInterceptWriteFactory(dataDictionary,fkConstraintDescriptor);
+                    fkGroup.buildForeignKeyInterceptWriteFactory(dataDictionary,fkConstraintDescriptor, conglomId, td, lcc);
                     break;
                 default:
                     LOG.warn("Unknown Constraint on table "+conglomId+": type = "+cDescriptor.getConstraintType());

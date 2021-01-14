@@ -39,8 +39,11 @@ public class ImportNullityIT{
 
     private final TableRule withDefault = new TableRule(conn,"T","(a varchar(10),b varchar(10),c varchar(20) NOT NULL default 'nullDefault')");
 
+    private final TableRule tableA = new TableRule(conn,"A","(c1 int, c2 timestamp)");
+
     @Rule public final TestRule rules =RuleChain.outerRule(conn)
-            .around(withDefault);
+            .around(withDefault)
+            .around(tableA);
 
     private static File BADDIR;
     @BeforeClass
@@ -97,6 +100,35 @@ public class ImportNullityIT{
                 Assert.assertEquals("Incorrect number of rows imported!",expectedRowCount,count);
                 Assert.assertEquals("Incorrect null count for column a!",expectedNullCount,nullCounts[0]);
                 Assert.assertEquals("Incorrect null count for column b!",expectedNullCount,nullCounts[1]);
+            }
+        }
+    }
+
+    @Test
+    public void testQuotedEmptyIsNull() throws Exception {
+        String file =SpliceUnitTest.getResourceDirectory()+"/import/quotedEmpty.csv";
+        try(Statement s = conn.createStatement()) {
+            s.execute(String.format("call SYSCS_UTIL.IMPORT_DATA(" +
+                            "'%s'," +  // schema name
+                            "'%s'," +  // table name
+                            "null," +  // insert column list
+                            "'%s'," +  // file path
+                            "','," +   // column delimiter
+                            "null," +  // character delimiter
+                            "null," +  // timestamp format
+                            "null," +  // date format
+                            "null," +  // time format
+                            "0," +    // max bad records
+                            "'%s'," +  // bad record dir
+                            "'true'," +  // has one line records
+                            "null)",   // char set
+                    SCHEMA_NAME, tableA, file,
+                    BADDIR.getCanonicalPath()));
+            int expectedRowCount = 1;
+            try(ResultSet rs = s.executeQuery("select count(*) from " + tableA)){
+                rs.next();
+                int count = rs.getInt(1);
+                Assert.assertEquals("Incorrect number of rows imported!",expectedRowCount,count);
             }
         }
     }

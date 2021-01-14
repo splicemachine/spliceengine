@@ -77,6 +77,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.StringUtils;
 import com.sun.security.jgss.GSSUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import org.ietf.jgss.GSSContext;
@@ -84,8 +85,6 @@ import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.Oid;
-
-import javax.security.auth.Subject;
 
 
 /**
@@ -96,6 +95,8 @@ import javax.security.auth.Subject;
 class DRDAConnThread extends Thread {
 
     private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
+
+    private static final Logger LOG = Logger.getLogger(DRDAConnThread.class);
 
     private static final Pattern PARSE_TIMESTAMP_PATTERN =
             Pattern.compile("[-.]");
@@ -288,9 +289,10 @@ class DRDAConnThread extends Thread {
      * @param logConnections
      **/
 
-    DRDAConnThread(Session session, NetworkServerControlImpl server,
-                          long timeSlice,
-                          boolean logConnections) {
+    DRDAConnThread(Session session,
+                   NetworkServerControlImpl server,
+                   long timeSlice,
+                   boolean logConnections) {
 
        super();
 
@@ -306,13 +308,18 @@ class DRDAConnThread extends Thread {
         initialize();
     }
 
+    private String getSessionName() {
+        return session == null ? "" : session.toString();
+    }
+
     /**
      * Main routine for thread, loops until the thread is closed
      * Gets a session, does work for the session
      */
     public void run() {
-        if (SanityManager.DEBUG)
-            trace("Starting new connection thread");
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Thread %s is starting new connection", getName()));
+        }
 
         Session prevSession;
         while(!closed())
@@ -368,6 +375,9 @@ class DRDAConnThread extends Thread {
                         ((DRDAProtocolException)e).isDisconnectException())
                 {
                      // client went away - this is O.K. here
+                    if(LOG.isDebugEnabled()) {
+                        LOG.debug("client went away");
+                    }
                     closeSession();
                 }
                 else
@@ -380,6 +390,10 @@ class DRDAConnThread extends Thread {
                 // TODO: Could make use of Throwable.addSuppressed here when
                 //       compiled as Java 7 (or newer).
                 try {
+                    if(LOG.isDebugEnabled()) {
+                        LOG.debug("encountered error", error);
+                    }
+                    error.printStackTrace(server.logWriter);
                     closeSession();
                 } catch (Throwable t) {
                     // One last attempt...
@@ -395,8 +409,9 @@ class DRDAConnThread extends Thread {
                 }
             }
         }
-        if (SanityManager.DEBUG)
-            trace("Ending connection thread");
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Ending connection thread %s", getName()));
+        }
         server.removeThread(this);
 
     }
@@ -774,9 +789,7 @@ class DRDAConnThread extends Thread {
                 try {
                     stmt.rsClose();
                 } catch (SQLException ec) {
-                    if (SanityManager.DEBUG) {
-                        trace("Warning: Error closing result set");
-                    }
+                    trace("Warning: Error closing result set, error message: " + ec.getMessage());
                 }
                 writeABNUOWRM();
                 writeSQLCARD(sqle, CodePoint.SVRCOD_ERROR, 0, 0);
@@ -1188,6 +1201,9 @@ class DRDAConnThread extends Thread {
                     server.consoleExceptionPrint(sqle);
                     SanityManager.THROWASSERT("Unexpected exception after " +
                             "codePoint "+cpStr, sqle);
+                } catch (Exception e) {
+                    server.consoleExceptionPrint(e);
+                    throw e;
                 }
             }
 
@@ -1220,7 +1236,9 @@ class DRDAConnThread extends Thread {
     {
         if (reader.terminateChainOnErr() && (getExceptionSeverity(e) > CodePoint.SVRCOD_ERROR))
         {
-            if (SanityManager.DEBUG)  trace("terminating the chain on error...");
+            if(LOG.isDebugEnabled()) {
+                LOG.debug("terminating the chain on error...");
+            }
             skipRemainder(false);
         }
     }
@@ -4956,6 +4974,7 @@ class DRDAConnThread extends Thread {
                 break;
             }
             case DRDAConstants.DRDA_TYPE_NDECIMAL:
+            case DRDAConstants.DRDA_TYPE_NDECFLOAT:
             {
                 int precision = (paramLenNumBytes >> 8) & 0xff;
                 int scale = paramLenNumBytes & 0xff;
@@ -7503,6 +7522,9 @@ class DRDAConnThread extends Thread {
                                           precision, scale, rs.wasNull(),
                                           stmt, false);
                             break;
+                        //case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                        //    writeFdocaVal(i, rs.getObject(i), drdaType, precision, scale, rs.wasNull(), stmt, false);
+                        //    break;
                         default:
                             val = getObjectForWriteFdoca(rs, i, drdaType);
                             writeFdocaVal(i, val, drdaType,
@@ -7634,6 +7656,8 @@ class DRDAConnThread extends Thread {
                 return rs.getTimestamp(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NARRAY:
                 return rs.getArray(index);
+            case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                return rs.getBigDecimal(index);
             default:
                 return rs.getObject(index);
         }
@@ -8292,6 +8316,7 @@ class DRDAConnThread extends Thread {
                 case DRDAConstants.DRDA_TYPE_NVARMIX:
                 case DRDAConstants.DRDA_TYPE_NLONG:
                 case DRDAConstants.DRDA_TYPE_NLONGMIX:
+                case DRDAConstants.DB2_SQLTYPE_NDECFLOAT:
                     //WriteLDString and generate warning if truncated
                     // which will be picked up by checkWarning()
                     writer.writeLDString(val.toString(), index, stmt, isParam);
@@ -8683,6 +8708,10 @@ class DRDAConnThread extends Thread {
         if (session == null)
             return;
 
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("attempt to close session %s", getSessionName()));
+        }
+
         /* DERBY-2220: Rollback the current XA transaction if it is
            still associated with the connection. */
         if (xaProto != null)
@@ -8691,13 +8720,29 @@ class DRDAConnThread extends Thread {
         server.removeFromSessionTable(session.connNum);
         try {
             session.close();
-        } catch (SQLException se)
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("%s closed", getSessionName()));
+            }
+        }
+        catch (SQLException se)
         {
             // If something went wrong closing down the session.
             // Print an error to the console and close this
             //thread. (6013)
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("encountered exception while closing session %s", getSessionName()));
+            }
             sendUnexpectedException(se);
             close();
+        }
+        catch (Exception e)
+        {
+            // log the exception and rethrow.
+            if(LOG.isDebugEnabled()) {
+                LOG.debug(String.format("encountered exception while closing session %s", getSessionName()));
+            }
+            server.consoleExceptionPrintTrace(e);
+            throw e;
         }
         finally {
             session = null;
@@ -8719,6 +8764,7 @@ class DRDAConnThread extends Thread {
             if (e instanceof DRDAProtocolException) {
                 // protocol error - write error message
                 sendProtocolException((DRDAProtocolException) e);
+                server.consoleExceptionPrintTrace(e);
             } else {
                 // something unexpected happened
                 sendUnexpectedException(e);

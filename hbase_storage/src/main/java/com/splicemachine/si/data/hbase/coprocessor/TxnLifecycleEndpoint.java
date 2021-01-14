@@ -18,10 +18,12 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.concurrent.CountedReference;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -36,6 +38,7 @@ import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
@@ -51,6 +54,8 @@ import splice.com.google.common.primitives.Longs;
 import java.io.IOException;
 import java.util.List;
 
+import static com.splicemachine.si.impl.HOperationFactory.toHBaseDurability;
+
 /**
  * @author Scott Fines
  *         Date: 6/19/14
@@ -60,12 +65,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     private TxnLifecycleStore lifecycleStore;
     private volatile boolean isTxnTable=false;
 
-    public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<>(new Supplier<TransactionResolver>(){
-        @Override
-        public TransactionResolver get(){
-            return new TransactionResolver(SIDriver.driver().getTxnSupplier(),2,128);
-        }
-    }, new CountedReference.ShutdownAction<TransactionResolver>(){
+    public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<>(() -> new TransactionResolver(SIDriver.driver().getTxnSupplier(),2,128), new CountedReference.ShutdownAction<TransactionResolver>(){
         @Override
         public void shutdown(TransactionResolver instance){
             instance.shutdown();
@@ -80,6 +80,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
             SConfiguration configuration=siEnv.configuration();
             TableType table= EnvUtils.getTableType(configuration,rce);
+            Durability durability = toHBaseDurability(configuration.getDurability());
             if(table.equals(TableType.TRANSACTION_TABLE)){
                 TransactionResolver resolver=resolverRef.get();
                 SIDriver driver=siEnv.getSIDriver();
@@ -89,7 +90,8 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                         driver.getTxnSupplier(),
                         resolver,
                         txnKeepAliveTimeout,
-                        new SystemClock());
+                        new SystemClock(),
+                        durability);
                 TimestampSource timestampSource=driver.getTimestampSource();
                 int txnLockStrips = configuration.getTransactionLockStripes();
                 lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,

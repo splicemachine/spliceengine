@@ -40,10 +40,14 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
 import java.util.List;
+import java.util.Objects;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Export Node
@@ -54,7 +58,7 @@ import java.util.List;
  */
 public class ExportNode extends DMLStatementNode {
 
-    private static final int EXPECTED_ARGUMENT_COUNT = 6;
+    private static final int EXPECTED_ARGUMENT_COUNT = 10;
     public static final int DEFAULT_INT_VALUE = Integer.MIN_VALUE;
 
     private StatementNode node;
@@ -65,6 +69,10 @@ public class ExportNode extends DMLStatementNode {
     private String encoding;
     private String fieldSeparator;
     private String quoteCharacter;
+    private String quoteMode;
+    private String format;
+    private String floatingPointNotation;
+    private String timestampFormat;
 
     @Override
     int activationKind() {
@@ -90,6 +98,26 @@ public class ExportNode extends DMLStatementNode {
         this.encoding = stringValue(argsList.get(3));
         this.fieldSeparator = stringValue(argsList.get(4));
         this.quoteCharacter = stringValue(argsList.get(5));
+        this.quoteMode = stringValue(argsList.get(6));
+        this.format = stringValue(argsList.get(7));
+        this.floatingPointNotation = stringValue(argsList.get(8));
+        this.timestampFormat = stringValue(argsList.get(9));
+
+        if (isBlank(floatingPointNotation)) {
+            switch (getCompilerContext().getFloatingPointNotation()) {
+                case FloatingPointDataType.PLAIN:
+                    floatingPointNotation = "plain";
+                    break;
+                case FloatingPointDataType.NORMALIZED:
+                    floatingPointNotation = "normalized";
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (isBlank(timestampFormat)) {
+            timestampFormat = getCompilerContext().getTimestampFormat();
+        }
     }
 
     @Override
@@ -116,17 +144,21 @@ public class ExportNode extends DMLStatementNode {
         mb.push(encoding);
         mb.push(fieldSeparator);
         mb.push(quoteCharacter);
+        mb.push(quoteMode);
+        mb.push(format);
+        mb.push(floatingPointNotation);
+        mb.push(timestampFormat);
 
         /* Save result description of source node for use in export formatting. */
         mb.push(acb.addItem(node.makeResultDescription()));
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 10);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 14);
     }
 
     @Override
     public ResultDescription makeResultDescription() {
-        DataTypeDescriptor dtd1 = new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.LONGINT_NAME), true);
-        DataTypeDescriptor dtd2 = new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.LONGINT_NAME), true);
+        DataTypeDescriptor dtd1 = new DataTypeDescriptor(Objects.requireNonNull(TypeId.getBuiltInTypeId(TypeId.LONGINT_NAME)), true);
+        DataTypeDescriptor dtd2 = new DataTypeDescriptor(Objects.requireNonNull(TypeId.getBuiltInTypeId(TypeId.LONGINT_NAME)), true);
         ResultColumnDescriptor[] columnDescriptors = new GenericColumnDescriptor[2];
         columnDescriptors[0] = new GenericColumnDescriptor("Row Count", dtd1);
         columnDescriptors[1] = new GenericColumnDescriptor("Total Time (ms)", dtd2);
@@ -150,7 +182,7 @@ public class ExportNode extends DMLStatementNode {
 
     public static String stringValue(Object object) throws StandardException {
         // MethodBuilder can't handle null, so we use empty string when the user types NULL as argument
-        if (isNullConstant(object)) {
+        if (object == null || isNullConstant(object)) {
             return "";
         }
 
@@ -165,7 +197,7 @@ public class ExportNode extends DMLStatementNode {
     }
 
     private static int intValue(Object object) throws StandardException {
-        if (isNullConstant(object)) {
+        if (object == null || isNullConstant(object)) {
             return DEFAULT_INT_VALUE;
         }
 
@@ -175,19 +207,6 @@ public class ExportNode extends DMLStatementNode {
 
         throw newException(object);
     }
-
-    private static boolean booleanValue(Object object) throws StandardException {
-        if (isNullConstant(object)) {
-            return true;
-        }
-
-        if (object instanceof BooleanConstantNode) {
-            return ((BooleanConstantNode) object).isBooleanTrue();
-        }
-
-        throw newException(object);
-    }
-
 
     private static StandardException newException(Object object) {
         if (object instanceof ConstantNode) {

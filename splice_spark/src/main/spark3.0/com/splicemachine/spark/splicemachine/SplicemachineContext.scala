@@ -32,6 +32,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
 import com.splicemachine.access.HConfiguration
+import com.splicemachine.spark.splicemachine
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
@@ -70,9 +71,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
+  
+  // Check url validity, throws exception during instantiation if url is invalid
+  try {
+    if( url.isEmpty ) throw new Exception("JDBC Url is an empty string.")
+    JdbcUtils.createConnectionFactory(new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+    )))()
+  } catch {
+    case e: Exception => throw new Exception(
+      "Problem connecting to the DB. Verify that the input JDBC Url is correct."
+      + "\n"
+      + e.toString
+    )
+  }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
+
+  def columnNamesCaseSensitive(caseSensitive: Boolean): Unit =
+    splicemachine.columnNamesCaseSensitive(caseSensitive)
 
   private[this] def initConnection() = {
     Holder.log.info(f"Creating internal connection")
@@ -85,7 +104,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val dbProperties = new Properties
     dbProperties.put("useSpark", "true")
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
-    maker.createNew(dbProperties)
+    maker.createNew(
+      if( url.contains("/") ) {  // url = jdbc:splice://localhost:1527/splicedb;user=userid;password=pwd
+        val urlparts = url.split("/")
+        urlparts(0) + urlparts(urlparts.length - 1)  // jdbc:splice:splicedb;user=userid;password=pwd
+      } else
+        url ,
+      dbProperties
+    )
   }
 
   /**
@@ -119,64 +145,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     } else {
       Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
       initConnection()
-    }
-  }
-
-  /**
-    *
-    * Generate the schema string for create table.
-    *
-    * @param schema
-    * @param url
-    * @return
-    */
-  def schemaString(schema: StructType, url: String): String = {
-    val sb = new StringBuilder()
-    val dialect = JdbcDialects.get(url)
-    schema.fields foreach { field =>
-      val name = dialect.quoteIdentifier(field.name)
-      val typ: String = getJdbcType(field.dataType, dialect).databaseTypeDefinition
-      val nullable = if (field.nullable) "" else "NOT NULL"
-      sb.append(s", $name $typ $nullable")
-    }
-    if (sb.length < 2) "" else sb.substring(2)
-  }
-
-  /**
-    *
-    * Retrieve the JDBC type based on the Spark DataType and JDBC Dialect.
-    *
-    * @param dt
-    * @param dialect
-    * @return
-    */
-  private[this]def getJdbcType(dt: DataType, dialect: JdbcDialect): JdbcType = {
-    dialect.getJDBCType(dt).orElse(getCommonJDBCType(dt)).getOrElse(
-      throw new IllegalArgumentException(s"Can't get JDBC type for ${dt.simpleString}"))
-  }
-
-  /**
-    * Retrieve standard jdbc types.
-    *
-    * @param dt The datatype (e.g. [[org.apache.spark.sql.types.StringType]])
-    * @return The default JdbcType for this DataType
-    */
-  private[this] def getCommonJDBCType(dt: DataType) = {
-    dt match {
-      case IntegerType => Option(JdbcType("INTEGER", java.sql.Types.INTEGER))
-      case LongType => Option(JdbcType("BIGINT", java.sql.Types.BIGINT))
-      case DoubleType => Option(JdbcType("DOUBLE PRECISION", java.sql.Types.DOUBLE))
-      case FloatType => Option(JdbcType("REAL", java.sql.Types.FLOAT))
-      case ShortType => Option(JdbcType("INTEGER", java.sql.Types.SMALLINT))
-      case ByteType => Option(JdbcType("BYTE", java.sql.Types.TINYINT))
-      case BooleanType => Option(JdbcType("BIT(1)", java.sql.Types.BIT))
-      case StringType => Option(JdbcType("TEXT", java.sql.Types.CLOB))
-      case BinaryType => Option(JdbcType("BLOB", java.sql.Types.BLOB))
-      case TimestampType => Option(JdbcType("TIMESTAMP", java.sql.Types.TIMESTAMP))
-      case DateType => Option(JdbcType("DATE", java.sql.Types.DATE))
-      case t: DecimalType => Option(
-        JdbcType(s"DECIMAL(${t.precision},${t.scale})", java.sql.Types.DECIMAL))
-      case _ => None
     }
   }
 
@@ -262,7 +230,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       val primaryKeyString = if( keys.isEmpty ) {""}
       else {
-        ", PRIMARY KEY(" + keys.map(dialect.quoteIdentifier(_)).mkString(", ") + ")"
+        ", PRIMARY KEY(" + keys.map(quoteIdentifier(_)).mkString(", ") + ")"
       }
 
       val sql = s"CREATE TABLE $schemaTableName ($actSchemaString$primaryKeyString)"
@@ -580,6 +548,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Upsert data into the table (schema.table) from a DataFrame.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
+    * 
+    * If triggers fail when calling upsert, use the mergeInto function instead.
     *
     * @param dataFrame input data
     * @param schemaTableName output table
@@ -597,6 +567,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Upsert data into the table (schema.table) from an RDD.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
+    *
+    * If triggers fail when calling upsert, use the mergeInto function instead.
     *
     * @param rdd input data
     * @param schema
@@ -618,25 +590,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame rows to delete
     * @param schemaTableName table to delete from
     */
-  def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    val jdbcOptions = new JdbcOptionsInWrite(Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
-    if (keys.length == 0)
-      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
-    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
-      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText + whereClause + ")"
-    executeUpd(combinedText)
-  }
+  def delete(dataFrame: DataFrame, schemaTableName: String): Unit =
+    delete(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
   /**
     * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
@@ -646,21 +601,20 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName table to delete from
     */
   def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString( columnInfo(schemaTableName) , schema)
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
     val jdbcOptions = new JdbcOptionsInWrite(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
-    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+      "as SDVTI (" + tableSchemaStr + ") where "
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
@@ -672,28 +626,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame rows for update
     * @param schemaTableName table to update
     */
-  def update(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    val jdbcOptions = new JdbcOptionsInWrite(Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
-    if (keys.length == 0)
-      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
-    val prunedFields = dataFrame.schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
-    val columnList = SpliceJDBCUtil.listColumns(prunedFields)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = "update " + schemaTableName + " " +
-      "set (" + columnList + ") = (" +
-      "select " + columnList + " from " +
-      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText + whereClause + ")"
-    executeUpd(combinedText)
-  }
+  def update(dataFrame: DataFrame, schemaTableName: String): Unit =
+    update(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
   /**
     * Update data from a RDD for a specified schemaTableName (schema.table) and schema (StructType).  The keys are required for the update and any other
@@ -704,27 +638,103 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString( columnInfo(schemaTableName) , schema)
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
     val jdbcOptions = new JdbcOptionsInWrite(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
     val prunedFields = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
     val columnList = SpliceJDBCUtil.listColumns(prunedFields)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "update " + schemaTableName + " " +
       "set (" + columnList + ") = (" +
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+      "as SDVTI (" + tableSchemaStr + ") where "
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
+
+  def columnInfo(schemaTableName: String): Array[Seq[String]] =
+    SpliceJDBCUtil.retrieveColumnInfo(
+      new JdbcOptionsInWrite(Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    )
+
+  /**
+   * Rows in dataFrame whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in dataFrame whose primary key is in schemaTableName will be used to update the table.
+   *  
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param dataFrame
+   * @param schemaTableName
+   */
+  def mergeInto(dataFrame: DataFrame, schemaTableName: String): Unit =
+    mergeInto(dataFrame.rdd, dataFrame.schema, schemaTableName)
+
+  /** 
+   * Rows in rdd whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in rdd whose primary key is in schemaTableName will be used to update the table.
+   *
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param rdd
+   * @param schema
+   * @param schemaTableName
+   */
+  def mergeInto(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString( columnInfo(schemaTableName), schema )
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
+    
+    val jdbcOptions = new JdbcOptionsInWrite(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
+    if (keys.length == 0)
+      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform MergeInto")
+    
+    val insColumnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val selColumnList = s"SpliceRDDVTI.${SpliceJDBCUtil.listColumns(schema.fieldNames).replaceAll(",",",SpliceRDDVTI.")}"
+    val schemaStr = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val joinClause = keys.map( k => s"target.$k = SpliceRDDVTI.$k" ).mkString(" and ")  // " a.pk0 = b.pk0 and a.pk1 = b.pk1 and ..."
+    val insertText = "insert into " + schemaTableName + " (" + insColumnList + ") select " + selColumnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaStr + ") left join " + schemaTableName + " as target on " +
+      joinClause + " where target."+ keys(0) + " is null"
+    
+    val prunedFields = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
+    val updColumnList = SpliceJDBCUtil.listColumns(prunedFields)
+    val updateText = "update " + schemaTableName + " " +
+      "set (" + updColumnList + ") = (" +
+      "select " + updColumnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SDVTI (" + tableSchemaStr + ") where "
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
+    val combinedUpdText = updateText + whereClause + ")"
+    
+    executeUpd(combinedUpdText)   // update
+    executeUpd(insertText)        // insert
+  }
+  
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
@@ -795,8 +805,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     JDBCRDD.resolveTable(new JDBCOptions(newSpliceOptions))
   }
 
-  private[this]val dialect = new SplicemachineDialect
-  private[this]val dialectNoTime = new SplicemachineDialectNoTime
   private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
     val st = connection.prepareStatement(s"select * from ($sql) a where 1=0 ")
     try {

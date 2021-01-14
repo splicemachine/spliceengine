@@ -15,8 +15,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -44,17 +42,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
 		super.init(context);
 	}
-	
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-	}
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-	}
-	
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return (SpliceOperation)null;
@@ -119,5 +107,10 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
         propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
          */
 		computeModifiedRows();
+	}
+
+	@Override
+	public boolean isControlOnly() {
+		return true;
 	}
 }

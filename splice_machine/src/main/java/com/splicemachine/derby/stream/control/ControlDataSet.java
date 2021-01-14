@@ -548,14 +548,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
-     * Not Supported
-     *
-     * @param dsp
-     * @param partitionBy
-     * @param location
-     * @param context
-     * @return
+     * ControlDataSet.writeParquetFile is used in EXPORT_BINARY
      */
     @Override
     @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="DB-9846")
@@ -727,9 +720,11 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID,
+                        tableVersion, execRowDefinition, operationContext, loadReplaceMode);
                 dpw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext,
+                        updateCounts, loadReplaceMode);
             }
         };
     }
@@ -751,9 +746,10 @@ public class ControlDataSet<V> implements DataSet<V> {
                         tempConglomID,
                         txn,
                         token, operationContext,
-                        isUpsert);
+                        isUpsert, loadReplaceMode);
                 ipw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,updateCounts);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,
+                        updateCounts, loadReplaceMode);
             }
         }.operationContext(operationContext);
     }
@@ -771,7 +767,8 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,token,execRowDefinition,heapList,operationContext);
 
                 upw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext, updateCounts);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext,
+                        updateCounts, false);
             }
         };
     }

@@ -182,6 +182,22 @@ public class CrossJoinIT extends SpliceUnitTest {
                     try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + s1 + "(a1, b1, c1, d1, e1) values (?,?,?,?,?)")) {
                         ps.setInt(1, 1);ps.setString(2, "1");ps.setString(3, "2018-11-11");
                         ps.setString(4, "13:00:00");ps.setString(5, "2018-12-24 11:11:11");ps.execute();
+                        ps.setString(2, "0");
+                        ps.setString(3, "2061-11-11");
+                        ps.setString(4, "12:34:56");
+                        ps.setString(5, "2061-12-24 11:11:11");
+                        ps.setInt(1, 2);ps.execute();
+                        ps.setInt(1, 3);ps.execute();
+                        ps.setInt(1, 4);ps.execute();
+                        ps.setInt(1, 5);ps.execute();
+                        ps.setInt(1, 6);ps.execute();
+                        ps.setInt(1, 7);ps.execute();
+                        ps.setInt(1, 8);ps.execute();
+                        ps.setInt(1, 9);ps.execute();
+                        ps.setInt(1, 10);ps.execute();
+                        ps.setInt(1, 11);ps.execute();
+
+
                     } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -691,7 +707,7 @@ public class CrossJoinIT extends SpliceUnitTest {
     public void testCharTimestampColumnsCrossJoin() throws Exception {
         String sqlText =
                 format("select count(s1.a1) from  --splice-properties joinOrder=fixed\n" + s1 +
-                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=CROSS,useSpark=%s \n" +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=CROSS,useSpark=%s, useNativeSpark=false \n" +
                 " on s1.e1 = s2.e2" , useSpark
         ) ;
         ResultSet rs = classWatcher.executeQuery(sqlText);

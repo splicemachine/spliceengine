@@ -31,10 +31,10 @@ import splice.aws.com.amazonaws.services.s3.transfer.Transfer;
 import splice.aws.com.amazonaws.services.s3.transfer.TransferManager;
 import splice.aws.com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
 import splice.aws.com.amazonaws.services.s3.transfer.Upload;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
-import com.google.common.collect.AbstractSequentialIterator;
-import com.google.common.collect.Iterators;
+import splice.com.google.common.annotations.VisibleForTesting;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.collect.AbstractSequentialIterator;
+import splice.com.google.common.collect.Iterators;
 import io.airlift.log.Logger;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
@@ -47,11 +47,11 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 import static splice.aws.com.amazonaws.services.s3.Headers.UNENCRYPTED_CONTENT_LENGTH;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.base.Strings.nullToEmpty;
-import static com.google.common.collect.Iterables.toArray;
+import static splice.com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkState;
+import static splice.com.google.common.base.Strings.isNullOrEmpty;
+import static splice.com.google.common.base.Strings.nullToEmpty;
+import static splice.com.google.common.collect.Iterables.toArray;
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
@@ -201,7 +201,6 @@ public class PrestoS3FileSystem
         workingDirectory = path;
     }
 
-    @Override
     public FileStatus[] listStatus(Path path)
             throws IOException
     {
@@ -211,7 +210,17 @@ public class PrestoS3FileSystem
         while (iterator.hasNext()) {
             list.add(iterator.next());
         }
-        return toArray(list, LocatedFileStatus.class);
+        if( list.isEmpty() ) {
+            // Spark needs this so it can "list" single files, otherwise Spark.read().parquet("path/to/file.parquet") doesn't work
+            // The documnentation of FileSystem.listStatus only states behavior for directories, not for files:
+            // https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/fs/FileSystem.html#listStatus-org.apache.hadoop.fs.Path-
+            // so the behavior for files is not exactly specified. However S3AFileSystem does it also like this:
+            // [2] https://github.com/apache/hadoop/blob/trunk/hadoop-tools/hadoop-aws/src/main/java/org/apache/hadoop/fs/s3a/S3AFileSystem.java#L2595
+            FileStatus fs = getFileStatus(path);
+            return new FileStatus[]{fs};
+        }
+        else
+            return toArray(list, LocatedFileStatus.class);
     }
 
     @Override

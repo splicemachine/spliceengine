@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -166,7 +167,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (hashKeyColumns == null && skipKeyCheck) {
             // For full outer join, broadcast join is the default join strategy that can be applied
             // to any kinds of join predicate, so make the eligibility check more general
-            if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN &&
+            if ((outerCost.getJoinType() == JoinNode.FULLOUTERJOIN ||
+                 outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN) &&
                 (innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())) {
                 ap.setMissingHashKeyOK(true);
@@ -333,7 +335,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals, String tableVersion, boolean pin,
+            boolean genInListVals, String tableVersion,
             int splits,
             String delimited,
             String escaped,
@@ -341,7 +343,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             String storedAs,
             String location,
             int partitionRefItem
-            ) throws StandardException {
+    ) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
@@ -352,10 +354,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * 4) array of types of the in-list columns.
 		 */
         if (genInListVals) {
-            numArgs = 39;
+            numArgs = 38;
         }
         else {
-            numArgs = 35 ;
+            numArgs = 34 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -384,8 +386,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,
+                splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }
 
@@ -512,12 +514,14 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int[] conglomColumn = new int[hashKeyColumns.length];
         if (cd != null && cd.isIndex()) {
 			/*
-			** If the conglomerate is an index, get the column numbers of the
+			** If the conglomerate is a normal index, get the column numbers of the
 			** hash keys in the base heap.
 			*/
-            for (int index = 0; index < hashKeyColumns.length; index++) {
-                conglomColumn[index] =
-                        cd.getIndexDescriptor().baseColumnPositions()[hashKeyColumns[index]];
+            if (!cd.getIndexDescriptor().isOnExpression()) {
+                for (int index = 0; index < hashKeyColumns.length; index++) {
+                    conglomColumn[index] =
+                            cd.getIndexDescriptor().baseColumnPositions()[hashKeyColumns[index]];
+                }
             }
         }
         else {
@@ -533,10 +537,20 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
 		/* Put the equality predicates on the key columns for the hash first.
-		 * (Column # is columns[colCtr] from above.)
 		 */
-        for (int index = hashKeyColumns.length - 1; index >= 0; index--) {
-            nonStoreRestrictionList.putOptimizableEqualityPredicateFirst(innerTable, conglomColumn[index]);
+        if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
+            IndexRowGenerator irg = cd.getIndexDescriptor();
+            assert innerTable instanceof QueryTreeNode;
+            QueryTreeNode inner = (QueryTreeNode) innerTable;
+
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
+            for (int index = hashKeyColumns.length - 1; index >= 0; index--) {
+                nonStoreRestrictionList.putOptimizableEqualityPredicateFirst(innerTable, exprAsts[hashKeyColumns[index]]);
+            }
+        } else {
+            for (int index = hashKeyColumns.length - 1; index >= 0; index--) {
+                nonStoreRestrictionList.putOptimizableEqualityPredicateFirst(innerTable, conglomColumn[index]);
+            }
         }
     }
 
@@ -585,7 +599,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
         else if (cd.isIndex()) {
-            columns = cd.getIndexDescriptor().baseColumnPositions();
+            if (!cd.getIndexDescriptor().isOnExpression()) {
+                columns = cd.getIndexDescriptor().baseColumnPositions();
+            }
         }
         else {
             columns = new int[innerTable.getTableDescriptor().getNumberOfColumns()];
@@ -595,12 +611,24 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         // Build a Vector of all the hash key columns
-        int colCtr;
         Vector hashKeyVector = new Vector();
-        for (colCtr = 0; colCtr < columns.length; colCtr++) {
-            // Is there an equijoin condition on this column?
-            if (predList.hasOptimizableEquijoin(innerTable, columns[colCtr])) {
-                hashKeyVector.add(colCtr);
+        if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
+            IndexRowGenerator irg = cd.getIndexDescriptor();
+            assert innerTable instanceof QueryTreeNode;
+            QueryTreeNode inner = (QueryTreeNode) innerTable;
+
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
+            for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
+                if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx])) {
+                    hashKeyVector.add(colIdx);
+                }
+            }
+        } else {
+            for (int colCtr = 0; colCtr < columns.length; colCtr++) {
+                // Is there an equijoin condition on this column?
+                if (predList.hasOptimizableEquijoin(innerTable, columns[colCtr])) {
+                    hashKeyVector.add(colCtr);
+                }
             }
         }
 

@@ -25,6 +25,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
+import com.splicemachine.si.impl.txn.RolledBackTxn;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
@@ -127,6 +128,11 @@ public class SimpleTxnFilter implements TxnFilter{
 
     public TxnSupplier getTxnSupplier() {
         return transactionStore;
+    }
+
+    // Visible for testing
+    void setIgnoreTxnSupplier(IgnoreTxnSupplier ignoreTxnSupplier) {
+        this.ignoreTxnSupplier = ignoreTxnSupplier;
     }
 
     @Override
@@ -312,6 +318,13 @@ public class SimpleTxnFilter implements TxnFilter{
         long txnId = data.version();
         if (checkLocally(txnId) == null) {
             long commitTs = data.valueAsLong();
+
+            // If the txn has to be ignored, cache it as rolled back
+            if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(commitTs)) {
+                cacheLocally(new RolledBackTxn(txnId));
+                return;
+            }
+
             cacheLocally(new CommittedTxn(txnId, commitTs));
         }
     }

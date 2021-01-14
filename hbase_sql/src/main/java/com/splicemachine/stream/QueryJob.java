@@ -15,8 +15,12 @@
 package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -28,12 +32,18 @@ import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.sparksql.SparkSQLUtilsImpl;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.internal.SQLConf;
 
 import java.util.UUID;
 import java.util.concurrent.*;
+
+import static com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl.dropTable;
+import static java.lang.String.format;
 
 /**
  * @author Scott Fines
@@ -52,6 +62,22 @@ public class QueryJob implements Callable<Void>{
         this.queryRequest = queryRequest;
     }
 
+    public static void setSparkContextInLCC(SparkContext sparkContext,
+                                            LanguageConnectionContext lcc,
+                                            int applicationJarsHash) {
+        if (lcc == null)
+            return;
+
+        lcc.setSparkContext(sparkContext);
+        lcc.setApplicationJarsHashCode(applicationJarsHash);
+    }
+
+    public static LanguageConnectionContext getLCC() {
+        return (LanguageConnectionContext) ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+    }
+
+
+
     @Override
     public Void call() throws Exception {
         if(!status.markRunning()){
@@ -65,14 +91,25 @@ public class QueryJob implements Callable<Void>{
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
         String jobName = null;
+        Activation activation = null;
         boolean resetSession = false;
+        LanguageConnectionContext lcc = null;
+        int initialApplicationJarsHash = 0;
+
         try {
             if (queryRequest.shufflePartitions != null) {
                 SpliceSpark.getSession().conf().set(SQLConf.SHUFFLE_PARTITIONS().key(), queryRequest.shufflePartitions);
                 resetSession = true;
             }
             ah.reinitialize(null);
-            Activation activation = ah.getActivation();
+            activation = ah.getActivation();
+            lcc = activation.getLanguageConnectionContext();
+            JavaSparkContext jsc = SpliceSpark.getContext();
+            if (jsc != null) {
+                initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
+                setSparkContextInLCC(jsc.sc(), lcc, initialApplicationJarsHash);
+                lcc.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
+            }
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
@@ -89,7 +126,24 @@ public class QueryJob implements Callable<Void>{
             }
 
             dsp.setJobGroup(jobName, sql);
+            addUserJarsToSparkContext(activation, SpliceSpark.getContext());
             dataset = root.getDataSet(dsp);
+            if (lcc != null) {
+                int applicationJarsHash;
+                LanguageConnectionContext lccFromContext = getLCC();
+                if (lccFromContext != null) {
+                    applicationJarsHash = lccFromContext.getApplicationJarsHashCode();
+                    if (applicationJarsHash != 0 &&
+                        applicationJarsHash != initialApplicationJarsHash)
+                        SpliceSpark.setApplicationJarsHash(applicationJarsHash);
+                }
+                else {
+                    applicationJarsHash = lcc.getApplicationJarsHashCode();
+                    if (applicationJarsHash != 0 &&
+                        applicationJarsHash != initialApplicationJarsHash)
+                        SpliceSpark.setApplicationJarsHash(applicationJarsHash);
+                }
+            }
             context = dsp.createOperationContext(root);
             SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
                     .map(new CloneFunction<>(context))
@@ -114,11 +168,52 @@ public class QueryJob implements Callable<Void>{
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
             throw e;
         } finally {
+            long tempTriggerConglomerate = dsp.getTempTriggerConglomerate();
+            if (tempTriggerConglomerate != 0 && activation != null)
+                dropConglomerate(tempTriggerConglomerate, activation);
             if(resetSession)
                 SpliceSpark.resetSession();
             ah.close();
         }
 
         return null;
+    }
+
+    // Tell Spark where to find user jars that were
+    // added via CALL SQLJ.INSTALL_JAR.
+    private void addUserJarsToSparkContext(Activation activation, JavaSparkContext jsc) {
+        if (jsc == null)
+            return;
+
+        SparkContext sparkContext = jsc.sc();
+
+        if (sparkContext == null)
+            return;
+
+        LanguageConnectionContext lcc =
+            activation.getLanguageConnectionContext();
+        if (lcc == null)
+            return;
+        lcc.setSparkContext(sparkContext);
+        lcc.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
+        lcc.addUserJarsToSparkContext();
+    }
+
+
+    private void dropConglomerate(long CID, Activation activation) {
+        TransactionController tc = activation.getTransactionController();
+        LOG.trace(format("Dropping temporary conglomerate splice:%d", CID));
+        try {
+            tc.dropConglomerate(CID);
+        }
+        catch (StandardException e) {
+            LOG.warn(format("Unable to drop temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
+        }
+        try {
+            dropTable(CID);
+        }
+        catch (StandardException e) {
+            LOG.warn(format("Unable to drop HBase table for temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
+        }
     }
 }

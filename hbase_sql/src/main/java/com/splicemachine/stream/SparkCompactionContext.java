@@ -32,6 +32,9 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
     private final LongAccumulator resolutionRejected;
     private final LongAccumulator rpc;
     private final LongAccumulator timeBlocked;
+    private final LongAccumulator cellsRolledback;
+    private final LongAccumulator purgedDeletedCells;
+    private final LongAccumulator purgedUpdatedCells;
 
     public SparkCompactionContext() {
         this.rowsRead= SpliceSpark.getContext().sc().longAccumulator("rows read");
@@ -45,6 +48,9 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
         this.resolutionCached = SpliceSpark.getContext().sc().longAccumulator("resolutions cached");
         this.resolutionScheduled = SpliceSpark.getContext().sc().longAccumulator("resolutions scheduled");
         this.resolutionRejected = SpliceSpark.getContext().sc().longAccumulator("resolutions rejected");
+        this.cellsRolledback = SpliceSpark.getContext().sc().longAccumulator("cells rolledback");
+        this.purgedDeletedCells = SpliceSpark.getContext().sc().longAccumulator("purged deleted cells");
+        this.purgedUpdatedCells = SpliceSpark.getContext().sc().longAccumulator("purged updated cells");
 
         this.rpc = SpliceSpark.getContext().sc().longAccumulator("rpcs");
         this.timeBlocked = SpliceSpark.getContext().sc().longAccumulator("time blocked");
@@ -103,5 +109,20 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
     @Override
     public void recordResolutionCached() {
         resolutionCached.add(1l);
+    }
+
+    @Override
+    public void recordRollback() {
+        cellsRolledback.add(1L);
+    }
+
+    @Override
+    public void recordPurgedDelete() {
+        purgedDeletedCells.add(1L);
+    }
+
+    @Override
+    public void recordPurgedUpdate() {
+        purgedUpdatedCells.add(1L);
     }
 }

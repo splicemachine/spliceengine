@@ -15,6 +15,8 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -56,6 +58,14 @@ public class ConstraintContext implements Externalizable {
         return new ConstraintContext(constraintName, tableName, "Operation", "(" + columnNames + ")");
     }
 
+    public static ConstraintContext foreignKey(FKConstraintInfo fkConstraintInfo, byte[] originator) {
+        return new ConstraintContext(fkConstraintInfo.getConstraintName(),
+                fkConstraintInfo.getTableName(),
+                "Operation",
+                "(" + fkConstraintInfo.getColumnNames() + ")",
+                Bytes.toHex(originator));
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     /* For serialization */
@@ -80,6 +90,7 @@ public class ConstraintContext implements Externalizable {
 
     /* Copy but with specified argument set at specified index */
     public ConstraintContext withMessage(int index, String newMessage) {
+        assert index >= 0 && index < this.messageArgs.length;
         String[] newArgs = Arrays.copyOf(this.messageArgs, this.messageArgs.length);
         newArgs[index] = newMessage;
         return new ConstraintContext(newArgs);

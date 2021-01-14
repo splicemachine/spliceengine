@@ -714,7 +714,7 @@ public final class Encoding {
         return ByteEncoding.decode(encodedData,offset,length,desc);
     }
 
-    public static byte[] decodeBytesUnsortd(byte[] encodedData,int offset,int length){
+    public static byte[] decodeBytesUnsorted(byte[] encodedData, int offset, int length){
         return ByteEncoding.decodeUnsorted(encodedData,offset,length);
     }
 

@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -37,6 +38,8 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     private boolean compactionCountIncremented = false;
 
     private PurgeConfig purgeConfig = null;
+
+    private Set<String> compactedFiles;
 
     public SpliceCompactionRequest(Collection<HStoreFile> files) {
         super(files);
@@ -69,21 +72,19 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
         }
     }
     public void afterExecute(){
-        if (memstoreAware == null || !compactionCountIncremented) {
-            // memstoreAware hasn't been set, the compaction failed before it could block and increment the counter, so don't do anything
-            return;
-        }
-        while (true) {
-            MemstoreAware latest = memstoreAware.get();
-            assert latest.currentCompactionCount > 0;
-            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) {
-                if(LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(latest) +
-                            " 's compactionCount decremented from " + latest.currentCompactionCount +
-                            " to " + (latest.currentCompactionCount - 1));
+        if (memstoreAware != null && compactionCountIncremented) {
+            while (true) {
+                MemstoreAware latest = memstoreAware.get();
+                assert latest.currentCompactionCount > 0;
+                if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(latest) +
+                                " 's compactionCount decremented from " + latest.currentCompactionCount +
+                                " to " + (latest.currentCompactionCount - 1));
+                    }
+                    compactionCountIncremented = false;
+                    break;
                 }
-                compactionCountIncremented = false;
-                break;
             }
         }
         if(region != null) {
@@ -133,5 +134,13 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
 
     public void setPurgeConfig(PurgeConfig purgeConfig) {
         this.purgeConfig = purgeConfig;
+    }
+
+    public void setCompactedFiles(Set<String> compactedFiles) {
+        this.compactedFiles = compactedFiles;
+    }
+
+    public Set<String> getCompactedFiles() {
+        return compactedFiles;
     }
 }

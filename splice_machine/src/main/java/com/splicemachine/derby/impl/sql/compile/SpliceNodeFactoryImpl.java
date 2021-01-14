@@ -247,6 +247,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.COALESCE_FUNCTION_NODE:
                 return C_NodeNames.COALESCE_FUNCTION_NODE_NAME;
 
+            case C_NodeTypes.DECIMAL_FUNCTION_NODE:
+                return C_NodeNames.DECIMAL_FUNCTION_NODE_NAME;
+
             case C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE:
                 return C_NodeNames.SCALAR_MIN_MAX_FUNCTION_NODE_NAME;
 
@@ -304,6 +307,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.DECIMAL_CONSTANT_NODE:
             case C_NodeTypes.DOUBLE_CONSTANT_NODE:
             case C_NodeTypes.FLOAT_CONSTANT_NODE:
+            case C_NodeTypes.DECFLOAT_CONSTANT_NODE:
                 return C_NodeNames.NUMERIC_CONSTANT_NODE_NAME;
 
             case C_NodeTypes.USERTYPE_CONSTANT_NODE:
@@ -457,6 +461,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
             case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
             case C_NodeTypes.REPLACE_OPERATOR_NODE:
+            case C_NodeTypes.SPLIT_PART_OPERATOR_NODE:
                 return C_NodeNames.TERNARY_OPERATOR_NODE_NAME;
 
             case C_NodeTypes.SELECT_NODE:
@@ -632,20 +637,11 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.EXPORT_NODE:
                 return C_NodeNames.EXPORT_NODE_NAME;
 
-            case C_NodeTypes.BINARY_EXPORT_NODE:
-                return C_NodeNames.BINARY_EXPORT_NODE_NAME;
-
             case C_NodeTypes.KAFKA_EXPORT_NODE:
                 return C_NodeNames.KAFKA_EXPORT_NODE_NAME;
 
             case C_NodeTypes.TRUNC_NODE:
                 return C_NodeNames.TRUNC_NODE_NAME;
-
-            case C_NodeTypes.CREATE_PIN_NODE:
-                return C_NodeNames.CREATE_PIN_NODE_NAME;
-
-            case C_NodeTypes.DROP_PIN_NODE:
-                return C_NodeNames.DROP_PIN_NODE_NAME;
 
             case C_NodeTypes.ARRAY_OPERATOR_NODE:
                 return C_NodeNames.ARRAY_OPERATOR_NODE_NAME;
@@ -685,6 +681,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.TO_HBASE_ESCAPED_NODE:
                 return C_NodeNames.TO_HBASE_ESCAPED_NODE_NAME;
+
+            case C_NodeTypes.TYPEOF_OPERATOR_NODE:
+                return C_NodeNames.TYPEOF_OPERATOR_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
             // THEM TO tools/jar/DBMSnodes.properties

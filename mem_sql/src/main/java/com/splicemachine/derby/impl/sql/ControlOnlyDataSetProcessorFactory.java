@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.system.CsvOptions;
@@ -143,9 +144,11 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         }
 
         @Override
-        public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) {
+        public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+                                                             CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                             StructType partitionColumns) {
             if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
+                SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
             //no-op
             return null;
         }

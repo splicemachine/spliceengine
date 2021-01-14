@@ -37,4 +37,8 @@ public interface CompactionContext {
     void close();
 
     void timeBlocked(long duration);
+
+    void recordRollback();
+    void recordPurgedDelete();
+    void recordPurgedUpdate();
 }

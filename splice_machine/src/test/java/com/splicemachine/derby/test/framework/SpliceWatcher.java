@@ -15,15 +15,32 @@
 package com.splicemachine.derby.test.framework;
 
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import splice.com.google.common.collect.Lists;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
-import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -34,9 +51,11 @@ import static splice.com.google.common.base.Strings.isNullOrEmpty;
  *
  * Not thread-safe, synchronize externally if using in a multi-threaded test case.
  */
-public class SpliceWatcher extends TestWatcher {
+public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
+    private static ExecutorService executor = Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
 
     private TestConnection currentConnection;
     private final String defaultSchema;
@@ -55,6 +74,11 @@ public class SpliceWatcher extends TestWatcher {
 
     public SpliceWatcher(String defaultSchema) {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
+    }
+
+    @Override
+    public void close() throws Exception {
+        closeAll();
     }
 
     public class ConnectionBuilder {
@@ -96,6 +120,10 @@ public class SpliceWatcher extends TestWatcher {
         }
         public ConnectionBuilder useOLAP(boolean useOLAP) {
             delegate.useOLAP(useOLAP);
+            return this;
+        }
+        public ConnectionBuilder useNativeSpark(boolean useNativeSpark) {
+            delegate.useNativeSpark(useNativeSpark);
             return this;
         }
 
@@ -144,7 +172,7 @@ public class SpliceWatcher extends TestWatcher {
     /**
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
-    public TestConnection createConnection() throws Exception {
+    public synchronized TestConnection createConnection() throws Exception {
         return connectionBuilder().build();
     }
 
@@ -154,21 +182,53 @@ public class SpliceWatcher extends TestWatcher {
         return ps;
     }
 
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+        PreparedStatement ps = getOrCreateConnection().prepareStatement(sql, resultSetType, resultSetConcurrency);
+        statements.add(ps);
+        return ps;
+    }
+
+    /**
+     * Try closing connections gracefully from different threads, if that takes long it could be some queries are stuck,
+     * so abort the connections forcefully instead
+     */
     private void closeConnections() {
         try {
-            for (Connection connection : connections) {
-                if (connection != null && !connection.isClosed()) {
-                    try {
+            List<Callable<Void>> callables = connections.stream().map(connection -> (Callable<Void>) () -> {
+                try {
+                    if (connection != null && !connection.isClosed())
                         connection.close();
-                    } catch (SQLException e) {
-                        connection.rollback();
-                        connection.close();
-                    }
+                } catch (SQLException e) {
+                    LOG.error("Exception while closing connection", e);
                 }
+                return null;
+            }).collect(Collectors.toList());
+            List<Future<Void>> results = executor.invokeAll(callables, 10, TimeUnit.SECONDS);
+            List<Future<Void>> stillRunning = results.stream().filter(f -> f.isCancelled() || !f.isDone()).collect(Collectors.toList());
+            if (stillRunning.isEmpty()) {
+                // we are done
+                return;
             }
+            stillRunning.stream().forEach(f -> f.cancel(true));
+        } catch (InterruptedException e) {
+            LOG.error("Interrupted while closing", e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            LOG.warn("Exception while closing gracefully", e);
         }
+        LOG.warn("Some tasks still running, aborting connections");
+
+        for(Connection connection : connections) {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    LOG.info("Aborting " + connection);
+                    connection.abort(executor);
+                }
+            } catch (SQLException sqle) {
+                LOG.error("Couldn't abort connection", sqle);
+            }
+        }
+
     }
 
     private void closeStatements() {
@@ -239,9 +299,10 @@ public class SpliceWatcher extends TestWatcher {
      */
     public <T> List<T> queryList(String sql) throws Exception {
         List<T> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            resultList.add((T) rs.getObject(1));
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                resultList.add((T) rs.getObject(1));
+            }
         }
         return resultList;
     }
@@ -251,13 +312,14 @@ public class SpliceWatcher extends TestWatcher {
      */
     public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
         List<Object[]> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            Object[] row = new Object[columns];
-            for (int i = 0; i < columns; i++) {
-                row[i] = rs.getObject(i + 1);
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                Object[] row = new Object[columns];
+                for (int i = 0; i < columns; i++) {
+                    row[i] = rs.getObject(i + 1);
+                }
+                resultList.add(row);
             }
-            resultList.add(row);
         }
         return resultList;
     }
@@ -267,21 +329,24 @@ public class SpliceWatcher extends TestWatcher {
      */
     public <T> T query(String sql) throws Exception {
         T result;
-        ResultSet rs = executeQuery(sql);
-        assertTrue("does not have next",rs.next());
-        result = (T) rs.getObject(1);
-        assertFalse(rs.next());
-        return result;
+        try(ResultSet rs = executeQuery(sql)) {
+            assertTrue("does not have next", rs.next());
+            result = (T) rs.getObject(1);
+            assertFalse(rs.next());
+            return result;
+        }
     }
 
     public int executeUpdate(String sql) throws Exception {
-        Statement s = getStatement();
-        return s.executeUpdate(sql);
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            return s.executeUpdate(sql);
+        }
     }
     
     public boolean execute(String sql) throws Exception {
-    	Statement s = getStatement();
-    	return s.execute(sql);
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            return s.execute(sql);
+        }
     }
 
     public int executeUpdate(String sql, String userName, String password) throws Exception {
@@ -338,20 +403,19 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     public void splitTable(String tableName, String schemaName) throws Exception {
-        long conglom = getConglomId(tableName,schemaName);
-//        ConglomerateUtils.splitConglomerate(getConglomId(tableName,schemaName));
+        getConglomId(tableName,schemaName);
     }
 
     public long getConglomId(String tableName, String schemaName) throws Exception {
-           /*
-            * This is a needlessly-complicated and annoying way of doing this,
-	        * because *when it was written*, the metadata information was kind of all messed up
-	        * and doing a join between systables and sysconglomerates resulted in an error. When you are
-	        * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
-	        * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
-	        * some ugly-ass code. Good luck to you.
-	        *
-	        */
+        /*
+         * This is a needlessly-complicated and annoying way of doing this,
+         * because *when it was written*, the metadata information was kind of all messed up
+         * and doing a join between systables and sysconglomerates resulted in an error. When you are
+         * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
+         * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
+         * some ugly-ass code. Good luck to you.
+         *
+         */
         PreparedStatement ps = prepareStatement("select c.conglomeratenumber from " +
                 "sys.systables t, sys.sysconglomerates c,sys.sysschemas s " +
                 "where t.tableid = c.tableid " +
@@ -361,12 +425,22 @@ public class SpliceWatcher extends TestWatcher {
                 "and s.schemaname = ?");
         ps.setString(1, tableName);
         ps.setString(2, schemaName);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getLong(1);
-        } else {
-            LOG.warn("Unable to find the conglom id for table  " + tableName);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            } else {
+                LOG.warn("Unable to find the conglom id for table  " + tableName);
+            }
         }
         return -1l;
+    }
+
+    public String executeGetString(String sql, int index) throws SQLException {
+        try( Statement s = getOrCreateConnection().createStatement();
+             ResultSet rs = s.executeQuery(sql))
+        {
+            Assert.assertTrue(rs.next());
+            return rs.getString(index);
+        }
     }
 }

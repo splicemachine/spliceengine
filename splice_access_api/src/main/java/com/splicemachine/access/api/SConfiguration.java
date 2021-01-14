@@ -15,6 +15,7 @@
 package com.splicemachine.access.api;
 
 import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
 import java.util.Map;
@@ -116,7 +117,9 @@ public interface SConfiguration {
 
     boolean replicationEnabled();
 
-    public String getReplicationPath();
+    String getReplicationPath();
+
+    String getRollingRestartPath();
 
     int getReplicationSnapshotInterval();
 
@@ -232,6 +235,8 @@ public interface SConfiguration {
 
     long getSystablesMinRetentionPeriod();
 
+    Durability getDurability();
+
     // Olap configurations
 
     int getOlapClientWaitTime();
@@ -319,6 +324,8 @@ public interface SConfiguration {
 
     int getNestedLoopJoinBatchSize();
 
+    String getForeignKeyChecker();
+
     // StatsConfiguration
     double getFallbackNullFraction();
 
@@ -403,6 +410,10 @@ public interface SConfiguration {
     void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
     CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+
+    void setNewMergeJoin(CompilerContext.NewMergeJoinExecutionType newValue);
+
+    CompilerContext.NewMergeJoinExecutionType getNewMergeJoin();
 
     String getMetadataRestrictionEnabled();
 

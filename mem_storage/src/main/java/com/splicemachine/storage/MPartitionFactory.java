@@ -20,13 +20,16 @@ import splice.com.google.common.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -67,6 +70,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withName(String name){
+            return withName(name, Conglomerate.Priority.NORMAL);
+        }
+
+        @Override
+        public PartitionCreator withName(String name, Conglomerate.Priority priority){
+            // mem can ignore priority
             this.name=name;
             return this;
         }
@@ -111,6 +120,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             final MPartition p=new MPartition(name,name);
             partitionMap.put(name,p);
             return p;
+        }
+
+        @Override
+        public Future<Partition> createAsync() throws IOException {
+            return CompletableFuture.completedFuture(create());
         }
     }
 
@@ -252,6 +266,16 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public String getCatalogVersion(long conglomerateNumber) throws StandardException {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
+
+        @Override
+        public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
+
+        @Override
+        public int getTableCount() throws IOException {
+            return partitionMap.size();
         }
     }
 }

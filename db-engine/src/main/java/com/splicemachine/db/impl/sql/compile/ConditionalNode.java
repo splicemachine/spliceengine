@@ -44,9 +44,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -57,7 +55,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ConditionalNode extends ValueNode
 {
     ValueNode        testCondition;
@@ -564,7 +561,9 @@ public class ConditionalNode extends ValueNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -579,6 +578,8 @@ public class ConditionalNode extends ValueNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -587,7 +588,7 @@ public class ConditionalNode extends ValueNode
      *                        or a VirtualColumnNode.
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         /* We stop here when only considering simple predicates
@@ -601,8 +602,8 @@ public class ConditionalNode extends ValueNode
 
         boolean pushable;
 
-        pushable = testCondition.categorize(referencedTabs, simplePredsOnly);
-        pushable = (thenElseList.categorize(referencedTabs, simplePredsOnly) && pushable);
+        pushable = testCondition.categorize(referencedTabs, referencedColumns, simplePredsOnly);
+        pushable = (thenElseList.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
         return pushable;
     }
 
@@ -735,6 +736,25 @@ public class ConditionalNode extends ValueNode
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            ConditionalNode other = (ConditionalNode) o;
+            return testCondition.isSemanticallyEquivalent(other.testCondition) &&
+                    thenElseList.isSemanticallyEquivalent(other.thenElseList);
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + testCondition.hashCode();
+        result = 31 * result + thenElseList.hashCode();
+        return result;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         List<QueryTreeNode> nodes = new LinkedList<>();
         nodes.add(testCondition);
@@ -782,5 +802,19 @@ public class ConditionalNode extends ValueNode
             return false;
 
         return true;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (testCondition != null) {
+            cost += testCondition.getBaseOperationCost();
+        }
+        if (thenElseList != null) {
+            for (Object e : thenElseList) {
+                cost += ((ValueNode) e).getBaseOperationCost();
+            }
+        }
+        return cost;
     }
 }

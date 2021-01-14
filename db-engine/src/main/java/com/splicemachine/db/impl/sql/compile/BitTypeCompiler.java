@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -59,7 +60,8 @@ public class BitTypeCompiler extends BaseTypeCompiler
          */
         public boolean convertible(TypeId otherType, 
 								   boolean forDataTypeFunction) {
-            return !otherType.getBaseTypeId().isAnsiUDT() && (otherType.isBitTypeId() || otherType.isBlobTypeId() || otherType.userType());
+            return !otherType.getBaseTypeId().isAnsiUDT() &&
+                    (otherType.isBitTypeId() || otherType.isBlobTypeId() || otherType.userType() || otherType.isCharOrVarChar());
 
 
         }
@@ -83,9 +85,9 @@ public class BitTypeCompiler extends BaseTypeCompiler
 
         public boolean storable(TypeId otherType, ClassFactory cf)
         {
-        if (otherType.isBlobTypeId())
-          return false;
-				if (otherType.isBitTypeId())
+                if (otherType.isBlobTypeId())
+                    return false;
+				if (otherType.streamStorable())
 				{
 						return true;
 				}
@@ -119,7 +121,7 @@ public class BitTypeCompiler extends BaseTypeCompiler
         /**
          * @see TypeCompiler#getCastToCharWidth
          */
-        public int getCastToCharWidth(DataTypeDescriptor dts)
+        public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
         {
                 return dts.getMaximumWidth();
         }

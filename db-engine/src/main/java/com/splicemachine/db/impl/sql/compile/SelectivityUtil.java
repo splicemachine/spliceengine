@@ -33,13 +33,14 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
-import java.util.List;
+import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.ScanCostFunction.computeSqrtLevel;
 
 /**
  *
@@ -61,10 +62,10 @@ public class SelectivityUtil {
         ALL   /* all join conditions, equality or not */
     }
 
-    public static double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
-    public static double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
-    public static double DEFAULT_RANGE_SELECTIVITY = 0.33d;
-    public static double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
+    public static final double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
+    public static final double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
+    public static final double  DEFAULT_RANGE_SELECTIVITY = 0.33d;
+    public static final double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
 
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,
@@ -95,13 +96,13 @@ public class SelectivityUtil {
                     return false;
                 }
 
-                // only equality join condition without expression on index column can be used by merge join to search for matching rows
+                // only equality join condition without extra expression on index column can be used by merge join to search for matching rows
                 if (predicateType == JoinPredicateType.MERGE_SEARCH) {
                     if (p.getIndexPosition() < 0) {
                         return false;
                     } else {
-                        if (!(bron.getLeftOperand() instanceof ColumnReference) ||
-                                !(bron.getRightOperand() instanceof ColumnReference))
+                        if ((!(bron.getLeftOperand() instanceof ColumnReference) && bron.leftMatchIndexExpr < 0) ||
+                                (!(bron.getRightOperand() instanceof ColumnReference) && bron.rightMatchIndexExpr < 0))
                             return false;
                     }
                 }
@@ -118,8 +119,7 @@ public class SelectivityUtil {
                                                  SelectivityJoinType selectivityJoinType,
                                                  JoinPredicateType predicateType) throws StandardException {
 
-        assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
-        assert innerTable!=null:"Null values passed in to hashJoinSelectivity";
+        assert innerTable != null : "Null value of argument 'innerTable' passed in to estimateJoinSelectivity";
 
         if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {
@@ -132,14 +132,74 @@ public class SelectivityUtil {
             }
         }
         double selectivity = 1.d;
+        List<JoinPredicateSelectivity> predSelectivities = new ArrayList<>();
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
                 Predicate p = (Predicate) predList.getOptPredicate(i);
                 if (!isTheRightJoinPredicate(p, predicateType))
                     continue;
 
-                selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
+                predSelectivities.add(new JoinPredicateSelectivity(p, innerTable, QualifierPhase.FILTER_BASE,
+                                                           p.joinSelectivity(innerTable, innerCD, innerRowCount,
+                                                                             outerRowCount, selectivityJoinType)));
             }
+        }
+        if (predSelectivities.size() == 1)
+            selectivity = predSelectivities.get(0).getSelectivity();
+        else {
+            // Sort the selectivities and combine them using computeSqrtLevel
+            // as is done in ScanCostFunction.
+            Collections.sort(predSelectivities);
+
+            // Map from predicate number (in the order added to the map) to the
+            // selectivity of the predicate.
+            Map<Integer, JoinPredicateSelectivity> selectivityMap = new TreeMap<>();
+
+            // Map from column number to index into selectivityMap.
+            // This double lookup is done so that the main data structure
+            // holding selectivities has no duplicates.
+            Map<Integer,Integer> selectivityIndexMap = new HashMap<>();
+
+            int index = 0;
+            for (JoinPredicateSelectivity predicateSelectivity:predSelectivities) {
+                Predicate p = predicateSelectivity.getPredicate();
+                int tableNumber = innerTable.getTableNumber();
+                Set<Integer> columnSet = p.getReferencedColumns().get(tableNumber);
+                ReferencedColumnsMap referencedColumnsMap = p.getReferencedColumns();
+
+                Integer mapIndex = null;
+                if (columnSet != null) {
+                    for (Integer I : columnSet) {
+                        mapIndex = selectivityIndexMap.get(I);
+                        if (mapIndex != null)
+                            break;
+                    }
+                }
+                if (mapIndex != null) {
+                    // Compare selectivities of predicates with overlapping column sets and keep the
+                    // one with the lowest value.
+                    JoinPredicateSelectivity foundEntry = selectivityMap.get(mapIndex);
+                    if (predicateSelectivity.getSelectivity() < foundEntry.getSelectivity()) {
+                        selectivityMap.put(index, predicateSelectivity);
+                        Set<Integer> columnNumbers = referencedColumnsMap.get(tableNumber);
+                        for (Integer I:columnNumbers)
+                            selectivityIndexMap.put(I, mapIndex);
+                    }
+                }
+                else {
+                    selectivityMap.put(index, predicateSelectivity);
+                    if (columnSet != null)
+                        for (Integer I : columnSet)
+                            selectivityIndexMap.put(I, index);
+                    index++;
+                }
+            }
+            List<DefaultPredicateSelectivity> predicateSelectivities = new ArrayList<>(selectivityMap.size());
+            // Using a TreeMap, so the selectivities should still be in order.
+            predicateSelectivities.addAll(selectivityMap.values());
+
+            for (int i = 0; i < predicateSelectivities.size();i++)
+                selectivity = computeSqrtLevel(selectivity, i, predicateSelectivities.get(i));
         }
 
         //Left outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
@@ -196,40 +256,60 @@ public class SelectivityUtil {
             return false;
         }
 
-        int[] baseColumnPositions=irg.baseColumnPositions();
-
         // Do we have an exact match on the full key
+        if (irg.isOnExpression()) {
+            assert innerTable instanceof QueryTreeNode;
+            LanguageConnectionContext lcc = ((QueryTreeNode) innerTable).getLanguageConnectionContext();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, innerTable);
+            for (ValueNode exprAst : exprAsts) {
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(innerTable, exprAst, true);
 
-        for(int curCol : baseColumnPositions){
-            // get the column number at this position
-            /* Is there a pushable equality predicate on this key column?
-             * (IS NULL is also acceptable)
-			 */
-            List<Predicate> optimizableEqualityPredicateList =
-                    restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
 
-            // No equality predicate for this column, so this is not a one row result set
-            if (optimizableEqualityPredicateList == null)
-                return false;
-
-            // Look for equality predicate that is not a join predicate
-            boolean existsNonjoinPredicate = false;
-            for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
-                    existsNonjoinPredicate = true;
-                    break;
-                }
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (!existsNonJoinPredicate(optimizableEqualityPredicateList))
+                    return false;
             }
-            // If all equality predicates are join predicates, then this is NOT a one row result set
-            if (!existsNonjoinPredicate)
-                return false;
-        }
+        } else {
+            int[] baseColumnPositions = irg.baseColumnPositions();
+            for (int curCol : baseColumnPositions) {
+                // get the column number at this position
+                /* Is there a pushable equality predicate on this key column?
+                 * (IS NULL is also acceptable)
+                 */
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
 
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (!existsNonJoinPredicate(optimizableEqualityPredicateList))
+                    return false;
+            }
+        }
         return true;
     }
 
+    // Look for equality predicate that is not a join predicate
+    private static boolean existsNonJoinPredicate(List<Predicate> predList) {
+        for (Predicate predicate : predList) {
+            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 
+    // Warning: This method's calculations depend on the inner and outer row count estimates
+    // being what they were when the inner and outer table's heap sizes were originally
+    // calculated.  Please call this method before calling setRowCount on either
+    // innerCostEstimate or outerCostEstimate.
     public static double getTotalHeapSize(CostEstimate innerCostEstimate,
                                           CostEstimate outerCostEstimate,
                                           double totalOutputRows){
@@ -249,34 +329,44 @@ public class SelectivityUtil {
 
     public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
                                                         CostEstimate outerCostEstimate,
-                                                        double totalOutputRows){
+                                                        Optimizer    optimizer) {
 
-        // Join costing is done on a per-partition basis, so remote costs
+        return getTotalPerPartitionRemoteCost(innerCostEstimate,
+                                              outerCostEstimate,
+                                              optimizer, 1.0);
+    }
+    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
+                                                        CostEstimate outerCostEstimate,
+                                                        Optimizer    optimizer,
+                                                        double innerTableScaleFactor){
+
+        // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.
         // The operation is initiated from the outer table, so it determines the
         // number of partitions.
-        int numpartitions = outerCostEstimate.partitionCount();
-        if (numpartitions <= 0)
-            numpartitions = 1;
-        return getTotalRemoteCost(outerCostEstimate.remoteCost(),
-                                  innerCostEstimate.remoteCost(),
-                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numpartitions;
+        int numParallelTasks = outerCostEstimate.getParallelism();
+        if (numParallelTasks <= 0)
+            numParallelTasks = 1;
+        double totalRemoteCost =
+            getTotalRemoteCost(outerCostEstimate.remoteCost(),
+                               innerCostEstimate.remoteCost() * innerTableScaleFactor)/numParallelTasks;
+        return totalRemoteCost;
+
     }
 
     private static double getTotalRemoteCost(double outerRemoteCost,
-                                             double innerRemoteCost,
-                                             double outerRowCount,
-                                             double innerRowCount,
-                                             double totalOutputRows){
-        return totalOutputRows*(
-                (innerRemoteCost/(innerRowCount<1.0d?1.0d:innerRowCount)) +
-                        (outerRemoteCost/(outerRowCount<1.0d?1.0d:outerRowCount)));
+                                             double innerRemoteCost){
+        // Remote cost is not a joining cost, so remove totalOutputRows
+        // from the formula.
+        return innerRemoteCost + outerRemoteCost;
     }
 
     public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {
-        return joinSelectivity*
+        double totalRows =  joinSelectivity*
                 (outerRowCount<1.0d?1.0d:outerRowCount)*
                 (innerRowCount<1.0d?1.0d:innerRowCount);
+
+        return totalRows;
     }
 
 }

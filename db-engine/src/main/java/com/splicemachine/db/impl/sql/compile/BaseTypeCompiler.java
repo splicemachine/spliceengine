@@ -109,7 +109,7 @@ abstract class BaseTypeCompiler implements TypeCompiler {
      *
      * ...,dvd
      *
-     * @see TypeCompiler#generateNull(MethodBuilder, int)
+     * @see TypeCompiler#generateNull(MethodBuilder, DataTypeDescriptor, LocalField[])
      */
 	@Override
 	public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields)
@@ -294,24 +294,8 @@ abstract class BaseTypeCompiler implements TypeCompiler {
 			return false;
 
 		// Numbers can only be converted to other numbers,
-		// and CHAR, (not VARCHARS or LONGVARCHAR).
-		// Only with the CHAR() or VARCHAR()function can they be converted.
-		boolean retval =((otherType.isNumericTypeId()) ||
-						 (otherType.userType()));
-
-		// For CHAR  Conversions, function can convert
-		// Floating types
-		if (forDataTypeFunction)
-			retval = retval ||
-				(otherType.isFixedStringTypeId() &&
-				(getTypeId().isFloatingPointTypeId()));
-
-		retval = retval ||
-			(otherType.isFixedStringTypeId() &&
-			 (!getTypeId().isFloatingPointTypeId()));
-
-		return retval;
-
+		// CHAR, and VARCHAR (not LONGVARCHAR).
+		return ((otherType.isNumericTypeId()) || otherType.isCharOrVarChar() || (otherType.userType()));
 	}
 
 	/**

@@ -336,6 +336,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     void reset();
 
+    void reOpen();
+
     /**
      *
      * Register a resource to be closed when the activation is closed.
@@ -377,6 +379,24 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     ExecIndexRow getStartPosition() throws StandardException;
 
     /**
+     *
+     * Retrieve the stop position for this operation.
+     *
+     * @return
+     * @throws StandardException
+     */
+    ExecIndexRow getStopPosition() throws StandardException;
+
+    /**
+     *
+     * Retrieve whether the start position and stop position for this operation are the same.
+     *
+     * @return
+     * @throws StandardException
+     */
+    boolean getSameStartStopPosition();
+
+    /**
      * Forcefully close operation and mark it as killed
      * @throws StandardException
      * @throws IOException
@@ -413,4 +433,11 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     DataTypeDescriptor[] getResultColumnDataTypes();
 
     StructType schema() throws StandardException;
+
+    /**
+     * @return True if the operation should run exclusively in control, otherwise false.
+     */
+    boolean isControlOnly();
+
+    void setCurrentBaseRowLocation(ExecRow currentBaseRow);
 }

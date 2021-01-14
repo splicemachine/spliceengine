@@ -41,13 +41,15 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  *
  */
 public class NotEqualsSelectivity extends AbstractSelectivityHolder {
-    private DataValueDescriptor value;
-    private StoreCostController storeCost;
-    private double selectivityFactor;
-    private boolean useExtrapolation;
+    private final DataValueDescriptor value;
+    private final StoreCostController storeCost;
+    private final double selectivityFactor;
+    private final boolean useExtrapolation;
 
-    public NotEqualsSelectivity(StoreCostController storeCost, int colNum, QualifierPhase phase, DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation){
-        super(colNum,phase);
+    public NotEqualsSelectivity(StoreCostController storeCost,
+                                boolean fromExprIndex, int colNum, QualifierPhase phase,
+                                DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation, Predicate pred) {
+        super(fromExprIndex, colNum, phase, pred);
         this.value = value;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
@@ -56,7 +58,7 @@ public class NotEqualsSelectivity extends AbstractSelectivityHolder {
 
     public double getSelectivity() throws StandardException {
         if (selectivity == -1.0d) {
-            double tmpSelectivity = storeCost.getSelectivity(colNum, value, true, value, true, useExtrapolation);
+            double tmpSelectivity = storeCost.getSelectivity(useExprIndexStats, colNum, value, true, value, true, useExtrapolation);
             if (selectivityFactor > 0)
                 tmpSelectivity *= selectivityFactor;
             selectivity = 1 - tmpSelectivity;

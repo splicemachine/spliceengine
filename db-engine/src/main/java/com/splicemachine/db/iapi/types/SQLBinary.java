@@ -993,103 +993,103 @@ abstract class SQLBinary
     }
 
 
-	/**
-	 * The SQL substr() function.
-	 *
-	 * @param start		Start of substr
-	 * @param length	Length of substr
-	 * @param result	The result of a previous call to this method,
-	 *					null if not called yet.
-	 * @param maxLen	Maximum length of the result
-	 *
-	 * @return	A ConcatableDataValue containing the result of the substr()
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public final ConcatableDataValue substring(
-				NumberDataValue start,
-				NumberDataValue length,
-				ConcatableDataValue result,
-				int maxLen,
-				boolean isFixedLength)
-		throws StandardException
-	{
-		int startInt;
-		int lengthInt;
-		BitDataValue bitResult;
+    /**
+     * The SQL substr() function.
+     *
+     * @param start        Start of substr
+     * @param length    Length of substr
+     * @param result    The result of a previous call to this method,
+     *                    null if not called yet.
+     * @param maxLen    Maximum length of the result
+     *
+     * @return    A ConcatableDataValue containing the result of the substr()
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public final ConcatableDataValue substring(
+                NumberDataValue start,
+                NumberDataValue length,
+                ConcatableDataValue result,
+                int maxLen,
+                boolean isFixedLength)
+        throws StandardException
+    {
+        int startInt;
+        int lengthInt;
+        BitDataValue bitResult;
 
-		if (result == null)
-		{
-			if (isFixedLength)
-				result = new SQLBit();
-			else
-				result = new SQLVarbit();
-		}
+        if (result == null)
+        {
+            if (isFixedLength)
+                result = new SQLBit();
+            else
+                result = new SQLVarbit();
+        }
 
-		bitResult = (BitDataValue) result;
+        bitResult = (BitDataValue) result;
 
-		/* The result is null if the receiver (this) is null or if the length is negative.
-		 * Oracle docs don't say what happens if the start position or the length is a usernull.
-		 * We will return null, which is the only sensible thing to do.
-		 * (If the user did not specify a length then length is not a user null.)
-		 */
-		if (this.isNull() || start.isNull() || (length != null && length.isNull()))
-		{
-			bitResult.setToNull();
-			return bitResult;
-		}
+        /* The result is null if the receiver (this) is null or if the length is negative.
+         * Oracle docs don't say what happens if the start position or the length is a usernull.
+         * We will return null, which is the only sensible thing to do.
+         * (If the user did not specify a length then length is not a user null.)
+         */
+        if (this.isNull() || start.isNull() || (length != null && length.isNull()))
+        {
+            bitResult.setToNull();
+            return bitResult;
+        }
 
         startInt = start.getInt();
 
-		// If length is not specified, make it till end of the string
-		if (length != null)
-		{
-			lengthInt = length.getInt();
-		}
-		else lengthInt = maxLen - startInt + 1;
+        // If length is not specified, make it till end of the string
+        if (length != null)
+        {
+            lengthInt = length.getInt();
+        }
+        else lengthInt = maxLen - startInt + 1;
 
-		/* DB2 Compatibility: Added these checks to match DB2. We currently enforce these
-		 * limits in both modes. We could do these checks in DB2 mode only, if needed, so
-		 * leaving earlier code for out of range in for now, though will not be exercised
-		 */
-		if ((startInt <= 0 || lengthInt < 0 || startInt > maxLen ||
-				lengthInt > maxLen - startInt + 1))
-			throw StandardException.newException(SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
+        /* DB2 Compatibility: Added these checks to match DB2. We currently enforce these
+         * limits in both modes. We could do these checks in DB2 mode only, if needed, so
+         * leaving earlier code for out of range in for now, though will not be exercised
+         */
+        if ((startInt <= 0 || lengthInt < 0 || startInt > maxLen ||
+                lengthInt > maxLen - startInt + 1))
+            throw StandardException.newException(SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
 
-		if (lengthInt == 0)
-		{
-			bitResult.setValue(new byte[0]);
-			return bitResult;
-		}
+        if (lengthInt == 0)
+        {
+            bitResult.setValue(new byte[0]);
+            return bitResult;
+        }
 
-		startInt--;
+        startInt--;
 
-		byte[] substring;
-		if (startInt >= getLength()) {
-			if (isFixedLength) {
-				substring = new byte[lengthInt];
-				java.util.Arrays.fill(substring, 0, substring.length, SQLBinary.PAD);
-			} else {
-				substring = new byte[0];
-			}
-		} else if (lengthInt > getLength() - startInt) {
-			if (isFixedLength) {
-				substring = new byte[lengthInt];
-				System.arraycopy(dataValue, startInt, substring, 0, dataValue.length - startInt);
-				java.util.Arrays.fill(substring, dataValue.length - startInt, substring.length, SQLBinary.PAD);
+        byte[] substring;
+        if (startInt >= getLength()) {
+            if (isFixedLength) {
+                substring = new byte[lengthInt];
+                java.util.Arrays.fill(substring, 0, substring.length, SQLBinary.PAD);
+            } else {
+                substring = new byte[0];
+            }
+        } else if (lengthInt > getLength() - startInt) {
+            if (isFixedLength) {
+                substring = new byte[lengthInt];
+                System.arraycopy(dataValue, startInt, substring, 0, dataValue.length - startInt);
+                java.util.Arrays.fill(substring, dataValue.length - startInt, substring.length, SQLBinary.PAD);
 
-			} else {
-				substring = new byte[dataValue.length - startInt];
-				System.arraycopy(dataValue, startInt, substring, 0, substring.length);
-			}
-		} else {
-			substring = new byte[lengthInt];
-			System.arraycopy(dataValue, startInt, substring, 0, substring.length);
-		}
+            } else {
+                substring = new byte[dataValue.length - startInt];
+                System.arraycopy(dataValue, startInt, substring, 0, substring.length);
+            }
+        } else {
+            substring = new byte[lengthInt];
+            System.arraycopy(dataValue, startInt, substring, 0, substring.length);
+        }
 
-		bitResult.setValue(substring);
-		return bitResult;
-	}
+        bitResult.setValue(substring);
+        return bitResult;
+    }
 
     public ConcatableDataValue replace(
         StringDataValue fromStr,
@@ -1302,7 +1302,7 @@ abstract class SQLBinary
             // We can address this later when we more deeply look into
             // error and warning propagation.
             Activation activation = statementContext.getActivation();
-            if (activation != null) {
+            if (activation != null && activation.getResultSet() != null) {
                 activation.getResultSet().addWarning(warning);
             }
         }
@@ -1352,86 +1352,86 @@ abstract class SQLBinary
         return dataValue;
     }
 
-	/**
-	 * This method implements the locate function for binary string.
-	 * @param searchFrom    - The binary string to search from
-	 * @param start         - The position to search from in the binary string searchFrom
-	 * @param result        - The object to return
-	 *
-	 *
-	 * @return  The position in searchFrom the fist occurrence of this.value.
-	 *              0 is returned if searchFrom does not contain this.value.
-	 * @exception StandardException     Thrown on error
-	 */
-	public NumberDataValue locate(  ConcatableDataValue searchFrom,
-									NumberDataValue start,
-									NumberDataValue result)
-			throws StandardException
-	{
-		int startVal;
+    /**
+     * This method implements the locate function for binary string.
+     * @param searchFrom    - The binary string to search from
+     * @param start         - The position to search from in the binary string searchFrom
+     * @param result        - The object to return
+     *
+     *
+     * @return  The position in searchFrom the fist occurrence of this.value.
+     *              0 is returned if searchFrom does not contain this.value.
+     * @exception StandardException     Thrown on error
+     */
+    public NumberDataValue locate(  ConcatableDataValue searchFrom,
+                                    NumberDataValue start,
+                                    NumberDataValue result)
+            throws StandardException
+    {
+        int startVal;
 
-		if( result == null )
-		{
-			result = new SQLInteger();
-		}
+        if( result == null )
+        {
+            result = new SQLInteger();
+        }
 
-		if( start.isNull() )
-		{
-			startVal = 1;
-		}
-		else
-		{
-			startVal = start.getInt();
-		}
+        if( start.isNull() )
+        {
+            startVal = 1;
+        }
+        else
+        {
+            startVal = start.getInt();
+        }
 
-		if( searchFrom.isNull() || this.isNull() )
-		{
-			result.setToNull();
-			return result;
-		}
+        if( searchFrom.isNull() || this.isNull() )
+        {
+            result.setToNull();
+            return result;
+        }
 
-		if( startVal < 1 )
-		{
-			throw StandardException.newException(
-					SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION,
-					this, searchFrom,
-					startVal);
-		}
+        if( startVal < 1 )
+        {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION,
+                    this, searchFrom,
+                    startVal);
+        }
 
-		byte[] mySearchFrom = searchFrom.getBytes();
-		byte[] mySearchFor = this.getBytes();
+        byte[] mySearchFrom = searchFrom.getBytes();
+        byte[] mySearchFor = this.getBytes();
 
-		if(mySearchFor == null || mySearchFor.length == 0)
-		{
-			result.setValue(startVal);
-			return result;
-		}
+        if(mySearchFor == null || mySearchFor.length == 0)
+        {
+            result.setValue(startVal);
+            return result;
+        }
 
-		if (mySearchFrom == null || mySearchFrom.length == 0)
-		{
-			result.setValue(0);
-			return result;
-		}
+        if (mySearchFrom == null || mySearchFrom.length == 0)
+        {
+            result.setValue(0);
+            return result;
+        }
 
-		int index = startVal - 1;
-		if (mySearchFrom.length - index < mySearchFor.length) {
-			result.setValue(0);
-			return result;
-		}
+        int index = startVal - 1;
+        if (mySearchFrom.length - index < mySearchFor.length) {
+            result.setValue(0);
+            return result;
+        }
 
-		for (; index < mySearchFrom.length - mySearchFor.length + 1; index++) {
-			int offset=0;
-			for (; offset < mySearchFor.length; offset ++) {
-				if (mySearchFrom[index + offset] != mySearchFor[offset])
-					break;
-			}
-			if (offset == mySearchFor.length) {
-				result.setValue(index + 1);
-				return result;
-			}
-		}
-		//no match is found
-		result.setValue(0);
-		return result;
-	}
+        for (; index < mySearchFrom.length - mySearchFor.length + 1; index++) {
+            int offset=0;
+            for (; offset < mySearchFor.length; offset ++) {
+                if (mySearchFrom[index + offset] != mySearchFor[offset])
+                    break;
+            }
+            if (offset == mySearchFor.length) {
+                result.setValue(index + 1);
+                return result;
+            }
+        }
+        //no match is found
+        result.setValue(0);
+        return result;
+    }
 }

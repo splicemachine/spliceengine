@@ -14,17 +14,14 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -49,17 +46,12 @@ import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
-import com.splicemachine.olap.OlapServerNotReadyException;
 import com.splicemachine.olap.OlapServerProvider;
-import com.splicemachine.olap.OlapServerZNode;
 import com.splicemachine.olap.TimedOlapClient;
-import com.splicemachine.pipeline.utils.PipelineUtils;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * @author Scott Fines
@@ -67,6 +59,14 @@ import org.apache.zookeeper.KeeperException;
  */
 public class HEngineSqlEnv extends EngineSqlEnvironment{
     private static final Logger LOG = Logger.getLogger(HEngineSqlEnv.class);
+
+    // MAX_EXECUTOR_CORES is calculated the first time someone runs a query.
+    // numNodes is written to zookeeper by OlapServerMaster, so we have
+    // to wait until the Olap Server comes up before getting numNodes from zookeeper.
+    private static int MAX_EXECUTOR_CORES = -1;
+    // A value to use until the Olap Server comes up.
+    private static int DEFAULT_MAX_EXECUTOR_CORES = 8;
+    private static int numSparkNodes = -1;
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
@@ -76,6 +76,23 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient olapClient;
     private OperationManager operationManager;
     private ZkServiceDiscovery serviceDiscovery;
+    private static final String maxExecutorCoresZkPath =
+            HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.MAX_EXECUTOR_CORES;
+
+
+    // Find maxExecutorCores from Zookeeper.
+    private static byte [] getMaxExecutorCoresBytes() {
+        byte [] returnData = null;
+        try {
+            byte [] data = ZkUtils.getData(maxExecutorCoresZkPath);
+            if (data != null && data.length > 0)
+                returnData = data;
+        }
+        catch (Exception | java.lang.AssertionError e) {
+            LOG.warn("Unable to find maxExecutorCores in zookeeper.");
+        }
+        return returnData;
+    }
 
     @Override
     public void initialize(SConfiguration config,
@@ -169,4 +186,64 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     }
 
 
+    @Override
+    public int getMaxExecutorCores() {
+        if (MAX_EXECUTOR_CORES != -1)
+            return MAX_EXECUTOR_CORES;
+        synchronized (HEngineSqlEnv.class) {
+            byte [] maxExecutorCoresBytes = getMaxExecutorCoresBytes();
+            if (maxExecutorCoresBytes == null)
+                return DEFAULT_MAX_EXECUTOR_CORES;
+
+            int maxExecutorCores;
+            int numNodes;
+            try {
+                ByteArrayInputStream bis = new ByteArrayInputStream(maxExecutorCoresBytes);
+                ObjectInput in = new ObjectInputStream(bis);
+                maxExecutorCores = in.readInt();
+                numNodes = in.readInt();
+            }
+            catch (Exception e) {
+                return DEFAULT_MAX_EXECUTOR_CORES;
+            }
+
+            if (numNodes > 0 && maxExecutorCores > 0) {
+                numSparkNodes = numNodes;
+                MAX_EXECUTOR_CORES = maxExecutorCores;
+            }
+            else
+                return DEFAULT_MAX_EXECUTOR_CORES;
+        }
+        return MAX_EXECUTOR_CORES;
+    }
+
+    /**
+     * Estimate the number of input splits used to read a table
+     * <code>tableSize</code> bytes in size, assuming a splits
+     * hint is not used.
+     *
+     * @return The number of input splits Splice would use to
+     * read a table of <code>tableSize</code> bytes, with
+     * <code>numRegions</code> HBase regions, via Spark.
+     */
+    @Override
+    public int getNumSplits(long tableSize, int numRegions) {
+        int numSplits, minSplits = 0;
+        if (tableSize < 0)
+            tableSize = 0;
+
+        long bytesPerSplit = HConfiguration.getConfiguration().getSplitBlockSize();
+        minSplits = HConfiguration.getConfiguration().getSplitsPerRegionMin();
+        if (numRegions > 0)
+            minSplits *= numRegions;
+        if ((tableSize / bytesPerSplit) > Integer.MAX_VALUE)
+            numSplits = Integer.MAX_VALUE;
+        else
+            numSplits = (int)(tableSize / bytesPerSplit);
+
+        if (numSplits < minSplits)
+            numSplits = minSplits;
+
+        return numSplits;
+    }
 }

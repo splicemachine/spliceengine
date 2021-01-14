@@ -14,15 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.pin.DistributedIsCachedJob;
-import com.splicemachine.derby.impl.sql.execute.pin.GetIsCachedResult;
-import com.splicemachine.derby.impl.sql.execute.pin.RemoteDropPinJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -42,7 +38,6 @@ import com.splicemachine.si.api.txn.TxnView;
  * This class describes actions that are ALWAYS performed for a DROP TABLE Statement at Execution time.
  */
 public class DropTableConstantOperation extends DDLSingleTableConstantOperation {
-    private final long conglomerateNumber;
     private final String fullTableName;
     private final SchemaDescriptor sd;
     private final boolean cascade;
@@ -51,18 +46,15 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
      * Make the ConstantAction for a DROP TABLE statement.
      *
      * @param fullTableName      Fully qualified table name
-     * @param tableName          Table name.
      * @param sd                 Schema that table lives in.
-     * @param conglomerateNumber Conglomerate number for heap
      * @param tableId            UUID for table
      * @param behavior           drop behavior: RESTRICT, CASCADE or default
      */
-    public DropTableConstantOperation(String fullTableName, String tableName, SchemaDescriptor sd,
-                                      long conglomerateNumber, UUID tableId, int behavior) {
+    public DropTableConstantOperation(String fullTableName, SchemaDescriptor sd,
+                                      UUID tableId, int behavior) {
         super(tableId);
         this.fullTableName = fullTableName;
         this.sd = sd;
-        this.conglomerateNumber = conglomerateNumber;
         this.cascade = (behavior == StatementType.DROP_CASCADE);
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(sd != null, "SchemaDescriptor is null");
@@ -178,16 +170,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
             tc.dropConglomerate(heapId);
-
-            /* is the table pinned ? , if yes we need to drop it */
-            try {
-                GetIsCachedResult isCachedResult = EngineDriver.driver().getOlapClient().execute(new DistributedIsCachedJob(heapId));
-                if(isCachedResult.isCached()) {
-                    EngineDriver.driver().getOlapClient().execute(new RemoteDropPinJob(heapId));
-                }
-            } catch (Exception e) {
-                throw StandardException.plainWrapException(e);
-            }
 
         } catch (Exception e) {
             // If dropping table fails, it could happen that the table object in cache has been modified.

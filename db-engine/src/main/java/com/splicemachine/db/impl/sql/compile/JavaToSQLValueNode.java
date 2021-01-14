@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.Collections;
@@ -53,7 +52,6 @@ import java.util.List;
  * This node type converts a value from the Java domain to the SQL domain.
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class JavaToSQLValueNode extends ValueNode
 {
     JavaValueNode    javaNode;
@@ -300,7 +298,9 @@ public class JavaToSQLValueNode extends ValueNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -314,6 +314,8 @@ public class JavaToSQLValueNode extends ValueNode
      * subqueries and method calls.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -323,10 +325,10 @@ public class JavaToSQLValueNode extends ValueNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
-        return javaNode.categorize(referencedTabs, simplePredsOnly);
+        return javaNode.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**
@@ -367,6 +369,19 @@ public class JavaToSQLValueNode extends ValueNode
     {
         // anything in the java domain is not equiavlent.
         return false;//this == o;
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            JavaToSQLValueNode other = (JavaToSQLValueNode) o;
+            return javaNode.isSemanticallyEquivalent(other.javaNode);
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        return 31 * getBaseHashCode() + (javaNode == null ? 0 : javaNode.hashCode());
     }
 
     public List<? extends QueryTreeNode> getChildren() {

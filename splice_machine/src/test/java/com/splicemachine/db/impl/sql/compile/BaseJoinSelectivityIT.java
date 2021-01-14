@@ -39,6 +39,7 @@ public class BaseJoinSelectivityIT {
         try{
             TableCreator tc = new TableCreator(conn)
                     .withCreate("create table %s (c1 int not null, c2 varchar(56) not null, c3 timestamp not null, c4 boolean not null)")
+                    .withIndex("create index %s_expr_idx on %s(upper(c2))")
                     .withInsert("insert into %s values(?,?,?,?)");
 
             tc.withTableName("ts_10_spk")
@@ -53,7 +54,8 @@ public class BaseJoinSelectivityIT {
                             row(7,"7","1995-01-01 23:03:20",false),
                             row(8,"8","1995-01-01 23:03:20",false),
                             row(9,"9","1995-01-01 23:03:20",false),
-                            row(10,"10","1995-01-01 23:03:20",false))).create();
+                            row(10,"10","1995-01-01 23:03:20",false)))
+                    .create();
 
             tc.withTableName("ts_10_mpk")
                     .withConstraints("primary key (c1,c2)")
@@ -96,7 +98,8 @@ public class BaseJoinSelectivityIT {
                             row(2,"2","1980-01-01 23:03:20",false),
                             row(3,"3","1985-01-01 23:03:20",false),
                             row(4,"4","1990-01-01 23:03:20",false),
-                            row(5,"5","1995-01-01 23:03:20",false))).create();
+                            row(5,"5","1995-01-01 23:03:20",false)))
+                    .create();
 
             tc.withTableName("ts_5_mpk")
                     .withConstraints("primary key(c1,c2)")

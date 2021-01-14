@@ -14,7 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
@@ -30,9 +33,9 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.*;
+
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoinExecutionType.*;
 
 /**
  * @author P Trolard
@@ -48,6 +51,8 @@ public class MergeJoinOperation extends JoinOperation {
     public int[] rightHashKeys;
     public int[] rightHashKeyToBaseTableMap;
     public int[] rightHashKeySortOrders;
+    private CompilerContext.NewMergeJoinExecutionType newMergeJoin;
+    protected boolean oldMergeJoin = false;
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -78,7 +83,8 @@ public class MergeJoinOperation extends JoinOperation {
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String userSuppliedOptimizerOverrides,
-                              String sparkExpressionTreeAsString)
+                              String sparkExpressionTreeAsString,
+                              CompilerContext.NewMergeJoinExecutionType newMergeJoin)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                  activation, restriction, resultSetNumber, oneRowRightSide,
@@ -88,6 +94,23 @@ public class MergeJoinOperation extends JoinOperation {
         this.rightHashKeyItem = rightHashKeyItem;
         this.rightHashKeyToBaseTableMapItem = rightHashKeyToBaseTableMapItem;
         this.rightHashKeySortOrderItem = rightHashKeySortOrderItem;
+        this.newMergeJoin = newMergeJoin;
+        oldMergeJoin = false;
+        if (newMergeJoin == SYSTEM ||
+            newMergeJoin == SYSTEM_OFF) {
+            this.newMergeJoin =
+                EngineDriver.driver().getConfiguration().getNewMergeJoin();
+            if (this.newMergeJoin == FORCED)
+                oldMergeJoin = false;
+            else if (this.newMergeJoin == ON) {
+                if (newMergeJoin == SYSTEM_OFF)
+                    oldMergeJoin = true;
+            }
+            else
+                oldMergeJoin = true;
+        }
+        else if (newMergeJoin == OFF)
+            oldMergeJoin = true;
         init();
     }
 
@@ -123,24 +146,6 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
-        out.writeInt(rightHashKeyToBaseTableMapItem);
-        out.writeInt(rightHashKeySortOrderItem);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        leftHashKeyItem = in.readInt();
-        rightHashKeyItem = in.readInt();
-        rightHashKeyToBaseTableMapItem = in.readInt();
-        rightHashKeySortOrderItem = in.readInt();
-    }
-
-    @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
@@ -161,12 +166,12 @@ public class MergeJoinOperation extends JoinOperation {
             left = left.map(new CountJoinedLeftFunction(operationContext));
             DataSet<ExecRow> joined = null;
             if (isOuterJoin())
-                joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
+                joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext, oldMergeJoin), true);
             else {
                 if (isAntiJoin())
-                    joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext, oldMergeJoin), true);
                 else {
-                    joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext, oldMergeJoin), true);
                 }
             }
             if (isSparkExplain)

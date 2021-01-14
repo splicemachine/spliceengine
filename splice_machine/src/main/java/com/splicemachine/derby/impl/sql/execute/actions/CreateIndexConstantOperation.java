@@ -19,10 +19,14 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -32,10 +36,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -43,7 +49,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -470,6 +476,28 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                         irg.excludeDefaults() != excludeDefaults) {
                     continue;
                 }
+
+                if (irg.isOnExpression() && exprBytecode.length > 0 && irg.getExprTexts().length == exprTexts.length) {
+                    CompilerContext newCC = lcc.pushCompilerContext();
+                    Parser p = newCC.getParser();
+
+                    boolean duplicateExprIndex = true;
+                    for (int i = 0; i < exprTexts.length; i++) {
+                        ValueNode currentExprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
+                        ValueNode existingExprAst = (ValueNode) p.parseSearchCondition(irg.getExprTexts()[i]);
+                        if (!currentExprAst.equals(existingExprAst)) {
+                            duplicateExprIndex = false;
+                            break;
+                        }
+                    }
+                    lcc.popCompilerContext(newCC);
+
+                    if (duplicateExprIndex) {
+                        activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE, cd.getConglomerateName()));
+                        return;
+                    }
+                }
+
                 int[] bcps = irg.baseColumnPositions();
                 boolean[] ia = irg.isAscending();
                 int j = 0;
@@ -512,7 +540,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     }
                 }
 
-                if (j == baseColumnPositions.length) {  // share
+                if (j == baseColumnPositions.length && !irg.isOnExpression() && exprBytecode.length <= 0) {  // share
                     /*
                      * Don't allow users to create a duplicate index. Allow if being done internally
                      * for a constraint
@@ -545,7 +573,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     baseColumnPositions,
                                     indexColumnTypes,
                                     isAscending,
-                                    baseColumnPositions.length,excludeNulls,excludeDefaults,
+                                    isAscending.length,excludeNulls,excludeDefaults,
                                     exprTexts,
                                     exprBytecode,
                                     generatedClassNames);
@@ -714,7 +742,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     baseColumnPositions,
                     indexColumnTypes,
                     isAscending,
-                    baseColumnPositions.length,
+                    isAscending.length,
                     excludeNulls,
                     excludeDefaults,
                     exprTexts,
@@ -848,9 +876,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * so that we can reuse the wrappers during an external
              * sort.
              */
-            conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
+            Conglomerate conglomerate = tc.createConglomerateAsync(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
-                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
+                    splitKeys, Conglomerate.Priority.NORMAL);
+            conglomerate.awaitCreation();
+            conglomId = conglomerate.getContainerid();
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table
@@ -916,8 +947,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                operationContext.getActivation().getLanguageConnectionContext(),
+                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+            boolean oneLineRecord = false;
+            boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, oneLineRecord, operationContext,
+                    quotedEmptyIsNull, preserveLineEndings), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

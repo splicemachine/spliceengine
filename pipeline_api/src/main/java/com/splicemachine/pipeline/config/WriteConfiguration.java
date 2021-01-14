@@ -58,4 +58,15 @@ public interface WriteConfiguration {
     boolean skipWAL();
 
     boolean rollForward();
+
+    boolean loadReplaceMode();
+    void setLoadReplaceMode(boolean loadReplaceMode);
+
+    default String configToString()
+    {
+        return "skipConflictDetection=" + skipConflictDetection() +
+                ", skipWAL=" + skipWAL() +
+                ", rollforward=" + rollForward() +
+                ", loadReplaceMode=" + loadReplaceMode();
+    }
 }

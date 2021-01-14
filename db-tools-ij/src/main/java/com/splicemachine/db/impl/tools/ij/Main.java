@@ -229,10 +229,19 @@ public class Main {
 		Give a shortcut to go on the utilInstance so
 		we don't expose utilMain.
 	 */
-	private void go(LocalizedInput in, LocalizedOutput out )
+	public void go(LocalizedInput in, LocalizedOutput out )
 	{
 		LocalizedInput[] inA = { in } ;
 		utilInstance.go(inA, out);
+	}
+
+	public void init(LocalizedOutput out) {
+		utilInstance.init(out);
+	}
+	public void goGuts(LocalizedInput in )
+	{
+		LocalizedInput[] inA = { in } ;
+		utilInstance.goStart(inA);
 	}
 
 	/**

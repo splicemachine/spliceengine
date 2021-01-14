@@ -179,15 +179,14 @@ public class DataDescriptorGenerator
                         UUID        constraintId,
                         UUID        indexId,
                         SchemaDescriptor schemaDesc,
-                        boolean isEnabled,
-                        int referenceCount
+                        boolean isEnabled
                         )
     {
         return new ReferencedKeyConstraintDescriptor(DataDictionary.UNIQUE_CONSTRAINT,
             dataDictionary, table, constraintName,
                 deferrable, initiallyDeferred,
                 referencedColumns, constraintId,
-                indexId, schemaDesc, isEnabled, referenceCount);
+                indexId, schemaDesc, isEnabled);
     }
 
     /**
@@ -202,15 +201,14 @@ public class DataDescriptorGenerator
                         UUID        constraintId,
                         UUID indexId,
                         SchemaDescriptor schemaDesc,
-                        boolean isEnabled,
-                        int referenceCount
+                        boolean isEnabled
                         )
     {
         return new ReferencedKeyConstraintDescriptor(DataDictionary.PRIMARYKEY_CONSTRAINT,
             dataDictionary, table, constraintName,
                 deferrable, initiallyDeferred,
                 referencedColumns, constraintId,
-                indexId, schemaDesc, isEnabled, referenceCount);
+                indexId, schemaDesc, isEnabled);
     }
 
     /**
@@ -396,7 +394,7 @@ public class DataDescriptorGenerator
         String              whenClauseText
     ) throws StandardException
     {
-		return new TriggerDescriptorV3(
+		return new TriggerDescriptorV4(
                     dataDictionary,
                     sd,
                     uuid,

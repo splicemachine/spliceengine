@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.List;
@@ -52,6 +53,7 @@ import java.util.List;
  * These two functions implement a few special cases of string conversions beyond the normal string to
  * date/timestamp casts.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
     private static final String TIMESTAMP_METHOD_NAME="getTimestamp";
     private static final String DATE_METHOD_NAME="getDate";
@@ -110,6 +112,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
             case Types.SMALLINT:
             case Types.TINYINT:
             case Types.DECIMAL:
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.NUMERIC:
             case Types.DOUBLE:
             case Types.FLOAT:
@@ -120,6 +123,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
 
             case Types.CHAR:
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:
                 break;
 
             case Types.DATE:
@@ -181,4 +185,12 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,methodName,getTypeCompiler().interfaceName(),1);
     } // end of generateExpression
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double lowerCost = getOperandCost();
+        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return lowerCost + localCost + callCost;
+    }
 }

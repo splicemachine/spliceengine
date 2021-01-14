@@ -23,11 +23,7 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -56,7 +52,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
@@ -493,6 +488,28 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 object.setValue(input.readDouble());
             }
         }, 45);
+        instance.register(SQLVarcharDB2Compatible.class,new DataValueDescriptorSerializer<SQLVarcharDB2Compatible>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLVarcharDB2Compatible object) throws StandardException{
+                output.writeString(object.getString());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLVarcharDB2Compatible dvd){
+                dvd.setValue(input.readString());
+            }
+        },46);
+        instance.register(SQLDecfloat.class,new DataValueDescriptorSerializer<SQLDecfloat>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLDecfloat object) throws StandardException{
+                kryo.writeObjectOrNull(output,object.getObject(),BigDecimal.class);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLDecfloat dvd) throws StandardException{
+                dvd.setBigDecimal(kryo.readObjectOrNull(input,BigDecimal.class));
+            }
+        },47);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
@@ -518,34 +535,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(GenericParameterValueSet.class,EXTERNALIZABLE_SERIALIZER,54);
         instance.register(GenericParameter.class,EXTERNALIZABLE_SERIALIZER,55);
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER,56);
-        instance.register(ProjectRestrictOperation.class,EXTERNALIZABLE_SERIALIZER,58);
-        instance.register(TableScanOperation.class,EXTERNALIZABLE_SERIALIZER,59);
-        instance.register(ScanOperation.class,EXTERNALIZABLE_SERIALIZER,60);
-        instance.register(GroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,61);
-        instance.register(DistinctScanOperation.class,EXTERNALIZABLE_SERIALIZER,62);
-        instance.register(DistinctScalarAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,63);
-        instance.register(IndexRowToBaseRowOperation.class,EXTERNALIZABLE_SERIALIZER,64);
-        instance.register(SortOperation.class,EXTERNALIZABLE_SERIALIZER,65);
-        instance.register(UnionOperation.class,EXTERNALIZABLE_SERIALIZER,66);
-        instance.register(UpdateOperation.class,EXTERNALIZABLE_SERIALIZER,67);
         instance.register(UpdateConstantOperation.class,EXTERNALIZABLE_SERIALIZER,68);
-        instance.register(InsertOperation.class,EXTERNALIZABLE_SERIALIZER,69);
-        instance.register(DeleteOperation.class,EXTERNALIZABLE_SERIALIZER,70);
-        instance.register(MergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER,71);
-        instance.register(NestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,72);
-        instance.register(NestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,73);
-        instance.register(MergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,74);
-        instance.register(ScalarAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,75);
-        instance.register(NormalizeOperation.class,EXTERNALIZABLE_SERIALIZER,76);
-        instance.register(AnyOperation.class,EXTERNALIZABLE_SERIALIZER,77);
-        instance.register(RowOperation.class,EXTERNALIZABLE_SERIALIZER,78);
-        instance.register(OnceOperation.class,EXTERNALIZABLE_SERIALIZER,79);
-        instance.register(RowCountOperation.class,EXTERNALIZABLE_SERIALIZER,80);
-        instance.register(BroadcastJoinOperation.class,EXTERNALIZABLE_SERIALIZER,81);
-        instance.register(BroadcastLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,82);
+
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER,83);
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,89);
-        instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER,150);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER,84);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER,85);
@@ -591,8 +584,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FormatableInstanceGetter.class,EXTERNALIZABLE_SERIALIZER,124);
         instance.register(IndexRowGenerator.class,EXTERNALIZABLE_SERIALIZER,126);
         instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,127);
-        instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER,128);
-        instance.register(DistinctGroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,129);
         instance.register(SQLClob.class,new DataValueDescriptorSerializer<SQLClob>(){
             @Override
             protected void writeValue(Kryo kryo,Output output,SQLClob object) throws StandardException{
@@ -625,8 +616,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FKInfo.class,EXTERNALIZABLE_SERIALIZER,135);
         instance.register(DerbyAggregateContext.class,EXTERNALIZABLE_SERIALIZER,136);
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER,137);
-        instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER,138);
-        instance.register(MergeJoinOperation.class,EXTERNALIZABLE_SERIALIZER,139);
 
         instance.register(AggregateAliasInfo.class,EXTERNALIZABLE_SERIALIZER,140);
         instance.register(UserDefinedAggregator.class,EXTERNALIZABLE_SERIALIZER,141);
@@ -772,10 +761,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             }
         },160);
 
-        instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
-        // instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
-        // instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
-        instance.register(MergeLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,182);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
         instance.register(ActivationSerializer.BooleanFieldStorage.class, KRYO_SERIALIZABLE_SERIALIZER,185);
         instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
@@ -785,7 +770,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.BooleanFieldStorage.class,KRYO_SERIALIZABLE_SERIALIZER,192);
         instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,193);
         instance.register(DDLChangeType.class,195);
-        instance.register(ExportOperation.class,EXTERNALIZABLE_SERIALIZER,197);
         instance.register(ExportParams.class,198);
         instance.register(SQLRowId.class,EXTERNALIZABLE_SERIALIZER,202);
         instance.register(Splice_DD_Version.class,EXTERNALIZABLE_SERIALIZER,203);
@@ -833,12 +817,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(TentativeDropPKConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,256);
         instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER,257);
         instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER,258);
-        instance.register(ScrollInsensitiveOperation.class,EXTERNALIZABLE_SERIALIZER,263);
-        instance.register(VTIOperation.class,EXTERNALIZABLE_SERIALIZER,264);
         instance.register(UDTAliasInfo.class,EXTERNALIZABLE_SERIALIZER,271);
         instance.register(UDTBase.class,EXTERNALIZABLE_SERIALIZER,272);
-        instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER,274);
-        instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,275);
         instance.register(ColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,276);
         instance.register(StatisticsFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,277);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
@@ -859,57 +839,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,292);
         instance.register(SpliceUDAVariance.class,EXTERNALIZABLE_SERIALIZER,293);
 
-        instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,294);
         instance.register(ControlOperationContext.class,EXTERNALIZABLE_SERIALIZER,295);
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
-        instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
         instance.register(ExportFile.COMPRESSION.class, 298);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
-        instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
-            @Override
-            public void write(Kryo kryo,Output output,SelfReferenceOperation object){
-                try{
-                    object.writeExternalWithoutChild(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public SelfReferenceOperation read(Kryo kryo,Input input,Class type){
-                SelfReferenceOperation selfReferenceOperation=new SelfReferenceOperation();
-                try{
-                    selfReferenceOperation.readExternal(new KryoObjectInput(input,kryo));
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return selfReferenceOperation;
-            }
-        },301);
-        instance.register(RecursiveUnionOperation.class,new Serializer<RecursiveUnionOperation>(){
-            @Override
-            public void write(Kryo kryo,Output output,RecursiveUnionOperation object){
-                try{
-                    object.writeExternal(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public RecursiveUnionOperation read(Kryo kryo,Input input,Class type){
-                RecursiveUnionOperation recursiveUnionOperation=new RecursiveUnionOperation();
-                try{
-                    recursiveUnionOperation.readExternal(new KryoObjectInput(input,kryo));
-                    recursiveUnionOperation.setRecursiveUnionReference(recursiveUnionOperation);
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return recursiveUnionOperation;
-            }
-        },302);
-        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 303);
         instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
 
         Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
@@ -949,15 +883,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SparkRelationalOperator.class,EXTERNALIZABLE_SERIALIZER,316);
         instance.register(SparkArithmeticOperator.class,EXTERNALIZABLE_SERIALIZER,317);
         instance.register(SparkCastNode.class,EXTERNALIZABLE_SERIALIZER,318);
-        instance.register(SignalOperation.class,EXTERNALIZABLE_SERIALIZER,319);
-        instance.register(SetOperation.class,EXTERNALIZABLE_SERIALIZER,320);
         instance.register(LeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,321);
         instance.register(CogroupLeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 322);
         instance.register(CogroupFullOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 323);
         instance.register(AbstractBroadcastJoinFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 324);
         instance.register(LeftAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 325);
-        instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,326);
-        instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,327);
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,328);
         instance.register(TriggerNewTransitionRows.class,EXTERNALIZABLE_SERIALIZER,329);
         instance.register(TriggerOldTransitionRows.class,EXTERNALIZABLE_SERIALIZER,330);
@@ -966,5 +896,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
         instance.register(StringBuilder.class,334);
         instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
+        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER,336);
+        instance.register(Vector.class,110);
     }
 }

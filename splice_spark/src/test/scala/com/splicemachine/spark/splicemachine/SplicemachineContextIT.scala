@@ -59,7 +59,31 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       schema.json
     )
   }
-  
+
+  val df2Col = "[true,0    ], [false,1    ], [true,2    ], [false,3    ], [true,4    ], [false,5    ], [true,6    ], [false,7    ], [true,null], [false,null]"
+
+  test("Test DF") {
+    dropInternalTable
+    insertInternalRows(10)
+    val df = splicemachineContext.df(s"select * from $internalTN")
+    org.junit.Assert.assertEquals(
+      "DataFrame Changed!",
+      df2Col,
+      df.collect.map(r => s"[${r(0)},${r(1)}]").mkString(", ")
+    )
+  }
+
+  test("Test Internal DF") {
+    dropInternalTable
+    insertInternalRows(10)
+    val df = splicemachineContext.internalDf(s"select * from $internalTN")
+    org.junit.Assert.assertEquals(
+      "DataFrame Changed!",
+      df2Col,
+      df.collect.map(r => s"[${r(0)},${r(1)}]").mkString(", ")
+    )
+  }
+
   val rdd2Col = "List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])"
 
   test("Test Get RDD") {
@@ -144,6 +168,13 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
     createCarTable
     org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    
+    org.junit.Assert.assertEquals(
+      s"Unexpected schema of $carSchemaTableName",
+      "List(NUMBER, INTEGER, 10, 0), List(MAKE, VARCHAR, 5000, null), List(MODEL, VARCHAR, 5000, null)",
+      splicemachineContext.columnInfo(carSchemaTableName).mkString(", ")
+    )
+    
     dropCarTable
   }
 
@@ -187,6 +218,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       schema+"."+name+" exists",
       splicemachineContext.tableExists(schema, name)
     )
+  }
+
+  test("Test Delete") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.delete(internalTNDF, internalTN)
+
+    org.junit.Assert.assertEquals("Delete Failed!", 0, rowCount(internalTN))
   }
 
   test("Test Insert") {
@@ -270,6 +310,72 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         }
       ).asInstanceOf[String]
     )
+  }
+
+  test("Test Upsert as Update") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.upsert(internalTNDF, internalTN)
+
+    checkTestRow("Upsert as Update")
+  }
+
+  def checkTestRow(testId: String): Unit =
+    org.junit.Assert.assertEquals(s"$testId Failed!",
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
+      executeQuery(
+        s"select * from $internalTN",
+        rs => {
+          rs.next
+          List(
+            rs.getBoolean(1),
+            rs.getString(2),
+            rs.getDate(3),
+            rs.getBigDecimal(4),
+            rs.getDouble(5),
+            rs.getInt(6),
+            rs.getInt(7),
+            rs.getFloat(8),
+            rs.getShort(9),
+            rs.getTime(10),
+            rs.getTimestamp(11),
+            rs.getString(12),
+            rs.getBigDecimal(13),
+            rs.getInt(14),
+            rs.getString(15),
+            rs.getFloat(16),
+            rs.getInt(17)
+          ).mkString(", ")
+        }
+      ).asInstanceOf[String]
+    )
+
+  test("Test Upsert as Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.upsert(internalTNDF, internalTN)
+
+    checkTestRow("Upsert as Insert")
+  }
+
+  test("Test MergeInto as Update") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Update")
+  }
+
+  test("Test MergeInto as Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Insert")
   }
 
   test("Test Inserting Null") {

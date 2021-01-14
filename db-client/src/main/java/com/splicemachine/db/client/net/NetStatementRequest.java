@@ -24,6 +24,7 @@
  */
 package com.splicemachine.db.client.net;
 
+import java.math.BigDecimal;
 import java.sql.*;
 
 import com.splicemachine.db.client.am.*;
@@ -142,7 +143,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 extdtaPositions_.clear();  // reset extdta column position markers
             }
 
-            boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
+            buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
                     new Object[]{inputs});
 
@@ -185,7 +186,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 extdtaPositions_.clear();  // reset extdta column position markers
             }
 
-            boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
+            buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
                     inputs);
 
@@ -229,7 +230,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
 
             // think about having this method return a boolean to
             // indicate the extdta should be built
-            boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
+            buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
                     new Object[]{inputs});
 
@@ -339,7 +340,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
 
             // think about having this method return a boolean to
             // indicate the extdta should be built
-            boolean overrideExists = buildSQLDTAcommandData(numParameters,
+            buildSQLDTAcommandData(numParameters,
                     parameterMetaData,
                     new Object[]{inputs});
 
@@ -701,6 +702,8 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                             : DRDAConstants.DRDA_TYPE_CLOBLOC;
                     lidAndLengths[i][1] = 4;
                     break;
+                default:
+                    break;
             }
         }
 
@@ -731,13 +734,13 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             // write data for each input column
             for (int i = 0; i < numVars; i++) {
                 if (inputs[i] == null) {
-                    if ((protocolTypesAndLengths[i][0] % 2) == 1) {
+                    if ((protocolTypesAndLengths[i][0] % 2) != 0) {
                         write1Byte(FdocaConstants.NULL_DATA);
                     } else {
                         //bug check
                     }
                 } else {
-                    if ((protocolTypesAndLengths[i][0] % 2) == 1) {
+                    if ((protocolTypesAndLengths[i][0] % 2) != 0) {
                         write1Byte(FdocaConstants.INDICATOR_NULLABLE);
                     }
 
@@ -791,6 +794,11 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         writeBigDecimal((java.math.BigDecimal) inputs[i],
                                 (protocolTypesAndLengths[i][1] >> 8) & 0xff, // described precision not actual
                                 protocolTypesAndLengths[i][1] & 0xff); // described scale, not actual
+                        break;
+                    case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                        writeBigDecimal((java.math.BigDecimal) inputs[i],
+                                        (protocolTypesAndLengths[i][1] >> 8) & 0xff, // described precision not actual
+                                        protocolTypesAndLengths[i][1] & 0xff); // described scale, not actual
                         break;
                     case DRDAConstants.DRDA_TYPE_NDATE:
                         // The value may be a Date if it comes from one of the
@@ -962,8 +970,8 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     default:
                         throw new SqlException(netAgent_.logWriter_, 
                             new ClientMessageId(SQLState.NET_UNRECOGNIZED_JDBC_TYPE),
-                               new Integer(protocolTypesAndLengths[i][0]),
-                               new Integer(numVars), new Integer(i));
+                                protocolTypesAndLengths[i][0],
+                                numVars, i);
                     }
                 }
             }
@@ -1176,7 +1184,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         if (promototedParameters_.isEmpty()) {
             return null;
         }
-        return promototedParameters_.get(new Integer(index));
+        return promototedParameters_.get(index);
     }
 
     private int calculateColumnsInSQLDTAGRPtriplet(int numVars) {
@@ -1225,7 +1233,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 if (jdbcType == 0) {
                     throw new SqlException(netAgent_.logWriter_, 
                         new ClientMessageId(SQLState.NET_INVALID_JDBC_TYPE_FOR_PARAM),
-                        new Integer(i));
+                            i);
                 }
 
                 switch (jdbcType) {
@@ -1251,7 +1259,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                             // inputRow[i] = c;
                             // Place the new Lob in the promototedParameter_ collection for
                             // NetStatementRequest use
-                            promototedParameters_.put(new Integer(i), c);
+                            promototedParameters_.put(i, c);
                             
                             lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NLOBCMIXED;
 
@@ -1294,8 +1302,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         lidAndLengths[i][1] = 2;
                         if (inputRow[i] instanceof Boolean) {
                             Boolean bool = (Boolean) inputRow[i];
-                            inputRow[i] = new Short(
-                                    bool.booleanValue() ? (short) 1 : 0);
+                            inputRow[i] = bool ? (short) 1 : 0;
                         }
                     }
                     break;
@@ -1321,37 +1328,12 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     break;
                 case java.sql.Types.NUMERIC:
                 case java.sql.Types.DECIMAL:
-                    // lid: PROTOCOL_TYPE_NDECIMAL
-                    // dataFormat: java.math.BigDecimal
-                    // if null - guess with precision 1, scale 0
-                    // if not null - get scale from data and calculate maximum precision.
-                    // DERBY-2073. Get scale and precision from data so we don't lose fractional digits.
-                    java.math.BigDecimal bigDecimal = (java.math.BigDecimal) inputRow[i];
-                    int scale;
-                    int precision;
-                    
-                    if (bigDecimal == null)
-                    {
-                        scale = 0;
-                        precision = 1;
-                    }
-                    else
-                    {
-                        // adjust scale if it is negative. Packed Decimal cannot handle 
-                        // negative scale. We don't want to change the original 
-                        // object so make a new one.
-                        if (bigDecimal.scale() < 0) 
-                        {
-                            bigDecimal =  bigDecimal.setScale(0);
-                            inputRow[i] = bigDecimal;
-                        }                        
-                        scale = bigDecimal.scale();
-                        precision = Utils.computeBigDecimalPrecision(bigDecimal);
-                    }                    
                     lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NDECIMAL;
-                    lidAndLengths[i][1] = (precision << 8) + // use precision above
-                        (scale << 0);
-                    
+                    lidAndLengths[i][1] = packPrecisionAndScale(inputRow, i);
+                    break;
+                case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                    lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NDECFLOAT;
+                    lidAndLengths[i][1] = packPrecisionAndScale(inputRow, i);
                     break;
                 case java.sql.Types.DATE:
                     // for input, output, and inout parameters
@@ -1399,7 +1381,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                             // inputRow[i] = c;
                             // Place the new Lob in the promototedParameter_ collection for
                             // NetStatementRequest use
-                            promototedParameters_.put(new Integer(i), c);
+                            promototedParameters_.put(i, c);
 
                             lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NLOBCMIXED;
                             lidAndLengths[i][1] = buildPlaceholderLength(c.length());
@@ -1426,7 +1408,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         // inputRow[i] = b;
                         // Place the new Lob in the promototedParameter_ collection for
                         // NetStatementRequest use
-                        promototedParameters_.put(new Integer(i), b);
+                        promototedParameters_.put(i, b);
 
                         lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NLOBBYTES;
                         lidAndLengths[i][1] = buildPlaceholderLength(ba.length);
@@ -1447,7 +1429,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         // inputRow[i] = b;
                         // Place the new Lob in the promototedParameter_ collection for
                         // NetStatementRequest use
-                        promototedParameters_.put(new Integer(i), b);
+                        promototedParameters_.put(i, b);
 
                         lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NLOBBYTES;
                         lidAndLengths[i][1] = buildPlaceholderLength(ba.length);
@@ -1501,7 +1483,6 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     break;
                 case java.sql.Types.CLOB:
                     {
-                        // use columnMeta.singleMixedByteOrDouble_ to decide protocolType
                         java.sql.Clob c = (java.sql.Clob) inputRow[i];
                         boolean isExternalClob = !(c instanceof com.splicemachine.db.client.am.Clob);
                         long lobLength = 0;
@@ -1598,7 +1579,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 default :
                     throw new SqlException(netAgent_.logWriter_, 
                         new ClientMessageId(SQLState.UNRECOGNIZED_JAVA_SQL_TYPE),
-                        new Integer(jdbcType));
+                            jdbcType);
                 }
 
                 if (!parameterMetaData.nullable_[i]) {
@@ -1611,6 +1592,35 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         {
             throw new SqlException(se);
         }
+    }
+
+    private int packPrecisionAndScale(Object[] inputRow, int index) {
+        // lid: PROTOCOL_TYPE_NDECIMAL
+        // dataFormat: java.math.BigDecimal
+        // if null - guess with precision 1, scale 0
+        // if not null - get scale from data and calculate maximum precision.
+        // DERBY-2073. Get scale and precision from data so we don't lose fractional digits.
+        java.math.BigDecimal bigDecimal = (java.math.BigDecimal) inputRow[index];
+        int scale;
+        int precision;
+
+        if (bigDecimal == null) {
+            scale = 0;
+            precision = 1;
+        } else {
+            // adjust scale if it is negative. Packed Decimal cannot handle
+            // negative scale. We don't want to change the original
+            // object so make a new one.
+            if (bigDecimal.scale() < 0) {
+                bigDecimal = bigDecimal.setScale(0);
+                inputRow[index] = bigDecimal;
+            }
+            scale = bigDecimal.scale();
+            precision = Utils.computeBigDecimalPrecision(bigDecimal);
+        }
+        return (precision << 8) + // use precision above
+                scale;
+
     }
 
     private int buildPlaceholderLength(long totalLength) {
@@ -1700,7 +1710,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         if ((prcnamLength == 0) || (prcnamLength > 255)) {
             throw new SqlException(netAgent_.logWriter_, 
                 new ClientMessageId(SQLState.NET_PROCEDURE_NAME_LENGTH_OUT_OF_RANGE),
-                new Integer(prcnamLength), new Integer(255));
+                    prcnamLength, 255);
         }
 
         writeScalarString(CodePoint.PRCNAM, prcnam);
@@ -1854,18 +1864,19 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             if (extdtaPositions_ == null) {
                 extdtaPositions_ = new java.util.ArrayList();
             }
-            extdtaPositions_.add(new Integer(i));
+            extdtaPositions_.add(i);
         }
     }
     
     private void setFDODTALobLengthUnknown(int i) throws SqlException {
         short v = 1;
-        writeShort( v <<= 15 );
+        v <<= 15;
+        writeShort(v);
         if (extdtaPositions_ == null) {
             extdtaPositions_ = new java.util.ArrayList();
         }
         
-        extdtaPositions_.add(new Integer(i));
+        extdtaPositions_.add(i);
     }
 
     private boolean checkSendQryrowset(int fetchSize,

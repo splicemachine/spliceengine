@@ -60,22 +60,22 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
-    public Txn getTransaction(long txnId) throws IOException{
+    public TxnView getTransaction(long txnId) throws IOException{
         long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
         TxnHolder txn=txnMap.get(beginTS);
         if(txn==null) return null;
 
         if(isTimedOut(txn))
-            return getRolledbackTxn(txn.txn);
+            return getRolledbackTxn((Txn) txn.txn);
         if(subId == 0) return txn.txn;
-        else if (txn.txn.getRolledback().contains(subId))
-            return getRolledbackTxn(txn.txn);
+        else if (((Txn)txn.txn).getRolledback().contains(subId))
+            return getRolledbackTxn((Txn) txn.txn);
         else return txn.txn;
     }
 
     @Override
-    public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+    public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
         return getTransaction(txnId);
     }
 
@@ -87,11 +87,11 @@ public class TestingTxnStore implements TxnStore{
 
     @Override
     public void cache(TxnView toCache){
-
+        txnMap.put(toCache.getTxnId(), new TxnHolder(toCache, Long.MAX_VALUE));
     }
 
     @Override
-    public Txn getTransactionFromCache(long txnId){
+    public TxnView getTransactionFromCache(long txnId){
         try{
             return getTransaction(txnId);
         }catch(IOException e){
@@ -136,7 +136,7 @@ public class TestingTxnStore implements TxnStore{
         TxnHolder txnHolder=txnMap.get(txnId);
         if(txnHolder==null) return; //no transaction exists
 
-        Txn txn=txnHolder.txn;
+        Txn txn= (Txn) txnHolder.txn;
 
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
@@ -160,7 +160,7 @@ public class TestingTxnStore implements TxnStore{
         TxnHolder txnHolder=txnMap.get(beginTS);
         if(txnHolder==null) return; //no transaction exists
 
-        Txn txn=txnHolder.txn;
+        Txn txn= (Txn) txnHolder.txn;
 
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
@@ -195,7 +195,7 @@ public class TestingTxnStore implements TxnStore{
         TxnHolder txnHolder=txnMap.get(txnId);
         if(txnHolder==null) throw new IOException("Cannot commit txn "+txnId);
 
-        final Txn txn=txnHolder.txn;
+        final Txn txn= (Txn) txnHolder.txn;
         if(txn.getEffectiveState()==Txn.State.ROLLEDBACK)
             throw new IOException("Cannot commit txn "+txnId+", state is "+Txn.State.ROLLEDBACK);
         if(isTimedOut(txnHolder))
@@ -252,7 +252,7 @@ public class TestingTxnStore implements TxnStore{
         TxnHolder holder=txnMap.get(txnId);
         if(holder==null) return false;
 
-        Txn txn=holder.txn;
+        TxnView txn=holder.txn;
         if(txn.getState()!=Txn.State.ACTIVE)
             return false; //don't keep keepAlives going if the transaction is finished
         if(isTimedOut(holder))
@@ -299,7 +299,7 @@ public class TestingTxnStore implements TxnStore{
         List<TxnView> txns= Lists.newArrayListWithExpectedSize(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
-            Txn value=txnEntry.getValue().txn;
+            TxnView value=txnEntry.getValue().txn;
             if(value.getEffectiveState()==Txn.State.ACTIVE
                     && value.getTxnId()<=maxTxnId
                     && value.getTxnId()>=minTxnid)
@@ -369,7 +369,7 @@ public class TestingTxnStore implements TxnStore{
         LongArrayList activeTxns=new LongArrayList(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
-            Txn value=txnEntry.getValue().txn;
+            TxnView value=txnEntry.getValue().txn;
             if(value.getEffectiveState()==Txn.State.ACTIVE
                     && value.getTxnId()<=maxId
                     && value.getTxnId()>=minTimestamp)
@@ -382,7 +382,7 @@ public class TestingTxnStore implements TxnStore{
         LongArrayList activeTxns=new LongArrayList(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
-            Txn value=txnEntry.getValue().txn;
+            TxnView value=txnEntry.getValue().txn;
             if(value.getEffectiveState()==Txn.State.ACTIVE && value.getTxnId()<=maxId && value.getTxnId()>=minTimestamp){
                 Iterator<ByteSlice> destinationTables=value.getDestinationTables();
                 while(destinationTables.hasNext()){
@@ -400,10 +400,10 @@ public class TestingTxnStore implements TxnStore{
     }
 
     private static class TxnHolder{
-        private volatile Txn txn;
+        private volatile TxnView txn;
         private volatile long keepAliveTs;
 
-        private TxnHolder(Txn txn,long keepAliveTs){
+        private TxnHolder(TxnView txn,long keepAliveTs){
             this.txn=txn;
             this.keepAliveTs=keepAliveTs;
         }

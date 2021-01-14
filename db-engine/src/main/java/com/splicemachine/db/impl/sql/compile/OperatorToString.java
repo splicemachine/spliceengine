@@ -153,6 +153,10 @@ public class OperatorToString {
      * references indicating column names in the source DataFrame.
      */
     public static String opToSparkString(ValueNode operand) throws StandardException {
+        if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
+            return "";
+        }
+
         String retval = "";
 
         // Do not throw any errors encountered.  An error condition
@@ -168,7 +172,7 @@ public class OperatorToString {
 
         }
         catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
+            if (!e.getSQLState().equals(SQLState.LANG_DOES_NOT_IMPLEMENT))
                 throw e;
         }
         return retval;
@@ -216,6 +220,7 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
+    // TODO(arnaud) add decfloat there
     private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
 
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
@@ -238,6 +243,7 @@ public class OperatorToString {
                 typeFormatId == INT_TYPE_ID      ||
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
+                typeFormatId == DECFLOAT_TYPE_ID ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
                 typeFormatId == REAL_TYPE_ID);
     }
@@ -245,6 +251,7 @@ public class OperatorToString {
     private static boolean isOverflowSensitive(ValueNode operand) throws StandardException {
         return (operand.getTypeId().getTypeFormatId() == LONGINT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                operand.getTypeId().getTypeFormatId() == DECFLOAT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DOUBLE_TYPE_ID);
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,
@@ -321,7 +328,10 @@ public class OperatorToString {
                     if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
                     } else if (functionName.equals("WEEKDAY")) {
-                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                        if( getSparkVersion().getMajorVersionNumber() >= 3 )
+                            return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
+                        else
+                            return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
                     } else if (functionName.equals("WEEKDAYNAME")) {
                         return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
                     } else {
@@ -526,7 +536,7 @@ public class OperatorToString {
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
                         // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
-                        if (!(bao.getOperatorString() == "-" &&
+                        if (!(bao.getOperatorString().equals("-") &&
                                 leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
                             doCast = true;
                             targetType = bao.getTypeServices().toSparkString();
@@ -672,23 +682,26 @@ public class OperatorToString {
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
                     vars.relationalOpDepth.increment();
-                    if (top.getOperator().equals("LOCATE") ||
-                        top.getOperator().equals("replace") ||
-                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
-
+                    if (top.getOperator().equals("LOCATE") || top.getOperator().equals("replace")) {
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
                     } else if (top.getOperator().equals("substring")) {
-                        assert top.getRightOperand() == null;
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
-                                opToString2(top.getLeftOperand(), vars));
+                        String retval = format("%s(%s, %s %s)",
+                                top.getOperator(),
+                                opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars),
+                                top.getRightOperand() == null ? "" : ", " + opToString2(top.getRightOperand(), vars));
+                        if (top.getRightOperand() != null) {
+                            retval = format("RPAD(%s, %s, ' ')",
+                                    retval,
+                                    opToString2(top.getRightOperand(), vars));
+                        }
                         vars.relationalOpDepth.decrement();
                         return retval;
-
                     } else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
@@ -892,6 +905,13 @@ public class OperatorToString {
                 int typeFormatId = operand.getTypeId().getTypeFormatId();
                 if (!sparkSupportedType(typeFormatId, operand))
                     throwNotImplementedError();
+                if (operand.getTypeId().isCharOrVarChar()) {
+                    // Disallow cast to a string type for possible problematic cases.
+                    // CHAR and VARCHAR are mapped to the same String type in spark sql,
+                    // so char('', 2) and varchar('', 2) are resolved to the same type, with lenght 0
+                    // varchar('abc', 1) and char('abc', 1) don't truncate strings properly either
+                    throwNotImplementedError();
+                }
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
                 SparkExpressionNode childExpression = vars.sparkExpressionTree;
@@ -945,7 +965,13 @@ public class OperatorToString {
                 ValueNode vn = (ValueNode)ob;
                 if (i > 0)
                     sb.append(", ");
-                sb.append(format("%s", opToString2(vn, vars)));
+                if (operand.getTypeServices().equals(vn.getTypeServices())) {
+                    sb.append(opToString2(vn, vars));
+                } else {
+                    sb.append(format("cast(%s as %s)",
+                            opToString2(vn, vars),
+                            operand.getTypeServices().toSparkString()));
+                }
                 i++;
             }
             sb.append(") ");

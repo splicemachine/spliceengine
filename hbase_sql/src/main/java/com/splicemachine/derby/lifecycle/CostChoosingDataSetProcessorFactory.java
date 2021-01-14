@@ -59,9 +59,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     @Override
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
-        if(! allowsDistributedExecution()
-                || op instanceof NoRowsOperation
-                || op instanceof ConstantAction){
+        if(! allowsDistributedExecution() || (op != null && op.isControlOnly()) || op instanceof ConstantAction){
             /*
              * We can't run in distributed mode because of something that the engine decided that,
              * for whatever reason, it's not available at the moment, so we have to use
@@ -73,10 +71,10 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         }
         // If we've already committed to running on spark, due to running a substatement
         // of a statement chosen to run on spark, or for some other reason, stick with the decision.
-        if (op.isOlapServer())
+        if (op != null && op.isOlapServer())
             return new SparkDataSetProcessor();
 
-        if (((BaseActivation)activation).datasetProcessorType().isSpark()) {
+        if (((BaseActivation)activation).datasetProcessorType().isOlap()) {
             return new SparkDataSetProcessor();
         } else {
             return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());

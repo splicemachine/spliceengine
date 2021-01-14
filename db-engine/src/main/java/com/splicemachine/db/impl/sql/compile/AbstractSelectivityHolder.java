@@ -39,11 +39,15 @@ package com.splicemachine.db.impl.sql.compile;
 public abstract class AbstractSelectivityHolder implements SelectivityHolder {
     protected QualifierPhase phase;
     protected int colNum;
+    protected boolean useExprIndexStats;
     protected double selectivity = -1.0d;
+    protected Predicate p;
 
-    public AbstractSelectivityHolder(int colNum, QualifierPhase phase) {
+    public AbstractSelectivityHolder(boolean useExprIndexStats, int colNum, QualifierPhase phase, Predicate pred) {
         this.phase = phase;
         this.colNum = colNum;
+        this.useExprIndexStats = useExprIndexStats;
+        this.p = pred;
     }
     public int getColNum () {
         return colNum;
@@ -63,5 +67,13 @@ public abstract class AbstractSelectivityHolder implements SelectivityHolder {
         } catch (Exception e) {
             throw new RuntimeException("selectivity holder comparison failed",e);
         }
+    }
+
+    @Override
+    public int getNumReferencedTables() {
+        if (p == null)
+            return 0;
+        else
+            return p.getNumReferencedTables();
     }
 }

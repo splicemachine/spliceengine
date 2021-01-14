@@ -33,16 +33,24 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.loader.ClassFactoryContext;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This will be the Level 1 Optimizer.
@@ -76,6 +84,7 @@ public class OptimizerImpl implements Optimizer{
     private static final int JUMPING=2;
     private static final int WALK_HIGH=3;
     private static final int WALK_LOW=4;
+    private static final int PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND = 2000;
     protected DataDictionary dDictionary;
     /* The number of tables in the query as a whole.  (Size of bit maps.) */
     protected final int numTablesInQuery;
@@ -102,6 +111,11 @@ public class OptimizerImpl implements Optimizer{
     CostEstimate currentCost;
     CostEstimate currentSortAvoidanceCost;
     CostEstimate bestCost;
+
+    // The table or "optimizable" number that represents the last join
+    // in the join permutation having "bestCost" as marked in the
+    // variable above.
+    int bestCostOptimizableNumber;
 
     long timeOptimizationStarted;
     boolean timeExceeded;
@@ -940,7 +954,7 @@ public class OptimizerImpl implements Optimizer{
                     } else {
                         //reset the sort cost
                         sortCost.setLocalCost(Double.MAX_VALUE);
-                        sortCost.setLocalCostPerPartition(Double.MAX_VALUE);
+                        sortCost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                     }
                     /* requiredRowOrdering records if the bestCost so far is
                      * sort-needed or not, as done in rememberBestCost.  If
@@ -992,9 +1006,16 @@ public class OptimizerImpl implements Optimizer{
                 ** we can't really tell much by comparing the two, so for lack
                 ** of better alternative we look at the row counts.  See
                 ** CostEstimateImpl.compare() for more.
+                *
+                *  If the current access path's join strategy is null, that
+                *  means we just found a hinted join, so remember it as
+                *  our best if the previous best join permutation was not
+                *  a hinted join.
                 */
-                if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized()){
-                    rememberBestCost(currentCost,Optimizer.NORMAL_PLAN);
+                if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized() ||
+                    (curOpt.getCurrentAccessPath().getJoinStrategy() == null &&
+                     !optimizableList.getOptimizable(bestCostOptimizableNumber).getTrulyTheBestAccessPath().isHintedJoinStrategy())){
+                    rememberBestCost(currentCost, Optimizer.NORMAL_PLAN, proposedJoinOrder[joinPosition]);
 
                     // Since we just remembered all of the best plans,
                     // no need to reload them when pulling Optimizables
@@ -1014,7 +1035,7 @@ public class OptimizerImpl implements Optimizer{
                         tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0);
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
-                            rememberBestCost(currentSortAvoidanceCost, Optimizer.SORT_AVOIDANCE_PLAN);
+                            rememberBestCost(currentSortAvoidanceCost, Optimizer.SORT_AVOIDANCE_PLAN, proposedJoinOrder[joinPosition]);
                         }
                     }
                 }
@@ -1072,12 +1093,20 @@ public class OptimizerImpl implements Optimizer{
 
         Optimizable optimizable=optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
 
-        /*
-        ** Don't consider non-feasible join strategies.
-        */
-        if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
-            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
-            return;
+        /* We need to run isIndexUseful for all predicates on the
+         * current conglomerate, no matter if they are useful or not,
+         * to set flags of index expressions referencing optimizable
+         * properly so that utility methods relying on them can work.
+         * Note that not all predicates are in predicateList, some
+         * may have been pushed down to optimizable.
+         */
+        ConglomerateDescriptor currentCd = optimizable.getCurrentAccessPath().getConglomerateDescriptor();
+        IndexRowGenerator irg = currentCd == null ? null : currentCd.getIndexDescriptor();
+        if (irg != null && irg.isOnExpression()) {
+            for (int i = 0; i < predicateList.size(); i++) {
+                PredicateList.isIndexUseful((Predicate) predicateList.getOptPredicate(i), optimizable,
+                        false, false, currentCd);
+            }
         }
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
@@ -1089,6 +1118,15 @@ public class OptimizerImpl implements Optimizer{
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
         }
+
+        /*
+        ** Don't consider non-feasible join strategies.
+        */
+        if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
+            return;
+        }
+
         /* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this, predicateList, outerCost, currentRowOrdering);
         /* reset the OuterJoin flag so that we can cost correctly if the outer optimizable later joins with
@@ -1560,12 +1598,13 @@ public class OptimizerImpl implements Optimizer{
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
-        destCost.setRemoteCostPerPartition(addend.getRemoteCostPerPartition());
-        destCost.setLocalCostPerPartition(destCost.getLocalCostPerPartition()+addend.getLocalCostPerPartition());
+        destCost.setRemoteCostPerParallelTask(addend.getRemoteCostPerParallelTask());
+        destCost.setLocalCostPerParallelTask(destCost.getLocalCostPerParallelTask()+addend.getLocalCostPerParallelTask());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
         destCost.setNumPartitions(addend.partitionCount());
+        destCost.setParallelism(addend.getParallelism());
         destCost.setOpenCost(addend.getOpenCost());
         destCost.setCloseCost(addend.getCloseCost());
     }
@@ -1591,14 +1630,14 @@ public class OptimizerImpl implements Optimizer{
         }
         currentCost.setCost(0.0d,0.0d,0.0d);
         currentCost.setRemoteCost(0.0d);
-        currentCost.setRemoteCostPerPartition(0.0d);
+        currentCost.setRemoteCostPerParallelTask(0.0d);
         currentCost.setBase(null);
         currentCost.setRowOrdering(null);
 
 
         currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
         currentSortAvoidanceCost.setRemoteCost(0.0d);
-        currentSortAvoidanceCost.setRemoteCostPerPartition(0.0d);
+        currentSortAvoidanceCost.setRemoteCostPerParallelTask(0.0d);
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
@@ -1984,9 +2023,9 @@ public class OptimizerImpl implements Optimizer{
             CostEstimate currentAccumulatedCost = pullMe.getAccumulatedCost();
             if (currentAccumulatedCost != null) {
                 currentAccumulatedCost.setLocalCost(Double.MAX_VALUE);
-                currentAccumulatedCost.setLocalCostPerPartition(Double.MAX_VALUE);
+                currentAccumulatedCost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                 currentAccumulatedCost.setRemoteCost(Double.MAX_VALUE);
-                currentAccumulatedCost.setRemoteCostPerPartition(Double.MAX_VALUE);
+                currentAccumulatedCost.setRemoteCostPerParallelTask(Double.MAX_VALUE);
             }
         }
 
@@ -2019,9 +2058,9 @@ public class OptimizerImpl implements Optimizer{
                     CostEstimate currentAccumulatedSACost = pullMe.getAccumulatedCostforSortAvoidancePlan();
                     if (currentAccumulatedSACost != null) {
                         currentAccumulatedSACost.setLocalCost(Double.MAX_VALUE);
-                        currentAccumulatedSACost.setLocalCostPerPartition(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                         currentAccumulatedSACost.setRemoteCost(Double.MAX_VALUE);
-                        currentAccumulatedSACost.setRemoteCostPerPartition(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setRemoteCostPerParallelTask(Double.MAX_VALUE);
                     }
                 }
                 currentSortAvoidanceCost.setBase(null);
@@ -2113,6 +2152,15 @@ public class OptimizerImpl implements Optimizer{
         assignedTableMap.xor(pullMe.getReferencedTableMap());
     }
 
+    private boolean isPreparedStatement() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext) ContextService.
+                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null || lcc.getActivationCount() < 1)
+            return false;
+        return lcc.getLastActivation().getPreparedStatement() != null;
+    }
+
     /**
      * Is the cost of this join order lower than the best one we've
      * found so far?  If so, remember it.
@@ -2123,7 +2171,7 @@ public class OptimizerImpl implements Optimizer{
      *
      * @throws StandardException Thrown on error
      */
-    private void rememberBestCost(CostEstimate currentCost,int planType) throws StandardException{
+    private void rememberBestCost(CostEstimate currentCost,int planType, int optimizableNumber) throws StandardException{
         foundABestPlan=true;
 
         OptimizerTrace tracer = tracer();
@@ -2133,8 +2181,11 @@ public class OptimizerImpl implements Optimizer{
             tracer.trace(OptimizerFlag.COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0);
         }
 
-        /* Remember the current cost as best */
+        /* Remember the current cost as best... */
         bestCost.setCost(currentCost);
+
+        /* ... and the inner table of the last join in this join permutation. */
+        bestCostOptimizableNumber = optimizableNumber;
 
         // Our time limit for optimizing this round is the time we think
         // it will take us to execute the best join order that we've
@@ -2157,6 +2208,18 @@ public class OptimizerImpl implements Optimizer{
         // Consider consolidating all these into nanoseconds in the future.
         if((bestCost.getEstimatedCost()/NANOS_TO_MILLIS)<timeLimit) {
             timeLimit=bestCost.getEstimatedCost()/NANOS_TO_MILLIS;
+
+            // Triggers and other prepared statements may have a very low
+            // cost estimate because the size of the involved trigger rows
+            // is not known up-front.  We don't want to quit query compilation
+            // early, resulting in a bad query plan or a plan which fails to
+            // pick up query hints, especially since the
+            // prepared statement does not need to be compiled on every
+            // invocation, just once in a while.  So, it is time well
+            // spent if it means we can compile a more optimal plan.
+            if (timeLimit < PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND &&
+                isPreparedStatement())
+                timeLimit = PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND;
         }
 
         /*

@@ -313,11 +313,19 @@ public abstract class ConstantNode extends ValueNode
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return 31 * getBaseHashCode() + (value == null ? 0 : value.hashCode());
     }
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
         return true;
+    }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) { return true; }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return getValue();
     }
 }

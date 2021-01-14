@@ -26,8 +26,10 @@
 package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.client.am.FailedProperties40;
+import com.splicemachine.db.client.am.InterruptionToken;
 import com.splicemachine.db.client.am.SQLExceptionFactory;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -35,7 +37,9 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnection {
     /**
@@ -259,18 +263,19 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
     }
 
     /**
-     * <code>setClientInfo</code> will throw a
-     * <code>SQLClientInfoException</code> uless the <code>properties</code>
-     * paramenter is empty, since Derby does not support any
-     * properties. All the property keys in the
+     * <code>setClientInfo</code> will check if the properties match any of
+     * "ApplicationName", "ClientUser", or "ClientHostname".
+     * All unrecognized property keys in the
      * <code>properties</code> parameter are added to failedProperties
      * of the exception thrown, with REASON_UNKNOWN_PROPERTY as the
-     * value. 
+     * value unless the envorinment variable SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES
+     * is set to true, in that case, unrecognized properties will be ignored.
      *
      * @param properties a <code>Properties</code> object with the
      * properties to set.
-     * @exception SQLClientInfoException unless the properties
-     * parameter is null or empty.
+     * @exception SQLClientInfoException if any property is not recognized unless
+     * the envorinment variable SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES
+     * is set to true
      */
     public void setClientInfo(Properties properties)
     throws SQLClientInfoException {
@@ -282,7 +287,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
 	    		fp.getProperties());
 	}
 
-	if (!fp.isEmpty()) {
+	if (!fp.isEmpty() && !igoreUnsupportedProperties()) {
         SqlException se = new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.PROPERTY_UNSUPPORTED_CHANGE),
                 fp.getFirstKey(), fp.getFirstValue());
@@ -426,15 +431,40 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         //
         // Now pass the Executor a Runnable which does the real work.
         //
-        executor.execute
-            (
-                    () -> {
-                        try {
-                            rollback();
-                            close();
-                        } catch (SQLException se) { se.printStackTrace( agent_.getLogWriter() ); }
+        CountDownLatch latch = new CountDownLatch(1);
+        executor.execute(() -> {
+            try {
+                rollback();
+                close();
+                // let the other task know we were able to close gracefully
+                latch.countDown();
+            } catch (SQLException se) {
+                se.printStackTrace(agent_.getLogWriter());
+            }
+        });
+        executor.execute(() -> {
+            try {
+                if (!latch.await(10, TimeUnit.SECONDS)) {
+                    // Couldn't close gracefully, let's close abruptly
+                    byte[] token = getInterruptToken();
+                    if (token != null) {
+                        InterruptionToken it = new InterruptionToken(token);
+                        ClientConnection sideConnection = getSideConnection();
+                        try (java.sql.PreparedStatement ps = sideConnection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION(?)")) {
+                            ps.setString(1, it.toString());
+                            ps.execute();
+                        }
+                        // try closing again
+                        close();
+                    } else {
+                        // we don't have the token, just close the socket
+                        agent_.close();
                     }
-            );
+                }
+            } catch (InterruptedException | SqlException | SQLException e) {
+                // ignore
+            }
+        });
     }
 
     public int getNetworkTimeout() throws SQLException
@@ -477,5 +507,10 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
             }
         }
         return badProperties;
+    }
+
+    private boolean igoreUnsupportedProperties() {
+        String value = System.getenv("SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES");
+        return value != null && value.toUpperCase().equals("TRUE");
     }
 }

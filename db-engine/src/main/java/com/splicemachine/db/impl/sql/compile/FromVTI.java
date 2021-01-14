@@ -35,21 +35,32 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.GenericStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.vti.*;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -57,7 +68,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_OBJECT_DOES_NOT_EXIST;
 
 /**
  * A FromVTI represents a VTI in the FROM list of a DML statement.
@@ -115,14 +130,40 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private Restriction vtiRestriction; // for RestrictedVTIs
     private TypeDescriptor typeDescriptor;
 
+    private DMLModStatementNode fromTableDMLStmt;
+    private CreateTriggerNode tempTriggerDefinition;
+    private String tempTriggerSQLText;
+    private String tempTriggerName;
+    private Vector<ParameterNode> fromTableParameterList;
+
     /**
      * @param invocation        The constructor or static method for the VTI
      * @param correlationName    The correlation name
      * @param derivedRCL        The derived column list
      * @param tableProperties    Properties list associated with the table
-     *
+     * @param fromTableParameterList  Parameterized FROM TABLE statement, list of parameters.
+     * @param forFromTable       If processing a FROM TABLE statement, this is a Boolean true.
      * @exception StandardException        Thrown on error
      */
+    public void init(
+            Object invocation,
+            Object correlationName,
+            Object derivedRCL,
+            Object tableProperties,
+            Object typeDescriptor,
+            Object fromTableParameterList,
+            Object forFromTable)
+            throws StandardException
+    {
+        this.fromTableParameterList = (Vector) fromTableParameterList;
+        init( invocation,
+                correlationName,
+                derivedRCL,
+                tableProperties,
+                makeTableName(null, (String) correlationName),
+                typeDescriptor);
+    }
+
     public void init(
             Object invocation,
             Object correlationName,
@@ -251,8 +292,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 costEstimate.setSingleScanRowCount(estimatedRowCount);
                 costEstimate.setLocalCost(estimatedCost);
                 costEstimate.setRemoteCost(estimatedCost);
-                costEstimate.setLocalCostPerPartition(estimatedCost, costEstimate.partitionCount());
-                costEstimate.setRemoteCostPerPartition(estimatedCost, costEstimate.partitionCount());
+                costEstimate.setLocalCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
+                costEstimate.setRemoteCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
 
             }
             catch (SQLException sqle)
@@ -494,6 +535,120 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         return methodCall.getJavaClassName();
     } // end of getVTIName
 
+
+    TriggerExecutionContext
+    getNewTriggerExecutionContext(LanguageConnectionContext lcc, String statementText, TriggerInfo triggerInfo, UUID tableId,
+                                  String targetTableName, FormatableBitSet heapList, SPSDescriptor fromTableDmlSpsDescriptor)  throws StandardException {
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
+        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(
+              (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID),
+              statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+              tableId, targetTableName, null, heapList, false, fromTableDmlSpsDescriptor);
+
+        return tec;
+    }
+
+    TriggerExecutionContext
+    createTemporaryTrigger(String tempTriggerName,
+                           DMLModStatementNode fromTableDMLStmt,
+                           CreateTriggerNode tempTriggerDefinition) throws StandardException {
+        java.util.UUID uuid = java.util.UUID.randomUUID();
+        String spsName = "TRIG_" + uuid.toString();
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        DataDictionary dd = getLanguageConnectionContext().getDataDictionary();
+        SchemaDescriptor sd = lcc.getDefaultSchema();
+        UUID tmpTriggerId = dd.getUUIDFactory().createUUID();
+        TriggerEventDML eventMask;
+        TableDescriptor targetTableDescriptor = tempTriggerDefinition.getTriggerTableDescriptor();
+
+        if (fromTableDMLStmt instanceof InsertNode)
+            eventMask = TriggerEventDML.INSERT;
+        else if (fromTableDMLStmt instanceof UpdateNode)
+            eventMask = TriggerEventDML.UPDATE;
+        else if (fromTableDMLStmt instanceof DeleteNode)
+            eventMask = TriggerEventDML.DELETE;
+        else
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                   "Unable to process DML clause of internal trigger.");
+
+        SPSDescriptor spsd =
+            new SPSDescriptor(dd, spsName,
+                              tmpTriggerId,
+                              sd.getUUID(),
+                              sd.getUUID(),
+                              SPSDescriptor.SPS_TYPE_REGULAR,
+                              true,        // it is valid
+                              "values 1",  // A quick-running dummy statement.
+                              true);       // no defaults
+
+        if (tempTriggerDefinition.isFinalTable()) {
+            spsd.setFinalTableConglomID(tempTriggerDefinition.getTriggerTableDescriptor().getHeapConglomerateId());
+        }
+        try {
+            // Set a flag so we can bypass pushing of a new
+            // writable transaction.  That only is applicable
+            // if we're writing to the data dictionary.
+            lcc.setCompilingFromTableTempTrigger(true);
+            spsd.prepareAndRelease(lcc, null);
+        }
+        finally {
+            lcc.setCompilingFromTableTempTrigger(false);
+        }
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        List<UUID> actionSPSIdList = new ArrayList<>();
+        actionSPSIdList.add(tmpTriggerId);
+
+        TriggerReferencingStruct refClause = tempTriggerDefinition.getRefClause().get(0);
+        TriggerDescriptorV4 triggerd =
+            (TriggerDescriptorV4)
+                ddg.newTriggerDescriptor(
+                        sd,
+                        tmpTriggerId,
+                        tempTriggerName,
+                        eventMask,
+                        tempTriggerDefinition.isBefore(),
+                        tempTriggerDefinition.isRow(),
+                        tempTriggerDefinition.isEnabled(),
+                        tempTriggerDefinition.getTriggerTableDescriptor(),
+                        null,
+                        actionSPSIdList,
+                        new Timestamp(System.currentTimeMillis()),
+                        tempTriggerDefinition.getReferencedCols(),
+                        tempTriggerDefinition.getReferencedColsInTriggerAction(),
+                        tempTriggerDefinition.getOriginalActionTextList(),
+                        !refClause.isNew(),
+                        refClause.isNew(),
+                        !refClause.isNew() ? refClause.getIdentifier() : null,
+                        refClause.isNew() ? refClause.getIdentifier() : null,
+                        tempTriggerDefinition.getOriginalWhenText());
+
+        triggerd.setSpecialFromTableTrigger(true);
+        GenericDescriptorList<TriggerDescriptor> triggerList = new GenericDescriptorList<>();
+        triggerList.add(triggerd);
+
+        TriggerInfo triggerInfo = new TriggerInfo(targetTableDescriptor, null, triggerList);
+        // A special location to hold the temporary trigger descriptor
+        // so we don't muck around with the dictionary cache.
+        TriggerReferencingStruct.fromTableTriggerDescriptor.set(triggerd);
+
+        TriggerExecutionContext tec =
+        getNewTriggerExecutionContext(lcc, triggerd.getTriggerDefinition(0), triggerInfo, targetTableDescriptor.getUUID(),
+                                      targetTableDescriptor.getName(),
+                                      null, spsd);
+        ExecPreparedStatement ps;
+        ps = spsd.getPreparedStatement();
+        ps.setValid();
+
+        // A special location to hold the temporary SPS descriptor
+        // so we don't muck around with the dictionary cache.
+        TriggerReferencingStruct.fromTableTriggerSPSDescriptor.set(spsd);
+
+        // Need to make the new TEC accessible to the outer query
+        // so it knows where to find the NEW table trigger rows.
+        lcc.pushTriggerExecutionContext(tec);
+        return tec;
+    }
+
     /**
      * Bind this VTI that appears in the FROM list.
      *
@@ -521,86 +676,117 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * a VTI, so pass an empty FromList.
          */
         Vector aggregateVector = new Vector();
-        methodCall.bindExpression(fromListParam,
-                subqueryList,
-                aggregateVector);
+        TriggerExecutionContext tec = null;
+        try {
+            methodCall.bindExpression(fromListParam,
+            subqueryList,
+            aggregateVector);
 
-        // Is the parameter list to the constructor valid for a VTI?
-        methodParms = methodCall.getMethodParms();
+            // Is the parameter list to the constructor valid for a VTI?
+            methodParms = methodCall.getMethodParms();
 
-        RoutineAliasInfo    routineInfo = methodCall.getRoutineInfo();
+            RoutineAliasInfo routineInfo = methodCall.getRoutineInfo();
 
-        if (
-                (routineInfo !=null) &&
-                        routineInfo.getReturnType().isRowMultiSet() &&
-                        (routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET)
-                )            {
-            isDerbyStyleTableFunction = true;
-        }
-
-        if ( isDerbyStyleTableFunction ) {
-            Method boundMethod = (Method) methodCall.getResolvedMethod();
-            isRestrictedTableFunction = RestrictedVTI.class.isAssignableFrom( boundMethod.getReturnType() );
-            implementsVTICosting = implementsDerbyStyleVTICosting( methodCall.getJavaClassName() );
-        }
-
-        /* If we have a valid constructor, does class implement the correct interface?
-         * If version2 is true, then it must implement PreparedStatement, otherwise
-         * it can implement either PreparedStatement or ResultSet.  (We check for
-         * PreparedStatement first.)
-         */
-
-        if ( isConstructor() ) {
-            NewInvocationNode   constructor = (NewInvocationNode) methodCall;
-
-            if (!constructor.assignableTo(DATASET_PROVIDER))
-                throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT,
-                        getVTIName(),DATASET_PROVIDER);
-            implementsVTICosting = constructor.assignableTo(ClassName.VTICosting);
-        }
-
-
-        /* Build the RCL for this VTI.  We instantiate an object in order
-         * to get the ResultSetMetaData.
-         *
-         * If we have a special trigger vti, then we branch off and get
-         * its rcl from the trigger table that is waiting for us in
-         * the compiler context.
-         */
-        UUID triggerTableId;
-        if ((isConstructor()) && ((triggerTableId = getSpecialTriggerVTITableName(lcc, methodCall.getJavaClassName())) != null)  )
-        {
-            TableDescriptor td = getDataDictionary().getTableDescriptor(triggerTableId);
-            resultColumns = genResultColList(td);
-
-            // costing info
-            vtiCosted = true;
-            estimatedCost = 50d;
-            estimatedRowCount = 5d;
-            supportsMultipleInstantiations = true;
-        }
-        else {
-            resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager());
-
-            // if this is a Derby-style Table Function, then build the result
-            // column list from the RowMultiSetImpl return datatype
+            if (
+            (routineInfo != null) &&
+            routineInfo.getReturnType().isRowMultiSet() &&
+            (routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET)
+            ) {
+                isDerbyStyleTableFunction = true;
+            }
 
             if (isDerbyStyleTableFunction) {
-                createResultColumns(routineInfo.getReturnType());
+                Method boundMethod = (Method) methodCall.getResolvedMethod();
+                isRestrictedTableFunction = RestrictedVTI.class.isAssignableFrom(boundMethod.getReturnType());
+                implementsVTICosting = implementsDerbyStyleVTICosting(methodCall.getJavaClassName());
             }
-            else if (typeDescriptor != null) {
-                createResultColumns(typeDescriptor);
-            }
-            numVTICols = resultColumns.size();
 
-        /* Propagate the name info from the derived column list */
-            if (derivedRCL != null) {
-                resultColumns.propagateDCLInfo(derivedRCL, correlationName);
+            if (tempTriggerDefinition != null) {
+                 // TODO: Do we need all of the typical walkAST calls?
+                //walkAST(lcc, tempTriggerDefinition, CompilationPhase.AFTER_PARSE);
+                //walkAST(lcc, fromTableDMLStmt, CompilationPhase.AFTER_PARSE);
+                try {
+
+                    tempTriggerDefinition.bindStatement();
+                    //walkAST(lcc,tempTriggerDefinition, CompilationPhase.AFTER_BIND);
+                }
+                catch (StandardException e) {
+                    if (e.getSQLState() == LANG_OBJECT_DOES_NOT_EXIST)
+                        throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
+                        fromTableDMLStmt.statementToString(), tempTriggerDefinition.getTargetTableName());
+                    else
+                        throw e;
+                }
+                tec = createTemporaryTrigger(tempTriggerName,
+                                             fromTableDMLStmt,
+                                             tempTriggerDefinition);
+                fromTableDMLStmt.getCompilerContext().setParameterList(fromTableParameterList);
+                DataTypeDescriptor[] descriptors = fromTableDMLStmt.getCompilerContext().getParameterTypes();
+                fromTableParameterList.forEach( (param) -> param.setDescriptors(descriptors));
+
+                fromTableDMLStmt.bindStatement();
+                //walkAST(lcc,fromTableDMLStmt, CompilationPhase.AFTER_BIND);
             }
+
+            /* If we have a valid constructor, does class implement the correct interface?
+             * If version2 is true, then it must implement PreparedStatement, otherwise
+             * it can implement either PreparedStatement or ResultSet.  (We check for
+             * PreparedStatement first.)
+             */
+
+            if (isConstructor()) {
+                NewInvocationNode constructor = (NewInvocationNode) methodCall;
+
+                if (!constructor.assignableTo(DATASET_PROVIDER))
+                    throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT,
+                    getVTIName(), DATASET_PROVIDER);
+                implementsVTICosting = constructor.assignableTo(ClassName.VTICosting);
+            }
+
+
+            /* Build the RCL for this VTI.  We instantiate an object in order
+             * to get the ResultSetMetaData.
+             *
+             * If we have a special trigger vti, then we branch off and get
+             * its rcl from the trigger table that is waiting for us in
+             * the compiler context.
+             */
+            UUID triggerTableId;
+            if ((isConstructor()) && ((triggerTableId = getSpecialTriggerVTITableName(lcc, methodCall.getJavaClassName())) != null)) {
+                TableDescriptor td = getDataDictionary().getTableDescriptor(triggerTableId);
+                resultColumns = genResultColList(td);
+
+                // costing info
+                vtiCosted = true;
+                estimatedCost = 50d;
+                estimatedRowCount = 5d;
+                supportsMultipleInstantiations = true;
+            } else {
+                resultColumns = (ResultColumnList) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
+
+                // if this is a Derby-style Table Function, then build the result
+                // column list from the RowMultiSetImpl return datatype
+
+                if (isDerbyStyleTableFunction) {
+                    createResultColumns(routineInfo.getReturnType());
+                } else if (typeDescriptor != null) {
+                    createResultColumns(typeDescriptor);
+                }
+                numVTICols = resultColumns.size();
+
+                /* Propagate the name info from the derived column list */
+                if (derivedRCL != null) {
+                    resultColumns.propagateDCLInfo(derivedRCL, correlationName);
+                }
+            }
+            return this;
         }
-        return this;
+        finally {
+            if (tec != null)
+                lcc.popTriggerExecutionContext(tec);
+        }
     }
 
 
@@ -927,6 +1113,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                     FromList fromList)
             throws StandardException
     {
+        if (fromTableDMLStmt != null) {
+            fromTableDMLStmt.optimizeStatement();
+            walkAST(getLanguageConnectionContext(), fromTableDMLStmt, CompilationPhase.AFTER_OPTIMIZE);
+            numTables = getCompilerContext().getMaximalPossibleTableCount();
+        }
+
         methodCall.preprocess(
                 numTables,
                 (FromList) getNodeFactory().getNode(
@@ -957,7 +1149,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * (DERBY-3288)
          */
         dependencyMap = new JBitSet(numTables);
-        methodCall.categorize(dependencyMap, false);
+        methodCall.categorize(dependencyMap, null, false);
 
         // Make sure this FromVTI does not "depend" on itself.
         dependencyMap.clear(tableNumber);
@@ -967,6 +1159,18 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         methodCall.getCorrelationTables(correlationMap);
 
         return genProjectRestrict(numTables);
+    }
+
+    private void walkAST(LanguageConnectionContext lcc, Visitable queryTree, CompilationPhase phase) throws StandardException {
+        ASTVisitor visitor = lcc.getASTVisitor();
+        if (visitor != null) {
+            try {
+                visitor.begin("", phase);
+                queryTree.accept(visitor);
+            } finally {
+                visitor.end(phase);
+            }
+        }
     }
 
     /**
@@ -1445,7 +1649,46 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        return 18;
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+
+        mb.push(quotedEmptyIsNull);
+
+        if (fromTableDMLStmt != null) {
+            generateFromTableDMLSPSAndPushAsEncodedString
+                       (mb, getLanguageConnectionContext(),
+                        fromTableDMLStmt,
+                        false, 0L);
+        }
+        else
+            mb.pushNull("java.lang.String");
+
+        return 20;
+    }
+
+    private void
+    generateFromTableDMLSPSAndPushAsEncodedString
+                       (MethodBuilder mb,
+                        LanguageConnectionContext lcc,
+                        StatementNode statementTree,
+                        boolean rollbackParentContext, long timeoutMillis)
+            throws StandardException {
+        String dummyStmtText = "-- Already-parsed DML Statement";
+        LanguageConnectionFactory lcf = lcc.getLanguageConnectionFactory();
+        SchemaDescriptor sd = lcc.getDefaultSchema();
+        Statement stmt =
+            lcf.getStatement(sd, dummyStmtText, true, lcc);
+        GenericStorablePreparedStatement gsps =
+            new GenericStorablePreparedStatement(stmt);
+
+        GenericStatement genericStatement =
+          (GenericStatement)lcf.getStatement(sd, dummyStmtText, false, lcc);
+
+        genericStatement.setPreparedStmt(gsps);
+        genericStatement.prepare(lcc, false, statementTree);
+        gsps.setNeedsSavepoint(false);
+        String gspsAsString = Base64.encodeBase64String(SerializationUtils.serialize(gsps));
+        mb.push(gspsAsString);
     }
 
     /** Store an object in the prepared statement.  Returns -1 if the object is
@@ -1803,5 +2046,20 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         return getCurrentAccessPath().getCostEstimate();
     }
 
+    public void setFromTableDMLStmt (StatementNode fromTableDMLStmt) {
+        this.fromTableDMLStmt = (DMLModStatementNode)fromTableDMLStmt;
+    }
+
+    public void setTempTriggerDefinition(CreateTriggerNode tempTriggerDefinition) {
+        this.tempTriggerDefinition = tempTriggerDefinition;
+    }
+
+    public void setTempTriggerSQLText(String tempTriggerSQLText) {
+        this.tempTriggerSQLText = tempTriggerSQLText;
+    }
+
+    public void setTempTriggerName(String triggerName) {
+        this.tempTriggerName = triggerName;
+    }
 
 }

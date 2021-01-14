@@ -125,7 +125,6 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       int lockMode,
                                       boolean tableLocked,
                                       int isolationLevel, String tableVersion,
-                                      boolean pin,
                                       int splits,
                                       String delimited,
                                       String escaped,
@@ -133,7 +132,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       String storedAs,
                                       String location,
                                       int partitionReferenceItem
-                                      )
+    )
             throws StandardException{
         mb.push(innerTable.getBaseTableName());
         //User may have supplied optimizer overrides in the sql
@@ -194,7 +193,6 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                         getCostEstimate().getBase().getEstimatedCost());
         mb.push(tableVersion);
         mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
-        mb.push(pin);
         mb.push(splits);
         pushNullableString(mb,delimited);
         pushNullableString(mb,escaped);

@@ -211,7 +211,7 @@ abstract class JavaValueNode extends QueryTreeNode implements ParentNode
      *
      * @exception StandardException        Thrown on error
      */
-    abstract public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    abstract public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException;
 
     /**
@@ -473,6 +473,12 @@ abstract class JavaValueNode extends QueryTreeNode implements ParentNode
     public void setCollationType(int type) {
         collationType = type;
     }
-    
-    
+
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) throws StandardException {
+        return false;
+    }
+
+    public int hashCode() {
+        return getBaseHashCode();
+    }
 }

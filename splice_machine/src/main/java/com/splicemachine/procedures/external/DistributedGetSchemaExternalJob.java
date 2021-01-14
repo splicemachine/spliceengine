@@ -14,16 +14,20 @@
 
 package com.splicemachine.procedures.external;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.system.CsvOptions;
+import org.apache.spark.sql.types.StructType;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.concurrent.Callable;
+import java.util.concurrent.*;
 
 /**
  * An Distributed job to get the schema of the external file
@@ -35,20 +39,58 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     private String jobGroup;
     private boolean mergeSchema;
     private CsvOptions csvOptions;
+    private StructType nonPartitionColumns;
+    private StructType partitionColumns;
 
     public DistributedGetSchemaExternalJob() {
     }
 
-    public DistributedGetSchemaExternalJob(String location,
+    DistributedGetSchemaExternalJob(String location,
                                            String jobGroup,
                                            String storedAs,
                                            boolean mergeSchema,
-                                           CsvOptions csvOptions) {
+                                           CsvOptions csvOptions,
+                                           StructType nonPartitionColumns,
+                                           StructType partitionColumns) {
         this.storedAs = storedAs;
         this.location = location;
         this.jobGroup = jobGroup;
         this.mergeSchema = mergeSchema;
         this.csvOptions = csvOptions;
+        this.nonPartitionColumns = nonPartitionColumns;
+        this.partitionColumns = partitionColumns;
+    }
+
+    public static GetSchemaExternalResult execute(String location,
+                 String jobGroup,
+                 String storedAs,
+                 boolean mergeSchema,
+                 CsvOptions csvOptions,
+                 StructType nonPartitionColumns,
+                 StructType partitionColumns) throws IOException {
+        Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
+                submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
+                        nonPartitionColumns, partitionColumns));
+        GetSchemaExternalResult result = null;
+        SConfiguration config = EngineDriver.driver().getConfiguration();
+
+        while (result == null) {
+            try {
+                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                throw Exceptions.rawIOException(e.getCause());
+            } catch (TimeoutException e) {
+                /*
+                 * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                 * head up and make sure that the client is still operating
+                 */
+            }
+        }
+        return result;
     }
 
     @Override
@@ -75,6 +117,8 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
         out.writeUTF(jobGroup);
         out.writeBoolean(mergeSchema);
         csvOptions.writeExternal(out);
+        out.writeUTF(nonPartitionColumns == null ? "" : nonPartitionColumns.json());
+        out.writeUTF(partitionColumns == null ? "" : partitionColumns.json());
     }
 
     @Override
@@ -85,6 +129,10 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
         jobGroup    = in.readUTF();
         mergeSchema = in.readBoolean();
         csvOptions  = new CsvOptions(in);
+        String s = in.readUTF();
+        nonPartitionColumns = s.isEmpty() ? null : (StructType)StructType.fromJson(s);
+        s = in.readUTF();
+        partitionColumns = s.isEmpty() ? null : (StructType)StructType.fromJson(s);
     }
 
 
@@ -101,4 +149,11 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     public boolean mergeSchema() {return mergeSchema;}
 
     public CsvOptions getCsvOptions() { return csvOptions; }
+
+    public StructType getNonPartitionColumns() {
+        return nonPartitionColumns;
+    }
+    public StructType getPartitionColumns() {
+        return partitionColumns;
+    }
 }

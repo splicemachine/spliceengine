@@ -48,7 +48,7 @@ PARSER_BEGIN(SQLParser)
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
@@ -186,510 +186,12 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Arrays;
 import java.lang.Character;
+import static java.lang.String.format;
 
-public class SQLParser
+import com.splicemachine.db.impl.sql.compile.SQLGrammarImpl;
+
+public class SQLParser extends SQLGrammarImpl
 {
-    private static final String[] SAVEPOINT_CLAUSE_NAMES = {"UNIQUE", "ON ROLLBACK RETAIN LOCKS", "ON ROLLBACK RETAIN CURSORS"};
-
-    /* Keep in synch with CreateAliasNode's index constants */
-    private static final String[] ROUTINE_CLAUSE_NAMES =
-        {null,
-         "SPECIFIC",
-         "RESULT SET",
-         "LANGUAGE",
-         "EXTERNAL NAME",
-         "PARAMETER STYLE",
-         "SQL",
-         "DETERMINISTIC",
-         "ON NULL INPUT",
-         "RETURN TYPE",
-         "EXTERNAL SECURITY"};
-    /**
-       Clauses required for Java routines. Numbers correspond
-       to offsets in ROUTINE_CLAUSE_NAMES.
-       3 - "LANGUAGE"
-       4 - "EXTERNAL NAME"
-       5 - "PARAMETER STYLE"
-    */
-    private static final int[] JAVA_ROUTINE_CLAUSES = {CreateAliasNode.LANGUAGE,CreateAliasNode.EXTERNAL_NAME,CreateAliasNode.PARAMETER_STYLE};
-    private static final String[] TEMPORARY_TABLE_CLAUSE_NAMES = {"NOT LOGGED", "ON COMMIT", "ON ROLLBACK"};
-    /* The default length of a char or bit if the length is omitted */
-    private static final int    DEFAULT_STRING_COLUMN_LENGTH = 1;
-
-    // Defines for ON or USING clauses
-    private static final int    ON_OR_USING_CLAUSE_SIZE = 2;
-    private static final int    ON_CLAUSE = 0;
-    private static final int    USING_CLAUSE = 1;
-
-    // Defines for optional table clauses
-    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 4;
-    private static final int    OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES = 0;
-    private static final int    OPTIONAL_TABLE_CLAUSES_DERIVED_RCL = 1;
-    private static final int    OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME = 2;
-    private static final int    OPTIONAL_TABLE_CLAUSES_TXN_ID = 3;
-
-    // Define for UTF8 max
-    private static final int    MAX_UTF8_LENGTH = 65535;
-
-    // Constants for set operator types
-    private static final int NO_SET_OP = 0;
-    private static final int UNION_OP = 1;
-    private static final int UNION_ALL_OP = 2;
-    private static final int EXCEPT_OP = 3;
-    private static final int EXCEPT_ALL_OP = 4;
-    private static final int INTERSECT_OP = 5;
-    private static final int INTERSECT_ALL_OP = 6;
-
-    // indexes into array of optional clauses for CREATE SEQUENCE statement
-    private static final int IDX_DATA_TYPE = 0;
-    private static final int IDX_START_WITH_OPTION = IDX_DATA_TYPE + 1;
-    private static final int IDX_INCREMENT_BY_OPTION = IDX_START_WITH_OPTION + 1;
-    private static final int IDX_MAX_VALUE_OPTION = IDX_INCREMENT_BY_OPTION + 1;
-    private static final int IDX_MIN_VALUE_OPTION = IDX_MAX_VALUE_OPTION + 1;
-    private static final int IDX_CYCLE_OPTION = IDX_MIN_VALUE_OPTION + 1;
-    private static final int IDX_OPTION_COUNT = IDX_CYCLE_OPTION + 1;
-
-    // indexes into array of clauses for OFFSET FETCH NEXT
-    private static final int OFFSET_CLAUSE = 0;
-    private static final int FETCH_FIRST_CLAUSE = OFFSET_CLAUSE + 1;
-    private static final int OFFSET_CLAUSE_COUNT = FETCH_FIRST_CLAUSE + 1;
-
-    private Object[]                    paramDefaults;
-    private String                        statementSQLText;
-    private NodeFactory                    nodeFactory;
-    private ContextManager                cm;
-    private CompilerContext                compilerContext;
-
-    /* The number of the next ? parameter */
-    private int            parameterNumber;
-
-    /* The list of ? parameters */
-    private Vector            parameterList;
-
-    /* Remember if the last identifier or keyword was a
-     * delimited identifier.  This is used for remembering
-     * if the xxx in SERIALIZE(xxx) was a delimited identifier
-     * because we need to know whether or not we can convert
-     * xxx to upper case if we try to resolve it as a class
-     * alias at bind time.
-     */
-    private Boolean lastTokenDelimitedIdentifier = Boolean.FALSE;
-    private Boolean    nextToLastTokenDelimitedIdentifier = Boolean.FALSE;
-
-
-    /*
-    ** Remember the last token we got that was an identifier
-    */
-    private Token    lastIdentifierToken;
-    private Token    nextToLastIdentifierToken;
-
-    static final String SINGLEQUOTES = "\'\'";
-    static final String DOUBLEQUOTES = "\"\"";
-
-    static final String DEFAULT_INDEX_TYPE = "BTREE";
-
-    //the following 2 booleans are used to make sure only null or not null is
-    //defined for a column while creating a table or altering a table. Defining
-    //both at the same time will be an error case.
-        boolean explicitNotNull = false;
-        boolean explicitNull = false;
-
-    //this vector keeps a list of explicitly nullable columns, so that if they
-    //get used in the table level primary key constraint, it will result in an
-    //exception.
-        Vector explicitlyNullableColumnsList = new Vector();
-
-
-    final void setCompilerContext(CompilerContext cc) {
-        this.compilerContext = cc;
-        this.cm = cc.getContextManager();
-    }
-
-    /**
-      *    Get the NodeFactory for this database.
-      *
-      *    @return    The NodeFactory for this database.
-      * @exception StandardException        Thrown on error
-      */
-    private    final NodeFactory    getNodeFactory()    throws StandardException
-    {
-        if ( nodeFactory == null )
-        {
-            nodeFactory = getCompilerContext().getNodeFactory();
-        }
-
-        return    nodeFactory;
-    }
-
-    private final CompilerContext getCompilerContext()
-    {
-        return compilerContext;
-    }
-
-    private DataTypeDescriptor getDataTypeServices(int type, int precision, int scale,
-            int length)
-        throws StandardException
-    {
-        return new DataTypeDescriptor(
-                    TypeId.getBuiltInTypeId(type),
-                    precision,
-                    scale,
-                    true, /* assume nullable for now, change it if not nullable */
-                    length
-                );
-    }
-
-    private DataTypeDescriptor getJavaClassDataTypeDescriptor(TableName typeName)
-        throws StandardException
-    {
-        return new DataTypeDescriptor
-            (
-                TypeId.getUserDefinedTypeId( typeName.getSchemaName(), typeName.getTableName(), null ),
-                true
-            );
-    }
-    private LanguageConnectionContext getLanguageConnectionContext()
-    {
-        return (LanguageConnectionContext) getContextManager().getContext(
-                                        LanguageConnectionContext.CONTEXT_ID);
-    }
-
-    /**
-        Utility method for checking that the underlying database has been
-        upgraded to the required level to use this functionality. Used to
-        disallow SQL statements that would leave on-disk formats that would
-        not be understood by a engine that matches the current upgrade level
-        of the database. Throws an exception if the database is not a the required level.
-        <P>
-        Typically used for CREATE statements at the parser level. Called usually just
-        before the node is created, or can be called in just a partial syntax fragment
-
-        @param version Data Dictionary major version (DataDictionary.DD_ constant)
-        @param feature SQL Feature name, for error text.
-    */
-    private boolean checkVersion(int version, String feature) throws StandardException
-    {
-        return getLanguageConnectionContext()
-                .getDataDictionary().checkVersion(version, feature);
-    }
-
-    /**
-        Utility method for checking that the underlying database uses SQL standard
-        permission checking (GRANT/REVOKE).
-
-        @param command "GRANT", "REVOKE", "CREATE/DROP/SET ROLE" or CURRENT_ROLE
-    */
-    private void checkSqlStandardAccess( String command) throws StandardException
-    {
-        if( getLanguageConnectionContext().usesSqlAuthorization())
-            return;
-
-        throw StandardException.newException(SQLState.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS,
-                                            command,
-                                            Property.SQL_AUTHORIZATION_PROPERTY,
-                                            "TRUE");
-    }
-
-    /**
-        Prevent NEXT VALUE FOR clauses when we get to the bind() phase.
-    */
-    private void forbidNextValueFor()
-    {
-        CompilerContext cc = getCompilerContext();
-
-        cc.setReliability( cc.getReliability() | CompilerContext.NEXT_VALUE_FOR_ILLEGAL );
-    }
-
-    /**
-        Check that the current mode supports internal extensions.
-
-        @param feature Description of feature for exception.
-
-        @exception StandardException current mode does not support statement
-    */
-    private void checkInternalFeature(String feature) throws StandardException
-    {
-        CompilerContext cc = getCompilerContext();
-//        if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
-//            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
-    }
-
-    /**
-     * check if the type length is ok for the given type.
-     */
-    private void checkTypeLimits(int type, int length)
-        throws StandardException
-    {
-    boolean valid = true;
-
-
-    switch (type) {
-        case Types.BINARY:
-        case Types.CHAR:
-            if (length  > Limits.DB2_CHAR_MAXWIDTH)
-                valid = false;
-            break;
-
-        case Types.VARBINARY:
-        case Types.VARCHAR:
-            if (length  > Limits.DB2_VARCHAR_MAXWIDTH)
-                valid = false;
-
-            break;
-        default:
-            break;
-    }
-    if (!valid)  // If these limits are too big
-        {
-            DataTypeDescriptor charDTD =
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
-
-            throw StandardException.newException(SQLState.LANG_DB2_LENGTH_PRECISION_SCALE_VIOLATION, charDTD.getSQLstring());
-        }
-    }
-
-
-
-    // Get the current ContextManager
-    private final ContextManager getContextManager()
-    {
-        return cm;
-    }
-
-    private static void verifyImageLength(String image) throws StandardException
-        {
-        // beetle 2758.  For right now throw an error for literals > 64K
-        if (image.length() > MAX_UTF8_LENGTH)
-            {
-           throw StandardException.newException(SQLState.LANG_INVALID_LITERAL_LENGTH);
-            }
-        }
-
-    /*
-    ** Converts a delimited id to a canonical form.
-    ** Post process delimited identifiers to eliminate leading and
-    ** trailing " and convert all occurrences of "" to ".
-    */
-    private static String normalizeDelimitedID(String str)
-    {
-        str = StringUtil.compressQuotes(str, DOUBLEQUOTES);
-        return str;
-    }
-    private static boolean isDATETIME(int val)
-    {
-        if (val == DATE || val == TIME || val == TIMESTAMP)
-            return true;
-        else
-            return false;
-    }
-
-    /*
-     * Generate a multiplicative operator node, if necessary.
-     *
-     * If there are two operands, generate the multiplicative operator
-     * that corresponds to the multiplicativeOperator parameter.  If there
-     * is no left operand, just return the right operand.
-     *
-     * @param leftOperand    The left operand, null if no operator
-     * @param rightOperand    The right operand
-     * @param multiplicativeOperator    An identifier from BinaryOperatorNode
-     *                                    telling what operator to generate.
-     *
-     * @return    The multiplicative operator, or the right operand if there is
-     *            no operator.
-     *
-     * @exception StandardException        Thrown on error
-     */
-
-    ValueNode multOp(ValueNode leftOperand,
-                            ValueNode rightOperand,
-                            int multiplicativeOperator)
-                    throws StandardException
-    {
-        if (leftOperand == null)
-        {
-            return rightOperand;
-        }
-
-        switch (multiplicativeOperator)
-        {
-          case BinaryOperatorNode.TIMES:
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
-                                    leftOperand,
-                                    rightOperand,
-                                    getContextManager());
-
-          case BinaryOperatorNode.DIVIDE:
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
-                                    leftOperand,
-                                    rightOperand,
-                                    getContextManager());
-          case BinaryOperatorNode.CONCATENATE:
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.CONCATENATION_OPERATOR_NODE,
-                                    leftOperand,
-                                    rightOperand,
-                                    getContextManager());
-
-          default:
-            if (SanityManager.DEBUG)
-            SanityManager.THROWASSERT("Unexpected multiplicative operator " +
-                                        multiplicativeOperator);
-            return null;
-        }
-    }
-
-    /**
-     * Set up and like the parameters to the descriptors.
-     * Set all the ParameterNodes to point to the array of
-     * parameter descriptors.
-     *
-     *    @exception    StandardException
-     */
-     private void setUpAndLinkParameters()
-            throws StandardException
-     {
-        CompilerContext cc = getCompilerContext();
-        cc.setParameterList(parameterList);
-        /* Link the untyped parameters to the array of parameter descriptors */
-
-        DataTypeDescriptor[] descriptors = cc.getParameterTypes();
-
-        ParameterNode                newNode;
-        int                            paramCount;
-
-        /*
-        ** Iterate through the list of untyped parameter nodes, set each one
-        ** to point to the array of parameter descriptors.
-        */
-        paramCount = -1;
-        int plSize = parameterList.size();
-        for (int index = 0; index < plSize; index++)
-        {
-            paramCount++;
-
-            newNode = (ParameterNode) parameterList.elementAt(index);
-            newNode.setDescriptors(descriptors );
-        }
-    }
-
-    /**
-     *  Initializes the list of unnamed parameters, i.e., "?" parameters
-     *
-     *    Usually, this routine just gets an empty list for the unnamed parameters.
-     *
-     *
-     */
-    void    initUnnamedParameterList()
-    {
-        parameterList = new Vector();
-    }
-
-    /**
-     * Makes a new unnamed ParameterNode and chains it onto parameterList.
-     *
-     *    @return    new unnamed parameter.
-     *
-     *    @exception    StandardException
-     */
-    ParameterNode    makeParameterNode(  )
-                    throws StandardException
-    {
-        ParameterNode    parm;
-        DataValueDescriptor sdv = null;
-
-        if ((paramDefaults != null) && (parameterNumber < paramDefaults.length))
-        {
-            sdv = (DataValueDescriptor) paramDefaults[parameterNumber];
-        }
-
-        parm = (ParameterNode) nodeFactory.getNode(
-                                C_NodeTypes.PARAMETER_NODE,
-                                ReuseFactory.getInteger(parameterNumber),
-                                sdv,
-                                getContextManager());
-
-        parameterNumber++;
-        parameterList.addElement(parm);
-
-        return parm;
-    }
-
-    /**
-     * Looks up an unnamed parameter given its parameter number.
-     *
-     *    @param    paramNumber        Number of parameter in unnamed
-     *                            parameter list.
-     *
-     *    @return    corresponding unnamed parameter.
-     *
-     */
-    ParameterNode    lookupUnnamedParameter( int paramNumber )
-    {
-        ParameterNode        unnamedParameter;
-
-        unnamedParameter = (ParameterNode) parameterList.elementAt( paramNumber );
-        return unnamedParameter;
-    }
-
-    /**
-     * Translate a String containing a number into the appropriate type
-     * of Numeric node.
-     *
-     * @param num      the string containing the number
-     * @param intsOnly accept only integers (not decimal)
-     *
-     * @exception StandardException        Thrown on error
-     */
-    NumericConstantNode getNumericNode(String num, boolean intsOnly)
-        throws StandardException
-    {
-        ContextManager cm = getContextManager();
-
-        // first, see if it might be an integer
-        try
-        {
-            return (NumericConstantNode) nodeFactory.getNode(
-                                        C_NodeTypes.INT_CONSTANT_NODE,
-                                        new Integer(num),
-                                        cm);
-        }
-        catch (NumberFormatException nfe)
-        {
-            // we catch because we want to continue on below
-        }
-
-        // next, see if it might be a long
-        try
-        {
-            return (NumericConstantNode) nodeFactory.getNode(
-                                        C_NodeTypes.LONGINT_CONSTANT_NODE,
-                                        new Long(num),
-                                        cm);
-        }
-        catch (NumberFormatException nfe)
-        {
-            if (intsOnly) {
-                throw nfe;
-            }
-            // else we want to continue on below
-        }
-
-        NumericConstantNode ncn =
-        (NumericConstantNode) nodeFactory.getNode(
-                            C_NodeTypes.DECIMAL_CONSTANT_NODE,
-                            num,
-                            cm);
-        if (ncn != null) {
-            int precision = ncn.getTypeServices().getPrecision();
-            if (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE)
-                throw StandardException.newException(SQLState.DECIMAL_TOO_MANY_DIGITS);
-        }
-        return ncn;
-
-    }
     /**
      * Determine whether the current token represents one of
      * the built-in aliases.
@@ -702,26 +204,23 @@ public class SQLParser
 
         switch (token.kind)
         {
-          case UCASE:
-          case LCASE:
-          case SQRT:
-          case LOCATE:
-          case ABS:
-          case ABSVAL:
-          case SUBSTR:
-          case MOD:
-            retval = true;
-            break;
+            case UCASE:
+            case LCASE:
+            case SQRT:
+            case LOCATE:
+            case ABS:
+            case ABSVAL:
+            case SUBSTR:
+            case MOD:
+                retval = true;
+                break;
 
-          default:
-            retval = false;
-            break;
+            default:
+                retval = false;
+                break;
         }
-
-
         return retval;
     }
-
 
     /**
      * Determine whether the next sequence of tokens represents one of
@@ -750,11 +249,11 @@ public class SQLParser
 
         switch (getToken(start).kind)
         {
-          case COMMA:
-          case LEFT_PAREN:
-          case RIGHT_PAREN:
-            retval = false;
-            break;
+            case COMMA:
+            case LEFT_PAREN:
+            case RIGHT_PAREN:
+                retval = false;
+                break;
         }
 
         return retval;
@@ -783,6 +282,7 @@ public class SQLParser
           case BIT:
           case NUMERIC:
           case DECIMAL:
+          case DECFLOAT:
           case DEC:
           case INTEGER:
           case INT:
@@ -848,199 +348,7 @@ public class SQLParser
         return retval;
     }
 
-    /**
-     * Get a DELETE node given the pieces.
-     *
-     *
-     *    @exception    StandardException
-     */
-     private StatementNode getDeleteNode(FromTable fromTable,
-                                         TableName tableName,
-                                         ValueNode whereClause,
-                                         Properties targetProperties)
-        throws StandardException
-    {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getContextManager());
 
-        fromList.addFromTable(fromTable);
-
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                        C_NodeTypes.SELECT_NODE,
-                                        null,
-                                        null,     /* AGGREGATE list */
-                                        fromList, /* FROM list */
-                                          whereClause, /* WHERE clause */
-                                        null, /* GROUP BY list */
-                                        null, /* having clause */
-                                        null, /* window list */
-                                        getContextManager());
-
-        StatementNode retval =
-            (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.DELETE_NODE,
-                            tableName,
-                            resultSet,
-                            targetProperties,
-                            getContextManager());
-
-        setUpAndLinkParameters();
-
-        return retval;
-    }
-
-    /**
-     * Get an UPDATE node given the pieces.
-     *
-     *
-     *    @exception    StandardException
-     */
-     private StatementNode getUpdateNode(FromTable fromTable,
-                                         TableName tableName,
-                                         ResultColumnList setClause,
-                                         ValueNode whereClause)
-        throws StandardException
-    {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getContextManager());
-
-        fromList.addFromTable(fromTable);
-
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                        C_NodeTypes.SELECT_NODE,
-                                        setClause, /* SELECT list */
-                                        null,     /* AGGREGATE list */
-                                        fromList, /* FROM list */
-                                          whereClause, /* WHERE clause */
-                                        null, /* GROUP BY list */
-                                        null, /* having clause */
-                                        null, /* window list */
-                                        getContextManager());
-
-        StatementNode retval =
-            (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.UPDATE_NODE,
-                            tableName,
-                            resultSet,
-                            getContextManager());
-
-        setUpAndLinkParameters();
-
-        return retval;
-    }
-
-     private StatementNode getUpdateNodeWithSub(FromTable fromTable, /* table to be updated */
-                                         TableName tableName, /* table to be updated */
-                                         ResultColumnList setClause, /* new values to ue for the update */
-                                         ValueNode whereClause, /* where clause for outer update */
-                                         ValueNode subQuery) /* inner source subquery for multi column syntax */
-        throws StandardException
-    {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getContextManager());
-
-        fromList.addFromTable(fromTable);
-
-        // Bring the subquery table(s) to the outer from list
-        SelectNode innerSelect = (SelectNode)((SubqueryNode)subQuery).getResultSet();
-        FromList innerFrom = innerSelect.getFromList();
-        List innerFromEntries = innerFrom.getNodes();
-        for (Object obj : innerFromEntries) {
-            assert obj instanceof FromTable;
-            fromList.addFromTable((FromTable)obj);
-        }
-
-        // Bring the subquery where clause to outer where clause
-        ValueNode innerWhere = innerSelect.getWhereClause();
-        ValueNode alteredWhereClause;
-        if (whereClause != null) {
-            alteredWhereClause = (ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                whereClause, /* the one passed into this method */
-                innerWhere,  /* the one pulled from subquery */
-                getContextManager());
-        } else {
-            alteredWhereClause = innerWhere;
-        }
-
-        // Alter the passed in setClause to give it non-null expressions
-        // and to point to subqjuery table.
-        ResultColumnList innerRCL = innerSelect.getResultColumns();
-        int inputSize = setClause.size();
-        for (int index = 0; index < inputSize; index++)
-        {
-            ResultColumn rc = ((ResultColumn) setClause.elementAt(index));
-            // String columnName = rc.getName();
-            ResultColumn innerResultColumn = ((ResultColumn)innerRCL.elementAt(index));
-            String innerColumnName = innerResultColumn.getName();
-            if (innerColumnName != null) {
-               // source is a case of single column
-               ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    innerColumnName,
-                    ((FromTable)innerFromEntries.get(0)).getTableName(),
-                    getContextManager());
-               rc.setExpression(colRef);
-            } else {
-               // source is an expression
-               rc.setExpression(innerResultColumn.getExpression());
-            }
-        }
-
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-            C_NodeTypes.SELECT_NODE,
-            setClause, /* SELECT list */
-            null,   /* AGGREGATE list */
-            fromList, /* FROM list */
-            alteredWhereClause, /* WHERE clause */
-            null, /* GROUP BY list */
-            null, /* having clause */
-            null, /* window list */
-            getContextManager());
-
-        StatementNode retval =
-            (StatementNode) nodeFactory.getNode(
-                C_NodeTypes.UPDATE_NODE,
-                tableName, /* target table for update */
-                resultSet, /* SelectNode just created */
-                getContextManager());
-
-        ((UpdateNode)retval).setUpdateWithSubquery(true);
-
-        setUpAndLinkParameters();
-
-        return retval;
-    }
-
-    /**
-     * Generate a trim operator node
-     * @param trimSpec one of Leading, Trailing or Both.
-     * @param trimChar the character to trim. Can be null in which case it defaults
-     * to ' '.
-     * @param trimSource expression to be trimmed.
-     */
-    private ValueNode getTrimOperatorNode(Integer trimSpec, ValueNode trimChar,
-        ValueNode trimSource, ContextManager cm) throws StandardException
-    {
-        if (trimChar == null)
-        {
-            trimChar = (CharConstantNode) nodeFactory.getNode(
-                            C_NodeTypes.CHAR_CONSTANT_NODE,
-                            " ",
-                            getContextManager());
-        }
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.TRIM_OPERATOR_NODE,
-                            trimSource, // receiver
-                            trimChar,   // leftOperand.
-                            null,
-                            ReuseFactory.getInteger(TernaryOperatorNode.TRIM),
-                            trimSpec,
-                            cm == null ? getContextManager() : cm);
-    }
 
     private boolean ansiTrimSpecFollows()
     {
@@ -1142,32 +450,6 @@ public class SQLParser
         return getToken(2).kind == FN;
     }
 
-
-    /**
-       List of JDBC escape functions that map directly onto
-       a function in the SYSFUN schema.
-    */
-    private static final String[] ESCAPED_SYSFUN_FUNCTIONS =
-        {"ACOS", "ASIN", "ATAN", "ATAN2", "COS", "SIN", "TAN", "PI",
-         "DEGREES", "RADIANS", "EXP", "LOG", "LOG10", "CEILING", "FLOOR",
-         "SIGN", "RAND", "ROUND", "COT" };
-
-    /**
-       Convert a JDBC escaped function name to a function
-       name in the SYSFUN schema. Returns null if no such
-       function exists.
-    */
-    private String getEscapedSYSFUN(String name)
-    {
-        name = StringUtil.SQLToUpperCase(name);
-
-        for (int i = 0; i < ESCAPED_SYSFUN_FUNCTIONS.length; i++)
-        {
-            if (ESCAPED_SYSFUN_FUNCTIONS[i].equals(name))
-                return name;
-        }
-        return null;
-    }
 
     /**
      * Determine whether the next sequence of tokens can be the beginning
@@ -1670,6 +952,14 @@ public class SQLParser
             getToken(1).kind == SPLICEDASHPROPERTIES;
     }
 
+    private boolean tableFollows(int startToken)
+    {
+        if (getToken(startToken).kind == TABLE)
+            return true;
+
+        return false;
+    }
+
     /**
      * Determine whether the next sequence of tokens can be the beginning
      * of a newInvocation(). A newInvocation() begins with the word "new"
@@ -1688,6 +978,9 @@ public class SQLParser
         // newInvocation() starts with the word "new"
         if (getToken(startToken).kind == NEW)
         {
+            if (finalTableFollows(startToken))
+                return false;
+
             // Look at every other token. Ignore the identifiers, because
             // they are hard to test for.
             for (int i = 2 + startToken; true; i += 2)
@@ -1711,6 +1004,16 @@ public class SQLParser
 
         return retval;
     }
+
+    private boolean finalTableFollows(int startToken)
+    {
+        Token token = getToken(startToken);
+        return ((token.kind == NEW ||
+                 token.kind == OLD ||
+                 token.kind == FINAL)
+                && getToken(startToken+1).kind == TABLE);
+    }
+
     /**
      * Determine whether the next sequence of tokens is a class name
      *
@@ -1941,263 +1244,10 @@ public class SQLParser
         return retval;
     }
 
-    /**
-     * Get one of the several types of create alias nodes.
-     *
-     * @param aliasName    The name of the alias
-     * @param targetName TableName for target, or the full path/method name
-     * @param aliasSpecificInfo     Information specific to the type of alias being created.
-     * @param aliasType    The type of alias to create
-     * @return      A CreateAliasNode matching the given parameters
-     *
-     * @exception StandardException        Thrown on error
-     */
-     StatementNode
-     getCreateAliasNode(
-        TableName aliasName,
-        Object targetName,
-        Object aliasSpecificInfo,
-        char aliasType) throws StandardException
-     {
-        String methodName = null;
-
-        if (
-            (aliasType != AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) &&
-            (aliasType != AliasInfo.ALIAS_TYPE_UDT_AS_CHAR) &&
-            (aliasType != AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR)
-            )
-        {
-            int lastPeriod;
-            String fullStaticMethodName = (String) targetName;
-            int paren = fullStaticMethodName.indexOf('(');
-            if (paren == -1) {
-                // not a Java signature - split based on last period
-                lastPeriod = fullStaticMethodName.lastIndexOf('.');
-            } else {
-                // a Java signature - split on last period before the '('
-                lastPeriod = fullStaticMethodName.substring(0, paren).lastIndexOf('.');
-            }
-            if (lastPeriod == -1 || lastPeriod == fullStaticMethodName.length()-1) {
-                throw StandardException.newException(SQLState.LANG_INVALID_FULL_STATIC_METHOD_NAME, fullStaticMethodName);
-            }
-            String javaClassName = fullStaticMethodName.substring(0, lastPeriod);
-            methodName = fullStaticMethodName.substring(lastPeriod + 1);
-            targetName = javaClassName;
-        }
-
-        return new CreateAliasNode(
-            aliasName,
-            targetName,
-            methodName,
-            aliasSpecificInfo,
-            aliasType,
-            cm );
-    }
-    /**
-     * Get one of the several types of create alias nodes.
-     *
-     * @param aliasName    The name of the alias
-     * @param targetName TableName for target, or the full path/method name
-     * @param aliasSpecificInfo     Information specific to the type of alias being created.
-     * @param aliasType    The type of alias to create
-     * @param delimitedIdentifier    Whether or not to treat the class name
-     *                                as a delimited identifier if trying to
-     *                                resolve it as a class alias.
-     *
-     * @return    A CreateAliasNode matching the given parameters
-     *
-     * @exception StandardException        Thrown on error
-     */
-    StatementNode
-    getCreateAliasNode( // Used for Stored Procedure
-        Object aliasName,
-        Object targetName,
-        Object aliasSpecificInfo,
-        char aliasType,
-        Boolean delimitedIdentifier)
-        throws StandardException
-    {
-        int nodeType = C_NodeTypes.CREATE_ALIAS_NODE;
-        String methodName = null;
-
-        if (
-            (aliasType != AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) &&
-            (aliasType != AliasInfo.ALIAS_TYPE_UDT_AS_CHAR) &&
-            (aliasType != AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR)
-            )
-        {
-            if (((String)((Object[]) aliasSpecificInfo)[CreateAliasNode.LANGUAGE]).equals("PYTHON"))
-            {
-                // For Python Stored Procedure
-                methodName = "INVALID_METHOD_NAME";
-                targetName = (String) targetName;  // The script is stored inside targetName
-            }
-            else
-            {
-                // For Original Java Stored Procedure
-                int lastPeriod;
-                String fullStaticMethodName = (String) targetName;
-                int paren = fullStaticMethodName.indexOf('(');
-                if (paren == -1) {
-                    // not a Java signature - split based on last period
-                    lastPeriod = fullStaticMethodName.lastIndexOf('.');
-                } else {
-                    // a Java signature - split on last period before the '('
-                    lastPeriod = fullStaticMethodName.substring(0, paren).lastIndexOf('.');
-                }
-                if (lastPeriod == -1 || lastPeriod == fullStaticMethodName.length()-1) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FULL_STATIC_METHOD_NAME, fullStaticMethodName);
-                }
-                String javaClassName = fullStaticMethodName.substring(0, lastPeriod);
-                methodName = fullStaticMethodName.substring(lastPeriod + 1);
-                targetName = javaClassName;
-            }
-        }
-
-        return (StatementNode) getNodeFactory().getNode(
-            nodeType,
-            aliasName,
-            targetName,
-            methodName,
-            aliasSpecificInfo,
-            new Character(aliasType),
-            delimitedIdentifier,
-            cm );
-    }
-
-    /**
-        Create a node for the drop alias/procedure call.
-    */
-    StatementNode
-    dropAliasNode(Object aliasName, char type) throws StandardException
-    {
-
-        StatementNode stmt = (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.DROP_ALIAS_NODE,
-                                aliasName,
-                                new Character(type),
-                                getContextManager());
-
-        return stmt;
-    }
-
-    /**
-     * Get a substring node from
-     *      - the string
-     *      - the start position
-     *      - the length
-     *      - a boolean values for specifying the kind of substring function
-     * @exception StandardException  Thrown on error
-     */
-    ValueNode getSubstringNode( ValueNode stringValue, ValueNode startPosition,
-                         ValueNode length, Boolean boolVal ) throws StandardException
-    {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.SUBSTRING_OPERATOR_NODE,
-                            stringValue,
-                            startPosition,
-                            length,
-                            ReuseFactory.getInteger(TernaryOperatorNode.SUBSTRING),
-                            null,
-                            getContextManager());
-    }
-
-    ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
-    {
-        return (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.RIGHT_OPERATOR_NODE,
-                stringValue,
-                length,
-                null,
-                ReuseFactory.getInteger(TernaryOperatorNode.RIGHT),
-                null,
-                getContextManager());
-    }
-
-    /**
-     * Gets a left() node from
-     *      - the string
-     *      - the length to take
-     *      - the padding character
-     * @exception StandardException  Thrown on error
-     */
-    ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
-    {
-        return (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.LEFT_OPERATOR_NODE,
-                stringValue,
-                length,
-                null,
-                ReuseFactory.getInteger(TernaryOperatorNode.LEFT),
-                null,
-                getContextManager());
-    }
-
-    /**
-     * Gets a replace node based on the specified arguments.
-     * @param stringValue the input string
-     * @param the from sub string
-     * @param the to string
-     * @exception StandardException thrown on error
-     */
-    ValueNode getReplaceNode(
-        ValueNode stringValue,
-        ValueNode fromString,
-        ValueNode toString) throws StandardException
-    {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.REPLACE_OPERATOR_NODE,
-                            stringValue,
-                            fromString,
-                            toString,
-                            ReuseFactory.getInteger(TernaryOperatorNode.REPLACE),
-                            null,
-                            getContextManager());
-    }
-
     final public TableName
     qualifiedName(int id_length_limit) throws ParseException, StandardException
     {
-    return qualifiedName( C_NodeTypes.TABLE_NAME, id_length_limit);
-    }
-
-    private void initStatement( String statementSQLText, Object[] paramDefaults)
-        throws StandardException
-    {
-        /* Do per-statement initialization here */
-        parameterNumber = 0;
-       this.statementSQLText = statementSQLText;
-        this.paramDefaults = paramDefaults;
-        nodeFactory = getNodeFactory();
-        initUnnamedParameterList();
-    } // End of initStatement
-
-    private ValueNode getJdbcIntervalNode( int intervalType) throws StandardException
-    {
-        return (ValueNode) nodeFactory.getNode( C_NodeTypes.INT_CONSTANT_NODE,
-                                                ReuseFactory.getInteger( intervalType),
-                                                getContextManager());
-    }
-
-    /**
-        Check to see if the required claues have been added
-        to a procedure or function defintion.
-
-        @param required int array of require clauses
-        @param  clauses the array of declared clauses.
-    */
-    void checkRequiredRoutineClause(int[] required, Object[] clauses)
-        throws StandardException
-    {
-        for (int i = 0; i < required.length; i++)
-        {
-            int re = required[i];
-            if (clauses[re] == null)
-            {
-                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                 ROUTINE_CLAUSE_NAMES[re]);
-            }
-        }
+        return qualifiedName( C_NodeTypes.TABLE_NAME, id_length_limit);
     }
 
     boolean isPrivilegeKeywordExceptTrigger(int tokenKind) {
@@ -2212,265 +1262,6 @@ public class SQLParser
                 tokenKind == USAGE ||
                 tokenKind == ALL);
     }
-
-
-    /**
-     * Construct a TableElementNode of type
-     * C_NodeTypes.MODIFY_COLUMN_DEFAULT_NODE.
-     *
-     * @param defaultNode the new default value node
-     * @param columnName  the name of the column to be altered
-     * @param autoIncrementInfo autoincrement information collected, if any.
-     *
-     * @return the new node constructed
-     * @exception StandardException standard error policy
-     */
-    TableElementNode wrapAlterColumnDefaultValue(
-        ValueNode defaultNode,
-        String columnName,
-        long[] autoIncrementInfo) throws StandardException {
-
-        if (autoIncrementInfo
-                [QueryTreeNode.AUTOINCREMENT_IS_AUTOINCREMENT_INDEX] == 0) {
-            autoIncrementInfo = null;
-        }
-
-        return (TableElementNode) nodeFactory.getNode(
-            C_NodeTypes.MODIFY_COLUMN_DEFAULT_NODE,
-            columnName,
-            defaultNode,
-            null,
-            autoIncrementInfo,
-            getContextManager());
-    }
-
-    private boolean
-        isTableValueConstructor(ResultSetNode expression)
-            throws StandardException {
-
-        return expression instanceof RowResultSetNode ||
-            (expression instanceof UnionNode &&
-             ((UnionNode)expression).tableConstructor());
-    }
-
-    /**
-     * Construct a new join node.
-     *
-     * @param leftRSN the left side of the join
-     * @param rightRSN the right side of the join
-     * @param onClause the ON clause, or null if there is no ON clause
-     * @param usingClause the USING clause, or null if there is no USING clause
-     * @param joinType the type of the join (one of the constants INNERJOIN,
-     *                 LEFTOUTERJOIN or RIGHTOUTERJOIN or FULLOUTERJOIN in JoinNode)
-     * @return a new join node
-     */
-    private JoinNode newJoinNode(ResultSetNode leftRSN, ResultSetNode rightRSN,
-                         ValueNode onClause, ResultColumnList usingClause,
-                         int joinType)
-    throws StandardException
-    {
-        switch(joinType)
-        {
-            case JoinNode.INNERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        null,
-                        null,
-                        null,
-                        getContextManager());
-
-            case JoinNode.LEFTOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        Boolean.FALSE,
-                        null,
-                        getContextManager());
-
-            case JoinNode.RIGHTOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        Boolean.TRUE,
-                        null,
-                        getContextManager());
-
-            case JoinNode.FULLOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.FULL_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        null,
-                        getContextManager());
-
-            default:
-                if (SanityManager.DEBUG)
-                {
-                    SanityManager.THROWASSERT("Unexpected joinType: " + joinType);
-                }
-                return null;
-        }
-    }
-
-    private void setWindowFrameMode(QueryTreeNode node, WindowFrameDefinition.FrameMode mode) {
-        WindowDefinitionNode wdn = (WindowDefinitionNode) node;
-        WindowFrameDefinition frame = wdn.getFrameExtent();
-        frame.setFrameMode(mode);
-
-    }
-
-    /**
-     * For temporary table validation and creation.
-     */
-    private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
-                                                Boolean isGlobal,
-                                                TableName tableName,
-                                                TableElementList tableElementList,
-                                                Integer createBehavior) throws StandardException {
-        // NOT LOGGED is allways true
-        // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
-        if (declareTableClauses[1] == null) {
-            declareTableClauses[1] = Boolean.FALSE;
-        } else if (declareTableClauses[1] == Boolean.TRUE) {
-            // ON COMMIT DELETE ROWS is not supported
-            throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "COMMIT");
-        }
-        // if ON ROLLBACK behavior not explicitly specified in DECLARE command, default to ON ROLLBACK DELETE ROWS
-        if (declareTableClauses[2] == Boolean.TRUE) {
-            // ON ROLLBACK DELETE ROWS is not supported
-            throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "ROLLBACK");
-        } else {
-            // set it to TRUE anyway. too much expects is to be so dispite it never working
-            declareTableClauses[2] = Boolean.TRUE;
-        }
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.CREATE_TABLE_NODE,
-                                tableName,
-                                createBehavior,
-                                tableElementList,
-                                (Properties)null,
-                                (Boolean) declareTableClauses[1],
-                                (Boolean) declareTableClauses[2],
-                                getContextManager());
-    }
-
-    private ValueNode createTruncateTypeNode(ValueNode operandNode, ValueNode truncValue) throws StandardException {
-        ValueNode truncateOperand = null;
-        if (operandNode == null) {
-            throw StandardException.newException(SQLState.LANG_TRUNCATE_NULL_OPERAND);
-        } else if (operandNode instanceof UnaryOperatorNode) {
-            // date... probably
-            String opStr = ((UnaryOperatorNode)operandNode).getOperatorString();
-            if ("date".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
-                                                                operandNode,
-                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE),
-                                                                getContextManager());
-            } else if ("timestamp".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
-                                                                operandNode,
-                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
-                                                                getContextManager());
-            }
-        } else if (operandNode instanceof BinaryOperatorNode) {
-            // timestamp... likely
-            String opStr = ((BinaryOperatorNode)operandNode).getOperatorString();
-            if ("timestamp".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
-                                                                operandNode,
-                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
-                                                                getContextManager());
-            }
-        } else if (operandNode instanceof NumericConstantNode) {
-            // truncate numberic
-            // must have 2 numeric args - 1st is decimal operand, not null; 2nd is integer truncValue, not null
-
-            // default to zero if truncValue null or not numeric
-            if (! (truncValue instanceof NumericConstantNode)) {
-                truncValue = (NumericConstantNode) nodeFactory.getNode(C_NodeTypes.INT_CONSTANT_NODE,
-                                                                    0,  // default to zero
-                                                                    getContextManager());
-            }
-
-            truncateOperand = operandNode;
-        } else if (operandNode instanceof ColumnReference) {
-            // truncating a column in a table. could be type date, timestamp or decimal
-            // this is enforced in TruncateOperatorNode after binding so that we know all types
-            truncateOperand = operandNode;
-        } else if (operandNode instanceof CurrentDatetimeOperatorNode) {
-            truncateOperand = operandNode;
-        }
-
-        if (truncateOperand == null) {
-            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, operandNode);
-        }
-
-        return (ValueNode) nodeFactory.getNode(
-                                              C_NodeTypes.TRUNC_NODE,
-                                              truncateOperand,
-                                              truncValue,
-                                              getContextManager());
-    }
-
-    /**
-     * Used by create table with data, this method parses the table population query. We pull out what's between
-     * the square brackets below []
-     * CREATE TABLE X AS [SELECT A, B, C FROM Y] WITH DATA
-     */
-   public String parseQueryString(String src) {
-        boolean inSection = false;
-        StringBuilder buf = new StringBuilder();
-
-        // Use a non-printable character as an end-of-hint marker.
-        char endOfHintMarker = 0x01;
-
-        // Strip out C-style comments:   /* This type of comment */
-        src = src.replaceAll("(/\\*.*?\\*/)", " ");
-
-        // Strip out comments starting with --, except --splice-properties hints.
-        src = src.replaceAll("(--)(?i)(?!splice-properties)(.*?)(\\n|\\r|\\r\\n)", " ");
-
-        // Add an end-of-hint marker to a --splice-properties hint, so we know where to
-        // place the newline later on.
-        src = src.replaceAll("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
-                               "$1$2$3"+Character.toString(endOfHintMarker));
-
-        // If there is a comment before the statement, replacement ops above produce spaces before the
-        // CREATE token. The first string after split below would be empty, causing charAt(0) to fail.
-        src = src.trim();
-
-        for (String part : src.split("\\s+")) {
-            if (part.charAt(0) == endOfHintMarker)
-                part = "\n" + part.substring(1);
-            if (inSection && part.equalsIgnoreCase("with")) {
-                inSection = false;
-            } else if (inSection) {
-                buf.append(part).append(" ");
-            } else if (! inSection && part.equalsIgnoreCase("as")) {
-                inSection = true;
-            }
-        }
-        if (buf.length() > 1) {
-            // remove the trailing space
-            buf.setLength(buf.length()-1);
-        }
-           return buf.toString();
-   }
 
     /**
      * Determine if we are seeing an Optimize For Rows clause or the identifier OPTIMIZE
@@ -2778,6 +1569,7 @@ TOKEN [IGNORE_CASE] :
 |    <ARRAY: "array">
 |    <AS: "as">
 |    <ASC: "asc">
+|    <ASCII: "ascii">
 |    <ASSERTION: "assertion">
 |    <AT: "at">
 |    <AUTHORIZATION: "authorization">
@@ -2792,6 +1584,7 @@ TOKEN [IGNORE_CASE] :
 |    <CASCADED: "cascaded">
 |    <CASE: "case">
 |    <CAST: "cast">
+|    <CCSID: "ccsid">
 |    <CHAR: "char">
 |    <CHARACTER: "character">
 |    <CHARACTER_LENGTH: "character_length">
@@ -2825,6 +1618,7 @@ TOKEN [IGNORE_CASE] :
 |    <DEALLOCATE: "deallocate">
 |    <DEC: "dec">
 |    <DECIMAL: "decimal">
+|    <DECFLOAT: "decfloat">
 |    <DECLARE: "declare">
 |    <_DEFAULT: "default">
 |    <DEFERRABLE: "deferrable">
@@ -2937,8 +1731,9 @@ TOKEN [IGNORE_CASE] :
 |    <REVOKE: "revoke">
 |    <RIGHT: "right">
 |    <ROLLBACK: "rollback">
-|   <RANGE: "range">
+|    <RANGE: "range">
 |    <ROWS: "rows">
+|    <SBCS: "sbcs">
 |    <SCHEMA: "schema">
 |    <SCROLL: "scroll">
 |    <SECOND: "second">
@@ -3039,14 +1834,18 @@ TOKEN [IGNORE_CASE] :
 |    <DETERMINISTIC: "deterministic">
 |    <DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
+|    <ENCODING: "encoding">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
+|    <FIELD_SEPARATOR: "field_separator">
+|    <FLOATING_POINT_NOTATION: "floating_point_notation">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
+|   <HOURS: "hours">
 |    <IDENTITY_VAL_LOCAL: "identity_val_local">
 |    <IGNORE: "ignore">
 |    <INCREMENT: "increment">
@@ -3067,6 +1866,7 @@ TOKEN [IGNORE_CASE] :
 |    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
 |    <MESSAGE_TEXT: "message_text">
+|    <MINUTES: "minutes">
 |    <MINVALUE: "minvalue">
 |    <MOD: "mod">
 |    <MODIFIES: "modifies">
@@ -3078,6 +1878,7 @@ TOKEN [IGNORE_CASE] :
 |    <MUMPS: "mumps">
 |    <NAME: "name">
 |    <NCLOB: "nclob">
+|    <NORMALIZED: "normalized">
 |    <NULLABLE: "nullable">
 |    <NULLS: "nulls">
 |    <NUMBER: "number">
@@ -3085,13 +1886,17 @@ TOKEN [IGNORE_CASE] :
 |    <OFFSET: "offset">
 |    <PASCAL: "pascal">
 |   <PHYSICAL: "physical">
+|    <PLAIN: "plain">
 |    <PLI: "pli">
 |    <PRECISION: "precision">
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
 |    <QUARTER: "quarter">
+|    <QUOTE_CHARACTER: "quote_character">
+|    <QUOTE_MODE: "quote_mode">
 |   <REPEAT: "repeat">
 |    <REPEATABLE: "repeatable">
+|    <REPLICATION_COUNT: "replication_count">
 |    <RESPECT: "respect">
 |    <RESTART: "restart">
 |    <RETURNS: "returns">
@@ -3106,8 +1911,14 @@ TOKEN [IGNORE_CASE] :
 |    <LINES: "lines">
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
+|    <COMPRESSION: "compression">
+|    <CSV: "csv">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
+|    <GZ: "gz">
+|    <GZIP: "gzip">
+|    <BZ2: "bz2">
+|    <BZIP2: "bzip2">
 |    <STORED: "stored">
 |    <LOCATION: "location">
 |    <PIN: "pin">
@@ -3121,6 +1932,7 @@ TOKEN [IGNORE_CASE] :
 |   <OPTIMIZE: "optimize">
 |    <SAVEPOINT: "savepoint">
 |    <SCALE: "scale">
+|    <SECONDS: "seconds">
 |    <SECURITY: "security">
 |    <SERIALIZABLE: "serializable">
 |   <SPLITKEYS: "splitKeys">
@@ -3142,9 +1954,11 @@ TOKEN [IGNORE_CASE] :
 |    <TIMESTAMP: "timestamp">
 |    <TIMESTAMPADD: "timestampadd">
 |    <TIMESTAMPDIFF: "timestampdiff">
+|    <TIMESTAMP_FORMAT: "timestamp_format">
 |    <TRUNC: "trunc">
 |    <TRUNCATE: "truncate">
 |    <TYPE: "type">
+|    <TYPEOF: "typeof">
 |    <UNCOMMITTED: "uncommitted">
 |    <USAGE: "usage">
 |    <WEEK: "week">
@@ -3190,7 +2004,7 @@ TOKEN [IGNORE_CASE] :
 |    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
-|	<EXPORT_KAFKA: "export_kafka">
+|    <EXPORT_KAFKA: "export_kafka">
 |    <FIRSTVALUE: "first_value">
 |    <LAG: "lag">
 |    <LASTVALUE: "last_value">
@@ -3241,12 +2055,16 @@ TOKEN [IGNORE_CASE] :
 |    <EACH: "each">
 |    <EMPTY: "empty">
 |   <ESTIMATE: "estimate">
+|    <EUR: "eur">
 |    <EXCLUSIVE: "exclusive">
+|    <FINAL: "final">
 |    <FN: "fn">
 |   <FRACTION: "fraction">
 |    <INDEX: "index">
 |    <INPLACE: "inplace">
+|    <ISO: "iso">
 |    <JAVA: "java">
+|    <JIS: "jis">
 |   <LCASE: "lcase">
 |   <LOCATE: "locate">
 |    <LOCK: "lock">
@@ -3284,6 +2102,7 @@ TOKEN [IGNORE_CASE] :
 |    <SHARE: "share">
 |    <SQLID: "sqlid">
 |    <SPECIFIC: "specific">
+|    <SPLIT_PART: "split_part">
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
@@ -3293,6 +2112,7 @@ TOKEN [IGNORE_CASE] :
 |    <TRUNCATE_END: "truncate_end">
 |   <UCASE: "ucase">
 |   <UR: "ur">
+|   <USA: "usa">
 |   <WHITESPACE: "whitespace">
 }
 
@@ -3699,6 +2519,28 @@ proceduralStatement(Token[] tokenHolder) throws StandardException :
     }
 }
 
+StatementNode
+preparableDMLDataStatement() throws StandardException :
+{
+    StatementNode    dmlStatement;
+}
+{
+    dmlStatement = preparableDeleteStatement()
+    {
+        return dmlStatement;
+    }
+|
+    dmlStatement = insertStatement()
+    {
+        return dmlStatement;
+    }
+|
+    dmlStatement = preparableUpdateStatement()
+    {
+        return dmlStatement;
+    }
+}
+
 /*
  * <A NAME="StatementPart">StatementPart</A>
  *
@@ -3764,8 +2606,6 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
         statementNode = kafkaExportStatement() |
-        statementNode = pinStatement() |
-        statementNode = dropPinStatement() |
         statementNode = signalStatement()
     )
     {
@@ -4102,16 +2942,16 @@ StatementNode
 explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
-    StatementNode    explainStatement;
-    Token           getToken = null;
+    StatementNode   explainStatement;
+    Token           excludeToken = null;
 }
 {
-    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
-                                   (getToken != null),
+                                   (excludeToken == null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4148,23 +2988,163 @@ explainStatement() throws StandardException :
     }
 }
 
-StatementNode
-pinStatement() throws StandardException :
+String exportCompressionToken() throws StandardException :
 {
-    StatementNode   statementNode;
-    String authName = null;
-    TableName tableName = null;
-    Vector parameterList = new Vector();
 }
 {
-    <PIN>
-    [ <AUTHORIZATION> authName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) ]
-    <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    <TRUE>
     {
-        return (CreatePinNode) nodeFactory.getNode(C_NodeTypes.CREATE_PIN_NODE,
-                                   tableName,
-                                   getContextManager());
+        return "true";
+    }
+|
+    <FALSE>
+    {
+        return "false";
+    }
+|
+    <SNAPPY>
+    {
+        return "snappy";
+    }
+|
+    <NONE>
+    {
+        return "none";
+    }
+|
+    ( <GZ> | <GZIP>)
+    {
+        return "gz";
+    }
+|
+    ( <BZ2> | <BZIP2>)
+    {
+        return "bz2";
+    }
+}
 
+ValueNode exportCompression() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportCompressionToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportFormatToken() throws StandardException :
+{
+}
+{
+    <CSV>
+    {
+        return "csv";
+    }
+|
+    <PARQUET>
+    {
+        return "parquet";
+    }
+}
+
+ValueNode exportFormat() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportFormatToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportQuoteModeToken() throws StandardException :
+{
+}
+{
+    <ALWAYS>
+    {
+        return "always";
+    }
+|
+    <_DEFAULT>
+    {
+        return "default";
+    }
+}
+
+ValueNode exportQuoteMode() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportQuoteModeToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String floatingPointNotationToken() throws StandardException :
+{
+}
+{
+    <PLAIN>
+    {
+        return "plain";
+    }
+|
+    <NORMALIZED>
+    {
+        return "normalized";
+    }
+}
+
+ValueNode floatingPointNotation() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = floatingPointNotationToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
     }
 }
 
@@ -4174,15 +3154,80 @@ exportStatement() throws StandardException :
 {
     StatementNode   statementNode;
     Vector parameterList = new Vector();
+    ValueNode exportPath;
+    ValueNode compression = null;
+    ValueNode replicationCount = null;
+    ValueNode encoding = null;
+    ValueNode fieldSeparator = null;
+    ValueNode quoteCharacter = null;
+    ValueNode quoteMode = null;
+    ValueNode fileType = null;
+    ValueNode floatingPointNotation = null;
+    ValueNode timestampFormat = null;
 }
 {
-    <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
-    {
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
-    }
+    <EXPORT>
+    (
+        <TO> exportPath = orExpression(null)
+        <AS> fileType = exportFormat()
+        [
+            <COMPRESSION> compression = exportCompression()
+        ]
+        [
+            <REPLICATION_COUNT> replicationCount = orExpression(null)
+        ]
+        [
+            <ENCODING> encoding = orExpression(null)
+        ]
+        [
+            <FIELD_SEPARATOR> fieldSeparator = orExpression(null)
+        ]
+        [
+            <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
+        ]
+        [
+            <QUOTE_MODE> quoteMode = exportQuoteMode()
+        ]
+        [
+            <FLOATING_POINT_NOTATION> floatingPointNotation = floatingPointNotation()
+        ]
+        [
+            <TIMESTAMP_FORMAT> timestampFormat = orExpression(null)
+        ]
+        statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(exportPath);
+            parameterList.addElement(compression);
+            parameterList.addElement(replicationCount);
+            parameterList.addElement(encoding);
+            parameterList.addElement(fieldSeparator);
+            parameterList.addElement(quoteCharacter);
+            parameterList.addElement(quoteMode);
+            parameterList.addElement(fileType);
+            parameterList.addElement(floatingPointNotation);
+            parameterList.addElement(timestampFormat);
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    |
+        // Legacy export
+        methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(null); // null for legacy (quote mode)
+            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
+                                     C_NodeTypes.CHAR_CONSTANT_NODE,
+                                     "csv",
+                                     getContextManager()));
+            parameterList.addElement(null); // null for legacy (floating point notation)
+            parameterList.addElement(null); // null for legacy (timestamp format)
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    )
 }
 
 StatementNode
@@ -4208,11 +3253,26 @@ binaryExportStatement() throws StandardException :
     Vector parameterList = new Vector();
 }
 {
+    // Legacy export
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
+        if (parameterList.size() != 3) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
+        }
+        Vector actualParameterList = new Vector();
+        actualParameterList.addElement(parameterList.elementAt(0));
+        actualParameterList.addElement(parameterList.elementAt(1));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(parameterList.elementAt(2));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
-                                   parameterList,
+                                   actualParameterList,
                                    getContextManager());
     }
 }
@@ -4260,13 +3320,14 @@ deleteBody() throws StandardException :
                                     (Properties) null,
                                     getContextManager());
 
-        return getDeleteNode(fromTable, tableName, whereClause, null);
+        return getDeleteNode(fromTable, tableName, whereClause, null, parameterList);
     }
 |
     <FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         [
             LOOKAHEAD
-            ( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
+            ( { (getToken(1).kind != EOF) && (getToken(1).kind != RIGHT_PAREN) &&
+                (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
             [ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
         ]
         [tableProperties = propertyList(false) <CHECK_PROPERTIES>]
@@ -4296,15 +3357,9 @@ deleteBody() throws StandardException :
           * bind time, in keeping with the design decision that the parser's
            * output should look like the language.
          */
-        boolean isBulkDelete = false;
-        if (tableProperties != null) {
-            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
-            if (dir != null) {
-                deleteProperties = new FormatableProperties();
-                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
-                isBulkDelete = true;
-            }
-        }
+        deleteProperties = DeleteNode.getDeleteProperties(tableProperties);
+        boolean isBulkDelete = DeleteNode.isBulkDelete(deleteProperties);
+
         if (fromTable == null)
             fromTable = (FromTable) nodeFactory.getNode(
                                         C_NodeTypes.FROM_BASE_TABLE,
@@ -4332,7 +3387,7 @@ deleteBody() throws StandardException :
             ((FromBaseTable) fromTable).setTableProperties(tableProperties);
         }
 
-        return getDeleteNode(fromTable, tableName, whereClause, deleteProperties);
+        return getDeleteNode(fromTable, tableName, whereClause, deleteProperties, parameterList);
     }
 }
 
@@ -4591,7 +3646,7 @@ updateBody() throws StandardException :
          * The FromList is simply the table that we are updating.
          * For a positioned update,
          * the FromList is a CurrentOfNode holding the cursor name.
-         * (NOTE - we mark the table as the one that we are updating.)
+         * (NOTE - we mark the table as the one that we are updating)
          * The select list is the columns in the SET clause.  At bind time,
           * we will prepend the CurrentRowLocation() in keeping with the design
          * decision that the parser's output should look like the language.
@@ -5069,7 +4124,7 @@ dataTypeDDL() throws StandardException :
 }
 {
     LOOKAHEAD( { commonDatatypeName(false) } )
-    typeDescriptor = dataTypeCommon()
+    typeDescriptor = dataTypeCommon(null)
     {
         return typeDescriptor;
     }
@@ -5102,7 +4157,7 @@ catalogType() throws StandardException :
  * <A NAME="dataTypeCast">dataTypeCast</A>
  */
 DataTypeDescriptor
-dataTypeCast() throws StandardException :
+dataTypeCast(MutableBoolean forSbcsData) throws StandardException :
 {
     DataTypeDescriptor    typeDescriptor;
     DataTypeDescriptor    optionalParentDescriptor;
@@ -5111,7 +4166,7 @@ dataTypeCast() throws StandardException :
     // This lookahead is required because the names of the built-in
     // datatypes are not reserved words
     LOOKAHEAD( { commonDatatypeName(true) } )
-    typeDescriptor = dataTypeCommon()
+    typeDescriptor = dataTypeCommon(forSbcsData)
     {
         return typeDescriptor;
     }
@@ -5126,7 +4181,7 @@ dataTypeCast() throws StandardException :
  * <A NAME="dataTypeCommon">dataTypeCommon</A>
  */
 DataTypeDescriptor
-dataTypeCommon() throws StandardException :
+dataTypeCommon(MutableBoolean forSbcsData) throws StandardException :
 {
     DataTypeDescriptor    typeDescriptor;
     boolean checkCS = false;
@@ -5141,7 +4196,7 @@ dataTypeCommon() throws StandardException :
     ** out characterSetSpecification().
     */
     ( LOOKAHEAD({getToken(2).kind != LARGE})
-        typeDescriptor = characterStringType()
+        typeDescriptor = characterStringType(forSbcsData)
         [ <ARRAY> { isArray = true; } ]
     )
         /* [ <CHARACTER> <SET> characterSetSpecification() ] */
@@ -5190,11 +4245,12 @@ dataTypeCommon() throws StandardException :
  * <A NAME="characterStringType">characterStringType</A>
  */
 DataTypeDescriptor
-characterStringType() throws StandardException :
+characterStringType(MutableBoolean forSbcsData) throws StandardException :
 {
     int                    length = DEFAULT_STRING_COLUMN_LENGTH;
     Token                varyingToken = null;
     int type;
+    boolean sbcs = false;
 }
 {
   (
@@ -5215,8 +4271,24 @@ characterStringType() throws StandardException :
         // If the user says CHARACTER VARYING, it's really VARCHAR
         type = (varyingToken == null ? Types.CHAR : Types.VARCHAR);
     }
-  ) [ type = forBitData(type) ]
+  )
+  [ <CCSID> <ASCII> ]
 
+  [ <FOR>
+    (
+        <BIT> <DATA>
+        {
+            type = charTypeToBinaryType(type);
+        }
+    |
+        <SBCS> <DATA>
+        {
+            if (forSbcsData != null) {
+                forSbcsData.setTrue();
+            }
+        }
+    )
+  ]
     {
         checkTypeLimits(type,length);
         DataTypeDescriptor charDTD = DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
@@ -5251,24 +4323,17 @@ charLength() throws StandardException :
     }
 }
 
-/*
-** <A NAME="forBitData">forBitData</A>
-*/
-
-int
-forBitData(int charType) :
+int charTypeToBinaryType(int charType) :
 {
 }
 {
-    <FOR> <BIT> <DATA>
     {
         if (charType == Types.CHAR)
-            charType = Types.BINARY;
+            return Types.BINARY;
         else if (charType == Types.VARCHAR)
-            charType = Types.VARBINARY;
+            return Types.VARBINARY;
         else if (charType == Types.LONGVARCHAR)
-            charType = Types.LONGVARBINARY;
-
+            return Types.LONGVARBINARY;
         return charType;
     }
 }
@@ -5427,24 +4492,7 @@ exactNumericType() throws StandardException :
     | <DECIMAL> | <DEC> )
     [ <LEFT_PAREN> precision = precision() [ <COMMA> scale = scale() ] <RIGHT_PAREN> ]
     {
-        if ((precision <= 0) ||
-            (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_PRECISION,
-                typeStr, String.valueOf(precision));
-        }
-        else if ((scale < 0) ||
-                 (scale > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE,
-                typeStr, String.valueOf(scale));
-        }
-        else if (scale > precision)
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE,
-                String.valueOf(scale),
-                String.valueOf(precision));
-        }
+        DataTypeUtilities.isValidDecimalPrecisionAndScale(precision, scale);
         /*
         ** If we have a decimal point, need to count it
         ** towards maxwidth.  Max width needs to account
@@ -5456,10 +4504,29 @@ exactNumericType() throws StandardException :
         return getDataTypeServices(type, precision, scale, maxWidth);
     }
     |
+        dtd = decfloatType()
+        {
+            return dtd;
+        }
+    |
         dtd = exactIntegerType()
         {
             return dtd;
         }
+}
+
+/*
+ * <A NAME="decfloatType">decfloatType</A>
+ */
+DataTypeDescriptor
+decfloatType() throws StandardException:
+{
+}
+{
+    <DECFLOAT>
+    {
+        return DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT);
+    }
 }
 
 /*
@@ -5606,7 +4673,7 @@ longSubType() throws StandardException :
     int lvcType = Types.LONGVARCHAR;
 }
 {
-    <VARCHAR> [ lvcType = forBitData(lvcType) ]
+    <VARCHAR> [ <FOR> <BIT> <DATA> { lvcType = Types.LONGVARBINARY; } ]
     {
         return DataTypeDescriptor.getBuiltInDataTypeDescriptor(lvcType);
     }
@@ -6966,12 +6033,11 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
         if (farLeftOperand == null)
             return leftOperand;
 
+        // manipulation for current timestamp operation
         switch (additiveOperator)
         {
+
           case BinaryOperatorNode.PLUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
-            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
                                     farLeftOperand,
@@ -6979,9 +6045,6 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
                                     getContextManager()
                                     );
           case BinaryOperatorNode.MINUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
-            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
                                     farLeftOperand,
@@ -6995,58 +6058,6 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
                     "Unexpected operator value of " + additiveOperator);
             return null;
         }
-    }
-}
-
-/*
- * <A NAME="convertAddTimeIntervalToFunction">convertAddTimeIntervalToFunction</A>
- */
-ValueNode
-convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
-{
-    Vector parameterList = new Vector();
-    String function = null;
-}
-{
-    {
-        switch (timeSpanNode.getUnit()) {
-            case DateTimeDataValue.DAY_INTERVAL:
-                function = "ADD_DAYS";
-                break;
-            case DateTimeDataValue.MONTH_INTERVAL:
-                function = "ADD_MONTHS";
-                break;
-            case DateTimeDataValue.YEAR_INTERVAL:
-                function = "ADD_YEARS";
-                break;
-            default:
-                assert false: "Illegal time span unit";
-        }
-        MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
-                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                                (TableName) nodeFactory.getNode(
-                                            C_NodeTypes.TABLE_NAME,
-                                            null,
-                                            function,
-                                            getContextManager()
-                                            ),
-                                null,
-                                getContextManager()
-                                );
-        parameterList.addElement(base);
-        ValueNode value = timeSpanNode.getValue();
-        if (negate) {
-            value = (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
-                                value,
-                                getContextManager());
-        }
-        parameterList.addElement(value);
-        methodNode.addParms(parameterList);
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
     }
 }
 
@@ -7365,7 +6376,11 @@ getTimeSpan(ValueNode value) throws StandardException :
 {
     LOOKAHEAD ( { getToken(1).kind == YEAR || getToken(1).kind == YEARS ||
                   getToken(1).kind == MONTH || getToken(1).kind == MONTHS ||
-                  getToken(1).kind == DAY || getToken(1).kind == DAYS } )
+                  getToken(1).kind == DAY || getToken(1).kind == DAYS ||
+                  getToken(1).kind == HOUR || getToken(1).kind == HOURS ||
+                  getToken(1).kind == MINUTE || getToken(1).kind == MINUTES ||
+                  getToken(1).kind == SECOND || getToken(1).kind == SECONDS
+                  } )
     timeUnit = dateTimeIntervalUnit()
     {
         return (ValueNode) nodeFactory.getNode(
@@ -7513,6 +6528,8 @@ escapedValueFunction() throws StandardException :
     ValueNode   str2;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     value = miscBuiltinsCore( true /* is JDBC escape */)
@@ -7586,11 +6603,17 @@ escapedValueFunction() throws StandardException :
         return value;
     }
 
+|
+    /* Escaped function split_part() */
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null, 0) <COMMA> delimiter = additiveExpression(null, 0) <COMMA> fieldNumber = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode(value, delimiter, fieldNumber);
+    }
 
 }
 
 /*
- * <A NAME="numericValueFunction">numericValueFunction</A>
+ * <A NAME="escapedSYSFUNFunctions">escapedSYSFUNFunctions</A>
  */
 ValueNode
 escapedSYSFUNFunction() throws StandardException :
@@ -7725,13 +6748,30 @@ ValueNode jdbcIntervalType() throws StandardException :
 }
 
 /*
+ * <A NAME="typeOfFunction">typeOfFunction</A>
+ */
+ValueNode
+typeOfFunction() throws StandardException :
+{
+    ValueNode    value;
+}
+{
+    <TYPEOF> <LEFT_PAREN> value = orExpression(null) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.TYPEOF_OPERATOR_NODE,
+            value,
+            getContextManager());
+    }
+}
+
+/*
  * <A NAME="numericValueFunction">numericValueFunction</A>
  */
 ValueNode
 numericValueFunction() throws StandardException :
 {
     ValueNode    value;
-    int            field;
 }
 {
     /*
@@ -7770,7 +6810,51 @@ numericValueFunction() throws StandardException :
                         C_NodeTypes.IDENTITY_VAL_NODE,
                         getContextManager());
     }
+|
+    <DECIMAL> value = decimalFunction("DECIMAL")
+    {
+        return value;
+    }
+|
+    <DEC> value = decimalFunction("DEC")
+    {
+        return value;
+    }
 }
+
+ValueNode
+decimalFunction(String functionName) throws StandardException :
+{
+    ValueNode value;
+    Integer   precision = null;
+    Integer   scale = null;
+    String    decimalCharacter = null;
+}
+{
+   <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> precision = precision() [ <COMMA> scale = scale() [ <COMMA> decimalCharacter = string() ] ] ] <RIGHT_PAREN>
+   {
+
+        if(precision != null) {
+            DataTypeUtilities.isValidDecimalPrecision(precision);
+        }
+        if(scale != null) {
+            DataTypeUtilities.isValidDecimalScale(precision, scale);
+        }
+        if(decimalCharacter != null) {
+            DataTypeUtilities.isValidDecimalCharacter(decimalCharacter);
+        }
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.DECIMAL_FUNCTION_NODE,
+                functionName,
+                value,
+                precision,
+                scale,
+                decimalCharacter,
+                getContextManager());
+   }
+}
+
+
 
 /*
  * <A NAME="coalesceFunction">coalesceFunction</A>
@@ -7914,6 +6998,21 @@ int dateTimeIntervalUnit() :
     {
         return DateTimeDataValue.DAY_INTERVAL;
     }
+|
+    (<HOUR>|<HOURS>)
+    {
+        return DateTimeDataValue.HOUR_INTERVAL;
+    }
+|
+    (<MINUTE>|<MINUTES>)
+    {
+        return DateTimeDataValue.MINUTE_INTERVAL;
+    }
+|
+    (<SECOND>|<SECONDS>)
+    {
+        return DateTimeDataValue.SECOND_INTERVAL;
+    }
 }
 
 
@@ -7928,6 +7027,8 @@ characterValueFunction() throws StandardException :
     Token        lowerTok = null;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     <SUBSTR> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> startPosition = additiveExpression(null,0) [ <COMMA> length = additiveExpression(null,0) ] <RIGHT_PAREN>
@@ -8036,6 +7137,11 @@ characterValueFunction() throws StandardException :
                             ReuseFactory.getInteger(TernaryOperatorNode.LOCATE),
                             null,
                             getContextManager());
+    }
+|
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> delimiter = additiveExpression(null,0) <COMMA> fieldNumber = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode( value, delimiter, fieldNumber );
     }
 }
 
@@ -8387,6 +7493,7 @@ miscBuiltins() throws StandardException :
              ( (getToken(1).kind == GET_CURRENT_CONNECTION ||
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
+                getToken(1).kind == DECFLOAT ||
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
@@ -8415,6 +7522,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TIMESTAMP ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
+                getToken(1).kind == TYPEOF ||
                 getToken(1).kind == DOUBLE ||
                 getToken(1).kind == CHAR ||
                 getToken(1).kind == VARCHAR ||
@@ -8447,7 +7555,10 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
-                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
+                getToken(1).kind == SPLIT_PART ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ||
+                getToken(1).kind == DECIMAL ||
+                getToken(1).kind == DEC ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8509,6 +7620,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.GET_CURRENT_CONNECTION_NODE,
                                     getContextManager()),
                                 getContextManager());
+    }
+|
+    value = typeOfFunction()
+    {
+        return value;
     }
 |
     value = numericValueFunction()
@@ -8626,6 +7742,7 @@ ValueNode
     ValueNode operand;
     int charType;
     int length = -1;
+    int format = -1;
 }
 {
     //Note: When you add a new data type function, in addition to adding it
@@ -8647,7 +7764,17 @@ ValueNode
 
             return value;
       }
-     | charType = charOrVarchar() <LEFT_PAREN> operand = additiveExpression(null,0) [ <COMMA> length = length() ] <RIGHT_PAREN>
+     |
+     charType = charOrVarchar()
+     <LEFT_PAREN>
+     operand = additiveExpression(null,0)
+     [
+        <COMMA> (
+            format = datetimeStringFormat()
+        |
+            length = length()
+        )
+     ] <RIGHT_PAREN>
     {
         // Always check db2 limits for this function. It's new
         checkTypeLimits(charType,length);
@@ -8656,11 +7783,46 @@ ValueNode
                                                 operand,
                                                 new Integer(charType),
                                                 new Integer(length),
+                                                new Integer(format),
                                                 getContextManager());
 
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         return value;
+    }
+}
+
+/*
+ * <A NAME="datetimeStringFormat">datetimeStringFormat</A>
+ */
+int
+datetimeStringFormat() throws StandardException :
+{
+}
+{
+    <ISO>
+    {
+        return DateTimeDataValue.ISO;
+    }
+|
+    <USA>
+    {
+        return DateTimeDataValue.USA;
+    }
+|
+    <EUR>
+    {
+        return DateTimeDataValue.EUR;
+    }
+|
+    <JIS>
+    {
+        return DateTimeDataValue.JIS;
+    }
+|
+    <LOCAL>
+    {
+        return DateTimeDataValue.LOCAL;
     }
 }
 
@@ -9184,7 +8346,12 @@ numericFunctionType() throws StandardException :
     {
         return dts;
     }
-    |
+|
+    dts = decfloatType()
+    {
+        return dts;
+    }
+|
     dts = exactIntegerType()
     {
         return dts;
@@ -11133,6 +10300,22 @@ tableReference(boolean nestedInParens) throws StandardException :
     }
 }
 
+Token
+fromTableType() throws StandardException :
+{
+    Token    retval;
+}
+{
+    (
+        retval = <FINAL> |
+        retval = <NEW> |
+        retval = <OLD>
+    )
+    {
+        return retval;
+    }
+}
+
 FromTable tableFactor() throws StandardException :
 {
     JavaToSQLValueNode    javaToSQLNode = null;
@@ -11145,6 +10328,18 @@ FromTable tableFactor() throws StandardException :
     Properties            tableProperties = null;
     SubqueryNode        derivedTable;
     TypeDescriptor typeDescriptor = null;
+    StatementNode       statement;
+    DMLModStatementNode dmlStatement;
+    TableName           triggerName;
+    CreateTriggerNode   tempTriggerDefinition;
+    ResultColumnList    triggerColumns;
+    Vector              refClause = null;
+    String              internalSelectStmt;
+    StatementNode       selectStatementNode;
+    StatementListNode   actionNodeList;
+    List<String>        actionTextList;
+    QueryTreeNode       newNode;
+    Token               fromTableType;
 }
 {
     /* NOTE: this rule has to come first in order to avoid making NEW
@@ -11172,6 +10367,118 @@ FromTable tableFactor() throws StandardException :
                                 typeDescriptor,
                                 getContextManager());
         return fromTable;
+    }
+|
+    LOOKAHEAD( { tableFollows(2) } )
+    fromTableType = fromTableType() <TABLE> <LEFT_PAREN> statement = preparableDMLDataStatement() <RIGHT_PAREN>
+    [ optionalTableClauses = optionalTableProperties() ]  {
+        boolean isOld = fromTableType.kind == OLD;
+        boolean isFinalTable = fromTableType.kind == FINAL;
+        dmlStatement = (DMLModStatementNode)statement;
+        LanguageConnectionContext lcc = dmlStatement.getLanguageConnectionContext();
+        tableName = dmlStatement.getTargetTableName();
+        String uniqueId = java.util.UUID.randomUUID().toString().replaceAll("-", "_").toUpperCase();
+        String tempTriggerName = "TRIG_" + uniqueId;
+        String schemaName = lcc.getDefaultSchema().getSchemaName();
+        triggerName = (TableName) nodeFactory.getNode(
+                                C_NodeTypes.TABLE_NAME,
+                                schemaName,
+                                tempTriggerName,
+                                getContextManager());
+        triggerColumns = (ResultColumnList) nodeFactory.getNode(
+                                        C_NodeTypes.RESULT_COLUMN_LIST,
+                                        getContextManager());
+        correlationName = "NT_" + uniqueId;
+        refClause = new Vector();
+        refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
+
+        internalSelectStmt = "SELECT * FROM " + correlationName;
+        actionTextList = new ArrayList();
+        actionTextList.add(internalSelectStmt);
+        selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
+        actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+        actionNodeList.addStatement(selectStatementNode);
+
+        String javaClassName =
+               isOld ? "com.splicemachine.derby.catalog.TriggerOldTransitionRows":
+                       "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+        newNode = (QueryTreeNode) nodeFactory.getNode(
+                               C_NodeTypes.NEW_INVOCATION_NODE,
+                               javaClassName,
+                               new Vector(), // empty parameterList
+                               getContextManager());
+
+        javaToSQLNode = (JavaToSQLValueNode) nodeFactory.getNode(
+                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                                newNode,
+                                getContextManager());
+
+        TriggerEventDML triggerEvent;
+        String          stmtKind;
+
+        if (dmlStatement instanceof InsertNode) {
+            stmtKind     = "INSERT";
+            triggerEvent = TriggerEventDML.INSERT;
+            if (isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                                                      fromTableType.toString(), "INSERT");
+        }
+        else if (dmlStatement instanceof DeleteNode) {
+            stmtKind     = "DELETE";
+            triggerEvent = TriggerEventDML.DELETE;
+            if (!isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                                                      fromTableType.toString(), "DELETE");
+        }
+        else {
+            stmtKind     = "UPDATE";
+            triggerEvent = TriggerEventDML.UPDATE;
+        }
+
+        tempTriggerDefinition =
+            (CreateTriggerNode) nodeFactory.getNode(
+                                C_NodeTypes.CREATE_TRIGGER_NODE,
+                                triggerName,
+                                tableName,
+                                triggerEvent,
+                                triggerColumns,
+                                false,                   // isBefore
+                                false,                   // isRow
+                                Boolean.TRUE,            // enabled
+                                refClause,               // referencing clause
+                                null,                    // when clause node
+                                null,                    // when clause text
+                                actionNodeList,
+                                actionTextList,
+                                getContextManager());
+
+        tempTriggerDefinition.setIsFinalTable(isFinalTable);
+        String targetTableName = tableName.toString();
+        String newOrOld = isOld ? "OLD" : "NEW";
+        // The trigger text is not parsed.  It is just used as a handy representation of
+        // the CreateTriggerNode.
+        String tempTriggerSQLText =
+               format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
+                      triggerName, stmtKind, targetTableName, newOrOld, correlationName);
+
+        FromVTI fromVTI =
+          (FromVTI) nodeFactory.getNode(
+                        C_NodeTypes.FROM_VTI,
+                        javaToSQLNode.getJavaValueNode(),
+                        correlationName,
+                        derivedRCL,
+                        ((optionalTableClauses != null) ?
+                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
+                            (Properties) null),
+                        typeDescriptor,
+                        parameterList,
+                        new Boolean(true),
+                        getContextManager());
+        fromVTI.setFromTableDMLStmt(dmlStatement);
+        fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
+        fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
+        fromVTI.setTempTriggerName(tempTriggerName);
+        return (FromTable)fromVTI;
     }
 |
     /* identifier() used to be correlationName() */
@@ -12136,9 +11443,10 @@ castSpecification() throws StandardException :
     ValueNode         value;
     int                 charType;
     int                 length = -1;
+    MutableBoolean forSbcsData = new MutableBoolean(false);
 }
 {
-    <CAST> <LEFT_PAREN> value = castOperand() <AS> dts = dataTypeCast() <RIGHT_PAREN>
+    <CAST> <LEFT_PAREN> value = castOperand() <AS> dts = dataTypeCast(forSbcsData) <RIGHT_PAREN>
     {
         treeTop = (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.CAST_NODE,
@@ -12146,6 +11454,7 @@ castSpecification() throws StandardException :
                                     dts,
                                     getContextManager());
         ((CastNode) treeTop).setForExternallyGeneratedCASTnode();
+        ((CastNode) treeTop).setForSbcsData(forSbcsData.toBoolean());
 
         /* We need to generate a SQL->Java conversion tree above us if
          * the dataTypeCast is a user type.
@@ -15762,6 +15071,7 @@ caseInnerExpression(ValueNode compareTo) throws StandardException :
                                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
                                         getContextManager());
         ((CastNode) value).setForExternallyGeneratedCASTnode();
+        ((CastNode) value).setForNullsInConditionalNode();
         return value;
     }
 |
@@ -16240,19 +15550,34 @@ dropRoleStatement() throws StandardException :
     }
 }
 
+Boolean
+restrictOrCascade() :
+{}
+{
+    <RESTRICT>
+    {
+        return Boolean.TRUE;
+    }
+|
+    <CASCADE>
+    {
+        return Boolean.FALSE;
+    }
+}
 
 StatementNode
 dropSchemaStatement() throws StandardException :
 {
     String schemaName;
+    Boolean option;
 }
 {
-    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
     {
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
-                            new Integer(StatementType.DROP_RESTRICT),
+                            new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;
@@ -16886,34 +16211,6 @@ dropTableStatement() throws StandardException :
         return deleteNode;
     }
 }
-
-/*
- * <A NAME="dropPinStatement">dropPinStatement</A>
- */
-StatementNode
-dropPinStatement() throws StandardException :
-{
-    Token ifTok = null;
-    Token existsTok = null;
-    TableName tableName;
-}
-{
-    <UNPIN> <TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-    {
-        // must have both "if" and "exists"
-        boolean ifExists = ifTok != null && existsTok != null;
-        // DB2 does not support a drop behaviour
-        StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
-                                            C_NodeTypes.DROP_PIN_NODE,
-                                            tableName,
-                                            (ifExists ?
-                                              new Integer(StatementType.DROP_IF_EXISTS) :
-                                              new Integer(StatementType.DROP_DEFAULT)),
-                                            getContextManager());
-        return deleteNode;
-    }
-}
-
 
 /*
  * <A NAME="dropIndexStatement">dropIndexStatement</A>
@@ -17772,7 +17069,6 @@ reservedKeyword() :
 |    tok = <AS>
 |    tok = <ASC>
 |    tok = <ASSERTION>
-|    tok = <AT>
 |    tok = <AUTHORIZATION>
 |    tok = <AVG>
 |    tok = <BEGIN>
@@ -18028,42 +17324,49 @@ nonReservedKeyword()  :
         rule, for the same reason.
      */
     (
-        tok = <ABS>
+         tok = <ABS>
     |    tok = <ABSVAL>
     |    tok = <ACCESS>
     |    tok = <ACTION>
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>
+    |    tok = <ASCII>
+    |    tok = <AT> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ATOMIC>
-    |   tok = <AUTO>
-    |   tok = <B>
+    |    tok = <AUTO>
+    |    tok = <B>
     |    tok = <BEFORE>
     |    tok = <BINARY>
     |    tok = <BLOB>
+    |    tok = <BZ2>
+    |    tok = <BZIP2>
     |    tok = <C>
     |    tok = <CALLED>
+    |    tok = <CCSID>
     |    tok = <CLASS>
     |    tok = <CLOB>
     |    tok = <COALESCE>
     |    tok = <NVL>
-    |   tok = <CHARACTERDELIMITER>
+    |    tok = <CHARACTERDELIMITER>
     |    tok = <COBOL>
-    |   tok = <COLUMNDELIMITER>
+    |    tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
+    |    tok = <COMPRESSION>
     |    tok = <CONCAT>
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
     |    tok = <COUNT>
-    |   tok = <CS>
+    |    tok = <CS>
+    |    tok = <CSV>
     |    tok = <CURDATE>
     |    tok = <CURTIME>
     |    tok = <CYCLE>
     |    tok = <D>
     |    tok = <DATA>
     |    tok = <DATE>
-    |   tok = <DATEFORMAT>
+    |    tok = <DATEFORMAT>
     |    tok = <DAY>
     |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
@@ -18072,6 +17375,7 @@ nonReservedKeyword()  :
     |    tok = <DYNAMIC>
     |    tok = <DATABASE>
     |    tok = <DB2SQL>
+    |    tok = <DECFLOAT>
     |    tok = <DENSERANK>
     |    tok = <DERBY>
     |    tok = <DIGITS>
@@ -18079,11 +17383,16 @@ nonReservedKeyword()  :
     |    tok = <DOCUMENT>
     |    tok = <EACH>
     |    tok = <EMPTY>
+    |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
+    |    tok = <EUR>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
+    |    tok = <FIELD_SEPARATOR>
+    |    tok = <FINAL>
     |    tok = <FIRSTVALUE>
+    |    tok = <FLOATING_POINT_NOTATION>
     |    tok = <FN>
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
@@ -18091,16 +17400,20 @@ nonReservedKeyword()  :
     |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
+    |    tok = <GZ>
+    |    tok = <GZIP>
     |    tok = <HFILE>
+    |    tok = <HOURS>
     |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
     |    tok = <INDEX>
     |    tok = <INITIAL>
     |    tok = <INPLACE>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <INTERVAL>
+    |    tok = <INTERVAL> // SQL92 says it is reserved, but we want it to be non-reserved.
+    |    tok = <ISO>
     |    tok = <JAVA>
+    |    tok = <JIS>
     |    tok = <KEYS>
     |    tok = <L>
     |    tok = <LAG>
@@ -18112,22 +17425,22 @@ nonReservedKeyword()  :
     |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
-    |   tok = <LIMIT>
-    |   tok = <FORMAT>
-    |   tok = <DELIMITED>
-    |   tok = <FIELDS>
-    |   tok = <TERMINATED>
-    |   tok = <ESCAPED>
-    |   tok = <LINES>
-    |   tok = <PARTITIONED>
-    |   tok = <STORED>
-    |   tok = <LOCATION>
-    |   tok = <TEXTFILE>
-    |   tok = <PIN>
-    |   tok = <PARQUET>
-    |   tok = <AVRO>
-    |   tok = <ORC>
-    |   tok = <LOCATE>
+    |    tok = <LIMIT>
+    |    tok = <FORMAT>
+    |    tok = <DELIMITED>
+    |    tok = <FIELDS>
+    |    tok = <TERMINATED>
+    |    tok = <ESCAPED>
+    |    tok = <LINES>
+    |    tok = <PARTITIONED>
+    |    tok = <STORED>
+    |    tok = <LOCATION>
+    |    tok = <TEXTFILE>
+    |    tok = <PIN>
+    |    tok = <PARQUET>
+    |    tok = <AVRO>
+    |    tok = <ORC>
+    |    tok = <LOCATE>
     |    tok = <LOCK>
     |    tok = <LOCKS>
     |    tok = <LOCKSIZE>
@@ -18135,6 +17448,7 @@ nonReservedKeyword()  :
     |    tok = <LONG>
     |    tok = <MAXVALUE>
     |    tok = <MESSAGE_TEXT>
+    |    tok = <MINUTES>
     |    tok = <MINVALUE>
     |    tok = <MESSAGE_LOCALE>
     |    tok = <METHOD>
@@ -18142,8 +17456,7 @@ nonReservedKeyword()  :
     |    tok = <MODE>
     |    tok = <MODIFIES>
     |    tok = <MODIFY>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <MODULE>
+    |    tok = <MODULE> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <MONTH>
     |    tok = <MONTHS>
     |    tok = <MONTHNAME>
@@ -18152,7 +17465,8 @@ nonReservedKeyword()  :
     |    tok = <NAME>
     |    tok = <NCLOB>
     |    tok = <NEW>
-    |   tok = <NEW_TABLE>
+    |    tok = <NEW_TABLE>
+    |    tok = <NORMALIZED>
     |    tok = <NULLABLE>
     |    tok = <NULLS>
     |    tok = <NUMBER>
@@ -18175,6 +17489,7 @@ nonReservedKeyword()  :
     |    tok = <PASCAL>
     |    tok = <PASSING>
     |   tok = <PERCENTWORD>
+    |    tok = <PLAIN>
     |    tok = <PLI>
     |    tok = <PRECISION>
     |    tok = <PROPERTIES>
@@ -18206,8 +17521,10 @@ nonReservedKeyword()  :
     |   tok = <RR>
     |   tok = <RS>
     |   tok = <SAMPLE>
+    |    tok = <SBCS>
     |    tok = <SCALE>
     |    tok = <SAVEPOINT>
+    |    tok = <SECONDS>
     |    tok = <SECURITY>
     |    tok = <SEQUENCE>
     |    tok = <SEQUENTIAL>
@@ -18216,8 +17533,10 @@ nonReservedKeyword()  :
     |    tok = <SETS>
     |    tok = <SHARE>
     |    tok = <SIGNAL>
+    |    tok = <SNAPPY>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
+    |    tok = <SPLIT_PART>
     |    tok = <SQLID>
     |    tok = <SQL_TSI_FRAC_SECOND>
     |    tok = <SQL_TSI_SECOND>
@@ -18236,6 +17555,9 @@ nonReservedKeyword()  :
     |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
+    |    tok = <QUOTE_CHARACTER>
+    |    tok = <QUOTE_MODE>
+    |    tok = <REPLICATION_COUNT>
     |    tok = <T>
     |    tok = <TEXT>
     |    tok = <THEN>
@@ -18245,14 +17567,17 @@ nonReservedKeyword()  :
     |    tok = <TIMESTAMPADD>
     |   tok = <TIMESTAMPFORMAT>
     |    tok = <TIMESTAMPDIFF>
+    |    tok = <TIMESTAMP_FORMAT>
     |   tok = <TRIGGER>
     |    tok = <TRUNCATE>
     |    tok = <TRUNCATE_END>
     |    tok = <TS>
     |    tok = <TYPE>
+    |    tok = <TYPEOF>
     |   tok = <UCASE>
     |    tok = <UNCOMMITTED>
     |   tok = <UR>
+    |    tok = <USA>
     |    tok = <USAGE>
 // SQL92 says VALUE is reserved, but we want it to be nonreserved.
     |    tok = <VALUE>

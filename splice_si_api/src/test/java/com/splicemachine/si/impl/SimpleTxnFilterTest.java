@@ -24,10 +24,7 @@ import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
-import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.TestingTimestampSource;
-import com.splicemachine.si.impl.store.TestingTxnStore;
+import com.splicemachine.si.impl.store.*;
 import com.splicemachine.si.impl.txn.*;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestDataEnv;
@@ -47,7 +44,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -63,6 +64,7 @@ public class SimpleTxnFilterTest{
     private TxnStore txnStore;
     private TxnSupplier txnSupplier;
     private TxnOperationFactory operationFactory;
+    private OperationFactory baseOperationFactory;
     private ExceptionFactory exceptionFactory;
 
     @Before
@@ -70,10 +72,9 @@ public class SimpleTxnFilterTest{
         SITestDataEnv testEnv=SITestEnvironment.loadTestDataEnvironment();
 
         this.operationFactory=testEnv.getOperationFactory();
+        this.baseOperationFactory = testEnv.getBaseOperationFactory();
         this.exceptionFactory = testEnv.getExceptionFactory();
 
-
-        OperationFactory operationFactory = testEnv.getBaseOperationFactory();
         TimestampSource tss = new TestingTimestampSource();
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
         this.txnSupplier = new ActiveTxnCacheSupplier(new CompletedTxnCacheSupplier(txnStore, 1024, 4),1024,1024);
@@ -86,31 +87,31 @@ public class SimpleTxnFilterTest{
     public void testCanSeeCommittedRowSnapshotIsolation() throws Exception{
         TxnSupplier baseStore=txnStore;
 
-        TxnView committed=new CommittedTxn(0x100l,0x200l);
+        TxnView committed=new CommittedTxn(0x100L,0x200L);
         baseStore.cache(committed);
 
         ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
-        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300l,0x300l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300L,0x300L,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
         DataPut testCommitKv=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
-        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x100l,Bytes.toBytes(1l));
+        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x100L,Bytes.toBytes(1L));
         DataCell commitCell=testCommitKv.cells().iterator().next();
         Assert.assertNotNull("Did not create a commit cell!",commitCell);
-        Assert.assertEquals("Incorrect data type!",CellType.COMMIT_TIMESTAMP,commitCell.dataType());
+        assertEquals("Incorrect data type!",CellType.COMMIT_TIMESTAMP,commitCell.dataType());
 
         SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
 
         DataFilter.ReturnCode code=filterState.filterCell(commitCell);
-        Assert.assertEquals("Incorrect return code for commit keyvalue!",DataFilter.ReturnCode.SKIP,code);
+        assertEquals("Incorrect return code for commit keyvalue!",DataFilter.ReturnCode.SKIP,code);
 
         DataPut testUserPut=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
-        testUserPut.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,0x100l,Encoding.encode("hello"));
+        testUserPut.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,0x100L,Encoding.encode("hello"));
         DataCell userCell=testUserPut.cells().iterator().next();
         Assert.assertNotNull("Did not create a user cell!",userCell);
-        Assert.assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
+        assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
 
         DataFilter.ReturnCode returnCode=filterState.filterCell(userCell);
-        Assert.assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.INCLUDE,returnCode);
+        assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.INCLUDE,returnCode);
     }
 
     @Test
@@ -121,13 +122,13 @@ public class SimpleTxnFilterTest{
         rolledBack.rollback();
 
         ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
-        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300l,0x300l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300L,0x300L,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
         SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
 
         DataCell userCell=getUserCell(rolledBack);
 
         DataFilter.ReturnCode returnCode=filterState.filterCell(userCell);
-        Assert.assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.SKIP,returnCode);
+        assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.SKIP,returnCode);
     }
 
 
@@ -326,7 +327,7 @@ public class SimpleTxnFilterTest{
         DataCell testDataKv=getUserCell(rolledBackTxn);
 
         DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
-        Assert.assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.SKIP,returnCode);
+        assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.SKIP,returnCode);
 
         Assert.assertNotNull("ReadResolver was not told to rollback!",rolledBackTs.getFirst());
 
@@ -334,7 +335,7 @@ public class SimpleTxnFilterTest{
         Assert.assertArrayEquals("Incorrect row to resolve rolledBackTxn!",testDataKv.key(),first.getByteCopy());
 
         long rolledBackTxnId=rolledBackTs.getSecond();
-        Assert.assertEquals("Incorrect version of data to be rolled back!",rolledBackTxn.getTxnId(),rolledBackTxnId);
+        assertEquals("Incorrect version of data to be rolled back!",rolledBackTxn.getTxnId(),rolledBackTxnId);
     }
 
     private void assertCommitted(TxnSupplier baseStore,TxnView committed,long readTs) throws IOException{
@@ -347,7 +348,7 @@ public class SimpleTxnFilterTest{
         DataCell testDataKv=getUserCell(committed);
 
         DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
-        Assert.assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.INCLUDE,returnCode);
+        assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.INCLUDE,returnCode);
 
         Assert.assertNotNull("ReadResolver was not told to commit!",committedTs.getFirst());
 
@@ -355,13 +356,123 @@ public class SimpleTxnFilterTest{
         Assert.assertArrayEquals("Incorrect row to resolve committed!",testDataKv.key(),first.getByteCopy());
 
         Pair<Long, Long> txnIdToCommitTs=committedTs.getSecond();
-        Assert.assertEquals("Incorrect transaction id!",
+        assertEquals("Incorrect transaction id!",
                 committed.getTxnId() & SIConstants.TRANSANCTION_ID_MASK,
                 txnIdToCommitTs.getFirst().longValue() & SIConstants.TRANSANCTION_ID_MASK);
-        Assert.assertEquals("Incorrect commit timestamp!",committed.getEffectiveCommitTimestamp(),
+        assertEquals("Incorrect commit timestamp!",committed.getEffectiveCommitTimestamp(),
                 txnIdToCommitTs.getSecond().longValue());
     }
 
+    @Test
+    public void testCantSeeIgnoredDelete() throws Exception{
+        IgnoreTxnSupplier ignoreSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
+        TxnSupplier baseStore=new CompletedTxnCacheSupplier(txnStore, 1024, 4, ignoreSupplier);
+
+        txnStore.cache(new CommittedTxn(0x200L, 0x300L));
+        txnStore.cache(new CommittedTxn(0x400L, 0x500L));
+
+        ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
+        long myId = 0x900L;
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION, myId, myId,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+
+        // Test without committed timestamp cells
+        List<DataCell> data = new ArrayList<>();
+        byte[] key = Bytes.toBytes("row");
+        data.add(baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES,0x400L, SIConstants.TOMBSTONE_VALUE_BYTES));
+        data.add(baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,0x200L,Bytes.toBytes(0x300L)));
+
+        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
+        filterState.setIgnoreTxnSupplier(ignoreSupplier);
+
+        for (DataCell cell : data) {
+            DataFilter.ReturnCode code= filterState.filterCell(cell);
+            if (Arrays.equals(cell.qualifier(), SIConstants.TOMBSTONE_COLUMN_BYTES)) {
+                assertEquals(DataFilter.ReturnCode.SKIP, code);
+            } else if (Arrays.equals(cell.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) {
+                assertEquals("Delete without commit timestamp should be ignored", DataFilter.ReturnCode.INCLUDE, code);
+            }
+        }
+
+        // Test with committed timestamp cells
+        data.add(0, baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x200L,Bytes.toBytes(0x300L)));
+        data.add(1, baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x400L,Bytes.toBytes(0x500L)));
+        filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
+        filterState.setIgnoreTxnSupplier(ignoreSupplier);
+        for (DataCell cell : data) {
+            DataFilter.ReturnCode code= filterState.filterCell(cell);
+            if (Arrays.equals(cell.qualifier(), SIConstants.TOMBSTONE_COLUMN_BYTES)) {
+                assertEquals(DataFilter.ReturnCode.SKIP, code);
+            } else if (Arrays.equals(cell.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) {
+                assertEquals("Delete with commit timestamp should be ignored", DataFilter.ReturnCode.INCLUDE, code);
+            }
+        }
+    }
+
+    @Test
+    public void testCantSeeIgnoredUpdate() throws Exception{
+        IgnoreTxnSupplier ignoreSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
+        TxnSupplier baseStore=new CompletedTxnCacheSupplier(txnStore, 1024, 4, ignoreSupplier);
+
+        txnStore.cache(new CommittedTxn(0x200L, 0x300L));
+        txnStore.cache(new CommittedTxn(0x400L, 0x500L));
+
+        ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
+        long myId = 0x900L;
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION, myId, myId,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+
+        // Test without committed timestamp cells
+        List<DataCell> data = new ArrayList<>();
+        byte[] key = Bytes.toBytes("row");
+        data.add(baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,0x400L, Bytes.toBytes("update")));
+        data.add(baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,0x200L, Bytes.toBytes("first write")));
+
+        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
+        filterState.setIgnoreTxnSupplier(ignoreSupplier);
+
+        for (DataCell cell : data) {
+            DataFilter.ReturnCode code= filterState.filterCell(cell);
+            if (Arrays.equals(cell.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) {
+                switch ((int) cell.version()) {
+                    case 0x200:
+                        assertEquals("First write should be included", DataFilter.ReturnCode.INCLUDE, code);
+                        break;
+                    case 0x400:
+                        assertEquals("Update should be ignored", DataFilter.ReturnCode.SKIP, code);
+                        break;
+                }
+            }
+        }
+
+        // Test with committed timestamp cells
+        data.add(0, baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x200L,Bytes.toBytes(0x300L)));
+        data.add(1, baseOperationFactory.newCell(key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0x400L,Bytes.toBytes(0x500L)));
+        filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
+        filterState.setIgnoreTxnSupplier(ignoreSupplier);
+
+        for (DataCell cell : data) {
+            DataFilter.ReturnCode code= filterState.filterCell(cell);
+            if (Arrays.equals(cell.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) {
+                switch ((int) cell.version()) {
+                    case 0x200:
+                        assertEquals("First write should be included", DataFilter.ReturnCode.INCLUDE, code);
+                        break;
+                    case 0x400:
+                        assertEquals("Update should be ignored", DataFilter.ReturnCode.SKIP, code);
+                        break;
+                }
+            }
+        }
+    }
 
     private void assertActive(TxnSupplier baseStore,TxnView active,long readTs) throws IOException{
         Txn myTxn=new ReadOnlyTxn(readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),exceptionFactory,false);
@@ -372,7 +483,7 @@ public class SimpleTxnFilterTest{
         DataCell testDataKv=getUserCell(active);
 
         DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
-        Assert.assertEquals("Incorrect return code for data keyValue!",DataFilter.ReturnCode.SKIP,returnCode);
+        assertEquals("Incorrect return code for data keyValue!",DataFilter.ReturnCode.SKIP,returnCode);
 
         //the read-resolver will ensure that an error is thrown if we attempt to read-resolve
     }
@@ -382,7 +493,7 @@ public class SimpleTxnFilterTest{
         testUserPut.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,txn.getBeginTimestamp(),Encoding.encode("hello"));
         DataCell userCell=testUserPut.cells().iterator().next();
         Assert.assertNotNull("Did not create a user cell!",userCell);
-        Assert.assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
+        assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
         return userCell;
     }
 

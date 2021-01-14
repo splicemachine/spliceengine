@@ -25,9 +25,12 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.storage.MServerControl;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -42,6 +45,11 @@ public class PipelinePartitionCreator implements PartitionCreator{
     }
 
     public PartitionCreator withName(String name){
+        return withName(name, Conglomerate.Priority.NORMAL);
+    }
+
+    public PartitionCreator withName(String name, Conglomerate.Priority priority){
+        // mem can ignore priority
         baseCreator=baseCreator.withName(name);
         try{
             //noinspection ResultOfMethodCallIgnored
@@ -126,6 +134,11 @@ public class PipelinePartitionCreator implements PartitionCreator{
             throw new IOException(e);
         }
         return p;
+    }
+
+    @Override
+    public Future<Partition> createAsync() throws IOException {
+        return CompletableFuture.completedFuture(create());
     }
 }
 

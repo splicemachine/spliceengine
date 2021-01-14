@@ -16,15 +16,19 @@ package com.splicemachine.derby.vti;
 
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.stream.function.FileFunction;
-import com.splicemachine.derby.stream.function.StreamFileFunction;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
+import com.splicemachine.derby.stream.function.csv.StreamFileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -124,6 +128,22 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
+    boolean getPreserveLineEndings(SpliceOperation op) throws StandardException {
+        boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
+        if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
+            return defaultValue;
+        String preserveLineEndingsString =
+                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(),
+                        Property.PRESERVE_LINE_ENDINGS);
+        try {
+            if (preserveLineEndingsString != null)
+                return Boolean.parseBoolean(preserveLineEndingsString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        return defaultValue;
+    }
 
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
@@ -135,14 +155,27 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             ImportUtils.validateReadable(fileName, false);
             if (statusDirectory != null)
                 operationContext.setPermissive(statusDirectory, fileName, badRecordsAllowed);
-            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+            boolean quotedEmptyIsNull = false;
+            if (op instanceof VTIOperation) {
+                VTIOperation vtiOperation = (VTIOperation)op;
+                quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
+            }
+
+            boolean preserveLineEndings = getPreserveLineEndings(op);
+            if (oneLineRecords && !preserveLineEndings
+                    && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext), true);
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                        columnIndex, timeFormat, dateTimeFormat, timestampFormat,
+                        true, operationContext, quotedEmptyIsNull, preserveLineEndings), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return streamSet.values(operationContext).flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext), true);
+                return streamSet.values(operationContext).flatMap(
+                        new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex,
+                                timeFormat, dateTimeFormat, timestampFormat, charset,
+                                operationContext, quotedEmptyIsNull, preserveLineEndings), true);
             }
         } finally {
             operationContext.popScope();
@@ -174,13 +207,14 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         FileInfo fileInfo;
         try {
             fileInfo = getFileInfo();
+            if (fileInfo != null &&fileInfo.exists()) {
+                assert getBytesPerRow() != 0;
+                return fileInfo.recursiveSize()/ (double)getBytesPerRow();
+            }
         } catch (Exception e) {
             throw new SQLException(e);
         }
-        if (fileInfo != null &&fileInfo.exists()) {
-            assert getBytesPerRow() != 0;
-            return fileInfo.size()/ (double)getBytesPerRow();
-        }
+
         return VTICosting.defaultEstimatedRowCount;
     }
 
@@ -211,14 +245,14 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         FileInfo fileInfo;
         try {
             fileInfo = getFileInfo();
+            if (fileInfo != null && fileInfo.exists()) {
+                // IMPORTANT: this method needs to return MICROSECONDS, the internal unit
+                // for costs in splice machine (displayed as milliseconds in explain plan output).
+                // Note that size() is in bytes.
+                return defaultTotalLatencyMicrosPerMB *fileInfo.recursiveSize() /* bytes */ / 1000000d;
+            }
         } catch (Exception e) {
             throw new SQLException(e);
-        }
-        if (fileInfo != null && fileInfo.exists()) {
-            // IMPORTANT: this method needs to return MICROSECONDS, the internal unit
-            // for costs in splice machine (displayed as milliseconds in explain plan output).
-            // Note that size() is in bytes.
-            return defaultTotalLatencyMicrosPerMB *fileInfo.size() /* bytes */ / 1000000d;
         }
         return VTICosting.defaultEstimatedCost;
     }

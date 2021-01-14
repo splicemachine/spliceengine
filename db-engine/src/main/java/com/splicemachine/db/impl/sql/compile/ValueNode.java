@@ -42,16 +42,13 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.sql.Types;
+import java.util.*;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -709,7 +706,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -724,6 +723,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -733,7 +734,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         return true;
@@ -886,6 +887,14 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public boolean constantExpression(PredicateList whereClause)
     {
         return false;
+    }
+
+    public boolean isKnownConstant(boolean considerParameters) {
+        return false;
+    }
+
+    public DataValueDescriptor getKnownConstantValue() {
+        return null;
     }
 
     /**
@@ -1364,7 +1373,15 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public boolean optimizableEqualityNode(Optimizable optTable,
                                            int columnNumber,
                                            boolean isNullOkay)
-        throws StandardException
+            throws StandardException
+    {
+        return false;
+    }
+
+    public boolean optimizableEqualityNode(Optimizable optTable,
+                                           ValueNode indexExpr,
+                                           boolean isNullOkay)
+            throws StandardException
     {
         return false;
     }
@@ -1444,6 +1461,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected abstract boolean isEquivalent(ValueNode other)
         throws StandardException;
 
+    @Override
     public boolean equals(Object o) {
 
         boolean result;
@@ -1462,6 +1480,39 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
         }
 
+        return result;
+    }
+
+    public abstract int hashCode();
+
+    /**
+     * Enhanced version of <code>isEquivalent</code> (to be extended):
+     * <ul>
+     *   <li> Calls to the same deterministic method with the same arguments
+     *        are equivalent.
+     *   <li> Commutative operators on the same set of operands are equivalent,
+     *        e.g., a + b == b + a, a OR b == b OR a.
+     * </ul>
+     * @param other the node to compare this ValueNode against.
+     * @return <code>true</code> if the two nodes are semantically equivalent,
+     *         <code>false</code> otherwise.
+     * @throws StandardException
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode other) throws StandardException {
+        return this.isEquivalent(other);
+    }
+
+    public boolean semanticallyEquals(Object o) {
+        boolean result;
+        if(o instanceof ValueNode){
+            try{
+                result = isSemanticallyEquivalent((ValueNode) o);
+            }catch (StandardException e){
+                throw new RuntimeException(e);
+            }
+        }else{
+            result = super.equals(o);
+        }
         return result;
     }
 
@@ -1501,7 +1552,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @param resultColumn
      * @return
      */
-    public long getCoordinates(ResultColumn resultColumn) {
+    public static long getCoordinates(ResultColumn resultColumn) {
         return (((long)resultColumn.getResultSetNumber()) << 32) | (resultColumn.getVirtualColumnId() & 0xffffffffL);
     }
 
@@ -1512,4 +1563,118 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public void setOuterJoinLevel(int level) {
         return;
     }
+
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        // by default, try replace this whole subtree
+        if (childRCL != null) {
+            for (ResultColumn childRC : childRCL) {
+                if (this.semanticallyEquals(childRC.getIndexExpression())) {
+                    return childRC.getColumnReference(this);
+                }
+            }
+        }
+        return this;
+    }
+
+    // constants used by getReferencedTableNumber
+    protected final static int NOT_FOUND = -1;
+    protected final static int MULTIPLE  = -2;
+
+    protected int getReferencedTableNumber() {
+        if (isConstantOrParameterTreeNode()) {
+            return NOT_FOUND;
+        }
+
+        int refTableNumber = NOT_FOUND;
+        List<ColumnReference> crList = getHashableJoinColumnReference();
+        if (crList != null) {
+            for (ColumnReference cr : crList) {
+                if (cr.getTableNumber() != refTableNumber) {
+                    if (refTableNumber == NOT_FOUND)
+                        refTableNumber = cr.getTableNumber();
+                    else
+                        return MULTIPLE;
+                }
+            }
+        }
+        return refTableNumber;
+    }
+
+    public boolean collectSingleExpression(Map<Integer, Set<ValueNode>> map) {
+        if (this instanceof AggregateNode || this instanceof SubqueryNode || this instanceof VirtualColumnNode) {
+            return true;
+        }
+
+        int tableNumber = getReferencedTableNumber();
+        if (tableNumber == ValueNode.MULTIPLE) {
+            return false;
+        }
+
+        if (tableNumber != ValueNode.NOT_FOUND) {
+            if (map.containsKey(tableNumber)) {
+                Set<ValueNode> exprList = map.get(tableNumber);
+                exprList.add(this);
+            } else {
+                Set<ValueNode> values = new HashSet<>();
+                values.add(this);
+                map.put(tableNumber, values);
+            }
+        }
+        return true;
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        // by default, take this whole subtree as an expression
+        return collectSingleExpression(exprMap);
+    }
+
+    /*
+     * Add a cast node to the rightOperand if it's of string type and need to be compared
+     * to leftOperand
+     * If we are comparing a non-string with a string type, then we
+     * must prevent the non-string value from being used to probe into
+     * an index on a string column. This is because the string types
+     * are all of low precedence, so the comparison rules of the non-string
+     * value are used, so it may not find values in a string index because
+     * it will be in the wrong order. So, cast the string value to its
+     * own type. This is easier than casting it to the non-string type,
+     * because we would have to figure out the right length to cast it to.
+     * @return the new rightOperand
+     */
+    protected ValueNode addCastNodeForStringToNonStringComparison(
+            ValueNode leftOperand, ValueNode rightOperand) throws StandardException {
+        TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId rightTypeId = rightOperand.getTypeId();
+        assert !leftTypeId.isStringTypeId();
+        assert rightTypeId.isStringTypeId();
+        if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId()) {
+            rightOperand = (ValueNode)
+                    getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            rightOperand,
+                            new DataTypeDescriptor(
+                                    leftTypeId,
+                                    true, leftOperand.getTypeServices().getMaximumWidth()),
+                            getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+        } else if (leftTypeId.isNumericTypeId() && rightTypeId.isCharOrVarChar()) {
+            rightOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    rightOperand,
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
+                    getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+        }
+        return rightOperand;
+    }
+
+    protected static final double SIMPLE_OP_COST = 0.2;            // add/sub, logical and/or/negate, etc.
+    protected static final double FLOAT_OP_COST_FACTOR = 2;        // 2x cost of simple op
+    protected static final double MULTIPLICATION_COST_FACTOR = 4;
+    protected static final double DIV_COST_FACTOR = 25;
+    protected static final double FN_CALL_COST_FACTOR = 27.5;      // in theory, direct/indirect/virtual calls are different, but we don't model it here
+    protected static final double BYPASS_COST_FACTOR = 1.5;        // switch between integer and floating-point units
+    protected static final double ALLOC_COST_FACTOR = 350;
+
+    public double getBaseOperationCost() throws StandardException { return 0.0; }
 }

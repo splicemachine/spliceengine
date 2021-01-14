@@ -17,15 +17,17 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -65,7 +67,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.function.Function;
+
+import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -84,6 +92,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl naturalNumbersTable = null;
     private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
@@ -120,27 +129,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
 
             row=fkkeysRF.makeRow(fkDescriptor,null);
-
-            /*
-             * Now we need to bump the reference count of the constraint that this FK references
-             */
-            ReferencedKeyConstraintDescriptor refDescriptor=fkDescriptor.getReferencedConstraint();
-            refDescriptor.incrementReferenceCount();
-            int[] colsToSet=new int[1];
-            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-            /* Have to update the reference count in a nested transaction here because the SYSCONSTRAINTS row we are
-             * updating (a primary key constraint or unique index constraint) may have been created in the same
-             * statement as the FK (create table for self referencing FK, for example). In that case the KeyValue for
-             * that constraint row will have the same rowKey AND timestamp. Updating here with the same ts would REPLACE
-             * the entire row with just the updated reference count column, corrupting the row (DB-3345). */
-            TransactionController transactionController=tc.startNestedUserTransaction(false,true);
-            try{
-                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,transactionController);
-            }finally{
-                transactionController.commit();
-                transactionController.destroy();
-            }
 
         }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getNonCoreTI(SYSPRIMARYKEYS_CATALOG_NUM);
@@ -339,7 +327,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM);
+        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
@@ -361,6 +349,62 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+    }
+
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+    }
+
+    private TabInfoImpl getNaturalNumbersTable() throws StandardException{
+        if(naturalNumbersTable==null){
+            naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
+        }
+        initSystemIndexVariables(naturalNumbersTable);
+        return naturalNumbersTable;
+    }
+
+    /**
+     * Populate SYSNATURALNUMBERS table with 1-2048.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    private void populateSYSNATURALNUMBERS(TransactionController tc) throws StandardException{
+        SYSNATURALNUMBERSRowFactory.populateSYSNATURALNUMBERS(getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM), tc);
+    }
+
+    public void createNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+
+        TabInfoImpl table=getNaturalNumbersTable();
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
+
+        populateSYSNATURALNUMBERS(tc);
+    }
+
+    public void updateNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
+        }
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
@@ -430,6 +474,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
         updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
+    }
+
+    public void addBaseTableSchemaColumnToTableViewInSysibm(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
+
+        Boolean needUpdate = true;
+        if (td != null) {
+            ColumnDescriptor cd = td.getColumnDescriptor("BASE_SCHEMA");
+            if (cd != null)
+                needUpdate = false;
+        }
+
+        if (needUpdate) {
+            if (td != null) {
+                ViewDescriptor vd = getViewDescriptor(td);
+                // drop the view deifnition
+                dropAllColumnDescriptors(td.getUUID(), tc);
+                dropViewDescriptor(vd, tc);
+                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+            }
+
+            // add new view deifnition
+            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM, 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
+
+            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", "SYSTABLES", sysIBMSchemaDesc.getSchemaName()));
+        }
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -563,6 +635,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         createReplicationTables(tc);
 
+        createNaturalNumbersTable(tc);
+
         createTableColumnViewInSysIBM(tc);
 
         createKeyColumnUseViewInSysIBM(tc);
@@ -570,6 +644,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
     }
 
     @Override
@@ -584,8 +660,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
-
-
     }
 
     /**
@@ -775,8 +849,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1355,6 +1429,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
     }
 
+    public int upgradeTablePriorities(TransactionController tc) throws Exception {
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        ArrayList<String> toUpgrade = new ArrayList<>();
+        Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
+                {
+                    toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
+                    for( int j = 0; j < info.getNumberOfIndexes(); j++ )
+                        toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+                    return null;
+                };
+        for (int i = 0; i < coreInfo.length; ++i) {
+            assert coreInfo[i] != null;
+            addTabInfo.apply(coreInfo[i]);
+        }
+        for (int i = 0; i < NUM_NONCORE; ++i) {
+            // noncoreInfo[x] will be null otherwise
+            addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
+        }
+
+        for( String s : HBaseConfiguration.internalTablesArr) {
+            toUpgrade.add(s);
+        }
+        toUpgrade.add("16"); // splice:16 core table
+        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+
+        return admin.upgradeTablePrioritiesFromList(toUpgrade);
+    }
+
     public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
@@ -1665,8 +1767,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 
@@ -1766,6 +1872,50 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
             sc.close();
         }
+    }
+
+    public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
+        faultInTabInfo(ti);
+
+        FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        for (int i = 0; i < SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT; i++) {
+            // partial row updates do not work properly (DB-9388), therefore, we read all columns and mark them all for
+            // update even if this is not necessary for all of them.
+            columnToReadSet.set(i);
+            columnToUpdateSet.set(i);
+        }
+        /* Set up a row template for fetching */
+        DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+        /* Set up another row for replacing the existing row, effectively updating it */
+        DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+
+        /* Scan the entire heap */
+        ScanController sc = tc.openScan(
+                ti.getHeapConglomerate(),
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                columnToReadSet,
+                null,
+                ScanController.NA,
+                null,
+                null,
+                ScanController.NA);
+
+        while (sc.fetchNext(rowTemplate)) {
+            for (int i = 0; i < rowTemplate.length; i++) {
+                replaceRow[i] = rowTemplate[i].cloneValue(false);
+                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                    replaceRow[i] = new SQLLongvarchar("NULL");
+                }
+            }
+            sc.replace(replaceRow, columnToUpdateSet);
+        }
+        sc.close();
     }
 
     @Override

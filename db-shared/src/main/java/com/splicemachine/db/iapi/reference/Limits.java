@@ -33,72 +33,72 @@ package com.splicemachine.db.iapi.reference;
 
 public interface Limits
 {
-	/**
-        * Various fixed Limits. DB2 related limits are prefixed with "DB2_".
-        */
+    /**
+    * Various fixed Limits. DB2 related limits are prefixed with "DB2_".
+    */
 
-	int DB2_MAX_TRIGGER_RECURSION = 16; /* Maximum nesting level for triggers */
+    int DB2_MAX_TRIGGER_RECURSION = 16; /* Maximum nesting level for triggers */
 
-	/** Maximum number of indexes on a table */
-	int DB2_MAX_INDEXES_ON_TABLE = 32767;
-	/* Maximum number of columns in a table */
-	int DB2_MAX_COLUMNS_IN_TABLE =1<<17 ; //set to 131K
+    /** Maximum number of indexes on a table */
+    int DB2_MAX_INDEXES_ON_TABLE = 32767;
+    /* Maximum number of columns in a table */
+    int DB2_MAX_COLUMNS_IN_TABLE =1<<17 ; //set to 131K
 
-	/* Maximum number of columns in a view */
-	int DB2_MAX_COLUMNS_IN_VIEW = 5000;
+    /* Maximum number of columns in a view */
+    int DB2_MAX_COLUMNS_IN_VIEW = 5000;
 
-	/* Maximum number of parameters in a stored procedure */
-	int DB2_MAX_PARAMS_IN_STORED_PROCEDURE = 90;
+    /* Maximum number of parameters in a stored procedure */
+    int DB2_MAX_PARAMS_IN_STORED_PROCEDURE = 90;
 
-	/* Maximum number of elements in a select list */
-	int DB2_MAX_ELEMENTS_IN_SELECT_LIST = DB2_MAX_COLUMNS_IN_TABLE;
-	/* Maximum number of columns in a group by list */
-	int DB2_MAX_ELEMENTS_IN_GROUP_BY = 32677;
-	/* Maximum number of columns in an order by list */
-	int DB2_MAX_ELEMENTS_IN_ORDER_BY = 1012;
+    /* Maximum number of elements in a select list */
+    int DB2_MAX_ELEMENTS_IN_SELECT_LIST = DB2_MAX_COLUMNS_IN_TABLE;
+    /* Maximum number of columns in a group by list */
+    int DB2_MAX_ELEMENTS_IN_GROUP_BY = 32677;
+    /* Maximum number of columns in an order by list */
+    int DB2_MAX_ELEMENTS_IN_ORDER_BY = 1012;
 
 
 
-	// Warning. Changing this value will affect upgrade and the creation of the
-	// SQLCAMESSAGE procedure. See com.splicemachine.db.impl.sql.catalog.
-	int DB2_JCC_MAX_EXCEPTION_PARAM_LENGTH = 2400;
+    // Warning. Changing this value will affect upgrade and the creation of the
+    // SQLCAMESSAGE procedure. See com.splicemachine.db.impl.sql.catalog.
+    int DB2_JCC_MAX_EXCEPTION_PARAM_LENGTH = 2400;
 
         /* Identifiers (Constraint, Cursor, Function/Procedure, Index,
          * Trigger, Column, Schema, Savepoint, Table and View names)
          * are limited to 128 */
-		int MAX_IDENTIFIER_LENGTH = 128;
+        int MAX_IDENTIFIER_LENGTH = 128;
 
-	int	DB2_CHAR_MAXWIDTH = 254;
-	int	DB2_VARCHAR_MAXWIDTH = 32672;
-	int DB2_LOB_MAXWIDTH = 2147483647;
-	int	DB2_LONGVARCHAR_MAXWIDTH = 32700;
+    int	DB2_CHAR_MAXWIDTH = 254;
+    int	DB2_VARCHAR_MAXWIDTH = 32672;
+    int DB2_LOB_MAXWIDTH = 2147483647;
+    int	DB2_LONGVARCHAR_MAXWIDTH = 32700;
     int DB2_CONCAT_VARCHAR_LENGTH = 4000;
-	int DB2_MAX_FLOATINGPOINT_LITERAL_LENGTH = 30; // note, this value 30 is also contained in err msg 42820
-	int DB2_MAX_CHARACTER_LITERAL_LENGTH = 32672;
-	int DB2_MAX_HEX_LITERAL_LENGTH = 16336;
+    int DB2_MAX_FLOATINGPOINT_LITERAL_LENGTH = 30; // note, this value 30 is also contained in err msg 42820
+    int DB2_MAX_CHARACTER_LITERAL_LENGTH = 32672;
+    int DB2_MAX_HEX_LITERAL_LENGTH = 16336;
 
-	int DB2_MIN_COL_LENGTH_FOR_CURRENT_USER = 8;
-	int DB2_MIN_COL_LENGTH_FOR_CURRENT_SCHEMA = 128;
+    int DB2_MIN_COL_LENGTH_FOR_CURRENT_USER = 8;
+    int DB2_MIN_COL_LENGTH_FOR_CURRENT_SCHEMA = 128;
 
     /**
      * DB2 TABLESPACE page size limits
      */
-	int DB2_MIN_PAGE_SIZE = 4096;   //  4k
+    int DB2_MIN_PAGE_SIZE = 4096;   //  4k
     int DB2_MAX_PAGE_SIZE = 32768;  // 32k
 
     /**
      * DECIMAL type limits
      */
 
-	int DB2_MAX_DECIMAL_PRECISION_SCALE = 38;
-	int DB2_DEFAULT_DECIMAL_PRECISION   = 5;
-	int DB2_DEFAULT_DECIMAL_SCALE       = 0;
+    int DB2_MAX_DECIMAL_PRECISION_SCALE = 38;
+    int DB2_DEFAULT_DECIMAL_PRECISION   = 5;
+    int DB2_DEFAULT_DECIMAL_SCALE       = 0;
 
     /**
      * REAL/DOUBLE range limits
      */
 
-	float DB2_SMALLEST_REAL = -3.402E+38f;
+    float DB2_SMALLEST_REAL = -3.402E+38f;
     float DB2_LARGEST_REAL  = +3.402E+38f;
     float DB2_SMALLEST_POSITIVE_REAL = +1.175E-37f;
     float DB2_LARGEST_NEGATIVE_REAL  = -1.175E-37f;
@@ -134,5 +134,8 @@ public interface Limits
      * represented by three bytes.
      */
     int MAX_CLOB_RETURN_LEN = MAX_BLOB_RETURN_LEN / 3;
-    
+
+    int MIN_TIMESTAMP_PRECISION = 0;
+    int MAX_TIMESTAMP_PRECISION = 9;
+    int MIN_TIMESTAMP_LENGTH = 19; // without trailing '.', i.e. 0001-01-01 00:00:00
 }

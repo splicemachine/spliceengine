@@ -22,9 +22,10 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -248,19 +249,26 @@ public class HBasePartitionAdmin implements PartitionAdmin{
 
     private void retriableMergeRegions(String regionName1, String regionName2, int maxRetries, int retry) throws IOException {
         try {
-            admin.mergeRegionsAsync(Bytes.toBytes(regionName1), Bytes.toBytes(regionName2), false);
-        }
-        catch (MergeRegionException e) {
-            SpliceLogUtils.warn(LOG, "Merge failed:", e);
-            if (e.getMessage().contains("Unable to merge regions not online") && retry < maxRetries) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ie) {
-                    throw new IOException(e);
+            admin.mergeRegionsAsync(Bytes.toBytes(regionName1), Bytes.toBytes(regionName2), false).get(admin.getOperationTimeout(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if((cause instanceof MergeRegionException && e.getMessage().contains("Unable to merge regions not online"))
+               || (cause instanceof IOException && cause.getMessage().contains("NOT mergeable"))) {
+                SpliceLogUtils.warn(LOG, "Merge failed:", e);
+                if (retry < maxRetries) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ie) {
+                        throw new IOException(e);
+                    }
+                    SpliceLogUtils.info(LOG, "retry merging region %s and %s", regionName1, regionName2);
+                    retriableMergeRegions(regionName1, regionName2, maxRetries, retry+1);
                 }
-                SpliceLogUtils.info(LOG, "retry merging region %s and %s", regionName1, regionName2);
-                retriableMergeRegions(regionName1, regionName2, maxRetries, retry+1);
+            } else {
+                throw new IOException(e);
             }
+        } catch (TimeoutException | InterruptedException e) {
+            throw new IOException(e);
         }
     }
 
@@ -719,5 +727,87 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             }
         }
         return null;
+    }
+
+    static public int getPriorityShouldHave(org.apache.hadoop.hbase.client.TableDescriptor td)
+    {
+        String s = td.getValue("tableDisplayName");
+        if( s == null ) {
+            return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
+        }
+        else {
+            if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
+                return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
+            } else {
+                return HBaseTableDescriptor.NORMAL_TABLE_PRIORITY;
+            }
+        }
+    }
+    public static void setHTablePriority(Admin admin, TableName tn,
+                                         org.apache.hadoop.hbase.client.TableDescriptor td,
+                                         int priority) throws IOException {
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        if (tableEnabled) {
+            admin.disableTable(tn);
+        }
+        ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setPriority(priority);
+        admin.modifyTable(td);
+        admin.enableTable(tn);
+    }
+
+    public static int upgradeTablePrioritiesFromList(Admin admin,
+                                                     List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptors)
+            throws Exception
+    {
+        final int NUM_THREADS = 10;
+        ExecutorService executor = null;
+        try {
+
+            List<Callable<Void>> upgradeTasks = tableDescriptors.stream()
+                    .filter( td -> td.getPriority() != getPriorityShouldHave(td))
+                    .map( td -> (Callable<Void>) () -> {
+                        setHTablePriority(admin, td.getTableName(), td, getPriorityShouldHave(td));
+                        return null;
+                    })
+                    .collect(Collectors.toList());
+            executor = Executors.newFixedThreadPool( NUM_THREADS );
+            executor.invokeAll( upgradeTasks );
+            return upgradeTasks.size();
+        } catch (InterruptedException e) {
+            throw e;
+        }
+        finally
+        {
+            if(executor != null)
+                executor.shutdown();
+        }
+    }
+    @Override
+    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
+        List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptorList =
+                conglomerateIdList.stream()
+                        .map( conglomerateId -> {
+                            TableName tn = tableInfoFactory.getTableInfo(conglomerateId);
+                            try {
+                                return admin.getDescriptor(tn);
+                            } catch (IOException e) {
+                                return null;
+                            } } )
+                        .filter( td -> td != null )
+                        .collect(Collectors.toList());
+        return upgradeTablePrioritiesFromList( admin, tableDescriptorList );
+    }
+
+    @Override
+    public int getTableCount() throws IOException{
+
+        try {
+            TableName[] tableNames =  admin.listTableNames();
+            return tableNames.length;
+        }
+        catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "Could not find the table count.");
+            throw e;
+        }
     }
 }

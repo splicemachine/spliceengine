@@ -38,6 +38,9 @@ import com.splicemachine.db.iapi.sql.StatementType;
 import java.util.Hashtable;
 
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.Graph;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.GraphAnnotator;
+
 import java.util.Enumeration;
 
 /**
@@ -49,28 +52,24 @@ import java.util.Enumeration;
 public	class	DDUtils
 {
 
-	/*
-	** For a foreign key, this is used to locate the referenced
-	** key using the ConstraintInfo.  If it doesn't find the
-	** correct constraint it will throw an error.
-	*/
-	public	static ReferencedKeyConstraintDescriptor locateReferencedConstraint
-	(
-		DataDictionary	dd,
-		TableDescriptor	td,
-		String			myConstraintName,	// for error messages
-		String[]		myColumnNames,
-		ConsInfo		otherConstraintInfo
-	)
-		throws StandardException
-	{
-		TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
-		if (refTd == null)
-		{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB, 
-												myConstraintName, 
-												otherConstraintInfo.getReferencedTableName());
-		}
+    public enum Checker{Derby, None, SpliceMachine};
+
+    /**
+     ** For a foreign key, this is used to locate the referenced
+     ** key using the ConstraintInfo.  If it doesn't find the
+     ** correct constraint it will throw an error.
+     */
+    public static ReferencedKeyConstraintDescriptor locateReferencedConstraint ( DataDictionary dd,
+                                                                                 TableDescriptor td,
+                                                                                 String myConstraintName,    // for error messages
+                                                                                 String[] myColumnNames,
+                                                                                 ConsInfo otherConstraintInfo ) throws StandardException {
+        TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
+        if (refTd == null) {
+            throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB,
+                                                 myConstraintName,
+                                                 otherConstraintInfo.getReferencedTableName());
+        }
 
 
 		ReferencedKeyConstraintDescriptor refCd = null;
@@ -86,8 +85,8 @@ public	class	DDUtils
 			refCd = refTd.getPrimaryKey();
 			if (refCd == null)
 			{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_PK, 
-												myConstraintName, 
+				throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_PK,
+												myConstraintName,
 												refTd.getQualifiedName());
 			}
 
@@ -99,21 +98,21 @@ public	class	DDUtils
 			*/
 			if (cdl.size() != refCd.getColumnDescriptors().size())
 			{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_DIFFERENT_COL_COUNT, 
-												myConstraintName, String.valueOf(cdl.size()), 
-												String.valueOf(refCd.getColumnDescriptors().size())); 
+				throw StandardException.newException(SQLState.LANG_INVALID_FK_DIFFERENT_COL_COUNT,
+												myConstraintName, String.valueOf(cdl.size()),
+												String.valueOf(refCd.getColumnDescriptors().size()));
 			}
-	
+
 			/*
 			** Make sure all types are the same.
-			*/	
+			*/
 			if (!refCd.areColumnsComparable(cdl))
 			{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_COL_TYPES_DO_NOT_MATCH, 
+				throw StandardException.newException(SQLState.LANG_INVALID_FK_COL_TYPES_DO_NOT_MATCH,
 												myConstraintName);
 			}
 
-			return refCd;	
+			return refCd;
 		}
 
 		/*
@@ -138,7 +137,7 @@ public	class	DDUtils
 				*/
 				if ((cd instanceof ReferencedKeyConstraintDescriptor) &&
 					 cd.areColumnsComparable(colDl) &&
-					 columnNamesMatch(refColumnNames, 
+					 columnNamesMatch(refColumnNames,
 										cd.getColumnDescriptors()))
 				{
 					return (ReferencedKeyConstraintDescriptor)cd;
@@ -148,7 +147,7 @@ public	class	DDUtils
 			/*
 			** If we got here, we didn't find anything
 			*/
-			throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_KEY, myConstraintName, 
+			throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_KEY, myConstraintName,
 														refTd.getQualifiedName());
 		}
 	}
@@ -176,7 +175,7 @@ public	class	DDUtils
 		{
 			return false;
 		}
-		
+
 		String name;
 		for (int index = 0; index < columnNames.length; index++)
 		{
@@ -190,33 +189,27 @@ public	class	DDUtils
 		return true;
 	}
 
+    /*
+     **checks whether the foreign key relation ships referential action
+     **is violating the restrictions we have in the current system.
+     **/
+    public static void validateReferentialActions(DataDictionary dd,
+                                                  TableDescriptor referencingTableDescriptor,
+                                                  String newForeignKeyConstraintName,    // for error messages
+                                                  ConsInfo otherConstraintInfo,
+                                                  String[] columnNames,
+                                                  Graph fkGraph,
+                                                  Checker checker) throws StandardException {
+        int newFKDeletionActionRule = otherConstraintInfo.getReferentialActionDeleteRule();
 
-	/*
-	**checks whether the foreign key relation ships referential action
-	**is violating the restrictions we have in the current system.
-	**/
-	public static void validateReferentialActions
-    (
-		DataDictionary	dd,
-		TableDescriptor	td,
-		String			myConstraintName,	// for error messages
-		ConsInfo		otherConstraintInfo,
-		String[]        columnNames
-	)
-		throws StandardException
-	{
-
-
-		int refAction = otherConstraintInfo.getReferentialActionDeleteRule();
-
-		//Do not allow ON DELETE SET NULL as a referential action 
+		//Do not allow ON DELETE SET NULL as a referential action
 		//if none of the foreign key columns are  nullable.
-		if(refAction == StatementType.RA_SETNULL)
+		if(newFKDeletionActionRule == StatementType.RA_SETNULL)
 		{
 			boolean foundNullableColumn = false;
 			//check if we have a nullable foreign key column
             for (String columnName : columnNames) {
-                ColumnDescriptor cd = td.getColumnDescriptor(columnName);
+                ColumnDescriptor cd = referencingTableDescriptor.getColumnDescriptor(columnName);
                 if ((cd.getType().isNullable())) {
                     foundNullableColumn = true;
                     break;
@@ -225,41 +218,47 @@ public	class	DDUtils
 
 			if(!foundNullableColumn)
 			{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL, 
-													 myConstraintName);
+				throw StandardException.newException(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL,
+													 newForeignKeyConstraintName);
 			}
 		}
 
 		//check whether the foreign key relation ships referential action
 		//is not violating the restrictions we have in the current system.
-		TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
-        if (! refTd.isPersistent()) {
+		TableDescriptor referencedTableDescriptor = otherConstraintInfo.getReferencedTableDescriptor(dd);
+        if (! referencedTableDescriptor.isPersistent()) {
             // temp table cols cannot be the source of a foreign key
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
         }
-		Hashtable deleteConnHashtable = new Hashtable();
-		//find whether the foreign key is self referencing.
-		boolean isSelfReferencingFk = (refTd.getUUID().equals(td.getUUID()));
-		String refTableName = refTd.getSchemaName() + "." + refTd.getName();
-		//look for the other foreign key constraints on this table first
-		int currentSelfRefValue = getCurrentDeleteConnections(dd, td, -1, deleteConnHashtable, false, true);
-		validateDeleteConnection(dd, td, refTd, 
-								 refAction, 
-								 deleteConnHashtable, (Hashtable) deleteConnHashtable.clone(),
-								 true, myConstraintName, false , 
-								 new StringBuffer(0), refTableName,
-								 isSelfReferencingFk,
-								 currentSelfRefValue);
 
-		//if it not a selfreferencing key check for violation of exiting connections.
-		if(!isSelfReferencingFk)
-		{
-			checkForAnyExistingDeleteConnectionViolations(dd, td,
-														  refAction, 
-														  deleteConnHashtable, 
-														  myConstraintName);
-		}	
-	}
+        if(checker == Checker.SpliceMachine) {
+            GraphAnnotator annotator = new GraphAnnotator(newForeignKeyConstraintName, fkGraph);
+            annotator.annotate();
+            annotator.analyzeAnnotations();
+        } else if(checker == Checker.Derby){
+            Hashtable deleteConnectionsMap = new Hashtable();
+            //find whether the foreign key is self referencing.
+            boolean isSelfReferencingFk = (referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID()));
+            String referencedTableName = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
+            //look for the other foreign key constraints on this table first
+            int currentSelfRefValue = collectForeignKeyDeletionActions(dd, referencingTableDescriptor, -1, deleteConnectionsMap, false, true);
+            validateDeleteConnection(dd, referencingTableDescriptor, referencedTableDescriptor,
+                                     newFKDeletionActionRule,
+                                     deleteConnectionsMap, (Hashtable) deleteConnectionsMap.clone(),
+                                     true, newForeignKeyConstraintName, false,
+                                     new StringBuffer(0), referencedTableName,
+                                     isSelfReferencingFk,
+                                     currentSelfRefValue);
+
+            //if it not a self-referencing key check for violation of exiting connections.
+            if (!isSelfReferencingFk) {
+                checkForAnyExistingDeleteConnectionViolations(dd, referencingTableDescriptor,
+                                                              newFKDeletionActionRule,
+                                                              deleteConnectionsMap,
+                                                              newForeignKeyConstraintName);
+            }
+        } // would be nice to have a logger so we can log that we are not going to perform foreign key checks.
+    }
 
 	/*
 	** Finds the existing delete connection for the table and the referential
@@ -269,7 +268,7 @@ public	class	DDUtils
 	** the table this table connected to[CASACDE, SETNULL , RESTRICT ...etc).)
 	**/
 
-	private	static int  getCurrentDeleteConnections
+	private	static int  collectForeignKeyDeletionActions
 	(
 	 DataDictionary	dd,
 	 TableDescriptor	td,
@@ -281,7 +280,7 @@ public	class	DDUtils
 		throws StandardException
 	{
 
-		int selfRefValue = -1; //store the self reference referential action 
+		int selfRefValue = -1; //store the self reference referential action
 
 		//make sure we get any foreign key constraints added earlier in the same statement.
 		td.emptyConstraintDescriptorList();
@@ -309,10 +308,10 @@ public	class	DDUtils
 					 }
 
 					ReferencedKeyConstraintDescriptor refcd =
-						fkcd.getReferencedConstraint(); 
+						fkcd.getReferencedConstraint();
 					TableDescriptor refTd = refcd.getTableDescriptor();
 					int childRefAction = refActionType == -1 ? raDeleteRule : refActionType;
-				   
+
 					String refTableName = refTd.getSchemaName() + "." + refTd.getName();
 					//check with  the existing references.
 					Integer rAction = ((Integer)dch.get(refTableName));
@@ -339,20 +338,20 @@ public	class	DDUtils
 
 					//store the delete connection info in the hash table,
 					//note that the referential action value is not what is
-					//not specified on the current link. It is actually the 
+					//not specified on the current link. It is actually the
 					//value of what happens to the table whose delete
 					// connections we are finding.
 					dch.put(refTableName, (childRefAction));
-					
+
 					//find the next delete conectiions on this path for non
 					//self referencig delete connections.
 					if(!fkcd.isSelfReferencingFK())
-						getCurrentDeleteConnections(dd , refTd, childRefAction,
+                        collectForeignKeyDeletionActions(dd , refTd, childRefAction,
 													dch, true, false);
 					prevNotCascade = passedInPrevNotCascade;
 				}
 		}
-		
+
 		return selfRefValue;
 	}
 
@@ -366,7 +365,7 @@ public	class	DDUtils
 	** Following function throws error while creating foreign keys if the new
 	** releations ship leads to any such conditions.
 	** NOTE : SQL99 standard also does not cleary says what we are suppose to do
-	** in these non determenistic cases. 
+	** in these non determenistic cases.
 	** Our implementation just follows what is did in DB2 and throws error
 	** messaged similar to DB2 (sql0632N, sql0633N, sql0634N)
 	*/
@@ -382,7 +381,7 @@ public	class	DDUtils
 		boolean checkImmediateRefTable,
 		String myConstraintName,
 		boolean prevNotCascade,
-		StringBuffer cycleString, 
+		StringBuffer cycleString,
 		String currentRefTableName, //the name of the table we are referring too.
 		boolean isSelfReferencingFk,
 		int currentSelfRefValue
@@ -393,7 +392,7 @@ public	class	DDUtils
 		Integer rAction;
 
 		/*
-		** Validate the new referentail action value with respect to the 
+		** Validate the new referentail action value with respect to the
 		** already existing connections to this table we gathered  from
 		** the getCurrentDeleteConnections() call.
 		*/
@@ -402,7 +401,7 @@ public	class	DDUtils
 		{
 		    String refTableName = refTd.getSchemaName() + "." + refTd.getName();
 			rAction = ((Integer)dch.get(refTableName));
-			
+
 			// check possible invalide cases incase of self referencing foreign key
 			if(isSelfReferencingFk)
 			{
@@ -418,15 +417,15 @@ public	class	DDUtils
 						// other relation ship with it.
 						if(currentSelfRefValue == StatementType.RA_SETNULL)
 							throw
-								generateError(SQLState.LANG_CANT_BE_DEPENDENT_ESELF, 
+								generateError(SQLState.LANG_CANT_BE_DEPENDENT_ESELF,
 										  myConstraintName, currentRefTableName);
 						else
 						{
 								/*
 								** case where we can cleary say what the
-								** referential actions should be. Like,	   
+								** referential actions should be. Like,
 								** if there is NO ACTION relationsip
-								**already, new relation ship also shold be NO ACTION. 
+								**already, new relation ship also shold be NO ACTION.
 								*/
 							throw
 								generateError(SQLState.LANG_DELETE_RULE_MUSTBE_ESELF,
@@ -457,32 +456,32 @@ public	class	DDUtils
 				{
 					throw
 						generateError(SQLState.LANG_DELETE_RULE_MUSTBE_ECASCADE,
-									  myConstraintName,StatementType.RA_CASCADE);	
+									  myConstraintName,StatementType.RA_CASCADE);
 				}
 
 				//end of possible error case scenarios for self reference key additions
 				return;
 			}
-		
+
 			//cases where the new  reference is referring to  another table
 
 			//check whether it matched with existing self references.
 			// If A self-referencing constraint exists with a delete rule of
 			// SET NULL,  NO ACTION or RESTRICT. We can not add CASCADE
 			// relationship with another table.
-				
+
 			if(currentSelfRefValue !=  -1)
 			{
-				if(refActionType == StatementType.RA_CASCADE && 
-				   currentSelfRefValue != StatementType.RA_CASCADE) 
+				if(refActionType == StatementType.RA_CASCADE &&
+				   currentSelfRefValue != StatementType.RA_CASCADE)
 				{
 					throw generateError(SQLState.LANG_DELETE_RULE_CANT_BE_CASCADE_ESELF,  myConstraintName);
-					
+
 				}
 
 			}
 
-			
+
 			//check for the cases with existing relationships to the
 			//referenced table
 			if(rAction != null)
@@ -492,15 +491,15 @@ public	class	DDUtils
 												  myConstraintName,currentRefTableName);
 			}
 
-			
+
 			//mark the current connect to the reference table to identify the cycle.
 			if(refActionType != StatementType.RA_CASCADE)
 			{
 				prevNotCascade = true;
 			}
-			
+
 			/*
-			** cycle string is used to keep track of the referential actions of 
+			** cycle string is used to keep track of the referential actions of
 			** the nodes we visited, this is required to make sure that in case
 			** of cycles , all the nodes in the cycle have same type of
 			** referential action.
@@ -514,12 +513,12 @@ public	class	DDUtils
 		//delete connection is broken for if we see ON DELET SET NULL link
 		// one level deeper than the table we are adding the foreing key
 		//Where as to check for cycles we need to go for more level also;
-        // To check cases like CASCADE CASCADE SET NULL cycle is not valid. 
+        // To check cases like CASCADE CASCADE SET NULL cycle is not valid.
 		//Following variable is used make the distinction.
 		boolean multiPathCheck = true;
 
-		// check for cases where the new connection we are forming to the 
-		// reference table could create invalid any cycles or mutiple paths 
+		// check for cases where the new connection we are forming to the
+		// reference table could create invalid any cycles or mutiple paths
 		// with the delete-connections the  referencing table might have already.
 		ConstraintDescriptorList refCDL = dd.getConstraintDescriptors(refTd);
 		int refCDLSize = refCDL.size();
@@ -533,9 +532,9 @@ public	class	DDUtils
 				String constraintName = fkcd.getConstraintName();
 				int raDeleteRule = fkcd.getRaDeleteRule();
 				int raUpdateRule = fkcd.getRaUpdateRule();
-				
+
 				ReferencedKeyConstraintDescriptor refcd =
-					fkcd.getReferencedConstraint(); 
+					fkcd.getReferencedConstraint();
 				TableDescriptor nextRefTd = refcd.getTableDescriptor();
 
 				//if we are not cascading, check  whether the link before
@@ -559,7 +558,7 @@ public	class	DDUtils
 
 				//check whether the current link is a self referencing one
 				boolean isSelfRefLink = fkcd.isSelfReferencingFK();
-				
+
 				//check for this is non self referencing cycles case
 				//In cases of cycle, whole cycle should have the same refAction
 				// value. Other wise we should throw an exception
@@ -568,7 +567,7 @@ public	class	DDUtils
 				if(isFormingCycle)
 				{
 					//make sure that all the nodes in the cycle have the same
-					//referential action  value, otherwise we should throw an error. 
+					//referential action  value, otherwise we should throw an error.
 					for(int i = 0 ; i < cycleString.length(); i++)
 					{
 						int otherRefAction = Character.getNumericValue(cycleString.charAt(i));
@@ -587,15 +586,15 @@ public	class	DDUtils
 								//cascade relationsship , we can not add a non
 								//cascade relation ship.
 								throw
-									generateError(SQLState.LANG_CANT_BE_DEPENDENT_ECYCLE, 
+									generateError(SQLState.LANG_CANT_BE_DEPENDENT_ECYCLE,
 												  myConstraintName, currentRefTableName);
 							}
 						}
 					}
-				}	
+				}
 
 
-				
+
 
 				String nextRefTableName =  nextRefTd.getSchemaName() + "." + nextRefTd.getName();
 				rAction = ((Integer)ech.get(nextRefTableName));
@@ -611,7 +610,7 @@ public	class	DDUtils
 					**/
 					if(!isSelfRefLink && multiPathCheck)
 						checkForMultiplePathInvalidCases(rAction,
-														 refActionType, 
+														 refActionType,
 														 myConstraintName,currentRefTableName);
 
 				}else
@@ -626,15 +625,15 @@ public	class	DDUtils
 							validateDeleteConnection(dd, actualTd,  nextRefTd,
 												 refActionType, dch, ech, false,
 												 myConstraintName,prevNotCascade,
-												 cycleString, currentRefTableName, 
-												 isSelfReferencingFk, currentSelfRefValue); 
+												 cycleString, currentRefTableName,
+												 isSelfReferencingFk, currentSelfRefValue);
 						}
 					}
 				}
 				prevNotCascade = passedInPrevNotCascade;
 				//removes the char added for the current call
 				cycleString.setLength(cycleString.length() -1);
-				
+
 			}
 		}
 	}
@@ -645,14 +644,14 @@ public	class	DDUtils
 	** cases are invalid:
 	** case 1: The relationship causes the table to be delete-connected to
 	** the indicated table through multiple relationships and the
-	** delete rule of the existing relationship is SET NULL. 
+	** delete rule of the existing relationship is SET NULL.
 	** case 2: The relationship would cause the table to be
 	** delete-connected to the same table through multiple
-	** relationships and such relationships must have the same 
-	** delete rule (NO ACTION, RESTRICT or CASCADE). 
+	** relationships and such relationships must have the same
+	** delete rule (NO ACTION, RESTRICT or CASCADE).
 	** case 3: The relationship would cause another table to be
 	** delete-connected to the same table through multiple paths
-	** with different delete rules or with delete rule equal to SET NULL. 
+	** with different delete rules or with delete rule equal to SET NULL.
 	**/
 
 	private static void checkForMultiplePathInvalidCases(int currentRefAction,
@@ -674,7 +673,7 @@ public	class	DDUtils
 									myConstraintName, currentRefTableName);
 			else
 				//This error say what the delete rule must be for the
-				// foreign key be valid 
+				// foreign key be valid
 				throw generateError(SQLState.LANG_DELETE_RULE_MUSTBE_MPATH,
 									myConstraintName, currentRefAction);
 
@@ -684,7 +683,7 @@ public	class	DDUtils
 			if(currentRefAction == StatementType.RA_SETNULL &&
 			   refActionType == StatementType.RA_SETNULL)
 			{
-				throw		
+				throw
 					generateError(SQLState.LANG_CANT_BE_DEPENDENT_MPATH,
 								  myConstraintName, currentRefTableName);
 			}
@@ -776,8 +775,8 @@ public	class	DDUtils
 		//adding ref action of type CASCADE
 		if(refActionType != StatementType.RA_CASCADE)
 			return;
-		
-		//find the tables that are referring to the table we 
+
+		//find the tables that are referring to the table we
 		//are adding the foreign key and check whether we violate their existing rules.
 		String addTableName = td.getSchemaName() + "." + td.getName();
 		ConstraintDescriptorList refCDL = dd.getConstraintDescriptors(td);
@@ -790,13 +789,13 @@ public	class	DDUtils
 			{
 				ConstraintDescriptorList fkcdl = dd.getActiveConstraintDescriptors
 					( ((ReferencedKeyConstraintDescriptor)cd).getForeignKeyConstraints(ConstraintDescriptor.ALL));
-	
+
 				int size = fkcdl.size();
-				if (size == 0) 
-				{ 
-					continue; 
+				if (size == 0)
+				{
+					continue;
 				}
-				
+
 				//Note: More than one table can refer to the same
 				//ReferencedKeyConstraintDescriptor, so we need to find all the tables.
 				Hashtable dConnHashtable = new Hashtable();
@@ -815,7 +814,7 @@ public	class	DDUtils
 						//gather the delete connections of the table that is
 						//referring to the table we are adding foreign key relation ship
 
-						getCurrentDeleteConnections(dd, fktd, -1, dConnHashtable, false, true);
+						collectForeignKeyDeletionActions(dd, fktd, -1, dConnHashtable, false, true);
 
 						/*
 						**Find out if we introduced more than one delete connection
@@ -825,7 +824,7 @@ public	class	DDUtils
 						**referential action and only one SET NULL path.
 						**/
 
-						for (Enumeration e = dConnHashtable.keys() ; e.hasMoreElements() ;) 
+						for (Enumeration e = dConnHashtable.keys() ; e.hasMoreElements() ;)
 						{
 							String tName = (String) e.nextElement();
 							//we should not check for the table name to which  we are
@@ -837,10 +836,12 @@ public	class	DDUtils
 									int currentDeleteRule = (Integer) dConnHashtable.get(tName);
 									if((currentDeleteRule == StatementType.RA_SETNULL
 										&& raDeleteRuleToAddTable == StatementType.RA_SETNULL) ||
-									   currentDeleteRule  != raDeleteRuleToAddTable)
+										(currentDeleteRule != raDeleteRuleToAddTable
+										&& raDeleteRuleToAddTable != StatementType.RA_RESTRICT
+										&& currentDeleteRule != StatementType.RA_RESTRICT))
 									{
 										throw
-											generateError(SQLState.LANG_DELETE_RULE_CANT_BE_CASCADE_MPATH, 
+											generateError(SQLState.LANG_DELETE_RULE_CANT_BE_CASCADE_MPATH,
 														  myConstraintName);
 									}
 								}
@@ -856,17 +857,17 @@ public	class	DDUtils
 	}
 
 
-	
-	private static StandardException generateError(String messageId, 
+
+	private static StandardException generateError(String messageId,
 												   String myConstraintName)
 	{
 		String message = MessageService.getTextMessage(messageId);
-		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION, 
+		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION,
 												myConstraintName, message);
-	}	
+	}
 
-	private static StandardException generateError(String messageId, 
-												   String myConstraintName, 
+	private static StandardException generateError(String messageId,
+												   String myConstraintName,
 												   int raRule)
 	{
 		String raRuleStringId;
@@ -886,25 +887,25 @@ public	class	DDUtils
 		case StatementType.RA_SETDEFAULT:
 			raRuleStringId = SQLState.LANG_DELETE_RULE_SETDEFAULT;
 			break;
-		default: 
+		default:
 			raRuleStringId =SQLState.LANG_DELETE_RULE_NOACTION ; // NO ACTION (default value)
 		}
 
-		String raRuleMessageString = MessageService.getTextMessage(raRuleStringId); 
+		String raRuleMessageString = MessageService.getTextMessage(raRuleStringId);
 		String message = MessageService.getTextMessage(messageId, raRuleMessageString);
-		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION, 
+		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION,
 												myConstraintName, message);
-	}	
+	}
 
-	private static StandardException generateError(String messageId, 
+	private static StandardException generateError(String messageId,
 												   String myConstraintName,
 												   String refTableName)
 	{
 
 		String message = MessageService.getTextMessage(messageId, refTableName);
-		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION, 
+		return StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION,
 												myConstraintName, message);
-	}	
+	}
 
 }
 

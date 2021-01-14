@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
@@ -284,6 +285,7 @@ public class SITransactor implements Transactor{
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
             KVPair kvPair=baseDataAndLock.getFirst();
             KVPair.Type writeType=kvPair.getType();
+            boolean checkedConflicts = false;
             if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
                 /*
                  *
@@ -295,6 +297,7 @@ public class SITransactor implements Transactor{
                  * applied on key elements.
                  */
                 //todo -sf remove the Row key copy here
+                checkedConflicts = true;
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
@@ -325,12 +328,13 @@ public class SITransactor implements Transactor{
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
 
-            if (!skipConflictDetection) {
+            // todo DB-10761: improve this solution for the cases where we know that there's no conflicts and we don't need to check
+            if (checkedConflicts) {
                 if (possibleConflicts == null || possibleConflicts.isEmpty())
                 {
                     // First write
                     if (KVPair.Type.INSERT.equals(writeType) ||
-                        KVPair.Type.UPSERT.equals(writeType))
+                            KVPair.Type.UPSERT.equals(writeType))
                         addFirstOccurrenceToken = true;
                 } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
                     // Delete following first write
@@ -468,7 +472,7 @@ public class SITransactor implements Transactor{
             rollforward.add(kvPair.rowKeySlice());
 
         if (skipWAL)
-            newPut.skipWAL();
+            newPut.setDurability(Durability.NONE);
         return newPut;
     }
 
