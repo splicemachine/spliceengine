@@ -112,7 +112,9 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
             if(txn.hasInfo() && !txn.getInfo().getConflictingTxnIdsList().isEmpty()) {
                 // roll 'em back and propagate failures
                 for(long conflictingTxn : txn.getInfo().getConflictingTxnIdsList()) {
-                    if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
+                    if(conflictingTxn == txnId) {
+                        continue;
+                    } else if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
                         rollbackTransaction(conflictingTxn, txnId);
                     } else {
                         lifecycleManager.rollback(conflictingTxn, txnId);
