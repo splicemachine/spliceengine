@@ -77,9 +77,9 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     static final int SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR = 3;
 
     // (role)ID_(grant)EE_(grant)OR
-    static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
+    public static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
     // (role)ID_(is)DEF
-    static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
+    public static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
     // UUID
     static final int SYSROLES_INDEX_UUID_IDX = 2;
     // (grant)EE_DEFAULT(role)

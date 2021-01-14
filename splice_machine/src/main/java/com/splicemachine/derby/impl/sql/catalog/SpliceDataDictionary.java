@@ -397,27 +397,23 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
 
         // Add new databaseid columns to relevant system tables
-        upgradeAddColumnToSystemTable(tc, SYSSCHEMAS_CATALOG_NUM, new int[]{4});
+        upgradeAddIndexedColumnToSystemTable(
+                tc, SYSSCHEMAS_CATALOG_NUM,
+                new int[]{4},
+                new int[]{SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID});
 
-        TableDescriptor td = getTableDescriptor(SYSSCHEMASRowFactory.TABLENAME_STRING, systemSchemaDesc, tc);
-        TabInfoImpl tabInfo = coreInfo[SYSSCHEMAS_CORE_NUM];
-        ConglomerateDescriptor cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
-        dropConglomerateDescriptor(cd, tc);
-        cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID));
-        dropConglomerateDescriptor(cd, tc);
-        bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, tabInfo);
-        params.put(CFG_SYSSCHEMAS_INDEX1_ID,
-                Long.toString(
-                        tabInfo.getIndexConglomerate(
-                                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID)));
-        params.put(CFG_SYSSCHEMAS_INDEX2_ID,
-                Long.toString(
-                        tabInfo.getIndexConglomerate(
-                                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
+        upgradeAddIndexedColumnToSystemTable(
+                tc, SYSROLES_CATALOG_NUM,
+                new int[]{8},
+                new int[]{
+                        SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
+                        SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,
+                        SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
+                });
 
-        upgradeAddColumnToSystemTable(tc, SYSROLES_CATALOG_NUM, new int[]{8});
-        upgradeAddColumnToSystemTable(tc, SYSUSERS_CATALOG_NUM, new int[]{5});
-
+        upgradeAddIndexedColumnToSystemTable(tc, SYSUSERS_CATALOG_NUM,
+                new int[]{5},
+                new int[]{0});
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -1415,6 +1411,78 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.error(LOG, "Attempt to upgrade %s failed. " +
                     "Please check if it has already been upgraded and contains the correct number of columns: %s.",
                     tabInfo.getTableName(), lastCol);
+        }
+    }
+
+    public void upgradeAddIndexedColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, int[] indexIds) throws StandardException {
+        upgradeAddColumnToSystemTable(tc, catalogNumber, colIds);
+        upgradeRecreateIndexesOfSystemTable(tc, catalogNumber, indexIds);
+    }
+
+    public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+
+        // Init the heap conglomerate here
+        for (ConglomerateDescriptor conglomerateDescriptor : td.getConglomerateDescriptors()) {
+            if (!conglomerateDescriptor.isIndex()) {
+                tabInfo.setHeapConglomerate(conglomerateDescriptor.getConglomerateNumber());
+                break;
+            }
+        }
+
+        for (int indexId : indexIds) {
+            ConglomerateDescriptor cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(indexId));
+            dropConglomerateDescriptor(cd, tc);
+            cd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, tabInfo, indexId, tabInfo.getHeapConglomerate());
+            addDescriptor(cd, systemSchemaDesc, SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
+
+            // Cache may have that system table descriptor without the new index info
+            dataDictionaryCache.clearNameTdCache();
+            dataDictionaryCache.clearOidTdCache();
+
+            CatalogRowFactory rf = tabInfo.getCatalogRowFactory();
+            ExecRow outRow = rf.makeEmptyRow();
+            try (ScanController scanController = tc.openScan(
+                    tabInfo.getHeapConglomerate(),              // conglomerate to open
+                    false,                                      // don't hold open across commit
+                    0,                                          // for read
+                    TransactionController.MODE_TABLE,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,                                       // all fields as objects
+                    null,                                       // start position - first row
+                    0,                                          // startSearchOperation - none
+                    null,                                       // scanQualifier,
+                    null,                                       // stop position -through last row
+                    0)) {                                       // stopSearchOperation - none
+
+                int batch = 1024;
+                ExecRow[] rowList = new ExecRow[batch];
+                RowLocation[] rowLocationList = new RowLocation[batch];
+
+                int i = 0;
+                while (scanController.fetchNext(outRow.getRowArray())) {
+                    rowList[i % batch] = outRow.getClone();
+                    rowLocationList[i % batch] = scanController.newRowLocationTemplate();
+                    scanController.fetchLocation(rowLocationList[i % batch]);
+                    i++;
+                    if (i % batch == 0) {
+                        tabInfo.insertIndexRowListImpl(rowList, rowLocationList, tc, indexId, batch);
+                    }
+                }
+                // insert last batch
+                if (i % batch > 0)
+                    tabInfo.insertIndexRowListImpl(rowList, rowLocationList, tc, indexId, i % batch);
+            }
+        }
+
+        if (catalogNumber < NUM_CORE) {
+            // XXX
+        } else {
+            // reset TI in NonCoreTI array, we only used some indexes here, so information about the other
+            // ones are not fully populated. This TI should not be reused for future operations.
+            clearNoncoreTable(catalogNumber - NUM_CORE);
         }
     }
 }
