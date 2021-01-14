@@ -681,6 +681,9 @@ public class SITransactor implements Transactor{
                 throwWriteWriteConflict(txn, cell, dataTxnId);
             }
         }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("transaction " + txn + " conflicts with " + activeTx.toString());
+        }
         return Longs.toArray(activeTx);
     }
 
