@@ -3582,6 +3582,7 @@ updateBody() throws StandardException :
     String                correlationName = null;
     JavaToSQLValueNode    javaToSQLNode = null;
     TableName  tableName = null;
+    FromList   fromList = null;
     ValueNode  whereClause = null;
     FromTable  fromTable = null;
     Properties targetProperties = null;
@@ -3633,6 +3634,17 @@ updateBody() throws StandardException :
             }
         }
 
+        fromList = fromClause()
+        {
+            if (fromList != null) {
+                if (isUpdateFromSub) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT);
+                } else {
+                    isUpdateFromSub = true;
+                }
+            }
+        }
+
         [
             whereToken = <WHERE>
             (
@@ -3675,6 +3687,10 @@ updateBody() throws StandardException :
             ((FromBaseTable) fromTable).setTableProperties(targetProperties);
         }
         if (isUpdateFromSub) {
+            if (fromList != null) {
+                assert subQuery == null;
+                subQuery = assembleUpdateSubquery(columnList, fromList);
+            }
             return getUpdateNodeWithSub(fromTable, tableName, columnList, whereClause, subQuery);
         } else {
             return getUpdateNode(fromTable, tableName, columnList, whereClause);
