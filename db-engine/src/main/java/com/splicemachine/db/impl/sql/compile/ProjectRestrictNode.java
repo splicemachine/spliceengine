@@ -436,12 +436,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 restrictionList.removeOptPredicate(pred);
         }
 
-        RemapCRsVisitor rcrv = new RemapCRsVisitor(false);
         for (int i = predicatesPushedToDT.size() - 1; i >= 0; i--) {
             pred = (Predicate) predicatesPushedToDT.getOptPredicate(i);
-            if (pred.isScopedForPush()) {
-                pred.getAndNode().accept(rcrv);
-            }
             restrictionList.addOptPredicate(pred);
         }
         predicatesPushedToDT.removeAllPredicates();
