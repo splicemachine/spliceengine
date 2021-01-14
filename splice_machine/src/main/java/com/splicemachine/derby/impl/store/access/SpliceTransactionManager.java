@@ -1969,6 +1969,10 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public void ignoreConflicts(boolean ignore) {
-        SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
+        if(SIDriver.driver() != null && SIDriver.driver().lifecycleManager() != null) {
+            SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
+        } else {
+            LOG.warn(String.format("could not %s conflicting transactions for transaction %d", (ignore ? "ignore" : "restore adding"), getActiveStateTxn().getTxnId()));
+        }
     }
 }

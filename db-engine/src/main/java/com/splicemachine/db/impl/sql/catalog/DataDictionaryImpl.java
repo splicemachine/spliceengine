@@ -3524,7 +3524,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                           TransactionController tc,
                           boolean recompile,
                           boolean updateParamDescriptors,
-                          boolean firstCompilation) throws StandardException{
+                          boolean firstCompilation) throws StandardException {
+        /*
+         * Partial update, temporarily ignore collecting conflicting txns, many conflicting txns could arise
+         * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
+         * sys tables.
+         */
+        try {
+            tc.ignoreConflicts(true);
+            updateSPSInternal(spsd, tc, recompile, updateParamDescriptors, firstCompilation);
+        } finally {
+            tc.ignoreConflicts(false);
+        }
+    }
+
+    private void updateSPSInternal(SPSDescriptor spsd,
+                                  TransactionController tc,
+                                  boolean recompile,
+                                  boolean updateParamDescriptors,
+                                  boolean firstCompilation) throws StandardException{
         ExecIndexRow keyRow1;
         ExecRow row;
         DataValueDescriptor idOrderable;
@@ -3570,17 +3588,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         */
         boolean[] bArray=new boolean[2];
 
-        /*
-        * Partial update, temporarily ignore collecting conflicting txns, many conflicting txns could arise
-        * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
-        * sys tables.
-        */
-        try {
-            tc.ignoreConflicts(true);
-            ti.updateRow(keyRow1, row, SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, bArray, updCols, tc);
-        } finally {
-            tc.ignoreConflicts(false);
-        }
+        ti.updateRow(keyRow1, row, SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, bArray, updCols, tc);
 
         /*
         ** If we don't need to update the parameter
@@ -3641,17 +3649,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         0,0,0,parameterId-1);
 
-                /*
-                 * temporarily ignore collecting conflicting txns, many conflicting txns could arise
-                 * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
-                 * sys tables.
-                 */
-                try {
-                    tc.ignoreConflicts(true);
-                    updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
-                } finally {
-                    tc.ignoreConflicts(false);
-                }
+                updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
             }
         }
     }
