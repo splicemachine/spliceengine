@@ -361,15 +361,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             // SYSDATABASES
             coreInfo[SYSDATABASES_CORE_NUM].setHeapConglomerate(
-                    getBootParameter(startParams, CFG_SYSDATABASES_ID, true));
+                    getBootParameter(startParams, CFG_SYSDATABASES_ID, false));
 
             coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
                     SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID,
-                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX1_ID, true));
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX1_ID, false));
 
             coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
                     SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID,
-                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX2_ID, true));
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX2_ID, false));
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -6893,8 +6893,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
-        resetSpliceDbOwner(tc, spliceDbDesc.getUUID());
-
         softwareVersion.upgradeIfNeeded(dictionaryVersion,tc,startParams);
     }
 
@@ -7835,7 +7833,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Add the required entries to the data dictionary for a System table.
      */
 
-    private void addSystemTableToDictionary(TabInfoImpl ti,
+    protected void addSystemTableToDictionary(TabInfoImpl ti,
                                             SchemaDescriptor sd,
                                             TransactionController tc,
                                             DataDescriptorGenerator ddg) throws StandardException{

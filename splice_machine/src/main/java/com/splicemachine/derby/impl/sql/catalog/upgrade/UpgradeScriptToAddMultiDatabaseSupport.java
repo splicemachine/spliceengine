@@ -18,14 +18,19 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import java.util.Properties;
+
 public class UpgradeScriptToAddMultiDatabaseSupport extends UpgradeScriptBase {
-    public UpgradeScriptToAddMultiDatabaseSupport(SpliceDataDictionary sdd, TransactionController tc) {
+    public UpgradeScriptToAddMultiDatabaseSupport(SpliceDataDictionary sdd, TransactionController tc, Properties startParams) {
         super(sdd, tc);
+        this.startParams = startParams;
     }
+
+    private Properties startParams;
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(tc);
+        sdd.createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(tc, startParams);
 
         // Refresh views
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");

@@ -25,8 +25,6 @@ import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,9 +33,9 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -70,8 +68,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
-
-import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -366,23 +362,62 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return databaseTable;
     }
 
-    public void createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(TransactionController tc) throws StandardException {
+    public void createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(TransactionController tc, Properties params) throws StandardException {
         tc.elevate("dictionary");
 
-        // Create SYS.SYSDATABASES
-        TabInfoImpl databaseTableInfo = getDatabaseTable();
-        addTableIfAbsent(tc, systemSchemaDesc, databaseTableInfo, null, null);
+        DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
-        // Add first row to it
+        // Create SYS.SYSDATABASES
+        if(getTableDescriptor(SYSDATABASESRowFactory.TABLENAME_STRING, systemSchemaDesc,tc) == null) {
+            ExecutionContext ec = (ExecutionContext) ContextService.getContext(ExecutionContext.CONTEXT_ID);
+            new CoreCreation(SYSDATABASES_CATALOG_NUM, tc, ec).run();
+            if (coreInfo[SYSDATABASES_CATALOG_NUM].getNumberOfIndexes() > 0) {
+                TabInfoImpl ti = coreInfo[SYSDATABASES_CATALOG_NUM];
+                bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, ti);
+            }
+
+            TabInfoImpl ti = coreInfo[SYSDATABASES_CATALOG_NUM];
+            addSystemTableToDictionary(ti, systemSchemaDesc, tc, ddg);
+
+            params.put(CFG_SYSDATABASES_ID, Long.toString(coreInfo[SYSDATABASES_CORE_NUM].getHeapConglomerate()));
+            params.put(CFG_SYSDATABASES_INDEX1_ID,
+                    Long.toString(
+                            coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                    SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID)));
+            params.put(CFG_SYSDATABASES_INDEX2_ID,
+                    Long.toString(
+                            coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                    SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID)));
+        }
+
+        // Add first row sysdatabases
         UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
-        String owner = locateSchemaRow(databaseID, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc).getAuthorizationId();
+        String owner = sysIBMSchemaDesc.getAuthorizationId();
         spliceDbDesc = new DatabaseDescriptor(this, DatabaseDescriptor.STD_DB_NAME, owner, databaseID);
         addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
 
         // Add new databaseid columns to relevant system tables
         upgradeAddColumnToSystemTable(tc, SYSSCHEMAS_CATALOG_NUM, new int[]{4});
+
+        TableDescriptor td = getTableDescriptor(SYSSCHEMASRowFactory.TABLENAME_STRING, systemSchemaDesc, tc);
+        TabInfoImpl tabInfo = coreInfo[SYSSCHEMAS_CORE_NUM];
+        ConglomerateDescriptor cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
+        dropConglomerateDescriptor(cd, tc);
+        cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID));
+        dropConglomerateDescriptor(cd, tc);
+        bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, tabInfo);
+        params.put(CFG_SYSSCHEMAS_INDEX1_ID,
+                Long.toString(
+                        tabInfo.getIndexConglomerate(
+                                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID)));
+        params.put(CFG_SYSSCHEMAS_INDEX2_ID,
+                Long.toString(
+                        tabInfo.getIndexConglomerate(
+                                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
+
         upgradeAddColumnToSystemTable(tc, SYSROLES_CATALOG_NUM, new int[]{8});
         upgradeAddColumnToSystemTable(tc, SYSUSERS_CATALOG_NUM, new int[]{5});
+
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -540,7 +575,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
-        upgradeIfNecessary(tc);
+        upgradeIfNecessary(tc, startParams);
+
+        resetSpliceDbOwner(tc, spliceDbDesc.getUUID());
     }
 
     /**
@@ -717,7 +754,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return pkTable;
     }
 
-    private void upgradeIfNecessary(TransactionController tc) throws StandardException{
+    private void upgradeIfNecessary(TransactionController tc, Properties startParams) throws StandardException{
 
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
@@ -728,7 +765,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc,startParams);
             scripts.run();
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();

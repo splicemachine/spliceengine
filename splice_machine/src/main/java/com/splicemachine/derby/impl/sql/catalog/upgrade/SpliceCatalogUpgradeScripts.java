@@ -21,9 +21,11 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
+import scala.sys.Prop;
 
 import java.util.Comparator;
 import java.util.NavigableSet;
+import java.util.Properties;
 import java.util.TreeMap;
 
 /**
@@ -37,11 +39,13 @@ public class SpliceCatalogUpgradeScripts{
     TransactionController tc;
     TreeMap<Splice_DD_Version, UpgradeScript> scripts;
     Comparator<Splice_DD_Version> ddComparator;
+    Properties startParams;
     
-    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd,Splice_DD_Version catalogVersion,TransactionController tc){
+    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, Splice_DD_Version catalogVersion, TransactionController tc, Properties startParams){
         this.sdd=sdd;
         this.catalogVersion=catalogVersion;
         this.tc=tc;
+        this.startParams = startParams;
 
         ddComparator=new Comparator<Splice_DD_Version>(){
             @Override
@@ -81,7 +85,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1989), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1991), new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1991), new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams));
     }
     public void run() throws StandardException{
 
