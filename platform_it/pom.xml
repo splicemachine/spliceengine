@@ -1100,7 +1100,7 @@
             </activation>
             <properties>
                 <memberNumber>1</memberNumber>
-                <durability>ASYNC</durability>
+                <durability>SYNC</durability>
             </properties>
             <build>
                 <plugins>
