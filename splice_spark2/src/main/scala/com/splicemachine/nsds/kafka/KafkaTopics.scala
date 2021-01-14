@@ -33,9 +33,9 @@ class KafkaTopics(kafkaServers: String, defaultNumPartitions: Int = 1, defaultRe
   }
 
   def createTopic(numPartitions: Int = defaultNumPartitions, repFactor: Short = defaultRepFactor): String = {
-    val name = new Array[Byte](32)
+    val name = new Array[Byte](4)
     new SecureRandom().nextBytes(name)
-    val topicName = Bytes.toHex(name)+"-"+System.nanoTime()
+    val topicName = s"SM-NSDSv2-${Bytes.toHex(name)}-${System.nanoTime()}"
     
     admin.createTopics(
       collection.mutable.HashSet( topicName ),

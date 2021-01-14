@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -429,18 +428,18 @@ IS_KEPT			- only looked at if IS_TEMPORARY,
                   removed automatically by store when
                   transaction terminates.
 
-If IS_TEMPORARY is set, the conglomerate is temporary.
-Temporary conglomerates are only visible through the transaction
-controller that created them.  Otherwise, they are opened,
-scanned, and dropped in the same way as permanent conglomerates.
-Changes to temporary conglomerates persist across commits, but
-temporary conglomerates are truncated on abort (or rollback
-to savepoint).  Updates to temporary conglomerates are not
-locked or logged.
+        If IS_TEMPORARY is set, the conglomerate is temporary.
+        Temporary conglomerates are only visible through the transaction
+        controller that created them.  Otherwise, they are opened,
+        scanned, and dropped in the same way as permanent conglomerates.
+        Changes to temporary conglomerates persist across commits, but
+        temporary conglomerates are truncated on abort (or rollback
+        to savepoint).  Updates to temporary conglomerates are not
+        locked or logged.
 
-A temporary conglomerate is only visible to the	transaction
-controller that created it, even if the conglomerate IS_KEPT
-when the transaction termination.
+        A temporary conglomerate is only visible to the	transaction
+        controller that created it, even if the conglomerate IS_KEPT
+        when the transaction termination.
 
 All temporary conglomerate is removed by store when the
 conglomerate controller is destroyed, or if it is dropped by an explicit
@@ -637,7 +636,7 @@ conglomerates are removed.
     ColumnOrdering[]		columnOrder,
     int[]                   collationIds,
     Properties              properties,
-    int			            temporaryFlag,
+    int                     temporaryFlag,
     long                    orig_conglomId,
     RowLocationRetRowSource rowSource,
     long[] rowCount
@@ -836,6 +835,52 @@ conglomerates are removed.
     TransactionController startNestedUserTransaction(
             boolean readOnly,
             boolean flush_log_on_xact_end)
+        throws StandardException;
+
+    /**
+     * Get a nested internal transaction.
+     * <p>
+     * A nested internal transaction is used in place of a user transaction
+     * when a DML statement is executing its operation tree and a new writable
+     * child transaction needs to be created with the possibility that within
+     * that statement another substatement may be run, requiring a nested transaction.
+     *
+     * @param readOnly True to begin a readOnly transaction, otherwise false.
+     * @param destinationTable The byte representation of the conglomerate
+     *                         number of the target table as a String.
+     * @param inMemoryTxn If true, attempt to begin the child transaction
+     *                    as an in-memory transaction.  This is only
+     *                    applicable to non-Spark queries.
+     * @return SpliceInternalTransactionManager object for tracking the latest child transaction.
+     *
+     * @notes The purpose of this method is to produce a new SpliceInternalTransactionManager
+     * in the current context which will return the most recent child transaction upon
+     * call to LanguageConnectionContext.getTransactionExecute().  This is the main method
+     * which is used to determine which parent transaction to use when beginning a new
+     * child transaction.  Previously, triggers nested inside triggers did not create the
+     * inside trigger's transaction as a child of the outer trigger's transaction, but instead
+     * as a child of the top-level DMLWriteOperation.  Having triggers use sibling transactions
+     * adds the need to do early committing of transactions so that one trigger's written rows
+     * are visible to the other trigger, and causes problems if we need to roll back.
+     * With fully nested triggers, a child trigger can see a parent trigger's written rows
+     * while the parent transaction is still active, so we never have to get in a situation
+     * where we need to roll back a committed transaction.
+     * Once this TransactionController is created, it should be pushed to the context via
+     * LanguageConnectionContext.pushNestedTransaction, and popped via popNestedTransaction
+     * once the executing operation is finished.
+     * Once the initial TransactionController is pushed, subsequent child transactions can
+     * be pushed to the transaction stack via:
+     *   lcc.getTransactionExecute().getRawStoreXact().pushInternalTransaction(childTxn);
+     *
+     * SpliceInternalTransactionManager cannot be used to set or release savepoints or commit
+     * transactions.  It is merely used for providing a means to pick the proper parent
+     * transaction for any new internally-created child transactions.
+     *
+     */
+	TransactionController startNestedInternalTransaction(
+            boolean readOnly,
+            byte[] destinationTable,
+			boolean inMemoryTxn)
         throws StandardException;
 
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
@@ -1639,10 +1684,10 @@ conglomerates are removed.
     "one" (including those made since "two") and release savepoint "two".
 
     @param name     The user provided name of the savepoint.
-      @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
-      Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
-      A String value for kindOfSavepoint would mean it is SQL savepoint
-      A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
+    @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+    Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
+    A String value for kindOfSavepoint would mean it is SQL savepoint
+    A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
     @return returns savepoint position in the stack.
 
     @exception StandardException  Standard Derby exception policy.  A

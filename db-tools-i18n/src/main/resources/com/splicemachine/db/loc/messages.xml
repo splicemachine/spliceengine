@@ -2101,6 +2101,11 @@ so the product will default to showing a correct English message. -->
             </msg>
 
             <msg>
+                <name>42X67</name>
+                <text>Invalid UPDATE statement syntax.</text>
+            </msg>
+
+            <msg>
                 <name>42X68</name>
                 <text>No field '{0}' was found belonging to class '{1}'. It may be that the field exists, but it is not public, or that the class does not exist or is not public.</text>
                 <arg>fieldName</arg>
