@@ -31,7 +31,6 @@ import splice.com.google.common.collect.Lists;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
@@ -39,6 +38,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_UNSUPPO
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the FROM FINAL TABLE clause.
@@ -149,8 +149,8 @@ public class FromFinalTableIT extends SpliceUnitTest {
         // Mem platform doesn't physically remove dropped tables, so
         // this is an HBase-only check.
         if (!isMemPlatform)
-            assertEquals("\nStarted with " + numTables + " tables and ended with " + newNumTables,
-                         numTables, newNumTables);
+            assertTrue("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                         numTables >= newNumTables);
     }
 
     @Before

@@ -119,16 +119,27 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
      * @param hbaseStore the hbase store relevant to the transaction
      * @param contextMgr the context manager
      * @param parentTxn  the parent transaction
+     * @param destinationTable The byte representation of the conglomerate
+     *                         number of the target table as a String.
+     * @param inMemoryTxn If true, attempt to begin the child transaction
+     *                    as an in-memory transaction.  This is only
+     *                    applicable to non-Spark queries.
+     * @param skipTransactionContextPush If true, skip the push of the SpliceTransactionContext
+     *                                   to the ContextManager context holder.  Used for internal
+     *                                   transactions.
      * @return a new child transaction of the parent transaction
      * @throws StandardException if something goes wrong
      */
     public Transaction startNestedTransaction(HBaseStore hbaseStore,
                                               ContextManager contextMgr,
-                                              TxnView parentTxn) throws StandardException{
+                                              TxnView parentTxn,
+                                              byte[] destinationTable,
+                                              boolean inMemoryTxn,
+                                              boolean skipTransactionContextPush) throws StandardException{
         checkContextAndStore(hbaseStore,contextMgr,"startNestedTransaction");
 
         return startNestedTransaction(hbaseStore,contextMgr,
-                dataValueFactory,null,false,NESTED_READONLY_USER_CONTEXT_ID,false,parentTxn);
+                dataValueFactory,null,false,NESTED_READONLY_USER_CONTEXT_ID,false,parentTxn,destinationTable,inMemoryTxn,skipTransactionContextPush);
     }
 
     /**
@@ -170,27 +181,37 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                              boolean abortAll,
                                                              String contextName,
                                                              boolean additive,
-                                                             TxnView parentTxn){
+                                                             TxnView parentTxn,
+                                                             byte[] destinationTable,
+                                                             boolean inMemoryTxn,
+                                                             boolean skipTransactionContextPush){
         try{
             TxnLifecycleManager lifecycleManager=SIDriver.driver().lifecycleManager();
             /*
-			 * All transactions start as read only.
-			 *
-			 * If parentTxn!=null, then this will create a read-only child transaction (which is essentially
-			 * a duplicate of the parent transaction); this requires no network calls immediately, but will require
-			 * 2 network calls when elevateTransaction() is called.
-			 *
-			 * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
-			 * for a read-only transaction; this requires a single network call.
-			 */
-            Txn txn=lifecycleManager.beginChildTransaction(parentTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,additive,null);
+             * All transactions start as read only.
+             *
+             * If parentTxn!=null, then this will create a read-only child transaction (which is essentially
+             * a duplicate of the parent transaction); this requires no network calls immediately, but will require
+             * 2 network calls when elevateTransaction() is called.
+             *
+             * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
+             * for a read-only transaction; this requires a single network call.
+             */
+            Txn txn=lifecycleManager.beginChildTransaction(parentTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,additive,destinationTable,inMemoryTxn);
             SpliceTransaction trans=new SpliceTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName,txn);
             trans.setTransactionName(transName);
 
-            SpliceTransactionContext context=new SpliceTransactionContext(contextMgr,contextName,trans,abortAll,hbaseStore);
+            SpliceTransactionContext context = null;
+            String contextIdName;
+            if (!skipTransactionContextPush) {
+                context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
+                contextIdName = context.getIdName();
+            }
+            else
+                contextIdName = "NoSpliceTransactionContext";
 
             if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"transaction type=%s,%s",context.getIdName(),txn);
+                SpliceLogUtils.trace(LOG,"transaction type=%s,%s",contextIdName,txn);
 
             return trans;
         }catch(Exception e){
