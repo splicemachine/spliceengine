@@ -280,8 +280,9 @@ public final class UpdateNode extends DMLModStatementNode
             // expression, we pull it up to its corresponding top select result column
             // and remove it from the inner select list. If it references columns that is
             // not already selected, add them to the inner select list, too.
+            FromSubquery fromSubq = (FromSubquery) sel.getFromList().elementAt(1);
             ResultColumnList selRCL = sel.getResultColumns();
-            ResultColumnList innerRCL = ((FromSubquery) sel.getFromList().elementAt(1)).getSubquery().getResultColumns();
+            ResultColumnList innerRCL = fromSubq.getSubquery().getResultColumns();
             assert selRCL.size() == innerRCL.size();
 
             ResultColumnList toAppend = new ResultColumnList();
@@ -297,7 +298,7 @@ public final class UpdateNode extends DMLModStatementNode
                             toAppend.addResultColumn(cr.generateResultColumn());
                             TableName crTblName = cr.getTableNameNode();
                             cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                    crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                    crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                         }
                     }
                     ResultColumn selRC = selRCL.elementAt(i);
@@ -332,7 +333,7 @@ public final class UpdateNode extends DMLModStatementNode
                         }
                         TableName crTblName = cr.getTableNameNode();
                         cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                     }
                 }
             }

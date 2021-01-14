@@ -611,10 +611,10 @@ class SQLGrammarImpl {
     }
 
     StatementNode getUpdateNodeWithSub(FromTable fromTable, /* table to be updated */
-                                               TableName tableName, /* table to be updated */
-                                               ResultColumnList setClause, /* new values to ue for the update */
-                                               ValueNode whereClause, /* where clause for outer update */
-                                               ValueNode subQuery) /* inner source subquery for multi column syntax */
+                                       TableName tableName, /* table to be updated */
+                                       ResultColumnList setClause, /* new values to use for the update */
+                                       ValueNode whereClause, /* where clause for outer update */
+                                       ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
         FromList fromList = (FromList) nodeFactory.getNode(
@@ -658,14 +658,15 @@ class SQLGrammarImpl {
         // UpdateNode's bindStatement().
         ValueNode innerWhere = innerSelect.getWhereClause();
         ValueNode alteredWhereClause;
-        if (whereClause != null) {
+
+        if (whereClause != null && innerWhere != null) {
             alteredWhereClause = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.AND_NODE,
                     whereClause, /* the one passed into this method */
                     innerWhere,  /* the one pulled from subquery */
                     getContextManager());
         } else {
-            alteredWhereClause = innerWhere;
+            alteredWhereClause = whereClause != null ? whereClause : innerWhere;
         }
         innerSelect.setWhereClause(null);
 
@@ -722,6 +723,55 @@ class SQLGrammarImpl {
         setUpAndLinkParameters();
 
         return retval;
+    }
+
+    SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
+        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
+
+        boolean generateName;
+        for (int index = 0; index < setClause.size(); index++) {
+            ResultColumn rc = setClause.elementAt(index);
+            String columnName = rc.getExpression().getColumnName();
+            generateName = false;
+            if (columnName == null) {
+                columnName = "UPD_SUBQ_COL_" + index;
+                generateName = true;
+            }
+            ResultColumn innerRC = (ResultColumn) nodeFactory.getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    columnName,
+                    rc.getExpression(),
+                    getContextManager());
+            if (generateName) {
+                innerRC.setNameGenerated(true);
+            }
+
+            innerRCL.addResultColumn(innerRC);
+        }
+
+        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
+                C_NodeTypes.SELECT_NODE,
+                innerRCL,  /* SELECT list */
+                null, /* AGGREGATE list */
+                fromList,  /* FROM list */
+                null, /* WHERE clause */
+                null, /* GROUP BY list */
+                null, /* having clause */
+                null, /* window list */
+                getContextManager());
+
+        return (SubqueryNode) nodeFactory.getNode(
+                C_NodeTypes.SUBQUERY_NODE,
+                selectNode,
+                SubqueryNode.FROM_SUBQUERY,
+                null,  /* left op */
+                null,  /* order by list */
+                null,  /* offset */
+                null,  /* fetch first */
+                false, /* has JDBC limit clause*/
+                getContextManager());
     }
 
     /**
