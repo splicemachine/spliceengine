@@ -379,7 +379,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     }
 
     public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, List<ExecRow> scanKeyPrefixes, int[] keyDecodingMap, DataValueDescriptor[] probeValues) throws StandardException {
-        final boolean sameStartStop = true;
+        boolean sameStartStop = sameStartStopPosition;
         ExecRow startPosition;
         ExecRow stopPosition;
         ExecRow overriddenStartPos;
