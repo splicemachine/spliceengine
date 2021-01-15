@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
@@ -46,8 +47,10 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -55,11 +58,17 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -93,6 +102,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
     private long startTime = System.nanoTime();
+    private ExecRow currentBaseRow;
 
     public SpliceBaseOperation(){
         super();
@@ -203,7 +213,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        if (this.activation.datasetProcessorType().isSpark())
+        if (this.activation.datasetProcessorType().isOlap())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -498,7 +508,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             throw e;
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
-        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_SPARK);
+        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_OLAP);
         openDistributed();
     }
 
@@ -525,7 +535,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         isOpen = true;
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
         remoteQueryClient.submit();
-        execRowIterator = remoteQueryClient.getIterator();
+        execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
+            @Nullable
+            @Override
+            public ExecRow apply(@Nullable ExecRow execRow) {
+                getOperation().setCurrentRow(execRow);
+                getOperation().setCurrentRowLocation(execRow == null ? null : new HBaseRowLocation(execRow.getKey()));
+                if(isForUpdate() && execRow != null && execRow.getBaseRowCols() != null) {
+                    getOperation().setCurrentBaseRowLocation(new ValueRow(execRow.getBaseRowCols()));
+                }
+                return execRow;
+            }
+        });
     }
 
     @Override
@@ -844,11 +865,27 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
         TxnView currentTxn = rawTxn.getActiveStateTxn();
-        if(this instanceof DMLWriteOperation) {
+        if(this instanceof DMLWriteOperation ||
+           isFromTableStatement()) {
             if (currentTxn instanceof ActiveWriteTxn)
                 return rawTxn.getActiveStateTxn();
-            else if (rawTxn instanceof  SpliceTransaction)
-                return ((SpliceTransaction) rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+            else if (rawTxn instanceof  SpliceTransaction) {
+                byte [] destinationTable;
+                if (this instanceof DMLWriteOperation ) {
+                    DMLWriteOperation writeOp = ((DMLWriteOperation) this);
+                    destinationTable = writeOp.getDestinationTable();
+                    final Txn txn = ((SpliceTransaction) rawTxn).getTxn();
+
+                    if (writeOp.forFromTableStatement() &&
+                        txn instanceof ReadOnlyTxn)
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                               "FROM TABLE queries must elevate the transaction from the top-level operation.");
+                }
+                else
+                    destinationTable = ((VTIOperation) this).getDestinationTable();
+
+                return ((SpliceTransaction) rawTxn).elevate(destinationTable);
+            }
             else
                 throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
         }
@@ -1130,5 +1167,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         for (int i = 0; i < ncols;i++)
             fields[i] = resultDataTypeDescriptors[i].getStructField(ValueRow.getNamedColumn(i));
         return DataTypes.createStructType(fields);
+    }
+
+    public boolean isFromTableStatement() {
+        return false;
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return false;
+    }
+
+    @Override
+    public void setCurrentBaseRowLocation(ExecRow currentBaseRow){
+        this.currentBaseRow = currentBaseRow;
+    }
+
+    @Override
+    public ExecRow getCurrentBaseRow() throws StandardException {
+        return currentBaseRow;
     }
 }

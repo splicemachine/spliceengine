@@ -37,7 +37,13 @@ import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.Stoppable;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
@@ -52,7 +58,12 @@ import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -110,6 +121,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
              * issue during testing
              */
             this.manager = new DatabaseLifecycleManager();
+
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }

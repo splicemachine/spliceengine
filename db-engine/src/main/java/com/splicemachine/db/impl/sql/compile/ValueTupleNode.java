@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.ArrayList;
@@ -59,6 +60,15 @@ public class ValueTupleNode extends ValueNode {
     }
 
     @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+
+        for (ValueNode vn : tuple) {
+            vn.accept(v, this);
+        }
+    }
+
+    @Override
     public List<? extends QueryTreeNode> getChildren() {
         return tuple;
     }
@@ -107,12 +117,33 @@ public class ValueTupleNode extends ValueNode {
     }
 
     @Override
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly) throws StandardException {
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException {
         for (ValueNode vn : tuple) {
-            if (!vn.categorize(referencedTabs, simplePredsOnly)) {
+            if (!vn.categorize(referencedTabs, referencedColumns, simplePredsOnly)) {
                 return false;
             }
         }
         return true;
+    }
+
+    public boolean typeComparable(ValueTupleNode other) {
+        if (other.tuple.size() != tuple.size()) {
+            return false;
+        }
+        for (int i = 0; i < tuple.size(); i++) {
+            if (!tuple.get(i).getTypeServices().comparable(other.tuple.get(i).getTypeServices())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean containsNullableElement() {
+        for (ValueNode vn : tuple) {
+            if (vn.getTypeServices().isNullable()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

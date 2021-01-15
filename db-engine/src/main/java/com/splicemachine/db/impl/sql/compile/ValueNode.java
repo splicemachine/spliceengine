@@ -44,8 +44,10 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -704,7 +706,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -719,6 +723,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -728,7 +734,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         return true;
@@ -1546,7 +1552,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @param resultColumn
      * @return
      */
-    public long getCoordinates(ResultColumn resultColumn) {
+    public static long getCoordinates(ResultColumn resultColumn) {
         return (((long)resultColumn.getResultSetNumber()) << 32) | (resultColumn.getVirtualColumnId() & 0xffffffffL);
     }
 
@@ -1620,6 +1626,46 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         // by default, take this whole subtree as an expression
         return collectSingleExpression(exprMap);
+    }
+
+    /*
+     * Add a cast node to the rightOperand if it's of string type and need to be compared
+     * to leftOperand
+     * If we are comparing a non-string with a string type, then we
+     * must prevent the non-string value from being used to probe into
+     * an index on a string column. This is because the string types
+     * are all of low precedence, so the comparison rules of the non-string
+     * value are used, so it may not find values in a string index because
+     * it will be in the wrong order. So, cast the string value to its
+     * own type. This is easier than casting it to the non-string type,
+     * because we would have to figure out the right length to cast it to.
+     * @return the new rightOperand
+     */
+    protected ValueNode addCastNodeForStringToNonStringComparison(
+            ValueNode leftOperand, ValueNode rightOperand) throws StandardException {
+        TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId rightTypeId = rightOperand.getTypeId();
+        assert !leftTypeId.isStringTypeId();
+        assert rightTypeId.isStringTypeId();
+        if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId()) {
+            rightOperand = (ValueNode)
+                    getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            rightOperand,
+                            new DataTypeDescriptor(
+                                    leftTypeId,
+                                    true, leftOperand.getTypeServices().getMaximumWidth()),
+                            getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+        } else if (leftTypeId.isNumericTypeId() && rightTypeId.isCharOrVarChar()) {
+            rightOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    rightOperand,
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
+                    getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+        }
+        return rightOperand;
     }
 
     protected static final double SIMPLE_OP_COST = 0.2;            // add/sub, logical and/or/negate, etc.

@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1987-SNAPSHOT</version>
+        <version>3.2.0.1994-SNAPSHOT</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -69,6 +69,10 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>spark_sql</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -79,6 +83,8 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <version>12.0.1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -146,6 +152,10 @@
                             <groupId>com.splicemachine</groupId>
                             <artifactId>hbase_storage</artifactId>
                         </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_upgrade</artifactId>
+                        </exclusion>
                     </exclusions>
                 </dependency>
             </dependencies>
@@ -179,7 +189,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.HBaseTest, com.splicemachine.test.UsesLocalFS, ${excluded.categories}</excludedGroups>
                             <argLine>-Xmx4g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
@@ -192,9 +202,10 @@
                             <excludes>
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                                 <!-- splice_machine ITs failing in remote mode -->
+                                <exclude>**/CheckConstraintIT.java</exclude>
+                                <exclude>**/ExportOperationIT.java</exclude>
                                 <exclude>**/IndexIT.java</exclude>
                                 <exclude>**/InListMultiprobeIT.java</exclude>
-                                <exclude>**/CheckConstraintIT.java</exclude>
                                 <exclude>**/PyStoredProcedureResultSetFactoryIT.java</exclude>
                                 <exclude>**/QueryTimeoutIT.java</exclude>
                                 <exclude>**/RowCountOperationIT.java</exclude>
@@ -215,6 +226,8 @@
                                 <exclude>com/splicemachine/hbase/**</exclude>
                                 <exclude>com/splicemachine/mrio/**</exclude>
                                 <exclude>**/CallableTransactionIT.java</exclude>
+                                <exclude>**/HTablePrioritiesIT.java</exclude>
+                                <exclude>**/TransactionResolutionIT.java</exclude>
                                 <exclude>**/VacuumIT.java</exclude>
                                 <!-- EE ITs failing in remote mode -->
                                 <exclude>com/splicemachine/backup/**</exclude>
@@ -225,6 +238,7 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -232,8 +246,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
-                            <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, com.splicemachine.test.UsesLocalFS, ${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>16</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
@@ -262,7 +275,6 @@
                                 <exclude>**/DropColumnIT.java</exclude>
                                 <exclude>**/DropColumnTransactionIT.java</exclude>
                                 <exclude>**/ExplainPlanIT.java</exclude>
-                                <exclude>**/ExportOperationIT.java</exclude>
                                 <exclude>**/FlattenedOuterJoinIT.java</exclude>
                                 <exclude>**/FunctionIT.java</exclude>
                                 <exclude>**/HashNestedLoopJoinIT.java</exclude>
@@ -307,6 +319,7 @@
                                 <exclude>**/ClusterDDLTestIT.java</exclude>
                                 <exclude>**/ExternalTableIT.java</exclude>
                                 <exclude>**/ExternalTablePartitionIT.java</exclude>
+                                <exclude>**/HTablePrioritiesIT.java</exclude>
                                 <exclude>**/TempTableHBaseIT.java</exclude>
                                 <exclude>**/TransactionResolutionIT.java</exclude>
                                 <!-- Serial IT failing to compile -->

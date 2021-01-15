@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.function.OffsetFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -195,4 +196,8 @@ public class RowCountOperation extends SpliceBaseOperation {
         return "Row Limit";
     }
 
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
+    }
 }

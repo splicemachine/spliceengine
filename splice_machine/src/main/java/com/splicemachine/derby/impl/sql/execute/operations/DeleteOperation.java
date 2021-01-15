@@ -34,11 +34,12 @@ import java.io.IOException;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
-	protected  boolean cascadeDelete;
+    private boolean cursorDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
     protected String bulkDeleteDirectory;
     protected int colMapRefItem;
     protected int[] colMap;
+    protected boolean noTriggerRI;
 
 	@Override
 	public String getName() {
@@ -49,15 +50,21 @@ public class DeleteOperation extends DMLWriteOperation {
 		super();
 	}
 
-	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion,
-						   String bulkDeleteDirectory, int colMapRefItem,
-                           String fromTableDmlSpsDescriptorAsString) throws StandardException, IOException {
-
+    /**
+     * @param noTriggerRI if true, DELETE will not fire triggers or check foreign key constraints
+     * @param cursorDelete if true, the execution of this operation is done exclusively in control.
+     */
+    public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
+                           double optimizerEstimatedCost, boolean cursorDelete, String tableVersion,
+                           String bulkDeleteDirectory, int colMapRefItem,
+                           String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI) throws StandardException
+    {
         super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
               fromTableDmlSpsDescriptorAsString);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
+        this.noTriggerRI = noTriggerRI;
+        this.cursorDelete = cursorDelete;
         init();
 	}
 
@@ -123,6 +130,7 @@ public class DeleteOperation extends DMLWriteOperation {
                     .operationContext(operationContext)
                     .tableVersion(tableVersion)
                     .execRowDefinition(getExecRowDefinition())
+                    .loadReplaceMode(noTriggerRI)
                     .txn(txn).build();
             return dataSetWriter.write();
 
@@ -135,5 +143,10 @@ public class DeleteOperation extends DMLWriteOperation {
             finalizeNestedTransaction();
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return cursorDelete;
     }
 }

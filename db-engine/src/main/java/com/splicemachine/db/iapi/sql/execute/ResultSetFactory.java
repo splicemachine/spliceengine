@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -187,13 +186,14 @@ public interface ResultSetFactory {
      *               be deleted from the target table. This result set must
      *               contain one column which provides RowLocations that are
      *               valid in the target table.
+     * @param noTriggerRI if set to 1, DELETE will not fire triggers or check foreign key constraints
      * @return the delete operation as a result set.
      * @throws StandardException thrown when unable to perform the delete
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
+                                 double optimizerEstimatedCost, boolean cursorDelete, String tableVersion,
                                  String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
-                                 String fromTableDmlSpsDescriptorAsString)
+                                 String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI)
             throws StandardException;
 
     /**
@@ -236,10 +236,15 @@ public interface ResultSetFactory {
      * @return the update operation as a result set.
      * @throws StandardException thrown when unable to perform the update
      */
-    ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-                                 GeneratedMethod checkGM, double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
+    ResultSet getUpdateResultSet(NoPutResultSet source,
+                                 GeneratedMethod generationClauses,
+                                 GeneratedMethod checkGM,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost,
+                                 boolean updateCursor,
+                                 String tableVersion,
+                                 String explainPlan,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -354,6 +359,7 @@ public interface ResultSetFactory {
                                                int resultColumnTypeArrayItem,
                                                int resultSetNumber,
                                                GeneratedMethod constantRestriction,
+                                               boolean paramInConstantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
                                                boolean reuseResult,
@@ -372,6 +378,7 @@ public interface ResultSetFactory {
                                                int resultColumnTypeArrayItem,
                                                int resultSetNumber,
                                                GeneratedMethod constantRestriction,
+                                               boolean paramInConstantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
                                                boolean reuseResult,
@@ -1429,6 +1436,7 @@ public interface ResultSetFactory {
                                          int rightNumCols,
                                          int leftHashKeyItem,
                                          int rightHashKeyItem,
+                                         boolean noCacheBroadcastJoinRight,
                                          GeneratedMethod joinClause,
                                          int resultSetNumber,
                                          boolean oneRowRightSide,
@@ -1813,6 +1821,7 @@ public interface ResultSetFactory {
                                          int rightNumCols,
                                          int leftHashKeyItem,
                                          int rightHashKeyItem,
+                                         boolean noCacheBroadcastJoinRight,
                                          GeneratedMethod joinClause,
                                          int resultSetNumber,
                                          boolean oneRowRightSide,
@@ -2020,7 +2029,7 @@ public interface ResultSetFactory {
      * @param resultSetNumber The resultSetNumber for the ResultSet
      */
     NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation,
-                                         int resultSetNumber);
+                                         int resultSetNumber) throws StandardException;
 
     /**
      * The Union interface is used to evaluate the union (all) of two ResultSets.
@@ -2292,6 +2301,8 @@ public interface ResultSetFactory {
                                       String quoteChar,
                                       String quoteMode,
                                       String format,
+                                      String floatingPointNotation,
+                                      String timestampFormat,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 

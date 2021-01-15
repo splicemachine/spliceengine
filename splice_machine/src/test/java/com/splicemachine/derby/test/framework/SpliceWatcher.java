@@ -20,11 +20,27 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import splice.com.google.common.collect.Lists;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
-import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -38,6 +54,8 @@ import static splice.com.google.common.base.Strings.isNullOrEmpty;
 public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
+    private static ExecutorService executor = Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
 
     private TestConnection currentConnection;
     private final String defaultSchema;
@@ -104,6 +122,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             delegate.useOLAP(useOLAP);
             return this;
         }
+        public ConnectionBuilder useNativeSpark(boolean useNativeSpark) {
+            delegate.useNativeSpark(useNativeSpark);
+            return this;
+        }
 
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
@@ -150,7 +172,7 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
     /**
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
-    public TestConnection createConnection() throws Exception {
+    public synchronized TestConnection createConnection() throws Exception {
         return connectionBuilder().build();
     }
 
@@ -160,21 +182,53 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         return ps;
     }
 
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+        PreparedStatement ps = getOrCreateConnection().prepareStatement(sql, resultSetType, resultSetConcurrency);
+        statements.add(ps);
+        return ps;
+    }
+
+    /**
+     * Try closing connections gracefully from different threads, if that takes long it could be some queries are stuck,
+     * so abort the connections forcefully instead
+     */
     private void closeConnections() {
         try {
-            for (Connection connection : connections) {
-                if (connection != null && !connection.isClosed()) {
-                    try {
+            List<Callable<Void>> callables = connections.stream().map(connection -> (Callable<Void>) () -> {
+                try {
+                    if (connection != null && !connection.isClosed())
                         connection.close();
-                    } catch (SQLException e) {
-                        connection.rollback();
-                        connection.close();
-                    }
+                } catch (SQLException e) {
+                    LOG.error("Exception while closing connection", e);
                 }
+                return null;
+            }).collect(Collectors.toList());
+            List<Future<Void>> results = executor.invokeAll(callables, 10, TimeUnit.SECONDS);
+            List<Future<Void>> stillRunning = results.stream().filter(f -> f.isCancelled() || !f.isDone()).collect(Collectors.toList());
+            if (stillRunning.isEmpty()) {
+                // we are done
+                return;
             }
+            stillRunning.stream().forEach(f -> f.cancel(true));
+        } catch (InterruptedException e) {
+            LOG.error("Interrupted while closing", e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            LOG.warn("Exception while closing gracefully", e);
         }
+        LOG.warn("Some tasks still running, aborting connections");
+
+        for(Connection connection : connections) {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    LOG.info("Aborting " + connection);
+                    connection.abort(executor);
+                }
+            } catch (SQLException sqle) {
+                LOG.error("Couldn't abort connection", sqle);
+            }
+        }
+
     }
 
     private void closeStatements() {
@@ -245,9 +299,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      */
     public <T> List<T> queryList(String sql) throws Exception {
         List<T> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            resultList.add((T) rs.getObject(1));
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                resultList.add((T) rs.getObject(1));
+            }
         }
         return resultList;
     }
@@ -257,13 +312,14 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      */
     public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
         List<Object[]> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            Object[] row = new Object[columns];
-            for (int i = 0; i < columns; i++) {
-                row[i] = rs.getObject(i + 1);
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                Object[] row = new Object[columns];
+                for (int i = 0; i < columns; i++) {
+                    row[i] = rs.getObject(i + 1);
+                }
+                resultList.add(row);
             }
-            resultList.add(row);
         }
         return resultList;
     }

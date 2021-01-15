@@ -1459,9 +1459,17 @@ public interface Property {
             "splice.execution.allowOverflowSensitiveNativeSparkExpressions";
 
     /**
-     * Fractional seconds precision of current_timestamp
+     * Fractional seconds precision of current_timestamp.
      */
     String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
+
+    /**
+     * Fractional seconds precision of timestamp.
+     */
+    String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
+
+    String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
+    String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
@@ -1480,6 +1488,11 @@ public interface Property {
      */
     String CONNECTION_USE_SPARK = "useSpark";
     String CONNECTION_USE_OLAP = "useOLAP";
+
+    /**
+     * True hints native spark execution for this session; false hints non native spark execution for this connection
+     */
+    String CONNECTION_USE_NATIVE_SPARK = "useNativeSpark";
 
     /**
      * True ignores statistics for this connection

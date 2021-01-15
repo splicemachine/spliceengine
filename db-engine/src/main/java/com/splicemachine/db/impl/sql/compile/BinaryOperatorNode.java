@@ -322,6 +322,30 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
+    protected void bindParameters() throws StandardException {
+        /* Is there a ? parameter on the left? */
+        if (leftOperand.requiresTypeFromContext()) {
+            /* Default Splice behavior:
+             * It's an error if both operands are ? parameters.
+             * This is overridden is some of the derived classes to be DB2 compatible.
+             * DB2 doc on this:
+             * https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html
+             */
+            if (rightOperand.requiresTypeFromContext()) {
+                throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
+                        operator);
+            }
+
+            /* Set the left operand to the type of right parameter. */
+            leftOperand.setType(rightOperand.getTypeServices());
+        }
+        /* Is there a ? parameter on the right? */
+        else if (rightOperand.requiresTypeFromContext()) {
+            /* Set the right operand to the type of the left parameter. */
+            rightOperand.setType(leftOperand.getTypeServices());
+        }
+    }
+
     /**
      * Bind this expression.  This means binding the sub-expressions,
      * as well as figuring out what the return type is for this expression.
@@ -349,28 +373,7 @@ public class BinaryOperatorNode extends OperatorNode
         else if (operatorType == REPEAT)
             return bindRepeat();
 
-        /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext())
-        {
-            /*
-            ** It's an error if both operands are ? parameters.
-            */
-            if (rightOperand.requiresTypeFromContext())
-            {
-                throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
-                                                                    operator);
-            }
-
-            /* Set the left operand to the type of right parameter. */
-            leftOperand.setType(rightOperand.getTypeServices());
-        }
-
-        /* Is there a ? parameter on the right? */
-        if (rightOperand.requiresTypeFromContext())
-        {
-            /* Set the right operand to the type of the left parameter. */
-            rightOperand.setType(leftOperand.getTypeServices());
-        }
+        bindParameters();
 
         // Simple date/time arithmetic
         if ("+".equals(operator) || "-".equals(operator)) {
@@ -855,7 +858,9 @@ public class BinaryOperatorNode extends OperatorNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -870,6 +875,8 @@ public class BinaryOperatorNode extends OperatorNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -878,12 +885,17 @@ public class BinaryOperatorNode extends OperatorNode
      *                        or a VirtualColumnNode.
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs,
+                              ReferencedColumnsMap referencedColumns,
+                              boolean simplePredsOnly)
         throws StandardException
     {
         boolean pushable;
-        pushable = leftOperand.categorize(referencedTabs, simplePredsOnly);
-        pushable = (rightOperand.categorize(referencedTabs, simplePredsOnly) && pushable);
+
+        pushable = leftOperand.categorize(referencedTabs,
+                                          referencedColumns, simplePredsOnly);
+        pushable = (rightOperand.categorize(referencedTabs,
+                                            referencedColumns, simplePredsOnly) && pushable);
 
         if (leftOperand instanceof ColumnReference) {
             ColumnReference lcr = (ColumnReference) leftOperand;

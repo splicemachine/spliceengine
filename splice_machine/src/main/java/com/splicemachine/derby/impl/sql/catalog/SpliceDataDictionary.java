@@ -130,27 +130,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             row=fkkeysRF.makeRow(fkDescriptor,null);
 
-            /*
-             * Now we need to bump the reference count of the constraint that this FK references
-             */
-            ReferencedKeyConstraintDescriptor refDescriptor=fkDescriptor.getReferencedConstraint();
-            refDescriptor.incrementReferenceCount();
-            int[] colsToSet=new int[1];
-            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-            /* Have to update the reference count in a nested transaction here because the SYSCONSTRAINTS row we are
-             * updating (a primary key constraint or unique index constraint) may have been created in the same
-             * statement as the FK (create table for self referencing FK, for example). In that case the KeyValue for
-             * that constraint row will have the same rowKey AND timestamp. Updating here with the same ts would REPLACE
-             * the entire row with just the updated reference count column, corrupting the row (DB-3345). */
-            TransactionController transactionController=tc.startNestedUserTransaction(false,true);
-            try{
-                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,transactionController);
-            }finally{
-                transactionController.commit();
-                transactionController.destroy();
-            }
-
         }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getNonCoreTI(SYSPRIMARYKEYS_CATALOG_NUM);
             SYSPRIMARYKEYSRowFactory pkRF=(SYSPRIMARYKEYSRowFactory)ti.getCatalogRowFactory();
@@ -372,6 +351,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -393,7 +391,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
@@ -403,12 +402,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
@@ -648,6 +644,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
     }
 
     @Override
@@ -851,8 +849,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1769,8 +1767,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 

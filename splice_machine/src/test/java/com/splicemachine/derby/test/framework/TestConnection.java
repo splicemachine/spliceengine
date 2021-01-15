@@ -210,7 +210,7 @@ public class TestConnection implements Connection{
         return delegate.getSchema();
     }
     public void abort(Executor executor) throws SQLException {
-        //no-op
+        delegate.abort(executor);
     }
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
 //        delegate.setNetworkTimeout(executor, milliseconds);
@@ -288,6 +288,7 @@ public class TestConnection implements Connection{
                 sql += "and s.schemaname = '"+schema.toUpperCase()+"' ";
             if(table!=null)
                 sql+="and t.tablename = '"+table.toUpperCase()+"' ";
+            sql += "order by c.conglomeratenumber";
             try(ResultSet rs = s.executeQuery(sql)){
                while(rs.next()){
                    congloms.add(rs.getLong(1));
@@ -323,5 +324,9 @@ public class TestConnection implements Connection{
     public boolean execute(String sql) throws SQLException{
         Statement s = createStatement();
         return s.execute(sql);
+    }
+
+    public boolean execute(String sql, Object... args) throws SQLException {
+        return execute(String.format(sql, args));
     }
 }

@@ -502,7 +502,9 @@ public class TernaryOperatorNode extends OperatorNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -517,6 +519,8 @@ public class TernaryOperatorNode extends OperatorNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -525,15 +529,15 @@ public class TernaryOperatorNode extends OperatorNode
      *                        or a VirtualColumnNode.
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         boolean pushable;
-        pushable = receiver.categorize(referencedTabs, simplePredsOnly);
-        pushable = (leftOperand.categorize(referencedTabs, simplePredsOnly) && pushable);
+        pushable = receiver.categorize(referencedTabs, referencedColumns, simplePredsOnly);
+        pushable = (leftOperand.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
         if (rightOperand != null)
         {
-            pushable = (rightOperand.categorize(referencedTabs, simplePredsOnly) && pushable);
+            pushable = (rightOperand.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
         }
         return pushable;
     }
@@ -838,7 +842,7 @@ public class TernaryOperatorNode extends OperatorNode
         {
             DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true,
                     vnTC.getCastToCharWidth(
-                            vn.getTypeServices()));
+                            vn.getTypeServices(), getCompilerContext()));
 
             ValueNode newNode = (ValueNode)
                         getNodeFactory().getNode(

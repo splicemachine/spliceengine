@@ -15,13 +15,17 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,7 +35,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 6/19/13
  */
-public class PreparedStatementIT { 
+public class PreparedStatementIT extends SpliceUnitTest {
     private static final String CLASS_NAME = PreparedStatementIT.class.getSimpleName().toUpperCase();
 
     private static final List<String> customerVals = Arrays.asList(
@@ -259,5 +263,247 @@ public class PreparedStatementIT {
         rs.next();
         Assert.assertEquals(rs.getInt(2), 1);
         rs.close();
+    }
+
+    @Test
+    public void testPrepStatementMultiProbeScanOnEqualParameter() throws Exception {
+        String tableName = "TEST_PK_MULTI_PROBE";
+        methodWatcher.executeUpdate(String.format("create table if not exists %s.%s (col1 int, col2 int, primary key(col1, col2))",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("delete from %s.%s",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values (1,1), (2,2), (3,3), (4,4), (5,5)",
+                tableSchema.schemaName, tableName));
+
+        String query = String.format("select * from %s.%s where col1=? and col2 in (?,?)", tableSchema.schemaName, tableName);
+        PreparedStatement ps = conn.prepareStatement("explain " + query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        try(ResultSet rs = ps.executeQuery()) {
+            String plan = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(plan.contains("MultiProbeTableScan"));
+            Assert.assertFalse(plan.contains("->  TableScan"));
+        }
+
+        ps = conn.prepareStatement(query);
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.setInt(3, 4);
+
+        String expected =
+                "COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |  1  |";
+
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    private void testReturnRowCount(PreparedStatement ps, int expectedCount) throws Exception {
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expectedCount, SpliceUnitTest.resultSetSize(rs));
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterInConstantRestriction() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where 1 = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 2);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2");
+        testReturnRowCount(ps, 0);
+
+        try {
+            ps.setDate(1, Date.valueOf("2020-01-01"));
+            Assert.fail("Expect failure in converting date to integer");
+        } catch (Exception e) {
+            Assert.assertEquals("An attempt was made to get a data value of type 'INTEGER' from a data value of type 'DATE'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPrepStatementParameterOnBothSidesOfBinaryComparison() throws Exception {
+        PreparedStatement ps = conn.prepareStatement(SELECT_STAR_QUERY + " where ? = ? {limit 1}");
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setInt(2, 0);
+        testReturnRowCount(ps, 0);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 1);
+
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 1.5);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "aa");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "aa");
+        ps.setString(2, "ab");
+        testReturnRowCount(ps, 0);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setDate(1, Date.valueOf("2020-01-01"));
+        ps.setDate(2, Date.valueOf("2020-02-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 12);
+        ps.setString(2, "12");
+        testReturnRowCount(ps, 1);
+
+        // DB2 returns 0 row in this case. But
+        // '1.0' = cast(1.0 as varchar(254))
+        // does evaluated to true in DB2.
+        ps.setDouble(1, 1.0);
+        ps.setString(2, "1.0");
+        testReturnRowCount(ps, 1);
+
+        ps.setString(1, "2020-01-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 1);
+
+        ps.setInt(1, 1);
+        ps.setDouble(2, 1.0);
+        testReturnRowCount(ps, 0);
+
+        ps.setString(1, "2020-02-01");
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
+
+        ps.setInt(1, 1577836800);
+        ps.setDate(2, Date.valueOf("2020-01-01"));
+        testReturnRowCount(ps, 0);
+    }
+
+    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
+        PreparedStatement ps = conn.prepareStatement(sqlText);
+        if (arg instanceof String) {
+            ps.setString(1, (String) arg);
+        } else if (arg instanceof Integer) {
+            ps.setInt(1, (Integer) arg);
+        } else if (arg instanceof Double) {
+            ps.setDouble(1, (Double) arg);
+        } else if (arg instanceof BigDecimal) {
+            ps.setBigDecimal(1, (BigDecimal) arg);
+        }
+
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testParameterOperandInUnaryOperator() throws Exception {
+        /* unary date/time operator */
+
+        String expected = "1     |\n" +
+                "------------\n" +
+                "2010-04-16 |";
+        testOneParamHelper("select date(?) + 105 days from sysibm.sysdummy1", "2010-01-01", expected);
+
+        expected = "1    |\n" +
+                "----------\n" +
+                "01:02:03 |";
+        testOneParamHelper("select time(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1           |\n" +
+                "-----------------------\n" +
+                "2010-01-02 01:02:03.0 |";
+        testOneParamHelper("select timestamp(?) + 1 days from sysibm.sysdummy1", "2010-01-01 01:02:03", expected);
+
+        /* extract operator */
+
+        expected = "1  |\n" +
+                "------\n" +
+                "2010 |";
+        testOneParamHelper("select year(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select quarter(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select month(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testOneParamHelper("select day(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select hour(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testOneParamHelper("select minute(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 3 |";
+        testOneParamHelper("select second(?) from sysibm.sysdummy1", "01:02:03", expected);
+    }
+
+    @Test
+    public void testCastOnParameter() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                "20 |";
+        testOneParamHelper("select int(?) from sysibm.sysdummy1", "20", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                "15 |";
+        testOneParamHelper("select char(?) from sysibm.sysdummy1", 15, expected);
+
+        expected = "1  |\n" +
+                "------\n" +
+                "0.02 |";
+        testOneParamHelper("select varchar(?) from sysibm.sysdummy1", 0.02, expected);
+
+        expected = "1   |\n" +
+                "-------\n" +
+                "12.50 |";
+        testOneParamHelper("select cast(? as decimal(4,2)) from sysibm.sysdummy1", BigDecimal.valueOf(12.50), expected);
+    }
+
+    @Test
+    public void testParameterOperandInDateTimeExpr() throws Exception {
+        try {
+            String expected = "1     |\n" +
+                    "------------\n" +
+                    "2010-04-16 |";
+            testOneParamHelper("select ? + 105 days from sysibm.sysdummy1", "2010-01-01", expected);
+            Assert.fail("Expect failure due to parameter in date/time expression.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42816", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("A datetime value or duration in an expression is invalid"));
+        }
     }
 }

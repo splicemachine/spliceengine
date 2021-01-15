@@ -48,6 +48,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
+import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -183,11 +185,15 @@ public interface CompilerContext extends Context
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
+    String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
+    int DEFAULT_FLOATING_POINT_NOTATION = FloatingPointDataType.PLAIN;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
+
+    boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -676,65 +682,77 @@ public interface CompilerContext extends Context
 
     DataSetProcessorType getDataSetProcessorType();
 
+    SparkExecutionType getSparkExecutionType();
+
+    void setSparkExecutionType(SparkExecutionType type) throws StandardException;
+
     boolean skipStats(int tableNumber);
 
     Vector<Integer> getSkipStatsTableList();
 
-    public boolean getSelectivityEstimationIncludingSkewedDefault();
+    boolean getSelectivityEstimationIncludingSkewedDefault();
 
-    public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
+    void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
 
-    public boolean isProjectionPruningEnabled();
+    boolean isProjectionPruningEnabled();
 
-    public void setProjectionPruningEnabled(boolean onOff);
+    void setProjectionPruningEnabled(boolean onOff);
 
-    public int getMaxMulticolumnProbeValues();
+    int getMaxMulticolumnProbeValues();
 
-    public void setMaxMulticolumnProbeValues(int newValue);
+    void setMaxMulticolumnProbeValues(int newValue);
 
-    public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
+    void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
 
-    public boolean getMulticolumnInlistProbeOnSparkEnabled();
+    boolean getMulticolumnInlistProbeOnSparkEnabled();
 
-    public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
+    void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
 
-    public boolean getConvertMultiColumnDNFPredicatesToInList();
+    boolean getConvertMultiColumnDNFPredicatesToInList();
 
-    public void setDisablePredicateSimplification(boolean newValue);
+    void setDisablePredicateSimplification(boolean newValue);
 
-    public boolean getDisablePredicateSimplification();
+    boolean getDisablePredicateSimplification();
 
-    public void setSparkVersion(SparkVersion newValue);
+    void setSparkVersion(SparkVersion newValue);
 
-    public SparkVersion getSparkVersion();
+    SparkVersion getSparkVersion();
 
-    public boolean isSparkVersionInitialized();
+    boolean isSparkVersionInitialized();
 
-    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
+    void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
-    public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+    CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
 
-    public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
+    void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
 
-    public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+    boolean getAllowOverflowSensitiveNativeSparkExpressions();
 
-    public void setCurrentTimestampPrecision(int newValue);
+    void setCurrentTimestampPrecision(int newValue);
 
-    public int getCurrentTimestampPrecision();
+    int getCurrentTimestampPrecision();
 
-    public int getNextOJLevel();
+    void setTimestampFormat(String timestampFormat);
 
-    public boolean isOuterJoinFlatteningDisabled();
+    void setFloatingPointNotation(int floatingPointNotation);
 
-    public void setOuterJoinFlatteningDisabled(boolean onOff);
+    String getTimestampFormat();
 
-    public boolean isSSQFlatteningForUpdateDisabled();
+    int getFloatingPointNotation();
 
-    public void setSSQFlatteningForUpdateDisabled(boolean onOff);
+    int getNextOJLevel();
 
-    public NewMergeJoinExecutionType getNewMergeJoin();
+    boolean isOuterJoinFlatteningDisabled();
 
-    public void setNewMergeJoin(NewMergeJoinExecutionType newValue);
+    void setOuterJoinFlatteningDisabled(boolean onOff);
+
+    boolean isSSQFlatteningForUpdateDisabled();
+
+    void setSSQFlatteningForUpdateDisabled(boolean onOff);
+
+    NewMergeJoinExecutionType getNewMergeJoin();
+
+    void setNewMergeJoin(NewMergeJoinExecutionType newValue);
 
     void setDisablePerParallelTaskJoinCosting(boolean newValue);
 

@@ -36,8 +36,10 @@ import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 
 import java.io.InputStream;
@@ -79,23 +81,24 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 	 * remember the URL that was used to establish the connection,
 	 * so it can implement the DatabaseMetaData.getURL() method.
 	 *
-	 * @param user	The UserID of the user getting the connection
-	 * @param drdaID	The drda id of the connection (from network server)
-	 * @param dbname	The database name
+	 * @param user    The UserID of the user getting the connection
+	 * @param drdaID    The drda id of the connection (from network server)
+	 * @param dbname    The database name
 	 *
-	 * @return	A new LanguageConnectionContext
+	 * @param sparkExecutionType
+     * @return	A new LanguageConnectionContext
 	 *
 	 * @exception StandardException thrown if unable to create the connection.
 	 */
 	public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
-													 String rdbIntTkn,
-													 DataSetProcessorType dataSetProcessorType,
-													 boolean skipStats,
-													 double defaultSelectivityFactor,
-													 String ipAddress,
-													 String defaultSchema,
-													 Properties sessionProperties
-                                                     ) throws StandardException;
+                                                     String rdbIntTkn,
+                                                     DataSetProcessorType dataSetProcessorType,
+                                                     SparkExecutionType sparkExecutionType, boolean skipStats,
+                                                     double defaultSelectivityFactor,
+                                                     String ipAddress,
+                                                     String defaultSchema,
+                                                     Properties sessionProperties
+    ) throws StandardException;
 
 	/**
 	  Push a DbContext onto the provided context stack. This conext will
@@ -151,4 +154,6 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 	void dropJar(JarUtil util) throws StandardException;
 
 	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
+
+	AccessFactory getAccessFactory();
 }

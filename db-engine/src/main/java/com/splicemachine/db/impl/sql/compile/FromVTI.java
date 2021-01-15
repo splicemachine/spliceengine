@@ -41,27 +41,22 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.vti.*;
 import org.apache.commons.codec.binary.Base64;
@@ -139,15 +134,36 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private CreateTriggerNode tempTriggerDefinition;
     private String tempTriggerSQLText;
     private String tempTriggerName;
+    private Vector<ParameterNode> fromTableParameterList;
 
     /**
      * @param invocation        The constructor or static method for the VTI
      * @param correlationName    The correlation name
      * @param derivedRCL        The derived column list
      * @param tableProperties    Properties list associated with the table
-     *
+     * @param fromTableParameterList  Parameterized FROM TABLE statement, list of parameters.
+     * @param forFromTable       If processing a FROM TABLE statement, this is a Boolean true.
      * @exception StandardException        Thrown on error
      */
+    public void init(
+            Object invocation,
+            Object correlationName,
+            Object derivedRCL,
+            Object tableProperties,
+            Object typeDescriptor,
+            Object fromTableParameterList,
+            Object forFromTable)
+            throws StandardException
+    {
+        this.fromTableParameterList = (Vector) fromTableParameterList;
+        init( invocation,
+                correlationName,
+                derivedRCL,
+                tableProperties,
+                makeTableName(null, (String) correlationName),
+                typeDescriptor);
+    }
+
     public void init(
             Object invocation,
             Object correlationName,
@@ -568,7 +584,16 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         if (tempTriggerDefinition.isFinalTable()) {
             spsd.setFinalTableConglomID(tempTriggerDefinition.getTriggerTableDescriptor().getHeapConglomerateId());
         }
-        spsd.prepareAndRelease(lcc, null);
+        try {
+            // Set a flag so we can bypass pushing of a new
+            // writable transaction.  That only is applicable
+            // if we're writing to the data dictionary.
+            lcc.setCompilingFromTableTempTrigger(true);
+            spsd.prepareAndRelease(lcc, null);
+        }
+        finally {
+            lcc.setCompilingFromTableTempTrigger(false);
+        }
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
         List<UUID> actionSPSIdList = new ArrayList<>();
         actionSPSIdList.add(tmpTriggerId);
@@ -604,7 +629,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         TriggerInfo triggerInfo = new TriggerInfo(targetTableDescriptor, null, triggerList);
         // A special location to hold the temporary trigger descriptor
         // so we don't muck around with the dictionary cache.
-        DataDictionaryCache.fromTableTriggerDescriptor.set(triggerd);
+        TriggerReferencingStruct.fromTableTriggerDescriptor.set(triggerd);
 
         TriggerExecutionContext tec =
         getNewTriggerExecutionContext(lcc, triggerd.getTriggerDefinition(0), triggerInfo, targetTableDescriptor.getUUID(),
@@ -616,7 +641,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         // A special location to hold the temporary SPS descriptor
         // so we don't muck around with the dictionary cache.
-        DataDictionaryCache.fromTableTriggerSPSDescriptor.set(spsd);
+        TriggerReferencingStruct.fromTableTriggerSPSDescriptor.set(spsd);
 
         // Need to make the new TEC accessible to the outer query
         // so it knows where to find the NEW table trigger rows.
@@ -695,6 +720,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 tec = createTemporaryTrigger(tempTriggerName,
                                              fromTableDMLStmt,
                                              tempTriggerDefinition);
+                fromTableDMLStmt.getCompilerContext().setParameterList(fromTableParameterList);
+                DataTypeDescriptor[] descriptors = fromTableDMLStmt.getCompilerContext().getParameterTypes();
+                fromTableParameterList.forEach( (param) -> param.setDescriptors(descriptors));
+
                 fromTableDMLStmt.bindStatement();
                 //walkAST(lcc,fromTableDMLStmt, CompilationPhase.AFTER_BIND);
             }
@@ -1120,7 +1149,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * (DERBY-3288)
          */
         dependencyMap = new JBitSet(numTables);
-        methodCall.categorize(dependencyMap, false);
+        methodCall.categorize(dependencyMap, null, false);
 
         // Make sure this FromVTI does not "depend" on itself.
         dependencyMap.clear(tableNumber);

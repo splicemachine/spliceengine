@@ -820,7 +820,8 @@ public interface SQLState {
     String LANG_NO_SUCH_RUNNING_OPERATION                     = "4251P";
     String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT           = "42601";
     String LANG_UNSUPPORTED_FROM_TABLE                        = "42602";
-    String LANG_MODIFIED_FINAL_TABLE                          = "42603";  
+    String LANG_MODIFIED_FINAL_TABLE                          = "42603";
+    String LANG_UNSUPPORTED_FROM_TABLE_QUERY                  = "42604";
     String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT              = "42606";
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE = "51045";
     String LANG_DB2_STRING_CONSTANT_TOO_LONG                  = "54002";
@@ -836,6 +837,7 @@ public interface SQLState {
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                  = "42831.S.1";
     String LANG_DB2_REPLACEMENT_ERROR                         = "42815.S.713";
     String LANG_DB2_MULTINARY_DATATYPE_MISMATCH               = "42815.S.171";
+    String LANG_DB2_INVALID_DATETIME_EXPR                     = "42816";
     String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL           = "42820";
     String LANG_DB2_LIKE_SYNTAX_ERROR                         = "42824";
     String LANG_INVALID_FK_COL_FOR_SETNULL                    = "42834";
@@ -919,7 +921,7 @@ public interface SQLState {
     String LANG_INVALID_STATISTICS_SPEC                                    = "42X64";
     String LANG_INDEX_NOT_FOUND                                            = "42X65";
     String LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX                         = "42X66";
-    //42X67
+    String LANG_INVALID_UPDATE_STATEMENT                                   = "42X67";
     String LANG_NO_FIELD_FOUND                                             = "42X68";
     String LANG_PRIMITIVE_REFERENCING_EXPRESSION                           = "42X69";
     String LANG_TABLE_DEFINITION_R_C_L_MISMATCH                            = "42X70";
@@ -1184,7 +1186,7 @@ public interface SQLState {
 
     String LANG_RESUBMIT_DISTRIBUTED = "42ZD0";
 
-    String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
+    String LANG_INVALID_OLAP_AND_OLTP = "42ZD1";
 
     String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
 
@@ -1195,6 +1197,8 @@ public interface SQLState {
     String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX       = "42ZD6";
     String LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD  = "42ZD7";
     String LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID   = "42ZD8";
+
+    String LANG_INVALID_NATIVE_AND_NON_NATIVE_SPARK       = "42ZD9";
 
     String LANG_INVALID_DECIMAL_CHARACTER                 = "42ZE0";
     String LANG_INVALID_DECIMAL_ARGUMENT                  = "42ZE1";
@@ -1944,6 +1948,7 @@ public interface SQLState {
     String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR = "XIE12.S";
     String UNSUPPORTED_COMPRESSION_FORMAT          = "XIE13.S";
     String UNSUPPORTED_QUOTE_MODE                  = "XIE14.S";
+    String UNSUPPORTED_FLOATING_POINT_NOTATION     = "XIE15.S";
 
 
     /*

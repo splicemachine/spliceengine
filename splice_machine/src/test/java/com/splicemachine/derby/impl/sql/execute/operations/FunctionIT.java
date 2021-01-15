@@ -17,8 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -30,6 +32,7 @@ import java.sql.Types;
 
 import static org.junit.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertNull;
 
 /**
  * @author Scott Fines
@@ -38,10 +41,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 public class FunctionIT extends SpliceUnitTest {
     protected static final String USER1 = "XIAYI";
     protected static final String PASSWORD1 = "xiayi";
+    protected static final String SCHEMA = FunctionIT.class.getSimpleName();
 
     private static final Logger LOG = Logger.getLogger(FunctionIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",FunctionIT.class.getSimpleName(),"(data double)");
     protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
@@ -812,6 +816,253 @@ public class FunctionIT extends SpliceUnitTest {
         try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+    }
+
+    private String scalarFunctionSql(String column, boolean var, String extraParam, boolean useSpark) {
+        String functionCall = format("%schar(%s%s)",
+                var ? "var" : "",
+                column,
+                extraParam.isEmpty() ? "" : ", " + extraParam);
+        return format("select %s as value, typeof(%s) as type from scalar_function --splice-properties useSpark=%s\n",
+                functionCall, functionCall,
+                useSpark);
+    }
+
+    private void scalarFunctionExpectSuccess(String column, boolean varcharElseChar, String extraParam, String expectedType, String expectedValue) throws SQLException {
+        for (boolean useSpark : new boolean[]{false, true}) {
+            try (ResultSet rs = methodWatcher.executeQuery(scalarFunctionSql(column, varcharElseChar, extraParam, useSpark))) {
+                rs.next();
+                assertEquals(expectedValue, rs.getString("value"));
+                assertEquals(expectedType, rs.getString("type"));
+            }
+        }
+    }
+
+    private void scalarFunctionExpectFailure(String column, Boolean varcharElseChar, String extraParam, String expectedErrorCode) {
+        boolean[] varIter;
+        if (varcharElseChar == null) {
+            varIter = new boolean[] {false, true};
+        } else {
+            varIter = new boolean[] {varcharElseChar};
+        }
+        for (boolean var : varIter) {
+            for (boolean useSpark : new boolean[]{false, true}) {
+                try (ResultSet rs = methodWatcher.executeQuery(scalarFunctionSql(column, var, extraParam, useSpark))) {
+                    rs.next();
+                    Assert.fail("should have failed but did not");
+                } catch (SQLException e) {
+                    Assert.assertEquals(expectedErrorCode, e.getSQLState());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testVarcharCharFunction() throws Exception
+    {
+        methodWatcher.executeUpdate("drop table scalar_function if exists");
+        methodWatcher.executeUpdate("create table scalar_function (" +
+                "num1 tinyint, num2 smallint, num3 int, num4 bigint," +
+                "dec1 decimal(10, 4), dec2 decimal(18, 8), decfl1 decfloat, floating1 double, floating2 real," +
+                "char1 char(30), char2 varchar(30)," +
+                "datetime1 date, datetime2 time, datetime3 timestamp," +
+                "bool1 boolean, bool2 boolean," +
+                "null1 integer, notnull1 integer not null," +
+                "bitchar1 char(30) for bit data, bitchar2 varchar(30) for bit data)");
+                methodWatcher.executeUpdate("insert into scalar_function values (" +
+                "1, 2, 3, 4," +
+                "1, 2, 1, 1, 2," +
+                "1111, 2222," +
+                "'2020-01-02', '16:30:30', '2020-01-01 16:30:30.123456'," +
+                "false, true," +
+                "null, 1," +
+                "'1111', '2222')");
+
+                // Binary integer
+        scalarFunctionExpectSuccess("num1", true, "", "VARCHAR(4)", "1");
+        scalarFunctionExpectSuccess("num2", true, "", "VARCHAR(6)", "2");
+        scalarFunctionExpectSuccess("num3", true, "", "VARCHAR(11)", "3");
+        scalarFunctionExpectSuccess("num4", true, "", "VARCHAR(20)", "4");
+        scalarFunctionExpectSuccess("num1", false, "", "CHAR(4)", "1   ");
+        scalarFunctionExpectSuccess("num2", false, "", "CHAR(6)", "2     ");
+        scalarFunctionExpectSuccess("num3", false, "", "CHAR(11)", "3          ");
+        scalarFunctionExpectSuccess("num4", false, "", "CHAR(20)", "4                   ");
+
+        scalarFunctionExpectFailure("num1", null, "1", "42846");
+        scalarFunctionExpectFailure("num2", null, "1", "42846");
+        scalarFunctionExpectFailure("num3", null, "1", "42846");
+        scalarFunctionExpectFailure("num4", null, "1", "42846");
+        scalarFunctionExpectFailure("num1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("num2", null, "ISO", "42846");
+        scalarFunctionExpectFailure("num3", null, "ISO", "42846");
+        scalarFunctionExpectFailure("num4", null, "ISO", "42846");
+
+        // Decimal, decfloat and double
+        scalarFunctionExpectSuccess("dec1", true, "", "VARCHAR(12)", "1");
+        scalarFunctionExpectSuccess("dec2", true, "", "VARCHAR(20)", "2");
+        // FIXME(DB-10938) Should be VARCHAR(42) instead of VARCHAR(35)
+        scalarFunctionExpectSuccess("decfl1", true, "", "VARCHAR(35)", "1");
+        scalarFunctionExpectSuccess("floating1", true, "", "VARCHAR(53)", "1.0");
+        scalarFunctionExpectSuccess("floating2", true, "", "VARCHAR(24)", "2.0");
+        scalarFunctionExpectSuccess("dec1", false, "", "CHAR(12)", "1           ");
+        scalarFunctionExpectSuccess("dec2", false, "", "CHAR(20)", "2                   ");
+        // FIXME(DB-10938) Should be CHAR(42) instead of CHAR(35)
+        scalarFunctionExpectSuccess("decfl1", false, "", "CHAR(35)", "1                                  ");
+        scalarFunctionExpectSuccess("floating1", false, "", "CHAR(53)", "1.0                                                  ");
+        scalarFunctionExpectSuccess("floating2", false, "", "CHAR(24)", "2.0                     ");
+
+        scalarFunctionExpectFailure("dec1", null, "1", "42846");
+        scalarFunctionExpectFailure("dec2", null, "1", "42846");
+        scalarFunctionExpectFailure("decfl1", null, "1", "42846");
+        scalarFunctionExpectFailure("floating1", null, "1", "42846");
+        scalarFunctionExpectFailure("floating2", null, "1", "42846");
+        scalarFunctionExpectFailure("dec1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("dec2", null, "ISO", "42846");
+        scalarFunctionExpectFailure("decfl1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("floating1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("floating2", null, "ISO", "42846");
+        // Following three throw a syntax error because we do not support setting a decimal character yet
+        scalarFunctionExpectFailure("dec1", null, "','", "42X01");
+        scalarFunctionExpectFailure("dec2", null, "','", "42X01");
+        scalarFunctionExpectFailure("decfl1", null, "','", "42X01");
+        scalarFunctionExpectFailure("floating1", null, "','", "42X01");
+        scalarFunctionExpectFailure("floating2", null, "','", "42X01");
+
+        // Character string
+        scalarFunctionExpectSuccess("char1", true, "", "VARCHAR(30)", "1111                          ");
+        scalarFunctionExpectSuccess("char2", true, "", "VARCHAR(30)", "2222");
+        scalarFunctionExpectSuccess("char1", true, "2", "VARCHAR(2)", "11");
+        scalarFunctionExpectSuccess("char2", true, "2", "VARCHAR(2)", "22");
+        scalarFunctionExpectSuccess("char1", true, "5", "VARCHAR(5)", "1111 ");
+        scalarFunctionExpectSuccess("char2", true, "5", "VARCHAR(5)", "2222");
+        scalarFunctionExpectSuccess("char1", true, "40", "VARCHAR(40)", "1111                          ");
+        scalarFunctionExpectSuccess("char2", true, "40", "VARCHAR(40)", "2222");
+
+        scalarFunctionExpectSuccess("char1", false, "", "CHAR(30)", "1111                          ");
+        scalarFunctionExpectSuccess("char2", false, "", "CHAR(30)", "2222                          ");
+        scalarFunctionExpectSuccess("char1", false, "2", "CHAR(2)", "11");
+        scalarFunctionExpectSuccess("char2", false, "2", "CHAR(2)", "22");
+        scalarFunctionExpectSuccess("char1", false, "5", "CHAR(5)", "1111 ");
+        scalarFunctionExpectSuccess("char2", false, "5", "CHAR(5)", "2222 ");
+        scalarFunctionExpectSuccess("char1", false, "40", "CHAR(40)", "1111                                    ");
+        scalarFunctionExpectSuccess("char2", false, "40", "CHAR(40)", "2222                                    ");
+
+        scalarFunctionExpectFailure("char1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("char2", null, "ISO", "42846");
+        scalarFunctionExpectFailure("char1", true, "32673", "42611");
+        scalarFunctionExpectFailure("char1", false, "256", "42611");
+
+        // Datetime
+        scalarFunctionExpectSuccess("datetime1", true, "", "VARCHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", true, "", "VARCHAR(8)", "16:30:30");
+        scalarFunctionExpectSuccess("datetime3", true, "", "VARCHAR(29)", "2020-01-01 16:30:30.123456000");
+        scalarFunctionExpectSuccess("datetime1", true, "ISO", "VARCHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", true, "ISO", "VARCHAR(8)", "16.30.30");
+        scalarFunctionExpectSuccess("datetime1", true, "JIS", "VARCHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", true, "JIS", "VARCHAR(8)", "16:30:30");
+        scalarFunctionExpectSuccess("datetime1", true, "EUR", "VARCHAR(10)", "02.01.2020");
+        scalarFunctionExpectSuccess("datetime2", true, "EUR", "VARCHAR(8)", "16.30.30");
+        scalarFunctionExpectSuccess("datetime1", true, "USA", "VARCHAR(10)", "01/02/2020");
+        scalarFunctionExpectSuccess("datetime2", true, "USA", "VARCHAR(8)", "04:30 PM");
+
+        scalarFunctionExpectSuccess("datetime1", false, "", "CHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", false, "", "CHAR(8)", "16:30:30");
+        scalarFunctionExpectSuccess("datetime3", false, "", "CHAR(29)", "2020-01-01 16:30:30.123456000");
+        scalarFunctionExpectSuccess("datetime1", false, "ISO", "CHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", false, "ISO", "CHAR(8)", "16.30.30");
+        scalarFunctionExpectSuccess("datetime1", false, "JIS", "CHAR(10)", "2020-01-02");
+        scalarFunctionExpectSuccess("datetime2", false, "JIS", "CHAR(8)", "16:30:30");
+        scalarFunctionExpectSuccess("datetime1", false, "EUR", "CHAR(10)", "02.01.2020");
+        scalarFunctionExpectSuccess("datetime2", false, "EUR", "CHAR(8)", "16.30.30");
+        scalarFunctionExpectSuccess("datetime1", false, "USA", "CHAR(10)", "01/02/2020");
+        scalarFunctionExpectSuccess("datetime2", false, "USA", "CHAR(8)", "04:30 PM");
+
+        scalarFunctionExpectFailure("datetime1", null, "1", "42846");
+        scalarFunctionExpectFailure("datetime2", null, "1", "42846");
+        scalarFunctionExpectFailure("datetime3", null, "1", "42846");
+        scalarFunctionExpectFailure("datetime3", null, "ISO", "22018");
+
+        // Boolean
+        scalarFunctionExpectSuccess("bool1", true, "", "VARCHAR(5)", "false");
+        scalarFunctionExpectSuccess("bool2", true, "", "VARCHAR(5)", "true");
+        scalarFunctionExpectSuccess("bool1", false, "", "CHAR(5)", "false");
+        scalarFunctionExpectSuccess("bool2", false, "", "CHAR(5)", "true ");
+
+        scalarFunctionExpectFailure("bool1", null, "1", "42846");
+        scalarFunctionExpectFailure("bool1", null, "ISO", "42846");
+
+        // Nullables
+        scalarFunctionExpectSuccess("null1", true, "", "VARCHAR(11)", null);
+        scalarFunctionExpectSuccess("notnull1", true, "", "VARCHAR(11) NOT NULL", "1");
+
+        // Binary string
+        scalarFunctionExpectSuccess("bitchar1", true, "", "VARCHAR (30) FOR BIT DATA", "313131312020202020202020202020202020202020202020202020202020");
+        scalarFunctionExpectSuccess("bitchar2", true, "", "VARCHAR (30) FOR BIT DATA", "32323232");
+        scalarFunctionExpectSuccess("bitchar1", true, "1", "VARCHAR (1) FOR BIT DATA", "31");
+        scalarFunctionExpectSuccess("bitchar2", true, "1", "VARCHAR (1) FOR BIT DATA", "32");
+        scalarFunctionExpectSuccess("bitchar1", true, "2", "VARCHAR (2) FOR BIT DATA", "3131");
+        scalarFunctionExpectSuccess("bitchar2", true, "2", "VARCHAR (2) FOR BIT DATA", "3232");
+        scalarFunctionExpectSuccess("bitchar1", true, "5", "VARCHAR (5) FOR BIT DATA", "3131313120");
+        scalarFunctionExpectSuccess("bitchar2", true, "5", "VARCHAR (5) FOR BIT DATA", "32323232");
+        scalarFunctionExpectSuccess("bitchar1", true, "40", "VARCHAR (40) FOR BIT DATA", "313131312020202020202020202020202020202020202020202020202020");
+        scalarFunctionExpectSuccess("bitchar2", true, "40", "VARCHAR (40) FOR BIT DATA", "32323232");
+
+        scalarFunctionExpectSuccess("bitchar1", false, "", "CHAR (30) FOR BIT DATA", "313131312020202020202020202020202020202020202020202020202020");
+        scalarFunctionExpectSuccess("bitchar2", false, "", "CHAR (30) FOR BIT DATA", "323232322020202020202020202020202020202020202020202020202020");
+        scalarFunctionExpectSuccess("bitchar1", false, "1", "CHAR (1) FOR BIT DATA", "31");
+        scalarFunctionExpectSuccess("bitchar2", false, "1", "CHAR (1) FOR BIT DATA", "32");
+        scalarFunctionExpectSuccess("bitchar1", false, "2", "CHAR (2) FOR BIT DATA", "3131");
+        scalarFunctionExpectSuccess("bitchar2", false, "2", "CHAR (2) FOR BIT DATA", "3232");
+        scalarFunctionExpectSuccess("bitchar1", false, "5", "CHAR (5) FOR BIT DATA", "3131313120");
+        scalarFunctionExpectSuccess("bitchar2", false, "5", "CHAR (5) FOR BIT DATA", "3232323220");
+        scalarFunctionExpectSuccess("bitchar1", false, "40", "CHAR (40) FOR BIT DATA", "31313131202020202020202020202020202020202020202020202020202020202020202020202020");
+        scalarFunctionExpectSuccess("bitchar2", false, "40", "CHAR (40) FOR BIT DATA", "32323232202020202020202020202020202020202020202020202020202020202020202020202020");
+
+        scalarFunctionExpectFailure("bitchar1", true, "32673", "42611");
+        scalarFunctionExpectFailure("bitchar1", false, "256", "42611");
+        scalarFunctionExpectFailure("bitchar2", true, "32673", "42611");
+        scalarFunctionExpectFailure("bitchar2", false, "256", "42611");
+        scalarFunctionExpectFailure("bitchar1", null, "ISO", "42846");
+        scalarFunctionExpectFailure("bitchar2", null, "ISO", "42846");
+    }
+
+    @Test
+    public void testCastTimestampToCharTruncate() throws SQLException {
+        String schemaName = FunctionIT.class.getSimpleName();
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()){
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as varchar(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as char(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(ts as varchar(4)) from " + schemaName + ".TMM", "1960", conn);
+            checkStringExpression("cast(ts as char(4)) from " + schemaName + ".TMM", "1960", conn);
+        }
+    }
+
+    @Test
+    public void testDb11089() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            try (ResultSet rs = conn.query("SELECT * FROM sysibm.sysdummy1 WHERE '?2,BL' NOT IN ( CAST('1969-12-16 17:40:41' AS VARCHAR(16)))")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("Y", rs.getString(1));
+            }
+        }
+    }
+
+    @Test
+    public void testCurrentSchema() throws Exception {
+        // DB-11073
+        try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
+            try (ResultSet rs = conn.query("select current schema as out_, in_ from sysibm.sysdummy1, (select current schema as in_ from sysibm.sysdummy1)")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("FUNCTIONIT", rs.getString(1));
+                Assert.assertEquals("FUNCTIONIT", rs.getString(2));
+            }
+        }
+    }
+
+    @Test
+    public void testDb11090() throws Exception {
+        // DB-11090
+        checkNullExpression("CAST(NULL AS INT) NOT IN (1)", methodWatcher.getOrCreateConnection());
     }
 }
 

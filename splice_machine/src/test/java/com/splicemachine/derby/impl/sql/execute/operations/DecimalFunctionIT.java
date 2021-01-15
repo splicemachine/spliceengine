@@ -14,6 +14,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -42,11 +43,14 @@ public class DecimalFunctionIT extends SpliceUnitTest {
     public static final    String        CLASS_NAME         = DecimalFunctionIT.class.getSimpleName().toUpperCase();
     protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final    String        TABLE1_NAME        = "A";
+    public static final    String        TABLE2_NAME        = "B";
 
     protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT)";
     protected final static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME, CLASS_NAME, tableDef);
+    protected final static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME, CLASS_NAME,
+            "(COL1 DECIMAL(15,2), COL2 CHAR(10))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -66,7 +70,19 @@ public class DecimalFunctionIT extends SpliceUnitTest {
                         throw new RuntimeException(e);
                     }
                 }
+            })
+            .around(spliceTableWatcher2).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        spliceClassWatcher.executeUpdate(
+                                String.format("insert into %s values (0.0, 'HELLO')", spliceTableWatcher2) );
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             });
+
     private final String functionName;
 
     @Rule
@@ -189,10 +205,10 @@ public class DecimalFunctionIT extends SpliceUnitTest {
 
     @Test
     public void createFromDecfloat() throws Exception {
-        check("(cast ('1234.5678' as decfloat))", "1234");
-        check("(cast ('1234.5678' as decfloat), 5)", "1234");
+        check("(cast ('1234.5678' as decfloat))", "1235");
+        check("(cast ('1234.5678' as decfloat), 5)", "1235");
         check("(cast ('1234.5678' as decfloat), 8, 4)", "1234.5678");
-        check("(cast ('1234.5678' as decfloat), 8, 2)", "1234.56");
+        check("(cast ('1234.5678' as decfloat), 8, 2)", "1234.57");
         check("(cast ('1234.5678' as decfloat), 9, 5)", "1234.56780");
         shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
         shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
@@ -291,5 +307,16 @@ public class DecimalFunctionIT extends SpliceUnitTest {
     public void decimalFunctionWorksWithAggregates() throws Exception {
         checkQuery(String.format("select %s(max(I)) from %s", functionName, spliceTableWatcher1), "100");
         checkQuery(String.format("select %s(sum(I), 10, 2) from %s", functionName, spliceTableWatcher1), "5050.00");
+    }
+
+    // DB-10919
+    @Test
+    public void testDecOrder() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(String.format("SELECT %s(VE.COL1,11,2) as RES FROM %s VE " +
+                "--splice-properties useSpark=true\nORDER BY VE.COL2", functionName, spliceTableWatcher2)) ){
+            Assert.assertEquals("RES |\n" +
+                    "------\n" +
+                    "0.00 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 }

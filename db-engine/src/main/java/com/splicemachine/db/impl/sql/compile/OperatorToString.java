@@ -153,6 +153,10 @@ public class OperatorToString {
      * references indicating column names in the source DataFrame.
      */
     public static String opToSparkString(ValueNode operand) throws StandardException {
+        if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
+            return "";
+        }
+
         String retval = "";
 
         // Do not throw any errors encountered.  An error condition
@@ -168,7 +172,7 @@ public class OperatorToString {
 
         }
         catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
+            if (!e.getSQLState().equals(SQLState.LANG_DOES_NOT_IMPLEMENT))
                 throw e;
         }
         return retval;
@@ -324,7 +328,10 @@ public class OperatorToString {
                     if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
                     } else if (functionName.equals("WEEKDAY")) {
-                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                        if( getSparkVersion().getMajorVersionNumber() >= 3 )
+                            return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
+                        else
+                            return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
                     } else if (functionName.equals("WEEKDAYNAME")) {
                         return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
                     } else {
@@ -675,23 +682,26 @@ public class OperatorToString {
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
                     vars.relationalOpDepth.increment();
-                    if (top.getOperator().equals("LOCATE") ||
-                        top.getOperator().equals("replace") ||
-                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
-
+                    if (top.getOperator().equals("LOCATE") || top.getOperator().equals("replace")) {
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
                     } else if (top.getOperator().equals("substring")) {
-                        assert top.getRightOperand() == null;
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
-                                opToString2(top.getLeftOperand(), vars));
+                        String retval = format("%s(%s, %s %s)",
+                                top.getOperator(),
+                                opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars),
+                                top.getRightOperand() == null ? "" : ", " + opToString2(top.getRightOperand(), vars));
+                        if (top.getRightOperand() != null) {
+                            retval = format("RPAD(%s, %s, ' ')",
+                                    retval,
+                                    opToString2(top.getRightOperand(), vars));
+                        }
                         vars.relationalOpDepth.decrement();
                         return retval;
-
                     } else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))

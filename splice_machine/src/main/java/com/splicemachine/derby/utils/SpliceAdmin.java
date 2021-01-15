@@ -52,7 +52,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -61,11 +60,14 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -73,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -81,6 +84,7 @@ import splice.com.google.common.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -104,7 +108,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
 public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
         List<HostAndPort> servers;
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
@@ -151,6 +156,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0]=executeStatement(sb);
     }
 
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
         List<String> loggerLevels = new ArrayList<>();
 
@@ -1231,7 +1237,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     }
 
-
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
         List<HostAndPort> servers;
@@ -1283,6 +1289,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             PropertyInfo.setDatabaseProperty(key, value);
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            // we need to invalidate the statement caches since we could set parameters that affect query plans.
+            SYSCS_INVALIDATE_STORED_STATEMENTS();
+            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
@@ -1314,14 +1323,60 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement s = connection.createStatement()) {
+                    s.execute("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
             }
         }
     }
 
+    public static void SYSCS_GET_TABLE_COUNT(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            SIDriver driver = SIDriver.driver();
+            PartitionFactory partitionFactory = driver.getTableFactory();
+            PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
+            int tableCount = partitionAdmin.getTableCount();
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("NumTables", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLInteger(tableCount)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Cannot get table count.", t);
+        }
+    }
+
+    public static void SYSCS_IS_MEM_PLATFORM(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            boolean isMemPlatform = EngineDriver.isMemPlatform();
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("IsMemPlatform", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLBoolean(isMemPlatform)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Failed to test mem platform status.", t);
+        }
+    }
     public static void SYSCS_INVALIDATE_STORED_STATEMENTS() throws SQLException{
         SystemProcedures.SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS();
         SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE();
@@ -1336,10 +1391,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement ps = connection.createStatement()) {
+                     ps.execute("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()");
             }
         }
     }
@@ -1876,6 +1930,77 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return rows;
     }
 
+    public static String getCurrentUserId() throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        return lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+    }
+
+    public static void ANALYZE_EXTERNAL_TABLE(String location, final ResultSet[] resultSet) throws IOException, SQLException {
+
+        GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, getCurrentUserId()+"_analyze",
+                    null, false, new CsvOptions(), null, null);
+
+        String[] res = result.getSuggestedSchema("\n").split("\n");
+        int maxLen = Arrays.stream(res).map(String::length).max(Integer::compareTo).get();
+
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("SCHEMA", Math.max(maxLen, 20));
+
+        for(String s : res ) {
+            resultHelper.newRow();
+            col1.set(s);
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
+    public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
+        DistributedFileSystem  fs = null;
+        try {
+            fs = SIDriver.driver().getFileSystem(location);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        try {
+            FileInfo fi1 = fs.getInfo(location);
+            if( fi1.exists() == false ) {
+                throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(location);
+            }
+
+            FileInfo files[] = fi1.listDir();
+            Arrays.sort(files, Comparator.comparing(FileInfo::fileName));
+
+            int maxLen = Arrays.stream(files).map(f -> f.fileName().length()).max(Integer::compareTo).get();
+            int pathColLen = Math.max(10, maxLen+2);
+
+            int ownerColLen = Arrays.stream(files).map(f -> f.getUser().length()).max(Integer::compareTo).get();
+            int groupColLen = Arrays.stream(files).map(f -> f.getGroup().length()).max(Integer::compareTo).get();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", ownerColLen+1);
+            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", groupColLen+1);
+            ResultHelper.TimestampColumn modtimeCol = resultHelper.addTimestamp("MODTIME", 30);
+            ResultHelper.BigintColumn  sizeCol      = resultHelper.addBigint("SIZE", 10);
+            ResultHelper.VarcharColumn permCol      = resultHelper.addVarchar("PERM", 12);
+            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", pathColLen );
+            for (FileInfo fi : files )
+            {
+                resultHelper.newRow();
+                pathCol.set( fi.fileName() );
+                ownerCol.set(fi.getUser());
+                groupCol.set(fi.getGroup());
+                modtimeCol.set( fi.getModificationTime() == 0 ? null : new DateTime(fi.getModificationTime()) );
+                sizeCol.set(fi.size());
+                permCol.set((fi.isDirectory() ? "d" : "-") + fi.getPermissionStr());
+            }
+            resultSet[0] = resultHelper.getResultSet();
+        } catch (IOException | StandardException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
@@ -1889,7 +2014,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
-        final String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
+        final String timeStampFormat = SQLTimestamp.defaultTimestampFormatString;
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, RunningOperation> pair : operations)
@@ -2273,16 +2398,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
-    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
+    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException, StandardException
     {
-        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false, true);
-        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-        sb.append(ddls.get(0));
-        sb.append(";') FOO (DDL)");
-        resultSet[0] = executeStatement(sb);
+        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
+        resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
     }
 
-    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK, boolean escapeDefaults) throws SQLException {
+    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK) throws SQLException {
         Connection connection = getDefaultConn();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
@@ -2322,11 +2444,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 if (td.getDelimited() != null || td.getLines() != null) {
                     extTblString.append("\nROW FORMAT DELIMITED");
                     if ((tmpStr = td.getDelimited()) != null)
-                        extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
+                        extTblString.append(" FIELDS TERMINATED BY '" + tmpStr + "'");
                     if ((tmpStr = td.getEscaped()) != null)
-                        extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
+                        extTblString.append(" ESCAPED BY '" + tmpStr + "'");
                     if ((tmpStr = td.getLines()) != null)
-                        extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
+                        extTblString.append(" LINES TERMINATED BY '" + tmpStr + "'");
                 }
                 // Storage type
                 if ((tmpStr = td.getStoredAs()) != null) {
@@ -2350,7 +2472,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 }
                 // Location
                 if ((tmpStr = td.getLocation()) != null) {
-                    extTblString.append("\nLOCATION ''" + tmpStr + "''");
+                    extTblString.append("\nLOCATION '" + tmpStr + "'");
                 }
             }//End External Table
             else if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
@@ -2370,7 +2492,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             boolean firstCol = true;
             cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
             for (ColumnDescriptor col: cdl) {
-                createColString = createColumn(col, escapeDefaults);
+                createColString = createColumn(col);
                 colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
                 firstCol = false;
             }
@@ -2395,7 +2517,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
-    private static String createColumn(ColumnDescriptor columnDescriptor, boolean escapeDefaults) throws SQLException
+    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
     {
         StringBuffer colDef = new StringBuffer();
 
@@ -2418,23 +2540,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 colDef.append(" ");
             } else {
                 colDef.append(" DEFAULT ");
-                if (colType.indexOf("CHAR") > -1
-                        || colType.indexOf("VARCHAR") > -1
-                        || colType.indexOf("LONG VARCHAR") > -1
-                        || colType.indexOf("CLOB") > -1
-                        || colType.indexOf("DATE") > -1
-                        || colType.indexOf("TIME") > -1
-                        || colType.indexOf("TIMESTAMP") > -1
-                        ) {
-                    if (escapeDefaults) {
-                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                            defaultText = "'" + defaultText + "'";
-                        if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
-                                defaultText.startsWith("X'")) {
-                            defaultText = "X'" + defaultText.substring(1) + "'";
-                        }
-                    }
-                }
             }
             colDef.append(defaultText);
         }
@@ -2502,7 +2607,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     if (!cd.isEnabled())
                         break;
 
-                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText().replace("'", "''"));
+                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText());
                     break;
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     int[] keyColumns = cd.getKeyColumns();

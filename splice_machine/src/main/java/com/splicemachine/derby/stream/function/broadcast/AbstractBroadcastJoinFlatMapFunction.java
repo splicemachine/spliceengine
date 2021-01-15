@@ -18,12 +18,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
@@ -48,8 +45,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
-
 /**
  * Created by dgomezferro on 11/4/15.
  */
@@ -59,8 +54,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     private Future<JoinTable> joinTable ;
     private boolean init = false;
     protected boolean rightAsLeft;
-    protected ContextManager cm;
-    protected boolean newContextManager, lccPushed;
     private boolean noCacheBroadcastJoinRight;
 
     public AbstractBroadcastJoinFlatMapFunction() {
@@ -101,7 +94,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 if (!result) {
                     table.close();
                     joinTable = null; // delete reference for gc
-                    cleanupLCCInContext();
                 }
                 return result;
             }
@@ -115,117 +107,82 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
 
-    protected void cleanupLCCInContext() {
-        if (cm != null) {
-            if (lccPushed)
-                cm.popContext();
-            if (newContextManager)
-                ContextService.getFactory().resetCurrentContextManager(cm);
-            cm = null;
-        }
-        newContextManager = false;
-        lccPushed = false;
-    }
-
-    private boolean needsLCCInContext() {
-        if (operationContext != null) {
-            Activation activation = operationContext.getActivation();
-            if (activation != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != null) {
-                    TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
-                    if (tec != null)
-                        return tec.currentTriggerHasReferencingClause();
-                }
-            }
-        }
-        return false;
-    }
-
-    // Push the LanguageConnectionContext to the current Context Manager
-    // if we're executing a trigger with a referencing clause.
-    private void initCurrentLCC() throws StandardException {
-        if (!needsLCCInContext())
+    private synchronized void init() {
+        if (init) {
             return;
-        cm = ContextService.getFactory().getCurrentContextManager();
-        if (cm == null) {
-            newContextManager = true;
-            cm = ContextService.getFactory().newContextManager();
-            ContextService.getFactory().setCurrentContextManager(cm);
         }
-        if (cm != null) {
-            if (operationContext != null)
-                lccPushed = pushTriggerExecutionContextFromActivation(operationContext.getActivation(), cm);
-        }
-    }
-
-    private synchronized void init() throws Exception {
-        if (init)
-            return;
         init = true;
+        ContextManager parent = ContextService.getService().getCurrentContextManager();
         joinTable = SIDriver.driver().getExecutorService().submit(() -> {
-            initCurrentLCC();
-            operation = getOperation();
-            ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
-            SpliceOperation rightOperation, leftOperation;
-            int[] rightHashKeys, leftHashKeys;
-            long sequenceId;
-            if (rightAsLeft) {
-                // switch left and right source
-                rightOperation = operation.getLeftOperation();
-                leftOperation = operation.getRightOperation();
-                rightHashKeys = operation.getLeftHashKeys();
-                leftHashKeys = operation.getRightHashKeys();
-                sequenceId = operation.getLeftSequenceId();
+            ContextManager cm = ContextService.getService().newContextManager(parent);
+            ContextService.getService().setCurrentContextManager(cm);
+            try {
+                operation = getOperation();
+                ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
+                SpliceOperation rightOperation, leftOperation;
+                int[] rightHashKeys, leftHashKeys;
+                long sequenceId;
+                if (rightAsLeft) {
+                    // switch left and right source
+                    rightOperation = operation.getLeftOperation();
+                    leftOperation = operation.getRightOperation();
+                    rightHashKeys = operation.getLeftHashKeys();
+                    leftHashKeys = operation.getRightHashKeys();
+                    sequenceId = operation.getLeftSequenceId();
 
-            } else {
-                rightOperation = operation.getRightOperation();
-                leftOperation = operation.getLeftOperation();
-                rightHashKeys = operation.getRightHashKeys();
-                leftHashKeys = operation.getLeftHashKeys();
-                sequenceId = operation.getRightSequenceId();
+                } else {
+                    rightOperation = operation.getRightOperation();
+                    leftOperation = operation.getLeftOperation();
+                    rightHashKeys = operation.getRightHashKeys();
+                    leftHashKeys = operation.getLeftHashKeys();
+                    sequenceId = operation.getRightSequenceId();
+                }
+
+                Callable<Stream<ExecRow>> rhsLoader = () -> {
+                    DataSetProcessorFactory dataSetProcessorFactory = EngineDriver.driver().processorFactory();
+
+                    final DataSetProcessor dsp =
+                            (rightOperation instanceof MultiProbeTableScanOperation &&
+                                    rightOperation.getEstimatedRowCount() <
+                                            operation.getActivation().getLanguageConnectionContext().
+                                                    getOptimizerFactory().getDetermineSparkRowThreshold()) ?
+                                    dataSetProcessorFactory.localProcessor(getActivation(), rightOperation) :
+                                    dataSetProcessorFactory.bulkProcessor(getActivation(), rightOperation);
+
+                    return Streams.wrap(FluentIterable.from(() -> {
+                        try {
+                            operation.reset();
+                            DataSet<ExecRow> rightDataSet = rightOperation.getDataSet(dsp);
+                            if (rightHashKeys.length != 0)
+                                rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext, rightHashKeys));
+                            return rightDataSet.toLocalIterator();
+                        } catch (StandardException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).transform(new Function<ExecRow, ExecRow>() {
+                        @Nullable
+                        @Override
+                        public ExecRow apply(@Nullable ExecRow locatedRow) {
+                            assert locatedRow != null;
+                            limiter.addAccumulatedRows(1);
+                            operationContext.recordJoinedRight();
+                            return locatedRow;
+                        }
+                    }));
+                };
+                ExecRow leftTemplate = leftOperation.getExecRowDefinition();
+
+                if (noCacheBroadcastJoinRight) {
+                    BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(sequenceId, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
+                    return loader.call().newTable();
+                }
+
+                return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
             }
-
-            Callable<Stream<ExecRow>> rhsLoader = () -> {
-                DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
-
-                final DataSetProcessor dsp =
-                        (rightOperation instanceof MultiProbeTableScanOperation &&
-                         rightOperation.getEstimatedRowCount() <
-                         operation.getActivation().getLanguageConnectionContext().
-                                                   getOptimizerFactory().getDetermineSparkRowThreshold()) ?
-                       dataSetProcessorFactory.localProcessor(getActivation(), rightOperation) :
-                       dataSetProcessorFactory.bulkProcessor(getActivation(), rightOperation);
-
-                return Streams.wrap(FluentIterable.from(() -> {
-                    try{
-                        operation.reset();
-                        DataSet<ExecRow> rightDataSet = rightOperation.getDataSet(dsp);
-                        if (rightHashKeys.length != 0)
-                            rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
-                        return rightDataSet.toLocalIterator();
-                    }catch(StandardException e){
-                        throw new RuntimeException(e);
-                    }
-                }).transform(new Function<ExecRow, ExecRow>() {
-                    @Nullable
-                    @Override
-                    public ExecRow apply(@Nullable ExecRow locatedRow) {
-                        assert locatedRow!=null;
-                        limiter.addAccumulatedRows(1);
-                        operationContext.recordJoinedRight();
-                        return locatedRow;
-                    }
-                }));
-            };
-            ExecRow leftTemplate = leftOperation.getExecRowDefinition();
-
-            if (noCacheBroadcastJoinRight) {
-                BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(sequenceId, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
-                return loader.call().newTable();
+            finally {
+                ContextService.getService().resetCurrentContextManager(cm);
+                ContextService.getService().removeContextManager(cm);
             }
-
-            return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
         });
     }
 

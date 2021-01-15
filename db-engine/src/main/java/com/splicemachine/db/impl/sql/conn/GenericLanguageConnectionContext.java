@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -55,6 +56,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -62,12 +64,14 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -79,7 +83,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -145,6 +148,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private StringBuffer sb;
     private DataSetProcessorType type;
+    private SparkExecutionType sparkExecutionType;
 
     private final String ipAddress;
     private InternalDatabase db;
@@ -351,6 +355,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String replicationRole = "NONE";
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
+    private boolean compilingFromTableTempTrigger = false;
+    private Object sparkContext = null;
+    private int applicationJarsHashCode = 0;
+    private SparkSQLUtils sparkSQLUtils;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -366,16 +374,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String dbname,
             String rdbIntTkn,
             DataSetProcessorType type,
+            SparkExecutionType sparkExecutionType,
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
             String defaultSchema,
             Properties connectionProperties
-            ) throws StandardException{
+    ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
         this.type = type;
+        this.sparkExecutionType = sparkExecutionType;
         this.ipAddress = ipAddress;
         dataFactory=lcf.getDataValueFactory();
         tcf=lcf.getTypeCompilerFactory();
@@ -466,9 +476,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
         } else {
-            assert type.isDefaultControl();
+            assert type.isDefaultOltp();
+        }
+        if (sparkExecutionType.isSessionHinted()) {
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
+        } else {
+            assert sparkExecutionType.isUnspecified();
         }
 
 
@@ -1980,6 +1995,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public TransactionController popNestedTransaction(){
         return nestedTransactions.remove(0);
     }
+
+    @Override
+    public boolean hasNestedTransaction() { return !nestedTransactions.isEmpty(); }
 
     /**
      * Get the data value factory to use with this language connection context.
@@ -3802,7 +3820,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
-        return this.type;
+        return type;
+    }
+
+    @Override
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
     }
 
     public void materialize() throws StandardException {}
@@ -4024,5 +4047,84 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             charTypeCompiler.setDB2VarcharCompatibilityMode(false);
             charTypeCompiler = null;
         }
+    }
+
+    @Override
+    public void setCompilingFromTableTempTrigger(boolean newVal) {
+        compilingFromTableTempTrigger = newVal;
+    }
+
+    @Override
+    public boolean isCompilingFromTableTempTrigger() {
+        return compilingFromTableTempTrigger;
+    }
+
+    @Override
+    public AccessFactory getSpliceAccessManager() {
+        if (db instanceof BasicDatabase) {
+            BasicDatabase basicDatabase = (BasicDatabase) db;
+            return basicDatabase.getAccessFactory();
+        }
+        return null;
+    }
+    
+    @Override      
+    public boolean isSparkJob() {
+        return sparkContext != null;
+    }
+
+    @Override
+    public void setSparkContext(Object sparkContext) {
+        this.sparkContext = sparkContext;
+    }
+
+    @Override
+    public Object getSparkContext() {
+        return sparkContext;
+    }
+
+    @Override
+    public void setApplicationJarsHashCode(int applicationJarsHashCode) {
+        this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public int getApplicationJarsHashCode() {
+        return applicationJarsHashCode;
+    }
+
+    @Override
+    public void addUserJarsToSparkContext() {
+        if (!isSparkJob())
+            return;
+        LanguageConnectionFactory lcf = getLanguageConnectionFactory();
+        if (lcf == null)
+            return;
+        ClassFactory cf = lcf.getClassFactory();
+        if (cf == null)
+            return;
+        List<String> applicationJars = cf.getApplicationJarPaths();
+        if (applicationJars == null)
+            return;
+        int applicationJarsHashCode = cf.getApplicationJarsHashCode();
+        if (applicationJarsHashCode == 0)
+            return;
+
+        if (sparkContext == null || sparkSQLUtils == null)
+            return;
+
+        // If there is no change in loaded jars, there is no need to add new jars to spark.
+        if (applicationJarsHashCode == this.applicationJarsHashCode)
+            return;
+
+        for (String jarPath:applicationJars)
+            sparkSQLUtils.addUserJarToSparkContext(sparkContext, jarPath);
+
+        this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
+        this.sparkSQLUtils = sparkSQLUtils;
     }
 }

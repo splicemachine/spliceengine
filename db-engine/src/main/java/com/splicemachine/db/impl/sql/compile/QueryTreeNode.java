@@ -1664,6 +1664,17 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
         if(ClassInspector.primitiveType(javaClassName))
             throw StandardException.newException(SQLState.LANG_TYPE_DOESNT_EXIST3,javaClassName);
+        if (foundMatch) {
+            if (lcc == null)
+                getLanguageConnectionContext();
+            if (lcc != null && lcc.isSparkJob()) {
+                int applicationJarsHash = classInspector.getApplicationJarsHashCode();
+                if (applicationJarsHash != 0 &&
+                    applicationJarsHash != lcc.getApplicationJarsHashCode()) {
+                    lcc.addUserJarsToSparkContext();
+                }
+            }
+        }
     }
 
     /**
@@ -1767,7 +1778,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if (!printHeader)
             return s;
         else {
-            String engine = String.format(",engine=%s (%s))", type.isSpark()?"OLAP":"OLTP", type.level());
+            String engine = String.format(",engine=%s (%s))", type.isOlap()?"OLAP":"OLTP", type.level());
             s = s.substring(0, s.length()-1) + engine;
         }
         return s;

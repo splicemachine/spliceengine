@@ -128,7 +128,9 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
         if (e instanceof RegionOfflineException)
             return true;
         if (e instanceof RetriesExhaustedException || e instanceof SocketTimeoutException) {
-            if (e.getCause() instanceof RemoteException) {
+            if (e.getCause() instanceof PleaseHoldException) {
+                return true;
+            } else if (e.getCause() instanceof RemoteException) {
                 RemoteException re = (RemoteException) e.getCause();
                 if (PleaseHoldException.class.getName().equals(re.getClassName()))
                     return true;

@@ -41,10 +41,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -53,12 +50,14 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.SparkSQLUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -442,6 +441,9 @@ public interface LanguageConnectionContext extends Context {
     void pushNestedTransaction(TransactionController trans);
 
     TransactionController popNestedTransaction();
+
+    boolean hasNestedTransaction();
+
     /**
         Get the data dictionary
 
@@ -1408,6 +1410,8 @@ public interface LanguageConnectionContext extends Context {
 
     DataSetProcessorType getDataSetProcessorType();
 
+    SparkExecutionType getSparkExecutionType();
+
     /**
      *
      * Setting the dynamic withDescriptors
@@ -1487,5 +1491,25 @@ public interface LanguageConnectionContext extends Context {
                                                   CharTypeCompiler charTypeCompiler);
 
     void resetDB2VarcharCompatibilityMode();
+
+    void setCompilingFromTableTempTrigger(boolean newVal);
+
+    boolean isCompilingFromTableTempTrigger();
+
+    AccessFactory getSpliceAccessManager();
+
+    void addUserJarsToSparkContext();
+
+    boolean isSparkJob();
+
+    void setSparkContext(Object sparkContext);
+
+    Object getSparkContext();
+
+    void setApplicationJarsHashCode(int applicationJarsHashCode);
+
+    int getApplicationJarsHashCode();
+
+    void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
 
 }

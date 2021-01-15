@@ -42,10 +42,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
@@ -77,13 +73,20 @@ public class UpdateOperation extends DMLWriteOperation{
 
     int[] pkCols;
     FormatableBitSet pkColumns;
+    boolean          updateCursor;
 
+    /**
+     * @param cursorUpdate if true, the execution of this operation is done exclusively in control.
+     * @throws StandardException
+     */
     public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost,String tableVersion, String fromTableDmlSpsDescriptorAsString)
-            throws StandardException, IOException{
+                           double optimizerEstimatedCost, boolean cursorUpdate, String tableVersion,
+                           String fromTableDmlSpsDescriptorAsString)
+            throws StandardException {
         super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
               tableVersion, fromTableDmlSpsDescriptorAsString);
+        this.updateCursor = cursorUpdate;
         init();
     }
 
@@ -180,10 +183,12 @@ public class UpdateOperation extends DMLWriteOperation{
         if (heapListStorage==null) {
             FormatableBitSet heapList = getHeapList();
             int[] storagePositionIds = ((UpdateConstantOperation)writeInfo.getConstantAction()).getStoragePositionIds();
-            heapListStorage = new FormatableBitSet(heapList.getLength());
+            int heapListStorageSize = storagePositionIds[storagePositionIds.length - 1] // largest 0-based storagePosition
+                                      + 1 // to make it 1-based
+                                      + 1; // to get the size of the new container
+            heapListStorage = new FormatableBitSet(heapListStorageSize);
             for(int i=heapList.anySetBit();i>=0;i=heapList.anySetBit(i)) {
                 int storagePos = storagePositionIds[i-1]+1;
-                heapListStorage.grow(storagePos+1);
                 heapListStorage.set(storagePos);
             }
         }
@@ -247,5 +252,10 @@ public class UpdateOperation extends DMLWriteOperation{
             finalizeNestedTransaction();
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return updateCursor;
     }
 }

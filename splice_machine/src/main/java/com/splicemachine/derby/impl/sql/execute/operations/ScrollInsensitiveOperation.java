@@ -32,6 +32,7 @@ import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -155,7 +156,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return "ScrollInsensitive"; //this class is never used
     }
 
-	public NoPutResultSet getSource() {
+	public SpliceOperation getSource() {
 		return this.source;
 	}
 
@@ -218,13 +219,15 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN, name);
     }
-    public RowLocation getRowLocation() throws StandardException {
-        assert source!=null;
-        return source.getRowLocation();
-    }
+
     public void updateRow(ExecRow row, RowChanger rowChanger)
             throws StandardException {
 
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

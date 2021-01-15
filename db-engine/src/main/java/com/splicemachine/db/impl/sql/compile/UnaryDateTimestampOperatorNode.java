@@ -38,10 +38,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -123,6 +120,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
 
             case Types.CHAR:
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:
                 break;
 
             case Types.DATE:
@@ -166,6 +164,11 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
     private void invalidOperandType() throws StandardException{
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                 getOperatorString(),getOperand().getTypeServices().getSQLstring());
+    }
+
+    void bindParameter() throws StandardException
+    {
+        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
     }
 
     /**

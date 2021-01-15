@@ -31,12 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -89,10 +86,10 @@ public final class CharTypeCompiler extends BaseTypeCompiler
             if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
             
 			// LONGVARCHAR can only be converted from  character types
-			// or CLOB or boolean.
+			// or CLOB or boolean or date / time timestamps.
 			if (getTypeId().isLongVarcharTypeId())
 			{
-				return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
+				return (otherType.isStringTypeId() || otherType.isBooleanTypeId() || otherType.isDateTimeTimeStampTypeId());
 			}
 			// The double function and CAST can convert CHAR and VARCHAR to double
 			if (otherType.isDoubleTypeId())
@@ -162,7 +159,7 @@ public final class CharTypeCompiler extends BaseTypeCompiler
         /**
          * @see TypeCompiler#getCastToCharWidth
          */
-        public int getCastToCharWidth(DataTypeDescriptor dts)
+        public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
         {
                 return dts.getMaximumWidth();
         }

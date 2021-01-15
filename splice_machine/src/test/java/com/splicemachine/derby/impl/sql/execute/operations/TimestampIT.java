@@ -13,6 +13,9 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -30,6 +33,8 @@ import splice.com.google.common.collect.Lists;
 
 import java.io.File;
 import java.sql.*;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -42,7 +47,7 @@ import static org.junit.Assert.*;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category(SerialTest.class) // maybe not run in parallel since it is changing global DB configs
 public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;
@@ -58,9 +63,9 @@ public class TimestampIT extends SpliceUnitTest {
                                             .around(spliceSchemaWatcher)
                                             .around(methodWatcher);
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "useSpark = {0}")
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(1);
         params.add(new Object[]{true});
         params.add(new Object[]{false});
         return params;
@@ -823,5 +828,127 @@ public class TimestampIT extends SpliceUnitTest {
             rs.next();
             assertEquals(new Timestamp(2020 - 1900, 0, 1, 0, 2, 30, 0), rs.getTimestamp(1));
         }
+    }
+
+    @Test
+    public void testTimestampAutoConversionDB_10914() throws Exception {
+        methodWatcher.executeUpdate("drop table DB_10914 if exists");
+        methodWatcher.executeUpdate("create table DB_10914(t timestamp)");
+        methodWatcher.executeUpdate("insert into DB_10914 values ('2020-01-01 10:00:00.123456'), ('2020-01-02 10:00:00.123456')");
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select * from DB_10914 where t = ? || ' 10:00:00.123456'")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+            ps.setString(1, "2020-01-05");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertFalse(rs.next());
+            }
+        }
+        try (PreparedStatement ps = methodWatcher.prepareStatement(
+                "select * from DB_10914 where t between '2020-01-01' || '-00.00.00.000000' and ? || '-23.59.59.999999'")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+            ps.setString(1, "2020-01-02");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "T             |\n" +
+                        "----------------------------\n" +
+                        "2020-01-01 10:00:00.123456 |\n" +
+                        "2020-01-02 10:00:00.123456 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+    @Test
+    public void testTimestampFunctionFromLongVarchar_10926() throws Exception {
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select timestamp(? || '-23.59.59.999999')")) {
+            ps.setString(1, "2020-01-01");
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(
+                        "1             |\n" +
+                                "----------------------------\n" +
+                                "2020-01-01 23:59:59.999999 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    private void withFormat(String format) throws Exception {
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', '%s' )", format));
+    }
+
+    private void shouldEqual(String inputTimestamp, String expectedTimestamp) throws SQLException {
+        try(ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select char(timestamp('%s')), length(char(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(expectedTimestamp, rs.getString(1));
+            Assert.assertEquals(expectedTimestamp.length(), rs.getInt(2));
+            Assert.assertFalse(rs.next());
+        }
+
+        // make sure when upper/lower is used we are constructing the right cast node with the correct size
+        try(ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select upper(timestamp('%s')), typeof(upper(timestamp('%s'))) from sysibm.sysdummy1 --SPLICE-PROPERTIES useSpark = %s", inputTimestamp, inputTimestamp, useSpark))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(expectedTimestamp, rs.getString(1));
+            Assert.assertEquals(String.format("VARCHAR(%d) NOT NULL", expectedTimestamp.length()), rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testConfigurableTimestampPrecision() throws Exception {
+        withFormat("yyyy-MM-dd HH:mm:ss"); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12");
+        withFormat("yyyy-MM-dd HH:mm:ss"/*0*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
+
+        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456789", "11/30/2020, 07:11:12.12 PM");
+
+        withFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSS"/*8*/);
+        shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30-19.11.12.12345678");
+
+        // test code in UserTypeConstantNode
+        Assert.assertEquals("1700-12-31-23.59.58.99999900", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
+
+        // reset to default
+        withFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
+        Assert.assertEquals("1700-12-31 23:59:58.999999000", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
+    }
+
+    @Test
+    public void testCurrentTimestampPrecision() throws Exception {
+
+        // we might get very unlucky when timestamps end in 0s, e.g.
+        // 2020-12-06 21:50:13.123456000 would have length of 2020-12-06 21:50:13.123456, even if precision is set to 9
+        // to avoid sporadics, we try this 100 times
+        for(int i=0; i<100; i++)
+        {
+            boolean bOK;
+            methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
+            bOK = "2020-12-06 21:50:13.1".length()
+                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
+            methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
+            bOK = bOK && "2020-12-06 21:50:13.123456789".length()
+                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
+
+            if(bOK) return;
+        }
+        Assert.fail("current timestamp precision didn't work");
     }
 }

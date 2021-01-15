@@ -14,14 +14,21 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
@@ -31,16 +38,20 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 /**
  * @author Scott Fines
  *         Date: 1/12/16
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     private final ControlDataSet<ExecRow> dataSet;
     private final OperationContext operationContext;
@@ -48,37 +59,78 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     private final int[] updateCounts;
     private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
     private Txn     txn = null;
+    private TransactionController transactionController = null;
+    private BaseSpliceTransaction internalTransaction = null;
     private TxnView parent = null;
+    private boolean loadReplaceMode;
 
-    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter, OperationContext opContext, int[] updateCounts){
+    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter,
+                                OperationContext opContext, int[] updateCounts, boolean loadReplaceMode){
         this.dataSet=dataSet;
         this.operationContext=opContext;
         this.pipelineWriter=pipelineWriter;
         this.updateCounts = updateCounts;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
     public DataSet<ExecRow> write() throws StandardException{
         SpliceOperation operation=operationContext.getOperation();
-
+        LanguageConnectionContext lcc =
+            operationContext.getActivation().getLanguageConnectionContext();
         try{
-            boolean inMemoryTxn = !operation.isOlapServer();
+            boolean inMemoryTxn = !operation.isOlapServer() && !SpliceClient.isClient();
             parent = getTxn();
-            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(
-                    parent,
-                    parent.getIsolationLevel(),
-                    parent.isAdditive(),
-                    pipelineWriter.getDestinationTable(),
-                    inMemoryTxn);
+
+            SpliceAccessManager accessManager = (SpliceAccessManager)lcc.getSpliceAccessManager();
+            if (accessManager == null)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "ControlDataSetWriter cannot make find active AccessManager.");
+            boolean needsfullyNestedTransaction = operation.getTriggerHandler() != null;
+
+            TransactionController transactionExecute = lcc.getTransactionExecute();
+            if (needsfullyNestedTransaction && !lcc.hasNestedTransaction()) {
+                // Start a nested transaction controller that deals only with internal
+                // transactions, not savepoints.
+                transactionController =
+                    transactionExecute.startNestedInternalTransaction(false,
+                                        pipelineWriter.getDestinationTable(),
+                                        inMemoryTxn);
+                lcc.pushNestedTransaction(transactionController);
+                Transaction rawStoreXact = ((TransactionManager) transactionController).getRawStoreXact();
+                if (!(((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn() instanceof Txn))
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                                    "ControlDataSetWriter cannot make child Txn out of TxnView.");
+                Txn childTxn = (Txn) ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+                txn = childTxn;
+            }
+            else {
+                // Manually begin a child transaction and push it on the
+                // transaction stack so that txn will act as the parent
+                // of subsequent child transactions.
+                txn = SIDriver.driver().lifecycleManager().
+                          beginChildTransaction(
+                              parent,
+                              parent.getIsolationLevel(),
+                              parent.isAdditive(),
+                              pipelineWriter.getDestinationTable(),
+                              inMemoryTxn);
+                if (needsfullyNestedTransaction) {
+                    internalTransaction =
+                    (BaseSpliceTransaction) ((SpliceTransactionManager) transactionExecute).getRawStoreXact();
+                    internalTransaction.pushInternalTransaction(txn);
+                }
+            }
+
             pipelineWriter.setTxn(txn);
-            operation.fireBeforeStatementTriggers();
-            pipelineWriter.open(operation.getTriggerHandler(),operation);
+
+            if( !loadReplaceMode)
+                operation.fireBeforeStatementTriggers();
+            pipelineWriter.open(operation.getTriggerHandler(),operation, loadReplaceMode);
             pipelineWriter.write(dataSet.toLocalIterator());
 
-            if (txn.getState() != Txn.State.COMMITTED)
-                txn.commit();
-
-            pipelineWriter.firePendingAfterTriggers();
+            if( !loadReplaceMode)
+                pipelineWriter.firePendingAfterTriggers();
 
             // Defer closing the pipeline in case we need to rollback.
             if (operation.getActivation().isSubStatement())
@@ -91,9 +143,14 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
             // cause a rollback (throw an exception).
             // Previously this was in a 'finally' block, and was executed
             // even when we did rollback, which is not right.
-            operation.fireAfterStatementTriggers();
+            if( !loadReplaceMode)
+                operation.fireAfterStatementTriggers();
+
             if (!operation.getActivation().isSubStatement())
                 pipelineWriter.close();
+
+            if (txn.getState() != Txn.State.COMMITTED)
+                txn.commit();
 
             long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
@@ -159,6 +216,12 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
                 }
             }
             throw Exceptions.parseException(e);
+        }
+        finally {
+             if (transactionController != null)
+                 lcc.popNestedTransaction();
+             if (internalTransaction != null)
+                 internalTransaction.popInternalTransaction();
         }
     }
 

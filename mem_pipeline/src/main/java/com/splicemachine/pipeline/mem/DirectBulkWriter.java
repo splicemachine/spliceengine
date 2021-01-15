@@ -33,7 +33,7 @@ public class DirectBulkWriter implements BulkWriter{
     }
 
     @Override
-    public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
-        return writer.bulkWrite(write, -1);
+    public BulkWritesResult write(BulkWrites write,boolean refreshCache, boolean loadReplaceMode) throws IOException{
+        return writer.bulkWrite(write, -1, loadReplaceMode);
     }
 }

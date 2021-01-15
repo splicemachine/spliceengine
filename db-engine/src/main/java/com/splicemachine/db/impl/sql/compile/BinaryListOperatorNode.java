@@ -240,6 +240,20 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         return this;
     }
 
+    private void addCastOnRightOperandForStringToNonStringComparison() throws StandardException {
+        if (singleLeftOperand) {
+            TypeId leftTypeId = getLeftOperand().getTypeId();
+            for (int i = 0; i < rightOperandList.size(); ++i) {
+                ValueNode rightOperand = (ValueNode) rightOperandList.elementAt(i);
+                TypeId rightTypeId = rightOperand.getTypeId();
+                if (!leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId()) {
+                    rightOperand = addCastNodeForStringToNonStringComparison(getLeftOperand(), rightOperand);
+                }
+                rightOperandList.setElementAt(rightOperand, i);
+            }
+        }
+    }
+
     /**
      * Test the type compatability of the operands and set the type info
      * for this node.  This method is useful both during binding and
@@ -252,8 +266,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
         /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
-        if (singleLeftOperand)
-            rightOperandList.comparable(getLeftOperand());
+        if (singleLeftOperand) {
+            if (!rightOperandList.comparable(getLeftOperand())) {
+                addCastOnRightOperandForStringToNonStringComparison();
+            }
+            rightOperandList.throwIfNotComparable(getLeftOperand());
+        }
+
 
         /*
         ** Set the result type of this comparison operator based on the
@@ -348,7 +367,9 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -363,6 +384,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs  JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly Whether or not to consider method
      *                        calls, field references and conditional nodes
      *                        when building bit map
@@ -371,11 +394,11 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      * @throws StandardException Thrown on error
      */
     @Override
-    public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException{
         boolean pushable = false;
 
-        pushable = leftOperandList.categorize(referencedTabs, simplePredsOnly);
-        pushable = (rightOperandList.categorize(referencedTabs, simplePredsOnly) && pushable);
+        pushable = leftOperandList.categorize(referencedTabs, referencedColumns, simplePredsOnly);
+        pushable = (rightOperandList.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
 
         return pushable;
     }

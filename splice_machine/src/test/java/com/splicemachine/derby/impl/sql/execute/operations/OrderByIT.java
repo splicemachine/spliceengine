@@ -386,18 +386,18 @@ public class OrderByIT extends SpliceUnitTest {
     public void testAliasInOrderComplex() throws Exception {
         String sqlText = "select sum(a1) as ALIAS from t2 order by -ALIAS";
         String expected = "ALIAS |\n" +
-                "--------\n" +
-                "  15   |" ;
+                         "--------\n" +
+                         "  15   |" ;
         sqlExpectToString( methodWatcher, sqlText, expected, false );
 
         sqlText = "select sqrt(a1*a1)*2 as ALIAS from t2 order by -2*ALIAS+a1";
         expected = "ALIAS |\n" +
-                "--------\n" +
-                " 10.0  |\n" +
-                "  8.0  |\n" +
-                "  6.0  |\n" +
-                "  4.0  |\n" +
-                "  2.0  |";
+                  "--------\n" +
+                  " 10.0  |\n" +
+                  "  8.0  |\n" +
+                  "  6.0  |\n" +
+                  "  4.0  |\n" +
+                  "  2.0  |";
         sqlExpectToString( methodWatcher, sqlText, expected, false );
     }
 
@@ -437,5 +437,55 @@ public class OrderByIT extends SpliceUnitTest {
         for( String sqlText : sqlTexts ) {
             sqlExpectException( methodWatcher, sqlText, "42X77", false);
         }
+    }
+
+    @Test
+    public void testOrderByAmbiguousColumnReference() throws Exception {
+        methodWatcher.execute("drop table ambiguous1 if exists");
+        methodWatcher.execute("drop table ambiguous2 if exists");
+        methodWatcher.execute("create table ambiguous1(a int, b int)");
+        methodWatcher.execute("create table ambiguous2(a int, b int)");
+        methodWatcher.execute("insert into ambiguous1 values (1, 1), (2,2)");
+        methodWatcher.execute("insert into ambiguous2 values (3, 1), (4,2)");
+
+        sqlExpectToString(methodWatcher,
+                "select t1.a, t2.a, t2.b from ambiguous1 t1, ambiguous2 t2 order by b, t1.a",
+                "A | A | B |\n" +
+                        "------------\n" +
+                        " 1 | 3 | 1 |\n" +
+                        " 2 | 3 | 1 |\n" +
+                        " 1 | 4 | 2 |\n" +
+                        " 2 | 4 | 2 |", false);
+
+        sqlExpectToString(methodWatcher,
+                "select t1.a, t2.a, t1.b from ambiguous1 t1, ambiguous2 t2 order by b, t2.a",
+                "A | A | B |\n" +
+                        "------------\n" +
+                        " 1 | 3 | 1 |\n" +
+                        " 1 | 4 | 1 |\n" +
+                        " 2 | 3 | 2 |\n" +
+                        " 2 | 4 | 2 |", false);
+
+        sqlExpectToString(methodWatcher,
+                "select t1.a, t2.a, t2.b from ambiguous1 t1, ambiguous2 t2 order by char(b), t1.a",
+                "A | A | B |\n" +
+                        "------------\n" +
+                        " 1 | 3 | 1 |\n" +
+                        " 2 | 3 | 1 |\n" +
+                        " 1 | 4 | 2 |\n" +
+                        " 2 | 4 | 2 |", false);
+
+        sqlExpectToString(methodWatcher,
+                "select t1.a, t2.a, t1.b from ambiguous1 t1, ambiguous2 t2 order by char(b), t2.a",
+                "A | A | B |\n" +
+                        "------------\n" +
+                        " 1 | 3 | 1 |\n" +
+                        " 1 | 4 | 1 |\n" +
+                        " 2 | 3 | 2 |\n" +
+                        " 2 | 4 | 2 |", false);
+
+        sqlExpectException( methodWatcher,
+                "select t1.a, t2.a, t1.b as not_b from ambiguous1 t1, ambiguous2 t2 order by char(b)",
+                "42X03", false);
     }
 }

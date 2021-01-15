@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.2.0.1987-SNAPSHOT</version>
+    <version>3.2.0.1994-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -888,7 +888,7 @@
             <properties>
                 <envClassifier>hdp3.1.0</envClassifier>
                 <envHbase>hbase2.0.2</envHbase>
-                <hadoop.version>3.1.1.3.1.0.61-1</hadoop.version>
+                <hadoop.version>3.1.1.3.1.0.0-78</hadoop.version>
                 <hbase.version>2.0.2.3.1.0.0-78</hbase.version>
                 <hive.version>3.1.0.3.1.2.0-4</hive.version>
                 <zookeeper.version>3.4.6.3.1.0.0-78</zookeeper.version>
@@ -1042,7 +1042,7 @@
                 <zookeeper.version>3.4.5-cdh6.3.2</zookeeper.version>
                 <scala.binary.version>2.12</scala.binary.version>
                 <scala.version>2.12.12</scala.version>
-                <spark.version>3.0.0</spark.version>
+                <spark.version>3.0.1</spark.version>
                 <spark.major.version>spark3.0</spark.major.version>
                 <kafka.version>2.2.1-cdh6.3.2</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>

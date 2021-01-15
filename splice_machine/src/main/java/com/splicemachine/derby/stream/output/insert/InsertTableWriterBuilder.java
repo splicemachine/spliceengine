@@ -33,7 +33,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.reflect.Array;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -42,6 +41,7 @@ import org.apache.commons.codec.binary.Base64;
  * Builder for InsertTable Functionality
  *
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public abstract class InsertTableWriterBuilder implements Externalizable,InsertDataSetWriterBuilder{
     protected int[] pkCols;
     protected String tableVersion;
@@ -57,6 +57,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected boolean isUpsert;
     protected double sampleFraction;
     protected int[] updateCounts;
+    protected boolean loadReplaceMode = false;
 
     @Override
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
@@ -157,7 +158,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         return new InsertPipelineWriter(pkCols,
                 tableVersion,
                 execRowDefinition,autoIncrementRowLocationArray,spliceSequences,heapConglom,
-                tempConglomID,txn,token,operationContext,isUpsert);
+                tempConglomID,txn,token,operationContext,isUpsert, loadReplaceMode);
     }
 
     @Override
@@ -202,6 +203,8 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             out.writeLong(tempConglomID);
             out.writeDouble(sampleFraction);
             ArrayUtil.writeIntArray(out, updateCounts);
+
+            out.writeBoolean(loadReplaceMode);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -229,6 +232,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         tempConglomID = in.readLong();
         sampleFraction = in.readDouble();
         updateCounts = ArrayUtil.readIntArray(in);
+        loadReplaceMode = in.readBoolean();
     }
 
     @Override
@@ -242,5 +246,17 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
 
     public String getInsertTableWriterBuilderBase64String() throws IOException, StandardException {
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
+    }
+
+
+    @Override
+    public DataSetWriterBuilder loadReplaceMode(boolean loadReplaceMode) {
+        this.loadReplaceMode = loadReplaceMode;
+        return this;
+    }
+
+    @Override
+    public boolean getLoadReplaceMode() {
+        return loadReplaceMode;
     }
 }

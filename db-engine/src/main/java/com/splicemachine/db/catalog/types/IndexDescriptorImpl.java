@@ -219,8 +219,12 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	}
 
 	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition)
+	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
 	{
+	    if (isOnExpression()) {
+	        throw new IllegalArgumentException("Cannot retrieve ordinal position of a base table column in an index " +
+                    "defined on expressions because it may appear in multiple expressions.");
+        }
 		/* Return 0 if column is not in the key */
 		int keyPosition = 0;
 
@@ -255,7 +259,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	/** @see IndexDescriptor#isAscending */
 	public boolean isAscending(Integer keyColumnPosition) {
 		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
+		if (i < 0 || i >= isAscending.length)
 			return false;
 		return isAscending[i];
     }
@@ -263,7 +267,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	/** @see IndexDescriptor#isDescending */
 	public boolean isDescending(Integer keyColumnPosition) {
 		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
+		if (i < 0 || i >= isAscending.length)
 			return false;
 		return ! isAscending[i];
     }

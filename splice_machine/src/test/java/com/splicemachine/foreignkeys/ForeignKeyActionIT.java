@@ -18,9 +18,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.UsesLocalFS;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
@@ -294,6 +296,7 @@ public class ForeignKeyActionIT {
     }
 
     @Test
+    @Category(UsesLocalFS.class)
     public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
             createDatabaseObjects3(s);
@@ -547,23 +550,20 @@ public class ForeignKeyActionIT {
             try {
                 s.executeUpdate("alter table cct4 add constraint \"ccfk2\" foreign key (col2) references cct3(col1) on delete cascade");
                 Assert.fail("alter table should have failed with SQLException containing this message: Foreign  Key 'ccfk2' is invalid because " +
-                                    "'adding this foreign key leads to the " +
-                                    "conflicting delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' " +
-                                    "coming from this path 'PATH action: SetNull \"FOREIGNKEYACTIONIT\".\"CCT1\" " +
-                                    "\"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" ' and this " +
-                                    "path 'PATH action: Cascade \"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT2\" " +
-                                    "\"FOREIGNKEYACTIONIT\".\"CCT6\" ''. ");
+                                    "'adding this foreign key leads to the conflicting delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' " +
+                                    "coming from this path '\"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" " +
+                                    "(delete action: SetNull)' and this path '\"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT2\" \"FOREIGNKEYACTIONIT\".\"CCT6\" " +
+                                    "(delete action: Cascade)''. ");
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof SQLException);
                 SQLException sqlException = (SQLException)e;
                 Assert.assertEquals("42915", sqlException.getSQLState());
-                Assert.assertTrue(sqlException.getMessage().contains("Foreign  Key 'ccfk2' is invalid because 'adding this foreign key leads to the " +
-                                                                     "conflicting delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' " +
-                                                                     "coming from this path 'PATH action: SetNull \"FOREIGNKEYACTIONIT\".\"CCT1\" " +
-                                                                     "\"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" ' and this " +
-                                                                     "path 'PATH action: Cascade \"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT2\" " +
-                                                                     "\"FOREIGNKEYACTIONIT\".\"CCT6\" ''. "));
-            }
+                Assert.assertTrue(sqlException.getMessage().contains("Foreign  Key 'ccfk2' is invalid because 'adding this foreign key leads to the conflicting " +
+                                                                     "delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' coming from this path " +
+                                                                     "'\"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" " +
+                                                                     "(delete action: SetNull)' and this path '\"FOREIGNKEYACTIONIT\".\"CCT1\" " +
+                                                                     "\"FOREIGNKEYACTIONIT\".\"CCT2\" \"FOREIGNKEYACTIONIT\".\"CCT6\" (delete action: Cascade)''. "));
+                            }
         }
     }
 

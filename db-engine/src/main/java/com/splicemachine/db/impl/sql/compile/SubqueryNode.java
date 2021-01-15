@@ -45,11 +45,14 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.SQLGrammarImpl.*;
 
 /**
  * A SubqueryNode represents a subquery.  Subqueries return values to their
@@ -187,6 +190,7 @@ public class SubqueryNode extends ValueNode{
     protected int resultSetNumber=-1;
 
     private boolean hintNotFlatten=false;
+    private boolean thisSubqueryAddedToSubqueryList = false;
 
     /**
      * Initializer.
@@ -403,6 +407,119 @@ public class SubqueryNode extends ValueNode{
         return this;
     }
 
+    private void updateColumnNamesInSetQuery(SetOperatorNode setOperatorNode,
+                                             String columnName,
+                                             int columnPosition)   throws StandardException {
+        ResultColumn rc;
+        if (setOperatorNode.getLeftResultSet() instanceof SetOperatorNode) {
+            updateColumnNamesInSetQuery((SetOperatorNode)setOperatorNode.getLeftResultSet(), columnName, columnPosition);
+
+        }
+        else {
+            rc = setOperatorNode.getLeftResultSet().getResultColumns().elementAt(columnPosition);
+            rc.setName(columnName);
+        }
+        if (setOperatorNode.getRightResultSet() instanceof SetOperatorNode)
+            updateColumnNamesInSetQuery((SetOperatorNode)setOperatorNode.getRightResultSet(), columnName, columnPosition);
+        else {
+            rc = setOperatorNode.getRightResultSet().getResultColumns().elementAt(columnPosition);
+            rc.setName(columnName);
+        }
+        rc = setOperatorNode.getResultColumns().elementAt(columnPosition);
+        rc.setName(columnName);
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+            C_NodeTypes.COLUMN_REFERENCE,
+            columnName,
+            null,
+            getContextManager());
+        rc.setExpression(columnReference);
+    }
+
+    // Subquery flattening logic only knows how to flatten a SelectNode
+    // in a subquery.  Everything else must be evaluated one row-at-a-time.
+    // Let's get around the restriction by wrapping SetOp queries
+    // (UNION, EXCEPT, INTERSECT) in a derived table, which itself
+    // is represented as a SelectNode.
+    // TODO:  Enhance subquery flattening logic to not require the
+    //        the subquery expression to be a SelectNode.
+    private boolean wrapSetQueryInDerivedTable(FromList fromList,
+                                               SubqueryList subqueryList,
+                                               List<AggregateNode> aggregateVector) throws StandardException {
+        if (!(resultSet instanceof SetOperatorNode))
+            return false;
+        SetOperatorNode setOperatorNode = (SetOperatorNode)resultSet;
+        ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+        SubqueryNode derivedTable = (SubqueryNode) getNodeFactory().getNode(
+                                        C_NodeTypes.SUBQUERY_NODE,
+                                        resultSet,  // SetOperatorNode
+                                        ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
+                                        null, // leftOperand,
+                                        null, // orderCols,
+                                        offsetClauses[ OFFSET_CLAUSE ],
+                                        offsetClauses[ FETCH_FIRST_CLAUSE ],
+                                        Boolean.valueOf( true ),
+                                        getContextManager());
+
+        FromTable fromTable = (FromTable) getNodeFactory().getNode(
+                                            C_NodeTypes.FROM_SUBQUERY,
+                                            derivedTable.getResultSet(),
+                                            derivedTable.getOrderByList(),
+                                            derivedTable.getOffset(),
+                                            derivedTable.getFetchFirst(),
+                                            derivedTable.hasJDBClimitClause(),
+                                            null,   // correlationName,
+                                            null,  // derivedRCL,
+                                            null,  // optionalTableClauses
+                                            getContextManager());
+        FromList newFromList = (FromList) getNodeFactory().getNode(
+                C_NodeTypes.FROM_LIST,
+                getNodeFactory().doJoinOrderOptimization(),
+                getContextManager());
+        newFromList.addFromTable(fromTable);
+
+        ResultColumnList selectList = setOperatorNode.getResultColumns().copyListAndObjects();
+        String dummyColName = "###UnnamedDT_WrappedSetOpCol";
+
+        // Build a select list identical to that in the setOperatorNode,
+        // fill in exposed column names, both in our list, and the lists we're
+        // selecting from so we have a legal derived table.
+        for(int index = 0; index < selectList.size(); index++) {
+            ResultColumn rc = selectList.elementAt(index);
+            String exposedColName = dummyColName + index;
+            rc.setName(exposedColName);
+            updateColumnNamesInSetQuery(setOperatorNode, exposedColName, index);
+            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                exposedColName,
+                null,
+                getContextManager());
+            rc.setExpression(columnReference);
+        }
+
+        ResultSetNode selectNode = (ResultSetNode) getNodeFactory().getNode(
+                            C_NodeTypes.SELECT_NODE,
+                            selectList,  //ResultColumnList
+                            null,     /* AGGREGATE list */
+                            newFromList, // FromList of FromSubquery
+                            null,     // whereClause
+                            null,     // groupByList
+                            null,     // havingClause
+                            null,     // windows
+                            getContextManager());
+        ResultSetNode savedResultSet = resultSet;
+        try {
+            resultSet = selectNode;
+            // Only perform this rewrite if it doesn't cause
+            // binding to fail (e.g. correlated predicates are not allowed in a derived table).
+            this.bindExpressionHelper(fromList, subqueryList, aggregateVector);
+        }
+        catch (StandardException e) {
+            resultSet = savedResultSet;
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Bind this expression.  This means binding the sub-expressions,
      * as well as figuring out what the return type is for this expression.
@@ -419,12 +536,29 @@ public class SubqueryNode extends ValueNode{
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
-                                    List<AggregateNode> aggregateVector) throws StandardException{
-        ResultColumnList resultColumns;
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+
 
         //check if subquery is allowed in expression tree
-        checkReliability(CompilerContext.SUBQUERY_ILLEGAL,SQLState.LANG_SUBQUERY);
+        checkReliability(CompilerContext.SUBQUERY_ILLEGAL, SQLState.LANG_SUBQUERY);
 
+        // Rewrite a set operator tree so it's wrapped in a derived table.
+        // This allows it to be flattenable, allowing for more efficient joins.
+        // Disallow multicolumn IN/NOT IN for now to be safe.
+        if (resultSet instanceof SetOperatorNode &&
+            this.subqueryType != SubqueryNode.FROM_SUBQUERY &&
+            (resultSet.getResultColumns().size() == 1 &&
+             this.subqueryType != EXISTS_SUBQUERY)) {
+            if (wrapSetQueryInDerivedTable(fromList, subqueryList, aggregateVector))
+                return this;
+        }
+        return this.bindExpressionHelper(fromList, subqueryList, aggregateVector);
+    }
+
+    private ValueNode bindExpressionHelper(FromList fromList,
+                                           SubqueryList subqueryList,
+                                           List<AggregateNode> aggregateVector) throws StandardException{
+        ResultColumnList resultColumns;
         resultColumns=resultSet.getResultColumns();
 
         /* The parser does not enforce the fact that a subquery (except in the
@@ -556,7 +690,10 @@ public class SubqueryNode extends ValueNode{
         setDataTypeServices(resultColumns);
 
         /* Add this subquery to the subquery list */
-        subqueryList.addSubqueryNode(this);
+        if (!thisSubqueryAddedToSubqueryList) {
+            subqueryList.addSubqueryNode(this);
+            thisSubqueryAddedToSubqueryList = true;
+        }
 
         cc.popCurrentPrivType();
         return this;
@@ -648,8 +785,12 @@ public class SubqueryNode extends ValueNode{
          *    c1 = (select min(c1) from t2)
          * (This actually showed up in an app that a potential customer
          * was porting from SQL Server.)
+         * For now, don't perform this transformation if
+         * result set return multiple columns because we
+         * don't have visiting/code generation logic for
+         * tuple comparison.
          */
-        if(!doNotFlatten && (isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow()){
+        if(!doNotFlatten && (isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow() && resultSet.getResultColumns().size() == 1){
             if(!hasCorrelatedCRs()){
                 if (!isExpression())
                     changeToCorrespondingExpressionType();
@@ -788,10 +929,13 @@ public class SubqueryNode extends ValueNode{
                 // for non-correlated non-aggregate IN, ANY, if it is guaranteed that the subquery returns
                 // at most one row, we can convert the subquery to an expression subquery.
                 // such expression subquery may bring a good access path, so we do not want to flatten it
+                // Don't perform this transformation if result set return multiple columns because
+                // currently, we don't have visiting/code generation logic for tuple comparison.
                 if ((isIN() || isANY() || isExpression()) &&
                         !hasAggregation &&
                         !hasCorrelatedCRs() &&
-                        select.uniqueSubquery(false)) {
+                        select.uniqueSubquery(false) &&
+                        select.getResultColumns().size() == 1) {
                     // convert to expression subquery
                     if (!isExpression())
                         changeToCorrespondingExpressionType();
@@ -811,6 +955,7 @@ public class SubqueryNode extends ValueNode{
                     additionalEQ = additionalEQ &&
                             ((leftOperand instanceof ConstantNode) ||
                                     (leftOperand instanceof ColumnReference) ||
+                                    (leftOperand instanceof ValueTupleNode) ||
                                     (leftOperand.requiresTypeFromContext()));
                 /* If we got this far and we are an expression subquery
                  * then we want to set leftOperand to be the left side
@@ -854,7 +999,7 @@ public class SubqueryNode extends ValueNode{
                  *    to restrict the left side of the join.
                  */
                     else if ((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
-                            ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
+                            ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), null, false)) &&
                             select.getWherePredicates().allPushable()) {
                         FromBaseTable fbt = singleFromBaseTable(select.getFromList());
 
@@ -1115,7 +1260,9 @@ public class SubqueryNode extends ValueNode{
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -1130,12 +1277,17 @@ public class SubqueryNode extends ValueNode{
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
+     * @param simplePredsOnly    Whether or not to consider method
+     *                            calls, field references and conditional nodes
+     *                            when building bit map
      * @return boolean        Whether or not source.expression is a ColumnReference
      * or a VirtualColumnNode.
      * @throws StandardException Thrown on error
      */
     @Override
-    public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly) throws StandardException{
         /* We stop here when only considering simple predicates
          *  as we don't consider method calls when looking
          * for null invariant predicates.
@@ -1901,7 +2053,7 @@ public class SubqueryNode extends ValueNode{
         // no right operand, it cannot cause any problems for the flattening.
         if(leftOperand!=null){
             JBitSet tableSet=new JBitSet(numTables);
-            getRightOperand().categorize(tableSet,false);
+            getRightOperand().categorize(tableSet, null, false);
             // The query can be flattened to NOT EXISTS join only if the right
             // operand references the base table.
             flattenable=tableSet.get(fbt.getTableNumber());
@@ -2131,7 +2283,7 @@ public class SubqueryNode extends ValueNode{
      *
      * @return the right operand
      */
-    private ValueNode getRightOperand() throws StandardException {
+    public ValueNode getRightOperand() throws StandardException {
         if (resultSet.getResultColumns().size() == 1) {
             ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
             return firstRC.getExpression();

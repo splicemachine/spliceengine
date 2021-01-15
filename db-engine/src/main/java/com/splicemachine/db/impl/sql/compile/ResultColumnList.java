@@ -2510,6 +2510,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      */
     public void remapColumnReferencesToExpressions() throws StandardException{
         int size=size();
+        boolean projectionPruningEnabled = getCompilerContext().isProjectionPruningEnabled();
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
 
@@ -2518,7 +2519,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             // is a ColumnReference; we call through to the ColumnReference
             // to give it a chance to remap itself from the outer query
             // node to this one.
-            if(rc.getExpression()!=null)
+            // DB-10817 note:
+            // When projection pruning is enabled, only remap columns that
+            // are referenced. For those are not referenced, their source
+            // may have been pruned already.
+            if(rc.getExpression() != null && (!projectionPruningEnabled || rc.isReferenced()))
                 rc.setExpression(rc.getExpression().remapColumnReferencesToExpressions());
         }
     }

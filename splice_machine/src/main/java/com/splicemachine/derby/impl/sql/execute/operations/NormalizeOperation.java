@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.function.NormalizeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
@@ -285,5 +286,10 @@ public class NormalizeOperation extends SpliceBaseOperation{
 
     public void setRequireNotNull(boolean requireNotNull) {
         this.requireNotNull = requireNotNull;
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

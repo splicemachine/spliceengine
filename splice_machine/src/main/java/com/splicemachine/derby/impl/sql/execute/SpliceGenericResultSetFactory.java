@@ -21,12 +21,12 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
+import com.splicemachine.derby.impl.sql.execute.operations.CurrentOfResultSetOperation;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -185,6 +185,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                            resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
+                                           true,
                                            mapRefItem,
                                            cloneMapItem,
                                            reuseResult,
@@ -218,6 +219,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                            resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
+                                           true,
                                            mapRefItem,
                                            cloneMapItem,
                                            reuseResult,
@@ -237,6 +239,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
+                                                      boolean paramInConstantRestriction,
                                                       int mapRefItem,
                                                       int cloneMapItem,
                                                       boolean reuseResult,
@@ -253,6 +256,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                            resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
+                                           paramInConstantRestriction,
                                            mapRefItem,
                                            cloneMapItem,
                                            reuseResult,
@@ -272,6 +276,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
+                                                      boolean paramInConstantRestriction,
                                                       int mapRefItem,
                                                       int cloneMapItem,
                                                       boolean reuseResult,
@@ -291,7 +296,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     source.getActivation(),
                     restriction, projection, resultColumnTypeArrayItem,
                     resultSetNumber,
-                    constantRestriction, mapRefItem, cloneMapItem,
+                    constantRestriction,
+                    paramInConstantRestriction,
+                    mapRefItem, cloneMapItem,
                     reuseResult,
                     doesProjection,
                     optimizerEstimatedRowCount,
@@ -1698,7 +1705,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1709,6 +1716,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftResultSet,  leftNumCols,
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,
+             noCacheBroadcastJoinRight,
              joinClause,  resultSetNumber,
              oneRowRightSide, semiJoinType,
              rightFromSSQ, broadcastRightSide,
@@ -1722,7 +1730,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getCrossJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ, boolean broadcastRightSide,
@@ -1736,6 +1744,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new CrossJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                    noCacheBroadcastJoinRight,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
                     oneRowRightSide, semiJoinType, rightFromSSQ, broadcastRightSide, optimizerEstimatedRowCount,
@@ -2079,6 +2088,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              GeneratedMethod checkGM,
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
+                                             boolean updateCursor,
                                              String tableVersion,
                                              String explainPlan,
                                              String fromTableDmlSpsDescriptorAsString) throws StandardException {
@@ -2086,7 +2096,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM,
                                                       source.getActivation(),optimizerEstimatedCost,
-                                                      optimizerEstimatedRowCount,tableVersion,
+                                                      optimizerEstimatedRowCount,
+                                                      updateCursor,
+                                                      tableVersion,
                                                       fromTableDmlSpsDescriptorAsString);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
@@ -2107,17 +2119,20 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getDeleteResultSet(NoPutResultSet source,
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
+                                             boolean cursorDelete,
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
                                              int colMapRefItem,
-                                             String fromTableDmlSpsDescriptorAsString)
+                                             String fromTableDmlSpsDescriptorAsString,
+                                             boolean noTriggerRI)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem, fromTableDmlSpsDescriptorAsString);
+                            optimizerEstimatedCost, cursorDelete, tableVersion, bulkDeleteDirectory, colMapRefItem,
+                            fromTableDmlSpsDescriptorAsString, noTriggerRI);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);
@@ -2290,6 +2305,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String quoteChar,
                                              String quoteMode,
                                              String format,
+                                             String floatingPointNotation,
+                                             String timestampFormat,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -2312,7 +2329,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 encoding,
                 fieldSeparator,
                 quoteChar,
-                quoteMode
+                quoteMode,
+                floatingPointNotation,
+                timestampFormat
         );
         op.markAsTopResultSet();
         return op;
@@ -2390,7 +2409,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) {
-        throw new RuntimeException("Not Implemented");
+    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) throws StandardException {
+        return new CurrentOfResultSetOperation(cursorName, activation, resultSetNumber);
     }
 }
