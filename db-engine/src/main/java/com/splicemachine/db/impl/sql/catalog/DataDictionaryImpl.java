@@ -7573,10 +7573,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ColumnDescriptor[] cdArray = new ColumnDescriptor[columnCount];
         for ( int ix = 0; ix < columnCount; ix++ )
         {
-                    columnID = newColumnIDs[ix];
-                    currentColumn = columns[ columnID - 1 ];    // from 1 to 0 based
+            columnID = newColumnIDs[ix];
+            currentColumn = columns[ columnID - 1 ];    // from 1 to 0 based
 
-                    cdArray[ix] = makeColumnDescriptor(currentColumn, columnID, td);
+            cdArray[ix] = makeColumnDescriptor(currentColumn, columnID, td);
         }
         addDescriptorArray(cdArray, td, SYSCOLUMNS_CATALOG_NUM, false, tc);
     }

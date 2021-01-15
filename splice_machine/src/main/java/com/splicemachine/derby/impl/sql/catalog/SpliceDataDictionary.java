@@ -60,6 +60,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
@@ -1423,8 +1424,59 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void populateNewSystemTableColumns(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
+        TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+        DataValueDescriptor[] fetchedRow = new DataValueDescriptor[templateRow.length()];
+        DataValueDescriptor[] newRow = new DataValueDescriptor[templateRow.length()];
+
+        FormatableBitSet columnToUpdateSet=new FormatableBitSet(templateRow.length());
+        for(int i=0 ; i < templateRow.length() ; i++) {
+            columnToUpdateSet.set(i);
+        }
+
+        // Init the heap conglomerate here
+        for (ConglomerateDescriptor conglomerateDescriptor : td.getConglomerateDescriptors()) {
+            if (!conglomerateDescriptor.isIndex()) {
+                tabInfo.setHeapConglomerate(conglomerateDescriptor.getConglomerateNumber());
+                break;
+            }
+        }
+
+        try (ScanController sc=tc.openScan(
+                tabInfo.getHeapConglomerate(),
+                false,
+                0,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,
+                0,
+                null,
+                null,
+                0)) {
+            while (sc.fetchNext(fetchedRow)) {
+                for (int i = 0; i < fetchedRow.length; ++i) {
+                    if (ArrayUtils.contains(colIds, i + 1)) {
+                        newRow[i] = templateRow.getColumn(i + 1).cloneValue(false);
+                    } else {
+                        newRow[i] = fetchedRow[i].cloneValue(false);
+                    }
+                }
+                sc.replace(newRow, columnToUpdateSet);
+            }
+        }
+
+        if (catalogNumber >= NUM_CORE) {
+            // reset TI in NonCoreTI array, we only used the heap conglomerate here, so information about the indexes
+            // are not fully populated. This TI should not be reused for future operations.
+            clearNoncoreTable(catalogNumber - NUM_CORE);
+        }
+    }
+
     public void upgradeAddIndexedColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow, int[] indexIds) throws StandardException {
         upgradeAddColumnToSystemTable(tc, catalogNumber, colIds, templateRow);
+        populateNewSystemTableColumns(tc, catalogNumber, colIds, templateRow);
         upgradeRecreateIndexesOfSystemTable(tc, catalogNumber, indexIds);
     }
 
@@ -1489,9 +1541,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
         }
 
-        if (catalogNumber < NUM_CORE) {
-            // XXX
-        } else {
+        if (catalogNumber >= NUM_CORE) {
             // reset TI in NonCoreTI array, we only used some indexes here, so information about the other
             // ones are not fully populated. This TI should not be reused for future operations.
             clearNoncoreTable(catalogNumber - NUM_CORE);
