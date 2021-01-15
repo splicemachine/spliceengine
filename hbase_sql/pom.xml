@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.1.1993-SNAPSHOT</version>
+        <version>3.0.1.1993</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
