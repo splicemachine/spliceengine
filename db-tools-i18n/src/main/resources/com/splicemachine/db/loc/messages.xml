@@ -1514,6 +1514,11 @@ so the product will default to showing a correct English message. -->
             </msg>
 
             <msg>
+                <name>42816</name>
+                <text>A datetime value or duration in an expression is invalid.</text>
+            </msg>
+
+            <msg>
                 <name>42818</name>
                 <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must also have matching collation. If collation does not match, a possible solution is to cast operands to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE CAST(tablename AS VARCHAR(128)) = 'T1')</text>
                 <arg>type</arg>
