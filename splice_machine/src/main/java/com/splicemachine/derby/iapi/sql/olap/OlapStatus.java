@@ -55,4 +55,7 @@ public interface OlapStatus{
     boolean isRunning();
 
     boolean wait(long time, TimeUnit unit) throws InterruptedException;
+
+    String getString();
+    void setString(String s);
 }

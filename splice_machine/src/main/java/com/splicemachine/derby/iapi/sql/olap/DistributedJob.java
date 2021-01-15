@@ -55,4 +55,8 @@ public abstract class DistributedJob implements Serializable{
     public final boolean isSubmitted() {
         return submitted;
     }
+
+    public void notify(String str) {
+        // nothing
+    }
 }

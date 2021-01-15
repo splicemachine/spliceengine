@@ -162,7 +162,7 @@ implements NoPutResultSet
 	public void reopenCore() throws StandardException
 	{
 		close();
-		openCore();	
+		openCore();
 	}
 
 	/**

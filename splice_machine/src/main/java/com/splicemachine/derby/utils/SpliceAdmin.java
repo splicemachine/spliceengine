@@ -75,7 +75,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -1852,6 +1851,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
             new GenericColumnDescriptor("ELAPSED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
             new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            //new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
             new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
     };
 
@@ -2035,11 +2035,22 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
             row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
-            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
+//            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
+            row.setColumn(9, new SQLVarchar(ro.getState() == null ? "-" : ro.getState())); // State
             rows.add(row);
         }
-
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
+        GenericColumnDescriptor[] runningOpsDescriptors2 = {
+                new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+                new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+                new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+                new GenericColumnDescriptor("ELAPSED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+                new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+                //new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+                new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40))};
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors2, lastActivation);
         try {
             resultsToWrap.openCore();
         } catch (StandardException se) {

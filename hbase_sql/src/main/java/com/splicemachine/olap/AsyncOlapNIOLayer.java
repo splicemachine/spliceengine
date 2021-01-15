@@ -177,7 +177,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 throw Exceptions.rawIOException((Throwable)OlapSerializationUtils.decode(fr.getErrorBytes()));
             case IN_PROGRESS:
                 OlapMessage.ProgressResponse pr=response.getExtension(OlapMessage.ProgressResponse.response);
-                return new SubmittedResult(pr.getTickTimeMillis());
+                return new SubmittedResult(pr.getTickTimeMillis(), pr.getProgressStr());
             case CANCELLED:
                 return new CancelledResult();
             case COMPLETED:
@@ -223,6 +223,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             this.job=job;
             // We serialize it here because this can sometimes block (subquery materialization), and we don't want to block Netty's IO threads
             this.data=OlapSerializationUtils.encode(job);
+        }
+
+        void notify(String str) {
+            job.notify(str);
         }
 
         @Override
@@ -521,8 +525,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             }
             //TODO -sf- deal with a OlapServer failover here (i.e. a move to NOT_SUBMITTED from any other state
             if(or instanceof SubmittedResult) {
-                future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(((SubmittedResult) or).getTickTime());
+                SubmittedResult sr = ((SubmittedResult) or);
+                future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(sr.getTickTime());
                 future.lastStatus = System.currentTimeMillis();
+                future.job.notify(sr.msg);
             } else if(future.submitted && !future.isDone() && or instanceof NotSubmittedResult) {
                 // Server says the job is no longer submitted, give it a couple of tries in case messages are out of order
                 long millisSinceLastStatus = System.currentTimeMillis() - future.lastStatus;
