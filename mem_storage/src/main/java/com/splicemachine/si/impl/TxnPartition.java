@@ -99,7 +99,12 @@ public class TxnPartition implements Partition{
         List<DataResult> results = new ArrayList<>(rowKeys.size());
         for(byte[] key:rowKeys){
             get.setKey(key);
-            results.add(basePartition.get(get,null));
+            // Another task may have deleted the cells associated
+            // with this rowkey.
+            // Check for null before adding to the list.
+            DataResult dataResult = basePartition.get(get,null);
+            if (dataResult != null)
+                results.add(dataResult);
         }
         return results.iterator();
     }
