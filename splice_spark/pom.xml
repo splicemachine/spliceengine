@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1993-SNAPSHOT</version>
+        <version>3.2.0.1994-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark</artifactId>
     <name>Splicemachine Spark Bindings</name>
