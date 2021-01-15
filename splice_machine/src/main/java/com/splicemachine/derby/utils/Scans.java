@@ -375,7 +375,6 @@ public class Scans extends SpliceUtils {
                 throw StandardException.newException(LANG_INTERNAL_ERROR,
                     "keyRows and startKeyValue not expected to both be set in attachScanKeys.");
 
-            List<Pair<ExecRow, ExecRow>> newKeyRows = new ArrayList<>();
             ExecRow startRow, stopRow;
             final int startKeyLength = startKeyValue == null ? 1 : startKeyValue.length;
             final int stopKeyLength = stopKeyValue == null ? 1 : stopKeyValue.length;
