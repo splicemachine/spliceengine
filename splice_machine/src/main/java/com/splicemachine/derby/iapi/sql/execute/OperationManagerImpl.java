@@ -36,6 +36,12 @@ public class OperationManagerImpl implements OperationManager {
     private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
     private ConcurrentMap<String, RunningOperation> drdaOperations = new ConcurrentHashMap();
 
+    @Override
+    public RunningOperation getRunningOperation(UUID uuid)
+    {
+        return operations.get(uuid);
+    }
+
     public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn) {
         Random rnd = ThreadLocalRandom.current();
         UUID uuid = new UUID(rnd.nextLong(), rnd.nextLong());

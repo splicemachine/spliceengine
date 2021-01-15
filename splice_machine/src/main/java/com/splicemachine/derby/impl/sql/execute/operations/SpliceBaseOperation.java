@@ -509,7 +509,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
         activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_OLAP);
-        openDistributed();
+        openDistributed(uuid);
     }
 
     // When we kill an operation we close it abruptly and weird exceptions might pop up, mask them with the cancellation message
@@ -531,10 +531,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
     }
 
-    private void openDistributed() throws StandardException{
+    private void openDistributed(UUID uuid) throws StandardException{
         isOpen = true;
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-        remoteQueryClient.submit();
+        remoteQueryClient.submit(uuid);
         execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
             @Nullable
             @Override
@@ -554,7 +554,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
         activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
         if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient()) {
-            openDistributed();
+            openDistributed(this.uuid);
         } else {
             openCore(dsp);
         }

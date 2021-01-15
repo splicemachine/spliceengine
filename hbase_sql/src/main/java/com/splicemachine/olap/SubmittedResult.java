@@ -23,12 +23,17 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 public class SubmittedResult implements OlapResult{
     private static final long serialVersionUID = 1l;
     private long tickTime;
+    public String msg;
 
     public SubmittedResult(){
     }
 
     public SubmittedResult(long tickTime){
         this.tickTime=tickTime;
+    }
+    public SubmittedResult(long tickTime, String msg){
+        this.tickTime=tickTime;
+        this.msg = msg;
     }
 
     public long getTickTime(){

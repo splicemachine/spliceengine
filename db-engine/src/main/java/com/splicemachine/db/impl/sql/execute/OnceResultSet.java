@@ -104,8 +104,8 @@ public class OnceResultSet extends NoPutResultSetImpl
      * their values...
 	 *
 	 * @exception StandardException thrown if cursor finished.
-     */
-	public void	openCore() throws StandardException 
+	 */
+	public void openCore() throws StandardException
 	{
 		/* NOTE: We can't get code generation
 		 * to generate calls to reopenCore() for

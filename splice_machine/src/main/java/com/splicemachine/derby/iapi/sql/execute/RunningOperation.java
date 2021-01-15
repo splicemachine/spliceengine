@@ -14,7 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *  @time 01/29/2018
  */
 
-public class RunningOperation{
+public class RunningOperation {
 
     private final UUID uuid;
     private final String rdbIntTkn;
@@ -74,5 +74,12 @@ public class RunningOperation{
         else {
             return (getEngine() == DataSetProcessor.Type.SPARK) ? "OLAP" : "OLTP";
         }
+    }
+    public String state;
+    public void setState(String state) {
+        this.state = state;
+    }
+    public String getState() {
+        return state;
     }
 }

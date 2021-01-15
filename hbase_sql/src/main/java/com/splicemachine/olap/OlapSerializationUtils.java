@@ -71,7 +71,8 @@ class OlapSerializationUtils{
                 case SUBMITTED:
                 case RUNNING:
                     response.setType(OlapMessage.Response.Type.IN_PROGRESS);
-                    OlapMessage.ProgressResponse build=OlapMessage.ProgressResponse.newBuilder().setTickTimeMillis(tickTime).build();
+                    OlapMessage.ProgressResponse build=OlapMessage.ProgressResponse.newBuilder().setTickTimeMillis(tickTime).
+                            setProgressStr( status.getString() ).build();
                     response.setExtension(OlapMessage.ProgressResponse.response,build);
                     break;
                 case CANCELED:

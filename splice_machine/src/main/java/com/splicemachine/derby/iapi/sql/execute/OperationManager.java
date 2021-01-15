@@ -37,7 +37,7 @@ public interface OperationManager {
      */
     UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn);
 
-
+    RunningOperation getRunningOperation(UUID uuid);
     /**
      * Unregister an operation that has been closed
      * @param uuid Unique identifier provided by the registerOperation() method

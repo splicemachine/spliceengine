@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;

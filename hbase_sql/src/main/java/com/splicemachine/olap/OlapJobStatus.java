@@ -41,6 +41,8 @@ public class OlapJobStatus implements OlapStatus{
     private ArrayBlockingQueue<OlapResult> results;
     private volatile OlapResult cachedResult;
 
+    public String str = "";
+
     public OlapJobStatus(long tickTime,int numTicks){
         //TODO -sf- remove the constants
         FiniteDuration maxHeartbeatInterval = FiniteDuration.apply(numTicks*tickTime,TimeUnit.MILLISECONDS);
@@ -158,6 +160,17 @@ public class OlapJobStatus implements OlapStatus{
          * Returns true if the job is still considered to be running (i.e. the client is still checking in regularly)
          */
         return currentState()==State.RUNNING;
+    }
+
+    @Override
+    public void setString(String s) {
+        str = s;
+    }
+
+    @Override
+    public String getString()
+    {
+        return str;
     }
 
     @Override
