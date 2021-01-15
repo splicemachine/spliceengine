@@ -134,7 +134,7 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
             setMinRetentionPeriodOf(SCHEMA1, "NON_EXISTING_TABLE", 400L);
             Assert.fail("expected exception to be thrown");
         } catch (Exception e) {
-            Assert.assertEquals("Table 'NON_EXISTING_TABLE' does not exist.  ", e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("Table 'NON_EXISTING_TABLE' does not exist."));
         }
     }
 

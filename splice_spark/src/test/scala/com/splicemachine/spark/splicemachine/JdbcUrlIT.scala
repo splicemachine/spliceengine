@@ -86,7 +86,7 @@ class JdbcUrlIT extends FunSuite with Matchers with BeforeAndAfterAll {
     )
   }
 
-  val expInvUseridPwd = "java.sql.SQLNonTransientConnectionException: Connection authentication failure occurred.  Reason: userid or password invalid."
+  val expInvUseridPwd = "java.sql.SQLNonTransientConnectionException: Connection authentication failure occurred. Reason: userid or password invalid."
 
   test("JDBC Url Bad Userid") {
     verify(
