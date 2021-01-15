@@ -901,7 +901,7 @@ public class FromBaseTable extends FromTable {
             return;
         }
         currentIndexFirstColumnStats.
-            setFirstIndexColumnRowsPerValue(currentIndexFirstColumnStats.getRowCountFromStats() /
+            setFirstIndexColumnRowsPerValue(Double.valueOf(currentIndexFirstColumnStats.getRowCountFromStats()) /
                                             currentIndexFirstColumnStats.getFirstIndexColumnCardinality());
         // Also update the current conglomerate descriptor with stats, which will
         // persist in that descriptor after we move on to considering another
@@ -917,7 +917,6 @@ public class FromBaseTable extends FromTable {
                                      CostEstimate outerCost,
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering) throws StandardException {
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
         CostEstimate finalCostEstimate;
         CostEstimate firstPassCostEstimate;
         finalCostEstimate = firstPassCostEstimate =
