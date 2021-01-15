@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -24,12 +23,14 @@ import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.IteratorUtils;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.utils.Scans;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  *
@@ -49,6 +50,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
     protected HBaseRowLocation hBaseRowLocation;
 
+    @SuppressFBWarnings(value="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification = "intentional")
     public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
         this.operation = (operation instanceof ScanOperation) ? (ScanOperation) operation : null;
@@ -95,6 +97,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
                     tableScanner.close();
                     initialized = false;
                     hasNext = false;
+                    slotted = true;
                     return hasNext;
                 } else {
                     hasNext = true;
@@ -102,6 +105,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
                         break;
                 }
             }
+            slotted = true;
             return hasNext;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -109,8 +113,10 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     }
 
     @Override
-    public ExecRow next() {
-        slotted = false;
+    public ExecRow next() throws NoSuchElementException {
+        if (!hasNext)
+            throw new NoSuchElementException();
+        slotted = hasNext = false;
         rows++;
         return execRow;
     }
