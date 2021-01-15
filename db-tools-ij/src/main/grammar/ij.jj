@@ -858,6 +858,7 @@ throws SQLException
 
 
         theConnection = DriverManager.getConnection(sVal,connInfo);
+        theConnection2 = DriverManager.getConnection(sVal,connInfo);
 
         return addSession( theConnection, n );
     }

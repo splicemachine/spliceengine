@@ -15,10 +15,13 @@
 package com.splicemachine.stream;
 
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.stream.ActivationHolder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -38,11 +41,11 @@ public class RemoteQueryJob extends DistributedJob {
     int streamingBatchSize;
     int parallelPartitions;
     Integer shufflePartitions;
-
+    transient RunningOperation ro = null;
 
     public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
                           String session, String userId, String sql,
-                          int streamingBatches, int streamingBatchSize, int parallelPartitions, Integer shufflePartitionsProperty) {
+                          int streamingBatches, int streamingBatchSize, int parallelPartitions, Integer shufflePartitionsProperty, RunningOperation ro) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -55,6 +58,7 @@ public class RemoteQueryJob extends DistributedJob {
         this.streamingBatchSize = streamingBatchSize;
         this.parallelPartitions = parallelPartitions;
         this.shufflePartitions = shufflePartitionsProperty;
+        this.ro = ro;
     }
 
     @Override
@@ -65,5 +69,14 @@ public class RemoteQueryJob extends DistributedJob {
     @Override
     public String getName() {
         return "query-"+uuid;
+    }
+
+    List<String> msg = new ArrayList<>();
+    @Override
+    public void notify(String str) {
+        msg.add(str);
+        System.out.println(str);
+        if( ro != null )
+            ro.setState(str);
     }
 }

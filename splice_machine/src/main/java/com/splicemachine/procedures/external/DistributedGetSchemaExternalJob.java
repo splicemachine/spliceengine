@@ -27,6 +27,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 
 /**
@@ -68,9 +70,9 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
                  CsvOptions csvOptions,
                  StructType nonPartitionColumns,
                  StructType partitionColumns) throws IOException {
-        Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
-                        nonPartitionColumns, partitionColumns));
+        DistributedGetSchemaExternalJob job = new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
+                nonPartitionColumns, partitionColumns);
+        Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(job);
         GetSchemaExternalResult result = null;
         SConfiguration config = EngineDriver.driver().getConfiguration();
 
@@ -155,5 +157,12 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     }
     public StructType getPartitionColumns() {
         return partitionColumns;
+    }
+
+    List<String> msg = new ArrayList<>();
+    @Override
+    public void notify(String str) {
+        msg.add(str);
+        System.out.println(str);
     }
 }

@@ -18,15 +18,13 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.UUID;
 
 /**
  * Created by dgomezferro on 5/20/16.
  */
 public interface RemoteQueryClient extends AutoCloseable {
-    void submit() throws StandardException;
+    void submit(UUID uuid) throws StandardException;
 
     Iterator<ExecRow> getIterator();
 

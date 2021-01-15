@@ -44,6 +44,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Stack;
 
 /**
@@ -307,6 +308,7 @@ public class utilMain implements java.security.PrivilegedAction {
                 //do nothing
             }
 
+            Thread thread = null;
             connEnv[currCE].doPrompt(true, out);
             try {
                 command = null;
@@ -360,7 +362,115 @@ public class utilMain implements java.security.PrivilegedAction {
                         beginTime = System.currentTimeMillis();
                     }
 
-                    ijResult result = ijParser.ijStatement();
+                    ijResult result;
+                    String finalCommand = command;
+                    thread = new Thread() {
+                        int state = 0;
+                        int lastLength = 0;
+
+                        int currentJob = -1;
+                        int currentStage = -1;
+                        int currentPercentage = 0;
+
+                        void printHeader() {
+                            System.out.print("[");
+                        }
+
+                        void finish() {
+                            for(int i=currentPercentage; i<160; i++) {
+                                if(i != 0 && i % 40 == 0)
+                                    System.out.print("+");
+                                else
+                                    System.out.print("-");
+                            }
+                            System.out.println("]\n");
+                        }
+
+                        void updateProcess(String jobName, int job, int stage, int numCompletedTasks, int numTasks) {
+
+                            if( currentJob != job || currentStage != stage) {
+                                for(int i=currentPercentage; i<160; i++) {
+                                    if(i != 0 && i % 40 == 0)
+                                        System.out.print("+");
+                                    else
+                                        System.out.print("-");
+                                }
+                                System.out.println("]");
+                                currentJob = job;
+                                currentStage = stage;
+                                currentPercentage = 0;
+                                System.out.println(jobName);
+                                System.out.print("[");
+                            }
+                            int perc = numCompletedTasks*160/numTasks;
+                            for(int i=currentPercentage; i<perc; i++) {
+                                if(i != 0 && i % 40 == 0)
+                                    System.out.print("+");
+                                else
+                                    System.out.print("-");
+                            }
+                            currentPercentage = perc;
+                        }
+
+                        public void run() {
+                            System.out.print("Running ... \n[");
+                            while (true) {
+                                String pre = "";
+                                if(lastLength > 0) {
+                                    pre = "\u001b[" + lastLength + "D";
+                                }
+
+                                String[] states = {"/", "-", "\\", "|"};
+                                state++;
+                                state = state % 4;
+
+                                try {
+                                    String s;
+                                    if (false) {
+                                        s = ijParser.getRunningOperation(finalCommand) + " " + states[state];
+                                        lastLength = s.length();
+                                        System.out.print(pre);
+                                        System.out.print(s);
+                                        System.out.flush();
+                                    } else {
+                                        String rc = ijParser.getRunningOperation(finalCommand);
+                                        String jobname = rc.split("\n")[0];
+                                        String arr[] = rc.split("\n")[1].split(" ");
+                                        //String s = " " + numJobs + " " + numStages + " " + sd.numCompleteTasks() + " " + sd.numActiveTasks() + " " + sd.numTasks() + "\n";
+                                        int numJobs = Integer.parseInt(arr[1]);
+                                        int numStages = Integer.parseInt(arr[2]);
+                                        int numCompletedTasks = Integer.parseInt(arr[3]);
+                                        int numActiveTasks = Integer.parseInt(arr[4]);
+                                        int numTasks = Integer.parseInt(arr[5]);
+                                        //s = "Job " + numJobs + " Stage " + numStages + " " + numCompletedTasks + " / " + numTasks;
+                                        updateProcess(jobname, numJobs, numStages, numCompletedTasks, numTasks);
+                                    }
+
+                                }
+                                catch( java.lang.NumberFormatException | java.lang.ArrayIndexOutOfBoundsException e) {
+
+                                } catch (SQLException e) {
+                                    System.out.println("exception" + e.toString() );
+                                }
+                                try {
+                                    Thread.sleep(500);
+                                } catch (InterruptedException e) {
+                                    finish();
+                                    return;
+                                }
+                            }
+                        }
+                    };
+
+                    thread.start();
+                    result = ijParser.ijStatement();
+
+                    thread.interrupt();
+//                    System.out.flush();
+//                    System.out.print("\u001b[100D\u001b[K"); // clear line
+//                    System.out.flush();
+//                    System.out.println("DONE");
+                    thread.join();
 
                     if (!(result instanceof ijShellConfigResult)) {
                         displayResult(out, result, connEnv[currCE].getConnection());
@@ -384,10 +494,13 @@ public class utilMain implements java.security.PrivilegedAction {
                 }
 
             } catch (ParseException e) {
-                scriptErrorCount += doCatch(command) ? 0 : 1;
+                scriptErrorCount += doCatch(command, thread) ? 0 : 1;
+                thread = null;
             } catch (TokenMgrError e) {
-                if (command != null)
-                    scriptErrorCount += doCatch(command) ? 0 : 1;
+                if (command != null) {
+                    scriptErrorCount += doCatch(command, thread) ? 0 : 1;
+                    thread = null;
+                }
             } catch (SQLException e) {
                 scriptErrorCount++;
                 // SQL exception occurred in ij's actions; print and continue
@@ -402,6 +515,18 @@ public class utilMain implements java.security.PrivilegedAction {
                 scriptErrorCount++;
                 out.println(langUtil.getTextMessage("IJ_JavaErro0", e.toString()));
                 doTrace(e);
+            }
+            if(thread != null) {
+                thread.interrupt();
+//                System.out.flush();
+//                System.out.print("\u001b[100D\u001b[K"); // clear line
+//                System.out.flush();
+//                System.out.println("DONE");
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             /* Go to the next connection/user, if there is one */
@@ -531,7 +656,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * catch processing on failed commands. This really ought to
      * be in ij somehow, but it was easier to catch in Main.
      */
-    private boolean doCatch(String command) {
+    private boolean doCatch(String command, Thread thread) {
         // this retries the failed statement
         // as a JSQL statement; it uses the
         // ijParser since that maintains our
@@ -548,6 +673,14 @@ public class utilMain implements java.security.PrivilegedAction {
             }
 
             ijResult result = ijParser.executeImmediate(command);
+            if(thread != null) {
+                thread.interrupt();
+//                System.out.flush();
+//                System.out.print("\u001b[100D\u001b[K"); // clear line
+//                System.out.flush();
+//                System.out.println("DONEc");
+                thread.join();
+            }
             displayResult(out, result, connEnv[currCE].getConnection());
 
             /* Print the elapsed time if appropriate */

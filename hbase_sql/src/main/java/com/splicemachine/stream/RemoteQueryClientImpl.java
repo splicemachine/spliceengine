@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -36,7 +37,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -86,7 +86,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     @Override
-    public void submit() throws StandardException {
+    public void submit(UUID uuid) throws StandardException {
         Activation activation = root.getActivation();
         ActivationHolder ah = new ActivationHolder(activation, root);
 
@@ -104,7 +104,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             HostAndPort hostAndPort = server.getHostAndPort();
             String host = hostAndPort.getHostText();
             int port = hostAndPort.getPort();
-            UUID uuid = streamListener.getUuid();
+            UUID streamListenerUuid = streamListener.getUuid();
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
@@ -120,12 +120,15 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
+            RunningOperation ro = uuid == null ? null : EngineDriver.driver().getOperationManager().getRunningOperation(uuid);
+
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), streamListenerUuid, host, port, session, userId, sql,
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty, ro);
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest, queue);
+
             olapFuture.addListener(new Runnable() {
                 @Override
                 public void run() {

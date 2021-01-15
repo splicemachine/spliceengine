@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -377,10 +378,10 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
                                                          CsvOptions csvOptions, StructType nonPartitionColumns,
-                                                         StructType partitionColumns) throws StandardException {
+                                                         StructType partitionColumns, OlapStatus jobStatus) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions,
-                nonPartitionColumns, partitionColumns);
+                nonPartitionColumns, partitionColumns, null);
     }
 
     @Override

@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.stream.ListenerCounting;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
@@ -430,6 +432,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
+    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String rootPath, boolean mergeSchema,
+                                                         CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                         StructType partitionColumns, OlapStatus jobStatus) throws StandardException {
+        if( jobStatus == null )
+            return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
+        else {
+            try (ListenerCounting counter = new ListenerCounting(null, UUID.randomUUID().toString(), "CREATE TABLE", jobStatus)) {
+                return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
+            }
+        }
+    }
+
     public GetSchemaExternalResult getExternalFileSchema(String storedAs, String rootPath, boolean mergeSchema,
                                                          CsvOptions csvOptions, StructType nonPartitionColumns,
                                                          StructType partitionColumns) throws StandardException {
