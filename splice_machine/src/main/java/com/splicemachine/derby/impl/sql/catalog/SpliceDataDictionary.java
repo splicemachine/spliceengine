@@ -368,7 +368,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
         // Create SYS.SYSDATABASES
-        if(getTableDescriptor(SYSDATABASESRowFactory.TABLENAME_STRING, systemSchemaDesc,tc) == null) {
+        if(getTableDescriptor(SYSDATABASESRowFactory.TABLENAME_STRING, systemSchemaDesc,tc) == null) { // XXX This will not work because the index is not reset yet
             ExecutionContext ec = (ExecutionContext) ContextService.getContext(ExecutionContext.CONTEXT_ID);
             new CoreCreation(SYSDATABASES_CATALOG_NUM, tc, ec).run();
             if (coreInfo[SYSDATABASES_CATALOG_NUM].getNumberOfIndexes() > 0) {
@@ -1423,6 +1423,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
         TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+        CatalogRowFactory crf = tabInfo.getCatalogRowFactory();
 
         // Init the heap conglomerate here
         for (ConglomerateDescriptor conglomerateDescriptor : td.getConglomerateDescriptors()) {
@@ -1432,9 +1433,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
         }
 
+
         for (int indexId : indexIds) {
-            ConglomerateDescriptor cd = td.getConglomerateDescriptor(tabInfo.getIndexConglomerate(indexId));
-            dropConglomerateDescriptor(cd, tc);
+            ConglomerateDescriptor cd = td.getConglomerateDescriptor(crf.getCanonicalIndexUUID(indexId));
+            if (cd != null)
+                dropConglomerateDescriptor(cd, tc);
             cd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, tabInfo, indexId, tabInfo.getHeapConglomerate());
             addDescriptor(cd, systemSchemaDesc, SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
