@@ -7513,24 +7513,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
       *
       *    @param    rowFactory     Associated with this catalog.
       *    @param    newColumnIDs   Array of 1-based column ids.
-      *    @param    tc             Transaction controller
-      *
-      *    @exception StandardException Standard Derby error policy
+      *    @param templateRow
+     * @param    tc             Transaction controller
+     *
+     *    @exception StandardException Standard Derby error policy
       */
-        public void upgrade_addColumns( CatalogRowFactory rowFactory,
-                                        int[] newColumnIDs,
-                                        TransactionController tc )
+        public void upgrade_addColumns(CatalogRowFactory rowFactory,
+                                       int[] newColumnIDs,
+                                       ExecRow templateRow, TransactionController tc)
                     throws StandardException
     {
-        int            columnID;
-        SystemColumn        currentColumn;
+        int columnID;
+        SystemColumn currentColumn;
 
-        SystemColumn[]        columns = rowFactory.buildColumnList();
-                ExecRow templateRow = rowFactory.makeEmptyRowForLatestVersion();
-        int            columnCount = newColumnIDs.length;
-        SchemaDescriptor    sd = getSystemSchemaDescriptor();
-        TableDescriptor        td;
-        long                conglomID;
+        SystemColumn[] columns = rowFactory.buildColumnList();
+        int columnCount = newColumnIDs.length;
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td;
+        long conglomID;
+        templateRow = (templateRow == null) ? rowFactory.makeEmptyRowForLatestVersion() : templateRow;
 
         // Special case when adding a column to systables or syscolumns,
         // since we can't go to systables/syscolumns to get the

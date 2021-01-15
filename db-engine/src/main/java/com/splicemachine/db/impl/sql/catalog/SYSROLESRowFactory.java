@@ -53,7 +53,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 {
     public static final String TABLENAME_STRING = "SYSROLES";
 
-    private static final int SYSROLES_COLUMN_COUNT = 8;
+    public static final int SYSROLES_COLUMN_COUNT = 8;
     /* Column #s for sysinfo (1 based) */
     private static final int SYSROLES_ROLE_UUID = 1;
     private static final int SYSROLES_ROLEID = 2;

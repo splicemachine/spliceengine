@@ -397,22 +397,31 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
 
         // Add new databaseid columns to relevant system tables
+        ExecRow templateRow = getExecutionFactory().getValueRow(SYSSCHEMASRowFactory.SYSSCHEMAS_COLUMN_COUNT);
+        templateRow.setColumn(4, new SQLChar(databaseID.toString()));
         upgradeAddIndexedColumnToSystemTable(
                 tc, SYSSCHEMAS_CATALOG_NUM,
                 new int[]{4},
+                templateRow,
                 new int[]{SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID});
 
+        templateRow = getExecutionFactory().getValueRow(SYSROLESRowFactory.SYSROLES_COLUMN_COUNT);
+        templateRow.setColumn(8, new SQLChar(databaseID.toString()));
         upgradeAddIndexedColumnToSystemTable(
                 tc, SYSROLES_CATALOG_NUM,
                 new int[]{8},
+                templateRow,
                 new int[]{
                         SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
                         SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,
                         SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
                 });
 
+        templateRow = getExecutionFactory().getValueRow(SYSROLESRowFactory.SYSROLES_COLUMN_COUNT);
+        templateRow.setColumn(5, new SQLChar(databaseID.toString()));
         upgradeAddIndexedColumnToSystemTable(tc, SYSUSERS_CATALOG_NUM,
                 new int[]{5},
+                templateRow,
                 new int[]{0});
     }
 
@@ -1385,7 +1394,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return !SpliceClient.isRegionServer;
     }
 
-    public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds) throws StandardException {
+    public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
         int lastCol = colIds[colIds.length - 1];
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
         try {
@@ -1405,7 +1414,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     }
                 }
             }
-            upgrade_addColumns(tabInfo.getCatalogRowFactory(), colIds, tc);
+            upgrade_addColumns(tabInfo.getCatalogRowFactory(), colIds, templateRow, tc);
             SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table %s", tabInfo.getTableName());
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, "Attempt to upgrade %s failed. " +
@@ -1414,8 +1423,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    public void upgradeAddIndexedColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, int[] indexIds) throws StandardException {
-        upgradeAddColumnToSystemTable(tc, catalogNumber, colIds);
+    public void upgradeAddIndexedColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow, int[] indexIds) throws StandardException {
+        upgradeAddColumnToSystemTable(tc, catalogNumber, colIds, templateRow);
         upgradeRecreateIndexesOfSystemTable(tc, catalogNumber, indexIds);
     }
 
