@@ -100,7 +100,12 @@ class PredicateSimplificationVisitor implements Visitor {
     // parameterized queries.
     @Override
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
-        if (node instanceof AndNode) {
+        if(node instanceof NotNode) {
+            NotNode nn = (NotNode)node;
+            if(nn.operand instanceof UntypedNullConstantNode) {
+                return nn.operand;
+            }
+        } else if (node instanceof AndNode) {
             AndNode an = (AndNode)node;
             if (isBooleanTrue(an.getLeftOperand())) {
                 return an.getRightOperand();
