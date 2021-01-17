@@ -1575,5 +1575,13 @@ public interface Property {
      * alwaysAllowIndexPrefixIteration is true.
      */
     String CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION = "alwaysAllowIndexPrefixIteration";
+
+    /**
+     * If true, disable IndexPrefixIteratorMode access paths.  All index or primary key access
+     * that uses a start key or stop key must then specify the first column of the index
+     * in an equality of IN list predicate.
+     */
+    String DISABLE_INDEX_PREFIX_ITERATION =
+            "splice.optimizer.disablePrefixIteratorMode";
 }
 
