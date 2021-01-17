@@ -67,5 +67,4 @@ public interface DataScan extends Attributable{
     // filter will throw an IOException.
     void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException;
 
-    void addPageFilter(long numRows) throws StandardException;
 }
