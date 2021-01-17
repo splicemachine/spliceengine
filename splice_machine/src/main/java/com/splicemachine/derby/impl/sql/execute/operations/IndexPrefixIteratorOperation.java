@@ -289,9 +289,6 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
         // going after a single row on each read.
         dataScan.cacheRows(2).batchCells(-1);
 
-        // Limit each read to one row.
-        dataScan.addPageFilter(1);
-
         scanSetBuilder =
         controlDSP.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
