@@ -37,7 +37,6 @@ public class IndexPrefixIteratorFunction extends SpliceFlatMapFunction<SpliceOpe
     private int firstIndexColumnNumber;
     private int [] baseColumnMap;
     private int firstMappedIndexColumnNumber;
-    boolean isMemPlatform = isMemPlatform();
 
     public IndexPrefixIteratorFunction() {
         super();
@@ -89,10 +88,6 @@ public class IndexPrefixIteratorFunction extends SpliceFlatMapFunction<SpliceOpe
                 throw new RuntimeException(e);
             }
             try {
-                if (!isMemPlatform)
-                    while (sourceIterator.hasNext())
-                        sourceIterator.next();
-
                 // No need to hold on to memory if we are reading multiple
                 // index prefixes.  Close the stream right away.
                 closeSourceIterator();
