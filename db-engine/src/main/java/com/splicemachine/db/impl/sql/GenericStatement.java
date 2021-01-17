@@ -468,6 +468,7 @@ public class GenericStatement implements Statement{
                 setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
                 setNewMergeJoin(lcc, cc);
                 setDisableParallelTaskJoinCosting(lcc, cc);
+                setDisablePrefixIteratorMode(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
                 setTimestampFormat(lcc, cc);
                 setFloatingPointNotation(lcc, cc);
@@ -723,6 +724,21 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setNewMergeJoin(newMergeJoin);
+    }
+
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePrefixIteratorModeString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
+        boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        try {
+            if (disablePrefixIteratorModeString != null)
+                disablePrefixIteratorMode =
+                Boolean.parseBoolean(disablePrefixIteratorModeString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

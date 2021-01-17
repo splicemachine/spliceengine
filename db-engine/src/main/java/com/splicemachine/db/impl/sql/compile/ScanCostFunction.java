@@ -498,7 +498,7 @@ public class ScanCostFunction{
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
         double remoteCost = (openLatency + closeLatency) +
-                            (numFirstIndexColumnProbes)*remoteLatency*(1+colSizeFactor/1024d) +
+                            (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
                             totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
@@ -516,7 +516,7 @@ public class ScanCostFunction{
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency;
         assert numFirstIndexColumnProbes >= 0;
-        baseCost += (numFirstIndexColumnProbes)*localLatency*(1+congAverageWidth/100d);
+        baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
         baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;

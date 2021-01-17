@@ -4054,6 +4054,9 @@ public class FromBaseTable extends FromTable {
         if (lcc.alwaysAllowIndexPrefixIteration())
             return true;
 
+        if (getCompilerContext().getDisablePrefixIteratorMode())
+            return false;
+
         // We must have statistics collected on the base table to pick IndexPrefixIteratorMode
         // because the operation may get expensive if the number of values is underestimated.
         // Also, building of the MultiRowRangeFilter to handle the iteration may get expensive
