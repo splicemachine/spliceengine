@@ -119,14 +119,6 @@ public class HScan implements DataScan {
         }
     }
 
-    @Override public
-    void addPageFilter(long numRows) throws StandardException {
-        if (numRows < 1)
-            throw StandardException.newException(LANG_INTERNAL_ERROR,
-                "Page filter must scan at least 1 row.");
-        scan.setFilter(new PageFilter(numRows));
-    }
-
     @Override
     public DataScan startKey(byte[] startKey){
         scan.withStartRow(startKey);

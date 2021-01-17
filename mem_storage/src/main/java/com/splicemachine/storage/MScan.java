@@ -44,11 +44,6 @@ public class MScan implements DataScan{
         throw new IOException();
     }
 
-    @Override public
-    void addPageFilter(long numRows) throws StandardException {
-        // No-op
-    }
-
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){
