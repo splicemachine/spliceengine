@@ -497,7 +497,9 @@ public class ScanCostFunction{
         double closeLatency = scc.getCloseLatency();
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
-        double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
+        double remoteCost = (openLatency + closeLatency) +
+                            (numFirstIndexColumnProbes)*remoteLatency*(1+colSizeFactor/1024d) +
+                            totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
         assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
@@ -513,11 +515,9 @@ public class ScanCostFunction{
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency;
-        double indexProbingMultiplier = numFirstIndexColumnProbes > 1 ?
-                                         Math.cbrt(numFirstIndexColumnProbes) :
-                                         1d;
-        baseCost +=  indexProbingMultiplier *
-                     (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        assert numFirstIndexColumnProbes >= 0;
+        baseCost += (numFirstIndexColumnProbes)*localLatency*(1+congAverageWidth/100d);
+        baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));

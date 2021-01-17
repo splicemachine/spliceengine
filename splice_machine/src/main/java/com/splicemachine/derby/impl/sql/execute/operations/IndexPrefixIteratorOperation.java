@@ -183,6 +183,17 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
         return "IndexPrefixIteratorOperation";
     }
 
+
+    private void closeFirstTableScanner(TableScannerIterator tableScannerIterator) throws StandardException {
+        try {
+            tableScannerIterator.close();
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+
+    }
+
     /**
      *
      * Retrieve the DataSet abstraction for this table scan.
@@ -203,9 +214,12 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
 
         if (keys == null) {
             DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
-            registerCloseable((TableScannerIterator) ds.toLocalIterator());
+            TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
+            registerCloseable(tableScannerIterator);
             ds = ds.mapPartitions(new IndexPrefixIteratorFunction(operationContext, firstIndexColumnNumber), true);
             keys = ds.collect();
+
+            closeFirstTableScanner(tableScannerIterator);
 
             // IndexPrefixIteratorFunction has set scanKeyPrefix.
             // Future operations won't want this set, so reset it back to null.
@@ -217,6 +231,13 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             finalDS = controlDSP.getEmpty();
         else if (isMemPlatform) {
             ((BaseActivation) sourceResultSet.getActivation()).setSameStartStopScanKeyPrefix(true);
+            // Instead of using MultiRowRangeFilter, on mem we create a separate scanner for each
+            // key and call setScanKeyPrefix in order to combine it with the remainder of the start key.
+            // Setting setSameStartStopScanKeyPrefix causes the scanKeyPrefix to include the start key.
+            // Otherwise, scanKeyPrefix is not combined with a key suffix, and the scan searches
+            // for rows with rowkey greater than scanKeyPrefix.  The main use of that mode is in
+            // IndexPrefixIteratorFunction, where we jump from one key to the next, collecting
+            // up all of the keys which have rows on disk.
             IteratorChain unionedDataSets = new IteratorChain();
             for (ExecRow keyRow:keys) {
                 ((BaseActivation) sourceResultSet.getActivation()).setScanKeyPrefix(keyRow.getColumn(1));
