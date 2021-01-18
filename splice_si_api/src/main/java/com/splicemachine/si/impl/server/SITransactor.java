@@ -673,7 +673,11 @@ public class SITransactor implements Transactor{
             if((dataTxnId & SIConstants.TRANSANCTION_ID_MASK) == txn.getTxnId()) {
                 continue;
             }
+            // get the parent
             TxnView txnView = txnSupplier.getTransaction(dataTxnId);
+            while(txnView != Txn.ROOT_TRANSACTION) {
+                txnView = txnView.getParentTxnView();
+            }
             Txn.State state = txnView.getEffectiveState();
             if(state == Txn.State.ACTIVE) {
                 activeTx.add(dataTxnId & SIConstants.TRANSANCTION_ID_MASK);
@@ -681,8 +685,8 @@ public class SITransactor implements Transactor{
                 throwWriteWriteConflict(txn, cell, dataTxnId);
             }
         }
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("transaction " + txn + " conflicts with " + activeTx.toString());
+        if(!activeTx.isEmpty()) {
+            LOG.warn("transaction " + txn + " conflicts with " + activeTx.toString() + " on table " + table.getTableName() + " on row " + cell);
         }
         return Longs.toArray(activeTx);
     }

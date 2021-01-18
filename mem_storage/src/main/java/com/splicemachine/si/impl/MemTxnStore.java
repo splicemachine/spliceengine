@@ -579,7 +579,7 @@ public class MemTxnStore implements TxnStore{
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
-        if(txnsWithIgnoredConflicts.contains(txnId)) {
+        if(ignoreConflicts(txnId)) {
             return;
         }
         long beginTs = txnId & SIConstants.TRANSANCTION_ID_MASK;
@@ -591,6 +591,17 @@ public class MemTxnStore implements TxnStore{
         }finally{
             wl.unlock();
         }
+    }
+
+    private boolean ignoreConflicts(long txnId) throws IOException {
+        TxnView txnView = getTransaction(txnId, false);
+        while(txnView != Txn.ROOT_TRANSACTION) {
+            if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
+                return true;
+            }
+            txnView = txnView.getParentTxnView();
+        }
+        return false;
     }
 
     @Override

@@ -115,8 +115,10 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                     if(conflictingTxn == txnId) {
                         continue;
                     } else if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
+                        SpliceLogUtils.warn(LOG,"transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
                         rollbackTransaction(conflictingTxn, txnId);
                     } else {
+                        SpliceLogUtils.warn(LOG,"transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
                         lifecycleManager.rollback(conflictingTxn, txnId);
                     }
                 }

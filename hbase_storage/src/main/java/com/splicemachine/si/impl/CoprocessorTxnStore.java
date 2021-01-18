@@ -420,7 +420,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
-        if(txnsWithIgnoredConflicts.contains(txnId)) {
+        if (ignoreConflicts(txnId)) {
             return;
         }
 
@@ -481,6 +481,17 @@ public class CoprocessorTxnStore implements TxnStore {
     /*
      * private helper methods
      */
+
+    private boolean ignoreConflicts(long txnId) throws IOException {
+        TxnView txnView = getTransaction(txnId, false);
+        while(txnView != Txn.ROOT_TRANSACTION) {
+            if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
+                return true;
+            }
+            txnView = txnView.getParentTxnView();
+        }
+        return false;
+    }
 
     private TxnView decode(long queryId, TxnMessage.Txn message) throws IOException {
         TxnMessage.TxnInfo info = message.getInfo();
