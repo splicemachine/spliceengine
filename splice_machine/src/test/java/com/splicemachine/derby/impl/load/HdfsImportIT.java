@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -33,6 +35,7 @@ import splice.com.google.common.collect.Maps;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
@@ -180,6 +183,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     private static SpliceTableWatcher  multiPK = new SpliceTableWatcher("withpk",spliceSchemaWatcher.schemaName,
             "(a int primary key)");
 
+    protected static SpliceTableWatcher cacheNPEtest = new SpliceTableWatcher("cacheNPEtest", spliceSchemaWatcher
+            .schemaName, "(c1 int)");
 
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
             spliceSchemaWatcher.schemaName,
@@ -216,6 +221,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher25)
             .around(spliceTableWatcher26)
             .around(spliceTableWatcher27)
+            .around(cacheNPEtest)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -287,6 +293,8 @@ public class HdfsImportIT extends SpliceUnitTest {
                         ")")
                 .withIndex("CREATE INDEX cust_idx ON hdfsimportit.customers(email)")
                 .create();
+
+        setPreserveLineEndings(conn,false);
     }
 
     private static File BADDIR;
@@ -2115,6 +2123,95 @@ public class HdfsImportIT extends SpliceUnitTest {
         String expected = "100,accd,accd,aa\n" +
                 "200,,,00\n";
         Assert.assertEquals(expected, result);
+    }
+
+    public static void setPreserveLineEndings(Connection conn, Boolean preserve) throws Exception {
+        try( Statement s = conn.createStatement()) {
+            s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
+                    "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + preserve + "' )");
+        }
+    }
+
+    @Test
+    public void testLineEndings() throws Exception {
+        File tempDir = createTempDirectory(spliceSchemaWatcher.schemaName);
+        String path = tempDir.toString() + "/lineEndings.csv";
+        try {
+            // we're writing a file here instead of having a file as resource
+            // to have better control over what \r and \n we use
+            // (otherwise needs special editor, git converting line endings etc.)
+            String data =
+                    "\"Hello\r\nWindows\"|1|Win\r\n" + // 0D0A = Windows
+                    "\"Hello\nUnix\"|2|unix\n" +       // 0A   = Unix
+                    "\"Hello\rMac\"|3|mac\r" +         // 0D   = Mac
+                    "\"ciao\"|4|ciao";                 // ends with EOF
+            Files.write(Paths.get(path), data.getBytes());
+
+            List<String> configs = new ArrayList<>();
+            configs.add("call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
+            configs.add("call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
+            if( !isMemPlatform(spliceClassWatcher) ) // bulk import hfile not available on MEM platform
+                configs.add("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)");
+
+            String preserveStr ="V1       |C1 | V2  |\n" +
+                    "--------------------------\n" +
+                    "Hello\r\n" +
+                    "Windows | 1 | Win |\n" +
+                    "  Hello\n" +
+                    "Unix   | 2 |unix |\n" +
+                    "   Hello\r" +
+                    "Mac   | 3 | mac |\n" +
+                    "     ciao      | 4 |ciao |";
+
+            String noPreserveStr ="V1       |C1 | V2  |\n" +
+                    "-------------------------\n" +
+                    "Hello\n" +
+                    "Windows | 1 | Win |\n" +
+                    " Hello\n" +
+                    "Unix   | 2 |unix |\n" +
+                    "  Hello\n" +
+                    "Mac   | 3 | mac |\n" +
+                    "    ciao      | 4 |ciao |";
+
+            methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER, v2 varchar(24))");
+
+            for(String config : configs) {
+                for( Boolean preserve : new Boolean[]{false, true}) {
+                    methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
+                    setPreserveLineEndings(methodWatcher.getOrCreateConnection(), preserve);
+                    String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
+
+                    methodWatcher.executeQuery(String.format(sql, spliceSchemaWatcher.schemaName, path));
+                    SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from LINE_ENDINGS order by c1",
+                            preserve ? preserveStr : noPreserveStr, false);
+                }
+            }
+        }
+        finally {
+            setPreserveLineEndings(methodWatcher.getOrCreateConnection(), CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS);
+            File f = new File(path);
+            if (f.exists()) f.delete();
+            deleteTempDirectory(tempDir);
+        }
+    }
+
+    @Test // DB-11113/DB-11117 fix LCC NPE when using getPreserveLineEndings in SpliceFileVTI
+    public void testPropertiesCacheNPE() throws Exception {
+        String path = getResourceDirectory() + "load_replace1.csv";
+        String vti = "new com.splicemachine.derby.vti.SpliceFileVTI('" + path + "', NULL,'|', NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) AS T(A INTEGER)";
+        methodWatcher.executeUpdate("TRUNCATE TABLE cacheNPEtest");
+        methodWatcher.executeUpdate("INSERT INTO cacheNPEtest SELECT * from " + vti);
+        String expected =
+                "C1 | A |\n" +
+                        "--------\n" +
+                        " 1 | 1 |\n" +
+                        " 2 | 2 |\n" +
+                        " 3 | 3 |\n" +
+                        " 4 | 4 |\n" +
+                        " 5 | 5 |";
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                "SELECT * from cacheNPEtest, " + vti + " --splice-properties joinStrategy=broadcast\n" +
+                        "WHERE A=c1", expected, false);
     }
 
 }

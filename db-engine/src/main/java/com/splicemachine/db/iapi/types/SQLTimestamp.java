@@ -40,9 +40,11 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.primitives.Bytes;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
@@ -57,6 +59,8 @@ import java.io.ObjectOutput;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
@@ -98,8 +102,7 @@ public final class SQLTimestamp extends DataType
     public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
 
     private static boolean skipDBContext = false;
-
-    private int precision = 0;
+    private DateTimeFormatter formatter = null;
 
     public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
@@ -108,6 +111,8 @@ public final class SQLTimestamp extends DataType
     private int nanos;
 
     private int stringFormat = -1;
+
+    private String timestampFormat;
     /*
     ** DataValueDescriptor interface
     ** (mostly implemented in DataType)
@@ -122,8 +127,9 @@ public final class SQLTimestamp extends DataType
         stringFormat = format;
     }
 
-    public void setPrecision(int precision) {
-        this.precision = precision;
+    public void setTimestampFormat(String format) {
+        timestampFormat = format;
+        formatter = null; // recreate on demand
     }
 
     // Check for a version 2.0 timestamp out of bounds.
@@ -166,23 +172,57 @@ public final class SQLTimestamp extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-    private static String format(Timestamp timestamp, int precision) {
-        assert timestamp != null;
-        String ts = timestamp.toString();
-        String result = ts.substring(0, ts.indexOf('.'));
-        if(precision <= 0) {
-            return result;
+    /**
+     * this also checks if the format is a valid fixed-size timestamp format
+     * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+     * we support:
+     * yyyy, yy, uuuu, uu, eee, EEE, MM, mm, dd, HH, hh, ss, a
+     * up to 9x S (nanoseconds), and other characters " ,.-/:"
+     * @param format
+     * @throws IllegalArgumentException if format is not supported
+     * @return length of format
+     */
+    public static int getFormatLength(String format) throws IllegalArgumentException
+    {
+        byte[] b = format.getBytes(Bytes.UTF8_CHARSET);
+        int repeat = 0;
+        char last = (char)b[0];
+        int length = b.length;
+        for(int i=0; i<b.length+1; i++) {
+            if (i != b.length && (char) b[i] == last) {
+                repeat++;
+                continue;
+            }
+            int r = repeat;
+            char l = last;
+            repeat = 1;
+            if( i != b.length)
+                last = (char) b[i];
+            if ((l == 'y' || l == 'u') && (r == 4 || r == 2)) continue;
+            else if (r == 2 &&  "MmdHhs".indexOf(l) != -1 ) continue;
+            else if (r == 3 && (l == 'e' || l == 'E')) continue;
+            else if (l == 'S' && r <= 9) continue; // s fraction max 9
+            else if (r == 1 && l == 'a') {
+                length++;
+                continue;
+            }
+            else if(" ,.-/:".indexOf(l) != -1) continue;
+            throw new IllegalArgumentException("not supported format \"" + format + "\": '" + l + "' can't be repeated " + r + " times");
         }
-        String nanosString = ts.substring(ts.indexOf('.') + 1);
-        if(nanosString.length() == precision) {
-            return result + "." + nanosString;
-        } else if(nanosString.length() > precision) {
-            return result + "." + nanosString.substring(0, precision);
-        } else {
-            int paddingZeros = precision - nanosString.length();
-            return result + "." + nanosString + String.join("", Collections.nCopies(paddingZeros, "0"));
-        }
+        return length;
     }
+
+    /**
+     * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+     */
+    private String format(Timestamp timestamp, String timeStampFormat) {
+        if(timeStampFormat == null) timeStampFormat = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
+        if(formatter == null ) {
+            formatter = DateTimeFormatter.ofPattern(timeStampFormat).withZone(ZoneId.systemDefault());
+        }
+        return formatter.format(timestamp.toLocalDateTime());
+    }
+
 
     public String getString() throws StandardException {
         if(stringFormat >= 0) { // similar to DB2, we don't support custom formats for Timestamp (DB-10461)
@@ -191,7 +231,7 @@ public final class SQLTimestamp extends DataType
         if (!isNull()) {
             Timestamp timestamp = getTimestamp(calendar);
             assert timestamp != null;
-            return format(timestamp, precision);
+            return format(timestamp, timestampFormat);
         } else {
             return null;
         }
@@ -1391,6 +1431,9 @@ public final class SQLTimestamp extends DataType
         }
         DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
         resultHolder.setValue(dateAdd);
+        // take care of nanos (DateTime only has millis)
+        if(leftOperand instanceof SQLTimestamp && resultHolder instanceof SQLTimestamp)
+            ((SQLTimestamp) resultHolder).nanos = ((SQLTimestamp) leftOperand).nanos;
         return resultHolder;
     }
 
@@ -1404,6 +1447,9 @@ public final class SQLTimestamp extends DataType
         }
         DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
         resultHolder.setValue(diff);
+        // take care of nanos (DateTime only has millis)
+        if(leftOperand instanceof SQLTimestamp && resultHolder instanceof SQLTimestamp)
+            ((SQLTimestamp) resultHolder).nanos = ((SQLTimestamp) leftOperand).nanos;
         return resultHolder;
     }
 

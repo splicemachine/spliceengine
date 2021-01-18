@@ -239,6 +239,11 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
             base = leftOperand;
         }
+        if (base.requiresTypeFromContext()) {
+            // Reference:
+            // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html, Table 1
+            throw StandardException.newException(SQLState.LANG_DB2_INVALID_DATETIME_EXPR);
+        }
         if (!"+".equals(operator) && !"-".equals(operator) || !base.getTypeId().isDateTimeTimeStampTypeId()) {
             throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);
         }

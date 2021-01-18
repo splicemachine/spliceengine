@@ -1083,6 +1083,15 @@ public class SpliceUnitTest {
         }
     }
 
+    public static void assertThrows(Runnable r, String expectedExceptionStr) {
+        try {
+            r.run();
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            Assert.assertEquals(expectedExceptionStr, e.toString());
+        }
+    }
+
     /// execute sql query 'sqlText' and expect a certain formatted result
     public static void sqlExpectToString(SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
     {
@@ -1169,7 +1178,8 @@ public class SpliceUnitTest {
     {
         String[] paths = {
                 System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
-                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../mem_sql/target/sql-it/sql-it.jar",
         };
         for(String path : paths ) {
             if( new File(path).exists())
@@ -1195,6 +1205,36 @@ public class SpliceUnitTest {
             rs.next();
             Assert.assertEquals(output, rs.getBoolean(1));
         }
+    }
 
+    protected void checkNullExpression(String input, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try (ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertNull(rs.getObject(1));
+        }
+    }
+
+    protected void checkExpressionType(String input, String expectedType, TestConnection conn) throws SQLException {
+        String sql = format("select typeof(%s)", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedType, rs.getString(1));
+        }
+    }
+
+    protected void checkStringExpression(String input, String expectedOutput, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getString(1));
+        }
+    }
+
+    public static boolean isMemPlatform(SpliceWatcher watcher) throws Exception{
+        try (ResultSet rs = watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
     }
 }

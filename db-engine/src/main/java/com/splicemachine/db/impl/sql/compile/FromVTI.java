@@ -134,15 +134,36 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private CreateTriggerNode tempTriggerDefinition;
     private String tempTriggerSQLText;
     private String tempTriggerName;
+    private Vector<ParameterNode> fromTableParameterList;
 
     /**
      * @param invocation        The constructor or static method for the VTI
      * @param correlationName    The correlation name
      * @param derivedRCL        The derived column list
      * @param tableProperties    Properties list associated with the table
-     *
+     * @param fromTableParameterList  Parameterized FROM TABLE statement, list of parameters.
+     * @param forFromTable       If processing a FROM TABLE statement, this is a Boolean true.
      * @exception StandardException        Thrown on error
      */
+    public void init(
+            Object invocation,
+            Object correlationName,
+            Object derivedRCL,
+            Object tableProperties,
+            Object typeDescriptor,
+            Object fromTableParameterList,
+            Object forFromTable)
+            throws StandardException
+    {
+        this.fromTableParameterList = (Vector) fromTableParameterList;
+        init( invocation,
+                correlationName,
+                derivedRCL,
+                tableProperties,
+                makeTableName(null, (String) correlationName),
+                typeDescriptor);
+    }
+
     public void init(
             Object invocation,
             Object correlationName,
@@ -699,6 +720,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 tec = createTemporaryTrigger(tempTriggerName,
                                              fromTableDMLStmt,
                                              tempTriggerDefinition);
+                fromTableDMLStmt.getCompilerContext().setParameterList(fromTableParameterList);
+                DataTypeDescriptor[] descriptors = fromTableDMLStmt.getCompilerContext().getParameterTypes();
+                fromTableParameterList.forEach( (param) -> param.setDescriptors(descriptors));
+
                 fromTableDMLStmt.bindStatement();
                 //walkAST(lcc,fromTableDMLStmt, CompilationPhase.AFTER_BIND);
             }
@@ -1124,7 +1149,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * (DERBY-3288)
          */
         dependencyMap = new JBitSet(numTables);
-        methodCall.categorize(dependencyMap, false);
+        methodCall.categorize(dependencyMap, null, false);
 
         // Make sure this FromVTI does not "depend" on itself.
         dependencyMap.clear(tableNumber);

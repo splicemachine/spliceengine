@@ -43,6 +43,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOpera
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -89,6 +90,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     protected DataSet<ExecRow> sourceSet;
     protected boolean isSpark;
     protected Txn nestedTxn = null;
+    private TransactionController transactionController = null;
+    private BaseSpliceTransaction internalTransaction = null;
     protected boolean exceptionHit = false;
     protected SPSDescriptor fromTableDmlSpsDescriptor;
 
@@ -179,15 +182,44 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         try {
             if (dsp.getType() == DataSetProcessor.Type.SPARK || isOlapServer())
             {
-                nestedTxn =
-                    SIDriver.driver().lifecycleManager().beginChildTransaction(
-                            parent,
-                            parent.getIsolationLevel(),
-                            parent.isAdditive(),
-                            Bytes.toBytes(Long.toString(heapConglom)),
-                            false);
+                WriteCursorConstantOperation constantAction=(WriteCursorConstantOperation)writeInfo.getConstantAction();
+                TriggerInfo triggerInfo=constantAction.getTriggerInfo();
+                boolean needsfullyNestedTransaction = triggerInfo != null;
 
-                txn = nestedTxn;
+                LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+                TransactionController transactionExecute = lcc.getTransactionExecute();
+                if (needsfullyNestedTransaction && !lcc.hasNestedTransaction()) {
+                    // Start a nested transaction controller that deals only with internal
+                    // transactions, not savepoints.
+                    transactionController =
+                        transactionExecute.startNestedInternalTransaction(false,
+                                            Bytes.toBytes(Long.toString(heapConglom)),
+                                            false);
+                    lcc.pushNestedTransaction(transactionController);
+                    Transaction rawStoreXact = ((TransactionManager) transactionController).getRawStoreXact();
+                    if (!(((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn() instanceof Txn))
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                                        "DMLWriteOperation cannot make child Txn out of TxnView.");
+                    Txn childTxn = (Txn) ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+                    nestedTxn = childTxn;
+                    txn = (TxnView) childTxn;
+                }
+                else {
+                    nestedTxn =
+                    SIDriver.driver().lifecycleManager().beginChildTransaction(
+                    parent,
+                    parent.getIsolationLevel(),
+                    parent.isAdditive(),
+                    Bytes.toBytes(Long.toString(heapConglom)),
+                    false);
+
+                    txn = nestedTxn;
+                    if (needsfullyNestedTransaction){
+                        internalTransaction =
+                        (BaseSpliceTransaction) ((SpliceTransactionManager) transactionExecute).getRawStoreXact();
+                        internalTransaction.pushInternalTransaction((Txn) txn);
+                    }
+                }
             }
             else
                 txn = parent;
@@ -222,6 +254,16 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             }
             throw Exceptions.parseException(e);
          }
+        finally {
+             if (transactionController != null) {
+                 getActivation().getLanguageConnectionContext().popNestedTransaction();
+                 transactionController = null;
+             }
+             if (internalTransaction != null) {
+                 internalTransaction.popInternalTransaction();
+                 internalTransaction = null;
+             }
+        }
      }
 
     public DataSet<ExecRow> getSourceSet() {

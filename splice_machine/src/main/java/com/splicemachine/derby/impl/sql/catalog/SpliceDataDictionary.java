@@ -28,6 +28,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -351,6 +352,77 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        String viewName = "INDEXCOLUSE";
+        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+
+        // create an synonym SYSIBM.SYSINDEXCOLUSE for SYSCAT.INDEXCOLUSE
+        String synonymName = "SYSINDEXCOLUSE";
+        TableDescriptor synonymTD = getTableDescriptor(synonymName, sysIBMSchemaDesc, tc);
+        if (synonymTD == null)
+        {
+            // To prevent any possible deadlocks with SYSTABLES, we insert a row into
+            // SYSTABLES also for synonyms. This also ensures tables/views/synonyms share
+            // same namespace
+            DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+            td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
+                    TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null,null,false,false,null);
+            addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            // Create a new alias descriptor with a UUID filled in.
+            UUID synonymID = getUUIDFactory().createUUID();
+            AliasDescriptor ads = new AliasDescriptor(this, synonymID,
+                    synonymName,
+                    sysIBMSchemaDesc.getUUID(),
+                    null,
+                    AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR,
+                    AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
+                    true,
+                    new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
+                    null);
+            addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
+                    false, tc, false);
+
+            SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
+        }
+    }
+
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        String viewName = "SYSINDEXES";
+        TableDescriptor td = getTableDescriptor(viewName, sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 2, sysIBMSchemaDesc, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSIBM is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -372,7 +444,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
@@ -382,12 +455,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
@@ -627,6 +697,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
     }
 
     @Override
@@ -830,8 +904,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1748,8 +1822,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 

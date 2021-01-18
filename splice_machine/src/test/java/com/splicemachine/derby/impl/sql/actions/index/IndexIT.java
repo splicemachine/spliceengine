@@ -854,9 +854,105 @@ public class IndexIT extends SpliceUnitTest{
 
     }
 
+    @Test
+    public void testIndexMetadata() throws Exception {
+        String tableName1 = "TEST_IDX_META_1";
+        String tableName2 = "TEST_IDX_META_2";
+        String tableName3 = "TEST_IDX_META_3";
+        methodWatcher.executeUpdate(format("create table %s (i int, d double, primary key(d, i))", tableName1));
+        methodWatcher.executeUpdate(format("create table %s (d2 double unique, c char(3))", tableName2));
+        methodWatcher.executeUpdate(format("create table %s (col1 char(4), col2 char(4))", tableName3));
+        methodWatcher.executeUpdate(format("create unique index %s_UIDX on %s (col1)", tableName3, tableName3));
+        methodWatcher.executeUpdate(format("create index %s_IDX on %s (col2)", tableName3, tableName3));
+
+        // cannot test NAME column individually because for constraints, names are generated
+        // test index created for PK
+        try(ResultSet rs = methodWatcher.executeQuery(format("select creator, tbname, tbcreator, uniquerule, colcount from sysibm.sysindexes where tbname = '%s'", tableName1))) {
+            String expected =
+                    "CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-------------------------------------------------------------\n" +
+                    " INDEXIT |TEST_IDX_META_1 |  INDEXIT  |     P     |    2    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test index created for UNIQUE constraint
+        try(ResultSet rs = methodWatcher.executeQuery(format("select creator, tbname, tbcreator, uniquerule, colcount from sysibm.sysindexes where tbname = '%s'", tableName2))) {
+            String expected =
+                    "CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-------------------------------------------------------------\n" +
+                    " INDEXIT |TEST_IDX_META_2 |  INDEXIT  |     C     |    1    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test index created by user
+        try(ResultSet rs = methodWatcher.executeQuery(format("select * from sysibm.sysindexes where tbname = '%s'", tableName3))) {
+            String expected =
+                    "NAME         | CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-----------------------------------------------------------------------------------\n" +
+                    "TEST_IDX_META_3_UIDX | INDEXIT |TEST_IDX_META_3 |  INDEXIT  |     U     |    1    |\n" +
+                    " TEST_IDX_META_3_IDX | INDEXIT |TEST_IDX_META_3 |  INDEXIT  |     D     |    1    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test join with syscat.indexcoluse view, use its synonym sysibm.sysindexcoluse
+        try(ResultSet rs = methodWatcher.executeQuery(format("SELECT \n" +
+                "  K.COLNAME, K.COLSEQ \n" +
+                "FROM SYSIBM.SYSINDEXES I, SYSIBM.SYSINDEXCOLUSE K \n" +
+                "WHERE I.NAME = K.INDNAME \n" +
+                "      AND I.CREATOR = K.INDSCHEMA \n" +
+                "      AND I.TBNAME = '%s' \n" +
+                "      AND I.TBCREATOR = '%s' \n" +
+                "      AND I.UNIQUERULE = 'P' \n" +
+                "ORDER BY K.COLSEQ", tableName1, SCHEMA_NAME))) {
+            String expected =
+                    "COLNAME |COLSEQ |\n" +
+                    "------------------\n" +
+                    "    D    |   1   |\n" +
+                    "    I    |   2   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     // ===============================================================================
     // Index expression tests - create, insert, and update
     // ===============================================================================
+
+    @Test
+    public void testGetKeyColumnPositionThrowForIndexOnExpressions() throws Exception {
+        String tableName = "TEST_IDX_GKCP";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 10, 1.1), ('def', 20, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), i + 2)", tableName, tableName));
+
+        String query = format(
+                "SELECT \n" +
+                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) as ORD \n" +
+                "    , cols.COLUMNNUMBER \n" +
+                "    , cols.COLUMNNAME \n" +
+                "  FROM --splice-properties joinOrder=fixed \n" +
+                "      SYS.SYSTABLES T --splice-properties index=SYSTABLES_INDEX1, useSpark=false \n" +
+                "    , SYS.SYSSCHEMAS S --splice-properties joinStrategy=broadcast \n" +
+                "    , SYS.SYSCONGLOMERATES CONGLOMS --splice-properties index=SYSCONGLOMERATES_INDEX3, joinStrategy=nestedloop \n" +
+                "    , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
+                "  WHERE \n" +
+                "      T.SCHEMAID = S.SCHEMAID \n" +
+                "  AND T.TABLEID = CONGLOMS.TABLEID \n" +
+                "  AND T.TABLEID = COLS.REFERENCEID \n" +
+                "  AND (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN \n" +
+                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE \n" +
+                "         0 END) <> 0 \n" +
+                "  AND T.TABLENAME='%s' \n" +
+                "  AND CONGLOMS.CONGLOMERATENAME='%s'", tableName, tableName + "_IDX");
+
+        try {
+            methodWatcher.executeQuery(query);
+            Assert.fail("expect IllegalArgumentException thrown in getKeyColumnPosition()");
+        } catch (SQLException e) {
+            Assert.assertEquals("SE001", e.getSQLState());
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("Cannot retrieve ordinal position"));
+        }
+    }
 
     @Test
     public void testCreateIndexAndInsertWithExpressionsOfNumericFunctions() throws Exception {
@@ -884,9 +980,15 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
                        "(c1 || '.test', initcap(c1), lcase(c1), length(c1), " +
-                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), rtrim(c1), " +
-                       "substr(c1, 2), trim(c1), ucase(c1))",
+                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), " +
+                       "substr(c1, 2), ucase(c1))",
                         tableName, tableName));
+
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (rtrim(c1))", tableName, tableName));
+
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_3 ON %s (trim(c1))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 'xyz')", tableName));
         methodWatcher.executeUpdate(format("update %s set c1 = 'this' where c2 = 'world'", tableName));
@@ -920,13 +1022,16 @@ public class IndexIT extends SpliceUnitTest{
                        "('2014-01-28', '22:00:05', '2014-01-31 22:00:05')," +
                        "('2016-05-04', '12:04:30', '2016-05-01 12:04:30')"
                         , tableName));
+
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
-                       "(add_months(d, 5), date(ts), day(d), extract(Week FROM d), hour(t), day(d), minute(t), " +
+                       "(add_months(d, 5), date(ts), day(d), extract(Week FROM d), hour(t), minute(t), " +
                        "month(d), month_between(d, '2018-01-01'), monthname(d), quarter(d), second(t), " +
                        "time(ts), timestamp(d, t), timestampadd(SQL_TSI_DAY, 2, ts), " +
-                       "timestampdiff(SQL_TSI_DAY, timestamp(d, t), ts), trunc(d, 'month'), week(d), year(d))",
+                       "timestampdiff(SQL_TSI_DAY, timestamp(d, t), ts), trunc(d, 'month'), year(d))",
                         tableName, tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (day(d), week(d))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('2017-09-10', '08:55:06', '2017-09-12 08:45:06')", tableName));
         methodWatcher.executeUpdate(format("update %s set d = '2016-05-05' where t = '12:04:30'", tableName));
@@ -939,11 +1044,14 @@ public class IndexIT extends SpliceUnitTest{
         String tableName = "TEST_IDX_CONVERSION_FN";
         methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
         methodWatcher.executeUpdate(format("insert into %s values ('50', 10), ('100', 20)", tableName));
+
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
-                       "(bigint(vc), cast(vc as integer), char(i), double(vc), integer(vc), smallint(vc), " +
+                       "(bigint(vc), cast(vc as integer), char(i), double(vc), smallint(vc), " +
                        "tinyint(vc), to_char(date(i),'yy'), to_date(date(i), 'yyyy-MM-dd'), varchar(vc || 'x'))",
                         tableName, tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX_2 ON %s (integer(vc))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values ('120', 30)", tableName));
         methodWatcher.executeUpdate(format("update %s set vc = '80' where i = 10", tableName));
@@ -1305,6 +1413,54 @@ public class IndexIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testCreateIndexOnDuplicateExpressions() throws Exception {
+        String tableName = "TEST_IDX_DUPLICATE_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lower(vc), lower(vc))", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("lower(vc)"));
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + 2, i+2)", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("i+2"));
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + 2, 2 + i)", tableName, tableName));
+            Assert.fail("expect exception of duplicate index columns");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X66", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("2 + i"));
+        }
+    }
+
+    @Test
+    public void testIndexOnExpressionsMetadata() throws Exception {
+        String tableName = "TEST_IDX_EXPR_META";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), LOWER(C), I + 3, MOD(I, 3) DESC)", tableName, tableName));
+
+        try(ResultSet rs = methodWatcher.executeQuery(format("select * from syscat.indexcoluse where indname = '%s_IDX'", tableName))) {
+            String expected =
+                    "INDSCHEMA |        INDNAME        | COLNAME |COLSEQ |COLORDER | COLLATIONSCHEMA | COLLATIONNAME | VIRTUAL |  TEXT    |\n" +
+                    "-----------------------------------------------------------------------------------------------------------------------\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   1   |    A    |      NULL       |     NULL      |    S    |UPPER(C)  |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   2   |    A    |      NULL       |     NULL      |    S    |LOWER(C)  |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   3   |    A    |      NULL       |     NULL      |    S    |  I + 3   |\n" +
+                    "  INDEXIT  |TEST_IDX_EXPR_META_IDX |  NULL   |   4   |    D    |      NULL       |     NULL      |    S    |MOD(I, 3) |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     // ===============================================================================
     // Index expression tests - qualify and query
     // ===============================================================================
@@ -1598,6 +1754,37 @@ public class IndexIT extends SpliceUnitTest{
                 "--------\n" +
                 " 0 | 0 |\n" +
                 " 3 |10 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionsAsDisjunctiveTerms() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_DISJ";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2), d + i)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('ghi', 30, 3.3), ('xyz', 40, 3.3)", tableName));
+
+        String query = format("select upper(c) from %s --splice-properties index=%s_IDX \n" +
+                "  where mod(i,2) = 1 or upper(c) in ('abc', 'def')", tableName, tableName);
+
+        /* check plan */
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",     // should be directly on top of IndexScan and no IndexLookup in between
+                "IndexScan[TEST_INDEX_EXPR_DISJ_IDX",
+                "[((TEST_INDEX_EXPR_DISJ_IDX_col2[0:2] = 1) or ((TEST_INDEX_EXPR_DISJ_IDX_col1[0:1] IN (abc ,def )) or false))]"
+        };
+        rowContainsQuery(new int[]{3,4,4}, "explain " + query, methodWatcher, expectedOps);
+
+        /* check result */
+        String expected = "1  |\n" +
+                "-----\n" +
+                "ABC |\n" +
+                "JKL |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

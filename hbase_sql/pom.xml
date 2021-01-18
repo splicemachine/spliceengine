@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1989-SNAPSHOT</version>
+        <version>3.2.0.1995-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
@@ -617,6 +617,17 @@
             <dependencies>
                 <dependency>
                     <!-- com.databricks.spark.avro -->
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <dependencies>
+                <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-avro_${scala.binary.version}</artifactId>
                     <version>${spark.version}</version>

@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.system.SparkVersion;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
 import java.util.*;
@@ -301,16 +302,25 @@ public class CompilerContextImpl extends ContextImpl
         currentTimestampPrecision = newValue;
     }
 
-    public void setTimestampPrecision(int newValue) {
-        timestampPrecision = newValue;
+    public void setTimestampFormat(String value) {
+        timestampFormat = value;
+    }
+
+    public void setFloatingPointNotation(int value)
+    {
+        floatingPointNotation = value;
     }
 
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
     }
 
-    public int getTimestampPrecision() {
-        return timestampPrecision;
+    public String getTimestampFormat() {
+        return timestampFormat;
+    }
+
+    public int getFloatingPointNotation() {
+        return floatingPointNotation;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -747,6 +757,7 @@ public class CompilerContextImpl extends ContextImpl
     /**
      * @see CompilerContext#getParameterTypes
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public DataTypeDescriptor[] getParameterTypes()
     {
         return parameterDescriptors;
@@ -1183,7 +1194,9 @@ public class CompilerContextImpl extends ContextImpl
     private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
     private       boolean                             allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
     private       int                                 currentTimestampPrecision                    = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
-    private       int                                 timestampPrecision                           = DEFAULT_TIMESTAMP_PRECISION;
+
+    private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
+    private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;

@@ -837,6 +837,7 @@ public interface SQLState {
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                  = "42831.S.1";
     String LANG_DB2_REPLACEMENT_ERROR                         = "42815.S.713";
     String LANG_DB2_MULTINARY_DATATYPE_MISMATCH               = "42815.S.171";
+    String LANG_DB2_INVALID_DATETIME_EXPR                     = "42816";
     String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL           = "42820";
     String LANG_DB2_LIKE_SYNTAX_ERROR                         = "42824";
     String LANG_INVALID_FK_COL_FOR_SETNULL                    = "42834";
@@ -920,7 +921,7 @@ public interface SQLState {
     String LANG_INVALID_STATISTICS_SPEC                                    = "42X64";
     String LANG_INDEX_NOT_FOUND                                            = "42X65";
     String LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX                         = "42X66";
-    //42X67
+    String LANG_INVALID_UPDATE_STATEMENT                                   = "42X67";
     String LANG_NO_FIELD_FOUND                                             = "42X68";
     String LANG_PRIMITIVE_REFERENCING_EXPRESSION                           = "42X69";
     String LANG_TABLE_DEFINITION_R_C_L_MISMATCH                            = "42X70";
@@ -1947,6 +1948,7 @@ public interface SQLState {
     String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR = "XIE12.S";
     String UNSUPPORTED_COMPRESSION_FORMAT          = "XIE13.S";
     String UNSUPPORTED_QUOTE_MODE                  = "XIE14.S";
+    String UNSUPPORTED_FLOATING_POINT_NOTATION     = "XIE15.S";
 
 
     /*

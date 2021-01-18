@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1989-SNAPSHOT</version>
+        <version>3.2.0.1995-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark</artifactId>
     <name>Splicemachine Spark Bindings</name>
@@ -148,6 +148,13 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>splice_machine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>

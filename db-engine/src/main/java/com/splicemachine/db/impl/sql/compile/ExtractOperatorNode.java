@@ -124,7 +124,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 					operand, 
 					DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true, 
 										tc.getCastToCharWidth(
-												operand.getTypeServices())),
+												operand.getTypeServices(), getCompilerContext())),
 					getContextManager());
 			((CastNode) operand).bindCastNodeOnly();
 
@@ -191,6 +191,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		}
 
 		return this;
+	}
+
+	void bindParameter() throws StandardException
+	{
+		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
 	}
 
 	public String toString() {

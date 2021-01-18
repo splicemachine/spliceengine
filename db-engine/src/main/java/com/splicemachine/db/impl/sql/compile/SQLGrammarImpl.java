@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
-import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -560,6 +559,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.DELETE_NODE,
                         tableName,
                         resultSet,
+                        fromTable instanceof CurrentOfNode,
                         targetProperties,
                         getContextManager());
 
@@ -602,6 +602,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.UPDATE_NODE,
                         tableName,
                         resultSet,
+                        fromTable instanceof CurrentOfNode,
                         getContextManager());
 
         setUpAndLinkParameters();
@@ -610,62 +611,92 @@ class SQLGrammarImpl {
     }
 
     StatementNode getUpdateNodeWithSub(FromTable fromTable, /* table to be updated */
-                                               TableName tableName, /* table to be updated */
-                                               ResultColumnList setClause, /* new values to ue for the update */
-                                               ValueNode whereClause, /* where clause for outer update */
-                                               ValueNode subQuery) /* inner source subquery for multi column syntax */
+                                       TableName tableName, /* table to be updated */
+                                       ResultColumnList setClause, /* new values to use for the update */
+                                       ValueNode whereClause, /* where clause for outer update */
+                                       ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
+        FromList fromList = (FromList) nodeFactory.getNode(
                 C_NodeTypes.FROM_LIST,
                 getContextManager());
-
         fromList.addFromTable(fromTable);
 
-        // Bring the subquery table(s) to the outer from list
-        SelectNode innerSelect = (SelectNode)((SubqueryNode)subQuery).getResultSet();
-        FromList innerFrom = innerSelect.getFromList();
-        List innerFromEntries = innerFrom.getNodes();
-        for (Object obj : innerFromEntries) {
-            assert obj instanceof FromTable;
-            fromList.addFromTable((FromTable)obj);
-        }
+        // Don't flatten the subquery here but build it as a derived table. If we
+        // want to flatten the subquery here, it has to be fully bound in order
+        // to cover many corner cases. That is not an easy task and would lead to
+        // even more hacky code.
+        // The derived table flattening logic in preprocess will be triggered to
+        // flatten the subquery.
+        SubqueryNode subq = (SubqueryNode) subQuery;
+        FromTable fromSubq = (FromTable) nodeFactory.getNode(
+                C_NodeTypes.FROM_SUBQUERY,
+                subq.getResultSet(),
+                subq.getOrderByList(),
+                subq.getOffset(),
+                subq.getFetchFirst(),
+                subq.hasJDBClimitClause(),
+                UpdateNode.SUBQ_NAME,
+                null,  /* derived RCL */
+                null,  /* optional table clause */
+                getContextManager());
+        fromList.addFromTable(fromSubq);
 
-        // Bring the subquery where clause to outer where clause
+        SelectNode innerSelect = (SelectNode) subq.getResultSet();
+        // Reject select star in subQuery. Otherwise, we need to bind subQuery to
+        // expand columns. Unfortunately, it is not easy at this time.
+        innerSelect.verifySelectStarSubquery(fromList, subq.getSubqueryType());
+
+        // A derived table cannot reference columns from tables that are in front of
+        // the derived table in the same from list. But correlation must be allowed
+        // in subquery for update statement. For this reason, pull where clause up
+        // early so that binding can be done successfully.
+        //
+        // Inner where clause may contain column references that uses table aliases
+        // defined inside the subquery. They need to be updated but it's not possible
+        // until at least tables are bound. For this reason, it's done in
+        // UpdateNode's bindStatement().
         ValueNode innerWhere = innerSelect.getWhereClause();
         ValueNode alteredWhereClause;
-        if (whereClause != null) {
+
+        if (whereClause != null && innerWhere != null) {
             alteredWhereClause = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.AND_NODE,
                     whereClause, /* the one passed into this method */
                     innerWhere,  /* the one pulled from subquery */
                     getContextManager());
         } else {
-            alteredWhereClause = innerWhere;
+            alteredWhereClause = whereClause != null ? whereClause : innerWhere;
         }
+        innerSelect.setWhereClause(null);
 
-        // Alter the passed in setClause to give it non-null expressions
-        // and to point to subqjuery table.
+        // Build column references as expressions to the results columns generated
+        // for set clause. If a result column is assigned with an expression,
+        // generate a name for that expression and still build column reference. It
+        // has to be this way because we generate an alias for the derived table.
+        // Once that's done, we wouldn't be able to access columns using an table
+        // aliases within the derived table.
         ResultColumnList innerRCL = innerSelect.getResultColumns();
         int inputSize = setClause.size();
+        if (inputSize != innerRCL.size()) {
+            throw StandardException.newException(SQLState.LANG_UNION_UNMATCHED_COLUMNS, "assignment in set clause");
+        }
         for (int index = 0; index < inputSize; index++)
         {
-            ResultColumn rc = ((ResultColumn) setClause.elementAt(index));
-            // String columnName = rc.getName();
-            ResultColumn innerResultColumn = ((ResultColumn)innerRCL.elementAt(index));
+            ResultColumn rc = setClause.elementAt(index);
+            ResultColumn innerResultColumn = innerRCL.elementAt(index);
             String innerColumnName = innerResultColumn.getName();
-            if (innerColumnName != null) {
-                // source is a case of single column
-                ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        innerColumnName,
-                        ((FromTable)innerFromEntries.get(0)).getTableName(),
-                        getContextManager());
-                rc.setExpression(colRef);
-            } else {
-                // source is an expression
-                rc.setExpression(innerResultColumn.getExpression());
+            if (innerColumnName == null) {
+                innerColumnName = "UPD_SUBQ_COL_" + index;
+                innerResultColumn.setName(innerColumnName);
+                innerResultColumn.setNameGenerated(true);
             }
+            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
+                    getContextManager());
+            rc.setExpression(colRef);
         }
 
         SelectNode resultSet = (SelectNode) nodeFactory.getNode(
@@ -684,6 +715,7 @@ class SQLGrammarImpl {
                         C_NodeTypes.UPDATE_NODE,
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
+                        fromTable instanceof CurrentOfNode,
                         getContextManager());
 
         ((UpdateNode)retval).setUpdateWithSubquery(true);
@@ -691,6 +723,55 @@ class SQLGrammarImpl {
         setUpAndLinkParameters();
 
         return retval;
+    }
+
+    SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
+        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
+
+        boolean generateName;
+        for (int index = 0; index < setClause.size(); index++) {
+            ResultColumn rc = setClause.elementAt(index);
+            String columnName = rc.getExpression().getColumnName();
+            generateName = false;
+            if (columnName == null) {
+                columnName = "UPD_SUBQ_COL_" + index;
+                generateName = true;
+            }
+            ResultColumn innerRC = (ResultColumn) nodeFactory.getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    columnName,
+                    rc.getExpression(),
+                    getContextManager());
+            if (generateName) {
+                innerRC.setNameGenerated(true);
+            }
+
+            innerRCL.addResultColumn(innerRC);
+        }
+
+        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
+                C_NodeTypes.SELECT_NODE,
+                innerRCL,  /* SELECT list */
+                null, /* AGGREGATE list */
+                fromList,  /* FROM list */
+                null, /* WHERE clause */
+                null, /* GROUP BY list */
+                null, /* having clause */
+                null, /* window list */
+                getContextManager());
+
+        return (SubqueryNode) nodeFactory.getNode(
+                C_NodeTypes.SUBQUERY_NODE,
+                selectNode,
+                SubqueryNode.FROM_SUBQUERY,
+                null,  /* left op */
+                null,  /* order by list */
+                null,  /* offset */
+                null,  /* fetch first */
+                false, /* has JDBC limit clause*/
+                getContextManager());
     }
 
     /**
@@ -960,8 +1041,8 @@ class SQLGrammarImpl {
     /**
      * Gets a replace node based on the specified arguments.
      * @param stringValue the input string
-     * @param the from sub string
-     * @param the to string
+     * @param fromString from sub string
+     * @param toString to string
      * @exception StandardException thrown on error
      */
     ValueNode getReplaceNode(

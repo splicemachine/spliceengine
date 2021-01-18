@@ -429,10 +429,143 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 						null,null,view,viewId,0,0,0)
 
 		});
+
+		cdsl.add(
+			new ColumnDescriptor[]{
+				new ColumnDescriptor("INDSCHEMA",1,1,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("INDNAME",2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLNAME",3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLSEQ",4,4,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLORDER",5,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLLATIONSCHEMA",6,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLLATIONNAME",7,7,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("VIRTUAL",8,8,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TEXT",9,9,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CLOB, true),
+						null,null,view,viewId,0,0,0)
+		});
+
+		// SYSIBM.SYSINDEXES
+		cdsl.add(
+			new ColumnDescriptor[]{
+				new ColumnDescriptor("NAME",1,1,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128), // NOT NULL in DB2
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("CREATOR",2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TBNAME",3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TBCREATOR",4,4,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("UNIQUERULE",5,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLCOUNT",6,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+						null,null,view,viewId,0,0,0)
+			});
+
 		return cdsl;
 	}
 	public static String SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = "create view SYSCONGLOMERATEINSCHEMAS as \n" +
 			"SELECT C.CONGLOMERATENUMBER, C.CONGLOMERATENAME, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
 			"WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID";
 
+
+	public static String SYSCAT_INDEXCOLUSE_VIEW_SQL = "create view INDEXCOLUSE as \n" +
+			"    SELECT  \n" +
+			"           S.SCHEMANAME AS INDSCHEMA, \n" +
+			"           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
+			"           COLS.COLUMNNAME AS COLNAME, \n" +
+			"           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ, \n" +
+			"           CASE WHEN CONGLOMS.DESCRIPTOR.isAscending( \n" +
+			"                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
+			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONSCHEMA, \n" +
+			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONNAME, \n" +
+			"           'N' AS VIRTUAL, \n" +
+			"           CAST(NULL AS CLOB) AS TEXT \n" +
+			"    FROM --splice-properties joinOrder=fixed \n" +
+			"           SYSVW.SYSSCHEMASVIEW S --splice-properties useSpark=false \n" +
+			"         , SYS.SYSCONGLOMERATES CONGLOMS --splice-properties index=SYSCONGLOMERATES_INDEX2, joinStrategy=nestedloop \n" +
+			"         , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
+			"    WHERE \n" +
+			"          CONGLOMS.SCHEMAID = S.SCHEMAID \n" +
+			"      AND CONGLOMS.DESCRIPTOR IS NOT NULL \n" +
+			"      AND NOT CONGLOMS.DESCRIPTOR.isOnExpression() \n" +
+			"      AND CONGLOMS.TABLEID = COLS.REFERENCEID \n" +
+			"      AND CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) <> 0 \n" +
+			"  UNION ALL \n" +
+			"    SELECT \n" +
+			"           S.SCHEMANAME AS INDSCHEMA, \n" +
+			"           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
+			"           CAST(NULL AS VARCHAR(128)) AS COLNAME, \n" +
+			"           CAST (NUMBERS.N AS SMALLINT) AS COLSEQ, \n" +
+			"           CASE WHEN CONGLOMS.DESCRIPTOR.isAscending(NUMBERS.N) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
+			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONSCHEMA, \n" +
+			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONNAME, \n" +
+			"           'S' AS VIRTUAL,\n" +
+			"           CAST(TRIM(CONGLOMS.DESCRIPTOR.getExprText(NUMBERS.N)) AS CLOB) AS TEXT \n" +
+			"    FROM --splice-properties joinOrder=fixed \n" +
+			"           SYSVW.SYSSCHEMASVIEW S --splice-properties useSpark=false \n" +
+			"         , SYS.SYSCONGLOMERATES CONGLOMS --splice-properties index=SYSCONGLOMERATES_INDEX2, joinStrategy=nestedloop \n" +
+			"         , SYS.SYSNATURALNUMBERS NUMBERS \n" +
+			"    WHERE \n" +
+			"          CONGLOMS.SCHEMAID = S.SCHEMAID \n" +
+			"      AND CONGLOMS.ISINDEX \n" +
+			"      AND CONGLOMS.DESCRIPTOR IS NOT NULL \n" +
+			"      AND CONGLOMS.DESCRIPTOR.isOnExpression() \n" +
+			"      AND NUMBERS.N <= CONGLOMS.DESCRIPTOR.numberOfOrderedColumns() \n" +
+			"    ORDER BY INDSCHEMA, INDNAME, COLSEQ";
+
+	// Reference:
+	// https://www.ibm.com/support/knowledgecenter/SSEPEK_12.0.0/cattab/src/tpc/db2z_sysibmsysindexestable.html
+	public static String SYSIBM_SYSINDEXES_VIEW_SQL = "create view SYSINDEXES as \n" +
+			"SELECT \n" +
+			"  C.CONGLOMERATENAME AS NAME, \n" +
+			"  S1.SCHEMANAME AS CREATOR, \n" +
+			"  T.TABLENAME AS TBNAME, \n" +
+			"  S2.SCHEMANAME AS TBCREATOR, \n" +
+			"  (CASE WHEN C.DESCRIPTOR.isPrimaryKey() THEN 'P' \n" +
+			"        WHEN C.DESCRIPTOR.isUnique() THEN \n" +
+			"             (CASE WHEN U.TYPE IS NOT NULL THEN 'C' \n" +
+			"                   ELSE 'U' END) \n" +
+			"        ELSE 'D' END) AS UNIQUERULE, \n" +
+			"  CAST(C.DESCRIPTOR.numberOfOrderedColumns() AS SMALLINT) AS COLCOUNT \n" +
+			"FROM \n" +
+			"  SYS.SYSCONGLOMERATES C \n" +
+			"  JOIN \n" +
+			"  SYS.SYSSCHEMAS S1 \n" +
+			"  ON C.DESCRIPTOR IS NOT NULL AND \n" +
+			"     C.SCHEMAID = S1.SCHEMAID \n" +
+			"  JOIN \n" +
+			"  SYS.SYSTABLES T \n" +
+			"  ON C.TABLEID = T.TABLEID \n" +
+			"  JOIN \n" +
+			"  SYS.SYSSCHEMAS S2 \n" +
+			"  ON T.SCHEMAID = S2.SCHEMAID \n" +
+			"  LEFT JOIN \n" +
+			"  (SELECT SC.TYPE, K.CONGLOMERATEID \n" +
+			"     FROM SYS.SYSCONSTRAINTS SC, SYS.SYSKEYS K   -- get all unique constraint conglomerate IDs \n" +
+			"     WHERE K.CONSTRAINTID = SC.CONSTRAINTID) U \n" +
+			"  ON C.ISCONSTRAINT AND \n" +
+			"     C.CONGLOMERATEID = U.CONGLOMERATEID";
 }

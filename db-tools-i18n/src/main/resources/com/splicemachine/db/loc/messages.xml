@@ -1516,6 +1516,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42816</name>
+                <text>A datetime value or duration in an expression is invalid.</text>
+            </msg>
+
+            <msg>
                 <name>42818</name>
                 <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must also have matching collation. If collation does not match, a possible solution is to cast operands to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE CAST(tablename AS VARCHAR(128)) = 'T1')</text>
                 <arg>type</arg>
@@ -2101,6 +2106,11 @@ Guide.
                 <name>42X66</name>
                 <text>Column name '{0}' appears more than once in the CREATE INDEX statement.</text>
                 <arg>columnName</arg>
+            </msg>
+
+            <msg>
+                <name>42X67</name>
+                <text>Invalid UPDATE statement syntax.</text>
             </msg>
 
             <msg>
@@ -4970,7 +4980,12 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <msg>
                 <name>XIE14.S</name>
                 <text>Unsupported quote mode: {0}</text>
-                <arg>compression</arg>
+                <arg>quote_mode</arg>
+            </msg>
+            <msg>
+                <name>XIE15.S</name>
+                <text>Unsupported floating point notation: {0}</text>
+                <arg>notation</arg>
             </msg>
         <msg>
                 <name>XIE0S.S</name>

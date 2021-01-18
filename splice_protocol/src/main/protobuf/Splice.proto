@@ -274,3 +274,7 @@ message SpliceRegionInfo{
 message MigratedRegions{
     repeated SpliceRegionInfo regions = 1;
 }
+
+message CompactedFiles {
+    repeated string compactedFile = 1;
+}

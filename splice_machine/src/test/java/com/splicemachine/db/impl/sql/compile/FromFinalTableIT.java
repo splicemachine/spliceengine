@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -28,6 +29,8 @@ import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.List;
 
@@ -35,6 +38,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_UNSUPPO
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the FROM FINAL TABLE clause.
@@ -44,6 +48,8 @@ import static org.junit.Assert.assertEquals;
 public class FromFinalTableIT extends SpliceUnitTest {
     
     private Boolean useSpark;
+    private static int numTables = 0;
+    private static boolean isMemPlatform = false;
     
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -66,8 +72,8 @@ public class FromFinalTableIT extends SpliceUnitTest {
     public FromFinalTableIT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
-    
-    public static void createData(Connection conn, String schemaName) throws Exception {
+
+    public static void dropObjects() throws Exception {
         String sqlText = "drop trigger trig1";
         try {
             spliceClassWatcher.executeUpdate(sqlText);
@@ -92,6 +98,10 @@ public class FromFinalTableIT extends SpliceUnitTest {
         sqlText = "drop table if exists t11";
 		spliceClassWatcher.executeUpdate(sqlText);
 
+    }
+
+    public static void createData(Connection conn, String schemaName) throws Exception {
+        dropObjects();
         new TableCreator(conn)
                 .withCreate("create table t1 (a int, b varchar(10))")
                 .withInsert("insert into t1 values(?, ?)")
@@ -112,7 +122,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
                         row(12, "xyz")))
                 .create();
 
-        sqlText = "insert into t11 select * from t1";
+        String sqlText = "insert into t11 select * from t1";
 		spliceClassWatcher.executeUpdate(sqlText);
 
         new TableCreator(conn)
@@ -121,6 +131,26 @@ public class FromFinalTableIT extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create synonym a11 for t11")
                 .create();
+    }
+
+    @BeforeClass
+    public static void recordNumTables() throws Exception {
+        isMemPlatform = isMemPlatform(spliceClassWatcher);
+        dropObjects();
+        vacuum();
+        numTables = getNumTables();
+    }
+
+    @AfterClass
+    public static void checkNumTables() throws Exception {
+        dropObjects();
+        vacuum();
+        int newNumTables = getNumTables();
+        // Mem platform doesn't physically remove dropped tables, so
+        // this is an HBase-only check.
+        if (!isMemPlatform)
+            assertTrue("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                         numTables >= newNumTables);
     }
 
     @Before
@@ -133,6 +163,21 @@ public class FromFinalTableIT extends SpliceUnitTest {
     getNumberOfRunningOperations() throws Exception{
         List results = methodWatcher.queryList("CALL SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
         return results.size();
+    }
+
+    public static void
+    vacuum() throws Exception{
+        // Mem doesn't have vacuum.
+        if (!isMemPlatform)
+            spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.VACUUM()");
+    }
+
+    public static int
+    getNumTables() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
+            rs.next();
+            return ((Integer)rs.getObject(1));
+        }
     }
 
     @Test
@@ -411,4 +456,159 @@ public class FromFinalTableIT extends SpliceUnitTest {
         methodWatcher.rollback();
         methodWatcher.commit();
         methodWatcher.setAutoCommit(true);
-}}
+    }
+
+    private void loadParamsAndRun(PreparedStatement ps,
+                                  Integer paramOneValue,
+                                  String paramTwoValue,
+                                  String paramThreeValue,
+                                  Integer paramFourValue,
+                                  String sqlText,
+                                  String expected) throws Exception {
+            int i = 1;
+            if (paramOneValue != null)
+                ps.setInt(i++, paramOneValue);
+            if (paramTwoValue != null)
+                ps.setString(i++, paramTwoValue);
+            if (paramThreeValue != null)
+                ps.setString(i++, paramThreeValue);
+            if (paramFourValue != null)
+                ps.setInt(i++, paramFourValue);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+    }
+    private void testPreparedQuery(String sqlTemplate,
+                                   String expected,
+                                   Integer paramOneValue,
+                                   String paramTwoValue,
+                                   String paramThreeValue,
+                                   Integer paramFourValue) throws Exception  {
+        String sqlText = sqlTemplate;
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun(ps, paramOneValue, paramTwoValue, paramThreeValue, paramFourValue, sqlText, expected);
+        }
+    }
+
+    private void testPreparedQueryX(String sqlTemplate,
+                                    String[] expected,
+                                    Integer[] paramOneValue,
+                                    String[] paramTwoValue,
+                                    String[] paramThreeValue,
+                                    Integer[] paramFourValue) throws Exception  {
+        String sqlText = sqlTemplate;
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            for (int i = 0; i < expected.length; i++)
+                loadParamsAndRun(ps, paramOneValue[i], paramTwoValue[i],
+                                     paramThreeValue[i], paramFourValue[i],
+                                     sqlText, expected[i]);
+        }
+    }
+
+
+    @Test
+    public void testParameterizedFromTableQueries() throws Exception {
+        methodWatcher.setAutoCommit(false);
+
+        String expected =
+            "B  | A |\n" +
+            "----------\n" +
+            "  a  | 1 |\n" +
+            "  a  | 2 |\n" +
+            " a b | 5 |\n" +
+            " ab  | 3 |\n" +
+            " abc | 4 |\n" +
+            "abcd | 6 |";
+
+        String sqlTemplate = "SELECT b,a FROM OLD TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = a+? where b >= ?) WHERE b < ? and a < ?";
+
+        testPreparedQuery(sqlTemplate,  expected, 2, " a", "d", 99);
+
+
+        sqlTemplate = "SELECT b,a FROM NEW TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = a+? where b >= ?) WHERE b < ? and a < ?";
+
+        expected =
+            "B  | A |\n" +
+            "----------\n" +
+            " ab  |17 |\n" +
+            " abc |18 |\n" +
+            "abcd |20 |";
+
+        testPreparedQuery(sqlTemplate,  expected, 12, "ab", "d", 22);
+
+        sqlTemplate = "SELECT a, b FROM OLD TABLE (DELETE FROM t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n WHERE a > ? and ? in (select a from t1 b where t1.a = b.a)) ";
+
+        expected =
+            "A | B  |\n" +
+            "---------\n" +
+            "18 |abc |";
+
+        testPreparedQuery(sqlTemplate,  expected, 17, null, null, 18);
+
+        sqlTemplate = "SELECT a, b FROM FINAL TABLE (insert into t1 --splice-properties useSpark=" + useSpark.toString()  +
+                      "\n select * from t11 where a != ? and b >= ?)" +
+        " WHERE b != ? and a < ? ";
+
+        expected =
+            "A |  B  |\n" +
+            "----------\n" +
+            " 1 |  a  |\n" +
+            "11 |  z  |\n" +
+            "12 | xyz |\n" +
+            " 2 |  a  |\n" +
+            " 3 | ab  |\n" +
+            " 4 | abc |\n" +
+            " 5 | a b |\n" +
+            " 6 |abcd |";
+
+        testPreparedQuery(sqlTemplate,  expected, 0, " ", "def", 99);
+
+        sqlTemplate = "SELECT b,a FROM NEW TABLE (UPDATE t1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = ?, b = ? WHERE b < ? and a < ?)";
+
+        expected =
+            "B     | A |\n" +
+            "----------------\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |\n" +
+            "Alles klar | 0 |";
+
+        testPreparedQuery(sqlTemplate,  expected, 0, "Alles klar", "x", 99);
+
+        sqlTemplate = "SELECT a, b FROM FINAL TABLE (insert into t1 --splice-properties useSpark=" + useSpark.toString()  +
+                      "\n values(?,?))";
+        String []
+            expectedArray = {"A | B |\n" +
+                             "--------\n" +
+                             " 1 | a |",
+                             "A | B |\n" +
+                             "--------\n" +
+                             " 2 | b |",
+                             "A | B |\n" +
+                             "--------\n" +
+                             " 3 | c |"};
+        Integer [] param1 = {1, 2, 3};
+        String [] param2 = {"a", "b", "c"};
+        String [] param3 = {null, null, null};
+        Integer [] param4 = {null, null, null};
+        testPreparedQueryX(sqlTemplate, expectedArray, param1, param2, param3, param4);
+
+        methodWatcher.rollback();
+        methodWatcher.commit();
+        methodWatcher.setAutoCommit(true);
+    }
+
+}
