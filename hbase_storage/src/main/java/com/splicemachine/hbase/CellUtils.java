@@ -211,7 +211,6 @@ public class CellUtils {
     public static long getCommitTimestamp(Cell cell)
     {
         assert CellUtils.getKeyValueType(cell) == CellType.COMMIT_TIMESTAMP;
-        return com.splicemachine.primitives.Bytes.toLong(cell.getValueArray(),
-                cell.getValueOffset(),cell.getValueLength());
+        return cell.getTimestamp();
     }
 }

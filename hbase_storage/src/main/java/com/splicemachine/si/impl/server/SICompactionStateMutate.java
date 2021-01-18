@@ -142,6 +142,7 @@ class SICompactionStateMutate {
      */
     private void mutate(Cell element, TxnView txn, SortedSet<Cell> dataToReturn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
+        IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
         if (element.getType() != Cell.Type.Put) {
             if (LOG.isDebugEnabled())
                 LOG.debug("Removing cell " + element + " because it's a delete");
@@ -158,7 +159,10 @@ class SICompactionStateMutate {
                 setBypassPurgeWithWarning("Element does not contain a timestamp: " + element);
             assert txnIsNull;
             assert timeStampInElement : "Element does not contain a timestamp: " + element;
-            dataToReturn.add(element);
+            long commitTimestamp = CellUtils.getCommitTimestamp(element);
+            if (!ignoreTxn.shouldIgnore(commitTimestamp)) {
+                dataToReturn.add(element);
+            }
             return;
         }
         if (txn == null) {
@@ -167,7 +171,6 @@ class SICompactionStateMutate {
             return;
         }
         Txn.State txnState = txn.getEffectiveState();
-        IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
 
         if (txnState == Txn.State.ROLLEDBACK || ignoreTxn.shouldIgnore(txn.getTxnId()) ) {
             if (LOG.isDebugEnabled()) {
