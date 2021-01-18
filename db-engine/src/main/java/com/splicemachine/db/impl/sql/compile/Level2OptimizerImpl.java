@@ -64,7 +64,7 @@ public class Level2OptimizerImpl extends OptimizerImpl{
               numTablesInQuery);
 
         // Remember whether or not optimizer trace is on;
-        optimizerTrace=lcc.getOptimizerTrace();
+        optimizerTrace=true;//lcc.getOptimizerTrace();
         optimizerTraceHtml=lcc.getOptimizerTraceHtml();
         this.lcc=lcc;
 

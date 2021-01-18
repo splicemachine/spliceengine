@@ -427,6 +427,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
+        optimizerTrace = true;
 
         try {
             String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");

@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
@@ -346,8 +348,20 @@ public class Level2OptimizerTrace implements OptimizerTrace{
         trace(flag.level(), " Optimizer:"+cachedHashcode+" "+traceString);
     }
 
+    protected static final Logger LOG=Logger.getLogger(Level2OptimizerTrace.class);
+
     @Override
     public void trace(TraceLevel level, String traceString){
+        // todo: map TraceLevel to LOG.
+//        switch(level) {
+//        case TRACE: LOG.trace(traceString); break;
+//        case DEBUG: LOG.debug(traceString); break;
+//        case INFO:  LOG.info(traceString); break;
+//        case WARN:  LOG.warn(traceString); break;
+//        case ERROR: LOG.error(traceString); break;
+//        }
+        LOG.setLevel(Level.DEBUG);
+        LOG.debug(traceString);
         lcc.appendOptimizerTraceOutput(traceString+"\n");
     }
 

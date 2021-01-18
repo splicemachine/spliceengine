@@ -1072,6 +1072,7 @@
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
+                                <argument>-Dderby.language.logStatementText=true</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>file://${project.build.directory}/</argument>
@@ -1572,7 +1573,7 @@
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
-                                <argument>-Dderby.language.logStatementText=false</argument>
+                                <argument>-Dderby.language.logStatementText=true</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>-Dderby.drda.sslMode=${SERVER_SSLMODE}</argument>
                                 <argument>-Djavax.net.ssl.keyStore=${SERVER_SSL_KEYSTORE}</argument>
