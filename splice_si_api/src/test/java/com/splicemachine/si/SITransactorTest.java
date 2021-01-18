@@ -1331,14 +1331,14 @@ public class SITransactorTest {
         testUtility.insertAge(child, "joe36", 22);
         child.commit();
         testUtility.insertAge(other, "joe36", 21);
+        other.commit();
         try {
-            other.commit();
+            parent.commit();
             Assert.fail();
         } catch (IOException dnrio) {
-            Assert.assertTrue("Was not a CannotRollbackException!",dnrio instanceof CannotRollbackException);
-            CannotRollbackException cce = (CannotRollbackException)dnrio;
-            Assert.assertEquals("Incorrect transaction id!",child.getTxnId(),cce.getTxnId());
-            Assert.assertEquals("Incorrect transaction id!",other.getTxnId(),cce.getOriginatingTxnId());
+            Assert.assertTrue("Was not a CannotCommitException!",dnrio instanceof CannotCommitException);
+            CannotCommitException cce = (CannotCommitException)dnrio;
+            Assert.assertEquals("Incorrect transaction id!",parent.getTxnId(),cce.getTxnId());
         }
     }
 
