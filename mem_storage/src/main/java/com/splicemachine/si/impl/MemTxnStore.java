@@ -595,11 +595,13 @@ public class MemTxnStore implements TxnStore{
 
     private boolean ignoreConflicts(long txnId) throws IOException {
         TxnView txnView = getTransaction(txnId, false);
-        while(txnView != Txn.ROOT_TRANSACTION) {
+        while(true) {
             if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
                 return true;
             }
-            txnView = txnView.getParentTxnView();
+            TxnView parent = txnView.getParentTxnView();
+            if(parent == Txn.ROOT_TRANSACTION) break;
+            txnView = parent;
         }
         return false;
     }

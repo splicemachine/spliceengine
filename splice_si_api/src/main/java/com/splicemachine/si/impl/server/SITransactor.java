@@ -675,8 +675,10 @@ public class SITransactor implements Transactor{
             }
             // get the parent
             TxnView txnView = txnSupplier.getTransaction(dataTxnId);
-            while(txnView != Txn.ROOT_TRANSACTION) {
-                txnView = txnView.getParentTxnView();
+            while(true) {
+                TxnView parent = txnView.getParentTxnView();
+                if(parent == Txn.ROOT_TRANSACTION) break;
+                txnView = parent;
             }
             Txn.State state = txnView.getEffectiveState();
             if(state == Txn.State.ACTIVE) {

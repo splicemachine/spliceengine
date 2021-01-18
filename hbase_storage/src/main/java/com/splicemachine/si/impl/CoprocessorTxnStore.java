@@ -15,36 +15,28 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.si.api.txn.ActiveTxnTracker;
-import com.splicemachine.si.api.txn.TaskId;
-import com.splicemachine.si.api.txn.TransactionMissing;
+import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.InheritingTxnView;
+import com.splicemachine.timestamp.api.TimestampSource;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IteratorUtil;
 import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Longs;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.annotations.ThreadSafe;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnStore;
-import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.impl.txn.InheritingTxnView;
-import com.splicemachine.timestamp.api.TimestampSource;
-import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
@@ -484,11 +476,13 @@ public class CoprocessorTxnStore implements TxnStore {
 
     private boolean ignoreConflicts(long txnId) throws IOException {
         TxnView txnView = getTransaction(txnId, false);
-        while(txnView != Txn.ROOT_TRANSACTION) {
+        while(true) {
             if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
                 return true;
             }
-            txnView = txnView.getParentTxnView();
+            TxnView parent = txnView.getParentTxnView();
+            if(parent == Txn.ROOT_TRANSACTION) break;
+            txnView = parent;
         }
         return false;
     }
