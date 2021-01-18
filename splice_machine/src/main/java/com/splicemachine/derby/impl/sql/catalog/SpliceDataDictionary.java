@@ -28,6 +28,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -352,7 +353,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
-        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+        String viewName = "INDEXCOLUSE";
+        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
 
         // drop it if it exists
         if (td != null) {
@@ -365,9 +367,60 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
 
-        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+
+        // create an synonym SYSIBM.SYSINDEXCOLUSE for SYSCAT.INDEXCOLUSE
+        String synonymName = "SYSINDEXCOLUSE";
+        TableDescriptor synonymTD = getTableDescriptor(synonymName, sysIBMSchemaDesc, tc);
+        if (synonymTD == null)
+        {
+            // To prevent any possible deadlocks with SYSTABLES, we insert a row into
+            // SYSTABLES also for synonyms. This also ensures tables/views/synonyms share
+            // same namespace
+            DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+            td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
+                    TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null,null,false,false,null);
+            addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            // Create a new alias descriptor with a UUID filled in.
+            UUID synonymID = getUUIDFactory().createUUID();
+            AliasDescriptor ads = new AliasDescriptor(this, synonymID,
+                    synonymName,
+                    sysIBMSchemaDesc.getUUID(),
+                    null,
+                    AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR,
+                    AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
+                    true,
+                    new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
+                    null);
+            addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
+                    false, tc, false);
+
+            SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
+        }
+    }
+
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        String viewName = "SYSINDEXES";
+        TableDescriptor td = getTableDescriptor(viewName, sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 2, sysIBMSchemaDesc, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSIBM is created!");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -646,6 +699,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createAliasToTableSystemView(tc);
 
         createIndexColumnUseViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
     }
 
     @Override
