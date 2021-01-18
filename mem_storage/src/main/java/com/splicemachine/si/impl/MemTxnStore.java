@@ -146,10 +146,11 @@ public class MemTxnStore implements TxnStore{
     @Override
     public void registerActiveTransaction(Txn txn) {
         List<byte[]> bytes = null;
-        while(txn.getDestinationTables().hasNext()){
+        Iterator<ByteSlice> destinationTables = txn.getDestinationTables();
+        while(destinationTables.hasNext()){
             if(bytes==null)
                 bytes=Lists.newArrayList();
-            bytes.add(txn.getDestinationTables().next().getByteCopy());
+            bytes.add(destinationTables.next().getByteCopy());
         }
         activeTxnTracker.registerActiveTxn(txn.getBeginTimestamp(), bytes);
     }
