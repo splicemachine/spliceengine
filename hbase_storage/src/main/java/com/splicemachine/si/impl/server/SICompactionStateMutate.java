@@ -5,6 +5,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -165,8 +167,9 @@ class SICompactionStateMutate {
             return;
         }
         Txn.State txnState = txn.getEffectiveState();
+        IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
 
-        if (txnState == Txn.State.ROLLEDBACK) {
+        if (txnState == Txn.State.ROLLEDBACK || ignoreTxn.shouldIgnore(txn.getTxnId()) ) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Removing cell " + element + " because txn is rolledback: " + txn);
             }

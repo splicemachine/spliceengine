@@ -436,6 +436,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         List<Cell> cells = new ArrayList<>();
         boolean hasMore;
         ScannerContext scannerContext = ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
+        SIDriver.driver().getIgnoreTxnSupplier().refresh();
         do {
             hasMore = scanner.next(cells, scannerContext);
             if (LOG.isDebugEnabled()) {
