@@ -1460,7 +1460,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     if (ArrayUtils.contains(colIds, i + 1)) {
                         newRow[i] = templateRow.getColumn(i + 1).cloneValue(false);
                     } else {
-                        newRow[i] = fetchedRow[i].cloneValue(false);
+                        newRow[i] = fetchedRow[i] == null ? null : fetchedRow[i].cloneValue(false);
                     }
                 }
                 sc.replace(newRow, columnToUpdateSet);

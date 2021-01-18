@@ -35,7 +35,7 @@ public class UpgradeScriptToAddMultiDatabaseSupport extends UpgradeScriptBase {
         // Refresh views
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSALLROLES");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSTABLES");
+        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESVIEW");
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCOLPERMSVIEW");
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSPERMSVIEW");
         sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSROUTINEPERMSVIEW");
