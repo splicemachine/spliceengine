@@ -26,6 +26,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataDelete;
 import com.splicemachine.storage.DataScanner;
@@ -140,8 +141,10 @@ public class Vacuum{
                             }
                             continue;
                         }
-                        if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK)) {
+                        IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
+                        if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK) || ignoreTxn.shouldIgnore(txn.getTxnId())) {
                             // Transaction is rolled back, we can remove it safely, don't pay any mind to the droppedId
+                            LOG.info( "Rolled back: " + table.getTableName() );
                             ignoreDroppedId = true;
                         } else {
                             // This conglomerate requires a dropped transaction id
@@ -221,6 +224,8 @@ public class Vacuum{
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } finally {
             LOG.info("Vacuum complete");
+            try{ LOG.info( "Tables remaining: " ); } catch(Exception e) {}
+            try{ partitionAdmin.listTables().forEach( td -> LOG.info(td.getTableName()) ); } catch(Exception e) {}
         }
     }
 
