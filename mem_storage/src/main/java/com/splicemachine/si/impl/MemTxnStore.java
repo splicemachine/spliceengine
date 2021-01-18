@@ -54,7 +54,7 @@ public class MemTxnStore implements TxnStore{
     private TxnLifecycleManager tc;
     private final long txnTimeOutIntervalMs;
     private final ExceptionFactory exceptionFactory;
-    private final ActiveTxnTracker activeTransactions;
+    private final ActiveTxnTracker activeTxnTracker;
 
 
     public MemTxnStore(Clock clock,TimestampSource commitTsGenerator,ExceptionFactory exceptionFactory,long txnTimeOutIntervalMs){
@@ -64,7 +64,7 @@ public class MemTxnStore implements TxnStore{
         this.lockStriper=LongStripedSynchronizer.stripedReadWriteLock(16,false);
         this.exceptionFactory = exceptionFactory;
         this.clock = clock;
-        this.activeTransactions = new ActiveTxnTracker();
+        this.activeTxnTracker = new ActiveTxnTracker();
     }
 
     @Override
@@ -145,17 +145,23 @@ public class MemTxnStore implements TxnStore{
 
     @Override
     public void registerActiveTransaction(Txn txn) {
-        activeTransactions.registerActiveTxn(txn.getBeginTimestamp());
+        List<byte[]> bytes = null;
+        while(txn.getDestinationTables().hasNext()){
+            if(bytes==null)
+                bytes=Lists.newArrayList();
+            bytes.add(txn.getDestinationTables().next().getByteCopy());
+        }
+        activeTxnTracker.registerActiveTxn(txn.getBeginTimestamp(), bytes);
     }
 
     @Override
     public void unregisterActiveTransaction(long txnId) {
-        activeTransactions.unregisterActiveTxn(txnId);
+        activeTxnTracker.unregisterActiveTxn(txnId);
     }
 
     @Override
     public Long oldestActiveTransaction() {
-        return activeTransactions.oldestActiveTransaction();
+        return activeTxnTracker.oldestActiveTransaction();
     }
     @Override
     public void rollback(long txnId) throws IOException{
@@ -349,54 +355,24 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
-    public long[] getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
+    public Set<Long> getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
         long minTs=this.commitTsGenerator.retrieveTimestamp();
         return getActiveTransactionIds(minTs,txn.getTxnId(),table);
     }
 
     @Override
-    public long[] getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] table) throws IOException{
-        if(table==null)
-            return getAllActiveTransactions(minTxnId,maxTxnId);
-        else
-            return findActiveTransactions(minTxnId,maxTxnId,table);
-    }
-
-    @Override
-    public List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException{
-        List<TxnView> txns=Lists.newArrayListWithExpectedSize(txnMap.size());
-        for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
-            if(isTimedOut(txnEntry.getValue())) continue;
-            Txn value=txnEntry.getValue().txn;
-            if(value.getEffectiveState()==Txn.State.ACTIVE
-                    && value.getTxnId()<=maxTxnId
-                    && value.getTxnId()>=minTxnid){
-                //neck if it is relevant to the specified table
-                if(table!=null){
-                    Iterator<ByteSlice> destTables = value.getDestinationTables();
-                    while(destTables.hasNext()){
-                        if(destTables.next().compareTo(table,0,table.length)==0){
-                            txns.add(value);
-                            break;
-                        }
-                    }
-                }else{
-                    //have to assume it applied
-                    txns.add(value);
+    public Set<Long> getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] writeTable) throws IOException{
+        Set<Long> result = new HashSet<>();
+        for (Map.Entry<Long, Optional<List<byte[]>>> activeTxn : activeTxnTracker.getActiveTransactions().entrySet()) {
+            long key = activeTxn.getKey();
+            Optional<List<byte[]>> value = activeTxn.getValue();
+            if (key >= minTxnId && key <= maxTxnId) {
+                if(writeTable == null || (value.isPresent() && value.get().contains(writeTable))) {
+                    result.add(key);
                 }
             }
         }
-        Collections.sort(txns,new Comparator<TxnView>(){
-            @Override
-            public int compare(TxnView o1,TxnView o2){
-                if(o1==null){
-                    if(o2==null) return 0;
-                    return -1;
-                }else if(o2==null) return 1;
-                return Longs.compare(o1.getTxnId(),o2.getTxnId());
-            }
-        });
-        return txns;
+        return result;
     }
 
     @Override
@@ -452,9 +428,9 @@ public class MemTxnStore implements TxnStore{
 //                (clock.currentTimeMillis()-txn.keepAliveTs)>txnTimeOutIntervalMs;
     }
 
-    private long[] getAllActiveTransactions(long minTimestamp,long maxId) throws IOException{
+    private Set<Long> getAllActiveTransactions(long minTimestamp,long maxId) throws IOException{
 
-        LongArrayList activeTxns=new LongArrayList(txnMap.size());
+        Set<Long> activeTxns=new HashSet<>(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
             Txn value=txnEntry.getValue().txn;
@@ -463,7 +439,7 @@ public class MemTxnStore implements TxnStore{
                     && value.getTxnId()>=minTimestamp)
                 activeTxns.add(txnEntry.getKey());
         }
-        return activeTxns.toArray();
+        return activeTxns;
     }
 
     private long[] findActiveTransactions(long minTimestamp,long maxId,byte[] table){

@@ -44,6 +44,7 @@ import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 
 /**
@@ -55,6 +56,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
     private BulkWriterFactory writerFactory;
     private ContextFactoryDriver ctxFactoryDriver;
     private OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private ActiveTransactionsTaskFactory activeTransactionsTaskFactory;
     private final WritePipelineFactory pipelineFactory= new MappedPipelineFactory();
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
@@ -64,11 +66,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory(),pipelineMeter());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
-        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
-            @Override
-            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
-                throw new UnsupportedOperationException("Operation not supported in Mem profile");
-            }
+        this.oldestActiveTransactionTaskFactory = (hostName, port, startupTimestamp) -> {
+            throw new UnsupportedOperationException("Operation not supported in Mem profile");
+        };
+        this.activeTransactionsTaskFactory = (hostName, port, startupTimestamp, minTxId, maxTxId, destTable) -> {
+            throw new UnsupportedOperationException("Operation not supported in Mem profile");
         };
     }
 
@@ -90,6 +92,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
         return oldestActiveTransactionTaskFactory;
+    }
+
+    @Override
+    public ActiveTransactionsTaskFactory activeTransactionsTaskFactory() {
+        return activeTransactionsTaskFactory;
     }
 
     @Override

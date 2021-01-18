@@ -56,6 +56,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TxnStore txnStore;
     private final PartitionFactory tableFactory;
     private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final ActiveTransactionsTaskFactory activeTransactionsTaskFactory;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
@@ -80,6 +81,13 @@ public class MemSIEnvironment implements SIEnvironment{
         this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
             @Override
             public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+                throw new UnsupportedOperationException("Operation not supported in Mem profile");
+            }
+        };
+        this.activeTransactionsTaskFactory = new ActiveTransactionsTaskFactory() {
+
+            @Override
+            public ActiveTransactionsTask get(String hostName, int port, long startupTimestamp, long minTxId, long maxTxId, byte[] destTable) throws IOException {
                 throw new UnsupportedOperationException("Operation not supported in Mem profile");
             }
         };
@@ -197,4 +205,8 @@ public class MemSIEnvironment implements SIEnvironment{
         throw new UnsupportedOperationException("Operation not supported in Mem profile");
     }
 
+    @Override
+    public ActiveTransactionsTaskFactory activeTransactionsTaskFactory() {
+        return activeTransactionsTaskFactory;
+    }
 }
