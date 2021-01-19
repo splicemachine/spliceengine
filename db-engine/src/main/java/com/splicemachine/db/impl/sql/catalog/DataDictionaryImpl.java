@@ -11578,7 +11578,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         List<RoleGrantDescriptor> roleGrantDescriptors = new ArrayList<>();
 
-        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
+        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM, tc);
         /* set up the start/stop position for the scan */
         SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         ExecIndexRow keyRow = exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX));
