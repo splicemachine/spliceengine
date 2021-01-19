@@ -9633,6 +9633,10 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <name>EXT43</name>
                <text>Cannot revoke permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
            </msg>
+           <msg>
+               <name>100</name>
+               <text>No rows were inserted/updated/deleted.</text>
+           </msg>
        </family>
     </section>
 

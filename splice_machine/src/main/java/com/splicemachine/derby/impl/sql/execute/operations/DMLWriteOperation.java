@@ -17,9 +17,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
@@ -60,6 +63,7 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.sql.SQLWarning;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
@@ -437,8 +441,26 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
          */
         computeModifiedRows();
+        if (getModifiedRows() == 0) {
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            String spliceDB2ErrorCompatible =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
+            if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.compareToIgnoreCase("TRUE") == 0) {
+                SQLWarning warning = StandardException.newWarning(SQLState.NO_ROWS_AFFECTED);
+                activation.addWarning(warning);
+            }
+        }
     }
 
+    private long getModifiedRows() {
+        long n = 0;
+        if (modifiedRowCount != null && modifiedRowCount.length > 0) {
+            for (long count : modifiedRowCount) {
+                n += count;
+            }
+        }
+        return n;
+    }
     protected Pair<DataSet,int[]> getBatchedDataset(DataSetProcessor dsp) throws StandardException {
         DataSet set;
         OperationContext operationContext=dsp.createOperationContext(this);
