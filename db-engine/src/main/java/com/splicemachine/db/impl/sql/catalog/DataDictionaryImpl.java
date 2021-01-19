@@ -1749,7 +1749,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 null,
                 false, tc);
 
-        return finishTableDescriptor(td);
+        return finishTableDescriptor(td, tc);
     }
 
     /**
@@ -1828,7 +1828,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         for (int i = 0; i < tds.size(); i++) {
-            tds.set(i, finishTableDescriptor(tds.get(i)));
+            tds.set(i, finishTableDescriptor(tds.get(i), ));
         }
 
         return tds;
@@ -1900,7 +1900,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         false, null);
 
-        return finishTableDescriptor(td);
+        return finishTableDescriptor(td, );
     }
 
     protected void markSystemTablesAsVersion1(TableDescriptor td) {
@@ -1914,15 +1914,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * (Build the various lists that hang off the TD.)
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @return The completed TableDescriptor.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor finishTableDescriptor(TableDescriptor td) throws StandardException{
+    private TableDescriptor finishTableDescriptor(TableDescriptor td, TransactionController tc) throws StandardException{
 
         if(td!=null){
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized(td){
-                getColumnDescriptorsScan(td);
+                getColumnDescriptorsScan(td, tc);
                 getConglomerateDescriptorsScan(td);
                 markSystemTablesAsVersion1(td);
                 td.getHeapConglomerateId(); // populate heapConglomerateId
@@ -2248,7 +2249,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         getDescriptorViaHeap(null,scanQualifier,ti,null,list);
 
         for (int i = 0; i < list.size(); i++) {
-            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i))));
+            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i)), ));
         }
         return list;
     }
@@ -2565,10 +2566,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * on the CDL in the given TD.
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getColumnDescriptorsScan(TableDescriptor td) throws StandardException{
-        getColumnDescriptorsScan(td.getUUID(),td.getColumnDescriptorList(),td);
+    private void getColumnDescriptorsScan(TableDescriptor td, TransactionController tc) throws StandardException{
+        getColumnDescriptorsScan(td.getUUID(),td.getColumnDescriptorList(),td, tc);
     }
 
     /**
@@ -2580,9 +2582,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param uuid The referencing UUID
      * @param cdl  The column descriptor list
      * @param td   The parent tuple descriptor
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getColumnDescriptorsScan(UUID uuid,ColumnDescriptorList cdl,TupleDescriptor td) throws StandardException{
+    private void getColumnDescriptorsScan(UUID uuid, ColumnDescriptorList cdl, TupleDescriptor td, TransactionController tc) throws StandardException{
         DataValueDescriptor refIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
 
@@ -2600,7 +2603,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 td,
                 cdl,
-                false, null);
+                false, tc);
 
         /* The TableDescriptor's column descriptor list must be ordered by
          * columnNumber.  (It is probably not ordered correctly at this point due
@@ -3908,7 +3911,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public DataTypeDescriptor[] getSPSParams(SPSDescriptor spsd,List<DataValueDescriptor> defaults) throws StandardException{
         ColumnDescriptorList cdl=new ColumnDescriptorList();
-        getColumnDescriptorsScan(spsd.getUUID(),cdl,spsd);
+        getColumnDescriptorsScan(spsd.getUUID(),cdl,spsd, null);
 
         int cdlSize=cdl.size();
         DataTypeDescriptor[] params=new DataTypeDescriptor[cdlSize];
