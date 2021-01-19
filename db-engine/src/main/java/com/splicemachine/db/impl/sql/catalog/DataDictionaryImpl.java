@@ -4089,7 +4089,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     public void clearSPSPlans() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, null);
 
         TransactionController tc=getTransactionExecute();
 
@@ -5861,7 +5861,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti = getNonCoreTI(baseNum);
         } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
-            faultInTabInfo(ti);
+            faultInTabInfo(ti, tc);
             indexNum=0;
         } else{
             baseNum=SYSKEYS_CATALOG_NUM;
@@ -8360,9 +8360,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
+        return getNonCoreTI(catalogNumber, null);
+    }
+
+    /**
+     * Get a TabInfoImpl for a non-core table.
+     * (We fault in information about non-core tables as needed.)
+     *
+     * @param catalogNumber The index into noncoreTable[].
+     * @throws StandardException Thrown on error
+     */
+    protected TabInfoImpl getNonCoreTI(int catalogNumber, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
 
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, tc);
 
         return ti;
     }
@@ -8537,9 +8548,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * NOP if TabInfoImpl has already been faulted in.
      *
      * @param ti TabInfoImpl to fault in.
+     * @param tc
      * @throws StandardException Thrown on error
      */
-    public void faultInTabInfo(TabInfoImpl ti) throws StandardException{
+    public void faultInTabInfo(TabInfoImpl ti, TransactionController tc) throws StandardException{
         int numIndexes;
 
         /* Most of the time, the noncoreInfo will be complete.
@@ -8570,7 +8582,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 return;
             }
 
-            TableDescriptor td=getTableDescriptor(ti.getTableName(),getSystemSchemaDescriptor(),null);
+            TableDescriptor td=getTableDescriptor(ti.getTableName(),getSystemSchemaDescriptor(),tc);
 
             // It's possible that the system table is not there right
             // now. This can happen, for example, if we're in the
@@ -8580,10 +8592,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // exception.
             if(td==null){
                 // look up from SYSIBM schema
-                td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),null);
+                td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),tc);
                 if ( td == null) {
                     // look up from SYSIBMADM schema
-                    td = getTableDescriptor(ti.getTableName(), sysIBMADMSchemaDesc, null);
+                    td = getTableDescriptor(ti.getTableName(), sysIBMADMSchemaDesc, tc);
                     if (td == null) {
                         return;
                     }
