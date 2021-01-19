@@ -6027,7 +6027,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             outRow,
                             null,
                             this,
-                            TransactionController.ISOLATION_READ_UNCOMMITTED);
+                            TransactionController.ISOLATION_READ_UNCOMMITTED, tc);
             ht.put(td.getUUID(),td);
         }
         scanController.close();
