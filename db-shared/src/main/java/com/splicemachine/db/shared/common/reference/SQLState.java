@@ -2099,6 +2099,7 @@ public interface SQLState {
 
     String HBASE_OPERATION_ERROR = "HO001";
 
+    String NO_ROWS_AFFECTED = "100";
 
 }
 
