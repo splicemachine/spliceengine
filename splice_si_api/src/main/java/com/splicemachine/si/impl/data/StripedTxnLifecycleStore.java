@@ -320,6 +320,45 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     }
 
     @Override
+    public void ignoreConflictingTxns(long txnId, boolean doIgore) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock = lockStriper.get(beginTS).writeLock();
+        acquireLock(lock);
+        try {
+            baseStore.ignoreConflicts(txnId, doIgore);
+        } finally {
+            unlock(lock);
+        }
+    }
+
+    @Override
+    public boolean ignoresConflictingTxns(long txnId) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock = lockStriper.get(beginTS).readLock();
+        acquireLock(lock);
+        try {
+            if (baseStore.ignoresConflictingTxns(txnId)) {
+                return true;
+            } else {
+                while (true) {
+                    long parentTxnId = getTransaction(txnId).getInfo().getParentTxnid();
+                    if (parentTxnId == -1 || parentTxnId == txnId) {
+                        return false;
+                    }
+                    if (!baseStore.contains(parentTxnId)) {
+                        return lifecycleManager.ignoresConflicts(parentTxnId);
+                    } else if(baseStore.ignoresConflictingTxns(parentTxnId)) {
+                        return true;
+                    }
+                    txnId = parentTxnId;
+                }
+            }
+        } finally {
+            unlock(lock);
+        }
+    }
+
+    @Override
     public TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
         Lock lock = lockStriper.get(beginTS).readLock();

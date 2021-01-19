@@ -281,11 +281,19 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public void ignoreConflicts(long txnId, boolean doIgnore) {
+    public void ignoreConflicts(long txnId, boolean doIgnore) throws IOException {
         if(restoreMode){
             return; // we are in restore mode, don't try to access the store
         }
         store.ignoreConflicts(txnId, doIgnore);
+    }
+
+    @Override
+    public boolean ignoresConflicts(long txnId) throws IOException {
+        if(restoreMode){
+            return false; // we are in restore mode, don't try to access the store
+        }
+        return store.ignoresConflicts(txnId);
     }
 
     /**********************************************************************************************************/

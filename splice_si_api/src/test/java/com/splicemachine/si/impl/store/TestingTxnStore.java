@@ -443,4 +443,10 @@ public class TestingTxnStore implements TxnStore{
     public void ignoreConflicts(long txnId, boolean doIgnore) {
         // no op
     }
+
+    @Override
+    public boolean ignoresConflicts(long txnId) throws IOException {
+        // no-op
+        return false;
+    }
 }

@@ -194,6 +194,19 @@ message AddConflictingTxnIdsRequest {
     repeated int64 conflictingTxns = 2;
 }
 
+message IgnoreConflictingTxnRequest {
+    required int64 txnId = 1;
+    required bool doIgnore = 2;
+}
+
+message IgnoresConflictRequest {
+    required int64 txnId = 1;
+}
+
+message IgnoresConflictResponse {
+    required bool ignoresConflict = 1;
+}
+
 message ConflictingTxnIdsRequest{
     required int64 txnId = 1;
 }
@@ -258,4 +271,8 @@ service TxnLifecycleService{
     rpc addConflictingTxnIds(AddConflictingTxnIdsRequest) returns (VoidResponse);
 
     rpc getConflictingTxnIds(ConflictingTxnIdsRequest) returns (ConflictingTxnIdsResponse);
+
+    rpc ignoreConflictingTxn(IgnoreConflictingTxnRequest) returns (VoidResponse);
+
+    rpc ignoresConflict(IgnoresConflictRequest) returns (IgnoresConflictResponse);
 }

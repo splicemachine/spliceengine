@@ -307,5 +307,7 @@ public interface TxnLifecycleManager{
 
     String getReplicationRole();
 
-    void ignoreConflicts(long txnId, boolean doIgnore);
+    void ignoreConflicts(long txnId, boolean doIgnore) throws IOException;
+
+    boolean ignoresConflicts(long txnId) throws IOException;
 }

@@ -1968,12 +1968,16 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void ignoreConflicts(boolean ignore) {
+    public void ignoreConflicts(boolean ignore) throws StandardException {
         if(SIDriver.driver() != null && SIDriver.driver().lifecycleManager() != null) {
             if(LOG.isInfoEnabled()) {
                 LOG.info(String.format("conflicting transactions %s ignored for transaction %d", (ignore ? "are" : "are not"), getActiveStateTxn().getTxnId()));
             }
-            SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
+            try {
+                SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
+            }
         } else {
             LOG.warn(String.format("could not %s conflicting transactions for transaction %d", (ignore ? "ignore" : "restore adding"), getActiveStateTxn().getTxnId()));
         }
