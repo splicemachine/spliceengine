@@ -763,6 +763,15 @@ public class StandardException extends Exception
 	** SQL warnings
 	*/
 
+	public static SQLWarning newDB2CompatibleWarning(String messageId, int errorCode) {
+
+		String		message = MessageService.getCompleteMessage(messageId, null);
+		String		state = StandardException.getSQLStateFromIdentifier(messageId);
+
+		return new SQLWarning(message, state, errorCode);
+
+	}
+
 	public static SQLWarning newWarning(String messageId) {
 
 		return newWarningCommon( messageId, (Object[]) null );
