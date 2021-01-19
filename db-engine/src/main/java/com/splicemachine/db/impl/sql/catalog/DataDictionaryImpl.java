@@ -1710,7 +1710,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         if (schemaUUID == null)
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
-        retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
+        retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString(), tc);
         if (retval!=null) {
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
@@ -1723,7 +1723,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return TableDescriptor    The matching descriptor, if any.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor getTableDescriptorIndex1Scan(String tableName,String schemaUUID) throws StandardException{
+    private TableDescriptor getTableDescriptorIndex1Scan(String tableName,String schemaUUID, TransactionController tc) throws StandardException{
         DataValueDescriptor schemaIDOrderable;
         DataValueDescriptor tableNameOrderable;
         TableDescriptor td;
