@@ -1747,7 +1747,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                false, null);
+                false, tc);
 
         return finishTableDescriptor(td);
     }
