@@ -1828,7 +1828,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         for (int i = 0; i < tds.size(); i++) {
-            tds.set(i, finishTableDescriptor(tds.get(i), ));
+            tds.set(i, finishTableDescriptor(tds.get(i), null));
         }
 
         return tds;
@@ -1900,7 +1900,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         false, null);
 
-        return finishTableDescriptor(td, );
+        return finishTableDescriptor(td, null);
     }
 
     protected void markSystemTablesAsVersion1(TableDescriptor td) {
@@ -2249,7 +2249,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         getDescriptorViaHeap(null,scanQualifier,ti,null,list);
 
         for (int i = 0; i < list.size(); i++) {
-            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i)), ));
+            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i)), null));
         }
         return list;
     }
