@@ -84,11 +84,6 @@
             <version>${scalamock.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>db-engine</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
     <build>
         <extensions>

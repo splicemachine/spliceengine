@@ -145,10 +145,6 @@ public class ClassInspector
 
 	}
 
-	public int getApplicationJarsHashCode() {
-		return cf.getApplicationJarsHashCode();
-	}
-
 
 	/**
 	 * Get the Java name of the return type from a Member representing
