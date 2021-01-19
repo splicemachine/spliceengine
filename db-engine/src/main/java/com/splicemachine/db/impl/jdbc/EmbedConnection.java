@@ -331,10 +331,12 @@ public abstract class EmbedConnection implements EngineConnection
 
             // Check whether the DB exists before trying to connect to it
             if (!createBoot) {
-                AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
-                DataDictionary dd = database.getDataDictionary();
-                TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
-                dd.getDatabaseDescriptor(getDBName(), tc, true);
+                AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE, false);
+                if (af != null) {
+                    DataDictionary dd = database.getDataDictionary();
+                    TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+                    dd.getDatabaseDescriptor(getDBName(), tc, true);
+                }
             }
 
             if (createBoot && !shutdown && !dropDatabase && !getDBName().equals(DatabaseDescriptor.STD_DB_NAME)) {
