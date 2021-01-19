@@ -1924,7 +1924,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized(td){
                 getColumnDescriptorsScan(td, tc);
-                getConglomerateDescriptorsScan(td);
+                getConglomerateDescriptorsScan(td, tc);
                 markSystemTablesAsVersion1(td);
                 td.getHeapConglomerateId(); // populate heapConglomerateId
              }
@@ -6168,9 +6168,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * on the CDL in the given TD.
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getConglomerateDescriptorsScan(TableDescriptor td) throws StandardException{
+    private void getConglomerateDescriptorsScan(TableDescriptor td, TransactionController tc) throws StandardException{
         ConglomerateDescriptorList cdl=td.getConglomerateDescriptorList();
 
         ExecIndexRow keyRow3;
@@ -6191,7 +6192,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 cdl,
-                false, null);
+                false, tc);
     }
 
     /**
