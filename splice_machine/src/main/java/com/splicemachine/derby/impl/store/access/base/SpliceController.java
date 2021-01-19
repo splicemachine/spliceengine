@@ -194,6 +194,10 @@ public abstract class SpliceController implements ConglomerateController{
                 ExecRow row = new ValueRow(destRow.length);
                 row.setRowArray(destRow);
                 row.resetRowArray();
+                if (result == null) {
+                    i++;
+                    continue;
+                }
                 DataCell keyValue = result.userData();
                 rowDecoder.set(keyValue.valueArray(), keyValue.valueOffset(), keyValue.valueLength());
                 rowDecoder.decode(row);
