@@ -67,6 +67,9 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
+        private String schemaDisplayName;
+        private String tableDisplayName;
+        private String indexDisplayName;
 
         @Override
         public PartitionCreator withName(String name){
@@ -77,6 +80,9 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public PartitionCreator withName(String name, Conglomerate.Priority priority){
             // mem can ignore priority
             this.name=name;
+            this.schemaDisplayName = null;
+            this.tableDisplayName = null;
+            this.indexDisplayName = null;
             return this;
         }
 
@@ -94,7 +100,16 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withDisplayNames(String[] displayNames){
-            //no-op
+            if(displayNames != null) {
+                if(displayNames.length >= 1) {
+                    schemaDisplayName = displayNames[0];
+                }
+                if(displayNames.length >= 2) {
+                    tableDisplayName = displayNames[1];
+                }
+                if(displayNames.length >= 3) {
+                    indexDisplayName = displayNames[2];
+                }}
             return this;
         }
 
@@ -117,7 +132,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public Partition create() throws IOException{
             assert name!=null:"No name specified!";
-            final MPartition p=new MPartition(name,name);
+            final MPartition p=new MPartition(name,name, schemaDisplayName, tableDisplayName, indexDisplayName);
             partitionMap.put(name,p);
             return p;
         }

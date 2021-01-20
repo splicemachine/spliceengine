@@ -16,4 +16,11 @@
 package com.splicemachine.storage;
 
 public interface PartitionDescriptor {
+    /**
+     * Getter for accessing the metadata associated with the key.
+     *
+     * @param key The key.
+     * @return Null if no mapping for the key
+     */
+    String getValue(String key);
 }

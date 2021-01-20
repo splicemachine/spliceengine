@@ -514,7 +514,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
-        throw new UnsupportedOperationException("getDescriptor not supported on RegionPartition");
+        return new HPartitionDescriptor(region.getTableDescriptor());
     }
 
     @Override

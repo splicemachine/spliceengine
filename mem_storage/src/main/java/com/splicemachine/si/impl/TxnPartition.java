@@ -363,6 +363,6 @@ public class TxnPartition implements Partition{
 
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
-        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        return basePartition.getDescriptor();
     }
 }

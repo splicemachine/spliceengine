@@ -642,13 +642,17 @@ public class SITransactor implements Transactor{
                 conflictResults.addAdditive(dataTransactionId);
                 break;
             case SIBLING:
-                switch(conflictResolutionStrategy) {
+                switch (conflictResolutionStrategy) {
                     case IMMEDIATE:
                         throwWriteWriteConflict(updateTransaction, cell, dataTransactionId);
                         break;
-                    case DEFERRED:
-                        txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), getDataActiveTransactions(updateTransaction, table, kvPair, txnSupplier, cell));
-                        break;
+                    case DEFERRED: {
+                        long[] conflictingTxns = getDataActiveTransactions(updateTransaction, table, kvPair, txnSupplier, cell);
+                        if (conflictingTxns != null) {
+                            txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), conflictingTxns);
+                        }
+                    }
+                    break;
                 }
         }
 
@@ -658,6 +662,9 @@ public class SITransactor implements Transactor{
     // Helpers
 
     private long[] getDataActiveTransactions(TxnView txn, Partition table, KVPair kvPair, TxnSupplier txnSupplier, DataCell cell) throws IOException {
+        if(shouldIgnoreConflicts(table)) {
+            return null;
+        }
         DataGet dataGet = opFactory.newGet(kvPair.getRowKey(), null);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES);
         dataGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
@@ -691,6 +698,12 @@ public class SITransactor implements Transactor{
             LOG.warn("transaction " + txn + " conflicts with " + activeTx.toString() + " on table " + table.getTableName() + " on row " + cell);
         }
         return Longs.toArray(activeTx);
+    }
+
+    private boolean shouldIgnoreConflicts(Partition table) throws IOException {
+        return "SYSSTATEMENTS".equals(table.getDescriptor().getValue("tableDisplayName"))
+                && (table.getDescriptor().getValue("schemaDisplayName") == null
+                || table.getDescriptor().getValue("schemaDisplayName").equals("SYS"));
     }
 
     private void throwWriteWriteConflict(TxnView updateTransaction, DataCell cell, long dataTransactionId) throws IOException {

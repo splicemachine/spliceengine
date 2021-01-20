@@ -48,6 +48,7 @@ public class MPartition implements Partition{
     private final String partitionName;
     private final String tableName;
     private final PartitionServer owner;
+    private final MPartitionDescriptor partitionDescriptor;
 
     private final ConcurrentSkipListSet<DataCell> memstore=new ConcurrentSkipListSet<>();
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
@@ -55,10 +56,11 @@ public class MPartition implements Partition{
     private AtomicLong reads=new AtomicLong(0l);
     private AtomicLong sequenceGen = new AtomicLong(0l);
 
-    public MPartition(String tableName,String partitionName){
+    public MPartition(String tableName,String partitionName, String schemaDisplayName, String tableDisplayName, String indexDisplayName){
         this.partitionName=partitionName;
         this.tableName=tableName;
         this.owner=new MPartitionServer();
+        this.partitionDescriptor = new MPartitionDescriptor(schemaDisplayName, tableDisplayName, indexDisplayName);
     }
 
     @Override
@@ -587,6 +589,6 @@ public class MPartition implements Partition{
 
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
-        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        return partitionDescriptor;
     }
 }
