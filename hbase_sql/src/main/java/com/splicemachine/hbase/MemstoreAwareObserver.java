@@ -262,6 +262,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 }
             }else return s;
         } catch (Throwable t) {
+            if (s != null)
+                s.close();
             throw CoprocessorUtils.getIOException(t);
         }
 
