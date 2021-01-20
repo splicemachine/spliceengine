@@ -375,12 +375,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return (RowLocation)rlClone;
     }
 
-    /*
-     */
     public ResultDescription getResultDescription() {
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(resultDescription != null, "Must have a result description");
-               return resultDescription;
+        return resultDescription;
     }
 
     /**
