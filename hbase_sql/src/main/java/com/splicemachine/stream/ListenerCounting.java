@@ -57,6 +57,8 @@ public class ListenerCounting extends SparkListener implements AutoCloseable
 
     int numStages = 0;
     int totalNumStages = 0;
+    int numJobs = 0;
+    String jobName = "";
     List<StageInfo> toWatch;
     @Override
     public void onJobStart(SparkListenerJobStart jobStart) {
@@ -75,8 +77,17 @@ public class ListenerCounting extends SparkListener implements AutoCloseable
         {
             totalNumStages++;
         }
+        numJobs++;
         super.onJobStart(jobStart);
         log(" job with " + totalNumStages + " stages\n" );
+        String callSite = jobStart.properties().getProperty("callSite.short");
+        String jobDesc = jobStart.properties().getProperty("spark.job.description");
+        jobName = callSite + ": " + jobDesc;
+        log( callSite + "\n");
+        log( jobDesc + "\n");
+        String s = " " + numJobs + " " + numStages + " 0 0 1";
+        status.setString( jobName + "\n" + s );
+        log("\n" + jobName + "\n" + s + "\n");
     }
 
     @Override
@@ -220,27 +231,31 @@ public class ListenerCounting extends SparkListener implements AutoCloseable
 //                    log("DOES NOT CONTAIN " + taskEnd.stageId() + "\n");
                 continue;
             }
-            String header = "[ Stage " + sd.stageId() + " ";
-            String tailer = " (" + sd.numCompleteTasks() + " + " + sd.numActiveTasks() + ") / " + sd.numTasks() + " ]";
-            sb.append(header);
-            int width = 70;
-            int w = width - header.length() - tailer.length();
-            if( w > 0 )
-            {
-                int percent = w * sd.numCompleteTasks() / total;
-                for( int i = 0; i < w ; i++)
-                {
-                    if( i < percent )
-                        sb.append('=');
-                    else if (i == percent)
-                        sb.append('>');
-                    else
-                        sb.append('-');
+            if(false) {
+                String header = "[ Job " + numJobs + ", Stage " + (numStages + 1) + " / " + totalNumStages + " ";
+                String tailer = " (" + sd.numCompleteTasks() + " + " + sd.numActiveTasks() + ") / " + sd.numTasks() + " ]";
+                sb.append(header);
+                int width = 70;
+                int w = width - header.length() - tailer.length();
+                if (w > 0) {
+                    int percent = w * sd.numCompleteTasks() / total;
+                    for (int i = 0; i < w; i++) {
+                        if (i < percent)
+                            sb.append('=');
+                        else if (i == percent)
+                            sb.append('>');
+                        else
+                            sb.append('-');
+                    }
                 }
+                sb.append(tailer);
             }
-            sb.append(tailer);
+            else {
+                String s = " " + numJobs + " " + numStages + " " + sd.numCompleteTasks() + " " + sd.numActiveTasks() + " " + sd.numTasks();
+                sb.append(s);
+            }
         }
-        status.setString(sb.toString() );
+        status.setString( jobName + "\n" + sb.toString() );
         sb.append("\n");
         log(sb.toString());
 

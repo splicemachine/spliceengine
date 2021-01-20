@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 @SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION"})
 public class ijCommands {
     public Connection theConnection;
+    public Connection theConnection2;
     public ConnectionEnv currentConnEnv;
 
     Boolean serverLikeFix = null;
@@ -79,6 +80,29 @@ public class ijCommands {
         ColumnParameters[] res = new ColumnParameters[end-start];
         System.arraycopy(input, start, res, 0, end-start);
         return res;
+    }
+
+    public String getRunningOperation(String command) throws SQLException {
+        ResultSet rs = null;
+        if(theConnection2 == null) return "no";
+        try {
+            haveConnection();
+
+            rs = theConnection2.createStatement().executeQuery
+                    ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
+            while(rs.next()) {
+                if (rs.getString(5).equals(command))
+                    return rs.getString(9);
+            }
+            return "";
+        } catch (SQLException e) {
+            try {
+                if (rs != null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
     }
 
     /**
