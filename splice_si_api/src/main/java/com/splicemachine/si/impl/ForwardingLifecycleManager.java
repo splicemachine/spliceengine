@@ -169,11 +169,6 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
         lifecycleManager.rollbackSubtransactions(txnId, rolledback);
     }
 
-    @Override
-    public void ignoreConflicts(long txnId, boolean ignored) {
-        lifecycleManager.ignoreConflicts(txnId, ignored);
-    }
-
     protected void afterStart(Txn txn){
         //no-op by default
     }

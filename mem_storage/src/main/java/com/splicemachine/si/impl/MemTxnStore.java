@@ -57,7 +57,6 @@ public class MemTxnStore implements TxnStore{
     private final ExceptionFactory exceptionFactory;
     private final ActiveTxnTracker activeTransactions;
     private Set<Long> commitPendingTxns;
-    private final Set<Long> txnsWithIgnoredConflicts;
 
 
     public MemTxnStore(Clock clock,TimestampSource commitTsGenerator,ExceptionFactory exceptionFactory,long txnTimeOutIntervalMs){
@@ -69,7 +68,6 @@ public class MemTxnStore implements TxnStore{
         this.clock = clock;
         this.activeTransactions = new ActiveTxnTracker();
         this.commitPendingTxns = ConcurrentHashMap.newKeySet();
-        this.txnsWithIgnoredConflicts = ConcurrentHashMap.newKeySet(1024);
     }
 
     @Override
@@ -579,9 +577,6 @@ public class MemTxnStore implements TxnStore{
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
-        if(ignoreConflicts(txnId)) {
-            return;
-        }
         long beginTs = txnId & SIConstants.TRANSANCTION_ID_MASK;
         Lock wl=lockStriper.get(beginTs).writeLock();
         wl.lock();
@@ -591,19 +586,6 @@ public class MemTxnStore implements TxnStore{
         }finally{
             wl.unlock();
         }
-    }
-
-    private boolean ignoreConflicts(long txnId) throws IOException {
-        TxnView txnView = getTransaction(txnId, false);
-        while(true) {
-            if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
-                return true;
-            }
-            TxnView parent = txnView.getParentTxnView();
-            if(parent == Txn.ROOT_TRANSACTION) break;
-            txnView = parent;
-        }
-        return false;
     }
 
     @Override
@@ -616,16 +598,6 @@ public class MemTxnStore implements TxnStore{
             return Longs.toArray(txnHolder.conflictingTxns);
         }finally{
             rl.unlock();
-        }
-    }
-
-    @Override
-    public void ignoreConflicts(long txnId, boolean doIgnore) {
-        // no op
-        if(doIgnore) {
-            txnsWithIgnoredConflicts.add(txnId);
-        } else {
-            txnsWithIgnoredConflicts.remove(txnId);
         }
     }
 }

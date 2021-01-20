@@ -140,8 +140,4 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		throw new UnsupportedOperationException("Cannot get replication role from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
 
-	@Override
-	public void ignoreConflicts(long unused1, boolean unused2) {
-		throw new UnsupportedOperationException("Cannot ignoreConflicts from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
-	}
 }

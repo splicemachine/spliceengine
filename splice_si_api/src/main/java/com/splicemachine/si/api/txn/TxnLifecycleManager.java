@@ -306,6 +306,4 @@ public interface TxnLifecycleManager{
     void setReplicationRole(String role);
 
     String getReplicationRole();
-
-    void ignoreConflicts(long txnId, boolean doIgnore);
 }

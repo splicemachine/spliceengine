@@ -1746,6 +1746,4 @@ conglomerates are removed.
      *
      **/
     void closeMe(ScanController scan);
-
-    void ignoreConflicts(boolean ignore);
 }

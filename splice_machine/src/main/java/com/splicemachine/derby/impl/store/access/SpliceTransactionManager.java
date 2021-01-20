@@ -1966,16 +1966,4 @@ public class SpliceTransactionManager implements XATransactionController,
             return getRawTransaction().getActiveStateTxn().getTxnId();
         return -1;
     }
-
-    @Override
-    public void ignoreConflicts(boolean ignore) {
-        if(SIDriver.driver() != null && SIDriver.driver().lifecycleManager() != null) {
-            if(LOG.isInfoEnabled()) {
-                LOG.info(String.format("conflicting transactions %s ignored for transaction %d", (ignore ? "are" : "are not"), getActiveStateTxn().getTxnId()));
-            }
-            SIDriver.driver().lifecycleManager().ignoreConflicts(getActiveStateTxId(), ignore);
-        } else {
-            LOG.warn(String.format("could not %s conflicting transactions for transaction %d", (ignore ? "ignore" : "restore adding"), getActiveStateTxn().getTxnId()));
-        }
-    }
 }

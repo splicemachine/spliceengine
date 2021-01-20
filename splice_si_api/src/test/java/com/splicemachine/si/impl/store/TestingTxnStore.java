@@ -439,8 +439,4 @@ public class TestingTxnStore implements TxnStore{
         return null;
     }
 
-    @Override
-    public void ignoreConflicts(long txnId, boolean doIgnore) {
-        // no op
-    }
 }

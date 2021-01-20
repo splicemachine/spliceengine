@@ -3525,24 +3525,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                           boolean recompile,
                           boolean updateParamDescriptors,
                           boolean firstCompilation) throws StandardException {
-        /*
-         * Partial update, temporarily ignore collecting conflicting txns, many conflicting txns could arise
-         * since multiple threads/clusters can recompile sps descriptors especially after collecting stats on
-         * sys tables.
-         */
-        try {
-            tc.ignoreConflicts(true);
-            updateSPSInternal(spsd, tc, recompile, updateParamDescriptors, firstCompilation);
-        } finally {
-            tc.ignoreConflicts(false);
-        }
-    }
-
-    private void updateSPSInternal(SPSDescriptor spsd,
-                                  TransactionController tc,
-                                  boolean recompile,
-                                  boolean updateParamDescriptors,
-                                  boolean firstCompilation) throws StandardException{
         ExecIndexRow keyRow1;
         ExecRow row;
         DataValueDescriptor idOrderable;
@@ -3581,27 +3563,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow1.setColumn(1,idOrderable);
 
         row=rf.makeSYSSTATEMENTSrow(false,    // don't compile
-                spsd);
+                                    spsd);
 
         /*
-        ** Not updating any indexes
-        */
+         ** Not updating any indexes
+         */
         boolean[] bArray=new boolean[2];
 
         ti.updateRow(keyRow1, row, SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, bArray, updCols, tc);
 
         /*
-        ** If we don't need to update the parameter
-        ** descriptors, we are done.
-        */
+         ** If we don't need to update the parameter
+         ** descriptors, we are done.
+         */
         if(!updateParamDescriptors){
             return;
         }
 
         /*
-        ** Set the defaults and datatypes for the parameters, if
-        ** there are parameters.
-        */
+         ** Set the defaults and datatypes for the parameters, if
+         ** there are parameters.
+         */
         DataTypeDescriptor[] params=spsd.getParams();
         if(params==null){
             return;
@@ -3620,12 +3602,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             Object[] parameterDefaults=spsd.getParameterDefaults();
 
             /*
-            ** Update each column with the new defaults and with
-            ** the new datatypes.  It is possible that someone has
-            ** done a drop/create on the underlying table and
-            ** changed the type of a column, which has changed
-            ** the type of a parameter to our statement.
-            */
+             ** Update each column with the new defaults and with
+             ** the new datatypes.  It is possible that someone has
+             ** done a drop/create on the underlying table and
+             ** changed the type of a column, which has changed
+             ** the type of a parameter to our statement.
+             */
             int[] columnsToSet=new int[2];
             columnsToSet[0]=SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE;
             columnsToSet[1]=SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDEFAULT;
@@ -3637,17 +3619,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                 //RESOLVEAUTOINCREMENT
                 ColumnDescriptor cd=new ColumnDescriptor("PARAM"+parameterId,
-                        parameterId,    // position
-                        parameterId,    // storage position
-                        params[index],
-                        ((parameterDefaults==null) || // default
-                                (index>=parameterDefaults.length))?
-                                null:
-                                (DataValueDescriptor)parameterDefaults[index],
-                        null,
-                        uuid,
-                        null,
-                        0,0,0,parameterId-1);
+                                                         parameterId,    // position
+                                                         parameterId,    // storage position
+                                                         params[index],
+                                                         ((parameterDefaults==null) || // default
+                                                                 (index>=parameterDefaults.length))?
+                                                                 null:
+                                                                 (DataValueDescriptor)parameterDefaults[index],
+                                                         null,
+                                                         uuid,
+                                                         null,
+                                                         0,0,0,parameterId-1);
 
                 updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
             }
