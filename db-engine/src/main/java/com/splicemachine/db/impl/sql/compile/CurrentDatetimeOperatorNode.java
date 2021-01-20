@@ -49,7 +49,7 @@ import java.util.Objects;
 
 /**
  * The CurrentDatetimeOperator operator is for the builtin CURRENT_DATE,
- * CURRENT_TIME, and CURRENT_TIMESTAMP operations.
+ * CURRENT_TIME, CURRENT_TIMESTAMP, and CURRENT_TIMEZONE operations.
  *
  */
 public class CurrentDatetimeOperatorNode extends ValueNode {
@@ -57,16 +57,19 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     public static final int CURRENT_DATE = 0;
     public static final int CURRENT_TIME = 1;
     public static final int CURRENT_TIMESTAMP = 2;
+    public static final int CURRENT_TIMEZONE = 3;
 
     static private final int[] jdbcTypeId = {
         Types.DATE,
         Types.TIME,
-        Types.TIMESTAMP
+        Types.TIMESTAMP,
+        Types.DECIMAL
     };
     static private final String[] methodName = {
         "CURRENT DATE",
         "CURRENT TIME",
-        "CURRENT TIMESTAMP"
+        "CURRENT TIMESTAMP",
+        "CURRENT TIMEZONE"
     };
 
     private int whichType;
@@ -81,6 +84,7 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     public boolean isCurrentDate() { return whichType == CURRENT_DATE; }
     public boolean isCurrentTime() { return whichType == CURRENT_TIME; }
     public boolean isCurrentTimestamp() { return whichType == CURRENT_TIMESTAMP; }
+    public boolean isCurrentTimezone() { return whichType == CURRENT_TIMEZONE; }
 
     public void init(Object whichType) {
         if (whichType instanceof Integer) {
@@ -97,13 +101,15 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                 case StoredFormatIds.TIMESTAMP_TYPE_ID:
                     this.whichType = CURRENT_TIMESTAMP;
                     break;
+                case StoredFormatIds.DECIMAL_TYPE_ID:
+                    this.whichType = CURRENT_TIMEZONE;
                 default:
                     assert false;
             }
         }
 
         if (SanityManager.DEBUG)
-            SanityManager.ASSERT(this.whichType >= 0 && this.whichType <= 2);
+            SanityManager.ASSERT(this.whichType >= 0 && this.whichType <= 3);
     }
 
     //
@@ -131,25 +137,35 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                                     List<AggregateNode>    aggregateVector) throws StandardException {
         checkReliability( methodName[whichType], CompilerContext.DATETIME_ILLEGAL );
 
-        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+        switch(whichType) {
+            case CURRENT_DATE: // fallthrough
+            case CURRENT_TIME: // fallthrough
+            case CURRENT_TIMESTAMP: // fallthrough
+                setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
                         jdbcTypeId[whichType],
                         false        /* Not nullable */
-                    )
+                        )
                 );
+                break;
+            case CURRENT_TIMEZONE:
+                setType(DataTypeDescriptor.getSQLDataTypeDescriptor("java.math.BigDecimal", 6, 0, true, 6));
+                break;
+        }
+
         return this;
     }
 
     /**
      * Return the variant type for the underlying expression.
      * The variant type can be:
-     *        VARIANT                - variant within a scan
+     *        VARIANT               - variant within a scan
      *                              (method calls and non-static field access)
      *        SCAN_INVARIANT        - invariant within a scan
      *                              (column references from outer tables)
-     *        QUERY_INVARIANT        - invariant within the life of a query
+     *        QUERY_INVARIANT       - invariant within the life of a query
      *                              (constant expressions)
      *
-     * @return    The variant type for the underlying expression.
+     * @return The variant type for the underlying expression.
      */
     protected int getOrderableVariantType()
     {
@@ -187,6 +203,9 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                 break;
             case CURRENT_TIMESTAMP:
                 acb.getCurrentTimestampExpression(mb);
+                break;
+            case CURRENT_TIMEZONE:
+                acb.getCurrentTimezoneExpression(mb);
                 break;
             default:
                 assert false;
