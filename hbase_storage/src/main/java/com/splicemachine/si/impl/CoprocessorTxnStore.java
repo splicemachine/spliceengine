@@ -56,7 +56,8 @@ public class CoprocessorTxnStore implements TxnStore {
     private final boolean ignoreMissingTransactions;
     private final ActiveTxnTracker activeTransactions;
     private final Map<Long, Set<Long>> conflictingTransactionsCache;
-
+    private final Set<Long> txnsWithIgnoredConflicts;
+    
     @ThreadSafe
     private final TimestampSource timestampSource;
 
@@ -76,6 +77,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
         this.activeTransactions = new ActiveTxnTracker();
         this.conflictingTransactionsCache = new ConcurrentHashMap<>(1024);
+        this.txnsWithIgnoredConflicts = ConcurrentHashMap.newKeySet(1024);
     }
 
     @Override
@@ -410,7 +412,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException {
-        if (ignoresConflicts(txnId)) {
+        if (ignoreConflicts(txnId)) {
             return;
         }
 
@@ -459,34 +461,31 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
-    public void ignoreConflicts(long txnId, boolean doIgnore) throws IOException {
-        byte[] rowKey=getTransactionRowKey(txnId );
-        TxnMessage.IgnoreConflictingTxnRequest request=TxnMessage.IgnoreConflictingTxnRequest.newBuilder().setTxnId(txnId).setDoIgnore(doIgnore).build();
-
-        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-            table.ignoreConflictingTransactions(rowKey, request);
-            elevations.incrementAndGet();
+    public void ignoreConflicts(long txnId, boolean doIgnore) {
+        // no op
+        if(doIgnore) {
+            txnsWithIgnoredConflicts.add(txnId);
+        } else {
+            txnsWithIgnoredConflicts.remove(txnId);
         }
-    }
-
-    @Override
-    public boolean ignoresConflicts(long txnId) throws IOException {
-        boolean ignoresConflicts;
-
-        byte[] rowKey=getTransactionRowKey(txnId );
-        TxnMessage.IgnoresConflictRequest request=TxnMessage.IgnoresConflictRequest.newBuilder().setTxnId(txnId).build();
-
-        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-            TxnMessage.IgnoresConflictResponse response = table.ignoresConflicts(rowKey, request);
-            ignoresConflicts = response.getIgnoresConflict();
-            elevations.incrementAndGet();
-        }
-        return ignoresConflicts;
     }
 
     /*
      * private helper methods
      */
+
+    private boolean ignoreConflicts(long txnId) throws IOException {
+        TxnView txnView = getTransaction(txnId, false);
+        while(true) {
+            if(txnsWithIgnoredConflicts.contains(txnView.getTxnId())) {
+                return true;
+            }
+            TxnView parent = txnView.getParentTxnView();
+            if(parent == Txn.ROOT_TRANSACTION) break;
+            txnView = parent;
+        }
+        return false;
+    }
 
     private TxnView decode(long queryId, TxnMessage.Txn message) throws IOException {
         TxnMessage.TxnInfo info = message.getInfo();

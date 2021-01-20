@@ -170,13 +170,8 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public void ignoreConflicts(long txnId, boolean ignored) throws IOException {
+    public void ignoreConflicts(long txnId, boolean ignored) {
         lifecycleManager.ignoreConflicts(txnId, ignored);
-    }
-
-    @Override
-    public boolean ignoresConflicts(long txnId) throws IOException {
-        return lifecycleManager.ignoresConflicts(txnId);
     }
 
     protected void afterStart(Txn txn){

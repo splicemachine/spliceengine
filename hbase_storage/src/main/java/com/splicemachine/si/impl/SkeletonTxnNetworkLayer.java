@@ -196,27 +196,6 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         return done.get();
     }
 
-    @Override
-    public void ignoreConflictingTransactions(byte[] rowKey, final TxnMessage.IgnoreConflictingTxnRequest request) throws IOException {
-        TxnMessage.TxnLifecycleService service = getLifecycleService(rowKey);
-        SpliceRpcController controller = new SpliceRpcController();
-        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        BlockingRpcCallback<TxnMessage.VoidResponse> done = new BlockingRpcCallback<>();
-        service.ignoreConflictingTxn(controller, request, done);
-        dealWithError(controller);
-    }
-
-    @Override
-    public TxnMessage.IgnoresConflictResponse ignoresConflicts(byte[] rowKey, final TxnMessage.IgnoresConflictRequest request) throws IOException {
-        TxnMessage.TxnLifecycleService service = getLifecycleService(rowKey);
-        SpliceRpcController controller = new SpliceRpcController();
-        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        BlockingRpcCallback<TxnMessage.IgnoresConflictResponse> done = new BlockingRpcCallback<>();
-        service.ignoresConflict(controller, request, done);
-        dealWithError(controller);
-        return done.get();
-    }
-
     protected abstract TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException;
 
     protected abstract <C> Map<byte[],C> coprocessorService(Class<TxnMessage.TxnLifecycleService> txnLifecycleServiceClass,

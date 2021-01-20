@@ -33,11 +33,13 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-import splice.com.google.common.primitives.Longs;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Uses an HRegion to access Txn information.
@@ -390,18 +392,13 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "addConflictingTxnIds txnId=%d, conflictingTxnIds=%d", txnId, Arrays.toString(conflictingTxnIds));
 
-        TxnMessage.ConflictingTxnIdsResponse response = getConflictingTxnIds(txnId);
-        Set<Long> totalConflicts = new HashSet<>(response.getConflictingTxnIdsList());
-        totalConflicts.addAll(Longs.asList(conflictingTxnIds));
-
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
         Put put=new Put(getRowKey(beginTS));
         put.setDurability(durability);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         boolean first = true;
-        for (long id : totalConflicts) {
-
+        for (long id : conflictingTxnIds) {
             if (!first) {
                 baos.write(0);
             }
@@ -410,43 +407,6 @@ public class RegionTxnStore implements TxnPartition{
         }
         put.addColumn(FAMILY, V2TxnDecoder.CONFLICTING_TXN_IDS_BYTES, baos.toByteArray());
         region.put(put);
-    }
-
-    @Override
-    public void ignoreConflicts(long txnId, boolean doIgnore) throws IOException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "ignoreConflicts txnId=%d, doIgnore=%b", txnId, doIgnore);
-
-        if( doIgnore ) {
-            addConflictingTxnIds(txnId, new long[] {SIConstants.SI_IGNORED_CONFLICT_ID});
-        } else {
-            TxnMessage.ConflictingTxnIdsResponse response = getConflictingTxnIds(txnId);
-            List<Long> ids = new ArrayList<>(response.getConflictingTxnIdsList());
-
-            long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-            Put put=new Put(getRowKey(beginTS));
-            put.setDurability(durability);
-            ids.removeAll(Collections.singleton(SIConstants.SI_IGNORED_CONFLICT_ID));
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            boolean first = true;
-            for (long id : ids) {
-                if (!first) {
-                    baos.write(0);
-                }
-                baos.write(Encoding.encode(id));
-                first = false;
-            }
-            put.addColumn(FAMILY, V2TxnDecoder.CONFLICTING_TXN_IDS_BYTES, baos.toByteArray());
-            region.put(put);
-        }
-    }
-
-    @Override
-    public boolean ignoresConflictingTxns(long txnId) throws IOException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "ignoresConflictingTxns txnId=%d", txnId);
-
-       return getConflictingTxnIds(txnId).getConflictingTxnIdsList().contains(SIConstants.SI_IGNORED_CONFLICT_ID);
     }
 
     @Override

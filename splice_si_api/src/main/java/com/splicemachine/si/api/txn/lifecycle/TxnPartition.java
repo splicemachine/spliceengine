@@ -202,11 +202,7 @@ public interface TxnPartition{
 
     void addConflictingTxnIds(long txnId, long[] conflictingTxnIds) throws IOException;
 
-    void ignoreConflicts(long txnId, boolean doIgnore) throws IOException;
-
     TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException;
-
-    boolean ignoresConflictingTxns(long txnId) throws IOException;
 
     boolean contains(long txnId) throws IOException;
 }

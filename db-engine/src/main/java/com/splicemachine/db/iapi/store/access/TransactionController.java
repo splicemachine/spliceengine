@@ -1747,5 +1747,5 @@ conglomerates are removed.
      **/
     void closeMe(ScanController scan);
 
-    void ignoreConflicts(boolean ignore) throws StandardException;
+    void ignoreConflicts(boolean ignore);
 }

@@ -118,7 +118,5 @@ public interface TxnStore extends TxnSupplier{
 
     long[] getConflictingTxnIds(long txnId) throws IOException;
 
-    void ignoreConflicts(long txnId, boolean doIgnore) throws IOException;
-
-    boolean ignoresConflicts(long txnId) throws IOException;
+    void ignoreConflicts(long txnId, boolean doIgnore);
 }

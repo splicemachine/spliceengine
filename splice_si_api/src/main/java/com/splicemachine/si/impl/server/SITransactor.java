@@ -680,9 +680,9 @@ public class SITransactor implements Transactor{
                 if(parent == Txn.ROOT_TRANSACTION) break;
                 txnView = parent;
             }
-            Txn.State state = txnView.getEffectiveState();
+            Txn.State state = txnView.getState();
             if(state == Txn.State.ACTIVE) {
-                activeTx.add(txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
+                activeTx.add(txnView.getTxnId());
             } else if(state == Txn.State.COMMITTED && txnView.getCommitTimestamp() > txn.getBeginTimestamp()) { // bail out
                 throwWriteWriteConflict(txn, cell, dataTxnId);
             }

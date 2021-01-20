@@ -87,9 +87,5 @@ public interface TxnLifecycleStore{
 
     void addConflictingTxnIds(long txnId, long[] conflictingTxnIds ) throws IOException;
 
-    void ignoreConflictingTxns(long txnId, boolean doIgore) throws IOException;
-
-    boolean ignoresConflictingTxns(long txnId) throws IOException;
-
     TxnMessage.ConflictingTxnIdsResponse getConflictingTxnIds(long txnId) throws IOException;
 }

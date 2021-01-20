@@ -628,9 +628,4 @@ public class MemTxnStore implements TxnStore{
             txnsWithIgnoredConflicts.remove(txnId);
         }
     }
-
-    @Override
-    public boolean ignoresConflicts(long txnId) throws IOException {
-        return txnsWithIgnoredConflicts.contains(txnId);
-    }
 }

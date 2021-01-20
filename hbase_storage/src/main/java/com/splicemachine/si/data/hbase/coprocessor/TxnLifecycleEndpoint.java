@@ -352,26 +352,4 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             setControllerException(controller, ioe);
         }
     }
-
-    @Override
-    public void ignoreConflictingTxn(RpcController controller, TxnMessage.IgnoreConflictingTxnRequest request, RpcCallback<TxnMessage.VoidResponse> done) {
-        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
-            lifecycleStore.ignoreConflictingTxns(request.getTxnId(), request.getDoIgnore());
-            done.run(TxnMessage.VoidResponse.getDefaultInstance());
-        }catch(IOException ioe){
-            setControllerException(controller,ioe);
-        }
-    }
-
-    @Override
-    public void ignoresConflict(RpcController controller, TxnMessage.IgnoresConflictRequest request, RpcCallback<TxnMessage.IgnoresConflictResponse> done) {
-        try (RpcUtils.RootEnv ignored = RpcUtils.getRootEnv()) {
-            TxnMessage.IgnoresConflictResponse.Builder response = TxnMessage.IgnoresConflictResponse.newBuilder();
-            boolean result = lifecycleStore.ignoresConflictingTxns(request.getTxnId());
-            response.setIgnoresConflict(result);
-            done.run(response.build());
-        }catch(IOException ioe){
-            setControllerException(controller,ioe);
-        }
-    }
 }

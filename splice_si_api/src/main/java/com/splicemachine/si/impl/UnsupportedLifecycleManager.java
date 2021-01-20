@@ -144,9 +144,4 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	public void ignoreConflicts(long unused1, boolean unused2) {
 		throw new UnsupportedOperationException("Cannot ignoreConflicts from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
-
-	@Override
-	public boolean ignoresConflicts(long txnId) throws IOException {
-		throw new UnsupportedOperationException("Cannot ignoresConflicts from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
-	}
 }
