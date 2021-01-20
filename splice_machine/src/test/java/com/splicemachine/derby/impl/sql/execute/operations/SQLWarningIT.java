@@ -45,7 +45,6 @@ public class SQLWarningIT extends SpliceUnitTest {
 
     @Test
     public void TestNoRowsAffectedWarning() throws Exception {
-
         try(Connection connection = spliceClassWatcher.getOrCreateConnection();
             Statement s = connection.createStatement()) {
             s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', true)");
@@ -54,6 +53,7 @@ public class SQLWarningIT extends SpliceUnitTest {
             Assert.assertTrue(warning!=null);
             Assert.assertEquals("02000", warning.getSQLState());
             Assert.assertEquals(100, warning.getErrorCode());
+            s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', false)");
         }
     }
 }
