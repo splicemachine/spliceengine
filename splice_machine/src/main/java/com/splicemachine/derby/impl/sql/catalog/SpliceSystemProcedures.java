@@ -1077,7 +1077,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
                 .numOutputParams(0)
-                .numResultSets(0)
+                .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .modifiesSql() // restrict execution
                 .returnType(null).isDeterministic(false)

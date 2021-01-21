@@ -75,7 +75,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -84,6 +83,7 @@ import splice.com.google.common.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
@@ -1280,24 +1280,70 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
-    public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key,final String value) throws SQLException{
+    static boolean databasePropertyExists(final String key) {
+        SConfiguration config=EngineDriver.driver().getConfiguration();
+
+        // get configurations from SConfigurationImpl and Hadoop ConfigurationSource
+        Map<String,Object> configRootMap = config.getConfigMap();
+        if(configRootMap != null && configRootMap.getOrDefault(key, null) != null)
+            return true;
+
+        // get configuration fields from class com.splicemachine.db.iapi.reference.Property
+        for (Field field : com.splicemachine.db.iapi.reference.Property.class.getFields()) {
+            try {
+                if(field.getType().equals(String.class)
+                        && ((String)field.get(null)).compareTo(key) == 0 ) {
+                    return true;
+                }
+            } catch (IllegalAccessException e) {
+                // continue
+            }
+        }
+        return false;
+    }
+
+    public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value,
+                                                          final ResultSet[] resultSet) throws SQLException{
         try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
+            lcc.getLastActivation().addWarning(new SQLWarning("WARNING!!!\n"));
             dd.startWriting(lcc);
+            String previous = PropertyUtil.getCachedDatabaseProperty(lcc, key);
             PropertyInfo.setDatabaseProperty(key, value);
+
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             // we need to invalidate the statement caches since we could set parameters that affect query plans.
             SYSCS_INVALIDATE_STORED_STATEMENTS();
             SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn c1 = resultHelper.addVarchar("name", 20);
+            ResultHelper.VarcharColumn c2 = resultHelper.addVarchar("value", 180);
+            resultHelper.newRow();
+            c1.set("KEY");      c2.set(key);
+            resultHelper.newRow();
+            c1.set("NEW VALUE");    c2.set(value);
+            resultHelper.newRow();
+            c1.set("PREVIOUS VALUE");  c2.set(previous);
+
+            if( !databasePropertyExists(key) ) {
+                resultHelper.newRow();
+                resultHelper.newRow();
+                c1.set("!!! WARNING !!!");
+                c2.set("Database Property '" + key + "' seems to be unknown!");
+
+                SpliceLogUtils.warn(LOG, "Database Property '" + key + "' was set, but it seems to be unknown");
+            }
+            resultSet[0] = resultHelper.getResultSet();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
             throw new SQLException(e);
         }
-
     }
 
     public static void SYSCS_ENABLE_ENTERPRISE(final String value) throws SQLException{
