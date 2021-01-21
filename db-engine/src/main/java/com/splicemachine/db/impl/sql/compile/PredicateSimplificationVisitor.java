@@ -162,6 +162,13 @@ class PredicateSimplificationVisitor implements Visitor {
                 }
             }
             if (node instanceof InListOperatorNode) {
+                if(parent instanceof NotNode) {
+                    for (int i = 0; i < rightOperands.size(); i++) {
+                        if (rightOperands.elementAt(i) instanceof UntypedNullConstantNode) {
+                            return (ValueNode)rightOperands.elementAt(i);
+                        }
+                    }
+                }
                 for (int i = rightOperands.size() - 1; i >= 0; i--) {
                     if (rightOperands.elementAt(i) instanceof UntypedNullConstantNode) {
                         rightOperands.removeElementAt(i);

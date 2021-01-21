@@ -197,7 +197,7 @@ public class NullPredicateIT extends SpliceUnitTest {
 
         String expected = "1 |\n" +
                 "----\n" +
-                " 1 |";
+                " 0 |";
 
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
