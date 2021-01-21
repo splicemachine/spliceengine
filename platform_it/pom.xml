@@ -1055,6 +1055,7 @@
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
+                                    -Dsplice.olapServerOnStandAlone=true
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
