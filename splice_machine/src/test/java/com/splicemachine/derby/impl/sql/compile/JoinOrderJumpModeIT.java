@@ -244,16 +244,16 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
                 new String[] {"GroupBy"},                                                        // 9
                 new String[] {"IndexLookup", "outputRows=1"},                                    // 12
                 new String[] {"IndexScan[XFKMAPMA", "outputRows=1"},                             // 13
-                new String[] {"NestedLoopJoin"},                                                 // 14
-                new String[] {"TableScan[TLOKATION", "scannedRows=1,outputRows=1"},              // 16
-                new String[] {"BroadcastJoin"},                                                  // 17
+                new String[] {"Join"},                                                           // 14
+                new String[] {"Scan["},                                                          // 16, IndexScan on mem but TableScan on cdh
+                new String[] {"Join"},                                                           // 17
                 new String[] {"TableScan[TSTELLE", "scannedRows=800,outputRows=800"},            // 18
-                new String[] {"NestedLoopJoin"},                                                 // 19
+                new String[] {"Join"},                                                           // 19
                 new String[] {"TableScan[TSTELLENLOK", "scannedRows=1,outputRows=1"},            // 20
-                new String[] {"NestedLoopJoin"},                                                 // 21
+                new String[] {"Join"},                                                           // 21
                 new String[] {"IndexLookup"},                                                    // 23
                 new String[] {"IndexScan[XFKMAPMA", "scannedRows=1,outputRows=1"},               // 24
-                new String[] {"MergeSortJoin"},                                                  // 25
+                new String[] {"Join"},                                                           // 25
                 new String[] {"IndexScan[XPFUSERIDMA", "scannedRows=34609,outputRows=34609"},    // 27
                 new String[] {"IndexLookup"},                                                    // 28
                 new String[] {"IndexScan[XFKGAGF", "scannedRows=1,outputRows=1"}                 // 29
