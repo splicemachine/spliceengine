@@ -1828,6 +1828,7 @@ TOKEN [IGNORE_CASE] :
 |    <DATE: "date">
 |    <DATEFORMAT: "dateFormat">
 |    <DAY: "day">
+|    <DAYOFWEEK_ISO: "dayofweek_iso">
 |    <DAYS: "days">
 |    <DAYOFYEAR: "dayofyear">
 |    <DEFINER: "definer">
@@ -6505,7 +6506,7 @@ nonSecondDatetimeField() :
         return DateTimeDataValue.WEEK_FIELD;
     }
 |
-    <WEEKDAY>
+    (<WEEKDAY> | <DAYOFWEEK_ISO>)
     {
         return DateTimeDataValue.WEEK_DAY_FIELD;
     }
@@ -7554,6 +7555,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MONTHNAME ||
                 getToken(1).kind == WEEK ||
                 getToken(1).kind == WEEKDAY ||
+                getToken(1).kind == DAYOFWEEK_ISO ||
                 getToken(1).kind == WEEKDAYNAME ||
                 getToken(1).kind == DAYOFYEAR ||
                 getToken(1).kind == DAY ||
@@ -17384,6 +17386,7 @@ nonReservedKeyword()  :
     |    tok = <DATE>
     |    tok = <DATEFORMAT>
     |    tok = <DAY>
+    |    tok = <DAYOFWEEK_ISO>
     |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>

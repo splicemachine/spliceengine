@@ -327,7 +327,7 @@ public class OperatorToString {
                     // Spark by default counts weeks starting on Sunday.
                     if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    } else if (functionName.equals("WEEKDAY")) {
+                    } else if (functionName.equals("WEEKDAY") || functionName.equals("DAYOFWEEK_ISO")) {
                         if( getSparkVersion().getMajorVersionNumber() >= 3 )
                             return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
                         else
