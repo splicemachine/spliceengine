@@ -17,6 +17,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.python.antlr.op.Param;
 
 import java.sql.Types;
 import java.util.Properties;
@@ -348,24 +349,16 @@ class SQLGrammarImpl {
         switch (multiplicativeOperator)
         {
             case BinaryOperatorNode.TIMES:
-                return (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
-                        leftOperand,
-                        rightOperand,
-                        getContextManager());
+                return new BinaryArithmeticOperatorNode(C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+                        leftOperand, rightOperand, getContextManager());
 
             case BinaryOperatorNode.DIVIDE:
-                return (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
-                        leftOperand,
-                        rightOperand,
-                        getContextManager());
+                return new BinaryArithmeticOperatorNode(C_NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
+                        leftOperand, rightOperand, getContextManager());
+
             case BinaryOperatorNode.CONCATENATE:
-                return (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.CONCATENATION_OPERATOR_NODE,
-                        leftOperand,
-                        rightOperand,
-                        getContextManager());
+                return new ConcatenationOperatorNode(
+                        leftOperand, rightOperand, getContextManager());
 
             default:
                 if (SanityManager.DEBUG)
@@ -438,12 +431,9 @@ class SQLGrammarImpl {
         {
             sdv = (DataValueDescriptor) paramDefaults[parameterNumber];
         }
-
-        parm = (ParameterNode) nodeFactory.getNode(
-                C_NodeTypes.PARAMETER_NODE,
+        parm = new ParameterNode(getContextManager(),
                 ReuseFactory.getInteger(parameterNumber),
-                sdv,
-                getContextManager());
+                sdv);
 
         parameterNumber++;
         parameterList.addElement(parm);
@@ -485,10 +475,9 @@ class SQLGrammarImpl {
         // first, see if it might be an integer
         try
         {
-            return (NumericConstantNode) nodeFactory.getNode(
+            return new NumericConstantNode(cm,
                     C_NodeTypes.INT_CONSTANT_NODE,
-                    Integer.valueOf(num),
-                    cm);
+                    Integer.valueOf(num));
         }
         catch (NumberFormatException nfe)
         {
@@ -498,10 +487,9 @@ class SQLGrammarImpl {
         // next, see if it might be a long
         try
         {
-            return (NumericConstantNode) nodeFactory.getNode(
+            return new NumericConstantNode(cm,
                     C_NodeTypes.LONGINT_CONSTANT_NODE,
-                    Long.valueOf(num),
-                    cm);
+                    Long.valueOf(num));
         }
         catch (NumberFormatException nfe)
         {
@@ -512,10 +500,7 @@ class SQLGrammarImpl {
         }
 
         NumericConstantNode ncn =
-                (NumericConstantNode) nodeFactory.getNode(
-                        C_NodeTypes.DECIMAL_CONSTANT_NODE,
-                        num,
-                        cm);
+            new NumericConstantNode(cm, C_NodeTypes.DECIMAL_CONSTANT_NODE, num);
         if (ncn != null) {
             int precision = ncn.getTypeServices().getPrecision();
             if (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE)
@@ -542,9 +527,7 @@ class SQLGrammarImpl {
                 getContextManager());
 
         fromList.addFromTable(fromTable);
-
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                C_NodeTypes.SELECT_NODE,
+        SelectNode resultSet = new SelectNode(
                 null,
                 null,     /* AGGREGATE list */
                 fromList, /* FROM list */
@@ -554,17 +537,9 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        StatementNode retval =
-                (StatementNode) nodeFactory.getNode(
-                        C_NodeTypes.DELETE_NODE,
-                        tableName,
-                        resultSet,
-                        targetProperties,
-                        getContextManager());
-
+        DeleteNode dn = new DeleteNode(getContextManager(), tableName, resultSet, targetProperties);
         setUpAndLinkParameters();
-
-        return retval;
+        return dn;
     }
 
     /**
@@ -585,8 +560,7 @@ class SQLGrammarImpl {
 
         fromList.addFromTable(fromTable);
 
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                C_NodeTypes.SELECT_NODE,
+        SelectNode resultSet = new SelectNode(
                 setClause, /* SELECT list */
                 null,     /* AGGREGATE list */
                 fromList, /* FROM list */
@@ -594,18 +568,15 @@ class SQLGrammarImpl {
                 null, /* GROUP BY list */
                 null, /* having clause */
                 null, /* window list */
+                getContextManager() );
+
+        UpdateNode node = new UpdateNode(
+                tableName, /* target table for update */
+                resultSet, /* SelectNode just created */
                 getContextManager());
-
-        StatementNode retval =
-                (StatementNode) nodeFactory.getNode(
-                        C_NodeTypes.UPDATE_NODE,
-                        tableName,
-                        resultSet,
-                        getContextManager());
-
         setUpAndLinkParameters();
 
-        return retval;
+        return node;
     }
 
     StatementNode getUpdateNodeWithSub(FromTable fromTable, /* table to be updated */
@@ -697,8 +668,7 @@ class SQLGrammarImpl {
             rc.setExpression(colRef);
         }
 
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                C_NodeTypes.SELECT_NODE,
+        SelectNode resultSet = new SelectNode(
                 setClause, /* SELECT list */
                 null,   /* AGGREGATE list */
                 fromList, /* FROM list */
@@ -706,20 +676,18 @@ class SQLGrammarImpl {
                 null, /* GROUP BY list */
                 null, /* having clause */
                 null, /* window list */
-                getContextManager());
+                getContextManager() );
 
-        StatementNode retval =
-                (StatementNode) nodeFactory.getNode(
-                        C_NodeTypes.UPDATE_NODE,
+        UpdateNode node = new UpdateNode(
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
-                        getContextManager());
-
-        ((UpdateNode)retval).setUpdateWithSubquery(true);
+                        getContextManager()
+                    );
+        node.setUpdateWithSubquery(true);
 
         setUpAndLinkParameters();
 
-        return retval;
+        return node;
     }
 
     SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
@@ -788,11 +756,11 @@ class SQLGrammarImpl {
                     " ",
                     getContextManager());
         }
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.TRIM_OPERATOR_NODE,
                 trimSource, // receiver
                 trimChar,   // leftOperand.
-                null,
+                null, // right
                 ReuseFactory.getInteger(TernaryOperatorNode.TRIM),
                 trimSpec,
                 cm == null ? getContextManager() : cm);
@@ -951,17 +919,9 @@ class SQLGrammarImpl {
     /**
      Create a node for the drop alias/procedure call.
      */
-    StatementNode
-    dropAliasNode(Object aliasName, char type) throws StandardException
+    StatementNode dropAliasNode(Object aliasName, char type) throws StandardException
     {
-
-        StatementNode stmt = (StatementNode) nodeFactory.getNode(
-                C_NodeTypes.DROP_ALIAS_NODE,
-                aliasName,
-                Character.valueOf(type),
-                getContextManager());
-
-        return stmt;
+        return new DropAliasNode(aliasName, Character.valueOf(type), getContextManager());
     }
 
     /**
@@ -975,7 +935,7 @@ class SQLGrammarImpl {
     ValueNode getSubstringNode( ValueNode stringValue, ValueNode startPosition,
                                 ValueNode length, Boolean boolVal ) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.SUBSTRING_OPERATOR_NODE,
                 stringValue,
                 startPosition,
@@ -994,7 +954,7 @@ class SQLGrammarImpl {
      */
     ValueNode getSplitPartNode(ValueNode stringValue, ValueNode delimiter, ValueNode fieldNumber ) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.SPLIT_PART_OPERATOR_NODE,
                 stringValue,
                 delimiter,
@@ -1006,7 +966,7 @@ class SQLGrammarImpl {
 
     ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.RIGHT_OPERATOR_NODE,
                 stringValue,
                 length,
@@ -1025,7 +985,7 @@ class SQLGrammarImpl {
      */
     ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.LEFT_OPERATOR_NODE,
                 stringValue,
                 length,
@@ -1047,7 +1007,7 @@ class SQLGrammarImpl {
             ValueNode fromString,
             ValueNode toString) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode(
+        return new TernaryOperatorNode(
                 C_NodeTypes.REPLACE_OPERATOR_NODE,
                 stringValue,
                 fromString,
@@ -1285,9 +1245,9 @@ class SQLGrammarImpl {
 
             // default to zero if truncValue null or not numeric
             if (! (truncValue instanceof NumericConstantNode)) {
-                truncValue = (NumericConstantNode) nodeFactory.getNode(C_NodeTypes.INT_CONSTANT_NODE,
-                        0,  // default to zero
-                        getContextManager());
+                truncValue = new NumericConstantNode(cm, C_NodeTypes.INT_CONSTANT_NODE,
+                        0  // default to zero
+                        );
             }
 
             truncateOperand = operandNode;
