@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -60,13 +61,18 @@ import java.util.Vector;
 
 public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 {
+    public BinaryArithmeticOperatorNode() {}
+    public BinaryArithmeticOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(nodeType);
+        init(leftOperand, rightOperand);
+    }
     /**
      * Initializer for a BinaryArithmeticOperatorNode
      *
      * @param leftOperand	The left operand
      * @param rightOperand	The right operand
      */
-
     public void init(
             Object leftOperand,
             Object rightOperand)
@@ -264,8 +270,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                     throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
                             timespan.getUnit());
             }
-            MethodCallNode methodNode = (MethodCallNode) getNodeFactory().getNode(
-                    C_NodeTypes.STATIC_METHOD_CALL_NODE,
+            MethodCallNode methodNode = new StaticMethodCallNode(
                     getNodeFactory().getNode(
                             C_NodeTypes.TABLE_NAME,
                             null,
@@ -285,10 +290,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             }
             parameterList.addElement(value);
             methodNode.addParms(parameterList);
-            return ((ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                    methodNode,
-                    getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+            return new JavaToSQLValueNode(methodNode, getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
         } else if (base.getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
             ValueNode value = null;
             ValueNode intervalType = (ValueNode) getNodeFactory().getNode( C_NodeTypes.INT_CONSTANT_NODE,
@@ -302,13 +304,13 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                         value,
                         getContextManager());
             }
-            return ((ValueNode) getNodeFactory().getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
+            return new TernaryOperatorNode(C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
                     base,
                     intervalType,
                     value,
                     ReuseFactory.getInteger( TernaryOperatorNode.TIMESTAMPADD),
                     null,
-                    getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+                    getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
 
         }
         throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);

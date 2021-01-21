@@ -1035,9 +1035,7 @@ abstract class SetOperatorNode extends TableOperatorNode
         /* Create a new SELECT node of the form:
          *  SELECT * FROM <thisSetOperatorNode>
          */
-        ResultSetNode result =
-            (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.SELECT_NODE,
+        ResultSetNode result = new SelectNode(
                 rcl,      // ResultColumns
                 null,     // AGGREGATE list
                 fromList, // FROM list
