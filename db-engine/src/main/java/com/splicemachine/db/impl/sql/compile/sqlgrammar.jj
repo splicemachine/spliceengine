@@ -483,8 +483,10 @@ public class SQLParser extends SQLGrammarImpl
         if (tokKind == CURRENT_DATE ||
             tokKind == CURRENT_TIME ||
             tokKind == CURRENT_TIMESTAMP ||
+            tokKind == CURRENT_TIMEZONE ||
             tokKind == NOW ||
             tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
+            tokKind == CURRENT && getToken(2).kind == TIMEZONE ||
             tokKind == CURRENT && getToken(2).kind == SERVER ||
             tokKind == CURRENT_SERVER ||
             tokKind == CURRENT && getToken(2).kind == DATABASE ||
@@ -736,6 +738,7 @@ public class SQLParser extends SQLGrammarImpl
           case CURRENT_DATE:
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
+          case CURRENT_TIMEZONE:
           case CURRENT_SERVER:
           case CURRENT_DATABASE:
           case NOW:
@@ -743,7 +746,7 @@ public class SQLParser extends SQLGrammarImpl
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == TIMEZONE || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
                 retval = true;
             break;
 
@@ -1613,6 +1616,7 @@ TOKEN [IGNORE_CASE] :
 |    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
+|    <CURRENT_TIMEZONE: "current_timezone">
 |    <CURRENT_USER: "current_user">
 |    <CURSOR: "cursor">
 |    <D: "d">
@@ -1756,6 +1760,7 @@ TOKEN [IGNORE_CASE] :
 |    <SYSTEM_USER: "system_user">
 |    <TABLE: "table">
 |    <TEMPORARY: "temporary">
+|    <TIMEZONE : "timezone">
 |    <TIMEZONE_HOUR: "timezone_hour">
 |    <TIMEZONE_MINUTE: "timezone_minute">
 |    <TINYINT: "tinyint">
@@ -10902,6 +10907,23 @@ datetimeValueFunction() throws StandardException :
                             getContextManager());
     }
 |
+    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMEZONE)}) <CURRENT> <TIMEZONE>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+                            ReuseFactory.getInteger(
+                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
+                            getContextManager());
+    }
+    | <CURRENT_TIMEZONE>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+                            ReuseFactory.getInteger(
+                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
+                            getContextManager());
+    }
+|
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP>
     {
         return (ValueNode) nodeFactory.getNode(
@@ -13704,7 +13726,8 @@ DB2DefaultOption(String columnName) throws StandardException :
     LOOKAHEAD({
                 getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
-                getToken(1).kind == TIMESTAMP
+                getToken(1).kind == TIMESTAMP ||
+                getToken(1).kind == TIMEZONE
             })
     value = miscBuiltins()
     { // these functions are allowed as valid <cast-function> defaults.
@@ -17033,6 +17056,7 @@ reservedKeyword() :
 |    tok = <CURRENT_SERVER>
 |    tok = <CURRENT_TIME>
 |    tok = <CURRENT_TIMESTAMP>
+|    tok = <CURRENT_TIMEZONE>
 |    tok = <CURRENT_USER>
 |    tok = <CURSOR>
 |    tok = <DEALLOCATE>
@@ -17179,6 +17203,7 @@ reservedKeyword() :
 |    tok = <SYSTEM_USER>
 |    tok = <TABLE>
 |    tok = <TEMPORARY>
+|    tok = <TIMEZONE>
 |    tok = <TIMEZONE_HOUR>
 |    tok = <TIMEZONE_MINUTE>
 |    tok = <TO>

@@ -140,6 +140,8 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
     public ValueNode bindExpression( FromList	fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector) throws StandardException {
         if (leftOperand instanceof TimeSpanNode || rightOperand instanceof TimeSpanNode) {
             return bindTimeSpanOperation(fromList, subqueryList, aggregateVector);
+        } else if(timezoneArithmetic(leftOperand, rightOperand)) {
+            return bindTimezoneOperation(fromList, subqueryList, aggregateVector);
         }
         super.bindExpression(fromList, subqueryList, aggregateVector);
 
@@ -226,6 +228,54 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
         );
 
         return this;
+    }
+
+    private boolean timezoneArithmetic(ValueNode left, ValueNode right) throws StandardException {
+        if(left instanceof CurrentDatetimeOperatorNode && ((CurrentDatetimeOperatorNode)left).isCurrentTimezone()) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
+        }
+        if(!(right instanceof CurrentDatetimeOperatorNode)) {
+            return false;
+        }
+        if(!((CurrentDatetimeOperatorNode)right).isCurrentTimezone()) {
+            return false;
+        }
+        return true;
+    }
+
+    private ValueNode bindTimezoneOperation(FromList fromList,
+                                            SubqueryList subqueryList,
+                                            List<AggregateNode> aggregateVector) throws StandardException {
+        leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
+        if (leftOperand.requiresTypeFromContext()) {
+            // Reference:
+            // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html, Table 1
+            throw StandardException.newException(SQLState.LANG_DB2_INVALID_DATETIME_EXPR);
+        }
+        if (!"+".equals(operator) && !"-".equals(operator)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
+        }
+        if(leftOperand.getTypeId().getJDBCTypeId() != Types.TIMESTAMP && leftOperand.getTypeId().getJDBCTypeId() != Types.TIME) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
+        }
+        String functionName = "TIMEZONE_SUBTRACT";
+        if(operator.equals("+")) {
+            functionName = "TIMEZONE_ADD";
+        }
+        MethodCallNode methodNode = (MethodCallNode) getNodeFactory().getNode(
+                C_NodeTypes.STATIC_METHOD_CALL_NODE,
+                functionName,
+                "com.splicemachine.derby.utils.SpliceDateFunctions",
+                getContextManager()
+        );
+        Vector<ValueNode> parameterList = new Vector<>();
+        parameterList.addElement(leftOperand);
+        parameterList.addElement(rightOperand);
+        methodNode.addParms(parameterList);
+        return ((ValueNode) getNodeFactory().getNode(
+                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                methodNode,
+                getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
     }
 
     private ValueNode bindTimeSpanOperation(FromList fromList,
