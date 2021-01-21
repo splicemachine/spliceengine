@@ -61,6 +61,8 @@ import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.locks.LockOwner;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 
+import static java.lang.System.getProperty;
+
 /**
  * UpdateLoader implements then functionality of
  * db.database.classpath. It manages the ClassLoaders
@@ -407,6 +409,13 @@ public final class UpdateLoader implements LockOwner {
         }
     }
 
+	private boolean isOlapServerOnStandAlone() {
+        String isOlapStandAlone = System.getProperty("splice.olapServerOnStandAlone");
+        if (isOlapStandAlone == null || !isOlapStandAlone.equals("true"))
+            return false;
+        return true;
+    }
+
 	private synchronized void initLoaders() {
 
 		if (initDone)
@@ -420,8 +429,16 @@ public final class UpdateLoader implements LockOwner {
 		for (JarLoader aJarList : jarList) {
 			aJarList.initialize();
 			String jarPath = aJarList.getPath();
-			if (jarPath != null)
-			    jarPathList.add(jarPath);
+			if (jarPath != null) {
+				if (jarPath.startsWith("/")) {
+					// Fix up URIs for Splice on cloud.
+					if (isOlapServerOnStandAlone())
+						jarPath = "file://" + jarPath;
+					else
+					    jarPath = "hdfs://" + jarPath;
+				}
+				jarPathList.add(jarPath);
+			}
 		}
 		if (jarPathList != null && jarPathList.size() > 0) {
 			jarPathListHash = jarPathList.hashCode();
