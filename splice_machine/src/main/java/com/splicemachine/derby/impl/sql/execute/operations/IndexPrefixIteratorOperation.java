@@ -216,6 +216,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
             TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
             registerCloseable(tableScannerIterator);
+            // Most of the probing logic is in IndexPrefixIteratorFunction, as created below.
             ds = ds.mapPartitions(new IndexPrefixIteratorFunction(operationContext, firstIndexColumnNumber), true);
             keys = ds.collect();
 

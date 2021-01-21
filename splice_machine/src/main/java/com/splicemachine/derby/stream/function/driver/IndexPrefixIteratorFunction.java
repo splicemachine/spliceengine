@@ -92,9 +92,12 @@ public class IndexPrefixIteratorFunction extends SpliceFlatMapFunction<SpliceOpe
                 // index prefixes.  Close the stream right away.
                 closeSourceIterator();
 
+                // This code creates a non-inclusive start key for the next probing scan.
                 ((BaseActivation) driverOperation.getActivation()).
                  setScanKeyPrefix(newRow.getColumn(1));
 
+                // Start a new probing scan and replace the source iterator with
+                // that of the new scan.
                 DataSet<ExecRow> ds = driverOperation.getDriverDataSet(driverOperation.createTableScannerBuilder());
                 sourceIterator = ds.toLocalIterator();
             }
