@@ -13093,6 +13093,7 @@ void withClause(Vector parameterList) throws StandardException :
            isRecursive = true;
         }]
         tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+            [ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
             beginToken = <AS>
             [<LEFT_PAREN>]
             queryExpression = queryExpression(null, NO_SET_OP, topNOut)
