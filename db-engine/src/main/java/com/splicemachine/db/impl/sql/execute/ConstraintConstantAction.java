@@ -63,9 +63,6 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 
     protected    String            constraintName;
     protected    int                constraintType;
-    protected    String            tableName;
-    protected    String            schemaName;
-    protected    UUID            schemaId;
     protected  ConstantAction indexAction;
 
     // CONSTRUCTORS
@@ -74,7 +71,6 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
      *
      *  @param constraintName    Constraint name.
      *  @param constraintType    Constraint type.
-     *  @param tableName        Table name.
      *  @param tableId            UUID of table.
      *  @param schemaName        schema that table and constraint lives in.
      *  @param indexAction        IndexConstantAction for constraint (if necessary)
@@ -84,7 +80,6 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
     public ConstraintConstantAction(
                        String    constraintName,
                        int        constraintType,
-                       String    tableName,
                        UUID        tableId,
                        String    schemaName,
                        ConstantAction indexAction)
@@ -92,9 +87,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
         super(tableId);
         this.constraintName = constraintName;
         this.constraintType = constraintType;
-        this.tableName = tableName;
         this.indexAction = indexAction;
-        this.schemaName = schemaName;
 
         if (SanityManager.DEBUG)
         {
@@ -286,8 +279,8 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
                 }
             }
 
-            DataValueDescriptor[] rowArray = row.getRowArray();
-            Number value = ((Number)((NumberDataValue)row.getRowArray()[0]).getObject());
+            assert row != null;
+            Number value = ((Number) row.getRowArray()[0].getObject());
             /*
             ** Value may be null if there are no rows in the
             ** table.
