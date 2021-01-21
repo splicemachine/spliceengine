@@ -89,7 +89,7 @@ are described in RowUtil.
 
 public interface ConglomerateController extends ConglomPropertyQueryable
 {
-    int ROWISDUPLICATE = 1;
+    int ROWISDUPLICATE = 1;  
 
     /**
      * Close the conglomerate controller.
