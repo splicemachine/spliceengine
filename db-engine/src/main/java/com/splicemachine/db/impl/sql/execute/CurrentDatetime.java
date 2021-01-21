@@ -143,9 +143,11 @@ public class CurrentDatetime {
     }
 
     public BigDecimal getCurrentTimezone() {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("IST")); // no support for explicit TZ settings, use the current one
-        Duration duration = Duration.ofMillis(cal.get(Calendar.ZONE_OFFSET));
-        long seconds = duration.getSeconds();
+        return getCurrentTimezone(Duration.ofMillis(Calendar.getInstance().get(Calendar.ZONE_OFFSET)));
+    }
+
+    public BigDecimal getCurrentTimezone(Duration timezoneOffsetDuration) {
+        long seconds = timezoneOffsetDuration.getSeconds();
         long absSeconds = Math.abs(seconds);
         int hour = (int)((absSeconds / 3600) % 24);
         int minute = (int)(absSeconds % 3600) / 60;
