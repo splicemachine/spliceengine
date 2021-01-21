@@ -83,13 +83,9 @@ public interface C_NodeNames
 
     String COALESCE_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CoalesceFunctionNode";
 
-    String DECIMAL_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DecimalFunctionNode";
-
     String COLUMN_DEFINITION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode";
 
     String COLUMN_REFERENCE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnReference";
-
-    String CONCATENATION_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ConcatenationOperatorNode";
 
     String CONDITIONAL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ConditionalNode";
 
@@ -124,15 +120,9 @@ public interface C_NodeNames
 
     String DB2_LENGTH_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DB2LengthOperatorNode";
 
-    String DML_MOD_STATEMENT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DMLModStatementNode";
-
     String DEFAULT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DefaultNode";
 
-    String DELETE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DeleteNode";
-
     String DISTINCT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DistinctNode";
-
-    String DROP_ALIAS_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropAliasNode";
 
     String DROP_INDEX_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropIndexNode";
 
@@ -198,8 +188,6 @@ public interface C_NodeNames
 
     String IS_NULL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.IsNullNode";
 
-    String JAVA_TO_SQL_VALUE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode";
-
     String JOIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.JoinNode";
 
     String LENGTH_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.LengthOperatorNode";
@@ -217,8 +205,6 @@ public interface C_NodeNames
     String NEW_INVOCATION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.NewInvocationNode";
 
     String NEXT_SEQUENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.NextSequenceNode";
-
-    String NON_STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.NonStaticMethodCallNode";
 
     String NORMALIZE_RESULT_SET_NODE_NAME = "com.splicemachine.db.impl.sql.compile.NormalizeResultSetNode";
 
@@ -280,8 +266,6 @@ public interface C_NodeNames
 
     String STATIC_CLASS_FIELD_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticClassFieldReferenceNode";
 
-    String STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticMethodCallNode";
-
     String STRING_AGGREGATE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StringAggregateNode";
 
     String SUBQUERY_LIST_NAME = "com.splicemachine.db.impl.sql.compile.SubqueryList";
@@ -315,8 +299,6 @@ public interface C_NodeNames
 
     String UNTYPED_NULL_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.UntypedNullConstantNode";
 
-    String UPDATE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.UpdateNode";
-
     String USERTYPE_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.UserTypeConstantNode";
 
     String VALUE_NODE_LIST_NAME = "com.splicemachine.db.impl.sql.compile.ValueNodeList";
@@ -331,7 +313,6 @@ public interface C_NodeNames
     String WRAPPED_AGGREGATE_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.WrappedAggregateFunctionNode";
     String ROW_NUMBER_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.RowNumberFunctionNode";
     String RANK_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.RankFunctionNode";
-    String DENSE_RANK_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.DenseRankFunctionNode";
     String FIRST_LAST_VALUE_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.FirstLastValueFunctionNode";
     String LEAD_LAG_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.LeadLagFunctionNode";
     String WINDOW_DEFINITION_NAME = "com.splicemachine.db.impl.sql.compile.WindowDefinitionNode";
@@ -360,8 +341,6 @@ public interface C_NodeNames
 
     String FULL_OUTER_JOIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.FullOuterJoinNode";
 
-    String TIME_SPAN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TimeSpanNode";
-
     String EMPTY_DEFAULT_CONSTANT_NODE = "com.splicemachine.db.impl.sql.compile.EmptyDefaultConstantNode";
 
     String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
@@ -371,6 +350,4 @@ public interface C_NodeNames
     String TO_INSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToInstantOperatorNode";
 
     String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
-
-    String TYPEOF_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TypeofOperatorNode";
 }
