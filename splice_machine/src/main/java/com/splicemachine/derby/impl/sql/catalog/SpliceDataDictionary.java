@@ -406,7 +406,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 templateRow,
                 new int[]{SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID});
 
-        params.put(CFG_SYSDATABASES_INDEX1_ID,
+        params.put(CFG_SYSSCHEMAS_INDEX1_ID,
                 Long.toString(
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID)));
