@@ -44,7 +44,7 @@ public class SQLWarningIT extends SpliceUnitTest {
     }
 
     @Test
-    public void TestNoRowsAffectedWarning() throws Exception {
+    public void testNoRowsAffectedDB2Warning() throws Exception {
         try(Connection connection = spliceClassWatcher.getOrCreateConnection();
             Statement s = connection.createStatement()) {
             s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', true)");
@@ -54,6 +54,17 @@ public class SQLWarningIT extends SpliceUnitTest {
             Assert.assertEquals("02000", warning.getSQLState());
             Assert.assertEquals(100, warning.getErrorCode());
             s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', false)");
+        }
+    }
+
+    @Test
+    public void testNoRowsAffectedWarning() throws Exception {
+        try(Connection connection = spliceClassWatcher.getOrCreateConnection();
+            Statement s = connection.createStatement()) {
+            s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', false)");
+            s.execute("delete from a where c1 = 0");
+            SQLWarning warning = s.getWarnings();
+            Assert.assertTrue(warning == null);
         }
     }
 }
