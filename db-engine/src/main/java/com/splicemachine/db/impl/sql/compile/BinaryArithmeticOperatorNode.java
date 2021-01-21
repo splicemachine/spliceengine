@@ -246,7 +246,10 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html, Table 1
             throw StandardException.newException(SQLState.LANG_DB2_INVALID_DATETIME_EXPR);
         }
-        if (!"+".equals(operator) && !"-".equals(operator) || !leftOperand.getTypeId().isDateTimeTimeStampTypeId()) {
+        if (!"+".equals(operator) && !"-".equals(operator)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
+        }
+        if(leftOperand.getTypeId().getJDBCTypeId() != Types.TIMESTAMP && leftOperand.getTypeId().getJDBCTypeId() != Types.TIME) {
             throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
         }
         String functionName = "TIMEZONE_SUBTRACT";
