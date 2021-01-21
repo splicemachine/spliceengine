@@ -49,6 +49,7 @@ PARSER_BEGIN(SQLParser)
 package com.splicemachine.db.impl.sql.compile;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
@@ -3431,14 +3432,14 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     ResultSetNode      queryExpression;
     Vector  updateColumns = new Vector();
     Vector parameterList = new Vector();
-    int               forUpdateState = CursorNode.UNSPECIFIED;
+    MutableInt forUpdateState = new MutableInt(CursorNode.UNSPECIFIED);
     int                  isolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
     CursorNode          retval;
     OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
-    int optimizeForRows = 1;
+    MutableInt optimizeForRows = new MutableInt(1);
 }
 {
     [ <WITH> withClauseList(parameterList) ]
@@ -3447,12 +3448,10 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
         (
             isolationLevel = atIsolationLevel()
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-            [ optimizeForRows = optimizeForRowsClause() ]
+            [ extraSelectClauses(optimizeForRows, forUpdateState, updateColumns) ]
         |
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-            [ optimizeForRows = optimizeForRowsClause() ]
+            [ extraSelectClauses(optimizeForRows, forUpdateState, updateColumns) ]
             [ isolationLevel = atIsolationLevel() ]
         )
     {
@@ -3473,8 +3472,8 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
                 offsetClauses[ OFFSET_CLAUSE ],
                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                 Boolean.valueOf( hasJDBClimitClause ),
-                ReuseFactory.getInteger(forUpdateState),
-                (forUpdateState == CursorNode.READ_ONLY ? null : updateColumns ),
+                ReuseFactory.getInteger(forUpdateState.intValue()),
+                (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
                 getContextManager());
 
         if (checkParams)
@@ -4086,7 +4085,7 @@ columnDefinition(TableElementList tableElementList) throws StandardException :
 
     /* identifier() used to be columnName() */
     columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-    [ ( typeDescriptor[0] = dataTypeDDL() ) ]
+    [ typeDescriptor[0] = dataTypeDDL() ]
     [ defaultNode = defaultAndConstraints(typeDescriptor, tableElementList, columnName, autoIncrementInfo) ]
     {
         // Only pass autoincrement info for autoincrement columns
@@ -17698,6 +17697,7 @@ optimizeForRowsClause() throws StandardException :
 }
 {
     <OPTIMIZE> <FOR>
+
      optimizeForRows = uint_value()
     ( <ROW> | <ROWS> )
     {
@@ -17705,5 +17705,22 @@ optimizeForRowsClause() throws StandardException :
             throw StandardException.newException(SQLState.LANG_INVALID_INTEGER_LITERAL, optimizeForRows);
         else
             return optimizeForRows;
+    }
+}
+
+void extraSelectClauses(MutableInt optimizeForRows, MutableInt forUpdate, Vector forUpdateColumns) throws StandardException :
+{
+    int forUpdateInternal = CursorNode.UNSPECIFIED;
+    int optimizeForRowsInternal = -1;
+}
+{
+    (
+        <FOR> forUpdateInternal = forUpdateClause(forUpdateColumns) [optimizeForRowsInternal = optimizeForRowsClause()]
+    |
+        optimizeForRowsInternal = optimizeForRowsClause() [<FOR> forUpdateInternal = forUpdateClause(forUpdateColumns)]
+    )
+    {
+        forUpdate.setValue(forUpdateInternal);
+        optimizeForRows.setValue(optimizeForRowsInternal);
     }
 }
