@@ -150,6 +150,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
             case CURRENT_TIMEZONE:
                 setType(DataTypeDescriptor.getSQLDataTypeDescriptor("java.math.BigDecimal", 6, 0, true, 6));
                 break;
+            default:
+                assert false;
         }
 
         return this;
