@@ -13,7 +13,9 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.client.am.SqlState;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -951,5 +953,21 @@ public class TimestampIT extends SpliceUnitTest {
             if(bOK) return;
         }
         Assert.fail("current timestamp precision didn't work");
+    }
+
+    private static void verifyCurrentTimezoneInvalid(String query) throws Exception {
+        try {
+            methodWatcher.executeQuery(query);
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals(SQLState.LANG_INVALID_TIMEZONE_OPERATION, sqlException.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCurrentTimezoneInvalidExpressions() throws Exception {
+        verifyCurrentTimezoneInvalid("select current_timezone - current_timestamp from sysibm.sysdummy1");
+        verifyCurrentTimezoneInvalid("select date('2020-10-10') - current_timezone from sysibm.sysdummy1");
     }
 }

@@ -69,17 +69,42 @@ public class SpliceDateFunctions {
     }
 
     public static Timestamp TIMEZONE_SUBTRACT(Timestamp leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
-        return TIMEZONE_ARITHMETIC(leftOperand, timezoneDiffNode, true);
+        if (leftOperand == null) {
+            return null;
+        }
+        Timestamp result = new Timestamp(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, true));
+        result.setNanos(leftOperand.getNanos());
+        return result;
+    }
+
+    public static Time TIMEZONE_SUBTRACT(Time leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        return new Time(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, true));
     }
 
     public static Timestamp TIMEZONE_ADD(Timestamp leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
         return TIMEZONE_ARITHMETIC(leftOperand, timezoneDiffNode, false);
     }
 
+    public static Time TIMEZONE_ADD(Time leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        return new Time(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, false));
+    }
+
     private static Timestamp TIMEZONE_ARITHMETIC(Timestamp leftOperand, BigDecimal timezoneDiffNode, boolean subtract) throws StandardException {
         if (leftOperand == null) {
             return null;
         }
+        Timestamp result = new Timestamp(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, false));
+        result.setNanos(leftOperand.getNanos());
+        return result;
+    }
+
+    private static long TIMEZONE_ARITHMETIC(long time, BigDecimal timezoneDiffNode, boolean subtract) throws StandardException {
         long timezoneDiff = timezoneDiffNode.longValue();
         boolean isNegative = timezoneDiff < 0;
         timezoneDiff = Math.abs(timezoneDiff);
@@ -94,7 +119,7 @@ public class SpliceDateFunctions {
         if(subtract) {
             timezoneDiffSeconds *= -1;
         }
-        return new Timestamp(leftOperand.getTime() + timezoneDiffSeconds * 1000);
+        return time + timezoneDiffSeconds * 1000;
     }
 
     /**
