@@ -649,7 +649,7 @@ public class RowCountOperationIT {
         validateUnOrdered(2, "select * from " + multiPartitions +" {limit 2}", true);
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 220000)
     public void manySmallLimitMultiPartitionsUnordered() throws Exception {
         int retries = connectionString == CONTROL ? 500 : 10;
         for (int i = 0; i < retries; ++i) {
