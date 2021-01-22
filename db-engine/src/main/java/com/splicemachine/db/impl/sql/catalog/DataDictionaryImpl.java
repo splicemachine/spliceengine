@@ -1083,8 +1083,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 break;
             case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
                 return sysIBMADMSchemaDesc;
-            //case SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME:
-            //    return getSystemUtilSchemaDescriptor();
             case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
                 return getSysFunSchemaDescriptor();
             case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
