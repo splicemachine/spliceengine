@@ -165,7 +165,7 @@ public class SelectNode extends ResultSetNode{
                      Object groupByList,
                      Object havingClause,
                      Object windowDefinitionList)
-            throws StandardException{
+            throws StandardException{   
         /* RESOLVE - remove aggregateList from constructor.
          * Consider adding selectAggregates and whereAggregates
          */
