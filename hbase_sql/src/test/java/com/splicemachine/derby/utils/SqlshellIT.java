@@ -377,14 +377,19 @@ public class SqlshellIT {
 
     @Test // DB-11155
     public void testShowRoles() {
-        String roleOut =
-                "ROLEID[ ]*\n" +
-                "------[-]*\n" +
-                "FRED  [ ]*\n" +
-                "\n" +
-                "1 row selected\n";
-        executeR("show roles;\n", roleOut);
-        executeR("show settable_roles;\n", roleOut);
+        String result = execute("show roles;\n");
+        // some other tests might have added users, so the output might differ a bit
+        Assert.assertTrue( result.contains("ROLEID") );
+        Assert.assertTrue( result.contains("------") );
+        Assert.assertTrue( result.contains("FRED") );
+        // show settable_roles should print the same as show roles
+        String result2 = execute("show settable_roles;\n");
+        // ignore first line (differs because different SQL command is printed there)
+        String[] res = result.split("\n");
+        String[] res2 = result2.split("\n");
+        res = Arrays.copyOfRange( res, 1, res.length);
+        res2 = Arrays.copyOfRange( res2, 1, res2.length);
+        Assert.assertArrayEquals( res, res2 );
     }
 
     @Test
