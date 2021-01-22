@@ -18,10 +18,7 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.DeleteNode;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -41,7 +38,7 @@ import java.util.Properties;
 @RunWith(Parameterized.class)
 public class LoadReplaceModeIT {
 
-    private static final String SCHEMA = LoadReplaceModeIT.class.getSimpleName();
+    private static final String SCHEMA = LoadReplaceModeIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -52,24 +49,23 @@ public class LoadReplaceModeIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters( name = "{index}.useOLAP={0}" )
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{Boolean.FALSE});
+        params.add(new Object[]{Boolean.TRUE});
         return params;
     }
 
-    private String connectionString;
+    private Boolean useOLAP;
 
-    public LoadReplaceModeIT(String connectionString) {
-        this.connectionString = connectionString;
+    public LoadReplaceModeIT(Boolean useOLAP) {
+        this.useOLAP = useOLAP;
     }
 
     @Before
     public void createTables() throws Exception {
-        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
-        conn.setSchema(SCHEMA.toUpperCase());
+        Connection conn = SpliceNetConnection.newBuilder().useOLAP(useOLAP).schema(SCHEMA).build();
         methodWatcher.setConnection(conn);
     }
 
@@ -298,6 +294,29 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("DELETE FROM riA");
 
         methodWatcher.execute("DROP TABLE riC");
+        methodWatcher.execute("DROP TABLE riB");
+        methodWatcher.execute("DROP TABLE riA");
+    }
+
+    // see DB-10690
+    @Test
+    public void testFlushProblem() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
+        methodWatcher.executeUpdate("CREATE TABLE riB (\n" +
+                "   c1 INTEGER PRIMARY KEY,\n" +
+                "   c2 INTEGER REFERENCES riA(c1)"
+                + ")"
+        );
+        methodWatcher.executeUpdate("INSERT INTO riA VALUES 11, 12, 13");
+        methodWatcher.executeUpdate("INSERT INTO riB VALUES (100,11), (200, 12), (300, 13)");
+        methodWatcher.executeUpdate("DELETE FROM riB");
+        methodWatcher.executeUpdate("DELETE FROM riA");
+
+        methodWatcher.executeUpdate("DELETE FROM riB");
+        methodWatcher.executeUpdate("INSERT INTO riA VALUES 11, 12, 13");
+        methodWatcher.executeUpdate("INSERT INTO riB VALUES (999,11)");
+        methodWatcher.executeUpdate("INSERT INTO riB VALUES (100,11), (200, 12), (300, 13) ");
+        methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_FLUSH_TABLE('" + SCHEMA + "', 'RIB')");
         methodWatcher.execute("DROP TABLE riB");
         methodWatcher.execute("DROP TABLE riA");
     }

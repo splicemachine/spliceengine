@@ -60,6 +60,7 @@ public class SpliceSpark {
 
     private SpliceSpark() {} // private constructor forbids creating instances
 
+    private static int applicationJarsHash = 0;
     static JavaSparkContext ctx;
     static SparkSession session;
     static ThreadLocal<SparkSession> sessions = new ThreadLocal<>();
@@ -70,6 +71,16 @@ public class SpliceSpark {
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
+
+    // Don't synchronize for performance.
+    // Any hash mismatch causes jar addition, so this doesn't need to be an exact value.
+    public static int getApplicationJarsHash() {
+        return applicationJarsHash;
+    }
+
+    public static synchronized void setApplicationJarsHash(int newJarsHash) {
+        applicationJarsHash = newJarsHash;
+    }
 
     public static void resetSession() {
         sessions.remove();
@@ -100,6 +111,7 @@ public class SpliceSpark {
         if (!initialized) {
             sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
+            applicationJarsHash = 0;
             initialized = true;
         } else if (!needsReinitialization && session.sparkContext().isStopped()) {
             LOG.warn("SparkContext is stopped, reinitializing...");
@@ -116,6 +128,7 @@ public class SpliceSpark {
             }
             sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
+            applicationJarsHash = 0;
         }
         else {
             if (sessionToUse == null || needsReinitialization) {
@@ -382,6 +395,7 @@ public class SpliceSpark {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
         sessions.set(session);
         ctx = sparkContext;
+        applicationJarsHash = 0;
         initialized = true;
     }
 

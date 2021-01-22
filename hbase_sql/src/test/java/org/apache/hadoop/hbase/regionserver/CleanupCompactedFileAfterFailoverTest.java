@@ -78,7 +78,7 @@ public class CleanupCompactedFileAfterFailoverTest {
         Configuration config = TEST_UTIL.getConfiguration();
         config.set("hbase.coprocessor.region.classes", SIObserver.class.getCanonicalName());
         config.set(SpliceCompaction.SPLICE_SPARK_COMPACTIONS_ENABLED, "false");
-        config.setInt("test.hbase.zookeeper.property.clientPort", 2181);
+        config.setInt("test.hbase.zookeeper.property.clientPort", 3181); // avoid conflicts with Splice cluster
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
 

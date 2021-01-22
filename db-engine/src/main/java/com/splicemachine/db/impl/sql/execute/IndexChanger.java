@@ -57,186 +57,186 @@ import java.util.Properties;
   */
 public class IndexChanger
 {
-	private IndexRowGenerator irg;
-	//Index Conglomerate ID
-	private long indexCID;
-	private DynamicCompiledOpenConglomInfo indexDCOCI;
-	private StaticCompiledOpenConglomInfo indexSCOCI;
-	private String indexName;
-	private ConglomerateController baseCC;
-	private TransactionController tc;
-	private int lockMode;
-	private FormatableBitSet baseRowReadMap;
+    private IndexRowGenerator irg;
+    //Index Conglomerate ID
+    private long indexCID;
+    private DynamicCompiledOpenConglomInfo indexDCOCI;
+    private StaticCompiledOpenConglomInfo indexSCOCI;
+    private String indexName;
+    private ConglomerateController baseCC;
+    private TransactionController tc;
+    private int lockMode;
+    private FormatableBitSet baseRowReadMap;
 
-	private ConglomerateController indexCC = null;
-	private ScanController indexSC = null;
+    private ConglomerateController indexCC = null;
+    private ScanController indexSC = null;
 
-	//
-	//Index rows used by this module to perform DML.
-	private ExecIndexRow ourIndexRow = null;
-	private ExecIndexRow ourUpdatedIndexRow = null;
+    //
+    //Index rows used by this module to perform DML.
+    private ExecIndexRow ourIndexRow = null;
+    private ExecIndexRow ourUpdatedIndexRow = null;
 
-	private TemporaryRowHolderImpl	rowHolder = null;
-	private boolean					rowHolderPassedIn;
-	private int						isolationLevel;
-	private final Activation				activation;
-	private boolean					ownIndexSC = true;
+    private TemporaryRowHolderImpl    rowHolder = null;
+    private boolean                    rowHolderPassedIn;
+    private int                        isolationLevel;
+    private final Activation                activation;
+    private boolean                    ownIndexSC = true;
 
-	/**
-	  Create an IndexChanger
+    /**
+      Create an IndexChanger
 
-	  @param irg the IndexRowGenerator for the index.
-	  @param indexCID the conglomerate id for the index.
-	  @param indexSCOCI the SCOCI for the idexes. 
-	  @param indexDCOCI the DCOCI for the idexes. 
-	  @param baseCC the ConglomerateController for the base table.
-	  @param tc			The TransactionController
-	  @param lockMode	The lock mode (granularity) to use
-	  @param baseRowReadMap Map of columns read in.  1 based.
-	  @param isolationLevel	Isolation level to use.
-	  @param activation	Current activation
+      @param irg the IndexRowGenerator for the index.
+      @param indexCID the conglomerate id for the index.
+      @param indexSCOCI the SCOCI for the idexes.
+      @param indexDCOCI the DCOCI for the idexes.
+      @param baseCC the ConglomerateController for the base table.
+      @param tc            The TransactionController
+      @param lockMode    The lock mode (granularity) to use
+      @param baseRowReadMap Map of columns read in.  1 based.
+      @param isolationLevel    Isolation level to use.
+      @param activation    Current activation
 
-	  @exception StandardException		Thrown on error
-	  */
-	public IndexChanger
-	(
-		IndexRowGenerator 		irg,
-		long 					indexCID,
-	    StaticCompiledOpenConglomInfo indexSCOCI,
-		DynamicCompiledOpenConglomInfo indexDCOCI,
-		String					indexName,
-		ConglomerateController	baseCC,
-		TransactionController 	tc,
-		int 					lockMode,
-		FormatableBitSet					baseRowReadMap,
-		int						isolationLevel,
-		Activation				activation
-	)
-		 throws StandardException
-	{
-		this.irg = irg;
-		this.indexCID = indexCID;
-		this.indexSCOCI = indexSCOCI;
-		this.indexDCOCI = indexDCOCI;
-		this.baseCC = baseCC;
-		this.tc = tc;
-		this.lockMode = lockMode;
-		this.baseRowReadMap = baseRowReadMap;
-		this.rowHolderPassedIn = false;
-		this.isolationLevel = isolationLevel;
-		this.activation = activation;
-		this.indexName = indexName;
+      @exception StandardException        Thrown on error
+      */
+    public IndexChanger
+    (
+        IndexRowGenerator         irg,
+        long                     indexCID,
+        StaticCompiledOpenConglomInfo indexSCOCI,
+        DynamicCompiledOpenConglomInfo indexDCOCI,
+        String                    indexName,
+        ConglomerateController    baseCC,
+        TransactionController     tc,
+        int                     lockMode,
+        FormatableBitSet                    baseRowReadMap,
+        int                        isolationLevel,
+        Activation                activation
+    )
+         throws StandardException
+    {
+        this.irg = irg;
+        this.indexCID = indexCID;
+        this.indexSCOCI = indexSCOCI;
+        this.indexDCOCI = indexDCOCI;
+        this.baseCC = baseCC;
+        this.tc = tc;
+        this.lockMode = lockMode;
+        this.baseRowReadMap = baseRowReadMap;
+        this.rowHolderPassedIn = false;
+        this.isolationLevel = isolationLevel;
+        this.activation = activation;
+        this.indexName = indexName;
 
-		// activation will be null when called from DataDictionary
-		if (activation != null && activation.getIndexConglomerateNumber() == indexCID)
-		{
-			ownIndexSC = false;
-		}
-	
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(tc != null, 
-				"TransactionController argument to constructor is null");
-			SanityManager.ASSERT(irg != null, 
-				"IndexRowGenerator argument to constructor is null");
-		}
-	}
+        // activation will be null when called from DataDictionary
+        if (activation != null && activation.getIndexConglomerateNumber() == indexCID)
+        {
+            ownIndexSC = false;
+        }
 
-	/**
-	 * Set the row holder for this changer to use.
-	 * If the row holder is set, it wont bother 
-	 * saving copies of rows needed for deferred
-	 * processing.  Also, it will never close the
-	 * passed in rowHolder.
-	 *
-	 * @param rowHolder	the row holder
-	 */
-	public void setRowHolder(TemporaryRowHolderImpl rowHolder)
-	{
-		this.rowHolder = rowHolder;
-		rowHolderPassedIn = (rowHolder != null);
-	}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(tc != null,
+                "TransactionController argument to constructor is null");
+            SanityManager.ASSERT(irg != null,
+                "IndexRowGenerator argument to constructor is null");
+        }
+    }
 
-	/**
-	 * Propagate the heap's ConglomerateController to
-	 * this index changer.
-	 *
-	 * @param baseCC	The heap's ConglomerateController.
-	 */
-	public void setBaseCC(ConglomerateController baseCC)
-	{
-		this.baseCC = baseCC;
-	}
+    /**
+     * Set the row holder for this changer to use.
+     * If the row holder is set, it wont bother
+     * saving copies of rows needed for deferred
+     * processing.  Also, it will never close the
+     * passed in rowHolder.
+     *
+     * @param rowHolder    the row holder
+     */
+    public void setRowHolder(TemporaryRowHolderImpl rowHolder)
+    {
+        this.rowHolder = rowHolder;
+        rowHolderPassedIn = (rowHolder != null);
+    }
 
-	/**
-	  Set the column values for 'ourIndexRow' to refer to 
-	  a base table row and location provided by the caller.
-	  The idea here is to 
-	  @param baseRow a base table row.
-	  @param baseRowLoc baseRowLoc baseRow's location
-	  @exception StandardException		Thrown on error
-	  */
-	private void setOurIndexRow(ExecRow baseRow,
-								RowLocation baseRowLoc)
-		 throws StandardException
-	{
-			ourIndexRow = irg.getIndexRowKeyTemplate();
+    /**
+     * Propagate the heap's ConglomerateController to
+     * this index changer.
+     *
+     * @param baseCC    The heap's ConglomerateController.
+     */
+    public void setBaseCC(ConglomerateController baseCC)
+    {
+        this.baseCC = baseCC;
+    }
 
-			irg.getIndexRowKey(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
-	}
+    /**
+      Set the column values for 'ourIndexRow' to refer to
+      a base table row and location provided by the caller.
+      The idea here is to
+      @param baseRow a base table row.
+      @param baseRowLoc baseRowLoc baseRow's location
+      @exception StandardException        Thrown on error
+      */
+    private void setOurIndexRow(ExecRow baseRow,
+                                RowLocation baseRowLoc)
+         throws StandardException
+    {
+            ourIndexRow = irg.getIndexRowKeyTemplate();
 
-	/**
-	  Set the column values for 'ourUpdatedIndexRow' to refer to 
-	  a base table row and location provided by the caller.
-	  The idea here is to 
-	  @param baseRow a base table row.
-	  @param baseRowLoc baseRowLoc baseRow's location
-	  @exception StandardException		Thrown on error
-	  */
-	private void setOurUpdatedIndexRow(ExecRow baseRow,
-								RowLocation baseRowLoc)
-		throws StandardException
-	{
-		ourUpdatedIndexRow = irg.getIndexRowKeyTemplate();
+            irg.getIndexRowKey(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
+    }
 
-		irg.getIndexRowKey(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
-	}
+    /**
+      Set the column values for 'ourUpdatedIndexRow' to refer to
+      a base table row and location provided by the caller.
+      The idea here is to
+      @param baseRow a base table row.
+      @param baseRowLoc baseRowLoc baseRow's location
+      @exception StandardException        Thrown on error
+      */
+    private void setOurUpdatedIndexRow(ExecRow baseRow,
+                                RowLocation baseRowLoc)
+        throws StandardException
+    {
+        ourUpdatedIndexRow = irg.getIndexRowKeyTemplate();
 
-	/**
-	 * Determine whether or not any columns in the current index
-	 * row are being changed by the update.  No need to update the
-	 * index if no columns changed.
-	 *
-	 * @return Nothing.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	private boolean indexRowChanged()
-		throws StandardException
-	{
-		int numColumns = ourIndexRow.nColumns();
-		for (int index = 1; index <= numColumns; index++)
-		{
-			DataValueDescriptor oldOrderable = ourIndexRow.getColumn(index);
-			DataValueDescriptor newOrderable = ourUpdatedIndexRow.getColumn(index);
-			if (! (oldOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS, newOrderable, true, true)))
-			{
-				return true;
-			}
-		}
-		return false;
-	}
+        irg.getIndexRowKey(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
+    }
 
-	/**
-	  Position our index scan to 'ourIndexRow'.
+    /**
+     * Determine whether or not any columns in the current index
+     * row are being changed by the update.  No need to update the
+     * index if no columns changed.
+     *
+     * @return Nothing.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    private boolean indexRowChanged()
+        throws StandardException
+    {
+        int numColumns = ourIndexRow.nColumns();
+        for (int index = 1; index <= numColumns; index++)
+        {
+            DataValueDescriptor oldOrderable = ourIndexRow.getColumn(index);
+            DataValueDescriptor newOrderable = ourUpdatedIndexRow.getColumn(index);
+            if (! (oldOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS, newOrderable, true, true)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	  <P>This creates the scan the first time it is called.
+    /**
+      Position our index scan to 'ourIndexRow'.
 
-	  @exception StandardException		Thrown on error
-	  */
-	private void setScan()
-		 throws StandardException
-	{
+      <P>This creates the scan the first time it is called.
+
+      @exception StandardException        Thrown on error
+      */
+    private void setScan()
+         throws StandardException
+    {
       /*
        * -sf- Derby makes an assumption about system tables that isn't true
        * for Splice land, which results in WriteConflicts occurring
@@ -271,102 +271,102 @@ public class IndexChanger
               qualPos ++;
           }
       }
-		/* Get the SC from the activation if re-using */
-		if (! ownIndexSC) {
-			indexSC = activation.getIndexScanController();
-		}
-		else if (indexSC == null) {
-			RowLocation templateBaseRowLocation = baseCC.newRowLocationTemplate();
-			/* DataDictionary doesn't have compiled info */
-			if (indexSCOCI == null)
-			{
-				indexSC = 
-		            tc.openScan(
-			              indexCID,
-				          false,                       /* hold */
-					      TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
-						  lockMode,
-	                      isolationLevel,
-		                  (FormatableBitSet)null,					/* all fields */
-			              ourIndexRow.getRowArray(),    /* startKeyValue */
-				          ScanController.GE,            /* startSearchOp */
-					      qualifiers,                         /* qualifier */
-						  ourIndexRow.getRowArray(),    /* stopKeyValue */
-						ScanController.GT             /* stopSearchOp */
-	                      );
-			}
-			else
-			{
-				indexSC = 
-		            tc.openCompiledScan(
-				          false,                       /* hold */
-					      TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
-						  lockMode,
-	                      isolationLevel,
-		                  (FormatableBitSet)null,					/* all fields */
-			              ourIndexRow.getRowArray(),    /* startKeyValue */
-				          ScanController.GE,            /* startSearchOp */
-					      qualifiers,                         /* qualifier */
-						  ourIndexRow.getRowArray(),    /* stopKeyValue */
-						  ScanController.GT,             /* stopSearchOp */
-						  indexSCOCI,
-						  indexDCOCI
-	                      );
+        /* Get the SC from the activation if re-using */
+        if (! ownIndexSC) {
+            indexSC = activation.getIndexScanController();
+        }
+        else if (indexSC == null) {
+            RowLocation templateBaseRowLocation = baseCC.newRowLocationTemplate();
+            /* DataDictionary doesn't have compiled info */
+            if (indexSCOCI == null)
+            {
+                indexSC =
+                    tc.openScan(
+                          indexCID,
+                          false,                       /* hold */
+                          TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
+                          lockMode,
+                          isolationLevel,
+                          (FormatableBitSet)null,                    /* all fields */
+                          ourIndexRow.getRowArray(),    /* startKeyValue */
+                          ScanController.GE,            /* startSearchOp */
+                          qualifiers,                         /* qualifier */
+                          ourIndexRow.getRowArray(),    /* stopKeyValue */
+                        ScanController.GT             /* stopSearchOp */
+                          );
             }
-		}
-		else
-		{
-			indexSC.reopenScan(
-							   ourIndexRow.getRowArray(),			/* startKeyValue */
-							   ScanController.GE, 	/* startSearchOperator */
-							   qualifiers,	            /* qualifier */
-							   ourIndexRow.getRowArray(),			/* stopKeyValue */
-							   ScanController.GT	/* stopSearchOperator */
-							   );
-		}
-	}
+            else
+            {
+                indexSC =
+                    tc.openCompiledScan(
+                          false,                       /* hold */
+                          TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
+                          lockMode,
+                          isolationLevel,
+                          (FormatableBitSet)null,                    /* all fields */
+                          ourIndexRow.getRowArray(),    /* startKeyValue */
+                          ScanController.GE,            /* startSearchOp */
+                          qualifiers,                         /* qualifier */
+                          ourIndexRow.getRowArray(),    /* stopKeyValue */
+                          ScanController.GT,             /* stopSearchOp */
+                          indexSCOCI,
+                          indexDCOCI
+                          );
+            }
+        }
+        else
+        {
+            indexSC.reopenScan(
+                               ourIndexRow.getRowArray(),            /* startKeyValue */
+                               ScanController.GE,     /* startSearchOperator */
+                               qualifiers,                /* qualifier */
+                               ourIndexRow.getRowArray(),            /* stopKeyValue */
+                               ScanController.GT    /* stopSearchOperator */
+                               );
+        }
+    }
 
-	/**
-	  Close our index Conglomerate Controller
-	  */
-	private void closeIndexCC()
+    /**
+      Close our index Conglomerate Controller
+      */
+    private void closeIndexCC()
         throws StandardException
-	{
-		if (indexCC != null)
-			indexCC.close();
-		indexCC = null;
-	}
+    {
+        if (indexCC != null)
+            indexCC.close();
+        indexCC = null;
+    }
 
-	/**
-	  Close our index ScanController.
-	  */
-	private void closeIndexSC()
+    /**
+      Close our index ScanController.
+      */
+    private void closeIndexSC()
         throws StandardException
-	{
-		/* Only consider closing index SC if we own it. */
-		if (ownIndexSC && indexSC != null)
-		{
-			indexSC.close();
-			indexSC = null;
-		}
-	}
+    {
+        /* Only consider closing index SC if we own it. */
+        if (ownIndexSC && indexSC != null)
+        {
+            indexSC.close();
+            indexSC = null;
+        }
+    }
 
-	/**
-	  Delete a row from our index. This assumes our index ScanController
-	  is positioned before the row by setScan if we own the SC, otherwise
-	  it is positioned on the row by the underlying index scan.
-	  
-	  <P>This verifies the row exists and is unique.
-	  
-	  @exception StandardException		Thrown on error
-	  */
-	private void doDelete()
-		 throws StandardException
-	{
-		if (ownIndexSC)
-		{
-			if (! indexSC.next())
-			{
+    /**
+      Delete a row from our index. This assumes our index ScanController
+      is positioned before the row by setScan if we own the SC, otherwise
+      it is positioned on the row by the underlying index scan.
+
+      <P>This verifies the row exists and is unique.
+
+      @exception StandardException        Thrown on error
+      */
+    private void doDelete()
+         throws StandardException
+    {
+        if (ownIndexSC)
+        {
+            if (! indexSC.next())
+            {
                 // This means that the entry for the index does not exist, this
                 // is a serious problem with the index.  Past fixed problems
                 // like track 3703 can leave db's in the field with this problem
@@ -386,8 +386,8 @@ public class IndexChanger
                  we are getting snapshot isolation DDL support in
                  place
 
-				if (SanityManager.DEBUG)
-					SanityManager.THROWASSERT(
+                if (SanityManager.DEBUG)
+                    SanityManager.THROWASSERT(
                         "Index row "+RowUtil.toString(ourIndexRow)+
                         " not found in conglomerateid " + indexCID +
                         "Current scan = " + indexSC);
@@ -403,322 +403,322 @@ public class IndexChanger
 
                 // just return indicating the row has been deleted.
                 return;
-			}
-		}
+            }
+        }
 
         indexSC.delete();
-	}
+    }
 
-	/**
-	  Insert a row into our indes.
-	  
-	  <P>This opens our index ConglomeratController the first time it
-	  is called. 
-	  
-	  @exception StandardException		Thrown on error
-	  */
-	private void doInsert()
-		 throws StandardException
-	{
-		insertAndCheckDups(ourIndexRow);
-	}
+    /**
+      Insert a row into our indes.
 
-	/**
-	  Insert a row into the temporary conglomerate
-	  
-	  <P>This opens our deferred ConglomeratController the first time it
-	  is called.
-	  
-	  @exception StandardException		Thrown on error
-	  */
-	private void doDeferredInsert()
-		 throws StandardException
-	{
-		if (rowHolder == null)
-		{
-			Properties properties = new Properties();
+      <P>This opens our index ConglomeratController the first time it
+      is called.
 
-			// Get the properties on the index
-			openIndexCC().getInternalTablePropertySet(properties);
+      @exception StandardException        Thrown on error
+      */
+    private void doInsert()
+         throws StandardException
+    {
+        insertAndCheckDups(ourIndexRow);
+    }
 
-			/*
-			** Create our row holder.  it is ok to skip passing
-			** in the result description because if we don't already
-			** have a row holder, then we are the only user of the
-			** row holder (the description is needed when the row
-			** holder is going to be handed to users for triggers).
-			*/
-			rowHolder = new TemporaryRowHolderImpl(activation, properties,
-												   (ResultDescription) null);
-		}
+    /**
+      Insert a row into the temporary conglomerate
 
-		/*
-		** If the user of the IndexChanger already
-		** had a row holder, then we don't need to
-		** bother saving deferred inserts -- they
-		** have already done so.	
-		*/
-		if (!rowHolderPassedIn)
-		{
-			rowHolder.insert(ourIndexRow);
-		}
-	}
+      <P>This opens our deferred ConglomeratController the first time it
+      is called.
 
-	/**
-	 * Insert the given row into the given conglomerate and check for duplicate
-	 * key error.
-	 *
-	 * @param row	The row to insert
-	 *
-	 * @exception StandardException		Thrown on duplicate key error
-	 */
-	private void insertAndCheckDups(ExecIndexRow row)
-				throws StandardException
-	{
-		openIndexCC();
+      @exception StandardException        Thrown on error
+      */
+    private void doDeferredInsert()
+         throws StandardException
+    {
+        if (rowHolder == null)
+        {
+            Properties properties = new Properties();
 
-		int insertStatus = indexCC.insert(row);
+            // Get the properties on the index
+            openIndexCC().getInternalTablePropertySet(properties);
 
-		if (insertStatus == ConglomerateController.ROWISDUPLICATE)
-		{
-			/*
-			** We have a duplicate key error. 
-			*/
-			String indexOrConstraintName = indexName;
-			// now get table name, and constraint name if needed
-			LanguageConnectionContext lcc =
-                			activation.getLanguageConnectionContext();
-			DataDictionary dd = lcc.getDataDictionary();
-			//get the descriptors
-			ConglomerateDescriptor cd = dd.getConglomerateDescriptor(indexCID);
+            /*
+            ** Create our row holder.  it is ok to skip passing
+            ** in the result description because if we don't already
+            ** have a row holder, then we are the only user of the
+            ** row holder (the description is needed when the row
+            ** holder is going to be handed to users for triggers).
+            */
+            rowHolder = new TemporaryRowHolderImpl(activation, properties,
+                                                   (ResultDescription) null);
+        }
 
-			UUID tableID = cd.getTableID();
-			TableDescriptor td = dd.getTableDescriptor(tableID);
-			String tableName = td.getName();
-			
-			if (indexOrConstraintName == null) // no index name passed in
-			{
-				ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td,
+        /*
+        ** If the user of the IndexChanger already
+        ** had a row holder, then we don't need to
+        ** bother saving deferred inserts -- they
+        ** have already done so.
+        */
+        if (!rowHolderPassedIn)
+        {
+            rowHolder.insert(ourIndexRow);
+        }
+    }
+
+    /**
+     * Insert the given row into the given conglomerate and check for duplicate
+     * key error.
+     *
+     * @param row    The row to insert
+     *
+     * @exception StandardException        Thrown on duplicate key error
+     */
+    private void insertAndCheckDups(ExecIndexRow row)
+                throws StandardException
+    {
+        openIndexCC();
+
+        int insertStatus = indexCC.insert(row);
+
+        if (insertStatus == ConglomerateController.ROWISDUPLICATE)
+        {
+            /*
+            ** We have a duplicate key error.
+            */
+            String indexOrConstraintName = indexName;
+            // now get table name, and constraint name if needed
+            LanguageConnectionContext lcc =
+                            activation.getLanguageConnectionContext();
+            DataDictionary dd = lcc.getDataDictionary();
+            //get the descriptors
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(indexCID);
+
+            UUID tableID = cd.getTableID();
+            TableDescriptor td = dd.getTableDescriptor(tableID);
+            String tableName = td.getName();
+
+            if (indexOrConstraintName == null) // no index name passed in
+            {
+                ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td,
                                                                       cd.getUUID());
-				indexOrConstraintName = conDesc.getConstraintName();
-			}
+                indexOrConstraintName = conDesc.getConstraintName();
+            }
 
-			throw StandardException.newException(
+            throw StandardException.newException(
             SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, indexOrConstraintName, tableName);
-		}
-		if (SanityManager.DEBUG)
-		{
-			if (insertStatus != 0)
-			{
-				SanityManager.THROWASSERT("Unknown insert status " + insertStatus);
-			}
-		}
-	}
+        }
+        if (SanityManager.DEBUG)
+        {
+            if (insertStatus != 0)
+            {
+                SanityManager.THROWASSERT("Unknown insert status " + insertStatus);
+            }
+        }
+    }
 
 
-	/**
-	 * Open the ConglomerateController for this index if it isn't open yet.
-	 *
-	 * @return The ConglomerateController for this index.
-	 *
-	 * @exception StandardException		Thrown on duplicate key error
-	 */
-	private ConglomerateController openIndexCC()
-		throws StandardException
-	{
-		if (indexCC == null)
-		{
-			/* DataDictionary doesn't have compiled info */
-			if (indexSCOCI == null)
-			{
-				indexCC = 
-		            tc.openConglomerate(
-						indexCID,
+    /**
+     * Open the ConglomerateController for this index if it isn't open yet.
+     *
+     * @return The ConglomerateController for this index.
+     *
+     * @exception StandardException        Thrown on duplicate key error
+     */
+    private ConglomerateController openIndexCC()
+        throws StandardException
+    {
+        if (indexCC == null)
+        {
+            /* DataDictionary doesn't have compiled info */
+            if (indexSCOCI == null)
+            {
+                indexCC =
+                    tc.openConglomerate(
+                        indexCID,
                         false,
-			            (TransactionController.OPENMODE_FORUPDATE |
-				         TransactionController.OPENMODE_BASEROW_INSERT_LOCKED),
-					    lockMode,
+                        (TransactionController.OPENMODE_FORUPDATE |
+                         TransactionController.OPENMODE_BASEROW_INSERT_LOCKED),
+                        lockMode,
                         isolationLevel);
-			}
-			else
-			{
-				indexCC = 
-		            tc.openCompiledConglomerate(
+            }
+            else
+            {
+                indexCC =
+                    tc.openCompiledConglomerate(
                         false,
-			            (TransactionController.OPENMODE_FORUPDATE |
-				         TransactionController.OPENMODE_BASEROW_INSERT_LOCKED),
-					    lockMode,
+                        (TransactionController.OPENMODE_FORUPDATE |
+                         TransactionController.OPENMODE_BASEROW_INSERT_LOCKED),
+                        lockMode,
                         isolationLevel,
-						indexSCOCI,
-						indexDCOCI);
-			}
-		}
+                        indexSCOCI,
+                        indexDCOCI);
+            }
+        }
 
-		return indexCC;
-	}
+        return indexCC;
+    }
 
-	/**
-	  Open this IndexChanger.
+    /**
+      Open this IndexChanger.
 
-	  @exception StandardException		Thrown on error
-	  */
-	public void open()
-		 throws StandardException
-	{
-	}
+      @exception StandardException        Thrown on error
+      */
+    public void open()
+         throws StandardException
+    {
+    }
 
-	/**
-	  Perform index maintenance to support a delete of a base table row.
+    /**
+      Perform index maintenance to support a delete of a base table row.
 
-	  @param baseRow the base table row.
-	  @param baseRowLocation the base table row's location.
-	  @exception StandardException		Thrown on error
-	  */
-	public void delete(ExecRow baseRow,
-					   RowLocation baseRowLocation)
-		 throws StandardException
-	{
-		setOurIndexRow(baseRow, baseRowLocation);
-		setScan();
-		doDelete();
-	}
+      @param baseRow the base table row.
+      @param baseRowLocation the base table row's location.
+      @exception StandardException        Thrown on error
+      */
+    public void delete(ExecRow baseRow,
+                       RowLocation baseRowLocation)
+         throws StandardException
+    {
+        setOurIndexRow(baseRow, baseRowLocation);
+        setScan();
+        doDelete();
+    }
 
-	/**
-	  Perform index maintenance to support an update of a base table row.
+    /**
+      Perform index maintenance to support an update of a base table row.
 
-	  @param oldBaseRow         the old image of the base table row.
-	  @param newBaseRow         the new image of the base table row.
-	  @param baseRowLocation    the base table row's location.
+      @param oldBaseRow         the old image of the base table row.
+      @param newBaseRow         the new image of the base table row.
+      @param baseRowLocation    the base table row's location.
 
-	  @exception StandardException		Thrown on error
-	  */
-	public void update(ExecRow oldBaseRow,
-					   ExecRow newBaseRow,
-					   RowLocation baseRowLocation
-					   )
-		 throws StandardException
-	{
-		setOurIndexRow(oldBaseRow, baseRowLocation);
-		setOurUpdatedIndexRow(newBaseRow, baseRowLocation);
+      @exception StandardException        Thrown on error
+      */
+    public void update(ExecRow oldBaseRow,
+                       ExecRow newBaseRow,
+                       RowLocation baseRowLocation
+                       )
+         throws StandardException
+    {
+        setOurIndexRow(oldBaseRow, baseRowLocation);
+        setOurUpdatedIndexRow(newBaseRow, baseRowLocation);
 
-		/* We skip the update in the degenerate case
-		 * where none of the key columns changed.
-		 * (From an actual customer case.)
-		 */
-		if (indexRowChanged())
-		{
-			setScan();
-			doDelete();
-			insertForUpdate(newBaseRow, baseRowLocation);
-		}
-	}
+        /* We skip the update in the degenerate case
+         * where none of the key columns changed.
+         * (From an actual customer case.)
+         */
+        if (indexRowChanged())
+        {
+            setScan();
+            doDelete();
+            insertForUpdate(newBaseRow, baseRowLocation);
+        }
+    }
 
-	/**
-	  Perform index maintenance to support an insert of a base table row.
+    /**
+      Perform index maintenance to support an insert of a base table row.
 
-	  @param newRow            the base table row.
-	  @param baseRowLocation    the base table row's location.
+      @param newRow            the base table row.
+      @param baseRowLocation    the base table row's location.
 
-	  @exception StandardException		Thrown on error
-	  */
-	public void insert(ExecRow newRow, RowLocation baseRowLocation)
-		 throws StandardException
-	{
-		setOurIndexRow(newRow, baseRowLocation);
-		doInsert();
-	}
+      @exception StandardException        Thrown on error
+      */
+    public void insert(ExecRow newRow, RowLocation baseRowLocation)
+         throws StandardException
+    {
+        setOurIndexRow(newRow, baseRowLocation);
+        doInsert();
+    }
 
-	/**
-	  If we're updating a unique index, the inserts have to be
-	  deferred.  This is to avoid uniqueness violations that are only
-	  temporary.  If we do all the deletes first, only "true" uniqueness
-	  violations can happen.  We do this here, rather than in open(),
-	  because this is the only operation that requires deferred inserts,
-	  and we only want to create the conglomerate if necessary.
+    /**
+      If we're updating a unique index, the inserts have to be
+      deferred.  This is to avoid uniqueness violations that are only
+      temporary.  If we do all the deletes first, only "true" uniqueness
+      violations can happen.  We do this here, rather than in open(),
+      because this is the only operation that requires deferred inserts,
+      and we only want to create the conglomerate if necessary.
 
-	  @param newRow            the base table row.
-	  @param baseRowLocation    the base table row's location.
+      @param newRow            the base table row.
+      @param baseRowLocation    the base table row's location.
 
-	  @exception StandardException		Thrown on error
-	*/
-	void insertForUpdate(ExecRow newRow, RowLocation baseRowLocation)
-		 throws StandardException
-	{
-		setOurIndexRow(newRow, baseRowLocation);
-		//defer inserts if its on unique or UniqueWhereNotNull index
-		if (irg.isUnique() || irg.isUniqueWithDuplicateNulls())
-		{
-			doDeferredInsert();
-		}
-		else
-		{
-			doInsert();
-		}
-	}
+      @exception StandardException        Thrown on error
+    */
+    void insertForUpdate(ExecRow newRow, RowLocation baseRowLocation)
+         throws StandardException
+    {
+        setOurIndexRow(newRow, baseRowLocation);
+        //defer inserts if its on unique or UniqueWhereNotNull index
+        if (irg.isUnique() || irg.isUniqueWithDuplicateNulls())
+        {
+            doDeferredInsert();
+        }
+        else
+        {
+            doInsert();
+        }
+    }
 
-	/**
-	  Finish doing the changes for this index.  This is intended for deferred
-	  inserts for unique indexes.  It has no effect unless we are doing an
-	  update of a unique index.
+    /**
+      Finish doing the changes for this index.  This is intended for deferred
+      inserts for unique indexes.  It has no effect unless we are doing an
+      update of a unique index.
 
-	  @exception StandardException		Thrown on error
-	 */
-	public void finish()
-		throws StandardException
-	{
-		ExecRow			deferredRow;
+      @exception StandardException        Thrown on error
+     */
+    public void finish()
+        throws StandardException
+    {
+        ExecRow            deferredRow;
 
-		/* Deferred processing only necessary for unique indexes */
-		if (rowHolder != null)
-		{
-			CursorResultSet rs = rowHolder.getResultSet();
-			try
-			{
-				rs.open();
-				while ((deferredRow = rs.getNextRow()) != null)
-				{
-					if (SanityManager.DEBUG)
-					{
-						if (!(deferredRow instanceof ExecIndexRow))
-						{
-							SanityManager.THROWASSERT("deferredRow isn't an instance "+
-								"of ExecIndexRow as expected. "+
-								"It is an "+deferredRow.getClass().getName());
-						}
-					}
-					insertAndCheckDups((ExecIndexRow)deferredRow);
-				}
-			}
-			finally
-			{
-				rs.close();
+        /* Deferred processing only necessary for unique indexes */
+        if (rowHolder != null)
+        {
+            CursorResultSet rs = rowHolder.getResultSet();
+            try
+            {
+                rs.open();
+                while ((deferredRow = rs.getNextRow()) != null)
+                {
+                    if (SanityManager.DEBUG)
+                    {
+                        if (!(deferredRow instanceof ExecIndexRow))
+                        {
+                            SanityManager.THROWASSERT("deferredRow isn't an instance "+
+                                "of ExecIndexRow as expected. "+
+                                "It is an "+deferredRow.getClass().getName());
+                        }
+                    }
+                    insertAndCheckDups((ExecIndexRow)deferredRow);
+                }
+            }
+            finally
+            {
+                rs.close();
 
-				/*
-				** If row holder was passed in, let the
-				** client of this method clean it up.
-				*/
-				if (!rowHolderPassedIn)
-				{
-					rowHolder.close();
-				}
-			}
-		}
-	}
+                /*
+                ** If row holder was passed in, let the
+                ** client of this method clean it up.
+                */
+                if (!rowHolderPassedIn)
+                {
+                    rowHolder.close();
+                }
+            }
+        }
+    }
 
-	/**
-	  Close this IndexChanger.
+    /**
+      Close this IndexChanger.
 
-	  @exception StandardException		Thrown on error
-	  */
-	public void close()
-		throws StandardException
-	{
-		closeIndexCC();
-		closeIndexSC();
-		if (rowHolder != null && !rowHolderPassedIn)
-		{
-			rowHolder.close();
-		}
-		baseCC = null;
-	}
+      @exception StandardException        Thrown on error
+      */
+    public void close()
+        throws StandardException
+    {
+        closeIndexCC();
+        closeIndexSC();
+        if (rowHolder != null && !rowHolderPassedIn)
+        {
+            rowHolder.close();
+        }
+        baseCC = null;
+    }
 }

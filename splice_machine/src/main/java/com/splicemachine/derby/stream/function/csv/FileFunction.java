@@ -12,17 +12,17 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.function;
+package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
@@ -44,19 +44,19 @@ import java.util.List;
 public class FileFunction extends AbstractFileFunction<String> {
     boolean initialized = false;
     MutableCSVTokenizer tokenizer;
-    private boolean oneLineRecord;
-    private boolean quotedEmptyIsNull;
+    private CsvParserConfig config;
+    // oneLineRecord wasn't written/readExternal
 
     public FileFunction() {
         super();
     }
 
     public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord, OperationContext operationContext, boolean quotedEmptyIsNull) {
+                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord,
+                        OperationContext operationContext, boolean quotedEmptyIsNull, boolean preserveLineEndings) {
         super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
                 dateTimeFormat, timestampFormat, operationContext);
-        this.oneLineRecord = oneLineRecord;
-        this.quotedEmptyIsNull = quotedEmptyIsNull;
+        config = new CsvParserConfig(preference, oneLineRecord, quotedEmptyIsNull, preserveLineEndings);
     }
 
     /**
@@ -74,6 +74,7 @@ public class FileFunction extends AbstractFileFunction<String> {
             // pass the string to CSV tokenizer, this allows us to immediately
             // get rid of the string after reading it.
             checkPreference();
+            config.preferences = preference;
             List<Integer> valueSizeHints = null;
             SpliceOperation op = operationContext.getOperation();
             if (op instanceof VTIOperation) { // Currently, only VTI can provide the result set data types.
@@ -83,7 +84,8 @@ public class FileFunction extends AbstractFileFunction<String> {
                     valueSizeHints.add(dtd.getMaximumWidth());
                 }
             }
-            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord, quotedEmptyIsNull,
+
+            tokenizer = new MutableCSVTokenizer(reader, config,
                     EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
             initialized = true;
         }
@@ -105,14 +107,12 @@ public class FileFunction extends AbstractFileFunction<String> {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        oneLineRecord = in.readBoolean();
-        quotedEmptyIsNull = in.readBoolean();
+        config = new CsvParserConfig(in);
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(oneLineRecord);
-        out.writeBoolean(quotedEmptyIsNull);
+        config.writeExternal(out);
     }
 }

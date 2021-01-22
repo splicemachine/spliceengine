@@ -14,11 +14,16 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.sparksql.SparkSQLUtilsImpl;
+import com.splicemachine.stream.QueryJob;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 
 import java.io.*;
@@ -93,10 +98,30 @@ public class BroadcastedActivation implements Externalizable {
         return baos.toByteArray();
     }
 
+    private boolean isSparkDriver() {
+        String threadName = Thread.currentThread().getName();
+        return (threadName.startsWith("olap-worker-") || SpliceClient.isClient());
+    }
+
     public ActivationHolderAndBytes readActivationHolder(){
         ByteArrayInputStream bais = new ByteArrayInputStream(serializedValue);
         try(ObjectInputStream ois = new ObjectInputStream(bais)){
-            return new ActivationHolderAndBytes((ActivationHolder)ois.readObject(),serializedValue);
+            ActivationHolderAndBytes retval =
+                new ActivationHolderAndBytes((ActivationHolder)ois.readObject(),serializedValue);
+
+            // Record the hash of user jars so we can detect later
+            // if any were added during query execution.
+            if (isSparkDriver()) {
+                JavaSparkContext jsc = SpliceSpark.getContext();
+                LanguageConnectionContext lccFromContext = QueryJob.getLCC();
+
+                if (jsc != null && lccFromContext != null) {
+                    int initialApplicationJarsHash = SpliceSpark.getApplicationJarsHash();
+                    QueryJob.setSparkContextInLCC(jsc.sc(), lccFromContext, initialApplicationJarsHash);
+                    lccFromContext.setupSparkSQLUtils(SparkSQLUtilsImpl.getInstance());
+                }
+            }
+            return retval;
         }catch(ClassNotFoundException | IOException e){
             throw new RuntimeException(e);
         }
