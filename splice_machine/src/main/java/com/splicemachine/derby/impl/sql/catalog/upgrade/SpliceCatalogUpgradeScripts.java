@@ -21,12 +21,7 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
-import scala.sys.Prop;
-
-import java.util.Comparator;
-import java.util.NavigableSet;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by jyuan on 10/14/14.
@@ -35,60 +30,121 @@ public class SpliceCatalogUpgradeScripts{
     protected static final Logger LOG=Logger.getLogger(SpliceCatalogUpgradeScripts.class);
 
     SpliceDataDictionary sdd;
-    Splice_DD_Version catalogVersion;
     TransactionController tc;
-    TreeMap<Splice_DD_Version, UpgradeScript> scripts;
-    Comparator<Splice_DD_Version> ddComparator;
     Properties startParams;
-    
-    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, Splice_DD_Version catalogVersion, TransactionController tc, Properties startParams){
+
+    List<VersionAndUpgrade> scripts;
+
+    public static class VersionAndUpgrade {
+        public Splice_DD_Version version;
+        public UpgradeScript script;
+
+        public VersionAndUpgrade(Splice_DD_Version version,UpgradeScript script) {
+            this.version = version;
+            this.script = script;
+        }
+    }
+
+    public void addUpgradeScript(Splice_DD_Version version, int sprint, UpgradeScript script)
+    {
+        scripts.add(new VersionAndUpgrade(new Splice_DD_Version(sdd, version.getMajorVersionNumber(),
+                version.getMinorVersionNumber(), version.getPatchVersionNumber(), sprint), script));
+    }
+
+    // Upgrade scripts should be mostly the same on master/3.0/3.1.
+    // However the base versions (i.e. major.minor.patch without sprint) are different.
+    // e.g. UpgradeScriptToAddSysNaturalNumbersTable is for sprint 1985, which is [baseVersion4, 1985].
+    // that means on master = 3.2.0.1985, branch-3.0 = 3.1.0.1985, branch-3.0 = 3.0.1.1985.
+
+    // following table gives an overview over different base versions in the branches
+    //                 master | branch-3.0 | branch-3.1 | remarks
+    // baseVersion1 =  2.8.0  |   2.8.0    |   2.8.0    |
+    // baseVersion2 =  3.1.0  |   3.1.0    |   3.0.0    | 2.8 -> 3.x fork
+    // baseVersion3 =  3.1.0  |   3.1.0    |   3.0.1    | hickup on branch 3.0
+    // baseVersion4 =  3.2.0  |   3.1.0    |   3.0.1    | 3.2 fork
+    // ...
+    // baseVersionX = ...                               | add here new versions
+    //
+    // also check SpliceCatalogUpgradeScriptsTest for some unit tests for this.
+
+    static final public Splice_DD_Version baseVersion1 = new Splice_DD_Version(null, 2, 8, 0);
+    static final public Splice_DD_Version baseVersion2 = new Splice_DD_Version(null, 3, 1, 0);
+    static final public Splice_DD_Version baseVersion3 = new Splice_DD_Version(null, 3, 1, 0);
+    static final public Splice_DD_Version baseVersion4 = new Splice_DD_Version(null, 3, 2, 0);
+
+    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc, Properties startParams){
         this.sdd=sdd;
-        this.catalogVersion=catalogVersion;
         this.tc=tc;
         this.startParams = startParams;
 
-        ddComparator=new Comparator<Splice_DD_Version>(){
-            @Override
-            public int compare(Splice_DD_Version version1,Splice_DD_Version version2){
-                long v1=version1.toLong();
-                long v2=version2.toLong();
+        scripts = new ArrayList<>();
+        addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
+        addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
+        addUpgradeScript(baseVersion1, 1917, new UpgradeScriptForMultiTenancy(sdd,tc));
+        addUpgradeScript(baseVersion1, 1924, new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
 
-                if(v1<v2)
-                    return -1;
-                else if(v1==v2)
-                    return 0;
-                else
-                    return 1;
-            }
-        };
-        scripts=new TreeMap<>(ddComparator);
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1909), new UpgradeScriptForReplication(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1924), new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
+        addUpgradeScript(baseVersion2, 1933, new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
+        addUpgradeScript(baseVersion2, 1938, new UpgradeScriptForTriggerWhenClause(sdd,tc));
+        addUpgradeScript(baseVersion2, 1940, new UpgradeScriptForReplicationSystemTables(sdd,tc));
+        addUpgradeScript(baseVersion2, 1941, new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
 
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1940), new UpgradeScriptForReplicationSystemTables(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1962), new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1970), new UpgradeScriptForAddTablesAndViewsInSYSIBMADM(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1971), new UpgradeScriptToAddCatalogVersion(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1974), new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1977), new UpgradeScriptToAddSysKeyColUseViewInSYSIBM(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1979), new UpgradeScriptForTablePriorities(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1979), new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1989), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1991), new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams));
+        addUpgradeScript(baseVersion2, 1948, new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
+        addUpgradeScript(baseVersion2, 1953, new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
+        addUpgradeScript(baseVersion2, 1959, new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
+        addUpgradeScript(baseVersion2, 1962, new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
+
+        addUpgradeScript(baseVersion2, 1964, new UpgradeScriptForAliasToTableView(sdd,tc));
+        addUpgradeScript(baseVersion2, 1970, new UpgradeScriptForAddTablesAndViewsInSYSIBMADM(sdd,tc));
+        addUpgradeScript(baseVersion2, 1971, new UpgradeScriptToAddCatalogVersion(sdd,tc));
+        addUpgradeScript(baseVersion2, 1974, new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
+
+        addUpgradeScript(baseVersion2, 1977, new UpgradeScriptToAddSysKeyColUseViewInSYSIBM(sdd, tc));
+        addUpgradeScript(baseVersion3, 1979, new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
+
+        addUpgradeScript(baseVersion4, 1983, new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
+        addUpgradeScript(baseVersion4, 1985, new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
+        addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
+        addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams));
+
+        // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
-    public void run() throws StandardException{
 
+    public static List<VersionAndUpgrade> getScriptsToUpgrade(List<VersionAndUpgrade> scripts,
+                                                              Splice_DD_Version currentVersion)
+    {
+        List<VersionAndUpgrade> upgradeNeeded = new ArrayList<>();
+        for(VersionAndUpgrade el : scripts){
+            if(currentVersion!=null){
+                if(Splice_DD_Version.compare(el.version,currentVersion)<=0){
+                    continue;
+                }
+            }
+            upgradeNeeded.add(el);
+        }
+        return upgradeNeeded;
+    }
+
+    public List<VersionAndUpgrade> getScripts() {
+        return scripts;
+    }
+
+    public static void runAllScripts(List<VersionAndUpgrade> upgradeNeeded) throws StandardException {
+        if( upgradeNeeded.size() == 0 ) {
+            LOG.info("No upgrade needed.");
+            return;
+        }
+        LOG.info("Running " + upgradeNeeded.size() + " upgrade scripts:");
+        for( VersionAndUpgrade el : upgradeNeeded ) {
+            LOG.info("Running upgrade script " + el.version + ": " + el.script.getClass().getName());
+            el.script.run();
+        }
+        LOG.info("upgrade done.");
+    }
+
+    public void runUpgrades(Splice_DD_Version catalogVersion) throws StandardException{
+        LOG.info("Catalog is on version " + catalogVersion + ". checking for upgrades...");
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
@@ -96,21 +152,13 @@ public class SpliceCatalogUpgradeScripts{
         if(configuration.upgradeForced()) {
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
         }
-
-        NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();
-        for(Splice_DD_Version version : keys){
-            if(currentVersion!=null){
-                if(ddComparator.compare(version,currentVersion)<=0){
-                    continue;
-                }
-            }
-            UpgradeScript script=scripts.get(version);
-            script.run();
-        }
+        runAllScripts(getScriptsToUpgrade(scripts, currentVersion));
 
         // Always update system procedures and stored statements
-        sdd.clearSPSPlans();
+        if( sdd != null ) {
+            sdd.clearSPSPlans();
         sdd.createOrUpdateAllSystemProceduresForAllDatabases(tc);
-        sdd.updateMetadataSPSes(tc);
+            sdd.updateMetadataSPSes(tc);
+        }
     }
 }

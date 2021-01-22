@@ -632,8 +632,7 @@ public    class DD_Version implements    Formatable
         ExecRow                        heapRow = rowFactory.makeEmptyRow();
         ExecIndexRow                indexableRow = indexRowGenerator.getIndexRowTemplate();
 
-        ScanController                heapScan =
-            tc.openScan(
+        try (ScanController heapScan = tc.openScan(
                 heapConglomerateNumber,       // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -644,30 +643,27 @@ public    class DD_Version implements    Formatable
                 ScanController.GE,              // startSearchOperation
                 null,                           //scanQualifier,
                 null,                           //stop position-through last row
-                ScanController.GT);             // stopSearchOperation
+                ScanController.GT)) {           // stopSearchOperation
 
         RowLocation                    heapLocation =
             heapScan.newRowLocationTemplate();
 
-        ConglomerateController        indexController =
-            tc.openConglomerate(
+            try (ConglomerateController indexController = tc.openConglomerate(
                 indexConglomerateNumber,
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                    TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        while ( heapScan.fetchNext(heapRow.getRowArray()) )
-        {
+                while (heapScan.fetchNext(heapRow.getRowArray())) {
              heapScan.fetchLocation( heapLocation );
 
             indexRowGenerator.getIndexRow( heapRow, heapLocation, indexableRow, (FormatableBitSet) null );
 
             indexController.insert(indexableRow);
         }
-
-        indexController.close();
-        heapScan.close();
+            }
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////

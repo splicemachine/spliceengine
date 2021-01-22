@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableProperties;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -99,6 +100,22 @@ public class DeleteNode extends DMLModStatementNode
     private Properties targetProperties;
     private String     bulkDeleteDirectory;
     private int[] colMap;
+    private Boolean cursorDelete;
+
+    public DeleteNode() {}
+
+    public DeleteNode(ContextManager cm, TableName targetTableName,
+               SelectNode queryExpression, Boolean cursorDelete,
+               Properties targetProperties)
+    {
+        super.init(queryExpression);
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.DELETE_NODE);
+        this.targetTableName = targetTableName;
+        this.targetProperties = targetProperties;
+        this.cursorDelete = cursorDelete;
+    }
+
     /**
      * Initializer for a DeleteNode.
      *
@@ -106,14 +123,15 @@ public class DeleteNode extends DMLModStatementNode
      * @param queryExpression    The query expression that will generate
      *                the rows to delete from the given table
      */
-
     public void init(Object targetTableName,
                      Object queryExpression,
-                     Object targetProperties)
+                     Object cursorDelete,
+                     Object targetProperties )
     {
         super.init(queryExpression);
         this.targetTableName = (TableName) targetTableName;
         this.targetProperties = (Properties) targetProperties;
+        this.cursorDelete = (Boolean)cursorDelete;
     }
 
     static public boolean isBulkDelete(Properties properties)
@@ -325,20 +343,29 @@ public class DeleteNode extends DMLModStatementNode
                     rowIdColumn.setName(COLUMNNAME);
                 }
 
-                ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rowIdColumn.getName(),
-                        null,
-                        getContextManager());
-                columnReference.setSource(rowIdColumn);
-                columnReference.setNestingLevel(targetTable.getLevel());
-                columnReference.setSourceLevel(targetTable.getLevel());
-                rowLocationColumn =
-                        (ResultColumn) getNodeFactory().getNode(
-                                C_NodeTypes.RESULT_COLUMN,
-                                COLUMNNAME,
-                                columnReference,
-                                getContextManager());
+                if(!cursorDelete) {
+                    ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                            C_NodeTypes.COLUMN_REFERENCE,
+                            rowIdColumn.getName(),
+                            null,
+                            getContextManager());
+                    columnReference.setSource(rowIdColumn);
+                    columnReference.setNestingLevel(targetTable.getLevel());
+                    columnReference.setSourceLevel(targetTable.getLevel());
+                    rowLocationColumn =
+                            (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.RESULT_COLUMN,
+                                    COLUMNNAME,
+                                    columnReference,
+                                    getContextManager());
+                } else {
+                    rowLocationColumn =
+                            (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.RESULT_COLUMN,
+                                    COLUMNNAME,
+                                    rowIdColumn,
+                                    getContextManager());
+                }
 
                 rowLocationColumn.bindResultColumnToExpression();
 
@@ -728,6 +755,7 @@ public class DeleteNode extends DMLModStatementNode
 
         mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
         mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
+        mb.push(cursorDelete);
         mb.push(targetTableDescriptor.getVersion());
         if ("getDeleteResultSet".equals(resultSetGetter)) {
             mb.push(this.printExplainInformationForActivation());
@@ -748,7 +776,7 @@ public class DeleteNode extends DMLModStatementNode
             mb.push(isNoTriggerRIMode());
             argCount += 5;
         }
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+4);
 
         if(!isDependentTable && cascadeDelete)
         {
@@ -888,9 +916,7 @@ public class DeleteNode extends DMLModStatementNode
         ((FromBaseTable) fromTable).setTableProperties(targetProperties);
 
         fromList.addFromTable(fromTable);
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                                     C_NodeTypes.SELECT_NODE,
-                                                     null,
+        SelectNode resultSet = new SelectNode( null,
                                                      null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
@@ -939,9 +965,7 @@ public class DeleteNode extends DMLModStatementNode
 
         fromList.addFromTable(fromTable);
 
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                                     C_NodeTypes.SELECT_NODE,
-                                                     getSetClause(tableName, cdl),
+        SelectNode resultSet = new SelectNode(getSetClause(tableName, cdl),
                                                      null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
@@ -950,12 +974,7 @@ public class DeleteNode extends DMLModStatementNode
                                                      null, /* windows */
                                                      getContextManager());
 
-        return (StatementNode) nodeFactory.getNode(
-                                                    C_NodeTypes.UPDATE_NODE,
-                                                    tableName,
-                                                    resultSet,
-                                                    getContextManager());
-
+        return new UpdateNode( tableName, resultSet, cursorDelete, getContextManager());
     }
 
 

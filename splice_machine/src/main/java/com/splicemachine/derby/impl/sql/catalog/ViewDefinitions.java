@@ -25,12 +25,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 class SystemViewDefinitions {
-    private class ViewInfo {
+    static private class ViewInfo {
         int catalogNum;
         int viewIndex;
         String viewSql;
 
-        public ViewInfo(int catalogNum, int viewIndex, String viewSql) {
+        ViewInfo(int catalogNum, int viewIndex, String viewSql) {
             this.catalogNum = catalogNum;
             this.viewIndex = viewIndex;
             this.viewSql = viewSql;
@@ -60,6 +60,7 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSIBM", "SYSCOLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 1, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM));
         views.put(new Pair<>("SYSIBM", "SYSTABLES"), new ViewInfo(DataDictionary.SYSTABLES_CATALOG_NUM, 1, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM));
         views.put(new Pair<>("SYSIBM", "SYSKEYCOLUSE"), new ViewInfo(DataDictionary.SYSCONSTRAINTS_CATALOG_NUM, 0, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM));
+        views.put(new Pair<>("SYSIBM", "SYSINDEXES"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 0, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL));
 
         views.put(new Pair<>("SYSCAT", "INDEXCOLUSE"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 1, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL));
 

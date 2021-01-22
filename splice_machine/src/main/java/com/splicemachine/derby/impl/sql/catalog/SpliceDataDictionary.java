@@ -26,6 +26,7 @@ import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -60,6 +61,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
@@ -290,7 +292,43 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSCAT", "INDEXCOLUSE");
+        String viewName = "INDEXCOLUSE";
+        createOrUpdateSystemView(tc, "SYSCAT", viewName);
+
+        // create an synonym SYSIBM.SYSINDEXCOLUSE for SYSCAT.INDEXCOLUSE
+        String synonymName = "SYSINDEXCOLUSE";
+        TableDescriptor synonymTD = getTableDescriptor(synonymName, sysIBMSchemaDesc, tc);
+        if (synonymTD == null)
+        {
+            // To prevent any possible deadlocks with SYSTABLES, we insert a row into
+            // SYSTABLES also for synonyms. This also ensures tables/views/synonyms share
+            // same namespace
+            DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+            TableDescriptor td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
+                    TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null,null,false,false,null);
+            addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            // Create a new alias descriptor with a UUID filled in.
+            UUID synonymID = getUUIDFactory().createUUID();
+            AliasDescriptor ads = new AliasDescriptor(this, synonymID,
+                    synonymName,
+                    sysIBMSchemaDesc.getUUID(),
+                    null,
+                    AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR,
+                    AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
+                    true,
+                    new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
+                    null, tc);
+            addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
+                    false, tc, false);
+
+            SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
+        }
+    }
+
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -573,6 +611,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createAliasToTableSystemView(tc);
 
         createIndexColumnUseViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
     }
 
     @Override
@@ -776,8 +816,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc,startParams);
-            scripts.run();
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc, startParams);
+            scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1318,7 +1358,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     false,
                     false);
             /* Scan the entire heap */
-            ScanController sc=
+            try (ScanController sc=
                     tc.openScan(
                             ti.getHeapConglomerate(),
                             false,
@@ -1330,19 +1370,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                             ScanController.NA,
                             scanQualifier,
                             null,
-                            ScanController.NA);
+                            ScanController.NA)) {
 
-            while(sc.fetchNext(rowTemplate)){
-                /* Replace the column in the table */
-                for (int i=0; i<rowTemplate.length; i++) {
-                    if (i+1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
-                        replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
-                    else
-                        replaceRow[i] = rowTemplate[i].cloneValue(false);
+                while (sc.fetchNext(rowTemplate)) {
+                    /* Replace the column in the table */
+                    for (int i = 0; i < rowTemplate.length; i++) {
+                        if (i + 1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
+                            replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
+                        else
+                            replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    }
+                    sc.replace(replaceRow, columnToUpdateSet);
                 }
-                sc.replace(replaceRow,columnToUpdateSet);
             }
-            sc.close();
         }
     }
 
@@ -1364,7 +1404,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc = tc.openScan(
+        try (ScanController sc = tc.openScan(
                 ti.getHeapConglomerate(),
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
@@ -1375,19 +1415,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 ScanController.NA,
                 null,
                 null,
-                ScanController.NA);
+                ScanController.NA)) {
 
-        while (sc.fetchNext(rowTemplate)) {
-            for (int i = 0; i < rowTemplate.length; i++) {
-                replaceRow[i] = rowTemplate[i].cloneValue(false);
-                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
-                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
-                    replaceRow[i] = new SQLLongvarchar("NULL");
+            while (sc.fetchNext(rowTemplate)) {
+                for (int i = 0; i < rowTemplate.length; i++) {
+                    replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                    if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                        replaceRow[i] = new SQLLongvarchar("NULL");
+                    }
                 }
+                sc.replace(replaceRow, columnToUpdateSet);
             }
-            sc.replace(replaceRow, columnToUpdateSet);
         }
-        sc.close();
     }
 
     @Override
@@ -1400,6 +1440,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return !SpliceClient.isRegionServer;
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
         int lastCol = colIds[colIds.length - 1];
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
