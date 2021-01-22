@@ -2938,8 +2938,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             DataValueDescriptor authIdOrderable = new SQLVarchar(authId);
-        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
+            DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+            ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
 
             scanQualifier[0][0].setQualifier(
                     columnNo - 1,    /* to zero-based */
@@ -2949,7 +2949,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     false,
                     false);
 
-        scanQualifier[0][1].setQualifier(
+            scanQualifier[0][1].setQualifier(
                 databaseIdColumnNo - 1,  /* to zero-based */
                 dbIdOrderable,
                 Orderable.ORDER_OP_EQUALS,

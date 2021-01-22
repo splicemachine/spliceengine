@@ -4091,8 +4091,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public AccessFactory getSpliceAccessManager() {
-        if (db instanceof BasicDatabase) {
-            BasicDatabase basicDatabase = (BasicDatabase) db;
+        if (spliceInstance instanceof BasicDatabase) {
+            BasicDatabase basicDatabase = (BasicDatabase) spliceInstance;
             return basicDatabase.getAccessFactory();
         }
         return null;
