@@ -14,11 +14,12 @@
 
 package com.splicemachine.foreignkeys;
 
-import com.splicemachine.derby.test.framework.RuledConnection;
-import com.splicemachine.derby.test.framework.SchemaRule;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.TableRule;
-import org.junit.*;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -28,10 +29,13 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 6/27/16
  */
-public class ForeignKeyMetadataIT{
+public class ForeignKeyMetadataIT {
     private static final String CLASS_NAME = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
     @ClassRule public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final String SCHEMA = spliceSchemaWatcher.schemaName;
+
+    @Rule
+    public SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
 
     private RuledConnection conn = new RuledConnection(null,true);
 
@@ -150,6 +154,44 @@ public class ForeignKeyMetadataIT{
 
                }
            }
+        }
+    }
+
+    @Test
+    public void testReferencesAndSysKeyColUseViews() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists SELF_REF (c int, d int, " +
+                "constraint SRPK primary key (c), constraint SRFK foreign key (c) references SELF_REF(c))");
+
+        String query = "select * from syscat.references r where r.tabname = 'SELF_REF'";
+
+        String expected =
+                "CONSTNAME |      TABSCHEMA      | TABNAME | OWNER | OWNERTYPE |REFKEYNAME |    REFTABSCHEMA     |REFTABNAME |COLCOUNT |DELETERULE |UPDATERULE | CREATE_TIME |\n" +
+                "--------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "   SRFK    |FOREIGNKEYMETADATAIT |SELF_REF | NULL  |   NULL    |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     A     |    NULL     |";
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        query = "SELECT C.NAME, C.COLNO, R.CONSTNAME, F.CONSTNAME\n" +
+                "FROM SYSCAT.REFERENCES R,\n" +
+                "     SYSIBM.SYSKEYCOLUSE F,\n" +
+                "     SYSIBM.SYSCOLUMNS   C\n" +
+                "WHERE R.TABSCHEMA = '" + SCHEMA + "'\n" +
+                "      AND C.TBNAME = 'SELF_REF'\n" +
+                "      AND R.TABNAME = R.REFTABNAME\n" +
+                "      AND R.TABSCHEMA = R.REFTABSCHEMA\n" +
+                "      AND F.TBCREATOR = R.TABSCHEMA\n" +
+                "      AND F.TBNAME    = R.TABNAME\n" +
+                "      AND F.COLNAME   = C.NAME\n" +
+                "      AND C.TBNAME    = F.TBNAME\n" +
+                "      AND C.TBCREATOR = F.TBCREATOR\n" +
+                "ORDER BY C.COLNO";
+
+        expected = "NAME | COLNO | CONSTNAME | CONSTNAME |\n" +
+                "--------------------------------------\n" +
+                "  C  |   0   |   SRFK    |   SRPK    |";
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 
