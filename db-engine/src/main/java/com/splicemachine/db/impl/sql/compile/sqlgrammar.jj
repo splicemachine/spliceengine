@@ -17174,7 +17174,6 @@ reservedKeyword() :
 |    tok = <PUBLIC>
 |    tok = <READ>
 |    tok = <REAL>
-|    tok = <REFERENCES>
 |    tok = <RELATIVE>
 |    tok = <REPLACE>
 |    tok = <RESTRICT>
@@ -17458,6 +17457,7 @@ nonReservedKeyword()  :
     |    tok = <READS>
     |   tok = <RECURSIVE>
     |    tok = <REF>
+    |    tok = <REFERENCES>
 // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <RELEASE>
     |    tok = <RENAME>
