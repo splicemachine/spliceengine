@@ -70,7 +70,7 @@ def generateStage(platform,slackResponse) {
 }
 
 
-node('splice-standalone'){
+node('micro-spliceengine'){
     try{
         stage("Initiate Parallel Stages"){
                 parallel parallelStagesMap
