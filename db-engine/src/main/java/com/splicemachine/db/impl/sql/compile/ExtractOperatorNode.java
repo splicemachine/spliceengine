@@ -193,6 +193,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		return this;
 	}
 
+	void bindParameter() throws StandardException
+	{
+		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
+	}
+
 	public String toString() {
 		if (SanityManager.DEBUG)
 		{

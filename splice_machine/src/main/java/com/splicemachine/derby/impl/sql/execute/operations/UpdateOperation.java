@@ -73,13 +73,20 @@ public class UpdateOperation extends DMLWriteOperation{
 
     int[] pkCols;
     FormatableBitSet pkColumns;
+    boolean          updateCursor;
 
+    /**
+     * @param cursorUpdate if true, the execution of this operation is done exclusively in control.
+     * @throws StandardException
+     */
     public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost,String tableVersion, String fromTableDmlSpsDescriptorAsString)
-            throws StandardException, IOException{
+                           double optimizerEstimatedCost, boolean cursorUpdate, String tableVersion,
+                           String fromTableDmlSpsDescriptorAsString)
+            throws StandardException {
         super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
               tableVersion, fromTableDmlSpsDescriptorAsString);
+        this.updateCursor = cursorUpdate;
         init();
     }
 
@@ -245,5 +252,10 @@ public class UpdateOperation extends DMLWriteOperation{
             finalizeNestedTransaction();
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return updateCursor;
     }
 }

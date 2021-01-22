@@ -752,6 +752,7 @@ public interface SQLState {
     String LANG_INVALID_AGGREGATION_DATATYPE                           = "2202E";
     String LANG_INVALID_TIME_SPAN_OPERATION                            = "2202F";
 	String LANG_FIELD_POSITION_ZERO                                    = "22030";
+    String LANG_INVALID_TIMEZONE_OPERATION            = "22031";
     /*
     ** Integrity violations.
     */
@@ -837,6 +838,7 @@ public interface SQLState {
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                           = "42831.S.1";
     String LANG_DB2_REPLACEMENT_ERROR                                   = "42815.S.713";
     String LANG_DB2_MULTINARY_DATATYPE_MISMATCH                        = "42815.S.171";
+    String LANG_DB2_INVALID_DATETIME_EXPR                     = "42816";
     String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL                       = "42820";
     String LANG_DB2_LIKE_SYNTAX_ERROR                                    = "42824";
     String LANG_INVALID_FK_COL_FOR_SETNULL                             = "42834";
@@ -920,7 +922,7 @@ public interface SQLState {
     String LANG_INVALID_STATISTICS_SPEC                                   = "42X64";
     String LANG_INDEX_NOT_FOUND                                        = "42X65";
     String LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX                     = "42X66";
-    //42X67
+    String LANG_INVALID_UPDATE_STATEMENT                                   = "42X67";
     String LANG_NO_FIELD_FOUND                                         = "42X68";
     String LANG_PRIMITIVE_REFERENCING_EXPRESSION                       = "42X69";
     String LANG_TABLE_DEFINITION_R_C_L_MISMATCH                        = "42X70";
@@ -971,10 +973,10 @@ public interface SQLState {
     String LANG_SEQ_INCREMENT_ZERO                                     = "42XAC";
     String LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE                          = "42XAE";
     String LANG_SEQ_MIN_EXCEEDS_MAX                                    = "42XAF";
-    String LANG_SEQ_INVALID_START                                      = "42XAG";    
-    String LANG_NEXT_VALUE_FOR_ILLEGAL                                      = "42XAH";    
-    String LANG_SEQUENCE_REFERENCED_TWICE                                      = "42XAI";    
-    String LANG_DUPLICATE_CS_CLAUSE                                      = "42XAJ";    
+    String LANG_SEQ_INVALID_START                                      = "42XAG";
+    String LANG_NEXT_VALUE_FOR_ILLEGAL                                      = "42XAH";
+    String LANG_SEQUENCE_REFERENCED_TWICE                                      = "42XAI";
+    String LANG_DUPLICATE_CS_CLAUSE                                      = "42XAJ";
     String LANG_INVALID_USER_AGGREGATE_DEFINITION2                     = "42Y00";
     String LANG_INVALID_CHECK_CONSTRAINT                               = "42Y01";
     // String LANG_NO_ALTER_TABLE_COMPRESS_ON_TARGET_TABLE                = "42Y02";
@@ -1662,8 +1664,8 @@ public interface SQLState {
     String STREAM_EOF = "XJ085.S";
     String CURSOR_NOT_POSITIONED_ON_INSERT_ROW = "XJ086.S";
     String POS_AND_LENGTH_GREATER_THAN_LOB = "XJ087.S";
-    
-    
+
+
     String WASNULL_INVALID = "XJ088.S";
     String CALENDAR_IS_NULL = "XJ090.S";
     String PARAM_NOT_OUT_OR_INOUT = "XJ091.S";
@@ -1682,7 +1684,7 @@ public interface SQLState {
     String CRYPTO_ILLEGAL_BLOCK_SIZE = "XJ108.S";
     String PRIMARY_TABLE_NAME_IS_NULL = "XJ110.S";
     String FOREIGN_TABLE_NAME_IS_NULL = "XJ111.S";
-    String SECURITY_EXCEPTION_ENCOUNTERED = "XJ112.S";    
+    String SECURITY_EXCEPTION_ENCOUNTERED = "XJ112.S";
     String UNABLE_TO_OPEN_FILE = "XJ113.S";
     String CURSOR_INVALID_CURSOR_NAME = "XJ114.S";
     String UNABLE_TO_OPEN_RESULTSET_WITH_REQUESTED_HOLDABILTY = "XJ115.S";
@@ -1756,7 +1758,7 @@ public interface SQLState {
     String CONFLICTING_CREATE_ATTRIBUTES = "XJ049.C";
     String CONFLICTING_RESTORE_ATTRIBUTES = "XJ081.C";
     String INVALID_ATTRIBUTE = "XJ05B.C";
-    
+
     // Connection exceptions - SQL State class 08
 
     // 08004 SQL State means the server rejected the connection request
@@ -1802,7 +1804,7 @@ public interface SQLState {
     String CONNECTION_FAILED_ON_DEFERRED_RESET                  = "08006.C.4";
     String NET_INSUFFICIENT_DATA                                = "08006.C.5";
     String NET_LOB_DATA_TOO_LARGE_FOR_JVM                       = "08006.C.6";
-    
+
     String CORE_JDBC_DRIVER_UNREGISTERED                    = "08006.C.8"; // JDBCDriver is not registered with the JDBC driver manager
     String CONNECTION_RESET_ON_RESTORE_MODE                     = "08006.C.9";
 
@@ -1900,7 +1902,7 @@ public interface SQLState {
     String DRDA_DDM_PARAM_NOT_SUPPORTED                             = "58016.C";
     String DRDA_DDM_PARAMVAL_NOT_SUPPORTED                          = "58017.C";
     String DRDA_NO_AVAIL_CODEPAGE_CONVERSION                        = "57017.C";
-    
+
     /*
     ** com.splicemachine.db.database.UserUtility
         */

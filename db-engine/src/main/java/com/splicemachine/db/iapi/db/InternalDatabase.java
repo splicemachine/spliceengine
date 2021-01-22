@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 
 import java.io.InputStream;
@@ -153,4 +154,6 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
     void dropJar(JarUtil util) throws StandardException;
 
     long replaceJar(final InputStream is, JarUtil util) throws StandardException;
+
+	AccessFactory getAccessFactory();
 }

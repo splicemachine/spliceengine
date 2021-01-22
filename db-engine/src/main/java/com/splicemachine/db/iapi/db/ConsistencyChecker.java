@@ -133,7 +133,6 @@ public class ConsistencyChecker
         ExecRow                    indexRow;
         RowLocation                rl = null;
         RowLocation                scanRL = null;
-        ScanController            scan = null;
         int[]                    baseColumnPositions;
         int                        baseColumns = 0;
         DataValueFactory        dvf;
@@ -233,7 +232,7 @@ public class ConsistencyChecker
                 ** if there are no indexes to check.
                 */
                 if (baseRowCount < 0) {
-                    scan = tc.openScan(heapCD.getConglomerateNumber(),
+                    try (ScanController scan = tc.openScan(heapCD.getConglomerateNumber(),
                             false,    // hold
                             0,        // not forUpdate
                             TransactionController.MODE_TABLE,
@@ -243,7 +242,7 @@ public class ConsistencyChecker
                             0,        // not used with null start posn.
                             null,    // qualifier
                             null,    // stopKeyValue
-                            0);        // not used with null stop posn.
+                            0)) {       // not used with null stop posn.
 
                     /* Also, get the row location template for index rows */
                     rl = scan.newRowLocationTemplate();
@@ -251,9 +250,7 @@ public class ConsistencyChecker
 
                     for (baseRowCount = 0; scan.next(); baseRowCount++)
                         ;    /* Empty statement */
-
-                    scan.close();
-                    scan = null;
+                    }
                 }
 
                 baseColumnPositions =
@@ -281,7 +278,7 @@ public class ConsistencyChecker
                 indexRow.setColumn(baseColumns + 1, rl);
 
                 /* Do a full scan of the index */
-                scan = tc.openScan(indexCD.getConglomerateNumber(),
+                try (ScanController scan = tc.openScan(indexCD.getConglomerateNumber(),
                         false,    // hold
                         0,        // not forUpdate
                         TransactionController.MODE_TABLE,
@@ -291,11 +288,11 @@ public class ConsistencyChecker
                         0,        // not used with null start posn.
                         null,    // qualifier
                         null,    // stopKeyValue
-                        0);        // not used with null stop posn.
+                        0)) {       // not used with null stop posn.
 
-                DataValueDescriptor[] baseRowIndexOrder =
-                        new DataValueDescriptor[baseColumns];
-                DataValueDescriptor[] baseObjectArray = baseRow.getRowArray();
+                    DataValueDescriptor[] baseRowIndexOrder =
+                            new DataValueDescriptor[baseColumns];
+                    DataValueDescriptor[] baseObjectArray = baseRow.getRowArray();
 
                 for (int i = 0; i < baseColumns; i++) {
                     baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
@@ -322,7 +319,7 @@ public class ConsistencyChecker
                                 indexName,
                                 baseRL.toString(),
                                 ((Row)indexRow).toString());
-                    }
+                        }
 
                     /* Compare all the column values */
                     for (int column = 0; column < baseColumns; column++) {
@@ -353,23 +350,20 @@ public class ConsistencyChecker
                                 ";indexRow.toString() = " + indexRow.toString());
                             */
 
-                            throw StandardException.newException(
-                                    SQLState.LANG_INDEX_COLUMN_NOT_EQUAL,
-                                    indexCD.getConglomerateName(),
-                                    td.getSchemaName(),
-                                    td.getName(),
-                                    baseRL.toString(),
-                                    cd.getColumnName(),
-                                    indexColumn.toString(),
-                                    baseColumn.toString(),
+                                throw StandardException.newException(
+                                        SQLState.LANG_INDEX_COLUMN_NOT_EQUAL,
+                                        indexCD.getConglomerateName(),
+                                        td.getSchemaName(),
+                                        td.getName(),
+                                        baseRL.toString(),
+                                        cd.getColumnName(),
+                                        indexColumn.toString(),
+                                        baseColumn.toString(),
                                     ((Row)indexRow).toString());
+                            }
                         }
                     }
                 }
-
-                /* Clean up after the index scan */
-                scan.close();
-                scan = null;
 
                 /*
                 ** The index is supposed to have the same number of rows as the
@@ -425,11 +419,6 @@ public class ConsistencyChecker
                 {
                     indexCC.close();
                     indexCC = null;
-                }
-                if (scan != null)
-                {
-                    scan.close();
-                    scan = null;
                 }
             }
             catch (StandardException se)

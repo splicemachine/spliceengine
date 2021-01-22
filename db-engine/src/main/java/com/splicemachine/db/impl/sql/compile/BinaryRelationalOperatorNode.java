@@ -1171,7 +1171,7 @@ public class BinaryRelationalOperatorNode
             DataValueDescriptor leftVal=leftOp.getValue();
             DataValueDescriptor rightVal=rightOp.getValue();
 
-            if(!leftVal.isNull() && !rightVal.isNull()){
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:

@@ -1671,6 +1671,17 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
         if(ClassInspector.primitiveType(javaClassName))
             throw StandardException.newException(SQLState.LANG_TYPE_DOESNT_EXIST3,javaClassName);
+        if (foundMatch) {
+            if (lcc == null)
+                getLanguageConnectionContext();
+            if (lcc != null && lcc.isSparkJob()) {
+                int applicationJarsHash = classInspector.getApplicationJarsHashCode();
+                if (applicationJarsHash != 0 &&
+                    applicationJarsHash != lcc.getApplicationJarsHashCode()) {
+                    lcc.addUserJarsToSparkContext();
+                }
+            }
+        }
     }
 
     /**

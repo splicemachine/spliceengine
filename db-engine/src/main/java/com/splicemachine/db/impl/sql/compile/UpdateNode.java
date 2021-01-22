@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -77,21 +78,31 @@ public final class UpdateNode extends DMLModStatementNode
     public static final String PIN = "pin";
     //Note: These are public so they will be visible to
     //the RepUpdateNode.
-    public int[]                changedColumnIds;
-    public ExecRow                emptyHeapRow;
-    public boolean                deferred;
-    public ValueNode            checkConstraints;
+    public int[]     changedColumnIds;
+    public ExecRow   emptyHeapRow;
+    public boolean   deferred;
+    public ValueNode checkConstraints;
 
-    protected FromTable            targetTable;
-    protected FormatableBitSet             readColsBitSet;
-    protected boolean             positionedUpdate;
-    protected boolean             isUpdateWithSubquery; // Splice fork
+    protected FromTable        targetTable;
+    protected FormatableBitSet readColsBitSet;
+    protected boolean          positionedUpdate;
+    protected boolean isUpdateWithSubquery; // Splice fork
+    protected boolean cursorUpdate;
 
     /* Column name for the RowLocation in the ResultSet */
     public static final String COLUMNNAME = "###RowLocationToUpdate";
 
     /* Subquery name for updating from multi-column subquery case */
     public static final String SUBQ_NAME = "UPDSBQ";
+
+    public UpdateNode() {}
+    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.UPDATE_NODE);
+        super.init(resultSet);
+        this.targetTableName = tableName;
+        this.cursorUpdate = cursorUpdate;
+    }
 
     /**
      * Initializer for an UpdateNode.
@@ -100,13 +111,14 @@ public final class UpdateNode extends DMLModStatementNode
      * @param resultSet        The ResultSet that will generate
      *                the rows to update from the given table
      */
-
     public void init(
                Object targetTableName,
-               Object resultSet)
+               Object resultSet,
+               Object cursorUpdate)
     {
         super.init(resultSet);
         this.targetTableName = (TableName) targetTableName;
+        this.cursorUpdate = (Boolean)cursorUpdate;
     }
 
     /**
@@ -277,8 +289,9 @@ public final class UpdateNode extends DMLModStatementNode
             // expression, we pull it up to its corresponding top select result column
             // and remove it from the inner select list. If it references columns that is
             // not already selected, add them to the inner select list, too.
+            FromSubquery fromSubq = (FromSubquery) sel.getFromList().elementAt(1);
             ResultColumnList selRCL = sel.getResultColumns();
-            ResultColumnList innerRCL = ((FromSubquery) sel.getFromList().elementAt(1)).getSubquery().getResultColumns();
+            ResultColumnList innerRCL = fromSubq.getSubquery().getResultColumns();
             assert selRCL.size() == innerRCL.size();
 
             ResultColumnList toAppend = new ResultColumnList();
@@ -294,7 +307,7 @@ public final class UpdateNode extends DMLModStatementNode
                             toAppend.addResultColumn(cr.generateResultColumn());
                             TableName crTblName = cr.getTableNameNode();
                             cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                    crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                    crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                         }
                     }
                     ResultColumn selRC = selRCL.elementAt(i);
@@ -329,7 +342,7 @@ public final class UpdateNode extends DMLModStatementNode
                         }
                         TableName crTblName = cr.getTableNameNode();
                         cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                     }
                 }
             }
@@ -614,20 +627,29 @@ public final class UpdateNode extends DMLModStatementNode
             rowIdColumn.setName(COLUMNNAME);
         }
 
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                rowIdColumn.getName(),
-                null,
-                getContextManager());
-        columnReference.setSource(rowIdColumn);
-        columnReference.setNestingLevel(targetTable.getLevel());
-        columnReference.setSourceLevel(targetTable.getLevel());
-        rowLocationColumn =
-                (ResultColumn) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        COLUMNNAME,
-                        columnReference,
-                        getContextManager());
+        if(!cursorUpdate) {
+            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    rowIdColumn.getName(),
+                    null,
+                    getContextManager());
+            columnReference.setSource(rowIdColumn);
+            columnReference.setNestingLevel(targetTable.getLevel());
+            columnReference.setSourceLevel(targetTable.getLevel());
+            rowLocationColumn =
+                    (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            COLUMNNAME,
+                            columnReference,
+                            getContextManager());
+        } else {
+            rowLocationColumn =
+                    (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            COLUMNNAME,
+                            rowIdColumn,
+                            getContextManager());
+        }
 
         /* Append to the ResultColumnList */
         resultColumnList.addResultColumn(rowLocationColumn);
@@ -965,6 +987,7 @@ public final class UpdateNode extends DMLModStatementNode
             {
                 mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
                 mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
+                mb.push(this.cursorUpdate);
                 mb.push(targetTableDescriptor.getVersion());
                 mb.push(this.printExplainInformationForActivation());
                 SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
@@ -975,7 +998,7 @@ public final class UpdateNode extends DMLModStatementNode
                     mb.push(spsAsString);
                 }
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 8);
+                              ClassName.ResultSet, 9);
             }
         }
     }
