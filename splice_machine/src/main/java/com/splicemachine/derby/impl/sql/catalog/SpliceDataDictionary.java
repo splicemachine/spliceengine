@@ -401,7 +401,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
                     true,
                     new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
-                    null);
+                    null, tc);
             addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
                     false, tc, false);
 
