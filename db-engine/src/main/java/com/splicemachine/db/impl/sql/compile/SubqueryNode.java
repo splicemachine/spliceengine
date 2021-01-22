@@ -496,8 +496,7 @@ public class SubqueryNode extends ValueNode{
             rc.setExpression(columnReference);
         }
 
-        ResultSetNode selectNode = (ResultSetNode) getNodeFactory().getNode(
-                            C_NodeTypes.SELECT_NODE,
+        ResultSetNode selectNode = new SelectNode(
                             selectList,  //ResultColumnList
                             null,     /* AGGREGATE list */
                             newFromList, // FromList of FromSubquery
