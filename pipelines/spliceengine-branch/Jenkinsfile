@@ -142,7 +142,7 @@ node(node_name){
         throw any
 
     } finally {
-        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
         // success or failure, always send notifications
         notifyBuild(currentBuild.result)
     }
