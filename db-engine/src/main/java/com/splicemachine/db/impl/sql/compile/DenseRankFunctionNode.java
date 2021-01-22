@@ -36,7 +36,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.TypeId;
 
 /**
@@ -50,7 +52,9 @@ public final class DenseRankFunctionNode extends WindowFunctionNode {
      * @param arg2 The window definition or reference
      * @throws com.splicemachine.db.iapi.error.StandardException
      */
-    public void init(Object arg1, Object arg2) throws StandardException {
+    public DenseRankFunctionNode(Object arg1, QueryTreeNode arg2, ContextManager cm) throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.DENSERANK_FUNCTION_NODE);
 
         // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
         // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find

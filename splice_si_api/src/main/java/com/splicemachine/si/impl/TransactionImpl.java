@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -26,6 +27,8 @@ import java.io.IOException;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public class TransactionImpl extends BaseTransaction {
     public static final String BATCH_SAVEPOINT="BATCH_SAVEPOINT";
@@ -395,5 +398,19 @@ public class TransactionImpl extends BaseTransaction {
                     ", keep=" + keep +
                     '}';
         }
+    }
+
+    @Override
+    public void pushInternalTransaction(Txn txn) throws StandardException {
+        txnStack.push(new TransactionState(transName, txn));
+    }
+
+    @Override
+    public void popInternalTransaction() throws StandardException {
+        if (txnStack.isEmpty())
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "Attempt to pop an empty transaction stack.");
+
+        txnStack.pop();
     }
 }

@@ -56,6 +56,8 @@ public class VTIOperationIT extends SpliceUnitTest {
     public static void tearDown() throws Exception {
         spliceClassWatcher.execute("drop function JDBCTableVTI ");
         spliceClassWatcher.execute("drop function JDBCSQLVTI ");
+        spliceClassWatcher.execute("call sqlj.remove_jar('VTIOperationITFlatMapFunctionTest',0) ");
+        spliceClassWatcher.execute("drop trigger sourceToDest");
     }
 
     private static void setup(SpliceWatcher spliceClassWatcher) throws Exception {
@@ -66,6 +68,14 @@ public class VTIOperationIT extends SpliceUnitTest {
                 .withRows(rows(
                         row("Andy", 1, 100000, 1),
                         row("Billy", 2, 100000, 2))).create();
+
+        new TableCreator(conn)
+                .withCreate("create table sourceTable(a int, b int, d varchar(250) primary key, e varchar(250))")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table destTable(a int, b int, d varchar(250), e varchar(250))")
+                .create();
 
         String sql = "create function JDBCTableVTI(conn varchar(32672), s varchar(1024), t varchar(1024))\n" +
                 "returns table\n" +
@@ -297,5 +307,40 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testFlatMapFunctionVTI() throws Exception {
+        String location = getResourceDirectory()+"VTIOperationITFlatMapFunctionTest-1.0.8-SNAPSHOT.jar";
+        String VTIName = CLASS_NAME + ".VTIOperationITFlatMapFunctionTest";
+        String sqlText = format("call sqlj.install_jar('%s', '%s',0)", location, VTIName);
+        spliceClassWatcher.execute(sqlText);
+        sqlText = format("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')",VTIName);
+        spliceClassWatcher.execute(sqlText);
+
+        sqlText = format("create trigger sourceToDest\n" +
+                    "after insert\n" +
+                    "on sourceTable\n" +
+                    "referencing new table as NT\n" +
+                    "for each statement\n" +
+                    "insert into destTable\n" +
+                    "        select b.a,b.b,b.d,b.e\n" +
+                    "        from new com.splicemachine.VTIOperationITFlatMapFunctionTester.VTIOperationITFlatMapFunctionTest(\n" +
+                    "            '%s','SOURCETABLE', new com.splicemachine.derby.catalog.TriggerNewTransitionRows()\n" +
+                    "        ) as b (a INT, b INT, d VARCHAR(250), e VARCHAR(250))\n", CLASS_NAME);
+        spliceClassWatcher.execute(sqlText);
+
+
+        sqlText = "insert into sourceTable (a,b,d, e)  --splice-properties useSpark=false\n values(2,5,'test1', 'some info')";
+        spliceClassWatcher.execute(sqlText);
+        sqlText = "delete from sourceTable";
+        spliceClassWatcher.execute(sqlText);
+        sqlText = "insert into sourceTable (a,b,d, e)  --splice-properties useSpark=true\n values(2,5,'test1', 'some info')";
+        spliceClassWatcher.execute(sqlText);
+        sqlText = "select * from destTable";
+        String expected = "A | B |  D   |    E    |\n" +
+                        "-------------------------\n" +
+                        " 2 | 5 |test1 |SOME PIG |\n" +
+                        " 2 | 5 |test1 |SOME PIG |";
+        testQuery(sqlText, expected, spliceClassWatcher);
+    }
 
 }

@@ -49,6 +49,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   override def beforeAll() {
     spark = SpliceSpark.getSessionUnsafe
+    ThisVersionSpecificItems.beforeAll(spark)
     spark.conf.set("spark.master", "local[*]")
     spark.conf.set("spark.app.name", s"$module.test.trigger")
     spark.conf.set("spark.ui.enabled", "false")

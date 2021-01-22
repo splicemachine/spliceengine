@@ -1405,7 +1405,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     public static int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
         int numRows = 0;
 
-        ScanController sc = tc.openScan(td.getHeapConglomerateId(),
+        try (ScanController sc = tc.openScan(td.getHeapConglomerateId(),
                                         false,    // hold
                                         0,        // open read only
                                         TransactionController.MODE_TABLE,
@@ -1415,16 +1415,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                         ScanController.GE,      // startSearchOperation
                                         null, // scanQualifier
                                         null, //stop position - through last row
-                                        ScanController.GT);     // stopSearchOperation
+                                        ScanController.GT)) {   // stopSearchOperation
 
-        while (sc.next()) {
-            numRows++;
-            // We're only interested in whether the table has 0, 1 or > 1 rows
-            if (numRows == 2) {
-                break;
+            while (sc.next()) {
+                numRows++;
+                // We're only interested in whether the table has 0, 1 or > 1 rows
+                if (numRows == 2) {
+                    break;
+                }
             }
         }
-        sc.close();
 
         return numRows;
     }

@@ -113,7 +113,7 @@ node('spliceengine'){
                     echo "export newsrcver=\${newsrcver}" >> branch.env
                     echo "\${newsrcver}" > version.txt
                     mvn -B -e --fail-at-end clean -DskipTests
-                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    cp pipelines/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                     mvn -B -e --fail-at-end verify -Pmem,core,${params.PLATFORM},ee

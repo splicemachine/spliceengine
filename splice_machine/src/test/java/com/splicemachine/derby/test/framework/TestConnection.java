@@ -331,7 +331,7 @@ public class TestConnection implements Connection{
         return s.execute(sql);
     }
 
-    public boolean execute(String sql, Object... parameters) throws SQLException {
-        return execute(String.format(sql, parameters));
+    public boolean execute(String sql, Object... args) throws SQLException {
+        return execute(String.format(sql, args));
     }
 }

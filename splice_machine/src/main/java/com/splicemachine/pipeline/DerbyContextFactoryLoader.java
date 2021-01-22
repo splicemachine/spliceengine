@@ -127,6 +127,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             throw new IndexNotSetUpException(e);
         }catch(StandardException|IOException e){
             SpliceLogUtils.error(LOG,"Unable to set up index management for table "+conglomId+", aborting",e);
+            throw new IndexNotSetUpException(e);
         }
     }
 

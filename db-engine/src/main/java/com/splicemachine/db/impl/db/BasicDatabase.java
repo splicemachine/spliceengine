@@ -886,4 +886,9 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
             util.notifyLoader(true);
         }
     }
+
+    @Override
+    public AccessFactory getAccessFactory() {
+        return af;
+    }
 }

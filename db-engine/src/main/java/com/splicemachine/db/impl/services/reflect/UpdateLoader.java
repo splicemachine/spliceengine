@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.services.reflect;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.locks.ShExLockable;
@@ -50,6 +51,8 @@ import com.splicemachine.db.iapi.reference.Property;
 
 import java.io.InputStream;
 import java.security.AccessController;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.Module;
@@ -57,6 +60,8 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.locks.LockOwner;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+
+import static java.lang.System.getProperty;
 
 /**
  * UpdateLoader implements then functionality of
@@ -92,6 +97,8 @@ public final class UpdateLoader implements LockOwner {
     };
 
 	private JarLoader[] jarList;
+	private List<String> jarPathList = null;
+	private int jarPathListHash = 0;
 	private HeaderPrintWriter vs;
 	private final ClassLoader myLoader;
 	private boolean initDone;
@@ -180,6 +187,8 @@ public final class UpdateLoader implements LockOwner {
 		
 		thisClasspath = classpath;
 		initDone = false;
+		jarPathList = null;
+		jarPathListHash = 0;
 	}
 
 	/**
@@ -384,14 +393,59 @@ public final class UpdateLoader implements LockOwner {
 
 	}
 
+    private static LanguageConnectionContext getLCC() {
+        return (LanguageConnectionContext) ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+    }
+
+    public void addJarsToSparkContext(int applicationJarsHashCode) {
+        LanguageConnectionContext lcc = getLCC();
+        if (lcc == null)
+            return;
+        if (lcc.isSparkJob()) {
+            if (applicationJarsHashCode != 0 &&
+                applicationJarsHashCode != lcc.getApplicationJarsHashCode()) {
+                lcc.addUserJarsToSparkContext();
+            }
+        }
+    }
+
+	private boolean isOlapServerOnStandAlone() {
+        String isOlapStandAlone = System.getProperty("splice.olapServerOnStandAlone");
+        if (isOlapStandAlone == null || !isOlapStandAlone.equals("true"))
+            return false;
+        return true;
+    }
+
 	private synchronized void initLoaders() {
 
 		if (initDone)
 			return;
 
+		// Update the list from scratch so we remove
+		// any old jars that might be there.
+		if (jarList.length > 0)
+			jarPathList = new ArrayList<>();
+
 		for (JarLoader aJarList : jarList) {
 			aJarList.initialize();
+			String jarPath = aJarList.getPath();
+			if (jarPath != null) {
+				if (jarPath.startsWith("/")) {
+					// Fix up URIs for Splice on cloud.
+					if (isOlapServerOnStandAlone())
+						jarPath = "file://" + jarPath;
+					else
+					    jarPath = "hdfs://" + jarPath;
+				}
+				jarPathList.add(jarPath);
+			}
 		}
+		if (jarPathList != null && jarPathList.size() > 0) {
+			jarPathListHash = jarPathList.hashCode();
+			addJarsToSparkContext(jarPathListHash);
+		}
+		else
+			jarPathListHash = 0;
 		initDone = true;
 	}
 
@@ -449,6 +503,14 @@ public final class UpdateLoader implements LockOwner {
     public boolean noWait() {
         return false;
     }
+
+    public List<String> getJarPathList() {
+    	return jarPathList;
+	}
+
+    public int getJarPathListHash() {
+    	return jarPathListHash;
+	}
 }
 
 

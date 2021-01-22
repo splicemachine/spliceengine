@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.2.0.1992-SNAPSHOT</version>
+    <version>3.2.0.1996-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -29,26 +29,10 @@
             <id>splicemachine</id>
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-        </repository>
-        <repository>
-            <id>mapr</id>
-            <url>http://repository.mapr.com/maven/</url>
-        </repository>
-        <repository>
-            <id>hortonworks-releases</id>
-            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
-        </repository>
-        <repository>
-            <id>hortonworks-hadoop</id>
-            <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
-        </repository>
          <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
-	</repository>
+	    </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
