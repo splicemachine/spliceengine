@@ -16,6 +16,7 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -149,14 +150,7 @@ public class HBaseConnectionFactory{
     //        admin.deleteTable(id);
     //    }
 
-    public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(createDataFamily());
-        return desc;
-    }
-
-    public HTableDescriptor generateNonSITable(String tableName){
+    public HTableDescriptor generateTable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
         desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         desc.addFamily(createDataFamily());
@@ -205,53 +199,25 @@ public class HBaseConnectionFactory{
         try(Admin admin=connection.getAdmin()){
             admin.createNamespace(NamespaceDescriptor.create("splice").build());
 
+
             if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.TRANSACTION_TABLE))){
                 HTableDescriptor td=generateTransactionTable();
                 admin.createTable(td,generateTransactionSplits());
                 SpliceLogUtils.info(LOG,HConfiguration.TRANSACTION_TABLE+" created");
             }
-            if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.TENTATIVE_TABLE))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(HConfiguration.TENTATIVE_TABLE);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,HConfiguration.TENTATIVE_TABLE+" created");
-            }
-            if(!admin.tableExists(TableName.valueOf(namespace, com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG, com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME+" created");
-            }
+            createTable(HConfiguration.TENTATIVE_TABLE);
+            createTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
+            createTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
 
-            if(!admin.tableExists(TableName.valueOf(namespaceBytes, SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,SIConfigurations.CONGLOMERATE_TABLE_NAME+" created");
-            }
-
-                /*
-                 * We have to have a special table to hold our Sequence values,
-                 * because we shouldn't manage sequential generators
-                 * transactionally.
-                 */
-            if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.SEQUENCE_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.SEQUENCE_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,
-                        com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME+" created");
-            }
-
-            if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,
-                        HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME + " created");
-            }
-
-            if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,
-                        HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME + " created");
-            }
+            /*
+             * We have to have a special table to hold our Sequence values,
+             * because we shouldn't manage sequential generators
+             * transactionally.
+             */
+            createTable(HConfiguration.SEQUENCE_TABLE_NAME);
+            createTable(HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
+            createTable(HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
+            createTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
 
             return true;
         }catch(Exception e){
@@ -260,14 +226,13 @@ public class HBaseConnectionFactory{
         }
     }
 
-    public void createRestoreTable() {
+    public void createTable(String tableName) throws IOException {
 
-        try(Admin admin=connection.getAdmin()){
-            HTableDescriptor td=generateNonSITable(HConfiguration.IGNORE_TXN_TABLE_NAME);
+        Admin admin=connection.getAdmin();
+        if(!admin.tableExists(TableName.valueOf(namespaceBytes, Bytes.toBytes(tableName)))){
+            HTableDescriptor td=generateTable(tableName);
             admin.createTable(td);
-            SpliceLogUtils.info(LOG, HConfiguration.IGNORE_TXN_TABLE_NAME +" created");
-        }catch(Exception e) {
-            SpliceLogUtils.error(LOG, "Unable to create SPLICE_IGNORE_TXN Table", e);
+            SpliceLogUtils.info(LOG, tableName +" created");
         }
     }
 

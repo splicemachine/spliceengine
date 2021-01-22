@@ -79,7 +79,7 @@ public class HTablePrioritiesIT {
                 case HConstants.ADMIN_QOS:
                     String arr[] = {"splice:DROPPED_CONGLOMERATES", "splice:SPLICE_CONGLOMERATE",
                             "splice:SPLICE_MASTER_SNAPSHOTS", "splice:SPLICE_REPLICATION_PROGRESS",
-                            "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL"};
+                            "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL", "splice:SPLICE_CONGLOMERATE_SI"};
                     if( ArrayUtils.contains(arr, td.getTableName().getNameAsString()) ) {
                         Assert.assertEquals(null, tdn);
                     }
