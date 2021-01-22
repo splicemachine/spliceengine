@@ -142,7 +142,6 @@ public final class TransactionResourceImpl
     private double defaultSelectivityFactor;
     private String ipAddress;
     private String defaultSchema;
-    private String currentFunctionPath;
     // set these up after constructor, called by EmbedConnection
     protected InternalDatabase database;
     protected LanguageConnectionContext lcc;
@@ -178,7 +177,6 @@ public final class TransactionResourceImpl
         defaultSchema = info.getProperty(Property.CONNECTION_CURRENT_SCHEMA, null);
         if (defaultSchema == null)
             defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
-        currentFunctionPath = info.getProperty(Property.CURRENT_FUNCTION_PATH, null);
         useSpark = getDataSetProcessorType(info);
         useNativeSpark = getSparkExecutionType(info);
 
