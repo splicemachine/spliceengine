@@ -1484,6 +1484,11 @@ public interface Property {
     String CONNECTION_CURRENT_SCHEMA = "currentSchema";
 
     /**
+     * Current Function Path property
+     */
+    String CURRENT_FUNCTION_PATH = "CurrentFunctionPath";
+
+    /**
      * True force Spark execution for this session; false forces Control execution for this connection
      */
     String CONNECTION_USE_SPARK = "useSpark";

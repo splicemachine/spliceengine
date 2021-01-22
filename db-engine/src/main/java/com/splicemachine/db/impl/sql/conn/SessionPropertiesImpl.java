@@ -30,7 +30,14 @@
  */
 package com.splicemachine.db.impl.sql.conn;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
+import com.splicemachine.db.iapi.util.StringUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.*;
 
@@ -104,9 +111,57 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean useNativeSpark = Boolean.parseBoolean(valString);
                 properties[USE_NATIVE_SPARK.getId()] = useNativeSpark;
                 break;
+            case CURRENTFUNCTIONPATH:
+                properties[CURRENTFUNCTIONPATH.getId()] = parseCurrentFunctionPath(valString);
+                break;
             default:
                 assert false;
         }
+    }
+
+    /**
+     * parses the value of CURRENTFUNCTIONPATH according to:
+     * https://www.ibm.com/support/producthub/db2/docs/content/SSEPGG_11.5.0/com.ibm.db2.luw.apdv.cli.doc/doc/r0008777.html
+     * @param value the user-input value
+     * @return list of schemas for function lookup.
+     */
+    private String[] parseCurrentFunctionPath(String value) {
+        if(value == null || value.isEmpty()) {
+            return new String[] {"SYSIBM", "SYSFUN"};
+        } else {
+            // source: https://stackabuse.com/regex-splitting-by-character-unless-in-quotes/
+            List<String> candidateSchemas = new ArrayList<>(Arrays.asList(value.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")));
+            for(int i = 0; i < candidateSchemas.size(); ++i) {
+                candidateSchemas.set(i , normalizeAndUnquoteIdentifier(candidateSchemas.get(i)));
+            }
+            boolean sysibmSeen = false;
+            boolean sysfunSeen = false;
+            for(int i = 0; i < candidateSchemas.size(); ++i) {
+                String candidateSchema = candidateSchemas.get(i);
+                if(i == 0 && candidateSchema.equals("SYSIBM")) {
+                    sysibmSeen = true;
+                } else if(i == 1 && candidateSchema.equals("SYSFUN")) {
+                    sysfunSeen = true;
+                } else {
+                    break;
+                }
+            }
+            if(!sysibmSeen) {
+                candidateSchemas.add(0, "SYSIBM");
+            }
+            if(!sysfunSeen) {
+                candidateSchemas.add(1, "SYSFUN");
+            }
+            return candidateSchemas.toArray(new String[0]);
+        }
+    }
+
+    private String normalizeAndUnquoteIdentifier(String identifier) {
+        String normalized = StringUtil.normalizeSQLIdentifier(identifier);
+        if(!normalized.isEmpty() && normalized.charAt(0) == '"' && normalized.charAt(normalized.length() - 1) == '"') {
+            normalized = normalized.substring(1, normalized.length() -1);
+        }
+        return normalized;
     }
 
     public Object getProperty(PROPERTYNAME property) {
