@@ -34,7 +34,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -227,6 +226,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // look for a routine
 
             String schemaName = procedureName.getSchemaName();
+            StringBuilder errorList = new StringBuilder(100);
             Object candidateSchemasProperty = getLanguageConnectionContext()
                     .getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
@@ -239,7 +239,8 @@ public class StaticMethodCallNode extends MethodCallNode {
                         throw StandardException.newException(SQLState.LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST,
                                                              Arrays.toString(candidateSchemas), candidateSchema);
                     }
-                    sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, candidateSchema == null);
+                    sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, candidateSchema == null,
+                            errorList);
                     if (ad != null) { // resolution complete
                         break;
                     }
@@ -247,7 +248,8 @@ public class StaticMethodCallNode extends MethodCallNode {
             }
             if(ad == null) { // couldn't resolve with candidate schemas (if any), try with current one.
                 sd = getSchemaDescriptor(schemaName, schemaName != null);
-                sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, schemaName == null);
+                sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, schemaName == null,
+                        errorList);
             }
 
             if (handleAggregate()) {
@@ -257,8 +259,13 @@ public class StaticMethodCallNode extends MethodCallNode {
             /* Throw exception if no routine found */
             if (ad == null)
             {
-                throw StandardException.newException(
-                        SQLState.LANG_NO_SUCH_METHOD_ALIAS, procedureName);
+                if( errorList.length() > 0 ) {
+                    throw StandardException.newException(SQLState.LANG_NO_SUCH_PROCEDURE2, procedureName,
+                            "\n" + errorList.toString());
+                }
+                else {
+                    throw StandardException.newException(SQLState.LANG_NO_SUCH_PROCEDURE, procedureName);
+                }
             }
 
             if ( !routineInfo.isDeterministic() )
@@ -394,13 +401,14 @@ public class StaticMethodCallNode extends MethodCallNode {
                                                 SubqueryList subqueryList,
                                                 List<AggregateNode> aggregateVector,
                                                 SchemaDescriptor sd,
-                                                boolean noSchema) throws StandardException {
+                                                boolean noSchema,
+                                                StringBuilder errorList) throws StandardException {
 
         SchemaDescriptor result = sd;
 
         // The field methodName is used by resolveRoutine and
         // is set to the name of the routine (procedureName.getTableName()).
-        resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+        resolveRoutine(fromList, subqueryList, aggregateVector, sd, errorList);
 
         // (Splice) This logic, to implicitly check for routine using SYSFUN schema,
         // was moved here from a few lines down, so that it has a chance to find
@@ -417,7 +425,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // an in-memory table, set up in DataDictionaryImpl.
             result = getSchemaDescriptor("SYSFUN", true);
 
-            resolveRoutine(fromList, subqueryList, aggregateVector, result);
+            resolveRoutine(fromList, subqueryList, aggregateVector, result, errorList);
             setIsSystemFunction(true);
         }
         return result;
@@ -512,12 +520,13 @@ public class StaticMethodCallNode extends MethodCallNode {
      * @param subqueryList
      * @param aggregateVector
      * @param sd
+     * @param errorList for printing out detailed information if we can't find the correct function
      * @throws StandardException
      */
     private void resolveRoutine(FromList fromList,
                                 SubqueryList subqueryList,
                                 List<AggregateNode> aggregateVector,
-                                SchemaDescriptor sd) throws StandardException {
+                                SchemaDescriptor sd, StringBuilder errorList) throws StandardException {
         if (sd.getUUID() == null) {
             return;
         }
@@ -528,13 +537,18 @@ public class StaticMethodCallNode extends MethodCallNode {
         );
 
         for (int i = list.size() - 1; i >= 0; i--) {
-
             AliasDescriptor proc = list.get(i);
 
             RoutineAliasInfo routineInfo = (RoutineAliasInfo) proc.getAliasInfo();
             int parameterCount = routineInfo.getParameterCount();
-            if (parameterCount != methodParms.length)
+            if (parameterCount != methodParms.length) {
+                String err = "- Parameter count is wrong (provided " + methodParms.length + ", but needs " +
+                        parameterCount + ")\n  for ";
+                errorList.append(err);
+                routineInfo.toStringParameters(errorList);
+                errorList.append("\n");
                 continue;
+            }
 
             // pre-form the method signature. If it is a dynamic result set procedure
             // then we need to add in the ResultSet array
@@ -549,50 +563,26 @@ public class StaticMethodCallNode extends MethodCallNode {
             for (int p = 0; p < parameterCount; p++) {
 
                 // find the declared type.
-
                 TypeDescriptor td = parameterTypes[p];
-
                 TypeId typeId = TypeId.getTypeId(td);
-
                 TypeId parameterTypeId = typeId;
-
 
                 // if it's an OUT or INOUT parameter we need an array.
                 int parameterMode = routineInfo.getParameterModes()[p];
 
                 if (parameterMode != JDBC30Translation.PARAMETER_MODE_IN) {
-
-                    String arrayType;
-                    switch (typeId.getJDBCTypeId()) {
-                        case java.sql.Types.BOOLEAN:
-                        case java.sql.Types.SMALLINT:
-                        case java.sql.Types.INTEGER:
-                        case java.sql.Types.BIGINT:
-                        case java.sql.Types.REAL:
-                        case java.sql.Types.DOUBLE:
-                            arrayType = getTypeCompiler(typeId).getCorrespondingPrimitiveTypeName() + "[]";
-                            break;
-                        default:
-                            arrayType = typeId.getCorrespondingJavaTypeName() + "[]";
-                            break;
-                    }
-
+                    String arrayType = getJavaTypeNameFromJDBCTypeId(typeId);
                     typeId = TypeId.getUserDefinedTypeId(arrayType, false);
                 }
 
                 // this is the type descriptor of the require method parameter
                 DataTypeDescriptor methoddtd = new DataTypeDescriptor(
-                        typeId,
-                        td.getPrecision(),
-                        td.getScale(),
-                        td.isNullable(),
-                        td.getMaximumWidth()
+                        typeId, td.getPrecision(), td.getScale(), td.isNullable(), td.getMaximumWidth()
                 );
 
                 signature[p] = new JSQLType(methoddtd);
 
                 // check parameter is a ? node for INOUT and OUT parameters.
-
                 ValueNode sqlParamNode = null;
 
                 if (methodParms[p] instanceof SQLToJavaValueNode) {
@@ -618,22 +608,16 @@ public class StaticMethodCallNode extends MethodCallNode {
                     } else
                         applicationParameterNumbers[p] = ((ParameterNode) sqlParamNode).getParameterNumber();
                 }
-
                 // this is the SQL type of the procedure parameter.
                 DataTypeDescriptor paramdtd = new DataTypeDescriptor(
-                        parameterTypeId,
-                        td.getPrecision(),
-                        td.getScale(),
-                        td.isNullable(),
-                        td.getMaximumWidth()
+                        parameterTypeId, td.getPrecision(), td.getScale(), td.isNullable(), td.getMaximumWidth()
                 );
 
                 boolean needCast = false;
                 if (!isParameterMarker) {
 
                     // can only be an IN parameter.
-                    // check that the value can be assigned to the
-                    // type of the procedure parameter.
+                    // check that the value can be assigned to the type of the procedure parameter.
                     if (sqlParamNode instanceof UntypedNullConstantNode) {
                         sqlParamNode.setType(paramdtd);
                     } else {
@@ -667,10 +651,8 @@ public class StaticMethodCallNode extends MethodCallNode {
                             needCast = true;
                     }
                 } else {
-                    // any variable length type will need a cast from the
-                    // Java world (the ? parameter) to the SQL type. This
-                    // ensures values like CHAR(10) are passed into the procedure
-                    // correctly as 10 characters long.
+                    // any variable length type will need a cast from the Java world (the ? parameter) to the SQL type.
+                    // This ensures values like CHAR(10) are passed into the procedure correctly as 10 characters long.
                     if (parameterTypeId.variableLength()) {
 
                         if (parameterMode != JDBC30Translation.PARAMETER_MODE_OUT)
@@ -678,35 +660,23 @@ public class StaticMethodCallNode extends MethodCallNode {
                     }
                 }
 
-
                 if (needCast) {
-                    // push a cast node to ensure the
-                    // correct type is passed to the method
-                    // this gets tacky because before we knew
-                    // it was a procedure call we ensured all the
-                    // parameter are JavaNodeTypes. Now we need to
-                    // push them back to the SQL domain, cast them
+                    // push a cast node to ensure the correct type is passed to the method
+                    // this gets tacky because before we knew it was a procedure call we ensured all the
+                    // parameter are JavaNodeTypes. Now we need to push them back to the SQL domain, cast them
                     // and then push them back to the Java domain.
-
-                    if (sqlParamNode == null) {
-
-                            sqlParamNode = new JavaToSQLValueNode(methodParms[p], getContextManager());
-                        }
-
-                    ValueNode castNode = makeCast
-                            (
-                                    sqlParamNode,
-                                    paramdtd,
-                                    getContextManager()
-                            );
-
-
-                    methodParms[p] = (JavaValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                            castNode,
-                            getContextManager());
-
-                    methodParms[p] = methodParms[p].bindExpression(fromList, subqueryList, aggregateVector);
+                    try {
+                        sqlParamNode = addCastNode(fromList, subqueryList, aggregateVector, p, sqlParamNode, paramdtd);
+                    }
+                    catch( StandardException se )
+                    {
+                        errorList.append( "- ERROR for parameter " +  p + ": " );
+                        errorList.append( se.getMessage() );
+                        errorList.append( ":\n  for " );
+                        routineInfo.toStringParameters(errorList);
+                        errorList.append("\n");
+                        return;
+                    }
                 }
 
                 // only force the type for a ? so that the correct type shows up
@@ -716,19 +686,9 @@ public class StaticMethodCallNode extends MethodCallNode {
             }
 
             if (sigParameterCount != parameterCount) {
-
                 TypeId typeId = TypeId.getUserDefinedTypeId("java.sql.ResultSet[]", false);
-
-                DataTypeDescriptor dtd = new DataTypeDescriptor(
-                        typeId,
-                        0,
-                        0,
-                        false,
-                        -1
-                );
-
+                DataTypeDescriptor dtd = new DataTypeDescriptor(typeId, 0, 0, false, -1);
                 signature[parameterCount] = new JSQLType(dtd);
-
             }
 
             this.routineInfo = routineInfo;
@@ -749,95 +709,7 @@ public class StaticMethodCallNode extends MethodCallNode {
         // The parameters, and retruen type for these two Stored Procedures are the same
         if(this.routineInfo!=null && this.routineInfo.getLanguage() != null &&this.routineInfo.getLanguage().equals("PYTHON"))
         {
-
-            // determine whether the routine is for a procedure or function
-            boolean isFunction = !forCallStatement;
-            this.methodName = isFunction?PYFUNCTION_WRAPPER_METHOD_NAME:PYPROCEDURE_WRAPPER_METHOD_NAME;
-            // need to add compiled Python code bytes into signature and methodParms
-            byte[] compiledPyCode = this.routineInfo.getCompiledPyCode();
-
-            // Update the parameterCnt ,parameterModes, parameterNames, parameterTypes
-            int origParmCnt = this.routineInfo.getParameterCount();
-            int updatedParmCnt = origParmCnt + 1;
-
-            int[] updatedParmModes = new int[updatedParmCnt];
-            String[] updatedParmNames = new String[updatedParmCnt];
-            TypeDescriptor[] updatedParmTypes = new TypeDescriptor[updatedParmCnt];
-            if(origParmCnt > 0) {
-                System.arraycopy(this.routineInfo.getParameterModes(), 0, updatedParmModes,0,origParmCnt);
-                System.arraycopy(this.routineInfo.getParameterNames(), 0, updatedParmNames,0,origParmCnt);
-                System.arraycopy(this.routineInfo.getParameterTypes(), 0, updatedParmTypes, 0, origParmCnt);
-            }
-            updatedParmModes[origParmCnt] = 1; // States the input script is an IN parameter
-            // Here Need to use a unique name
-            updatedParmNames[origParmCnt] = "PYCODE";
-            updatedParmTypes[origParmCnt] = new TypeDescriptorImpl(new BaseTypeIdImpl(StoredFormatIds.BLOB_TYPE_ID_IMPL),
-                    true,
-                    compiledPyCode.length);
-
-            // update the routineInfo and the AliasDescriptor
-            this.routineInfo = new RoutineAliasInfo(this.methodName,
-                    "JAVA",
-                    updatedParmCnt,
-                    updatedParmNames,
-                    updatedParmTypes,
-                    updatedParmModes,
-                    this.routineInfo.getMaxDynamicResultSets(),
-                    this.routineInfo.getParameterStyle(),
-                    this.routineInfo.getSQLAllowed(),
-                    this.routineInfo.isDeterministic(),
-                    this.routineInfo.hasDefinersRights(),
-                    this.routineInfo.calledOnNullInput(),
-                    this.routineInfo.getReturnType(),
-                    null);
-
-            this.ad = new AliasDescriptor(this.ad.getDataDictionary(),
-                    ad.getUUID(),
-                    ad.getName(),
-                    ad.getSchemaUUID(),
-                    PYROUTINE_WRAPPER_CLASS_NAME,
-                    ad.getAliasType(),
-                    ad.getNameSpace(),
-                    ad.getSystemAlias(),
-                    routineInfo,
-                    ad.getSpecificName());
-
-            // Update signature by adding in the script String's corresponding JSQLType
-            JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));
-            JSQLType[] updatedSigs = new JSQLType[signature.length+1];
-            // Adding the Pycode parameter right before the first occurance of the ResultSet[]
-            // If no ResultSet[] exists, appending Pycode at the end of all the existing parameters
-            int j = 0;
-            for(int i = 0; i < signature.length+1; i++){
-                if(i<signature.length && signature[i].getSQLType().getTypeId().getCorrespondingJavaTypeName().equals("java.sql.ResultSet[]")){
-                    updatedSigs[i] = pyCodeType;
-                }
-                else{
-                    if(j == signature.length){
-                        updatedSigs[i] = pyCodeType;
-                    }
-                    else{
-                        updatedSigs[i] = signature[j];
-                        j++;
-                    }
-                }
-            }
-            this.signature = updatedSigs;
-            ContextManager cm = getContextManager();
-            CompilerContext cc = getCompilerContext();
-            QueryTreeNode pyCodeNode = null;
-            String hexCompiledPyCodeStr = com.splicemachine.db.iapi.util.StringUtil.toHexString(compiledPyCode,0,compiledPyCode.length);
-            try{
-
-                pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.BLOB_CONSTANT_NODE,
-                        hexCompiledPyCodeStr, compiledPyCode.length,cm);
-                pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.SQL_TO_JAVA_VALUE_NODE, pyCodeNode,cm);
-            } catch(Exception e){
-                // Fill in Exception Handling
-                throw StandardException.plainWrapException(e);
-            }
-            // Update methodParms by adding in the script String's corresponding JSQLType
-            addOneParm((JavaValueNode)pyCodeNode);
+            callPython();
         }
 
         if ( (ad == null) && (methodParms.length == 1) )
@@ -845,26 +717,149 @@ public class StaticMethodCallNode extends MethodCallNode {
             ad = AggregateNode.resolveAggregate( getDataDictionary(), sd, methodName );
         }
     }
-        /**
-         * Wrap a parameter in a CAST node.
-         */
-        public static ValueNode makeCast (ValueNode parameterNode,
-                                          DataTypeDescriptor targetType,
-                                          ContextManager cm)
-                throws StandardException
-        {
-            ValueNode castNode = new CastNode(parameterNode, targetType, cm);
 
-            // Argument type has the same semantics as assignment:
-            // Section 9.2 (Store assignment). There, General Rule
-            // 2.b.v.2 says that the database should raise an exception
-            // if truncation occurs when stuffing a string value into a
-            // VARCHAR, so make sure CAST doesn't issue warning only.
-            ((CastNode)castNode).setAssignmentSemantics();
-            ((CastNode)castNode).setIsFunctionArgument();
-
-            return castNode;
+    private String getJavaTypeNameFromJDBCTypeId(TypeId typeId) {
+        String arrayType;
+        switch (typeId.getJDBCTypeId()) {
+            case Types.BOOLEAN:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.REAL:
+            case Types.DOUBLE:
+                arrayType = getTypeCompiler(typeId).getCorrespondingPrimitiveTypeName() + "[]";
+                break;
+            default:
+                arrayType = typeId.getCorrespondingJavaTypeName() + "[]";
+                break;
         }
+        return arrayType;
+    }
+
+    private void callPython() throws StandardException {
+        // determine whether the routine is for a procedure or function
+        boolean isFunction = !forCallStatement;
+        this.methodName = isFunction?PYFUNCTION_WRAPPER_METHOD_NAME:PYPROCEDURE_WRAPPER_METHOD_NAME;
+        // need to add compiled Python code bytes into signature and methodParms
+        byte[] compiledPyCode = this.routineInfo.getCompiledPyCode();
+
+        // Update the parameterCnt ,parameterModes, parameterNames, parameterTypes
+        int origParmCnt = this.routineInfo.getParameterCount();
+        int updatedParmCnt = origParmCnt + 1;
+
+        int[] updatedParmModes = new int[updatedParmCnt];
+        String[] updatedParmNames = new String[updatedParmCnt];
+        TypeDescriptor[] updatedParmTypes = new TypeDescriptor[updatedParmCnt];
+        if(origParmCnt > 0) {
+            System.arraycopy(this.routineInfo.getParameterModes(), 0, updatedParmModes,0,origParmCnt);
+            System.arraycopy(this.routineInfo.getParameterNames(), 0, updatedParmNames,0,origParmCnt);
+            System.arraycopy(this.routineInfo.getParameterTypes(), 0, updatedParmTypes, 0, origParmCnt);
+        }
+        updatedParmModes[origParmCnt] = 1; // States the input script is an IN parameter
+        // Here Need to use a unique name
+        updatedParmNames[origParmCnt] = "PYCODE";
+        updatedParmTypes[origParmCnt] = new TypeDescriptorImpl(new BaseTypeIdImpl(StoredFormatIds.BLOB_TYPE_ID_IMPL),
+                true,
+                compiledPyCode.length);
+
+        // update the routineInfo and the AliasDescriptor
+        this.routineInfo = new RoutineAliasInfo(this.methodName,
+                "JAVA",
+                updatedParmCnt,
+                updatedParmNames,
+                updatedParmTypes,
+                updatedParmModes,
+                this.routineInfo.getMaxDynamicResultSets(),
+                this.routineInfo.getParameterStyle(),
+                this.routineInfo.getSQLAllowed(),
+                this.routineInfo.isDeterministic(),
+                this.routineInfo.hasDefinersRights(),
+                this.routineInfo.calledOnNullInput(),
+                this.routineInfo.getReturnType(),
+                null);
+
+        this.ad = new AliasDescriptor(this.ad.getDataDictionary(),
+                ad.getUUID(),
+                ad.getName(),
+                ad.getSchemaUUID(),
+                PYROUTINE_WRAPPER_CLASS_NAME,
+                ad.getAliasType(),
+                ad.getNameSpace(),
+                ad.getSystemAlias(),
+                routineInfo,
+                ad.getSpecificName());
+
+        // Update signature by adding in the script String's corresponding JSQLType
+        JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));
+        JSQLType[] updatedSigs = new JSQLType[signature.length+1];
+        // Adding the Pycode parameter right before the first occurance of the ResultSet[]
+        // If no ResultSet[] exists, appending Pycode at the end of all the existing parameters
+        int j = 0;
+        for(int i = 0; i < signature.length+1; i++){
+            if(i<signature.length && signature[i].getSQLType().getTypeId().getCorrespondingJavaTypeName().equals("java.sql.ResultSet[]")){
+                updatedSigs[i] = pyCodeType;
+            }
+            else{
+                if(j == signature.length){
+                    updatedSigs[i] = pyCodeType;
+                }
+                else{
+                    updatedSigs[i] = signature[j];
+                    j++;
+                }
+            }
+        }
+        this.signature = updatedSigs;
+        ContextManager cm = getContextManager();
+        CompilerContext cc = getCompilerContext();
+        QueryTreeNode pyCodeNode = null;
+        String hexCompiledPyCodeStr = com.splicemachine.db.iapi.util.StringUtil.toHexString(compiledPyCode,0,compiledPyCode.length);
+        try{
+
+            pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.BLOB_CONSTANT_NODE,
+                    hexCompiledPyCodeStr, compiledPyCode.length,cm);
+            pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.SQL_TO_JAVA_VALUE_NODE, pyCodeNode,cm);
+        } catch(Exception e){
+            // Fill in Exception Handling
+            throw StandardException.plainWrapException(e);
+        }
+        // Update methodParms by adding in the script String's corresponding JSQLType
+        addOneParm((JavaValueNode)pyCodeNode);
+    }
+
+    private ValueNode addCastNode(FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector,
+                                  int p, ValueNode sqlParamNode, DataTypeDescriptor paramdtd) throws StandardException {
+        if (sqlParamNode == null) {
+            sqlParamNode = new JavaToSQLValueNode(methodParms[p], getContextManager());
+        }
+        ValueNode castNode = makeCast(sqlParamNode, paramdtd, getContextManager());
+
+        methodParms[p] = (JavaValueNode) getNodeFactory().getNode(
+                C_NodeTypes.SQL_TO_JAVA_VALUE_NODE, castNode, getContextManager());
+        methodParms[p] = methodParms[p].bindExpression(fromList, subqueryList, aggregateVector);
+        return sqlParamNode;
+    }
+
+    /**
+     * Wrap a parameter in a CAST node.
+     */
+    public static ValueNode makeCast (ValueNode parameterNode,
+                                      DataTypeDescriptor targetType,
+                                      ContextManager cm)
+            throws StandardException
+    {
+        ValueNode castNode = new CastNode(parameterNode, targetType, cm);
+
+        // Argument type has the same semantics as assignment:
+        // Section 9.2 (Store assignment). There, General Rule
+        // 2.b.v.2 says that the database should raise an exception
+        // if truncation occurs when stuffing a string value into a
+        // VARCHAR, so make sure CAST doesn't issue warning only.
+        ((CastNode)castNode).setAssignmentSemantics();
+        ((CastNode)castNode).setIsFunctionArgument();
+
+        return castNode;
+    }
 
 
     /**
@@ -905,7 +900,7 @@ public class StaticMethodCallNode extends MethodCallNode {
         Push extra code to generate the casts within the
         arrays for the parameters passed as arrays.
     */
-    public    void generateOneParameter(ExpressionClassBuilder acb,
+    public void generateOneParameter(ExpressionClassBuilder acb,
                                             MethodBuilder mb,
                                             int parameterNumber )
             throws StandardException

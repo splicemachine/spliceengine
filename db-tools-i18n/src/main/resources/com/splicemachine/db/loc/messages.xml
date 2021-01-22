@@ -2455,6 +2455,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y03.S.3</name>
+                <text>Could not resolve function or procedure call '{0}':{1}</text>
+                <arg>procedureName</arg>
+                <arg>statement</arg>
+            </msg>
+
+            <msg>
                 <name>42Y04</name>
                 <text>Cannot create a procedure or function with EXTERNAL NAME '{0}' because it is not a list separated by periods. The expected format is &lt;full java path&gt;.&lt;method name&gt;.</text>
                 <arg>name</arg>
