@@ -809,17 +809,16 @@ public class SpliceDateFunctionsIT {
     @Test
     public void testExtractWeekDayTimestamp() throws Exception {
         // Note: Jodatime and Postgres get the same answer but SQL Sever gets n+1
-        String sqlText = "select ts, EXTRACT(WEEKDAY FROM ts) as \"WEEKDAY\" from " + tableWatcherI + " order by ts";
+        String sqlText = "select ts, EXTRACT(WEEKDAY FROM ts) as \"WEEKDAY\", dayofweek_iso(ts) as dayofweek_iso from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            String expected =
-                "TS           | WEEKDAY |\n" +
-                    "----------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |    5    |\n" +
-                    "2009-07-02 11:22:33.04 |    4    |\n" +
-                    "2009-09-02 11:22:33.04 |    3    |\n" +
-                    "2012-12-31 00:00:00.03 |    1    |\n" +
-                    " 2012-12-31 20:38:40.0 |    1    |\n" +
-                    "2013-12-31 05:22:33.04 |    2    |";
+            String expected = "TS           | WEEKDAY | DAYOFWEEK_ISO |\n" +
+                    "--------------------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |    5    |       5       |\n" +
+                    "2009-07-02 11:22:33.04 |    4    |       4       |\n" +
+                    "2009-09-02 11:22:33.04 |    3    |       3       |\n" +
+                    "2012-12-31 00:00:00.03 |    1    |       1       |\n" +
+                    " 2012-12-31 20:38:40.0 |    1    |       1       |\n" +
+                    "2013-12-31 05:22:33.04 |    2    |       2       |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }

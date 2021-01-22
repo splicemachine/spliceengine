@@ -87,7 +87,7 @@ are described in RowUtil.
 @see RowUtil
 */
 
-public interface ConglomerateController extends ConglomPropertyQueryable
+public interface ConglomerateController extends ConglomPropertyQueryable, AutoCloseable
 {
     int ROWISDUPLICATE = 1;
 

@@ -112,6 +112,11 @@ public class OptimizerImpl implements Optimizer{
     CostEstimate currentSortAvoidanceCost;
     CostEstimate bestCost;
 
+    // The table or "optimizable" number that represents the last join
+    // in the join permutation having "bestCost" as marked in the
+    // variable above.
+    int bestCostOptimizableNumber;
+
     long timeOptimizationStarted;
     boolean timeExceeded;
     protected boolean noTimeout;
@@ -1004,11 +1009,13 @@ public class OptimizerImpl implements Optimizer{
                 *
                 *  If the current access path's join strategy is null, that
                 *  means we just found a hinted join, so remember it as
-                *  our best.
+                *  our best if the previous best join permutation was not
+                *  a hinted join.
                 */
                 if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized() ||
-                    curOpt.getCurrentAccessPath().getJoinStrategy() == null){
-                    rememberBestCost(currentCost,Optimizer.NORMAL_PLAN);
+                    (curOpt.getCurrentAccessPath().getJoinStrategy() == null &&
+                     !optimizableList.getOptimizable(bestCostOptimizableNumber).getTrulyTheBestAccessPath().isHintedJoinStrategy())){
+                    rememberBestCost(currentCost, Optimizer.NORMAL_PLAN, proposedJoinOrder[joinPosition]);
 
                     // Since we just remembered all of the best plans,
                     // no need to reload them when pulling Optimizables
@@ -1028,7 +1035,7 @@ public class OptimizerImpl implements Optimizer{
                         tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0);
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
-                            rememberBestCost(currentSortAvoidanceCost, Optimizer.SORT_AVOIDANCE_PLAN);
+                            rememberBestCost(currentSortAvoidanceCost, Optimizer.SORT_AVOIDANCE_PLAN, proposedJoinOrder[joinPosition]);
                         }
                     }
                 }
@@ -2164,7 +2171,7 @@ public class OptimizerImpl implements Optimizer{
      *
      * @throws StandardException Thrown on error
      */
-    private void rememberBestCost(CostEstimate currentCost,int planType) throws StandardException{
+    private void rememberBestCost(CostEstimate currentCost,int planType, int optimizableNumber) throws StandardException{
         foundABestPlan=true;
 
         OptimizerTrace tracer = tracer();
@@ -2174,8 +2181,11 @@ public class OptimizerImpl implements Optimizer{
             tracer.trace(OptimizerFlag.COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0);
         }
 
-        /* Remember the current cost as best */
+        /* Remember the current cost as best... */
         bestCost.setCost(currentCost);
+
+        /* ... and the inner table of the last join in this join permutation. */
+        bestCostOptimizableNumber = optimizableNumber;
 
         // Our time limit for optimizing this round is the time we think
         // it will take us to execute the best join order that we've

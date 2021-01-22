@@ -219,4 +219,21 @@ public class DecfloatIT extends SpliceUnitTest {
         checkDecfloatExpression("decfloat('1E-6143') / 10", "", conn);
         checkDecfloatExpression("decfloat('9.999999999999999999999999999999999E6144') * 10", "", conn);
     }
+
+    @Test
+    public void testPreparedInsert() throws Exception {
+        final String tableName = "preparedInsertDecfloat";
+        conn.execute("drop table %s if exists", tableName);
+        conn.execute("create table %s(col1 decfloat)", tableName);
+        BigDecimal value = new BigDecimal("3.14");
+        try(PreparedStatement statement = conn.prepareStatement(String.format("insert into %s values ?", tableName))) {
+            statement.setBigDecimal(1, value);
+            statement.execute();
+        }
+        try(ResultSet resultSet = conn.query(String.format("select * from %s", tableName))) {
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(value, resultSet.getBigDecimal(1));
+            Assert.assertFalse(resultSet.next());
+        }
+    }
 }

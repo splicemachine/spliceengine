@@ -36,7 +36,7 @@ import java.io.ObjectOutput;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
-	protected  boolean cascadeDelete;
+    private boolean cursorDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
     protected String bulkDeleteDirectory;
     protected int colMapRefItem;
@@ -54,17 +54,19 @@ public class DeleteOperation extends DMLWriteOperation {
 
     /**
      * @param noTriggerRI if true, DELETE will not fire triggers or check foreign key constraints
+     * @param cursorDelete if true, the execution of this operation is done exclusively in control.
      */
     public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion,
+                           double optimizerEstimatedCost, boolean cursorDelete, String tableVersion,
                            String bulkDeleteDirectory, int colMapRefItem,
-                           String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI) throws StandardException, IOException
+                           String fromTableDmlSpsDescriptorAsString, boolean noTriggerRI) throws StandardException
     {
         super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
               fromTableDmlSpsDescriptorAsString);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
         this.noTriggerRI = noTriggerRI;
+        this.cursorDelete = cursorDelete;
         init();
 	}
 
@@ -143,5 +145,10 @@ public class DeleteOperation extends DMLWriteOperation {
             finalizeNestedTransaction();
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public boolean isControlOnly() {
+        return cursorDelete;
     }
 }
