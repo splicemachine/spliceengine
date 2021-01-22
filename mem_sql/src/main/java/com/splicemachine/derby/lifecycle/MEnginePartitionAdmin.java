@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.api.TableDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
@@ -190,5 +191,10 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     @Override
     public int getTableCount() throws IOException {
         return admin.getTableCount();
+    }
+
+    @Override
+    public void createSITable(String tableName) throws StandardException {
+        admin.createSITable(tableName);
     }
 }

@@ -29,7 +29,8 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.1985: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysNaturalNumbersTable\n";
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
-            "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n";
+            "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
     // add more scripts here
 
     private String replaceVersions(String s) {
