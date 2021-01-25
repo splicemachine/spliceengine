@@ -232,6 +232,7 @@ TOKEN [IGNORE_CASE] :
 | <PROCEDURECOLS: "procedurecols">
 | <PROPERTIES: "properties">
 | <PROTOCOL: "protocol">
+| <PROGRESSBAR: "progressbar">
 | <QUIT: "quit">
 | <READONLY: "readonly">
 | <RELATIVE: "relative">
@@ -629,6 +630,7 @@ throws SQLException, IOException
 | r=PrepareStatement()
 | r=PreviousStatement()
 | r=ProtocolStatement()
+| r=ProgressbarStatement()
 | r=ReadOnlyStatement()
 | r=RelativeStatement()
 | r=RemoveStatement()
@@ -773,7 +775,7 @@ throws SQLException
     Token t;
     Token userT = null;
     Token passwordT = null;
-    String n = null, p = null, sVal;
+    String name = null, p = null, sVal;
     String userS =  util.getSystemProperty(USER_PROPERTY);
     String passwordS = util.getSystemProperty(PASSWORD_PROPERTY);
     Properties connInfo = new Properties();
@@ -783,7 +785,7 @@ throws SQLException
                 [ <USER> userT=<STRING> ]
                 [ <PASSWORD> passwordT=<STRING> ]
                 [ <ATTRIBUTES> [ attributeList(connInfo) ] ]
-                [ <AS> n=identifier() ]
+                [ <AS> name=identifier() ]
     {
         // t.image is a database URL
         // we get the connection and salt it away
@@ -805,63 +807,7 @@ throws SQLException
         if (passwordT != null)
             passwordS = stringValue(passwordT.image);
 
-        //If ij.dataSource property is set,use DataSource to get the connection
-        String dsName = util.getSystemProperty("ij.dataSource");
-        if (dsName != null){
-            //Check that t.image does not start with jdbc:
-            //If it starts with jdbc:, do not use DataSource to get connection
-            sVal = stringValue(t.image);
-            if(!sVal.startsWith("jdbc:") ){
-                theConnection = util.getDataSourceConnection(dsName,userS,passwordS,sVal,false);
-                return addSession( theConnection, n );
-            }
-        }
-
-        if (simplifiedPath)
-            // url for the database W/O 'jdbc:protocol:', i.e. just a dbname
-            // For example,
-            //  CONNECT TO 'test'
-            // is equivalent to
-            //   CONNECT TO 'jdbc:splice:test'
-            sVal = "jdbc:splice:" + stringValue(t.image);
-        else
-            sVal = stringValue(t.image);
-
-        // add named protocol if it was specified
-        if (p != null) {
-            String protocol = (String)namedProtocols.get(p);
-            if (protocol == null) { throw ijException.noSuchProtocol(p); }
-            sVal = protocol + sVal;
-        }
-
-        // add protocol if no driver matches url
-        boolean noDriver = false;
-            // if we have a full URL, make sure it's loaded first
-            try {
-                if (sVal.startsWith("jdbc:"))
-                    util.loadDriverIfKnown(sVal);
-            } catch (Exception e) {
-                // want to continue with the attempt
-                        }
-            // By default perform extra checking on the URL attributes.
-            // This checking does not change the processing.
-            if (urlCheck == null || Boolean.valueOf(urlCheck).booleanValue()) {
-                          URLCheck aCheck = new URLCheck(sVal);
-                        }
-        if (!sVal.startsWith("jdbc:") && (p == null) && (protocol != null)) {
-            sVal = protocol + sVal;
-        }
-
-
-        // If no ATTRIBUTES on the connection get them from the
-        // defaults
-        connInfo = util.updateConnInfo(userS,passwordS, connInfo);
-
-
-        theConnection = DriverManager.getConnection(sVal,connInfo);
-        theConnection2 = DriverManager.getConnection(sVal,connInfo);
-
-        return addSession( theConnection, n );
+        return connect( simplifiedPath, p, userS, passwordS, stringValue(t.image), name );
     }
 }
 
@@ -2066,6 +2012,27 @@ ElapsedTimeStatement() :
     )
     {
         elapsedTime = (on != null);
+        return null;
+    }
+}
+
+/**
+ * <p>
+ * Syntax:
+ *   PROGRESSBAR [ ON | OFF ] ;
+ */
+ijResult
+ProgressbarStatement() :
+{
+    Token on=null;
+}
+{
+    <PROGRESSBAR>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        progressBar = (on != null);
         return null;
     }
 }

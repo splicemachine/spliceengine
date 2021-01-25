@@ -12,6 +12,7 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,6 +31,7 @@ public class ijCommands {
             return rs.getString(2);
         }
     }
+    Supplier<Connection> connectionSupplier;
 
     static public int[] parseVersion(String v) {
         Pattern r = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d)*\\.(\\d*)(-.*)?");
@@ -62,8 +64,8 @@ public class ijCommands {
     ijCommands() {}
     ijCommands(Connection theConnection, ConnectionEnv currentConnEnv)
     {
-        this.theConnection = theConnection;
-        this.currentConnEnv = currentConnEnv;
+//        this.theConnection = theConnection;
+//        this.currentConnEnv = currentConnEnv;
     }
 
     void haveConnection() {
@@ -84,7 +86,10 @@ public class ijCommands {
 
     public String getRunningOperation(String command) throws SQLException {
         ResultSet rs = null;
-        if(theConnection2 == null) return "no";
+        if(theConnection2 == null) {
+//            theConnection2 = DriverManager.getConnection(sVal,connInfo);
+            return "";
+        }
         try {
             haveConnection();
 

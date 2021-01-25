@@ -143,7 +143,7 @@ public class QueryJob implements Callable<Void>{
             }
             context = dsp.createOperationContext(root);
 
-            try(ListenerCounting counter = new ListenerCounting(context, queryRequest.uuid.toString(), queryRequest.sql,
+            try(ListenerCounting counter = new ListenerCounting(queryRequest.uuid.toString(), queryRequest.sql,
                     status) ) {
                 dataset = root.getDataSet(dsp);
 

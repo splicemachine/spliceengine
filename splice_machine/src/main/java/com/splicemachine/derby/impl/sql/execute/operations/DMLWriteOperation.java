@@ -33,6 +33,8 @@ import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
@@ -197,7 +199,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     lcc.pushNestedTransaction(transactionController);
                     Transaction rawStoreXact = ((TransactionManager) transactionController).getRawStoreXact();
                     if (!(((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn() instanceof Txn))
-                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                        throw StandardException.newException(SQLState.LANG_INTERNAL_ERROR,
                                         "DMLWriteOperation cannot make child Txn out of TxnView.");
                     Txn childTxn = (Txn) ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
                     nestedTxn = childTxn;
