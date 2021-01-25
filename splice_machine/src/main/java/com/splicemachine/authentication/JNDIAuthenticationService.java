@@ -113,10 +113,6 @@ public class JNDIAuthenticationService
 		// authentication scheme for this service
 		UserAuthenticator aJNDIAuthscheme;
 
-		String authenticationProvider = PropertyUtil.getPropertyFromSet(
-				properties,
-				Property.AUTHENTICATION_PROVIDER_PARAMETER);
-
 		// we're dealing with LDAP
 		aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
 		this.setAuthenticationService(aJNDIAuthscheme);

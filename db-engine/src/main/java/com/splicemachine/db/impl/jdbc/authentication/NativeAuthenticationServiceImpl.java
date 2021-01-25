@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.sql.DataSource;
 import java.security.MessageDigest;
@@ -387,9 +388,6 @@ public final class NativeAuthenticationServiceImpl
     private boolean isCredentialsService( String canonicalDatabaseName )
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
-
-        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
-
         return canonicalCredentialsDBName != null && canonicalCredentialsDBName.equals(canonicalDatabaseName);
     }
 
@@ -493,7 +491,10 @@ public final class NativeAuthenticationServiceImpl
 	 * @param userPassword	The user's password used to connect to JBMS system
 	 * @param databaseName	The database which the user wants to connect to.
 	 */
-	private boolean	authenticateLocally
+	@SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", // intentional, DERBY-5539
+            "RV_RETURN_VALUE_IGNORED" // false positive
+	    })
+    private boolean	authenticateLocally
         (
          String userName,
          String userPassword,
