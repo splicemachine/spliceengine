@@ -432,9 +432,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         try {
             String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
-            int value = Integer.parseInt(valueString);
-            if (value > 0)
-                tableLimitForExhaustiveSearch = value;
+            if (valueString != null) {
+                int value = Integer.parseInt(valueString);
+                if (value > 0)
+                    tableLimitForExhaustiveSearch = value;
+            }
         } catch (Exception e) {
             // no op, use default value 6
         }

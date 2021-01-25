@@ -82,6 +82,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
+        DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);
     }
 
 

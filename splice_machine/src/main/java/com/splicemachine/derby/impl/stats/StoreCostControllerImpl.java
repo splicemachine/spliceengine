@@ -139,10 +139,15 @@ public class StoreCostControllerImpl implements StoreCostController {
         missingExprIndexPartitions = 0;
         setTableStatistics(td, tablePartitionStatistics, defaultRowCount);
         setExpressionBasedIndexStatistics(conglomerateDescriptor, exprIndexPartitionStatistics, defaultRowCount);
-        setFirstIndexColumnRowsPerValue(conglomerateDescriptor);
+        computeFirstIndexColumnRowsPerValue(conglomerateDescriptor);
     }
 
-    private void setFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException {
+    /**
+     * Compute statistics about the first column of the conglomerate
+     * from statistics in the the StoreCostController and copy them
+     * into the ConglomerateDescriptor.
+     */
+    public void computeFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException {
         if (cd.getFirstColumnStats() != null)
             return;
         synchronized (cd) {
@@ -150,10 +155,10 @@ public class StoreCostControllerImpl implements StoreCostController {
             if (cd.getFirstColumnStats() != null)
                 return;
             FirstColumnOfIndexStats firstColumnStats = new FirstColumnOfIndexStats();
-            cd.setFirstColumnStats(firstColumnStats);
 
             firstColumnStats.setRowCountFromStats(getEstimatedRowCount());
             if (!cd.isIndex() && !cd.isPrimaryKey()) {
+                cd.setFirstColumnStats(firstColumnStats);
                 return;
             }
 
@@ -163,6 +168,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             firstColumnStats.
                 setFirstIndexColumnCardinality(cardinality(isIndexOnExpression, columnNumber));
             if (firstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
+                cd.setFirstColumnStats(firstColumnStats);
                 return;
             }
             firstColumnStats.

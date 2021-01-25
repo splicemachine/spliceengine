@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 
@@ -296,4 +297,11 @@ public interface StoreCostController extends RowCountable{
     boolean useRealExpressionBasedIndexStatistics();
 
     boolean useRealColumnStatistics(boolean fromExprIndex, int columnId);
+
+    /**
+     * Compute statistics about the first column of the conglomerate
+     * from statistics in the the StoreCostController and copy them
+     * into the ConglomerateDescriptor.
+     */
+    void computeFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException;
 }

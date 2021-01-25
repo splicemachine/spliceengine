@@ -128,7 +128,7 @@ public class FromBaseTable extends FromTable {
 
     // Statistics about the first column in the conglomerate currently
     // being considered as the access path of this table:
-    FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
+    private FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
 
     /*
     ** The number of rows to bulkFetch.
@@ -936,6 +936,10 @@ public class FromBaseTable extends FromTable {
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         useRealTableStats=scc.useRealTableStatistics();
         currentIndexFirstColumnStats=cd.getFirstColumnStats();
+        if (currentIndexFirstColumnStats == null) {
+            scc.computeFirstIndexColumnRowsPerValue(cd);
+            currentIndexFirstColumnStats = cd.getFirstColumnStats();
+        }
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);

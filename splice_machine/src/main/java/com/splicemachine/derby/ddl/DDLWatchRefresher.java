@@ -80,6 +80,47 @@ public class DDLWatchRefresher{
         return currChangeCount.get();
     }
 
+    public void clearFinishedChange(String changeId, Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+        Collection<String> ongoingDDLChangeIds = null;
+        try {
+            ongoingDDLChangeIds = watchChecker.getCurrentChangeIds();
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+        clearFinishedChange(ongoingDDLChangeIds, changeId, ddlListeners);
+    }
+
+    private void clearFinishedChange(Collection<String> children,
+                                     String entry,
+                                     Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+        /*
+         * Remove DDL change which is known to be finished.
+         *
+         * This is to avoid processing a DDL change twice.
+         *
+         */
+        if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
+            LOG.info("Removing change with id " + entry);
+            changeTimeouts.remove(entry);
+            currentDDLChanges.remove(entry);
+            currChangeCount.decrementAndGet();
+            DDLChange ddlChange = tentativeDDLS.remove(entry);
+            if(ddlChange!=null){
+                /*
+                 * If the change isn't in tentativeDDLs, then it's already been processed, and we don't
+                 * have to worry about it here.
+                 */
+                assignDDLDemarcationPoint(ddlChange);
+                // notify access manager
+                for(DDLWatcher.DDLListener listener : ddlListeners){
+                    listener.changeSuccessful(entry,ddlChange);
+                }
+            }
+        }
+
+    }
+
     public boolean refreshDDL(Set<DDLWatcher.DDLListener> callbacks) throws IOException{
         Collection<String> ongoingDDLChangeIds=watchChecker.getCurrentChangeIds();
         if(ongoingDDLChangeIds==null) return false;
@@ -174,6 +215,7 @@ public class DDLWatchRefresher{
         if (LOG.isTraceEnabled())
             LOG.trace("processPreCommitChanges -> " + ddlChange);
         currChangeCount.incrementAndGet();
+        currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
             listener.startChange(ddlChange);
@@ -189,7 +231,7 @@ public class DDLWatchRefresher{
          */
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
-            if(!children.contains(entry)){
+            if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
                 LOG.info("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
