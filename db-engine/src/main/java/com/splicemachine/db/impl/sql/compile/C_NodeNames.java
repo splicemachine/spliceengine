@@ -104,8 +104,6 @@ public interface C_NodeNames
 
     String CREATE_TABLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateTableNode";
 
-    String CREATE_TRIGGER_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateTriggerNode";
-
     String CREATE_VIEW_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateViewNode";
 
     String CURRENT_DATETIME_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode";
@@ -346,8 +344,4 @@ public interface C_NodeNames
     String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
 
     String STATEMENT_LIST_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StatementListNode";
-
-    String TO_INSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToInstantOperatorNode";
-
-    String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
 }

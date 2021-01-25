@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -51,6 +52,66 @@ import java.util.*;
  * A CreateTriggerNode is the root of a QueryTree that represents a CREATE TRIGGER statement.
  */
 public class CreateTriggerNode extends DDLStatementNode {
+
+    public CreateTriggerNode(TableName triggerName, TableName tableName, TriggerEventDML triggerEvent, ResultColumnList triggerColumns, boolean b, boolean b1, Boolean aTrue, Vector refClause, Object o, Object o1, StatementListNode actionNodeList, List<String> actionTextList, ContextManager contextManager) {
+    }
+
+    /**
+     * Initializer for a CreateTriggerNode
+     *
+     * @param triggerName      name of the trigger
+     * @param tableName        name of the table which the trigger is declared upon
+     * @param triggerEventMask TriggerDescriptor.TRIGGER_EVENT_XXX
+     * @param triggerCols      columns trigger is to fire upon.  Valid
+     *                         for UPDATE case only.
+     * @param isBefore         is before trigger (false for after)
+     * @param isRow            true for row trigger, false for statement
+     * @param isEnabled        true if enabled
+     * @param refClause        the referencing clause
+     * @param whenClause       the WHEN clause tree
+     * @param whenText         the text of the WHEN clause
+     * @param actionNodeList   the trigger action tree
+     * @param actionTextList   the text of the trigger action
+     */
+    public CreateTriggerNode(
+            TableName triggerName,
+            TableName tableName,
+            TriggerEventDML triggerEventMask,
+            ResultColumnList triggerCols,
+            Boolean isBefore,
+            Boolean isRow,
+            Boolean isEnabled,
+            Vector<TriggerReferencingStruct> refClause,
+            ValueNode whenClause,
+            String whenText,
+            StatementListNode actionNodeList,
+            List<String> actionTextList, ContextManager cm) throws StandardException {
+        super.setContextManager(cm);
+        super.setNodeType(C_NodeTypes.CREATE_TRIGGER_NODE);
+        initAndCheck(triggerName);
+        this.triggerName = triggerName;
+        this.tableName = tableName;
+        this.triggerEventMask = triggerEventMask;
+        this.triggerCols = triggerCols;
+        this.isBefore = isBefore;
+        this.isRow = isRow;
+        this.isEnabled = isEnabled;
+        this.refClause = refClause;
+        this.whenClause = whenClause;
+        this.originalWhenText = whenText;
+        this.whenText = (whenText == null) ? null : whenText.trim();
+        this.actionNodeList = actionNodeList;
+        this.originalActionTextList = actionTextList;
+
+        assert this.actionNodeList.size() == originalActionTextList.size();
+
+        implicitCreateSchema = true;
+        this.actionTextList = Lists.newArrayListWithCapacity(this.originalActionTextList.size());
+        for (int i = 0; i < this.originalActionTextList.size(); ++i) {
+            this.actionTextList.add(originalActionTextList.get(i) == null ? null : originalActionTextList.get(i).trim());
+            this.actionTransformationsList.add(new ArrayList<>());
+        }
+    }
 
     private TableName triggerName;
     private TableName tableName;
@@ -240,63 +301,6 @@ public class CreateTriggerNode extends DDLStatementNode {
      */
     private final ArrayList<int[]>
             whenClauseTransformations = new ArrayList<int[]>();
-
-    /**
-     * Initializer for a CreateTriggerNode
-     *
-     * @param triggerName      name of the trigger
-     * @param tableName        name of the table which the trigger is declared upon
-     * @param triggerEventMask TriggerDescriptor.TRIGGER_EVENT_XXX
-     * @param triggerCols      columns trigger is to fire upon.  Valid
-     *                         for UPDATE case only.
-     * @param isBefore         is before trigger (false for after)
-     * @param isRow            true for row trigger, false for statement
-     * @param isEnabled        true if enabled
-     * @param refClause        the referencing clause
-     * @param whenClause       the WHEN clause tree
-     * @param whenText         the text of the WHEN clause
-     * @param actionNodeList   the trigger action tree
-     * @param actionTextList   the text of the trigger action
-     */
-    @Override
-    public void init(
-            Object triggerName,
-            Object tableName,
-            Object triggerEventMask,
-            Object triggerCols,
-            Object isBefore,
-            Object isRow,
-            Object isEnabled,
-            Object refClause,
-            Object whenClause,
-            Object whenText,
-            Object actionNodeList,
-            Object actionTextList) throws StandardException {
-        initAndCheck(triggerName);
-        this.triggerName = (TableName) triggerName;
-        this.tableName = (TableName) tableName;
-        this.triggerEventMask = (TriggerEventDML) triggerEventMask;
-        this.triggerCols = (ResultColumnList) triggerCols;
-        this.isBefore = (Boolean) isBefore;
-        this.isRow = (Boolean) isRow;
-        this.isEnabled = (Boolean) isEnabled;
-        this.refClause = (Vector<TriggerReferencingStruct>) refClause;
-        this.whenClause = (ValueNode) whenClause;
-        this.originalWhenText = (String)whenText;
-        this.whenText = (whenText == null) ? null : ((String) whenText).trim();
-        this.actionNodeList = (StatementListNode) actionNodeList;
-        this.originalActionTextList = (List<String>) actionTextList;
-
-        assert this.actionNodeList.size() == originalActionTextList.size();
-
-        implicitCreateSchema = true;
-        this.actionTextList = Lists.newArrayListWithCapacity(this.originalActionTextList.size());
-        for (int i = 0; i < this.originalActionTextList.size(); ++i) {
-            this.actionTextList.add(originalActionTextList.get(i) == null ? null : originalActionTextList.get(i).trim());
-            this.actionTransformationsList.add(new ArrayList<>());
-        }
-
-    }
 
     @Override
     public String statementToString() {

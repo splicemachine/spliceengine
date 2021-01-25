@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,6 +47,10 @@ import java.util.List;
 
 @SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class ToHbaseEscapedOperatorNode extends UnaryOperatorNode {
+
+    public ToHbaseEscapedOperatorNode(ValueNode operand, ContextManager cm) {
+        super(C_NodeTypes.TO_HBASE_ESCAPED_NODE, operand, cm);
+    }
 
     /**
      * @inheritDoc

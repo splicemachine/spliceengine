@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -42,6 +44,17 @@ import java.util.List;
 
 public final class CharConstantNode extends ConstantNode
 {
+	CharConstantNode() {}
+	CharConstantNode(String value, ContextManager cm) throws StandardException {
+		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
+		setContextManager(cm);
+		init(value);
+	}
+	CharConstantNode(String value, Integer length, ContextManager cm) throws StandardException {
+		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
+		setContextManager(cm);
+		init(value, length);
+	}
 	/**
 	 * Initializer for a CharConstantNode.
 	 *

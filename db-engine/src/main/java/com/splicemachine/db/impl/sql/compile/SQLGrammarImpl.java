@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
@@ -17,13 +18,17 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import org.python.antlr.op.Param;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
 import static com.splicemachine.db.impl.sql.compile.SQLParserConstants.*;
+import static java.lang.String.format;
 
 class SQLGrammarImpl {
     static final String[] SAVEPOINT_CLAUSE_NAMES = {"UNIQUE", "ON ROLLBACK RETAIN LOCKS", "ON ROLLBACK RETAIN CURSORS"};
@@ -752,10 +757,7 @@ class SQLGrammarImpl {
     {
         if (trimChar == null)
         {
-            trimChar = (CharConstantNode) nodeFactory.getNode(
-                    C_NodeTypes.CHAR_CONSTANT_NODE,
-                    " ",
-                    getContextManager());
+            trimChar = new CharConstantNode(" ", getContextManager());
         }
         return new TernaryOperatorNode(
                 C_NodeTypes.TRIM_OPERATOR_NODE,
@@ -1314,5 +1316,112 @@ class SQLGrammarImpl {
             buf.setLength(buf.length()-1);
         }
         return buf.toString();
+    }
+
+    public FromTable getFromFinalTable(ResultColumnList derivedRCL, Object[] optionalTableClauses,
+                                       TypeDescriptor typeDescriptor, DMLModStatementNode dmlStatement, Token fromTableType) throws StandardException {
+
+        boolean isOld = fromTableType.kind == OLD;
+        boolean isFinalTable = fromTableType.kind == FINAL;
+        LanguageConnectionContext lcc = dmlStatement.getLanguageConnectionContext();
+        TableName tableName = dmlStatement.getTargetTableName();
+        String uniqueId = java.util.UUID.randomUUID().toString().replaceAll("-", "_").toUpperCase();
+        String tempTriggerName = "TRIG_" + uniqueId;
+        String schemaName = lcc.getDefaultSchema().getSchemaName();
+        TableName triggerName = (TableName) nodeFactory.getNode(
+                C_NodeTypes.TABLE_NAME,
+                schemaName,
+                tempTriggerName,
+                getContextManager());
+        ResultColumnList triggerColumns = (ResultColumnList) nodeFactory.getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
+        String correlationName = "NT_" + uniqueId;
+        Vector refClause = new Vector();
+        refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
+
+        String internalSelectStmt = "SELECT * FROM " + correlationName;
+        List<String> actionTextList = new ArrayList();
+        actionTextList.add(internalSelectStmt);
+        StatementNode selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
+        StatementListNode actionNodeList = new StatementListNode( getContextManager() );
+        actionNodeList.addStatement(selectStatementNode);
+
+        String javaClassName =
+                isOld ? "com.splicemachine.derby.catalog.TriggerOldTransitionRows":
+                        "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+        QueryTreeNode newNode = (QueryTreeNode) nodeFactory.getNode(
+                C_NodeTypes.NEW_INVOCATION_NODE,
+                javaClassName,
+                new Vector(), // empty parameterList
+                getContextManager());
+
+        JavaToSQLValueNode javaToSQLNode = new JavaToSQLValueNode(newNode, getContextManager());
+
+        TriggerEventDML triggerEvent;
+        String          stmtKind;
+
+        if (dmlStatement instanceof InsertNode) {
+            stmtKind     = "INSERT";
+            triggerEvent = TriggerEventDML.INSERT;
+            if (isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                        fromTableType.toString(), "INSERT");
+        }
+        else if (dmlStatement instanceof DeleteNode) {
+            stmtKind     = "DELETE";
+            triggerEvent = TriggerEventDML.DELETE;
+            if (!isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                        fromTableType.toString(), "DELETE");
+        }
+        else {
+            stmtKind     = "UPDATE";
+            triggerEvent = TriggerEventDML.UPDATE;
+        }
+
+        CreateTriggerNode tempTriggerDefinition =
+                new CreateTriggerNode(
+                        triggerName,
+                        tableName,
+                        triggerEvent,
+                        triggerColumns,
+                        false,                   // isBefore
+                        false,                   // isRow
+                        Boolean.TRUE,            // enabled
+                        refClause,               // referencing clause
+                        null,                    // when clause node
+                        null,                    // when clause text
+                        actionNodeList,
+                        actionTextList,
+                        getContextManager());
+
+        tempTriggerDefinition.setIsFinalTable(isFinalTable);
+        String targetTableName = tableName.toString();
+        String newOrOld = isOld ? "OLD" : "NEW";
+        // The trigger text is not parsed.  It is just used as a handy representation of
+        // the CreateTriggerNode.
+        String tempTriggerSQLText =
+                format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
+                        triggerName, stmtKind, targetTableName, newOrOld, correlationName);
+
+        FromVTI fromVTI =
+                (FromVTI) nodeFactory.getNode(
+                        C_NodeTypes.FROM_VTI,
+                        javaToSQLNode.getJavaValueNode(),
+                        correlationName,
+                        derivedRCL,
+                        ((optionalTableClauses != null) ?
+                                (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
+                                (Properties) null),
+                        typeDescriptor,
+                        parameterList,
+                        new Boolean(true),
+                        getContextManager());
+        fromVTI.setFromTableDMLStmt(dmlStatement);
+        fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
+        fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
+        fromVTI.setTempTriggerName(tempTriggerName);
+        return (FromTable)fromVTI;
     }
 }

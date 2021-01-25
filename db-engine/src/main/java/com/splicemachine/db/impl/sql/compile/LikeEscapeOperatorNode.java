@@ -395,11 +395,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     BinaryComparisonOperatorNode equals = 
                         (BinaryComparisonOperatorNode) getNodeFactory().getNode(
                             C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                            leftClone, 
-                            (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                newPattern,
-                                getContextManager()),
+                            leftClone, new CharConstantNode(newPattern, getContextManager()),
                             getContextManager());
 
                     // Set forQueryRewrite to bypass comparability checks
@@ -667,11 +663,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             else
             {
                 // pattern string is a constant
-                likeLTopt = 
-                    (QueryTreeNode) getNodeFactory().getNode(
-                        C_NodeTypes.CHAR_CONSTANT_NODE,
-                        lessThanString,
-                        getContextManager());
+                likeLTopt = new CharConstantNode(lessThanString, getContextManager());
             }
 
             BinaryComparisonOperatorNode lessThan = 
@@ -722,11 +714,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         {
             // the pattern is a constant, eg. c1 LIKE 'Derby'
 
-            likeGEopt = 
-                (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CHAR_CONSTANT_NODE,
-                    greaterEqualString,
-                    getContextManager());
+            likeGEopt = new CharConstantNode(greaterEqualString, getContextManager());
         }
 
         // greaterEqual from (reciever LIKE pattern):

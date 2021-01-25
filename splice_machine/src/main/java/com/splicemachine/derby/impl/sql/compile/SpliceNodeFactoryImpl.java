@@ -488,9 +488,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.INTERSECT_OR_EXCEPT_NODE:
                 return C_NodeNames.INTERSECT_OR_EXCEPT_NODE_NAME;
 
-            case C_NodeTypes.CREATE_TRIGGER_NODE:
-                return C_NodeNames.CREATE_TRIGGER_NODE_NAME;
-
             case C_NodeTypes.HALF_OUTER_JOIN_NODE:
                 return C_NodeNames.HALF_OUTER_JOIN_NODE_NAME;
 
@@ -645,12 +642,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.STATEMENT_LIST_NODE:
                 return C_NodeNames.STATEMENT_LIST_NODE_NAME;
-
-            case C_NodeTypes.TO_INSTANT_NODE:
-                return C_NodeNames.TO_INSTANT_NODE_NAME;
-
-            case C_NodeTypes.TO_HBASE_ESCAPED_NODE:
-                return C_NodeNames.TO_HBASE_ESCAPED_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
             // THEM TO tools/jar/DBMSnodes.properties

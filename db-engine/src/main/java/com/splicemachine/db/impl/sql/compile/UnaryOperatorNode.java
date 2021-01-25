@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -64,6 +65,12 @@ import java.util.List;
 
 public class UnaryOperatorNode extends OperatorNode
 {
+    UnaryOperatorNode() {}
+    UnaryOperatorNode(int type, ValueNode operand, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(type);
+        init(operand);
+    }
     String	operator;
     String	methodName;
 

@@ -2665,10 +2665,7 @@ analyzeTableStatement() throws StandardException :
 
     Vector  parameterList = new Vector();
     if (tableName.hasSchema()) {
-      schema = (CharConstantNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            tableName.getSchemaName(),
-            getContextManager());
+      schema = new CharConstantNode(tableName.getSchemaName(), getContextManager());
     }
     else {
       schema = (UntypedNullConstantNode) getNodeFactory().getNode(
@@ -2677,10 +2674,7 @@ analyzeTableStatement() throws StandardException :
     }
     parameterList.addElement(schema);
 
-    CharConstantNode table = (CharConstantNode) nodeFactory.getNode(
-                                   C_NodeTypes.CHAR_CONSTANT_NODE,
-                                   tableName.getTableName(),
-                                   getContextManager());
+    CharConstantNode table = new CharConstantNode(tableName.getTableName(), getContextManager());
     parameterList.addElement(table);
 
     if (samplePercent != null) {
@@ -2731,10 +2725,7 @@ analyzeSchemaStatement() throws StandardException :
                getContextManager());
 
     Vector  parameterList = new Vector();
-    CharConstantNode schema = (CharConstantNode) nodeFactory.getNode(
-                C_NodeTypes.CHAR_CONSTANT_NODE,
-                schemaName,
-                getContextManager());
+    CharConstantNode schema = new CharConstantNode(schemaName, getContextManager());
     parameterList.addElement(schema);
 
     //add parameter staleOnly
@@ -3024,10 +3015,7 @@ ValueNode exportCompression() throws StandardException :
 {
     token = exportCompressionToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3059,10 +3047,7 @@ ValueNode exportFormat() throws StandardException :
 {
     token = exportFormatToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3094,10 +3079,7 @@ ValueNode exportQuoteMode() throws StandardException :
 {
     token = exportQuoteModeToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+      return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3129,10 +3111,7 @@ ValueNode floatingPointNotation() throws StandardException :
 {
     token = floatingPointNotationToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3209,10 +3188,7 @@ exportStatement() throws StandardException :
         methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
         {
             parameterList.addElement(null); // null for legacy (quote mode)
-            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
-                                     C_NodeTypes.CHAR_CONSTANT_NODE,
-                                     "csv",
-                                     getContextManager()));
+            parameterList.addElement( new CharConstantNode("csv", getContextManager()));
             parameterList.addElement(null); // null for legacy (floating point notation)
             parameterList.addElement(null); // null for legacy (timestamp format)
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
@@ -7680,18 +7656,12 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
 |
     <TO_INSTANT> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.TO_INSTANT_NODE,
-                                    value,
-                                    getContextManager());
+        return new ToInstantOperatorNode(value, getContextManager());
     }
 |
     <TO_HBASE_ESCAPED> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.TO_HBASE_ESCAPED_NODE,
-                                    value,
-                                    getContextManager());
+        return new ToHbaseEscapedOperatorNode(value, getContextManager());
     }
 |
     value = getNearestTransaction()
@@ -8432,10 +8402,7 @@ ValueNode
 truncateFunctionCompletion(ValueNode truncateOperand) throws StandardException :
 {
         /* default truncValue to DAY */
-        ValueNode truncValue = (CharConstantNode) nodeFactory.getNode(
-                                                               C_NodeTypes.CHAR_CONSTANT_NODE,
-                                                               "DAY",  // default to DAY
-                                                               getContextManager());
+        ValueNode truncValue = new CharConstantNode("DAY", getContextManager());
 }
 {
     ( <RIGHT_PAREN> | <COMMA> truncValue = additiveExpression(null,0) <RIGHT_PAREN> )
@@ -10321,110 +10288,7 @@ FromTable tableFactor() throws StandardException :
     LOOKAHEAD( { tableFollows(2) } )
     fromTableType = fromTableType() <TABLE> <LEFT_PAREN> statement = preparableDMLDataStatement() <RIGHT_PAREN>
     [ optionalTableClauses = optionalTableProperties() ]  {
-        boolean isOld = fromTableType.kind == OLD;
-        boolean isFinalTable = fromTableType.kind == FINAL;
-        dmlStatement = (DMLModStatementNode)statement;
-        LanguageConnectionContext lcc = dmlStatement.getLanguageConnectionContext();
-        tableName = dmlStatement.getTargetTableName();
-        String uniqueId = java.util.UUID.randomUUID().toString().replaceAll("-", "_").toUpperCase();
-        String tempTriggerName = "TRIG_" + uniqueId;
-        String schemaName = lcc.getDefaultSchema().getSchemaName();
-        triggerName = (TableName) nodeFactory.getNode(
-                                C_NodeTypes.TABLE_NAME,
-                                schemaName,
-                                tempTriggerName,
-                                getContextManager());
-        triggerColumns = (ResultColumnList) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
-        correlationName = "NT_" + uniqueId;
-        refClause = new Vector();
-        refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
-
-        internalSelectStmt = "SELECT * FROM " + correlationName;
-        actionTextList = new ArrayList();
-        actionTextList.add(internalSelectStmt);
-        selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
-        actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
-        actionNodeList.addStatement(selectStatementNode);
-
-        String javaClassName =
-               isOld ? "com.splicemachine.derby.catalog.TriggerOldTransitionRows":
-                       "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
-        newNode = (QueryTreeNode) nodeFactory.getNode(
-                               C_NodeTypes.NEW_INVOCATION_NODE,
-                               javaClassName,
-                               new Vector(), // empty parameterList
-                               getContextManager());
-
-        javaToSQLNode = new JavaToSQLValueNode(newNode, getContextManager());
-
-        TriggerEventDML triggerEvent;
-        String          stmtKind;
-
-        if (dmlStatement instanceof InsertNode) {
-            stmtKind     = "INSERT";
-            triggerEvent = TriggerEventDML.INSERT;
-            if (isOld)
-                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
-                                                      fromTableType.toString(), "INSERT");
-        }
-        else if (dmlStatement instanceof DeleteNode) {
-            stmtKind     = "DELETE";
-            triggerEvent = TriggerEventDML.DELETE;
-            if (!isOld)
-                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
-                                                      fromTableType.toString(), "DELETE");
-        }
-        else {
-            stmtKind     = "UPDATE";
-            triggerEvent = TriggerEventDML.UPDATE;
-        }
-
-        tempTriggerDefinition =
-            (CreateTriggerNode) nodeFactory.getNode(
-                                C_NodeTypes.CREATE_TRIGGER_NODE,
-                                triggerName,
-                                tableName,
-                                triggerEvent,
-                                triggerColumns,
-                                false,                   // isBefore
-                                false,                   // isRow
-                                Boolean.TRUE,            // enabled
-                                refClause,               // referencing clause
-                                null,                    // when clause node
-                                null,                    // when clause text
-                                actionNodeList,
-                                actionTextList,
-                                getContextManager());
-
-        tempTriggerDefinition.setIsFinalTable(isFinalTable);
-        String targetTableName = tableName.toString();
-        String newOrOld = isOld ? "OLD" : "NEW";
-        // The trigger text is not parsed.  It is just used as a handy representation of
-        // the CreateTriggerNode.
-        String tempTriggerSQLText =
-               format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
-                      triggerName, stmtKind, targetTableName, newOrOld, correlationName);
-
-        FromVTI fromVTI =
-          (FromVTI) nodeFactory.getNode(
-                        C_NodeTypes.FROM_VTI,
-                        javaToSQLNode.getJavaValueNode(),
-                        correlationName,
-                        derivedRCL,
-                        ((optionalTableClauses != null) ?
-                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
-                            (Properties) null),
-                        typeDescriptor,
-                        parameterList,
-                        new Boolean(true),
-                        getContextManager());
-        fromVTI.setFromTableDMLStmt(dmlStatement);
-        fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
-        fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
-        fromVTI.setTempTriggerName(tempTriggerName);
-        return (FromTable)fromVTI;
+        return getFromFinalTable(derivedRCL, optionalTableClauses, typeDescriptor, (DMLModStatementNode)statement, fromTableType);
     }
 |
     /* identifier() used to be correlationName() */
@@ -13297,8 +13161,7 @@ triggerDefinition() throws StandardException :
         actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
         actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
 
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.CREATE_TRIGGER_NODE,
+        return new CreateTriggerNode(
                                 triggerName,
                                 tableName,
                                 triggerEvent,
@@ -14083,10 +13946,7 @@ stringLiteral() throws StandardException :
             throw StandardException.newException(SQLState.LANG_DB2_STRING_CONSTANT_TOO_LONG, StringUtil.formatForPrint(tok.image));
         string = StringUtil.compressQuotes(tok.image.substring(1, tok.image.length() - 1), SINGLEQUOTES);
         /* Trim quotes from string. */
-        return (CharConstantNode) nodeFactory.getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                string,
-                                getContextManager());
+        return new CharConstantNode(string, getContextManager());
     }
 }
 

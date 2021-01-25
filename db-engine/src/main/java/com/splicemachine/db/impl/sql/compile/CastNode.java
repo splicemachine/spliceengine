@@ -572,12 +572,8 @@ public class CastNode extends ValueNode
         switch (destJDBCTypeId)
         {
             case Types.CHAR:
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.CHAR_CONSTANT_NODE,
-                        Long.toString(longValue),
-                        ReuseFactory.getInteger(
-                                getTypeServices().getMaximumWidth()),
-                        getContextManager());
+                return new CharConstantNode( Long.toString(longValue),
+                            ReuseFactory.getInteger(getTypeServices().getMaximumWidth()), getContextManager());
             case Types.TINYINT:
                 if (longValue < Byte.MIN_VALUE ||
                         longValue > Byte.MAX_VALUE)
@@ -667,14 +663,8 @@ public class CastNode extends ValueNode
         switch (destJDBCTypeId)
         {
             case Types.CHAR:
-                nodeType = C_NodeTypes.CHAR_CONSTANT_NODE;
-                constantObject = constantValue.getString();
-                return (ValueNode) getNodeFactory().getNode(
-                        nodeType,
-                        constantObject,
-                        ReuseFactory.getInteger(
-                                getTypeServices().getMaximumWidth()),
-                        getContextManager());
+                return new CharConstantNode(constantValue.getString(),
+                            ReuseFactory.getInteger(getTypeServices().getMaximumWidth()), getContextManager());
 
             case Types.TINYINT:
                 nodeType = C_NodeTypes.TINYINT_CONSTANT_NODE;
@@ -1135,12 +1125,8 @@ public class CastNode extends ValueNode
                 {
                     BooleanConstantNode bcn = (BooleanConstantNode) castOperand;
                     String booleanString = bcn.getValueAsString();
-                    retNode = (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.CHAR_CONSTANT_NODE,
-                            booleanString,
-                            ReuseFactory.getInteger(
-                                    getTypeServices().getMaximumWidth()),
-                            getContextManager());
+                    retNode = new CharConstantNode( booleanString, ReuseFactory.getInteger(getTypeServices().getMaximumWidth()),
+                                    getContextManager());
                 }
                 break;
 
@@ -1160,12 +1146,8 @@ public class CastNode extends ValueNode
                     } else {
                         castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
                     }
-                    retNode = (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.CHAR_CONSTANT_NODE,
-                            castValue,
-                            ReuseFactory.getInteger(
-                                    getTypeServices().getMaximumWidth()),
-                            getContextManager());
+                    retNode = new CharConstantNode(castValue, ReuseFactory.getInteger(getTypeServices().getMaximumWidth()),
+                                        getContextManager());
                 }
                 break;
             case Types.TIMESTAMP:
@@ -1180,11 +1162,7 @@ public class CastNode extends ValueNode
                     SQLChar sqlChar = new SQLChar(castValue);
                     int width = getTypeServices().getMaximumWidth();
                     sqlChar.setWidth(width, -1, false);
-                    retNode = (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.CHAR_CONSTANT_NODE,
-                            sqlChar.toString(),
-                            ReuseFactory.getInteger(width),
-                            getContextManager());
+                    retNode = new CharConstantNode(sqlChar.toString(), ReuseFactory.getInteger(width), getContextManager());
                 }
                 break;
             case Types.DOUBLE:
@@ -1193,12 +1171,8 @@ public class CastNode extends ValueNode
                     FloatingPointDataType dvd = (FloatingPointDataType) ((ConstantNode) castOperand).getValue();
                     dvd.setFloatingPointNotation(getCompilerContext().getFloatingPointNotation());
                     String castValue = dvd.getString();
-                    retNode = (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.CHAR_CONSTANT_NODE,
-                            castValue,
-                            ReuseFactory.getInteger(
-                                    getTypeServices().getMaximumWidth()),
-                            getContextManager());
+                    retNode = new CharConstantNode(castValue, ReuseFactory.getInteger(getTypeServices().getMaximumWidth()),
+                                            getContextManager());
                 } else {
                     retNode = getCastFromNumericType(
                             ((ConstantNode) castOperand).getValue(),
