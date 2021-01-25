@@ -143,7 +143,7 @@ public class KeyAccessTokenVerifierTest {
     @Test
     public void testKeyAccessTokenVerifierWrongIssuer() throws StandardException {
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("Token is from another isser http://splicemachine.com/:http://example.com");
+        expectedEx.expectMessage("Token is from another issuer http://splicemachine.com/:http://example.com");
 
         Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database_hs256");
         String jwt = createJWT(key);
@@ -160,7 +160,7 @@ public class KeyAccessTokenVerifierTest {
     @Test
     public void testKeyPairAccessTokenWrongIssuer() throws StandardException {
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("Token is from another isser http://splicemachine.com/:http://example.com");
+        expectedEx.expectMessage("Token is from another issuer http://splicemachine.com/:http://example.com");
 
         Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database");
         String jwt = createJWT(key);

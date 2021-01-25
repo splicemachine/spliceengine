@@ -78,7 +78,7 @@ public class KeyAccessTokenVerifier implements AccessTokenVerifier {
         Claims jwtBody = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwtToken).getBody();
 
         if (!jwtBody.get("iss").equals(issuer)) {
-            throw new IllegalArgumentException(String.format("Token is from another isser %s:%s", jwtBody.get("iss"), issuer));
+            throw new IllegalArgumentException(String.format("Token is from another issuer %s:%s", jwtBody.get("iss"), issuer));
         }
 
         return (String) jwtBody.get(userNameClaim);

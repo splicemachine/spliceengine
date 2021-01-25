@@ -44,6 +44,8 @@ public class AccessTokenVerifierFactory {
                 return new KeyAccessTokenVerifier();
             case SPLICE_JWT_PUB:
                 return new KeyPairAccessTokenVerifier();
+            case SPLICE_OAUTH:
+                return new Auth0AccessTokenVerifier();
             default:
                 throw new IllegalArgumentException(String.format("%s authenticator is not supported", authenticatorName));
         }
