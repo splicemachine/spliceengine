@@ -152,7 +152,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private final String ipAddress;
     private InternalDatabase spliceInstance;
-    private String dbName;
+    private String initialDbName;
 
     private final int instanceNumber;
     private String drdaID;
@@ -399,7 +399,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         langFactory=lf;
         connFactory=lcf;
         this.spliceInstance = spliceInstance;
-        this.dbName = dbName;
+        this.initialDbName = dbName;
         this.userName=userName;
         this.groupuserlist=groupuserlist;
         this.instanceNumber=instanceNumber;
@@ -569,7 +569,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     protected DatabaseDescriptor initDatabaseDescriptor() throws StandardException {
-        return getDataDictionary().getDatabaseDescriptor(dbName, getTransactionCompile(), true);
+        return getDataDictionary().getDatabaseDescriptor(initialDbName, getTransactionCompile(), true);
     }
 
 
@@ -2244,6 +2244,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public DatabaseDescriptor getCurrentDatabase(Activation a) {
+        return getCurrentSQLSessionContext(a).getCurrentDatabase();
+    }
+
+    @Override
+    public boolean currentDatabaseIsSpliceDB() {
+        return getCurrentDatabase().getDatabaseName().equals(DatabaseDescriptor.STD_DB_NAME);
+    }
+
+    @Override
     public String getCurrentSchemaName() {
         // getCurrentSchemaName with no arg is used even
         // at run-time but only in places(*) where the statement context
@@ -2275,7 +2285,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setCurrentDatabase(DatabaseDescriptor desc) {
         getCurrentSQLSessionContext().setCurrentDatabase(desc);
-        dbName = desc.getDatabaseName();
+    }
+
+    @Override
+    public void setCurrentDatabase(Activation a, DatabaseDescriptor desc) {
+        getCurrentSQLSessionContext(a).setCurrentDatabase(desc);
     }
 
     @Override
@@ -3362,8 +3376,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getDbname() {
-        return dbName;
+    public String getCurrentDatabaseName(Activation a) {
+        return getCurrentDatabase(a).getDatabaseName();
+    }
+
+    @Override
+    public String getCurrentDatabaseOwner(Activation a) {
+        return getCurrentDatabase(a).getAuthorizationId();
     }
 
     @Override
@@ -3389,7 +3408,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
-        sb.append(getDbname());
+        sb.append(getCurrentDatabase().getDatabaseName());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.drdaStr);
@@ -3442,6 +3461,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setCurrentUser(Activation a, String userName) {
         getCurrentSQLSessionContext(a).setUser(userName);
+    }
+
+    @Override
+    public boolean currentUserIsDatabaseOwner(Activation a) {
+        String dbo = getCurrentDatabase().getAuthorizationId();
+        List<String> currentGroupUser = getCurrentGroupUser(a);
+        String currentUser = getCurrentUserId(a);
+        return currentUser.equals(dbo) || (currentGroupUser != null && currentGroupUser.contains(dbo));
     }
 
     @Override
@@ -3548,7 +3575,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public boolean roleIsSettable(Activation a,String role) throws StandardException{
 
         DataDictionary dd=getDataDictionary();
-        String dbo=dd.getAuthorizationDatabaseOwner(getDatabaseId());
+        String dbo = getCurrentDatabase().getAuthorizationId();
 
         RoleGrantDescriptor grantDesc=null;
         String currentUser=getCurrentUserId(a);
@@ -3984,7 +4011,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
                 getTransactionExecute().getTransactionIdString(),
                 getInstanceNumber(),
-                getDbname(),
+                getCurrentDatabase().getDatabaseName(),
                 getDrdaID(),
                 getSessionUserId());
     }

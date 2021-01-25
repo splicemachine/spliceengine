@@ -1655,10 +1655,11 @@ public interface DataDictionary{
      * Get an AliasDescriptor given its UUID.
      *
      * @param uuid The UUID
+     * @param tc
      * @return The AliasDescriptor for method alias.
      * @throws StandardException Thrown on failure
      */
-    AliasDescriptor getAliasDescriptor(UUID uuid) throws StandardException;
+    AliasDescriptor getAliasDescriptor(UUID uuid, TransactionController tc) throws StandardException;
 
     /**
      * Get a AliasDescriptor by alias name and name space.
@@ -1667,10 +1668,11 @@ public interface DataDictionary{
      * @param schemaID  schema identifier
      * @param aliasName The alias name.
      * @param nameSpace The alias name space.
+     * @param tc
      * @return AliasDescriptor    AliasDescriptor for the alias name and name space
      * @throws StandardException Thrown on failure
      */
-    AliasDescriptor getAliasDescriptor(String schemaID,String aliasName,char nameSpace) throws StandardException;
+    AliasDescriptor getAliasDescriptor(String schemaID, String aliasName, char nameSpace, TransactionController tc) throws StandardException;
 
     /**
      * Get the list of routines matching the schema and routine name.
@@ -2132,21 +2134,27 @@ public interface DataDictionary{
      * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param databaseName
      * @param schemaName the schema where the procedure does and/or will reside
      * @param procName   the procedure to create or update
      * @param tc         the xact
      * @throws StandardException
      */
-    void createOrUpdateSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
+    void createOrUpdateSystemProcedure(String databaseName, String schemaName, String procName, TransactionController tc) throws StandardException;
 
     /**
      * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param dbDesc
      * @param tc the xact
      * @throws StandardException
      */
-    void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException;
+    void createOrUpdateAllSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException;
+
+    void createOrUpdateAllSystemProceduresForAllDatabases(TransactionController tc) throws StandardException;
 
     /**
      * Drop a sequence descriptor.
@@ -2337,9 +2345,9 @@ public interface DataDictionary{
 
     boolean useTxnAwareCache();
 
-    void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException;
+    void createDbOwnerSchema(TransactionController tc, UUID databaseUuid, String dbOwner) throws StandardException;
 
-    UUID createNewDatabase(String name) throws StandardException;
+    DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException;
 
-    UUID createNewDatabase(String name, String dbOwner, String dbPassword) throws StandardException;
+    UUID createNewDatabaseAndDatabaseOwner(String name, String dbOwner, String dbPassword) throws StandardException;
 }

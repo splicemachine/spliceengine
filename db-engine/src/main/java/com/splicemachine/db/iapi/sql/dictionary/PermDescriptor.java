@@ -173,11 +173,11 @@ public class PermDescriptor extends PermissionsDescriptor
         }
         else if ( PermDescriptor.AGGREGATE_TYPE.equals( objectType ) )
         {
-            return dd.getAliasDescriptor( objectID );
+            return dd.getAliasDescriptor( objectID, null);
         }
         else if ( PermDescriptor.UDT_TYPE.equals( objectType ) )
         {
-            return dd.getAliasDescriptor( objectID );
+            return dd.getAliasDescriptor( objectID, null);
         }
         else
         {

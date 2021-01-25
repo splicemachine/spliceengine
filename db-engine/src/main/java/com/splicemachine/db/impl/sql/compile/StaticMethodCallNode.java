@@ -757,7 +757,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                         ad.getNameSpace(),
                         ad.getSystemAlias(),
                         routineInfo,
-                        ad.getSpecificName());
+                        ad.getSpecificName(), null);
 
                 // Update signature by adding in the script String's corresponding JSQLType
                 JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));

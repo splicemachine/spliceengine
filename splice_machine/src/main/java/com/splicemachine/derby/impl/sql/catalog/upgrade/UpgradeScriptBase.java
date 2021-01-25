@@ -44,7 +44,7 @@ public class UpgradeScriptBase implements UpgradeScript {
 
         SchemaDescriptor sd = sdd.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
-        AliasDescriptor ad = sdd.getAliasDescriptor(schemaId.toString(), procedureName, procedureOrFunction);
+        AliasDescriptor ad = sdd.getAliasDescriptor(schemaId.toString(), procedureName, procedureOrFunction, tc);
         if (ad != null) {  // Drop the procedure if it already exists.
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Dropping system %s %s.%s", ad.getDescriptorType().toLowerCase(), sName, pName));
             sdd.dropAliasDescriptor(ad, tc);

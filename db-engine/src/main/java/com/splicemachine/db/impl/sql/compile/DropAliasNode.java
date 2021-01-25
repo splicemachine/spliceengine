@@ -133,7 +133,7 @@ public class DropAliasNode extends DDLStatementNode
 		
 		if (sd.getUUID() != null) {
 			ad = dataDictionary.getAliasDescriptor
-			                          (sd.getUUID().toString(), aliasName, nameSpace );
+			                          (sd.getUUID().toString(), aliasName, nameSpace, null);
 		}
 		if ( ad == null )
 		{

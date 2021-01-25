@@ -332,7 +332,7 @@ public abstract class EmbedConnection implements EngineConnection
                     AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
                     af.elevateRawTransaction(Bytes.toBytes("boot"));
                     DataDictionary dd = database.getDataDictionary();
-                    dd.createNewDatabase(getDBName(),
+                    dd.createNewDatabaseAndDatabaseOwner(getDBName(),
                                          info.getProperty(Attribute.USERNAME_ATTR),
                                          info.getProperty(Attribute.PASSWORD_ATTR)
                             );
@@ -895,8 +895,7 @@ public abstract class EmbedConnection implements EngineConnection
         final LanguageConnectionContext lcc = getLanguageConnection();
         final String actualId = lcc.getSessionUserId();
         final String dbOwnerId;
-        dbOwnerId = lcc.getDataDictionary().
-                getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        dbOwnerId = lcc.getCurrentDatabase().getAuthorizationId();
         if (!actualId.equals(dbOwnerId)) {
             switch (operation) {
             case OP_ENCRYPT:
@@ -2723,7 +2722,7 @@ public abstract class EmbedConnection implements EngineConnection
                     "), " +
                       LanguageConnectionContext.lccStr +
                     Integer.toString(lcc.getInstanceNumber()) + "), " +
-                      LanguageConnectionContext.dbnameStr + lcc.getDbname() + "), " +
+                      LanguageConnectionContext.dbnameStr + lcc.getCurrentDatabase().getDatabaseName() + "), " +
                       LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
         }
         

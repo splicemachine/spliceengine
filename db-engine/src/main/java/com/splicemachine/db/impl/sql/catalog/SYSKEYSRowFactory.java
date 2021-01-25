@@ -38,11 +38,10 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
-
-import javax.xml.crypto.Data;
 
 /**
  * Factory for creating a SYSKEYS row.
@@ -153,15 +152,16 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 	 * Make a SubConstraintDescriptor out of a SYSKEYS row
 	 *
 	 * @param row a SYSKEYS row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
 	 * @param dd dataDictionary
 	 *
-	 * @exception   StandardException thrown on failure
+	 * @param tc
+     * @exception   StandardException thrown on failure
 	 */
 	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
 					throws StandardException
 	{
 		SubKeyConstraintDescriptor keyDesc = null;

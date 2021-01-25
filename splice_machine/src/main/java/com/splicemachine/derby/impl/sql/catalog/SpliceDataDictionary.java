@@ -47,8 +47,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.db.BasicDatabase;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
@@ -268,11 +266,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
         if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
-            sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, tc);
+            sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, spliceDbDesc, tc);
         }
 
         //create AllRoles view
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+
+        // create syssequencesView
+        // XXX (arnaud, multidb) Add this new view to an upgrade script
+        createOneSystemView(tc, SYSSEQUENCES_CATALOG_NUM, "SYSSEQUENCESVIEW", 0, sysVWSchema, SYSSEQUENCESRowFactory.SYSSEQUENCES_VIEW_SQL);
 
         createOneSystemView(tc, SYSROLES_CATALOG_NUM, "SYSALLROLES", 0, sysVWSchema, SYSROLESRowFactory.ALLROLES_VIEW_SQL);
 
@@ -284,7 +286,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // create systablesView
         createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLESVIEW", 0, sysVWSchema, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
-
 
         // create syscolumnsView
         createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
@@ -400,7 +401,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
                     true,
                     new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
-                    null);
+                    null, tc);
             addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
                     false, tc, false);
 
@@ -477,7 +478,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
         //Add the SYSIBMADM schema if it does not exists
         if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
-            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
+            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, spliceDbDesc, tc);
         }
 
         TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
@@ -737,7 +738,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(schemaID.equals(SchemaDescriptor.SYSFUN_SCHEMA_UUID) &&
                     (nameSpace==AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR ||
                             nameSpace==AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR)){
-                AliasDescriptor ad=getAliasDescriptor(schemaID,routineName,nameSpace);
+                AliasDescriptor ad=getAliasDescriptor(schemaID,routineName,nameSpace, null);
                 return ad==null?
                         Collections.EMPTY_LIST:
                         Collections.singletonList(ad);
@@ -849,9 +850,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             throw Exceptions.parseException(e);
         }
     }
-    public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException{
+    public void createOrUpdateAllSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException{
         tc.elevate("dictionary");
-        super.createOrUpdateAllSystemProcedures(tc);
+        super.createOrUpdateAllSystemProcedures(dbDesc, tc);
         SpliceLogUtils.info(LOG, "System procedures created or updated");
     }
 
@@ -1403,7 +1404,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             while (scanController.fetchNext(outRow.getRowArray())) {
                 String aliasUUIDString = outRow.getColumn(SYSROUTINEPERMSRowFactory.ALIASID_COL_NUM).getString();
                 UUID aliasUUID = getUUIDFactory().recreateUUID(aliasUUIDString);
-                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor) rf.buildDescriptor(outRow, null, this);
+                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor)rf.buildDescriptor(outRow, null, this, tc);
                 // we have looked up the sysaliases table when building the permsDescriptor above,
                 // if the aliasid does not exist, routineName is null
                 String ad = permsDescriptor.getRoutineName();
@@ -1417,7 +1418,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
             }
         }
-        
+
         SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
     }
 
@@ -1444,7 +1445,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             while (scanController.fetchNext(outRow.getRowArray())) {
                 RowLocation rowLocation = scanController.newRowLocationTemplate();
                 scanController.fetchLocation(rowLocation);
-                DependencyDescriptor dependencyDescriptor = (DependencyDescriptor) rf.buildDescriptor(outRow, null, this);
+                DependencyDescriptor dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null, this, tc);
                 // check if the dependencyDescriptors are the ones that we want
                 DependableFinder finder = dependencyDescriptor.getDependentFinder();
                 if (finder == null)
@@ -1546,14 +1547,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
         AliasDescriptor ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
-                "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+                "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR, tc);
         if (ad != null) {
             dropAliasDescriptor(ad, tc);
             SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP");
         }
 
         ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
-                "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+                "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR, tc);
         if (ad != null) {
             dropAliasDescriptor(ad, tc);
             SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP");
@@ -1648,7 +1649,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
-        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID, null);
 
         return (RoutinePermsDescriptor)getPermissions(key, metadataAccessRestrictionEnabled);
     } // end of getRoutinePermissions

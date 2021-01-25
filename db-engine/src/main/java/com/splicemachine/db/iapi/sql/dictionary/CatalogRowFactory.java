@@ -37,8 +37,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -343,8 +343,8 @@ public abstract	class CatalogRowFactory
 	/** builds a tuple descriptor from a row */
 	public abstract TupleDescriptor 
 		buildDescriptor(ExecRow row,
-						TupleDescriptor parentTuple,
-						DataDictionary	dataDictionary)
+                        TupleDescriptor parentTuple,
+                        DataDictionary dataDictionary, TransactionController tc)
 		throws StandardException;
 
 	/** builds a column list for the catalog */

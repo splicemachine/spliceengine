@@ -71,7 +71,7 @@ public class OperationManagerImpl implements OperationManager {
             return false;
         Activation activation = op.getOperation().getActivation();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        String databaseOwner = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
         String runningUserId = lcc.getCurrentUserId(activation);
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
@@ -106,7 +106,7 @@ public class OperationManagerImpl implements OperationManager {
             return false;
         Activation activation = op.getOperation().getActivation();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        String databaseOwner = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
         String runningUserId = lcc.getCurrentUserId(activation);
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 

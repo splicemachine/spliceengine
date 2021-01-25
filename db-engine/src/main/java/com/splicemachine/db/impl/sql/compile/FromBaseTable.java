@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -1320,9 +1321,11 @@ public class FromBaseTable extends FromTable {
         boolean authorizeSYSTOKENS= dataDictionary.usesSqlAuthorization() &&
                 tableDescriptor.getUUID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID);
         if(authorizeSYSUSERS || authorizeSYSTOKENS){
-            String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner(getLanguageConnectionContext().getDatabaseId());
-            String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
-            List<String> groupuserlist = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            SQLSessionContext context = lcc.getStatementContext().getSQLSessionContext();
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
+            String currentUser = context.getCurrentUser();
+            List<String> groupuserlist = context.getCurrentGroupUser();
 
             if(! (databaseOwner.equals(currentUser) || (groupuserlist != null && groupuserlist.contains(databaseOwner)))){
                 throw StandardException.newException(SQLState.DBO_ONLY);

@@ -1084,7 +1084,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                 break;
 
             AliasDescriptor nextAD=dd.getAliasDescriptor(nextSD.getUUID().toString(),
-                    nextSynonymTable,AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR);
+                    nextSynonymTable,AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR, null);
             if(nextAD==null)
                 break;
 
@@ -1191,7 +1191,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         SchemaDescriptor typeSchema=getSchemaDescriptor(dbId, userTypeID.getSchemaName());
         char udtNameSpace=AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR;
         String unqualifiedTypeName=userTypeID.getUnqualifiedName();
-        AliasDescriptor ad=dd.getAliasDescriptor(typeSchema.getUUID().toString(),unqualifiedTypeName,udtNameSpace);
+        AliasDescriptor ad=dd.getAliasDescriptor(typeSchema.getUUID().toString(),unqualifiedTypeName,udtNameSpace, null);
 
         if(ad==null){
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND,AliasDescriptor.getAliasType(udtNameSpace),unqualifiedTypeName);

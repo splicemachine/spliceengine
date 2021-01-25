@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLBlob;
@@ -119,7 +120,7 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
     @Override
     public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary dataDictionary) throws StandardException {
+                                           DataDictionary dataDictionary, TransactionController tc) throws StandardException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
                     row.nColumns() == SOURCECODE_COLUMN_COUNT,

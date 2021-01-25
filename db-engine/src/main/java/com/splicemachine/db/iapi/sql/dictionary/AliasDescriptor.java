@@ -49,6 +49,7 @@ import com.splicemachine.db.catalog.UUID;
 import	com.splicemachine.db.catalog.DependableFinder;
 import	com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 
 /**
@@ -83,22 +84,22 @@ public final class AliasDescriptor
 
 	/**
 	 * Constructor for a AliasDescriptor
-	 *
-	 * @param dataDictionary		The data dictionary that this descriptor lives in
-	 * @param aliasID				The UUID for this alias
-	 * @param aliasName				The name of the method alias
-	 * @param schemaID				The UUID for this alias's schema
-	 * @param javaClassName			The java class name of the alias
-	 * @param aliasType				The alias type
-	 * @param nameSpace				The alias name space
-	 * @param aliasInfo				The AliasInfo for the alias
+	 *  @param dataDictionary        The data dictionary that this descriptor lives in
+	 * @param aliasID                The UUID for this alias
+	 * @param aliasName                The name of the method alias
+	 * @param schemaID                The UUID for this alias's schema
+	 * @param javaClassName            The java class name of the alias
+	 * @param aliasType                The alias type
+	 * @param nameSpace                The alias name space
+	 * @param aliasInfo                The AliasInfo for the alias
+	 * @param tc
 	 *
 	 */
 
-	public	AliasDescriptor( DataDictionary dataDictionary, UUID aliasID,
+	public	AliasDescriptor(DataDictionary dataDictionary, UUID aliasID,
 							  String aliasName, UUID schemaID, String javaClassName,
 							  char aliasType, char nameSpace, boolean systemAlias,
-							  AliasInfo aliasInfo, String specificName)
+							  AliasInfo aliasInfo, String specificName, TransactionController tc)
         throws StandardException
 	{
 		super( dataDictionary );
@@ -106,7 +107,7 @@ public final class AliasDescriptor
 		this.aliasID = aliasID;
 		this.aliasName = aliasName;
 		this.schemaID = schemaID;
-		this.schemaDescriptor = dataDictionary.getSchemaDescriptor(schemaID, null);
+		this.schemaDescriptor = dataDictionary.getSchemaDescriptor(schemaID, tc);
 		this.javaClassName = javaClassName;
 		this.aliasType = aliasType;
 		this.nameSpace = nameSpace;

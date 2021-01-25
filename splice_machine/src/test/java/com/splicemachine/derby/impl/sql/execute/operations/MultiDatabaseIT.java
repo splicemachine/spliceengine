@@ -16,30 +16,28 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test_dao.TableDAO;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
 /**
  * Tests around creating schemas
  */
-public class MultiDatabaseIT {
+public class MultiDatabaseIT extends SpliceUnitTest {
     protected static SpliceWatcher classWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(MultiDatabaseIT.class);
     private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName().toUpperCase();
+    private static String OTHER_DB_OWNER_NOT_SPLICE = MultiDatabaseIT.class.getSimpleName().toUpperCase() + "2";
     private static String SCHEMA = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String TABLE = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String ROLE = "ROLE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
@@ -47,19 +45,25 @@ public class MultiDatabaseIT {
     private static String SEQUENCE = "SEQUENCE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
 
 
+    protected static SpliceDatabaseWatcher otherDbOwnerNotSpliceWatcher = new SpliceDatabaseWatcher(OTHER_DB_OWNER_NOT_SPLICE, OTHER_DB_OWNER_NOT_SPLICE);
     protected static SpliceDatabaseWatcher otherDbWatcher = new SpliceDatabaseWatcher(OTHER_DB);
     protected static SpliceSchemaWatcher spliceDbSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
     protected static SpliceSchemaWatcher otherDbSchemaWatcher = new SpliceSchemaWatcher(OTHER_DB, SCHEMA);
+    protected static SpliceSchemaWatcher otherDbOwnerNotSpliceSchemaWatcher = new SpliceSchemaWatcher(OTHER_DB_OWNER_NOT_SPLICE, SCHEMA, OTHER_DB_OWNER_NOT_SPLICE);
 
     protected static TestConnection spliceDbConn;
     protected static TestConnection otherDbConn;
+    protected static TestConnection otherDbOwnerNotSpliceConn;
     protected static TestConnection[] connections;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(otherDbWatcher)
+            .around(otherDbOwnerNotSpliceWatcher)
             .around(spliceDbSchemaWatcher)
-            .around(otherDbSchemaWatcher);
+            .around(otherDbSchemaWatcher)
+            .around(otherDbOwnerNotSpliceSchemaWatcher);
+            ;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -68,19 +72,40 @@ public class MultiDatabaseIT {
     public void setUp() throws Exception {
         spliceDbConn = methodWatcher.createConnection();
         otherDbConn = methodWatcher.connectionBuilder().database(OTHER_DB).build();
-        connections = new TestConnection[]{spliceDbConn, otherDbConn};
+        otherDbOwnerNotSpliceConn = methodWatcher.connectionBuilder().database(OTHER_DB_OWNER_NOT_SPLICE).user(OTHER_DB_OWNER_NOT_SPLICE).build();
+        connections = new TestConnection[]{spliceDbConn, otherDbConn, otherDbOwnerNotSpliceConn};
+    }
+
+    private interface RunnableOnConnection {
+        void run(TestConnection conn) throws SQLException;
+    }
+
+    private void runEverywhere(RunnableOnConnection func) throws SQLException {
+        for (TestConnection conn: connections) {
+            func.run(conn);
+        }
+    }
+
+    private void executeSqlEverywhere(String sql) throws SQLException {
+        runEverywhere(conn -> conn.execute(sql));
+    }
+
+    private void executeSqlEverywhere(String sql, Object... parameters) throws SQLException {
+        executeSqlEverywhere(String.format(sql, parameters));
     }
 
     @Test
     public void testCurrentDatabase() throws SQLException {
-        try (ResultSet rs = spliceDbConn.query("select current server")) {
-            rs.next();
-            assertEquals("SPLICEDB", rs.getString(1));
-        }
-        try (ResultSet rs = otherDbConn.query("select current server")) {
-            rs.next();
-            assertEquals(OTHER_DB, rs.getString(1));
-        }
+        checkStringExpression("current server", "SPLICEDB", spliceDbConn);
+        checkStringExpression("current server", OTHER_DB, otherDbConn);
+        checkStringExpression("current server", OTHER_DB_OWNER_NOT_SPLICE, otherDbOwnerNotSpliceConn);
+    }
+
+    @Test
+    public void testCurrentDatabaseAdmin() throws SQLException {
+        checkStringExpression("current database admin", "SPLICE", spliceDbConn);
+        checkStringExpression("current database admin", "SPLICE", otherDbConn);
+        checkStringExpression("current database admin", OTHER_DB_OWNER_NOT_SPLICE, otherDbOwnerNotSpliceConn);
     }
 
     @Test
@@ -99,23 +124,28 @@ public class MultiDatabaseIT {
 
     @Test
     public void testSysViewSchema() throws SQLException {
-        List<String> spliceSchemaUuids = Lists.newArrayListWithCapacity(connections.length);
-        List<String> testSchemaUuids = Lists.newArrayListWithCapacity(connections.length);
-        for (TestConnection conn: connections) {
-            try (ResultSet rs = conn.query(String.format(
-                    "select schemaname, schemaid from sysvw.sysschemasview where schemaname in ('SPLICE', '%s') order by 1", SCHEMA))) {
-                boolean next = rs.next();
-                assertTrue(next);
-                assertEquals(SCHEMA, rs.getString(1));
-                testSchemaUuids.add(rs.getString(2));
-                next = rs.next();
-                assertTrue(next);
+        Set<String> spliceSchemaUuids = new HashSet<>();
+        for (TestConnection conn: new TestConnection[] {spliceDbConn, otherDbConn}) {
+            try (ResultSet rs = conn.query("select schemaname, schemaid from sysvw.sysschemasview where schemaname = 'SPLICE'")) {
+                assertTrue(rs.next());
                 assertEquals("SPLICE", rs.getString(1));
                 spliceSchemaUuids.add(rs.getString(2));
+                assertFalse(rs.next());
             }
         }
-        assertEquals(spliceSchemaUuids.size(), spliceSchemaUuids.stream().distinct().count());
-        assertEquals(testSchemaUuids.size(), testSchemaUuids.stream().distinct().count());
+        assertEquals(2, spliceSchemaUuids.size());
+
+        Set<String> multiDatabaseItSchemaUuids = new HashSet<>();
+        runEverywhere(conn -> {
+            try (ResultSet rs = conn.query(String.format(
+                    "select schemaname, schemaid from sysvw.sysschemasview where schemaname = '%s'", SCHEMA))) {
+                assertTrue(rs.next());
+                assertEquals(SCHEMA, rs.getString(1));
+                multiDatabaseItSchemaUuids.add(rs.getString(2));
+                assertFalse(rs.next());
+            }
+        });
+        assertEquals(3, multiDatabaseItSchemaUuids.size());
     }
 
     @Test
@@ -191,53 +221,48 @@ public class MultiDatabaseIT {
 
     @Test
     public void testRoles() throws SQLException {
-        spliceDbConn.execute("CREATE ROLE %s", ROLE);
-        otherDbConn.execute("CREATE ROLE %s", ROLE);
-        spliceDbConn.execute("DROP ROLE %s", ROLE);
-        otherDbConn.execute("DROP ROLE %s", ROLE);
+        for (TestConnection conn: connections) {
+            conn.execute("CREATE ROLE %s", ROLE);
+        }
+        for (TestConnection conn: connections) {
+            conn.execute("DROP ROLE %s", ROLE);
+        }
     }
 
     @Test
     public void testUsers() throws SQLException {
-        spliceDbConn.execute("call syscs_util.syscs_create_user('%s', 'pw')", USER);
-        otherDbConn.execute("call syscs_util.syscs_create_user('%s', 'pw')", USER);
+        executeSqlEverywhere("call syscs_util.syscs_create_user('%s', 'pw')", USER);
 
-        spliceDbConn.execute("create sequence %s", SEQUENCE);
-        otherDbConn.execute("create sequence %s", SEQUENCE);
-        spliceDbConn.execute("grant usage on sequence %s to %s", SEQUENCE, USER);
-        otherDbConn.execute("grant usage on sequence %s to %s", SEQUENCE, USER);
+        executeSqlEverywhere("create sequence %s", SEQUENCE);
+        executeSqlEverywhere("grant usage on sequence %s to %s", SEQUENCE, USER);
 
         try (ResultSet rs = spliceDbConn.query(
                 "select count(*) from sys.sysperms, sys.syssequences sq" +
                         " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
                 USER, SEQUENCE)) {
             rs.next();
-            assertEquals(2, rs.getInt(1));
+            assertEquals(3, rs.getInt(1));
         }
 
-        try (ResultSet rs = spliceDbConn.query(
-                "select count(*) from sysvw.syspermsview, sys.syssequences sq" +
-                        " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
-                USER, SEQUENCE)) {
-            rs.next();
-            assertEquals(1, rs.getInt(1));
-        }
+        runEverywhere(conn -> {
+            try (ResultSet rs = conn.query(
+                    "select count(*) from sysvw.syspermsview, sysvw.syssequencesview sq" +
+                            " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
+                    USER, SEQUENCE)) {
+                rs.next();
+                assertEquals(1, rs.getInt(1));
+            }
+        });
 
-        try (ResultSet rs = otherDbConn.query(
-                "select count(*) from sysvw.syspermsview, sys.syssequences sq" +
-                        " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
-                USER, SEQUENCE)) {
-            rs.next();
-            assertEquals(1, rs.getInt(1));
-        }
+        // XXX also check that lambda splice user cannot execute stuff
 
-        spliceDbConn.execute("drop sequence %s RESTRICT", SEQUENCE);
-        otherDbConn.execute("drop sequence %s RESTRICT", SEQUENCE);
-        spliceDbConn.execute("call syscs_util.syscs_drop_user('%s')", USER);
-        otherDbConn.execute("call syscs_util.syscs_drop_user('%s')", USER);
+        executeSqlEverywhere("drop sequence %s RESTRICT", SEQUENCE);
+        executeSqlEverywhere("call syscs_util.syscs_drop_user('%s')", USER);
     }
 
     @Test
-    public void testPermission() throws SQLException {
+    public void testSysSchemaNotUsableFromOtherDb() {
+        assertFailed(otherDbConn, "select * from sys.sysdatabases", "42Y07");
+        assertFailed(otherDbOwnerNotSpliceConn, "select * from sys.sysdatabases", "42Y07");
     }
 }

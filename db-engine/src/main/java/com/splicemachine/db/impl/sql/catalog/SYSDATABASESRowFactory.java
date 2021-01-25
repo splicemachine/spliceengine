@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
@@ -179,14 +180,15 @@ public class SYSDATABASESRowFactory extends CatalogRowFactory
      * @param parentTupleDescriptor    unused
      * @param dd                     dataDictionary
      *
+     * @param tc
      * @return    a  descriptor equivalent to a SYSDATABASES row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(
-        ExecRow                    row,
-        TupleDescriptor            parentTupleDescriptor,
-        DataDictionary             dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
                     throws StandardException
     {
         DataValueDescriptor     col;

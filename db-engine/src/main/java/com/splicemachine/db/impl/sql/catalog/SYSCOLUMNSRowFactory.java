@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -288,18 +289,19 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     /**
      * Make a ColumnDescriptor out of a SYSCOLUMNS row
      *
-     * @param row 					a SYSCOLUMNS row
-     * @param parentTupleDescriptor	The UniqueTupleDescriptor for the object that is tied
+     * @param row                    a SYSCOLUMNS row
+     * @param parentTupleDescriptor    The UniqueTupleDescriptor for the object that is tied
      *								to this column
-     * @param dd 					dataDictionary
+     * @param dd                    dataDictionary
      *
+     * @param tc
      * @return	a column descriptor equivalent to a SYSCOLUMNS row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTupleDescriptor,
-                                           DataDictionary	dd) throws StandardException{
+                                           DataDictionary dd, TransactionController tc) throws StandardException{
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSCOLUMNS_COLUMN_COUNT,
                     "Wrong number of columns for a SYSCOLUMNS row");

@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
@@ -189,14 +190,15 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
      * @param parentTupleDescriptor    unused
      * @param dd                     dataDictionary
      *
+     * @param tc
      * @return    a  descriptor equivalent to a SYSSCHEMAS row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(
-        ExecRow                    row,
-        TupleDescriptor            parentTupleDescriptor,
-        DataDictionary             dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
                     throws StandardException
     {
         DataValueDescriptor     col;
@@ -302,7 +304,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
             SUPER_USER_SCHEMA +
             "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS + " AND " +
-                "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
+                "CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
             "UNION ALL " +
             REGULAR_USER_SCHEMA +
             "UNION " +

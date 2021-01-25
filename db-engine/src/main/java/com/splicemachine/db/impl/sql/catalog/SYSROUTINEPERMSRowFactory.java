@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -140,7 +141,7 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 	/** builds a tuple descriptor from a row */
 	public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary	dataDictionary)
+                                           DataDictionary dataDictionary, TransactionController tc)
 		throws StandardException
     {
         if( SanityManager.DEBUG)
@@ -156,7 +157,7 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 	        new RoutinePermsDescriptor( dataDictionary,
                     getAuthorizationID( row, GRANTEE_COL_NUM),
                     getAuthorizationID( row, GRANTOR_COL_NUM),
-                    aliasUUID);
+                    aliasUUID, tc);
         routinePermsDesc.setUUID(routinePermsUUID);
 			return routinePermsDesc;
     } // end of buildDescriptor
@@ -309,5 +310,5 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 
             "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYSVW.SYSSCHEMASVIEW S "+
             "WHERE P.ALIASID = A.ALIASID AND A.SCHEMAID= S.SCHEMAID AND " +
-            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
+            "CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

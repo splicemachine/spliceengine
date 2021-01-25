@@ -194,13 +194,13 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
                                      aliasType,
                                      nameSpace,
                                      false,
-                                     aliasInfo, null);
+                                     aliasInfo, null, tc);
 
         // perform duplicate rule checking
         switch (aliasType) {
         case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
 
-            AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
+            AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace, tc);
             if ( duplicateAlias != null )
             {
                 throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName );
@@ -223,7 +223,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 
             case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 
-            AliasDescriptor duplicateUDT = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
+            AliasDescriptor duplicateUDT = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace, tc);
             if ( duplicateUDT != null ) { throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName ); }
             break;
             
@@ -272,7 +272,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
                     break;
 
                 AliasDescriptor nextAD = dd.getAliasDescriptor(nextSD.getUUID().toString(),
-                         nextSynTable, nameSpace);
+                         nextSynTable, nameSpace, tc);
                 if (nextAD == null)
                     break;
 

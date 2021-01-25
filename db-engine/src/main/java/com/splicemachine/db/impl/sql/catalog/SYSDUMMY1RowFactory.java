@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -97,9 +98,9 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
     }
 
     public TupleDescriptor buildDescriptor(
-        ExecRow 			row,
-        TupleDescriptor    parentDesc,
-        DataDictionary 	dd)
+            ExecRow row,
+            TupleDescriptor parentDesc,
+            DataDictionary dd, TransactionController tc)
         throws StandardException
 
     {

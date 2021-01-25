@@ -93,7 +93,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 		/* Get the alias descriptor.  We're responsible for raising
 		 * the error if it isn't found 
 		 */
-		AliasDescriptor ad = dd.getAliasDescriptor(sd.getUUID().toString(), aliasName, nameSpace);
+		AliasDescriptor ad = dd.getAliasDescriptor(sd.getUUID().toString(), aliasName, nameSpace, null);
 		// RESOLVE - fix error message
 		if (ad == null)
 			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, AliasDescriptor.getAliasType(nameSpace),  aliasName);

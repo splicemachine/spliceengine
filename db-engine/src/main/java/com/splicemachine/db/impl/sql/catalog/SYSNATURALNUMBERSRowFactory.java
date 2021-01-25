@@ -122,9 +122,10 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
      * @param parentTupleDescriptor Null for this kind of descriptor.
      * @param dd dataDictionary
      *
+     * @param tc
      * @exception   StandardException thrown on failure
      */
-    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTupleDescriptor, DataDictionary dd )
+    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTupleDescriptor, DataDictionary dd, TransactionController tc)
 			throws StandardException
 	{
         if (SanityManager.DEBUG) {

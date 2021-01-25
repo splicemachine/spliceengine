@@ -40,10 +40,7 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -171,7 +168,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 
         // Check for existing procedure
         String schemaIdStr = schemaId.toString();
-        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR, tc);
         if (ad != null) {  // Drop the procedure if it already exists.
             dictionary.dropAliasDescriptor(ad, tc);
         }
@@ -183,6 +180,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * and then created again. This includes functions implemented as
      * stored procedures.
      *
+     *
+     * @param dbId
      * @param schemaName           the schema where the procedure does and/or will reside
      * @param procName             the procedure to create or update
      * @param tc                   the xact
@@ -190,6 +189,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * @throws StandardException
      */
     public final void createOrUpdateProcedure(
+            UUID dbId,
             String schemaName,
             String procName,
             TransactionController tc,
@@ -204,15 +204,15 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         procName = procName.toUpperCase();
 
         // Delete the procedure from SYSALIASES if it already exists.
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(dbId, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
 
            // Check for existing procedure
         String schemaIdStr = schemaId.toString();
-        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR, tc);
         if (ad == null) {
             // If not found check for existing function
-            ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
+            ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR, tc);
         }
 
         List<RoutinePermsDescriptor> permsList = new ArrayList<> ();
@@ -224,7 +224,9 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         }
 
         // Find the definition of the procedure and create it.
-        Procedure procedure = findProcedure(schemaId, procName, tc);
+        DatabaseDescriptor spliceDbDesc = dictionary.getSpliceDatabaseDescriptor();
+        SchemaDescriptor schemaInSpliceDb = dictionary.getSchemaDescriptor(spliceDbDesc.getUUID(), schemaName, tc, true);
+        Procedure procedure = findProcedure(schemaInSpliceDb.getUUID(), procName, tc);
         if (procedure == null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
         } else {
@@ -236,7 +238,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 //remove perm from SYS.SYSROUTINEPERMS
                 dictionary.addRemovePermissionsDescriptor(false, perm, perm.getGrantee(), tc);
                 //update perm with new routineUUID
-                RoutinePermsDescriptor newPerm = new RoutinePermsDescriptor(dictionary, perm.getGrantee(), perm.getGrantor(), newAliasDescriptor.getUUID(), perm.getHasExecutePermission());
+                RoutinePermsDescriptor newPerm = new RoutinePermsDescriptor(dictionary, perm.getGrantee(), perm.getGrantor(), newAliasDescriptor.getUUID(), perm.getHasExecutePermission(), tc);
                 // add a new perm row with updated UUID of the system procedure
                 dictionary.addRemovePermissionsDescriptor(true, newPerm, newPerm.getGrantee(), tc);
             }
@@ -247,13 +249,15 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * Create or update all system stored procedures.  If the system stored procedure already exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param dbId
      * @param schemaName           the schema where the procedures do and/or will reside
      * @param tc                   the xact
      * @param newlyCreatedRoutines set of newly created procedures
      * @throws StandardException
      */
     public final void createOrUpdateAllProcedures(
-            String schemaName,
+            UUID dbId, String schemaName,
             TransactionController tc,
             HashSet newlyCreatedRoutines) throws StandardException {
 
@@ -267,13 +271,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         }
         for (Procedure p : procedureList) {
             if (p != null) {
-                createOrUpdateProcedure(schemaName, p.getName(), tc, newlyCreatedRoutines);
+                createOrUpdateProcedure(dbId, schemaName, p.getName(), tc, newlyCreatedRoutines);
             }
         }
     }
 
     /**
      * Find a list of system procedures for the specified schema that has been defined in this class.
+     *
      *
      * @param schemaName  name of the schema
      * @param tc          the transaction
@@ -286,7 +291,10 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             return null;
         }
 
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        // We do not consider the current database to search for procedures. Those are defined against spliceDb
+        DatabaseDescriptor dbDesc = dictionary.getSpliceDatabaseDescriptor();
+
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(dbDesc.getUUID(), schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
         Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
         return procedureMap.get(schemaId);

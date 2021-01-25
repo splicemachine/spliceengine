@@ -162,8 +162,8 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
                                    DataDictionary dd,
                                    LanguageConnectionContext lcc)
             throws StandardException {
-        if (user.equals(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId()))) return;
-        if (groupuserlist != null && groupuserlist.contains(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId())))
+        if (user.equals(lcc.getCurrentDatabase().getAuthorizationId())) return;
+        if (groupuserlist != null && groupuserlist.contains(lcc.getCurrentDatabase().getAuthorizationId()))
             return;
 
         if (td == null) return;
