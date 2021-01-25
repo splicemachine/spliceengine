@@ -438,7 +438,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if( jobStatus == null )
             return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
         else {
-            try (ListenerCounting counter = new ListenerCounting(null, UUID.randomUUID().toString(), "CREATE TABLE", jobStatus)) {
+            try (ListenerCounting counter = new ListenerCounting(UUID.randomUUID().toString(), "CREATE TABLE", jobStatus)) {
                 return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
             }
         }

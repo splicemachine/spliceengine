@@ -21,6 +21,7 @@ public class ijImpl extends ijCommands {
     static final String DOUBLEQUOTES = "\"\"";
 
     boolean elapsedTime = true;
+    boolean progressBar = false;
 
     String urlCheck = null;
 
@@ -458,5 +459,69 @@ public class ijImpl extends ijCommands {
 
         return identifier;
     }
+
+    public ijResult connect(boolean simplifiedPath, String protocolIn,
+                            String userS, String passwordS, String connectionStr, String name) throws SQLException {
+        String sVal;
+        Properties connInfo = new Properties();
+
+        //If ij.dataSource property is set,use DataSource to get the connection
+        String dsName = util.getSystemProperty("ij.dataSource");
+        if (dsName != null){
+            //Check that t.image does not start with jdbc:
+            //If it starts with jdbc:, do not use DataSource to get connection
+            sVal = connectionStr;
+            if(!sVal.startsWith("jdbc:") ){
+                theConnection = util.getDataSourceConnection(dsName,userS,passwordS,sVal,false);
+                return addSession( theConnection, name );
+            }
+        }
+
+        if (simplifiedPath)
+            // url for the database W/O 'jdbc:protocol:', i.e. just a dbname
+            // For example,
+            //  CONNECT TO 'test'
+            // is equivalent to
+            //   CONNECT TO 'jdbc:splice:test'
+            sVal = "jdbc:splice:" + connectionStr;
+        else
+            sVal = connectionStr;
+
+        // add named protocol if it was specified
+        if (protocolIn != null) {
+            String protocol = (String)namedProtocols.get(protocolIn);
+            if (protocol == null) { throw ijException.noSuchProtocol(protocolIn); }
+            sVal = protocol + sVal;
+        }
+
+        // add protocol if no driver matches url
+        boolean noDriver = false;
+        // if we have a full URL, make sure it's loaded first
+        try {
+            if (sVal.startsWith("jdbc:"))
+                util.loadDriverIfKnown(sVal);
+        } catch (Exception e) {
+            // want to continue with the attempt
+        }
+        // By default perform extra checking on the URL attributes.
+        // This checking does not change the processing.
+        if (urlCheck == null || Boolean.valueOf(urlCheck).booleanValue()) {
+            URLCheck aCheck = new URLCheck(sVal);
+        }
+        if (!sVal.startsWith("jdbc:") && (protocolIn == null) && (protocol != null)) {
+            sVal = protocol + sVal;
+        }
+
+
+        // If no ATTRIBUTES on the connection get them from the
+        // defaults
+        connInfo = util.updateConnInfo(userS,passwordS, connInfo);
+
+
+        theConnection = DriverManager.getConnection(sVal,connInfo);
+        theConnection2 = DriverManager.getConnection(sVal,connInfo);
+        return addSession( theConnection, name );
+    }
+
 
 }
