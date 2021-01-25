@@ -883,34 +883,6 @@ public class FromBaseTable extends FromTable {
         return mapAbsoluteToRelativeColumnPosition(absolutePosition);
     }
 
-    private void setFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd, StoreCostController scc) throws StandardException {
-        currentIndexFirstColumnStats.reset();
-        currentIndexFirstColumnStats.setRowCountFromStats(scc.getEstimatedRowCount());
-        if (!cd.isIndex() && !cd.isPrimaryKey()) {
-            cd.setFirstColumnStats(currentIndexFirstColumnStats);
-            return;
-        }
-
-        boolean isIndexOnExpression = cd.getIndexDescriptor().isOnExpression();
-        int columnNumber = isIndexOnExpression ? 1 : cd.getIndexDescriptor().baseColumnPositions()[0];
-
-        currentIndexFirstColumnStats.
-            setFirstIndexColumnCardinality(scc.cardinality(isIndexOnExpression, columnNumber));
-        if (currentIndexFirstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
-            cd.setFirstColumnStats(currentIndexFirstColumnStats);
-            return;
-        }
-        currentIndexFirstColumnStats.
-            setFirstIndexColumnRowsPerValue(Double.valueOf(currentIndexFirstColumnStats.getRowCountFromStats()) /
-                                            currentIndexFirstColumnStats.getFirstIndexColumnCardinality());
-        // Also update the current conglomerate descriptor with stats, which will
-        // persist in that descriptor after we move on to considering another
-        // conglomerate as an access path.
-        // At the end of access path planning, currentIndexFirstColumnStats will get updated
-        // with the stats from the conglomerate we picked if IndexPrefixIteratorMode is chosen.
-        cd.setFirstColumnStats(currentIndexFirstColumnStats);
-    }
-
     @Override
     public CostEstimate estimateCost(OptimizablePredicateList predList,
                                      ConglomerateDescriptor cd,
@@ -963,7 +935,7 @@ public class FromBaseTable extends FromTable {
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         useRealTableStats=scc.useRealTableStatistics();
-        setFirstIndexColumnRowsPerValue(cd, scc);
+        currentIndexFirstColumnStats=cd.getFirstColumnStats();
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
