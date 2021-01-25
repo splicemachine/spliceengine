@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
@@ -191,6 +192,7 @@ public class ConflictResolutionStrategyIT extends SpliceUnitTest {
 
             private void checkErrorMessage(String expectedErrorMessage, String actualErrorMessage) {
                 for(Map.Entry<String, Transaction> entry : harness.txns.entrySet()) {
+                    expectedErrorMessage = expectedErrorMessage.replaceAll(String.format("\\!%sParent\\!", entry.getKey()+""), String.valueOf(entry.getValue().txnId & SIConstants.TRANSANCTION_ID_MASK));
                     expectedErrorMessage = expectedErrorMessage.replaceAll(String.format("\\!%s\\!", entry.getKey()), String.valueOf(entry.getValue().txnId));
                 }
                 for(String errorMessagePart : expectedErrorMessage.split("\\!\\?\\!")) {
