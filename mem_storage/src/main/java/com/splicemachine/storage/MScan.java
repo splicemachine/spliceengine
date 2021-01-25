@@ -14,14 +14,11 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.*;
-
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * @author Scott Fines

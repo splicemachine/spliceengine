@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
@@ -138,6 +139,39 @@ public class StoreCostControllerImpl implements StoreCostController {
         missingExprIndexPartitions = 0;
         setTableStatistics(td, tablePartitionStatistics, defaultRowCount);
         setExpressionBasedIndexStatistics(conglomerateDescriptor, exprIndexPartitionStatistics, defaultRowCount);
+        setFirstIndexColumnRowsPerValue(conglomerateDescriptor);
+    }
+
+    private void setFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException {
+        if (cd.getFirstColumnStats() != null)
+            return;
+        synchronized (cd) {
+            // Test again in case another thread got the lock on cd ahead of us.
+            if (cd.getFirstColumnStats() != null)
+                return;
+            FirstColumnOfIndexStats firstColumnStats = new FirstColumnOfIndexStats();
+            cd.setFirstColumnStats(firstColumnStats);
+
+            firstColumnStats.setRowCountFromStats(getEstimatedRowCount());
+            if (!cd.isIndex() && !cd.isPrimaryKey()) {
+                return;
+            }
+
+            boolean isIndexOnExpression = cd.getIndexDescriptor().isOnExpression();
+            int columnNumber = isIndexOnExpression ? 1 : cd.getIndexDescriptor().baseColumnPositions()[0];
+
+            firstColumnStats.
+                setFirstIndexColumnCardinality(cardinality(isIndexOnExpression, columnNumber));
+            if (firstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
+                return;
+            }
+            firstColumnStats.
+                setFirstIndexColumnRowsPerValue(Double.valueOf(firstColumnStats.getRowCountFromStats()) /
+                    firstColumnStats.getFirstIndexColumnCardinality());
+            // At the end of access path planning, FromBaseTable.currentIndexFirstColumnStats will get updated
+            // with the stats from the conglomerate picked to scan if IndexPrefixIteratorMode is chosen.
+            cd.setFirstColumnStats(firstColumnStats);
+        }
     }
 
     private List<PartitionStatistics> collectPartitionStatistics(boolean forExprIndex,
