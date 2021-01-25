@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.utils.DbEngineUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;
@@ -593,5 +594,32 @@ public class SpliceAdminIT extends SpliceUnitTest {
         finally {
             methodWatcher.execute(String.format(timestampFormat, "NULL"));
         }
+    }
+
+    @Test
+    public void testGetGlobalDatabaseProperties() throws Exception {
+        methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', NULL )");
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', false)") ) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertEquals(
+                            "PROPERTY_NAME          | VALUE |INFO |\n" +
+                            "-----------------------------------------------\n" +
+                            "splice.function.timestampFormat | NULL  |     |", actual );
+        }
+
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', true)") ) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertEquals("", actual );
+        }
+    }
+
+    @Test
+    public void testGetJavaRegexpFilterFromAsterixFilter() {
+        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter("Hello*World"), "Hello.*World");
+        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter("Hello?World"), "Hello.World");
+        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter(
+                "With things-to-(escape)"),
+                "With things\\-to\\-\\(escape\\)");
     }
 }

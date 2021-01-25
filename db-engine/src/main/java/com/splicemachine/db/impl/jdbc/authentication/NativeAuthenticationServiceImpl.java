@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -97,8 +98,8 @@ public final class NativeAuthenticationServiceImpl
     
     private String      _credentialsDB;
     private boolean _authenticateDatabaseOperationsLocally;
-    private long        _passwordLifetimeMillis = Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT;
-    private double      _passwordExpirationThreshold = Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT;
+    private long        _passwordLifetimeMillis = PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT;
+    private double      _passwordExpirationThreshold = PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT;
     private String      _badlyFormattedPasswordProperty;
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +171,7 @@ public final class NativeAuthenticationServiceImpl
         String passwordLifetimeString = PropertyUtil.getPropertyFromSet
             (
              properties,
-             Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME
+             PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME
              );
         if ( passwordLifetimeString != null )
         {
@@ -178,13 +179,13 @@ public final class NativeAuthenticationServiceImpl
 
             if ( passwordLifetime != null ) { _passwordLifetimeMillis = passwordLifetime; }
             else
-            { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME; }
+            { _badlyFormattedPasswordProperty = PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME; }
         }
 
         String  expirationThresholdString = PropertyUtil.getPropertyFromSet
             (
              properties,
-             Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD
+             PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD
              );
         if ( expirationThresholdString != null )
         {
@@ -192,7 +193,7 @@ public final class NativeAuthenticationServiceImpl
 
             if ( expirationThreshold != null ) { _passwordExpirationThreshold = expirationThreshold; }
             else
-            { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD; }
+            { _badlyFormattedPasswordProperty = PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD; }
         }
         
     }
@@ -589,7 +590,7 @@ public final class NativeAuthenticationServiceImpl
                     throw SQLWarningFactory.newSQLWarning( SQLState.DBO_PASSWORD_EXPIRES_SOON, databaseName );
                 }
                 
-                long    daysRemaining = remainingLifetime / Property.MILLISECONDS_IN_DAY;
+                long    daysRemaining = remainingLifetime / PropertyHelper.MILLISECONDS_IN_DAY;
                 throw SQLWarningFactory.newSQLWarning
                     ( SQLState.PASSWORD_EXPIRES_SOON, Long.toString( daysRemaining ), databaseName );
             }

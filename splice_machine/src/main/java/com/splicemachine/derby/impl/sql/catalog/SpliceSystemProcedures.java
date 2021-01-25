@@ -1086,6 +1086,19 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build());
 
         /*
+         * Procedure to get all database properties
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTIES")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .modifiesSql() // restrict execution
+                .returnType(null).isDeterministic(false)
+                .varchar("FILTER", Limits.DB2_VARCHAR_MAXWIDTH)
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
+
+        /*
          * Procedure to enable splice enterprise version
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_ENABLE_ENTERPRISE")

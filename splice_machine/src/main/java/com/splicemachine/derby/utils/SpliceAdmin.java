@@ -22,6 +22,7 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
@@ -68,6 +69,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -1280,35 +1282,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
-    static boolean databasePropertyExists(final String key) {
-        SConfiguration config=EngineDriver.driver().getConfiguration();
-
-        // get configurations from SConfigurationImpl and Hadoop ConfigurationSource
-        Map<String,Object> configRootMap = config.getConfigMap();
-        if(configRootMap != null && configRootMap.getOrDefault(key, null) != null)
-            return true;
-
-        // get configuration fields from class com.splicemachine.db.iapi.reference.Property
-        for (Field field : com.splicemachine.db.iapi.reference.Property.class.getFields()) {
-            try {
-                if(field.getType().equals(String.class)
-                        && ((String)field.get(null)).compareTo(key) == 0 ) {
-                    return true;
-                }
-            } catch (IllegalAccessException e) {
-                // continue
-            }
-        }
-        return false;
-    }
-
     public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value,
                                                           final ResultSet[] resultSet) throws SQLException{
         try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
-            lcc.getLastActivation().addWarning(new SQLWarning("WARNING!!!\n"));
             dd.startWriting(lcc);
             String previous = PropertyUtil.getCachedDatabaseProperty(lcc, key);
             PropertyInfo.setDatabaseProperty(key, value);
@@ -1322,21 +1301,27 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ResultHelper resultHelper = new ResultHelper();
 
             ResultHelper.VarcharColumn c1 = resultHelper.addVarchar("name", 20);
-            ResultHelper.VarcharColumn c2 = resultHelper.addVarchar("value", 180);
+            ResultHelper.VarcharColumn c2 = resultHelper.addVarchar("value", 150);
             resultHelper.newRow();
-            c1.set("KEY");      c2.set(key);
+            c1.set("PROPERTY_NAME");      c2.set(key);
             resultHelper.newRow();
             c1.set("NEW VALUE");    c2.set(value);
             resultHelper.newRow();
             c1.set("PREVIOUS VALUE");  c2.set(previous);
 
-            if( !databasePropertyExists(key) ) {
+            if( !PropertyHelper.getAllProperties().contains(key) ) {
                 resultHelper.newRow();
                 resultHelper.newRow();
                 c1.set("!!! WARNING !!!");
                 c2.set("Database Property '" + key + "' seems to be unknown!");
 
                 SpliceLogUtils.warn(LOG, "Database Property '" + key + "' was set, but it seems to be unknown");
+            }
+            else {
+                // reserved to add information about properties later
+                resultHelper.newRow();
+                c1.set("INFO");
+                c2.set("");
             }
             resultSet[0] = resultHelper.getResultSet();
         } catch (StandardException se) {
@@ -1345,6 +1330,31 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw new SQLException(e);
         }
     }
+
+    public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTIES(String filter,
+                                                            final boolean showNonNullOnly,
+                                                            final ResultSet[] resultSet) throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn colProperty = resultHelper.addVarchar("PROPERTY_NAME", -1);
+        ResultHelper.VarcharColumn colValue    = resultHelper.addVarchar("VALUE", -1);
+        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 50);
+        if( filter != null ) {
+            filter = DbEngineUtils.getJavaRegexpFilterFromAsterixFilter(filter);
+        }
+
+        for(String property : PropertyHelper.getAllProperties()) {
+            if( filter != null && filter.length() > 0 && !property.matches(filter) ) continue;
+            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property);
+            if( showNonNullOnly && value == null ) continue;
+            resultHelper.newRow();
+            colProperty.set(property);
+            colValue.set(value);
+            colInfo.set(""); // reserved to add information about properties later
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
 
     public static void SYSCS_ENABLE_ENTERPRISE(final String value) throws SQLException{
         try {
