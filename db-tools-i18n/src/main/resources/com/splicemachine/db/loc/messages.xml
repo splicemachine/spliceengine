@@ -910,6 +910,11 @@ so the product will default to showing a correct English message. -->
                 <text>Field position must be greater than zero.</text>
             </msg>
 
+            <msg>
+                <name>22031</name>
+                <text>Invalid timezone arithmetic operation.</text>
+            </msg>
+
 
         </family>
 
