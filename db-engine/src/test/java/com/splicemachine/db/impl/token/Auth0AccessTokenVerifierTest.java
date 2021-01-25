@@ -48,171 +48,73 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KeyAccessTokenVerifierTest {
+public class Auth0AccessTokenVerifierTest {
 
-    public static final String SPLICEMACHINE_COM_ISSUER = "http://splicemachine.com/";
+    public static final String ISSUER = "https://splicemachine-dev.auth0.com/";
+
+    private static final String EXPIRED_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1EWTFOVFl5UVRGRFEwRkdNa0ZFTWtFMU1qVTRORVE1T0RJNU1VUTBORFJETlRFeFFUaEdSQSJ9.eyJpc3MiOiJodHRwczovL3NwbGljZW1hY2hpbmUtZGV2LmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDEwNjUzMjM4OTU1Mzk4Mzk1NzQ1NyIsImF1ZCI6Im4xMExtS3RvaldURmtHSkNJQVF6RllzSjlBWW1yNW9oIiwiaWF0IjoxNjExNTY5NTAwLCJleHAiOjE2MTE1Njk1NjB9.nYoPRmw63brpipxmRyrkJrAnthvvWaSECJlkgz2dbcWeZC7k2kkVFXQCo1G405oMWCswGLU_UgpOxhYqxGcKMcRuFcTMR1hFd5TH4czvFRmGK22gxcP4gr8yPWpXkwolisewibDdD9bZCcsO1QD1vDZ65VA7KKMMVXSOzwZ_JEHrtWkL7JDXAreP2VJjREpkDV9c8KRoqMw1-Fazb3_9xuXaAJXSTUFojty8tx8hGX5HUF3bP9ODemQBCgzzGPkz7h_RF7cnrG3V_cm3QFiLzafE5ehBjiXYIVvjr04efKD5ynfvyOb9EBn729m_1gJ4wX85V-_tviiIt2iLlFAM4g";
+
+    private static final String EXPIRE_IN_2031_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1EWTFOVFl5UVRGRFEwRkdNa0ZFTWtFMU1qVTRORVE1T0RJNU1VUTBORFJETlRFeFFUaEdSQSJ9.eyJpc3MiOiJodHRwczovL3NwbGljZW1hY2hpbmUtZGV2LmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDEwNjUzMjM4OTU1Mzk4Mzk1NzQ1NyIsImF1ZCI6Im4xMExtS3RvaldURmtHSkNJQVF6RllzSjlBWW1yNW9oIiwiaWF0IjoxNjExNTY5ODU4LCJleHAiOjE5MjY5Mjk4NTh9.GUzOpOHYXT8Bkelb-4KUwSUlQfUU9-3o5YPAjEBgMoElkkfm5K2TzrQ5Aib9OycQTW_hfCZUn7CTqhNdFe2Y57ybfc1vx6-1LvHeAFtCqa7z9MKfS_VtkUJTni8FRtCnqFxQg7caOrtOZoFTf14KLvVj3SlqutJ3D2-9k6Horj848G7kZUEmsqWT5K6-4_oAlJth3vMG1ynJ0gG39QsIaS84bOtXKoSMgC8oxU36HHTNmL76qyMdZfYmDgcakM8A6-8riPVYg8O99nb921BF6u5NjEgnd8wbzXoQmKdSx3obYwKPmCdDe-PH0x51jHhk0rHPMo1GNpw0JA_Lr-EdWw";
+
+    private static final String AUDIENCE = "n10LmKtojWTFkGJCIAQzFYsJ9AYmr5oh";
 
     @Test
-    public void testKeyAccessTokenVerifier() throws StandardException {
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database_hs256");
-        String jwt = createJWT(key);
+    public void testTokenVerifier() throws StandardException {
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUTH0_CERT, Auth0AccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/auth0_sm.pub").getPath());
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, ISSUER);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUDIENCE, AUDIENCE);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "sub");
 
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database_hs256");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT").decodeUsername(jwt));
+        Assert.assertEquals("google_oauth2_106532389553983957457", AccessTokenVerifierFactory.createVerifier("SPLICE_OAUTH").decodeUsername(EXPIRE_IN_2031_TOKEN));
     }
 
     @Test(expected = io.jsonwebtoken.ExpiredJwtException.class)
-    public void testKeyAccessTokenVerifierExpired() throws StandardException {
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database_hs256");
-        String jwt = createJWT(key,-1);
+    public void testTokenExpired() throws StandardException {
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUTH0_CERT, Auth0AccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/auth0_sm.pub").getPath());
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, ISSUER);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUDIENCE, AUDIENCE);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "sub");
 
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database_hs256");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT").decodeUsername(jwt));
+        Assert.assertEquals("google_oauth2_106532389553983957457", AccessTokenVerifierFactory.createVerifier("SPLICE_OAUTH").decodeUsername(EXPIRED_TOKEN));
     }
-
-    @Test(expected = io.jsonwebtoken.security.SignatureException.class)
-    public void testKeyAccessTokenVerifierWrongKey() throws StandardException {
-        Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        String jwt = createJWT(key,-1);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database_hs256");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT").decodeUsername(jwt));
-    }
-
-    @Test
-    public void testKeyPairAccessTokenVerifier() throws StandardException {
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database");
-        String jwt = createJWT(key);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT_PUB").decodeUsername(jwt));
-    }
-
-    @Test(expected = io.jsonwebtoken.ExpiredJwtException.class)
-    public void testKeyPairAccessTokenVerifierExpired() throws StandardException {
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database");
-        String jwt = createJWT(key, -1);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT_PUB").decodeUsername(jwt));
-    }
-
-    @Test(expected = io.jsonwebtoken.UnsupportedJwtException.class)
-    public void testKeyPairAccessTokenVerifierWrongKey() throws StandardException {
-        Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        String jwt = createJWT(key, -1);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, SPLICEMACHINE_COM_ISSUER);
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT_PUB").decodeUsername(jwt));
-    }
-
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
     @Test
-    public void testKeyAccessTokenVerifierWrongIssuer() throws StandardException {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("Token is from another issuer http://splicemachine.com/:http://example.com");
+    public void testWrongCert() throws StandardException {
+        expectedEx.expect(io.jsonwebtoken.security.SignatureException.class);
+        expectedEx.expectMessage("JWT signature does not match locally computed signature. JWT validity cannot be asserted and should not be trusted.");
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUTH0_CERT, Auth0AccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/auth0_y.pub").getPath());
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, ISSUER);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUDIENCE, AUDIENCE);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "sub");
 
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database_hs256");
-        String jwt = createJWT(key);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database_hs256");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, "http://example.com");
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT").decodeUsername(jwt));
+        Assert.assertEquals("google_oauth2_106532389553983957457", AccessTokenVerifierFactory.createVerifier("SPLICE_OAUTH").decodeUsername(EXPIRE_IN_2031_TOKEN));
     }
 
     @Test
-    public void testKeyPairAccessTokenWrongIssuer() throws StandardException {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("Token is from another issuer http://splicemachine.com/:http://example.com");
+    public void testWrongIssuer() throws StandardException {
+        expectedEx.expect(java.lang.IllegalArgumentException.class);
+        expectedEx.expectMessage("Token is from another issuer https://splicemachine-dev.auth0.com/:https://splicemachine-dev.auth0.com/test");
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUTH0_CERT, Auth0AccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/auth0_sm.pub").getPath());
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, ISSUER + "test");
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUDIENCE, AUDIENCE);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "sub");
 
-        Key key = loadKey(KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath(), "admin2020", "splice_database");
-        String jwt = createJWT(key);
-
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEY_STORE, KeyAccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/splice_database.jks").getPath());
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_PASSWORD, "admin2020");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_JKS_KEYSTORE_ALIAS, "splice_database");
-        System.setProperty(KeyAccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, "http://example.com");
-        System.setProperty(OktaAccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "db_user");
-
-        Assert.assertEquals("splice_user", AccessTokenVerifierFactory.createVerifier("SPLICE_JWT_PUB").decodeUsername(jwt));
+        Assert.assertEquals("google_oauth2_106532389553983957457", AccessTokenVerifierFactory.createVerifier("SPLICE_OAUTH").decodeUsername(EXPIRE_IN_2031_TOKEN));
     }
 
-    private static Key loadKey(String keyStorePath, String password, String alias) {
-        try {
-            KeyStore keyStore = KeyStore.getInstance("pkcs12");
-            try(InputStream keyStoreData = new FileInputStream(keyStorePath)){
-                keyStore.load(keyStoreData, password.toCharArray());
-                Key key = keyStore.getKey(alias, password.toCharArray());
-                return key;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+    @Test
+    public void testWrongAudience() throws StandardException {
+        expectedEx.expect(java.lang.IllegalArgumentException.class);
+        expectedEx.expectMessage("Token is for another audience n10LmKtojWTFkGJCIAQzFYsJ9AYmr5oh:n10LmKtojWTFkGJCIAQzFYsJ9AYmr5ohtest");
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUTH0_CERT, Auth0AccessTokenVerifierTest.class.getResource("/com.splicemachine.db.impl.token/auth0_sm.pub").getPath());
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_ISSUER, ISSUER);
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_AUDIENCE, AUDIENCE + "test");
+        System.setProperty(Auth0AccessTokenVerifier.SPLICE_JWT_TOKEN_USERNAME, "sub");
 
-    private static String createJWT(Key key) {
-        return  createJWT(key, 5);
-    }
-
-    private static String createJWT(Key key, int expiration) {
-        Calendar c = Calendar.getInstance();
-        c.add(Calendar.SECOND, expiration);  // number of days to add
-
-        Map<String, Object> additionalClaims = new HashMap<>();
-        additionalClaims.put("db_user", "splice_user");
-
-        if (key == null) {
-            return Jwts.builder().setIssuer(SPLICEMACHINE_COM_ISSUER)
-                    .setSubject("splice_user")
-                    .addClaims(additionalClaims)
-                    .setExpiration(c.getTime())
-                    .setAudience("database")
-                    .compact();
-        }
-        return Jwts.builder().setIssuer(SPLICEMACHINE_COM_ISSUER)
-                .setSubject("splice_user")
-                .setExpiration(c.getTime())
-                .setAudience("database")
-                .addClaims(additionalClaims)
-                .signWith(key).compact();
+        Assert.assertEquals("google_oauth2_106532389553983957457", AccessTokenVerifierFactory.createVerifier("SPLICE_OAUTH").decodeUsername(EXPIRE_IN_2031_TOKEN));
     }
 
 }
