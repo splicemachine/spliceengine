@@ -232,20 +232,15 @@ public class StaticMethodCallNode extends MethodCallNode {
                     .getProperty(SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
             SchemaDescriptor sd = null;
             if(candidateSchemasProperty != null) {
-                String[] candidateSchemas = (String[])(candidateSchemasProperty);
-                for(String candidateSchema : candidateSchemas) {
-                    try {
-                        sd = getSchemaDescriptor(candidateSchema, candidateSchema != null);
-                    } catch(StandardException e) {
-                        if(e.getSQLState() != null && e.getSQLState().equals(SQLState.LANG_SCHEMA_DOES_NOT_EXIST)) {
-                            throw StandardException.newException(SQLState.LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST,
-                                                                 Arrays.toString(candidateSchemas), candidateSchema);
-                        } else {
-                            throw e;
-                        }
+                String[] candidateSchemas = (String[]) (candidateSchemasProperty);
+                for (String candidateSchema : candidateSchemas) {
+                    sd = getSchemaDescriptor(candidateSchema, false);
+                    if (sd == null) {
+                        throw StandardException.newException(SQLState.LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST,
+                                                             Arrays.toString(candidateSchemas), candidateSchema);
                     }
                     setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, candidateSchema == null);
-                    if(ad != null) { // resolution complete
+                    if (ad != null) { // resolution complete
                         break;
                     }
                 }
