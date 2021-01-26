@@ -359,6 +359,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
 
     /* constructor */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
             ContextManager cm,
             TransactionController tranCtrl,
