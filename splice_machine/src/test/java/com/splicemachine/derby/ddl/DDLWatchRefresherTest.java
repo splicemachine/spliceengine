@@ -130,7 +130,7 @@ public class DDLWatchRefresherTest{
              */
             Assert.assertEquals("Incorrect initiated count for changeType "+type+"!",1,assertionListener.getCount(testChange));
             //there should only be 1 global change initiated, no matter what
-            Assert.assertEquals("Incorrect global start count!",0,assertionListener.getStartGlobalCount());
+            Assert.assertEquals("Incorrect global start count!",1,assertionListener.getStartGlobalCount());
             Assert.assertEquals("Incorrect global stop count!",0,assertionListener.getEndGlobalCount());
 //            Collection<DDLChange> tentativeChanges = refresher.tentativeDDLChanges();
 //            assertFalse("picked up "+type+" as tentative!",tentativeChanges.contains(testChange));
