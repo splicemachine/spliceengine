@@ -33,7 +33,7 @@ public class TListCommand extends CommonOptions implements Callable<Integer>
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
 
-        String javaFilter = DbEngineUtils.getJavaRegexpFilterFromAsterixFilter(filter);
+        String javaFilter = DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(filter);
         System.out.println(hbaseInspector.listTables(javaFilter.toUpperCase()));
         return 0;
     }

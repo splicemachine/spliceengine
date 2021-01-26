@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test_dao.TableDAO;
@@ -614,12 +613,5 @@ public class SpliceAdminIT extends SpliceUnitTest {
         }
     }
 
-    @Test
-    public void testGetJavaRegexpFilterFromAsterixFilter() {
-        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter("Hello*World"), "Hello.*World");
-        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter("Hello?World"), "Hello.World");
-        Assert.assertEquals( DbEngineUtils.getJavaRegexpFilterFromAsterixFilter(
-                "With things-to-(escape)"),
-                "With things\\-to\\-\\(escape\\)");
-    }
+
 }

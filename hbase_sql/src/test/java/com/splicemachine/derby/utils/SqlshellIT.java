@@ -8,7 +8,6 @@ import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 

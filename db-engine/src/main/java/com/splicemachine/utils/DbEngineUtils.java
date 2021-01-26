@@ -2,16 +2,15 @@ package com.splicemachine.utils;
 
 public class DbEngineUtils {
 
-    public static String getJavaRegexpFilterFromAsterixFilter(String asterixFilter)
+    public static String getJavaRegexpFilterFromAsteriskFilter(String asteriskFilter)
     {
-        String filter = asterixFilter;
+        String filter = asteriskFilter;
+        filter = filter.replace("\\", "\\\\");
         String toEscape[] = {"<", "(", "[", "{", "^", "-", "=", "$", "!", "|", "]", "}", ")", "+", ".", ">"};
         for(String s : toEscape) {
-            filter = filter.replaceAll("\\" + s, "\\\\" + s);
+            filter = filter.replace(s, "\\" + s);
         }
-        filter.replaceAll("\\\\", "\\\\\\\\");
-
-        filter = filter.replaceAll("\\*", ".*");
-        return filter.replaceAll("\\?", ".");
+        filter = filter.replace("*", ".*");
+        return filter.replace("?", ".");
     }
 }

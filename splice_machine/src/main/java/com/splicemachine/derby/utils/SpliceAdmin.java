@@ -85,7 +85,6 @@ import splice.com.google.common.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
@@ -1340,7 +1339,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         ResultHelper.VarcharColumn colValue    = resultHelper.addVarchar("VALUE", -1);
         ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 50);
         if( filter != null ) {
-            filter = DbEngineUtils.getJavaRegexpFilterFromAsterixFilter(filter);
+            filter = DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(filter);
         }
 
         for(String property : PropertyHelper.getAllProperties()) {
