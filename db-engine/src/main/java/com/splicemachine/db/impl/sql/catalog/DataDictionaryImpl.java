@@ -7278,26 +7278,30 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return conglomerateDescriptor;
     }
 
-    public void initSystemIndexVariables(TabInfoImpl ti,int indexNumber) throws StandardException{
-        int numCols=ti.getIndexColumnCount(indexNumber);
-        int[] baseColumnPositions=new int[numCols];
+    public void initSystemIndexVariables(TabInfoImpl ti,int indexNumber) throws StandardException {
+        int numCols = ti.getIndexColumnCount(indexNumber);
+        int[] baseColumnPositions = new int[numCols];
 
-        for(int colCtr=0;colCtr<numCols;colCtr++){
-            baseColumnPositions[colCtr]=ti.getBaseColumnPosition(indexNumber,colCtr);
+        for (int colCtr = 0; colCtr < numCols; colCtr++) {
+            baseColumnPositions[colCtr] = ti.getBaseColumnPosition(indexNumber, colCtr);
         }
 
-        int baseColumnLength=baseColumnPositions.length;
-        boolean[] isAscending=new boolean[baseColumnLength];
-        for(int i=0;i<baseColumnLength;i++)
-            isAscending[i]=true;
+        int baseColumnLength = baseColumnPositions.length;
+        boolean[] isAscending = new boolean[baseColumnLength];
+        for (int i = 0; i < baseColumnLength; i++)
+            isAscending[i] = true;
 
+        /* system tables don't drop columns so positions / storage positions are always in-sync.*/
+        int[] baseColumnStoragePositions = baseColumnPositions;
 
-        boolean isUnique=ti.isIndexUnique(indexNumber);
+        boolean isUnique = ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength,false,false);
+        IndexRowGenerator irg = new IndexRowGenerator("DENSE", isUnique, false,
+                                                      baseColumnPositions, baseColumnStoragePositions, isAscending,
+                                                      baseColumnLength, false, false);
 
         // For now, assume that all index columns are ordered columns
-        ti.setIndexRowGenerator(indexNumber,irg);
+        ti.setIndexRowGenerator(indexNumber, irg);
     }
 
     /**

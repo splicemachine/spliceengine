@@ -310,7 +310,7 @@ public class ProtoUtil {
             builder = builder.addDescColumns(!ascColumns[i]);
         }
 
-        int[] backingArray=indexDescriptor.baseColumnPositions();
+        int[] backingArray=indexDescriptor.baseColumnStoragePositions();
         for(int i=0;i<backingArray.length;i++){
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
         }

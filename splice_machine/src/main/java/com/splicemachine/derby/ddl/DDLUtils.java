@@ -254,24 +254,12 @@ public class DDLUtils {
         return scan;
     }
 
-    public static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
-        int[] mainColToIndexPosMap = new int[(int) indexedCols.length()];
-        for (int i = 0 ; i < indexedCols.length(); ++i) {
-            mainColToIndexPosMap[i] = -1;
+    public static BitSet asBitSet(int[] inputArray) {
+        BitSet result = new BitSet();
+        for (int item : inputArray) {
+            result.set(item - 1);
         }
-        for (int indexCol = 0; indexCol < indexColsToMainColMap.length; indexCol++) {
-            int mainCol = indexColsToMainColMap[indexCol];
-            mainColToIndexPosMap[mainCol - 1] = indexCol;
-        }
-        return mainColToIndexPosMap;
-    }
-
-    public static BitSet getIndexedCols(int[] indexColsToMainColMap) {
-        BitSet indexedCols = new BitSet();
-        for (int indexCol : indexColsToMainColMap) {
-            indexedCols.set(indexCol - 1);
-        }
-        return indexedCols;
+        return result;
     }
 
     public static byte[] getIndexConglomBytes(long indexConglomerate) {

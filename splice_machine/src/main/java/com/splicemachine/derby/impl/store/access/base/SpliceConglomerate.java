@@ -184,11 +184,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return columnOrdering;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public void setColumnOrdering(int[] columnOrdering){
-        this.columnOrdering=columnOrdering;
-    }
-
     public abstract int getBaseMemoryUsage();
 
     public abstract void writeExternal(ObjectOutput out) throws IOException;

@@ -69,38 +69,38 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 
     /**
      * Constructor for an IndexRowGeneratorImpl
-     * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
-     * @param isUniqueWithDuplicateNulls means the index is almost unique
-     *                              i.e. unique only for non null keys
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
-     * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
-     */
+     *  @param indexType        The type of index
+     * @param isUnique        True means the index is unique
+	 * @param isUniqueWithDuplicateNulls means the index is almost unique
+ *                              i.e. unique only for non null keys
+	 * @param baseColumnPositions    An array of column positions in the base
+* 								table.  Each index column corresponds to a
+* 								column position in the base table.
+	 * @param baseColumnStoragePositions
+	 * @param isAscending    An array of booleans telling asc/desc on each
+	 * 						column.
+	 * @param numberOfOrderedColumns    In the future, it will be possible
+ * 									to store non-ordered columns in an
+ * 									index.  These will be useful for
+	 */
     public IndexRowGenerator(String indexType,
-                             boolean isUnique,
-                             boolean isUniqueWithDuplicateNulls,
-                             int[] baseColumnPositions,
-                             boolean[] isAscending,
-                             int numberOfOrderedColumns,
-                             boolean excludeNulls,
-                             boolean excludeDefaults)
+							 boolean isUnique,
+							 boolean isUniqueWithDuplicateNulls,
+							 int[] baseColumnPositions,
+							 int[] baseColumnStoragePositions,
+							 boolean[] isAscending,
+							 int numberOfOrderedColumns,
+							 boolean excludeNulls,
+							 boolean excludeDefaults)
     {
         id = new IndexDescriptorImpl(indexType,
-                                    isUnique,
-                                    isUniqueWithDuplicateNulls,
-                                    baseColumnPositions,
-                                    isAscending,
-                                    numberOfOrderedColumns,
-                                    excludeNulls,
-                                    excludeDefaults);
+									 isUnique,
+									 isUniqueWithDuplicateNulls,
+									 baseColumnPositions,
+									 baseColumnStoragePositions,
+									 isAscending,
+									 numberOfOrderedColumns,
+									 excludeNulls, excludeDefaults);
 
         if (SanityManager.DEBUG)
         {
@@ -109,10 +109,11 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
         }
     }
 
-    public IndexRowGenerator(String indexType,
+ public IndexRowGenerator(String indexType,
                              boolean isUnique,
                              boolean isUniqueWithDuplicateNulls,
                              int[] baseColumnPositions,
+                             int[] baseColumnStoragePositions,
                              DataTypeDescriptor[] indexColumnTypes,
                              boolean[] isAscending,
                              int numberOfOrderedColumns,
@@ -126,6 +127,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
                                     isUnique,
                                     isUniqueWithDuplicateNulls,
                                     baseColumnPositions,
+                                    baseColumnStoragePositions,
                                     indexColumnTypes,
                                     isAscending,
                                     numberOfOrderedColumns,
@@ -422,7 +424,12 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 		return id.baseColumnPositions();
 	}
 
-	/** @see IndexDescriptor#getKeyColumnPosition */
+    @Override
+    public int[] baseColumnStoragePositions() {
+        return id.baseColumnStoragePositions();
+    }
+
+    /** @see IndexDescriptor#getKeyColumnPosition */
 	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
 	{
 		return id.getKeyColumnPosition(heapColumnPosition);
@@ -468,12 +475,6 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	public boolean[]		isAscending()
 	{
 		return id.isAscending();
-	}
-
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		id.setBaseColumnPositions(baseColumnPositions);
 	}
 
 	/** @see IndexDescriptor#setIsAscending */

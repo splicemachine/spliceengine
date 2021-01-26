@@ -45,7 +45,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         super(transformer.getIndexConglomBytes(),keepState);
         this.expectedWrites = expectedWrites;
         this.transformer = transformer;
-        this.indexedColumns = transformer.gitIndexedCols();
+        this.indexedColumns = transformer.getIndexColPositions();
     }
 
     @Override

@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
@@ -93,7 +94,7 @@ public class IndexTransformer {
     private DDLMessage.Index index;
     private DDLMessage.Table table;
     private int [] mainColToIndexPosMap;  // 0-based
-    private BitSet indexedCols;   // 0-based
+    private BitSet indexColumnStoragePositions;   // 0-based
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] indexRowSerializers;
@@ -119,8 +120,8 @@ public class IndexTransformer {
         excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
-        indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
-        mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
+        indexColumnStoragePositions = DDLUtils.asBitSet(Ints.toArray(indexColsList));
+        mainColToIndexPosMap = getMainColToIndexPosMap(Ints.toArray(indexColsList), indexColumnStoragePositions.length());
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
         if ( index.hasDefaultValues() && excludeDefaultValues) {
             defaultValue = (DataValueDescriptor) SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
@@ -144,6 +145,18 @@ public class IndexTransformer {
         }
     }
 
+    private static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, long indexColCount) {
+        int[] mainColToIndexPosMap = new int[(int)indexColCount];
+        for (int i = 0 ; i < indexColCount; ++i) {
+            mainColToIndexPosMap[i] = -1;
+        }
+        for (int indexCol = 0; indexCol < indexColsToMainColMap.length; indexCol++) {
+            int mainCol = indexColsToMainColMap[indexCol];
+            mainColToIndexPosMap[mainCol - 1] = indexCol;
+        }
+        return mainColToIndexPosMap;
+    }
+
     /**
      * @return true if this is a unique index.
      */
@@ -151,8 +164,21 @@ public class IndexTransformer {
         return index.getUnique();
     }
 
-    public BitSet gitIndexedCols() {
-        return indexedCols;
+    /**
+     * @return column position in the DDL order.
+     */
+    public BitSet getIndexColPositions() {
+        BitSet result = new BitSet(indexColumnStoragePositions.length());
+        if(SanityManager.DEBUG) {
+            SanityManager.ASSERT(Arrays.stream(mainColToIndexPosMap).filter(c -> c != -1).count() == indexColumnStoragePositions.cardinality(),
+                                 "the list of index storage columns must contain a matching set of columns not equal to -1 that matches the index DDL columns");
+        }
+        for(int i = 0; i < mainColToIndexPosMap.length; ++i) {
+            if(mainColToIndexPosMap[i] != -1) {
+                result.set(i);
+            }
+        }
+        return result;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
@@ -303,6 +329,7 @@ public class IndexTransformer {
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];
 
         ignore = false;
+        BitSet indexColPositions = getIndexColPositions();
 
         /*
          * Handle index columns from the source table's primary key.
@@ -311,6 +338,7 @@ public class IndexTransformer {
             //we have key columns to check
             MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
             keyDecoder.set(mutation.getRowKey());
+
             for(int i=0;i<table.getColumnOrderingCount();i++){
                 int sourceKeyColumnPos = table.getColumnOrdering(i);
                 int formatId = table.getFormatIds(sourceKeyColumnPos);
@@ -318,7 +346,7 @@ public class IndexTransformer {
                 boolean isNull = skip(keyDecoder, formatId);
                 int length = keyDecoder.offset() - offset - 1;
 
-                if (!indexedCols.get(sourceKeyColumnPos)) continue;
+                if (!indexColPositions.get(sourceKeyColumnPos)) continue;
                 if (numIndexExprs <= 0) {
                     int indexKeyPos = sourceKeyColumnPos < mainColToIndexPosMap.length ?
                             mainColToIndexPosMap[sourceKeyColumnPos] : -1;
@@ -355,7 +383,7 @@ public class IndexTransformer {
          */
         MultiFieldDecoder rowFieldDecoder = rowDecoder.getEntryDecoder();
         for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
-            if(!indexedCols.get(i)) {
+            if(!indexColumnStoragePositions.get(i)) {
                 //skip non-indexed columns
                 rowDecoder.seekForward(rowFieldDecoder,i);
                 continue;
@@ -510,7 +538,7 @@ public class IndexTransformer {
         if (indexValueEncoder == null) {
             BitSet nonNullFields = new BitSet();
             int highestSetPosition = 0;
-            for (int keyColumn : mainColToIndexPosMap) {
+            for (int keyColumn : mainColToIndexPosMap) { // FIXME use storage instead
                 if (keyColumn > highestSetPosition)
                     highestSetPosition = keyColumn;
             }
@@ -622,7 +650,7 @@ public class IndexTransformer {
     private ByteEntryAccumulator getKeyAccumulator() {
         if (indexKeyAccumulator == null) {
             BitSet keyFields = new BitSet();
-            for (int keyColumn : mainColToIndexPosMap) {
+            for (int keyColumn : mainColToIndexPosMap) {  // FIXME use storage instead
                 if (keyColumn >= 0)
                     keyFields.set(keyColumn);
             }

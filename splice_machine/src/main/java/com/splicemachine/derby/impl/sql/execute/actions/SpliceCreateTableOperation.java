@@ -32,6 +32,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -189,29 +190,29 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		}
 	}
 
-	@Override
-	protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td, long conglomId, SchemaDescriptor sd, DataDescriptorGenerator ddg) throws StandardException {
-        /*
-         * If there is a PrimaryKey Constraint, build an IndexRowGenerator that returns the Primary Keys,
-         * otherwise, do whatever Derby does by default
-         */
-		if(constraintActions ==null)
-			return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
+    @Override
+    protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td, long conglomId, SchemaDescriptor sd, DataDescriptorGenerator ddg) throws StandardException {
+		/*
+		 * If there is a PrimaryKey Constraint, build an IndexRowGenerator that returns the Primary Keys,
+		 * otherwise, do whatever Derby does by default
+		 */
+		if (constraintActions == null)
+			return super.getTableConglomerateDescriptor(td, conglomId, sd, ddg);
 
-		for(ConstraintConstantOperation constantAction:constraintActions){
-			if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-				int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnPositions(td, true);
+		for (ConstraintConstantOperation constantAction : constraintActions) {
+			if (constantAction.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
+				int[] pkColumns = ((CreateConstraintConstantOperation) constantAction).genColumnPositions(td, true);
+				int[] pkStorageColumns = ((CreateConstraintConstantOperation) constantAction).genColumnStoragePositions(td, true);
 				boolean[] ascending = new boolean[pkColumns.length];
-				for(int i=0;i<ascending.length;i++){
-					ascending[i] = true;
-				}
+				Arrays.fill(ascending, true);
 
-				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY", true, false, pkColumns,
+																	 pkStorageColumns, ascending, pkColumns.length, false, false);
 				IndexRowGenerator irg = new IndexRowGenerator(descriptor);
-				return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
+				return ddg.newConglomerateDescriptor(conglomId, null, false, irg, false, null, td.getUUID(), sd.getUUID());
 			}
 		}
-		return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
+		return super.getTableConglomerateDescriptor(td, conglomId, sd, ddg);
 	}
 
 	public String getScopeName() {

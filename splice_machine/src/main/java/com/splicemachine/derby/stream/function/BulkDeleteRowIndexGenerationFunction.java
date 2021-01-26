@@ -121,11 +121,11 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
     /**
      * Strip off all non-index columns from a main table row
      */
-    private ExecRow getIndexRow(IndexTransformFunction indexTransformFunction, ExecRow execRow) throws StandardException {
-        List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
+    private ExecRow getIndexRow(final IndexTransformFunction indexTransformFunction, ExecRow execRow) throws StandardException {
+        int indexColCount = indexTransformFunction.getIndexColsToMainColMapList().size();
         Long conglom = indexTransformFunction.getIndexConglomerateId();
         int[] indexColToScanRowMap = indexColMap.get(conglom);
-        ExecRow row = new ValueRow(indexColToMainCol.size());
+        ExecRow row = new ValueRow(indexColCount);
         int col = 1;
         for (Integer n : indexColToScanRowMap) {
             row.setColumn(col, execRow.getColumn(n+1));

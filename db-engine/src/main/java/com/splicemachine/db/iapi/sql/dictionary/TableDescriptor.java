@@ -1203,6 +1203,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return columnDescriptorList.getColumnDescriptor(oid,columnNumber);
     }
 
+    public ColumnDescriptor getColumnDescriptorByStorageId(int storageId) {
+        return columnDescriptorList.getColumnDescriptorByStorageId(oid, storageId);
+    }
+
     /**
      * Gets a ConglomerateDescriptor[] to loop through all the conglomerate descriptors
      * for the table.
@@ -1498,13 +1502,35 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return tableType == LOCAL_TEMPORARY_TABLE_TYPE;
     }
 
-        /*
-         * Get an int[] mapping the column position of the indexed columns in the main table
-         * to it's location in the index table. The values are placed in the provided baseColumnPositions array,
-         * and the highest baseColumnPosition is returned.
-         */
+    private interface IntProviderOperation {
+        int getInt(ColumnDescriptor cd);
+    }
+
+    /**
+     * Get an int[] mapping the column position of the indexed columns in the main table
+     * to it's location in the index table. The values are placed in the provided baseColumnPositions array,
+     * and the highest baseColumnPosition is returned.
+     */
     public int getBaseColumnPositions(LanguageConnectionContext lcc,
                                        int[] baseColumnPositions, String[] columnNames) throws StandardException {
+        return getBaseColumnPositions(lcc, baseColumnPositions, columnNames, ColumnDescriptor::getPosition);
+    }
+
+    /**
+     * Get an int[] mapping the column position of the indexed columns in the main table
+     * to it's storage location in the indexed table. The values are placed in the provided baseColumnStoragePositions array,
+     * and the highest baseColumnStoragePosition is returned.
+     */
+    public int getBaseColumnStoragePositions(LanguageConnectionContext lcc,
+                                      int[] baseColumnStoragePositions, String[] columnNames) throws StandardException {
+        return getBaseColumnPositions(lcc, baseColumnStoragePositions, columnNames, ColumnDescriptor::getStoragePosition);
+    }
+
+    private int getBaseColumnPositions(LanguageConnectionContext lcc,
+                                      int[] baseColumnPositions,
+                                       String[] columnNames,
+                                       IntProviderOperation intProvider
+                                      ) throws StandardException {
         int maxBaseColumnPosition = Integer.MIN_VALUE;
         ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
         for (int i = 0; i < columnNames.length; i++) {
@@ -1539,13 +1565,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
 
             // Remember the position in the base table of each column
-            baseColumnPositions[i] = columnDescriptor.getPosition();
+            baseColumnPositions[i] = intProvider.getInt(columnDescriptor);
 
             if (maxBaseColumnPosition < baseColumnPositions[i])
                 maxBaseColumnPosition = baseColumnPositions[i];
         }
         return maxBaseColumnPosition;
     }
+
 
     public DataValueDescriptor getDefaultValue(int columnNumber) {
         return getColumnDescriptor(columnNumber).getDefaultValue();

@@ -55,15 +55,15 @@ import java.util.List;
 
 /**
  *
- *	This class implements Formatable. That means that it
- *	can write itself to and from a formatted stream. If
- *	you add more fields to this class, make sure that you
- *	also write/read them with the writeExternal()/readExternal()
- *	methods.
+ * This class implements Formatable. That means that it
+ * can write itself to and from a formatted stream. If
+ * you add more fields to this class, make sure that you
+ * also write/read them with the writeExternal()/readExternal()
+ * methods.
  *
- *	If, inbetween releases, you add more fields to this class,
- *	then you should bump the version number emitted by the getTypeFormatId()
- *	method.
+ * If, inbetween releases, you add more fields to this class,
+ * then you should bump the version number emitted by the getTypeFormatId()
+ * method.
  *
  * @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator
  *
@@ -89,6 +89,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     // column-based index: stores column mapping baseColumnPositions[indexColumnPosition] = baseColumnPosition
     // expression-based index: stores the distinct base column positions of used columns in arbitrary order
     private int[]                baseColumnPositions;
+
+    // column-based index: stores column mapping baseColumnStoragePositions[indexColumnPosition] = baseColumnStoragePosition
+    // expression-based index: stores the distinct base column storage positions of used columns in arbitrary order
+    private int[]                baseColumnStoragePositions;
 
     // column-based index: empty because types are the same as base column types
     // expression-based index: stores the result types of index expressions in original order
@@ -126,8 +130,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /**
      * Constructor for an IndexDescriptorImpl
      * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
+     * @param indexType  The type of index
+     * @param isUnique  True means the index is unique
      * @param isUniqueWithDuplicateNulls True means the index will be unique
      *                              for non null values but duplicate nulls
      *                              will be allowed.
@@ -136,20 +140,21 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *                              isUniqueWithDuplicateNulls is set to true the
      *                              index will allow duplicate nulls but for
      *                              non null keys will act like a unique index.
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
-     * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
+     * @param baseColumnPositions An array of column positions in the base
+     *         table.  Each index column corresponds to a
+     *         column position in the base table.
+     * @param isAscending An array of booleans telling asc/desc on each
+     *       column.
+     * @param numberOfOrderedColumns In the future, it will be possible
+     *          to store non-ordered columns in an
+     *          index.  These will be useful for
+     *          covered queries.
      */
     public IndexDescriptorImpl(String indexType,
                                 boolean isUnique,
                                 boolean isUniqueWithDuplicateNulls,
                                 int[] baseColumnPositions,
+                                int[] baseColumnStoragePositions,
                                 DataTypeDescriptor[] indexColumnTypes,
                                 boolean[] isAscending,
                                 int numberOfOrderedColumns,
@@ -163,6 +168,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         this.isUnique = isUnique;
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
         this.baseColumnPositions = baseColumnPositions;
+        this.baseColumnStoragePositions = baseColumnStoragePositions;
         this.indexColumnTypes = indexColumnTypes;
         this.isAscending = isAscending;
         this.numberOfOrderedColumns = numberOfOrderedColumns;
@@ -180,121 +186,120 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                                boolean isUnique,
                                boolean isUniqueWithDuplicateNulls,
                                int[] baseColumnPositions,
-                               boolean[] isAscending,
+                               int[] baseColumnStoragePostitions, boolean[] isAscending,
                                int numberOfOrderedColumns,
                                boolean excludeNulls,
                                boolean excludeDefaults
     )
     {
-        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, new DataTypeDescriptor[]{},
-             isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
+        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, baseColumnStoragePostitions,
+             new DataTypeDescriptor[]{}, isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
              new String[]{}, new ByteArray[]{}, new String[]{});
     }
 
-	/** Zero-argument constructor for Formatable interface */
-	public IndexDescriptorImpl()
-	{
-	}
+    /** Zero-argument constructor for Formatable interface */
+    public IndexDescriptorImpl()
+    {
+    }
 
-	/**
+    /**
      * 
      * 
      * @see IndexDescriptor#isUniqueWithDuplicateNulls
      */
-	public boolean isUniqueWithDuplicateNulls()
-	{
-		return isUniqueWithDuplicateNulls;
-	}
+    public boolean isUniqueWithDuplicateNulls()
+    {
+        return isUniqueWithDuplicateNulls;
+    }
 
-	/** @see IndexDescriptor#isUnique */
-	public boolean isUnique()
-	{
-		return isUnique;
-	}
+    /** @see IndexDescriptor#isUnique */
+    public boolean isUnique()
+    {
+        return isUnique;
+    }
 
-	/** @see IndexDescriptor#baseColumnPositions */
-	public int[] baseColumnPositions()
-	{
-		return baseColumnPositions;
-	}
+    /** @see IndexDescriptor#baseColumnPositions */
+    public int[] baseColumnPositions()
+    {
+        return baseColumnPositions;
+    }
 
-	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
-	{
-	    if (isOnExpression()) {
-	        throw new IllegalArgumentException("Cannot retrieve ordinal position of a base table column in an index " +
+    @Override
+    public int[] baseColumnStoragePositions() {
+        return new int[0];
+    }
+
+    /** @see IndexDescriptor#getKeyColumnPosition */
+    public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+    {
+        if (isOnExpression()) {
+            throw new IllegalArgumentException("Cannot retrieve ordinal position of a base table column in an index " +
                     "defined on expressions because it may appear in multiple expressions.");
         }
-		/* Return 0 if column is not in the key */
-		int keyPosition = 0;
+        /* Return 0 if column is not in the key */
+        int keyPosition = 0;
 
-		for (int index = 0; index < baseColumnPositions.length; index++)
-		{
-			/* Return 1-based key column position if column is in the key */
-			if (baseColumnPositions[index] == heapColumnPosition)
-			{
-				keyPosition = index + 1;
-				break;
-			}
-		}
+        for (int index = 0; index < baseColumnPositions.length; index++)
+        {
+            /* Return 1-based key column position if column is in the key */
+            if (baseColumnPositions[index] == heapColumnPosition)
+            {
+                keyPosition = index + 1;
+                break;
+            }
+        }
 
-		return keyPosition;
-	}
-
-	/** @see IndexDescriptor#numberOfOrderedColumns */
-	public int numberOfOrderedColumns()
-	{
-		return numberOfOrderedColumns;
-	}
-
-	/** @see IndexDescriptor#indexType */
-	public String indexType()
-	{
-		return indexType;
-	}
-
-	/** @see IndexDescriptor#getIndexColumnTypes */
-	public DataTypeDescriptor[] getIndexColumnTypes() { return indexColumnTypes; }
-
-	/** @see IndexDescriptor#isAscending */
-	public boolean isAscending(Integer keyColumnPosition) {
-		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= isAscending.length)
-			return false;
-		return isAscending[i];
+        return keyPosition;
     }
 
-	/** @see IndexDescriptor#isDescending */
-	public boolean isDescending(Integer keyColumnPosition) {
-		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= isAscending.length)
-			return false;
-		return ! isAscending[i];
+    /** @see IndexDescriptor#numberOfOrderedColumns */
+    public int numberOfOrderedColumns()
+    {
+        return numberOfOrderedColumns;
     }
 
-	/** @see IndexDescriptor#isAscending */
-	public boolean[]		isAscending()
-	{
-		return isAscending;
-	}
+    /** @see IndexDescriptor#indexType */
+    public String indexType()
+    {
+        return indexType;
+    }
 
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		this.baseColumnPositions = baseColumnPositions;
-	}
+    /** @see IndexDescriptor#getIndexColumnTypes */
+    public DataTypeDescriptor[] getIndexColumnTypes() { return indexColumnTypes; }
 
-	/** @see IndexDescriptor#setIsAscending */
-	public void		setIsAscending(boolean[] isAscending)
-	{
-		this.isAscending = isAscending;
-	}
+    /** @see IndexDescriptor#isAscending */
+    public boolean isAscending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        if (i < 0 || i >= isAscending.length)
+            return false;
+        return isAscending[i];
+    }
 
-	/** @see IndexDescriptor#setNumberOfOrderedColumns */
-	public void		setNumberOfOrderedColumns(int numberOfOrderedColumns)
-	{
-		this.numberOfOrderedColumns = numberOfOrderedColumns;
-	}
+    /** @see IndexDescriptor#isDescending */
+    public boolean isDescending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        if (i < 0 || i >= isAscending.length)
+            return false;
+        return ! isAscending[i];
+    }
+
+    /** @see IndexDescriptor#isAscending */
+    public boolean[]  isAscending()
+    {
+        return isAscending;
+    }
+
+    /** @see IndexDescriptor#setIsAscending */
+    public void  setIsAscending(boolean[] isAscending)
+    {
+        this.isAscending = isAscending;
+    }
+
+    /** @see IndexDescriptor#setNumberOfOrderedColumns */
+    public void  setNumberOfOrderedColumns(int numberOfOrderedColumns)
+    {
+        this.numberOfOrderedColumns = numberOfOrderedColumns;
+    }
 
     /**
      *

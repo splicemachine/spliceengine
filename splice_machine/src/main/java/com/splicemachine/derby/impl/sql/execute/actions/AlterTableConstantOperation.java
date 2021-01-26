@@ -373,7 +373,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
-        ColumnOrdering[] columnSortOrder = new IndexColumnOrder[0];
         for (int ix = 0; ix < nColumns; ix++) {
             ColumnDescriptor col_info = columnDescriptorList.get(ix);
             // Get a template value for each column
@@ -406,7 +405,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         long newCongNum = tc.createConglomerate(tableDescriptor.isExternal(),
             "heap", // we're requesting a heap conglomerate
             template.getRowArray(), // row template
-            columnSortOrder, //column sort order
+            new IndexColumnOrder[0], //column sort order
             collation_ids,
             properties, // properties
             tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
@@ -583,7 +582,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
         for (int j=0; j< constraintColumnNames.size(); j++) {
             ColumnDescriptor cd = tableDescriptor.getColumnDescriptor(constraintColumnNames.get(j));
-            columnSortOrder[j] = new IndexColumnOrder(cd.getPosition()-1);
+            columnSortOrder[j] = new IndexColumnOrder(cd.getStoragePosition());
         }
 
         for (int ix = 0; ix < nColumns; ix++) {
@@ -938,11 +937,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             int [] pkColumns =
                 ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
             boolean[] ascending = new boolean[pkColumns.length];
-            for(int i=0;i<ascending.length;i++){
-                ascending[i] = true;
-            }
+            Arrays.fill(ascending, true);
+            int[] pkStorageColumns =
+                    ((CreateConstraintConstantOperation)constraintAction).genColumnStoragePositions(tableDescriptor, true);
             IndexDescriptor indexDescriptor =
-                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+                new IndexDescriptorImpl("PRIMARYKEY", true, false, pkColumns, pkStorageColumns,
+                                        ascending, pkColumns.length, false, false);
             IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
 
             // Replace old table conglomerate with new one with the new PK conglomerate
