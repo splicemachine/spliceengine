@@ -70,6 +70,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     private int numberOfStopPredicates;
     private int numberOfQualifiers;
 
+    private static final int INDEX_PREFIX_MODE_MULTI_PROBE_LIMIT_MULTIPLIER = 30;
+
     public PredicateList(){
     }
 
@@ -1188,7 +1190,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // Allow up to 30x the maximum number of probe values in IndexPrefixIteratorMode
             // because the first column's values don't need to be compiled in the activation,
             // so won't contribute to parsing or serialization overhead.
-            int multiplier = indexPrefixMissing ? Math.min(30, numConstants) : 1;
+            int multiplier = indexPrefixMissing ? Math.min(INDEX_PREFIX_MODE_MULTI_PROBE_LIMIT_MULTIPLIER, numConstants) : 1;
             int maxMulticolumnProbeValues = getCompilerContext().getMaxMulticolumnProbeValues();
             if (maxMulticolumnProbeValues > 0)
                 maxMulticolumnProbeValues *= multiplier;
