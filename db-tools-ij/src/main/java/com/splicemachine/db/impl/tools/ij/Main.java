@@ -74,7 +74,8 @@ public class Main {
 	public static void main(String[] args)
 		throws IOException
 	{
-		mainCore(args, new Main(true));
+		new MyCLI().main(args);
+		//mainCore(args, new Main(true));
 	}
 
 	public static void mainCore(String[] args, Main main)

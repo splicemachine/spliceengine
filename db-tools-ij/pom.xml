@@ -39,6 +39,12 @@
     <artifactId>db-tools-ij</artifactId>
     <dependencies>
         <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline</artifactId>
+            <version>3.19.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>db-tools-i18n</artifactId>
             <version>${project.version}</version>
