@@ -363,6 +363,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean compilingStoredPreparedStatement;
 
     /* constructor */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
             ContextManager cm,
             TransactionController tranCtrl,
