@@ -1793,9 +1793,10 @@ public class FromBaseTable extends FromTable {
     }
 
     private void markFirstColumnReferencedForIndexIteratorMode() throws StandardException {
-        if (numUnusedLeadingIndexFields > 0) {
-            int firstIndexCol = getTrulyTheBestAccessPath().getConglomerateDescriptor().
-                                getIndexDescriptor().baseColumnPositions()[0];
+        IndexRowGenerator indexDescriptor =
+            getTrulyTheBestAccessPath().getConglomerateDescriptor().getIndexDescriptor();
+        if (numUnusedLeadingIndexFields > 0 && !indexDescriptor.isOnExpression()) {
+            int firstIndexCol = indexDescriptor.baseColumnPositions()[0];
             if (referencedCols != null && !referencedCols.isSet(firstIndexCol-1))
                 referencedCols.set(firstIndexCol - 1);
 
