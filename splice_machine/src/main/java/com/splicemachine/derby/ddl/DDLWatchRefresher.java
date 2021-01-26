@@ -104,7 +104,7 @@ public class DDLWatchRefresher{
             LOG.info("Removing change with id " + entry);
             changeTimeouts.remove(entry);
             currentDDLChanges.remove(entry);
-            currChangeCount.decrementAndGet();
+            int currentCount = currChangeCount.decrementAndGet();
             DDLChange ddlChange = tentativeDDLS.remove(entry);
             if(ddlChange!=null){
                 /*
@@ -116,6 +116,10 @@ public class DDLWatchRefresher{
                 for(DDLWatcher.DDLListener listener : ddlListeners){
                     listener.changeSuccessful(entry,ddlChange);
                 }
+            }
+            if (currentCount == 0) {
+                for (DDLWatcher.DDLListener listener : ddlListeners)
+                    listener.finishGlobalChange();
             }
         }
 
