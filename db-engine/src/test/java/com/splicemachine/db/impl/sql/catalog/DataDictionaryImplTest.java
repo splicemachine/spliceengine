@@ -131,8 +131,9 @@ public class DataDictionaryImplTest {
         assert conglomerateIds.length == 4;
         MockDataDictionaryImpl dataDictionary = new MockDataDictionaryImpl();
         DataDescriptorGenerator ddg = new DataDescriptorGenerator(dataDictionary);
-        UUID schemaUuid = new BasicUUID("8000000d-00d0-fd77-3ed8-000a0a0b1900"), tableUuid = new BasicUUID("08264012-014b-c29b-a826-000003009390");
-        UUID dbUuid = dataDictionary.getSpliceDatabaseDescriptor().getUUID();
+        UUID schemaUuid = new BasicUUID("8000000d-00d0-fd77-3ed8-000a0a0b1900");
+        UUID tableUuid = new BasicUUID("08264012-014b-c29b-a826-000003009390");
+        UUID dbUuid = new BasicUUID("a816c00e-0177-43ac-b632-000014f35208");
         SchemaDescriptor sd = new SchemaDescriptor(dataDictionary, "SYS", "SPLICE", schemaUuid, dbUuid, true);
         TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, null, null, null, null, null, null, false, false,null);
         td.setUUID(new BasicUUID("08264012-014b-c29b-a826-000003009390"));
@@ -156,12 +157,20 @@ public class DataDictionaryImplTest {
     }
 
     TableDescriptor constructSysTableStatsTableDescriptorBeforeUpgrade() {
-        return constructSysTableStatsTableDescriptor(new long[] {random.nextInt((int)FIRST_USER_TABLE_NUMBER), random.nextInt((int)FIRST_USER_TABLE_NUMBER), random.nextInt((int)FIRST_USER_TABLE_NUMBER), random.nextInt((int)FIRST_USER_TABLE_NUMBER)});
+        return constructSysTableStatsTableDescriptor(new long[] {
+                random.nextInt((int)FIRST_USER_TABLE_NUMBER),
+                random.nextInt((int)FIRST_USER_TABLE_NUMBER),
+                random.nextInt((int)FIRST_USER_TABLE_NUMBER),
+                random.nextInt((int)FIRST_USER_TABLE_NUMBER)});
     }
 
     TableDescriptor constructSysTableStatsTableDescriptorAfterUpgrade() {
         final int UPPER_BOUND = 1000;
-        return constructSysTableStatsTableDescriptor(new long[] {random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER, random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER, random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER, random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER});
+        return constructSysTableStatsTableDescriptor(new long[] {
+                random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER,
+                random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER,
+                random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER,
+                random.nextInt(UPPER_BOUND) + (int)FIRST_USER_TABLE_NUMBER});
     }
 
     @Test
