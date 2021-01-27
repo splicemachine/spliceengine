@@ -407,4 +407,6 @@ public interface Optimizer{
     public void setForSpark(boolean forSpark);
 
     public boolean isForSpark();
+
+    int getJoinPosition();
 }

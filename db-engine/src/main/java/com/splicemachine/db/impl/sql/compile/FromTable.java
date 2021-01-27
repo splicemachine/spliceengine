@@ -237,15 +237,27 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             }
         }else if(joinStrategyNumber<numStrat){
             ap.setHintedJoinStrategy(false);
-            /* Step through the join strategies. */
-            ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
 
-            joinStrategyNumber++;
+            // Do not waste time by planning single-table queries, or the
+            // first by itself.
+            // A join is always:
+            //     innerTable = joinPosition
+            //     outerTable = joinPosition - 1
+            // When joinPosition is zero, we are not planning a join,
+            // but a single-table scan, so only consider nested loop
+            // join in that case (which is always what ends up getting
+            // picked for single-table scan anyways).
+            if (joinStrategyNumber == 0 || optimizer.getJoinPosition() != 0) {
+                /* Step through the join strategies. */
+                ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
 
-            found=true;
+                joinStrategyNumber++;
 
-            optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy(),
-                                     correlationName);
+                found = true;
+
+                optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY, tableNumber, 0, 0.0, ap.getJoinStrategy(),
+                    correlationName);
+            }
         }
         ap.setMissingHashKeyOK(false);
 

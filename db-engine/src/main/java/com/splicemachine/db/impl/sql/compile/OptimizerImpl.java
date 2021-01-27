@@ -2745,4 +2745,7 @@ public class OptimizerImpl implements Optimizer{
         return currentRowOrdering;
     }
 
+    public int getJoinPosition() {
+        return joinPosition;
+    }
 }
