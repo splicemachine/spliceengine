@@ -46,6 +46,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     private static final String tableDef = "(I INT)";
     protected static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+    private static boolean isMemPlatform = false;
 
     /// a class to make sure Connection, Statement and ResultSet are correctly closed (spotbugs)
     /// todo(martinrupp) there's a lot of other spotbugs in ITs similar to this, check if we can have sth like a
@@ -75,6 +76,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         private Connection connection;
         private Statement s;
         private ResultSet rs;
+    }
+
+    public static boolean
+    isMemPlatform() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
     }
 
     @ClassRule
@@ -111,6 +120,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @BeforeClass
     public static void createTables() throws Exception {
+        isMemPlatform = isMemPlatform();
         Connection conn = spliceClassWatcher.getOrCreateConnection();
 
         new TableCreator(conn)
@@ -484,11 +494,15 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         try (ResultSet rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3")) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
-            //skip the next step to get to the IndexPrefixIteratorMode step
+            //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
+            if (isMemPlatform)
+                Assert.assertTrue(rs.next());
+
+            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
 
             Assert.assertTrue(rs.next());
-            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs.getString(1).contains("IndexPrefixIteratorMode"));
+            Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
@@ -542,11 +556,15 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
             Assert.assertTrue(rs.next());
             Assert.assertTrue("Expected NestedLoopJoin", rs.getString(1).contains("NestedLoopJoin"));
-            //skip the next step to get to the IndexPrefixIteratorMode step
+            //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
             Assert.assertTrue(rs.next());
+            if (isMemPlatform)
+                Assert.assertTrue(rs.next());
 
-            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs.getString(1).contains("IndexPrefixIteratorMode"));
+            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
+
+            Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
