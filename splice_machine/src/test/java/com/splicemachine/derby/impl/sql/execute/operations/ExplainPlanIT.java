@@ -484,12 +484,11 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         try (ResultSet rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3")) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
-            //skip the next two steps to get to the IndexScan step
-            Assert.assertTrue(rs.next());
+            //skip the next step to get to the IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
 
             Assert.assertTrue(rs.next());
-            Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
+            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs.getString(1).contains("IndexPrefixIteratorMode"));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
@@ -543,12 +542,11 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
             Assert.assertTrue(rs.next());
             Assert.assertTrue("Expected NestedLoopJoin", rs.getString(1).contains("NestedLoopJoin"));
-            //skip the next two steps to get to the IndexScan step
+            //skip the next step to get to the IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
             Assert.assertTrue(rs.next());
 
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
+            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs.getString(1).contains("IndexPrefixIteratorMode"));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
