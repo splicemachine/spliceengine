@@ -1178,7 +1178,8 @@ public class SpliceUnitTest {
     {
         String[] paths = {
                 System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
-                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../mem_sql/target/sql-it/sql-it.jar",
         };
         for(String path : paths ) {
             if( new File(path).exists())

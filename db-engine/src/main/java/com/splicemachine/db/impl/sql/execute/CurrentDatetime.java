@@ -31,10 +31,17 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
     CurrentDatetime provides execution support for ensuring
@@ -133,6 +140,25 @@ public class CurrentDatetime {
             currentTimestamp.setNanos(newNanos);
         }
         return currentTimestamp;
+    }
+
+    public BigDecimal getCurrentTimezone() {
+        return getCurrentTimezone(Duration.ofMillis(Calendar.getInstance().get(Calendar.ZONE_OFFSET)));
+    }
+
+    public BigDecimal getCurrentTimezone(Duration timezoneOffsetDuration) {
+        long seconds = timezoneOffsetDuration.getSeconds();
+        long absSeconds = Math.abs(seconds);
+        int hour = (int)((absSeconds / 3600) % 24);
+        int minute = (int)(absSeconds % 3600) / 60;
+        int second = (int)(absSeconds % 60);
+        long result = hour * 10000;
+        result += minute * 100;
+        result += second;
+        if(seconds < 0) {
+            result *= -1;
+        }
+        return new BigDecimal(result);
     }
 
     /**

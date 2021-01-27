@@ -49,6 +49,7 @@ PARSER_BEGIN(SQLParser)
 package com.splicemachine.db.impl.sql.compile;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
@@ -482,8 +483,10 @@ public class SQLParser extends SQLGrammarImpl
         if (tokKind == CURRENT_DATE ||
             tokKind == CURRENT_TIME ||
             tokKind == CURRENT_TIMESTAMP ||
+            tokKind == CURRENT_TIMEZONE ||
             tokKind == NOW ||
             tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
+            tokKind == CURRENT && getToken(2).kind == TIMEZONE ||
             tokKind == CURRENT && getToken(2).kind == SERVER ||
             tokKind == CURRENT_SERVER ||
             tokKind == CURRENT && getToken(2).kind == DATABASE ||
@@ -735,6 +738,7 @@ public class SQLParser extends SQLGrammarImpl
           case CURRENT_DATE:
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
+          case CURRENT_TIMEZONE:
           case CURRENT_SERVER:
           case CURRENT_DATABASE:
           case NOW:
@@ -742,7 +746,7 @@ public class SQLParser extends SQLGrammarImpl
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == TIMEZONE || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
                 retval = true;
             break;
 
@@ -1612,6 +1616,7 @@ TOKEN [IGNORE_CASE] :
 |    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
+|    <CURRENT_TIMEZONE: "current_timezone">
 |    <CURRENT_USER: "current_user">
 |    <CURSOR: "cursor">
 |    <D: "d">
@@ -1755,6 +1760,7 @@ TOKEN [IGNORE_CASE] :
 |    <SYSTEM_USER: "system_user">
 |    <TABLE: "table">
 |    <TEMPORARY: "temporary">
+|    <TIMEZONE : "timezone">
 |    <TIMEZONE_HOUR: "timezone_hour">
 |    <TIMEZONE_MINUTE: "timezone_minute">
 |    <TINYINT: "tinyint">
@@ -1828,6 +1834,7 @@ TOKEN [IGNORE_CASE] :
 |    <DATE: "date">
 |    <DATEFORMAT: "dateFormat">
 |    <DAY: "day">
+|    <DAYOFWEEK_ISO: "dayofweek_iso">
 |    <DAYS: "days">
 |    <DAYOFYEAR: "dayofyear">
 |    <DEFINER: "definer">
@@ -2686,17 +2693,10 @@ analyzeTableStatement() throws StandardException :
                     getContextManager());
     parameterList.addElement(b);
 
-    methodNode = (MethodCallNode) nodeFactory.getNode(
-      C_NodeTypes.STATIC_METHOD_CALL_NODE,
-      routineName,
-      null,
-      getContextManager());
+    methodNode = new StaticMethodCallNode(routineName, null, getContextManager());
     methodNode.addParms(parameterList);
 
-    value = (ValueNode) nodeFactory.getNode(
-      C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-      methodNode,
-      getContextManager());
+    value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
     callStatement = (StatementNode) nodeFactory.getNode(
@@ -2743,17 +2743,10 @@ analyzeSchemaStatement() throws StandardException :
                 getContextManager());
     parameterList.addElement(b);
 
-    methodNode = (MethodCallNode) nodeFactory.getNode(
-          C_NodeTypes.STATIC_METHOD_CALL_NODE,
-          routineName,
-          null,
-          getContextManager());
+    methodNode = new StaticMethodCallNode(routineName, null, getContextManager());
     methodNode.addParms(parameterList);
 
-    value = (ValueNode) nodeFactory.getNode(
-          C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-          methodNode,
-          getContextManager());
+    value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
     callStatement = (StatementNode) nodeFactory.getNode(
@@ -3430,14 +3423,14 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     ResultSetNode      queryExpression;
     Vector  updateColumns = new Vector();
     Vector parameterList = new Vector();
-    int               forUpdateState = CursorNode.UNSPECIFIED;
+    MutableInt forUpdateState = new MutableInt(CursorNode.UNSPECIFIED);
     int                  isolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
     CursorNode          retval;
     OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
-    int optimizeForRows = 1;
+    MutableInt optimizeForRows = new MutableInt(1);
 }
 {
     [ <WITH> withClauseList(parameterList) ]
@@ -3446,12 +3439,10 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
         (
             isolationLevel = atIsolationLevel()
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-            [ optimizeForRows = optimizeForRowsClause() ]
+            [ extraSelectClauses(optimizeForRows, forUpdateState, updateColumns) ]
         |
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-            [ optimizeForRows = optimizeForRowsClause() ]
+            [ extraSelectClauses(optimizeForRows, forUpdateState, updateColumns) ]
             [ isolationLevel = atIsolationLevel() ]
         )
     {
@@ -3472,8 +3463,8 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
                 offsetClauses[ OFFSET_CLAUSE ],
                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                 Boolean.valueOf( hasJDBClimitClause ),
-                ReuseFactory.getInteger(forUpdateState),
-                (forUpdateState == CursorNode.READ_ONLY ? null : updateColumns ),
+                ReuseFactory.getInteger(forUpdateState.intValue()),
+                (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
                 getContextManager());
 
         if (checkParams)
@@ -3582,6 +3573,7 @@ updateBody() throws StandardException :
     String                correlationName = null;
     JavaToSQLValueNode    javaToSQLNode = null;
     TableName  tableName = null;
+    FromList   fromList = null;
     ValueNode  whereClause = null;
     FromTable  fromTable = null;
     Properties targetProperties = null;
@@ -3633,6 +3625,17 @@ updateBody() throws StandardException :
             }
         }
 
+        fromList = fromClause()
+        {
+            if (fromList != null) {
+                if (isUpdateFromSub) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT);
+                } else {
+                    isUpdateFromSub = true;
+                }
+            }
+        }
+
         [
             whereToken = <WHERE>
             (
@@ -3675,6 +3678,10 @@ updateBody() throws StandardException :
             ((FromBaseTable) fromTable).setTableProperties(targetProperties);
         }
         if (isUpdateFromSub) {
+            if (fromList != null) {
+                assert subQuery == null;
+                subQuery = assembleUpdateSubquery(columnList, fromList);
+            }
             return getUpdateNodeWithSub(fromTable, tableName, columnList, whereClause, subQuery);
         } else {
             return getUpdateNode(fromTable, tableName, columnList, whereClause);
@@ -4069,7 +4076,7 @@ columnDefinition(TableElementList tableElementList) throws StandardException :
 
     /* identifier() used to be columnName() */
     columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-    [ ( typeDescriptor[0] = dataTypeDDL() ) ]
+    [ typeDescriptor[0] = dataTypeDDL() ]
     [ defaultNode = defaultAndConstraints(typeDescriptor, tableElementList, columnName, autoIncrementInfo) ]
     {
         // Only pass autoincrement info for autoincrement columns
@@ -6234,10 +6241,7 @@ nonStaticMethodInvocation(ValueNode receiver) throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(methodNode, getContextManager());
     }
 |
         <PERIOD> methodNode = methodName(receiver)
@@ -6260,10 +6264,7 @@ nonStaticMethodInvocation(ValueNode receiver) throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(methodNode, getContextManager());
     }
 
 
@@ -6286,11 +6287,7 @@ methodName(ValueNode receiver) throws StandardException :
     */
     methodName = caseSensitiveIdentifierPlusReservedWords()
     {
-        return (MethodCallNode) nodeFactory.getNode(
-                                        C_NodeTypes.NON_STATIC_METHOD_CALL_NODE,
-                                        methodName,
-                                        receiver,
-                                        getContextManager());
+        return new NonStaticMethodCallNode(methodName,receiver, getContextManager());
     }
 }
 
@@ -6311,11 +6308,7 @@ staticMethodName(String javaClassName) throws StandardException :
     */
     methodName = caseSensitiveIdentifierPlusReservedWords()
     {
-        return (MethodCallNode) nodeFactory.getNode(
-                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                                methodName,
-                                javaClassName,
-                                getContextManager());
+        return new StaticMethodCallNode(methodName, javaClassName, getContextManager());
     }
 }
 
@@ -6383,11 +6376,7 @@ getTimeSpan(ValueNode value) throws StandardException :
                   } )
     timeUnit = dateTimeIntervalUnit()
     {
-        return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.TIME_SPAN_NODE,
-                                        value,
-                                        timeUnit,
-                                        getContextManager());
+        return new TimeSpanNode(value, timeUnit, getContextManager());
     }
 |
     {
@@ -6445,8 +6434,7 @@ staticClassFieldReference(String javaClassName) throws StandardException :
 {
     fieldName = caseSensitiveIdentifierPlusReservedWords()
     {
-        return    (ValueNode) nodeFactory.getNode(
-                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        return new JavaToSQLValueNode(
                     nodeFactory.getNode(
                                 C_NodeTypes.STATIC_CLASS_FIELD_REFERENCE_NODE,
                                 javaClassName,
@@ -6489,7 +6477,7 @@ nonSecondDatetimeField() :
         return DateTimeDataValue.WEEK_FIELD;
     }
 |
-    <WEEKDAY>
+    (<WEEKDAY> | <DAYOFWEEK_ISO>)
     {
         return DateTimeDataValue.WEEK_DAY_FIELD;
     }
@@ -6634,11 +6622,7 @@ escapedSYSFUNFunction() throws StandardException :
                                 new Integer(0),
                                 getContextManager());
 
-        MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
-                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                                functionName,
-                                null,
-                                getContextManager());
+        MethodCallNode methodNode = new StaticMethodCallNode(functionName, null, getContextManager());
 
         methodNode.addParms(parameterList);
 
@@ -6647,10 +6631,7 @@ escapedSYSFUNFunction() throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(methodNode, getContextManager());
      }
 }
 
@@ -6671,7 +6652,7 @@ timestampArithmeticFuncion() throws StandardException :
        count = additiveExpression(null,0) <COMMA>
        tstamp1 = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
+                return new TernaryOperatorNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
                                                 tstamp1,
                                                 intervalType,
                                                 count,
@@ -6684,7 +6665,7 @@ timestampArithmeticFuncion() throws StandardException :
        tstamp1 = additiveExpression(null,0) <COMMA>
        tstamp2 = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode( C_NodeTypes.TIMESTAMP_DIFF_FN_NODE,
+                return new TernaryOperatorNode( C_NodeTypes.TIMESTAMP_DIFF_FN_NODE,
                                                 tstamp2,
                                                 intervalType,
                                                 tstamp1,
@@ -6758,10 +6739,7 @@ typeOfFunction() throws StandardException :
 {
     <TYPEOF> <LEFT_PAREN> value = orExpression(null) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.TYPEOF_OPERATOR_NODE,
-            value,
-            getContextManager());
+        return new TypeofOperatorNode(value, getContextManager());
     }
 }
 
@@ -6843,14 +6821,7 @@ decimalFunction(String functionName) throws StandardException :
         if(decimalCharacter != null) {
             DataTypeUtilities.isValidDecimalCharacter(decimalCharacter);
         }
-        return (ValueNode)nodeFactory.getNode(
-                C_NodeTypes.DECIMAL_FUNCTION_NODE,
-                functionName,
-                value,
-                precision,
-                scale,
-                decimalCharacter,
-                getContextManager());
+        return new DecimalFunctionNode(functionName, value, precision, scale, decimalCharacter, getContextManager());
    }
 }
 
@@ -7538,6 +7509,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MONTHNAME ||
                 getToken(1).kind == WEEK ||
                 getToken(1).kind == WEEKDAY ||
+                getToken(1).kind == DAYOFWEEK_ISO ||
                 getToken(1).kind == WEEKDAYNAME ||
                 getToken(1).kind == DAYOFYEAR ||
                 getToken(1).kind == DAY ||
@@ -7614,9 +7586,7 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
     <GET_CURRENT_CONNECTION> <LEFT_PAREN> <RIGHT_PAREN>
     {
         checkInternalFeature("GETCURRENTCONNECTION()");
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                nodeFactory.getNode(
+        return new JavaToSQLValueNode( nodeFactory.getNode(
                                     C_NodeTypes.GET_CURRENT_CONNECTION_NODE,
                                     getContextManager()),
                                 getContextManager());
@@ -8629,10 +8599,7 @@ newInvocation() throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (JavaToSQLValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                newNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(newNode, getContextManager());
     }
 }
 
@@ -8694,11 +8661,7 @@ vtiTableConstruct() throws StandardException :
         if ( newNode.isBuiltinVTI() ) { invocationNode = newNode; }
         else
         {
-            methodNode = (MethodCallNode) nodeFactory.getNode(
-                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                vtiTableName,
-                null,
-                getContextManager());
+            methodNode = new StaticMethodCallNode(vtiTableName, null, getContextManager());
             methodNode.addParms(parameterList);
 
             invocationNode = methodNode;
@@ -8710,10 +8673,7 @@ vtiTableConstruct() throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (JavaToSQLValueNode) nodeFactory.getNode(
-                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                    invocationNode,
-                    getContextManager());
+        return new JavaToSQLValueNode(invocationNode, getContextManager());
     }
 }
 
@@ -8736,10 +8696,7 @@ staticMethodInvocation(String javaClassName) throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(methodNode, getContextManager());
     }
 }
 
@@ -8795,12 +8752,7 @@ routineExpression() throws StandardException :
     routineName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         methodCallParameterList(parameterList)
     {
-        methodNode = (MethodCallNode) nodeFactory.getNode(
-                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                                routineName,
-                                null,
-                                getContextManager());
-
+        methodNode = new StaticMethodCallNode(routineName, null, getContextManager());
         methodNode.addParms(parameterList);
 
         /*
@@ -8808,10 +8760,7 @@ routineExpression() throws StandardException :
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
+        return new JavaToSQLValueNode(methodNode, getContextManager());
     }
 }
 
@@ -10408,10 +10357,7 @@ FromTable tableFactor() throws StandardException :
                                new Vector(), // empty parameterList
                                getContextManager());
 
-        javaToSQLNode = (JavaToSQLValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                newNode,
-                                getContextManager());
+        javaToSQLNode = new JavaToSQLValueNode(newNode, getContextManager());
 
         TriggerEventDML triggerEvent;
         String          stmtKind;
@@ -10961,6 +10907,23 @@ datetimeValueFunction() throws StandardException :
                             getContextManager());
     }
 |
+    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMEZONE)}) <CURRENT> <TIMEZONE>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+                            ReuseFactory.getInteger(
+                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
+                            getContextManager());
+    }
+    | <CURRENT_TIMEZONE>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+                            ReuseFactory.getInteger(
+                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
+                            getContextManager());
+    }
+|
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP>
     {
         return (ValueNode) nodeFactory.getNode(
@@ -11089,11 +11052,7 @@ getNearestTransaction() throws StandardException :
        <DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
        {
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
-           winOrAgg = (ValueNode) nodeFactory.getNode(
-               C_NodeTypes.DENSERANK_FUNCTION_NODE,
-               DenseRankFunctionDefinition.class,
-               window,
-               getContextManager());
+           winOrAgg = new DenseRankFunctionNode(DenseRankFunctionDefinition.class, window, getContextManager());
            return winOrAgg;
        }
    |
@@ -11461,13 +11420,7 @@ castSpecification() throws StandardException :
          */
         if (dts.getTypeId().userType())
         {
-            treeTop = (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                            nodeFactory.getNode(
-                                            C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                                            treeTop,
-                                            getContextManager()),
-                            getContextManager());
+            treeTop = new JavaToSQLValueNode( nodeFactory.getNode(C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,treeTop, getContextManager()), getContextManager());
         }
 
         return treeTop;
@@ -13076,6 +13029,7 @@ void withClause(Vector parameterList) throws StandardException :
            isRecursive = true;
         }]
         tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+            [ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
             beginToken = <AS>
             [<LEFT_PAREN>]
             queryExpression = queryExpression(null, NO_SET_OP, topNOut)
@@ -13773,7 +13727,8 @@ DB2DefaultOption(String columnName) throws StandardException :
     LOOKAHEAD({
                 getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
-                getToken(1).kind == TIMESTAMP
+                getToken(1).kind == TIMESTAMP ||
+                getToken(1).kind == TIMEZONE
             })
     value = miscBuiltins()
     { // these functions are allowed as valid <cast-function> defaults.
@@ -17102,6 +17057,7 @@ reservedKeyword() :
 |    tok = <CURRENT_SERVER>
 |    tok = <CURRENT_TIME>
 |    tok = <CURRENT_TIMESTAMP>
+|    tok = <CURRENT_TIMEZONE>
 |    tok = <CURRENT_USER>
 |    tok = <CURSOR>
 |    tok = <DEALLOCATE>
@@ -17248,6 +17204,7 @@ reservedKeyword() :
 |    tok = <SYSTEM_USER>
 |    tok = <TABLE>
 |    tok = <TEMPORARY>
+|    tok = <TIMEZONE>
 |    tok = <TIMEZONE_HOUR>
 |    tok = <TIMEZONE_MINUTE>
 |    tok = <TO>
@@ -17368,6 +17325,7 @@ nonReservedKeyword()  :
     |    tok = <DATE>
     |    tok = <DATEFORMAT>
     |    tok = <DAY>
+    |    tok = <DAYOFWEEK_ISO>
     |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>
@@ -17679,6 +17637,7 @@ optimizeForRowsClause() throws StandardException :
 }
 {
     <OPTIMIZE> <FOR>
+
      optimizeForRows = uint_value()
     ( <ROW> | <ROWS> )
     {
@@ -17686,5 +17645,22 @@ optimizeForRowsClause() throws StandardException :
             throw StandardException.newException(SQLState.LANG_INVALID_INTEGER_LITERAL, optimizeForRows);
         else
             return optimizeForRows;
+    }
+}
+
+void extraSelectClauses(MutableInt optimizeForRows, MutableInt forUpdate, Vector forUpdateColumns) throws StandardException :
+{
+    int forUpdateInternal = CursorNode.UNSPECIFIED;
+    int optimizeForRowsInternal = -1;
+}
+{
+    (
+        <FOR> forUpdateInternal = forUpdateClause(forUpdateColumns) [optimizeForRowsInternal = optimizeForRowsClause()]
+    |
+        optimizeForRowsInternal = optimizeForRowsClause() [<FOR> forUpdateInternal = forUpdateClause(forUpdateColumns)]
+    )
+    {
+        forUpdate.setValue(forUpdateInternal);
+        optimizeForRows.setValue(optimizeForRowsInternal);
     }
 }

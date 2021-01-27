@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1992-SNAPSHOT</version>
+        <version>3.2.0.1996-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -1055,6 +1055,7 @@
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
+                                    -Dsplice.olapServerOnStandAlone=true
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
@@ -1099,7 +1100,7 @@
             </activation>
             <properties>
                 <memberNumber>1</memberNumber>
-                <durability>ASYNC</durability>
+                <durability>SYNC</durability>
             </properties>
             <build>
                 <plugins>
