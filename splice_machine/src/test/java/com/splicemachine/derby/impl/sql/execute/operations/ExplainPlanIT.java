@@ -470,17 +470,16 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* test with stats */
-        rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
-        //skip the next two steps to get to the IndexScan step
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.next());
+        try (ResultSet rs2 = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3")) {
+            Assert.assertTrue(rs2.next());
+            Assert.assertTrue("With stats, expect explain plan to pick control path", rs2.getString(1).contains("engine=OLTP"));
+            //skip the next step to get to the IndexPrefixIteratorMode step
+            Assert.assertTrue(rs2.next());
 
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
-        Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
-        rs.close();
+            Assert.assertTrue(rs2.next());
+            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs2.getString(1).contains("IndexPrefixIteratorMode"));
+            Assert.assertTrue("With stats, outputRows is expected to be 1", rs2.getString(1).contains("scannedRows=1"));
+        }
 
         /* Q3: test join case */
         String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
@@ -524,23 +523,21 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* test with stats */
-        rs = methodWatcher.executeQuery("explain select * from --splice-properties joinOrder=fixed\n t5, t4 where b5=100001 and c5=3 and d5=a4");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
-        // skip ScrollInsensitive step
-        Assert.assertTrue(rs.next());
+        try (ResultSet rs2 = methodWatcher.executeQuery("explain select * from --splice-properties joinOrder=fixed\n t5, t4 where b5=100001 and c5=3 and d5=a4")) {
+            Assert.assertTrue(rs2.next());
+            Assert.assertTrue("With stats, expect explain plan to pick control path", rs2.getString(1).contains("engine=OLTP"));
+            // skip ScrollInsensitive step
+            Assert.assertTrue(rs2.next());
 
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("Expected NestedLoopJoin", rs.getString(1).contains("NestedLoopJoin"));
-        //skip the next two steps to get to the IndexScan step
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs2.next());
+            Assert.assertTrue("Expected NestedLoopJoin", rs2.getString(1).contains("NestedLoopJoin"));
+            //skip the next step to get to the IndexPrefixIteratorMode step
+            Assert.assertTrue(rs2.next());
+            Assert.assertTrue(rs2.next());
 
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
-        Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
-        rs.close();
-
+            Assert.assertTrue("Expected IndexPrefixIteratorMode", rs2.getString(1).contains("IndexPrefixIteratorMode"));
+            Assert.assertTrue("With stats, outputRows is expected to be 1", rs2.getString(1).contains("scannedRows=1"));
+        }
     }
 
     @Test

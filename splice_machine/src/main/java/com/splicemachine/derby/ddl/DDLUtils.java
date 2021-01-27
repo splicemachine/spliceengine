@@ -82,7 +82,13 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
-        DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);
+        /** TODO-msirek: Try to enable this code.  It would allow more TableDescriptors
+         *               to get cached because it would clear out the DDL change
+         *               as soon as it's committed, which is needed because the cacheIsValid()
+         *               check requires that currChangeCount be zero.
+         *               Currently, enabling this code causes a performance regression.
+         */
+        /* DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);   */
     }
 
 
