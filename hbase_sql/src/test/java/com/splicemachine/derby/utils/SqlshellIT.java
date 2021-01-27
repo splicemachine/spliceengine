@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.impl.tools.ij.Main;
 import com.splicemachine.db.impl.tools.ij.ijCommands;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
@@ -30,7 +31,7 @@ public class SqlshellIT {
         me = createMain();
 
         execute("elapsedtime off;\n"); // ignore output, can be 0ms or 1ms
-        execute("connect 'jdbc:splice://localhost:1527/splicedb;user=splice;password=admin';\n", "");
+        execute("connect '" + SpliceNetConnection.getDefaultLocalURL() + "';\n", "");
         try {
             execute("DROP SCHEMA SQLSHELLIT CASCADE;\n");
         } catch(Exception e) {
@@ -50,11 +51,14 @@ public class SqlshellIT {
         execute("CREATE SYNONYM SV_1 FOR V_1;\n", zeroRowsUpdated);
         execute("CREATE SYNONYM STX2 FOR TX2;\n", zeroRowsUpdated);
         execute("CREATE SYNONYM ST_2 FOR T_2;\n", zeroRowsUpdated);
+
+        execute("CREATE ROLE FRED;\n", zeroRowsUpdated);
     }
 
     @AfterClass
     public static void shutdown() throws Exception {
-        execute("DROP SCHEMA SQLSHELLIT CASCADE;\n", zeroRowsUpdated);
+        execute("DROP SCHEMA SQLSHELLIT CASCADE;\n");
+        execute("DROP ROLE FRED;\n");
         SpliceUnitTest.deleteTempDirectory(tempDir);
     }
 
@@ -74,28 +78,26 @@ public class SqlshellIT {
         Assert.assertEquals("splice> " + in + expectedOut + "splice> ", execute(in));
     }
 
-    public static String getJavaRegexpFilterFromAsterixFilter(String asterixFilter)
+    public static String escapeRegexp(String asterixFilter)
     {
         String filter = asterixFilter;
-        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "-", "=", "$", "!", "|", "]", "}", ")", "+", ".", ">"};
+        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "-", "=", "$", "!", "|", "]", "}", ")", "+", ".", ">", "*", "?"};
         for(String s : toEscape) {
             filter = filter.replaceAll("\\" + s, "\\\\" + s);
         }
-
-        filter = filter.replaceAll("\\*", ".*");
-        return filter.replaceAll("\\?", ".");
+        return filter;
     }
 
     // execute, expect output to match regular expression
     static void executeR(String in, String expectedOutRegex) {
-        expectedOutRegex = "splice\\> " + getJavaRegexpFilterFromAsterixFilter(in)
+        expectedOutRegex = "splice\\> " + escapeRegexp(in)
                 + expectedOutRegex + "splice\\> \n";
         String o = execute(in);
         String[] o2 = o.split("\n");
         String[] ex2 = expectedOutRegex.split("\n");
         Assert.assertEquals(o + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
         for(int i =0; i<o2.length; i++) {
-            Assert.assertTrue(o2[i] + "doesn't match " + ex2[i], o2[i].matches(ex2[i]));
+            Assert.assertTrue(o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
         }
     }
 
@@ -202,14 +204,18 @@ public class SqlshellIT {
 
     @Test
     public void testDescribeProcedure() {
-        execute("describe procedure SQLJ.INSTALL_JAR;\n",
-                        "COLUMN_NAME                     |TYPE_NAME                       |ORDINAL_POSITION\n" +
-                        "----------------------------------------------------------------------------------\n" +
-                        "URL                             |VARCHAR                         |1               \n" +
-                        "JAR                             |VARCHAR                         |2               \n" +
-                        "DEPLOY                          |INTEGER                         |3               \n" +
-                        "\n" +
-                        "3 rows selected\n");
+        String res =
+                "COLUMN_NAME                     |TYPE_NAME                       |ORDINAL_POSITION\n" +
+                "----------------------------------------------------------------------------------\n" +
+                "URL                             |VARCHAR                         |1               \n" +
+                "JAR                             |VARCHAR                         |2               \n" +
+                "DEPLOY                          |INTEGER                         |3               \n" +
+                "\n" +
+                "3 rows selected\n";
+
+        execute("show procedurecols in SQLJ FROM INSTALL_JAR;\n", res);
+        execute("show procedurecols FROM SQLJ.INSTALL_JAR;\n", res);
+        execute("describe procedure SQLJ.INSTALL_JAR;\n", res);
     }
 
     @Test
@@ -367,6 +373,28 @@ public class SqlshellIT {
             execute("maximumdisplaywidth 256;\n", "");
             execute("DROP TABLE TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME IF EXISTS");
         }
+    }
+
+    @Test // DB-11155
+    public void testShowRoles() {
+        String result = execute("show roles;\n");
+        // some other tests might have added users, so the output might differ a bit
+        Assert.assertTrue( result.contains("ROLEID") );
+        Assert.assertTrue( result.contains("------") );
+        Assert.assertTrue( result.contains("FRED") );
+        // show settable_roles should print the same as show roles
+        String result2 = execute("show settable_roles;\n");
+        // ignore first line (differs because different SQL command is printed there)
+        String[] res = result.split("\n");
+        String[] res2 = result2.split("\n");
+        res = Arrays.copyOfRange( res, 1, res.length);
+        res2 = Arrays.copyOfRange( res2, 1, res2.length);
+        Assert.assertArrayEquals( res, res2 );
+    }
+
+    @Test
+    public void testShowVersion() {
+        Assert.assertTrue(execute("show version local;\n").contains("http://www.splicemachine.com"));
     }
 
     @Test
