@@ -128,7 +128,7 @@ public class FromBaseTable extends FromTable {
 
     // Statistics about the first column in the conglomerate currently
     // being considered as the access path of this table:
-    private FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
+    private final FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
 
     /*
     ** The number of rows to bulkFetch.
@@ -935,10 +935,9 @@ public class FromBaseTable extends FromTable {
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         useRealTableStats=scc.useRealTableStatistics();
-        currentIndexFirstColumnStats=cd.getFirstColumnStats();
-        if (currentIndexFirstColumnStats == null) {
+        if (!currentIndexFirstColumnStats.setFrom(cd.getFirstColumnStats())) {
             scc.computeFirstIndexColumnRowsPerValue(cd);
-            currentIndexFirstColumnStats = cd.getFirstColumnStats();
+            currentIndexFirstColumnStats.setFrom(cd.getFirstColumnStats());
         }
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
@@ -1908,7 +1907,7 @@ public class FromBaseTable extends FromTable {
                 if (numUnusedLeadingIndexFields == 0) {
                     numUnusedLeadingIndexFields = ap.getNumUnusedLeadingIndexFields();
                     if (numUnusedLeadingIndexFields >= 1) {
-                        currentIndexFirstColumnStats = trulyTheBestConglomerateDescriptor.getFirstColumnStats();
+                        currentIndexFirstColumnStats.setFrom(trulyTheBestConglomerateDescriptor.getFirstColumnStats());
                         if (numUnusedLeadingIndexFields > 1)
                             throw StandardException.newException(LANG_INTERNAL_ERROR,
                                "IndexPrefixIteratorMode currently allows at most one leading index column to be unspecified in predicates.");

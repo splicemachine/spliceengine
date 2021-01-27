@@ -63,4 +63,15 @@ public class FirstColumnOfIndexStats {
     public void setFirstIndexColumnCardinality(long firstIndexColumnCardinality) {
         this.firstIndexColumnCardinality = firstIndexColumnCardinality;
     }
+
+    public boolean setFrom(FirstColumnOfIndexStats other) {
+        if (other == null)
+            return false;
+
+        firstIndexColumnRowsPerValue = other.getFirstIndexColumnRowsPerValue();
+        rowCountFromStats            = other.getRowCountFromStats();
+        firstIndexColumnCardinality  = other.getFirstIndexColumnCardinality();
+
+        return true;
+    }
 }
