@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
+import com.splicemachine.db.authentication.AccessTokenVerifier;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -38,8 +39,8 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
-import com.splicemachine.db.impl.token.AccessTokenVerifierFactory;
 
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,18 +70,20 @@ public final class TokenAuthenticationServiceImpl extends NativeAuthenticationSe
         if (userPassword != null) {
             return super.authenticateUser(userName, userPassword, databaseName, info);
         } else {
-            return authenticateUserWithToken(userName, databaseName, info);
+            return authenticateUserWithToken(userName, info);
         }
     }
 
-    private String authenticateUserWithToken (String loginUserName, String databaseName, Properties info) throws SQLException {
+    private String authenticateUserWithToken (String userName, Properties info) throws SQLException {
         try {
             String jwt = info.getProperty(Attribute.USER_TOKEN);
             if (jwt == null) {
                 return null;
             }
-            String userName = AccessTokenVerifierFactory.createVerifier(info.getProperty(Attribute.USER_TOKEN_AUTHENTICATOR)).decodeUsername(jwt);
-            if (!loginUserName.equals(userName)) {
+
+            String tokenUserName = getTokenVerifier(info.getProperty(Attribute.USER_TOKEN_AUTHENTICATOR)).decodeUsername(jwt);
+
+            if (!tokenUserName.equals(IdUtil.getUserAuthorizationId(userName))) {
                 return null;
             }
 
@@ -88,19 +91,14 @@ public final class TokenAuthenticationServiceImpl extends NativeAuthenticationSe
                 return null;
             }
 
-            if (!authenticateLocally(userName, databaseName)) {
+            if (!authenticateLocally(userName)) {
                 return null;
             }
 
-            String authenticatedUser = userName;
-
             // check group mapping
-            if (authenticatedUser != null) {
-                List<String> groupList = new ArrayList<>();
-                groupList.add(authenticatedUser);
-                return mapUserGroups(groupList);
-            }
-            return authenticatedUser;
+            List<String> groupList = new ArrayList<>();
+            groupList.add(userName);
+            return mapUserGroups(groupList);
         } catch (StandardException se) {
             throw Util.generateCsSQLException(se);
         }
@@ -111,14 +109,8 @@ public final class TokenAuthenticationServiceImpl extends NativeAuthenticationSe
      * Authenticate the passed-in credentials against the local database.
      *
      * @param userName     The user's name used to connect to JBMS system
-     * @param databaseName The database which the user wants to connect to.
      */
-    private boolean authenticateLocally
-    (
-            String userName,
-            String databaseName
-    )
-            throws StandardException, SQLException {
+    private boolean authenticateLocally(String userName) throws StandardException {
         userName = IdUtil.getUserAuthorizationId(userName);
 
         //
@@ -131,4 +123,14 @@ public final class TokenAuthenticationServiceImpl extends NativeAuthenticationSe
         return userDescriptor != null;
     }
 
+    private AccessTokenVerifier getTokenVerifier(String authenticatorName) throws StandardException {
+        try {
+            Class<?> verifierFactoryClass = Class.forName("com.splicemachine.db.impl.token.AccessTokenVerifierFactory");
+            Method m = verifierFactoryClass.getDeclaredMethod("createVerifier", String.class);
+            return (AccessTokenVerifier) m.invoke(null, authenticatorName);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
+    }
 }
