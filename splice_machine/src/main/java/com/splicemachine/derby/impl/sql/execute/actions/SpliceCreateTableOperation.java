@@ -32,6 +32,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -202,11 +203,10 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 			if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
 				int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnPositions(td, true);
 				boolean[] ascending = new boolean[pkColumns.length];
-				for(int i=0;i<ascending.length;i++){
-					ascending[i] = true;
-				}
+				Arrays.fill(ascending, true);
+				int[] pkStorageColumns = ((CreateConstraintConstantOperation)constantAction).genColumnStoragePositions(td, true);
 
-				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY", true, false, pkColumns, pkStorageColumns, ascending, pkColumns.length, false, false);
 				IndexRowGenerator irg = new IndexRowGenerator(descriptor);
 				return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
 			}

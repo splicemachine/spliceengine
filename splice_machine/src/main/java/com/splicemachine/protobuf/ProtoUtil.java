@@ -42,8 +42,10 @@ import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Ints;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by jleach on 11/13/15.
@@ -315,6 +317,11 @@ public class ProtoUtil {
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
         }
 
+        int[] indexColumnStoragePositions=indexDescriptor.baseColumnStoragePositions();
+        for(int i=0;i<indexColumnStoragePositions.length;i++){
+            builder = builder.addIndexColsToMainStorageColMap(indexColumnStoragePositions[i]);
+        }
+
         ByteArray[] bytecodeArray = indexDescriptor.getExprBytecode();
         for (ByteArray bc : bytecodeArray) {
             builder = builder.addBytecodeExprs(ByteString.copyFrom(bc.getArray(), bc.getOffset(), bc.getLength()));
@@ -404,19 +411,19 @@ public class ProtoUtil {
                 ).build();
     }
 
-    public static DDLChange createTentativeDropColumn(long txnId, long newCongNum,
-                                                     long oldCongNum, int[] oldColumnOrdering, int[] newColumnOrdering,
-                                                     ColumnInfo[] columnInfo, int droppedColumnPosition, LanguageConnectionContext lcc, BasicUUID tableId) throws StandardException {
+    public static DDLChange createTentativeDropColumn(long txnId,
+                                                      BasicUUID tableId,
+                                                      List<BasicUUID> affectedIndicesSchemaIds,
+                                                      List<String> affectedIndicesNames,
+                                                      LanguageConnectionContext lcc) throws StandardException {
+
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
         return DDLChange.newBuilder().setTxnId(txnId).setDdlChangeType(DDLChangeType.DROP_COLUMN)
                 .setTentativeDropColumn(TentativeDropColumn.newBuilder()
-                                .setTableVersion(tableVersion)
-                                .setOldConglomId(oldCongNum)
-                                .setNewConglomId(newCongNum)
-                                .addAllOldColumnOrdering(Ints.asList(oldColumnOrdering))
-                                .addAllNewColumnOrdering(Ints.asList(newColumnOrdering))
-                                .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columnInfo)))
-                                .setDroppedColumnPosition(droppedColumnPosition)
+                                                .setTableVersion(tableVersion)
+                                                .addAllAffectedIndicesSchemaIds(affectedIndicesSchemaIds.stream().map(ProtoUtil::transferDerbyUUID).collect(Collectors.toList()))
+                                                .addAllAffectedIndicesNames(affectedIndicesNames)
+                                                .setTableId(transferDerbyUUID(tableId))
                 ).build();
     }
 

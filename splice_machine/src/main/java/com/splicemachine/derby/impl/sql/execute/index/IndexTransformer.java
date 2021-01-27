@@ -93,7 +93,9 @@ public class IndexTransformer {
     private DDLMessage.Index index;
     private DDLMessage.Table table;
     private int [] mainColToIndexPosMap;  // 0-based
+    private int [] mainColToIndexStoragePosMap;
     private BitSet indexedCols;   // 0-based
+    private BitSet indexedStorageCols;
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] indexRowSerializers;
@@ -114,18 +116,19 @@ public class IndexTransformer {
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
-        checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
+        checkArgument(!index.getUnique() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
         excludeNulls = index.getExcludeNulls();
         excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
-        indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
-        mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
+        indexedCols = DDLUtils.asBitSet(Ints.toArray(indexColsList));
+        indexedStorageCols = DDLUtils.asBitSet(Ints.toArray(index.getIndexColsToMainStorageColMapList()));
+        mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(indexColsList), indexedCols);
+        mainColToIndexStoragePosMap = DDLUtils.invert(Ints.toArray(index.getIndexColsToMainStorageColMapList()));
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
         if ( index.hasDefaultValues() && excludeDefaultValues) {
             defaultValue = (DataValueDescriptor) SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
             defaultValuesExecRow = new ValueRow(new DataValueDescriptor[]{defaultValue.cloneValue(true)});
-
         }
         numIndexExprs = index.getNumExprs();
         executableExprs = new BaseExecutableIndexExpression[numIndexExprs];
@@ -297,7 +300,8 @@ public class IndexTransformer {
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
-        ExecRow decodedRow = new ValueRow(mainColToIndexPosMap.length + 1);
+        int colCount = mainColToIndexStoragePosMap.length;
+        ExecRow decodedRow = new ValueRow(colCount + 1);
 
         if (baseRowSerializers == null)
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];
@@ -307,7 +311,7 @@ public class IndexTransformer {
         /*
          * Handle index columns from the source table's primary key.
          */
-        if (table.getColumnOrderingCount()>0) {
+        if (table.getColumnOrderingCount()>0) { // todo fix this
             //we have key columns to check
             MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
             keyDecoder.set(mutation.getRowKey());
@@ -354,20 +358,20 @@ public class IndexTransformer {
          * backfilling them with existing values, which would occur elsewhere).
          */
         MultiFieldDecoder rowFieldDecoder = rowDecoder.getEntryDecoder();
-        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
-            if(!indexedCols.get(i)) {
+        for (int cnt = 0, i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1), cnt++) {
+            if(!indexedStorageCols.get(i)) {
                 //skip non-indexed columns
                 rowDecoder.seekForward(rowFieldDecoder,i);
                 continue;
             }
 
-            int formatId = table.getFormatIds(i);
+            int formatId = table.getFormatIds(cnt);
             int offset = rowFieldDecoder.offset();
             boolean isNull = rowDecoder.seekForward(rowFieldDecoder, i);
             int length = rowFieldDecoder.offset() - offset - 1;
             if (numIndexExprs <= 0) {
-                int keyColumnPos = i < mainColToIndexPosMap.length ?
-                        mainColToIndexPosMap[i] : -1;
+                int keyColumnPos = i < colCount ?
+                        mainColToIndexStoragePosMap[i] : -1;
                 if (keyColumnPos < 0) {
                     rowDecoder.seekForward(rowFieldDecoder, i);
                 } else {
@@ -407,15 +411,15 @@ public class IndexTransformer {
          * Handle NULL index columns from the source tables non-primary key columns.
          * NULL columns are not set in bitIndex.
          */
-        for (int srcColIndex = 0; srcColIndex < mainColToIndexPosMap.length; srcColIndex++) {
+        for (int srcColIndex = 0, cnt = 0; srcColIndex < colCount; srcColIndex++, cnt++) {
             /* position of the source column within the index encoding */
-            int indexColumnPosition = mainColToIndexPosMap[srcColIndex];
+            int indexColumnPosition = mainColToIndexStoragePosMap[srcColIndex];
             if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !bitIndex.isSet(srcColIndex)) {
                 if (numIndexExprs > 0) {
                     // In case of an expression-based index, indexColumnPosition >= 0 only means base column at
                     // srcColIndex is referenced in one of the index expressions. Actual value (1, 2, or 5) of
                     // indexColumnPosition is meaningless and should not be used in any place.
-                    int formatId = table.getFormatIds(srcColIndex);
+                    int formatId = table.getFormatIds(cnt);
                     DataValueDescriptor dvd = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
                     decodedRow.setColumn(srcColIndex + 1, dvd);
                     // No need to set ignore for excludeNulls here, will be handled by writeDirectIndex later.

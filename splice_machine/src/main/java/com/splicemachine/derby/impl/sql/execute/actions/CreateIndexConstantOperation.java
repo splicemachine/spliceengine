@@ -444,6 +444,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             int[]	baseColumnPositions = new int[columnNames.length];
             int maxBaseColumnPosition = td.getBaseColumnPositions(lcc, baseColumnPositions, columnNames);
 
+            int[] baseColumnStoragePositions = new int[columnNames.length];
+            td.getBaseColumnStoragePositions(lcc, baseColumnStoragePositions, columnNames);
+
+
             /* The code below tries to determine if the index that we're about
              * to create can "share" a conglomerate with an existing index.
              * If so, we will use a single physical conglomerate--namely, the
@@ -571,12 +575,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                             new IndexRowGenerator(
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
+                                    baseColumnStoragePositions,
                                     indexColumnTypes,
-                                    isAscending,
-                                    isAscending.length,excludeNulls,excludeDefaults,
+                                    isAscending, isAscending.length, excludeNulls,
+                                    excludeDefaults,
                                     exprTexts,
-                                    exprBytecode,
-                                    generatedClassNames);
+                                    exprBytecode, generatedClassNames);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -617,7 +621,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             long heapConglomerateId = td.getHeapConglomerateId();
             Properties indexProperties = getIndexProperties(heapConglomerateId);
-            indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
+            indexRowGenerator = getIndexRowGenerator(baseColumnPositions, baseColumnStoragePositions, indexRowGenerator, shareExisting);
 
             // Create the FormatableBitSet for mapping the partial to full base row
             FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(td.getNumberOfColumns()+1,baseColumnPositions);
@@ -731,8 +735,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     /*private helper methods*/
 
     private IndexRowGenerator getIndexRowGenerator(int[] baseColumnPositions,
-                                                     @Nullable IndexRowGenerator existingGenerator,
-                                                     boolean shareExisting) throws StandardException {
+                                                   int[] baseColumnStoragePositions,
+                                                   @Nullable IndexRowGenerator existingGenerator,
+                                                   boolean shareExisting) throws StandardException {
         // For now, assume that all index columns are ordered columns
         if (! shareExisting) {
             existingGenerator = new IndexRowGenerator(
@@ -740,14 +745,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     unique,
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
+                    baseColumnStoragePositions,
                     indexColumnTypes,
                     isAscending,
                     isAscending.length,
                     excludeNulls,
                     excludeDefaults,
                     exprTexts,
-                    exprBytecode,
-                    generatedClassNames);
+                    exprBytecode, generatedClassNames);
         }
         return existingGenerator;
     }

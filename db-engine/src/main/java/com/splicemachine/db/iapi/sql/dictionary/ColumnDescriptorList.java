@@ -94,11 +94,23 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
      * @param tableID the table id (ignored)
      * @param columnID the column id
      *
-     * @return the column descriptor if found
+     * @return the column descriptor if found, otherwise null.
      */ 
     public ColumnDescriptor getColumnDescriptor(UUID tableID, int columnID) {
         ColumnDescriptor returnValue = get(columnID-1);
         return (returnValue !=null && tableID.equals(returnValue.getReferencingUUID()))?returnValue:null;
+    }
+
+    /**
+     * Get the column descriptor using its storage ID
+     *
+     * @param tableID the table id
+     * @param columnStorageId the column storage id, this number is a monotonically-increasing number given each time a
+     * new column is added to the table.
+     * @return the column descriptor if found, otherwise null.
+     */
+    public ColumnDescriptor getColumnDescriptorByStorageId(UUID tableId, int columnStorageId) {
+        return stream().filter(cd -> cd != null && cd.getStoragePosition() == columnStorageId && cd.getReferencingUUID().equals(tableId)).findFirst().orElse(null);
     }
 
     /**

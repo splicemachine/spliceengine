@@ -71,6 +71,10 @@ public interface IndexDescriptor
 	 */
 	int[]	baseColumnPositions();
 
+	void setBaseColumnPositions(int[] newIds);
+
+	int[] baseColumnStoragePositions();
+
 	/**
      * Returns the postion of a column.
      * <p>
@@ -125,13 +129,6 @@ public interface IndexDescriptor
 	boolean			isDescending(Integer keyColumnPosition);
 
 	/**
-	 * set the baseColumnPositions field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where baseColumnPositions is changed.
-	 */
-	void     setBaseColumnPositions(int[] baseColumnPositions);
-
-	/**
 	 * set the isAscending field of the index descriptor.  This
 	 * is for updating the field in operations such as "alter table drop
 	 * column" where isAscending is changed.
@@ -139,13 +136,6 @@ public interface IndexDescriptor
 	void     setIsAscending(boolean[] isAscending);
 
 	/**
-	 * set the numberOfOrderedColumns field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where numberOfOrderedColumns is changed.
-	 */
-	void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
-
-    /**
      * Checks whether the index descriptor is a primary key.
      * @return
      */

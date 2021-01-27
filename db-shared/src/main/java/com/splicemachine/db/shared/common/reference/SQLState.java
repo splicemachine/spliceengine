@@ -753,6 +753,7 @@ public interface SQLState {
     String LANG_INVALID_TIME_SPAN_OPERATION           = "2202F";
     String LANG_FIELD_POSITION_ZERO                   = "22030";
     String LANG_INVALID_TIMEZONE_OPERATION            = "22031";
+    String LANG_DROPPED_COL_IS_INDEX_COL              = "22032";
     /*
      ** Integrity violations.
      */

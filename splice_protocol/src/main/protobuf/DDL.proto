@@ -251,8 +251,11 @@ message TentativeDropColumn {
         optional string tableVersion = 3;
         repeated int32 oldColumnOrdering = 4;
         repeated int32 newColumnOrdering = 5;
-        required bytes columnInfos = 6;
+        optional bytes columnInfos = 6;
         optional int32 droppedColumnPosition = 7;
+        optional UUID tableId = 8; // the UUID of the table whose column is dropped.
+        repeated string affectedIndicesNames = 9; // list of indices affected by the drop column.
+        repeated UUID affectedIndicesSchemaIds = 10; // list of affected indices' schemas.
 }
 
 message TentativeDropPKConstraint {
@@ -266,7 +269,7 @@ message TentativeDropPKConstraint {
 
 message Index {
         required int64 conglomerate = 1; // Index Conglomerate
-        repeated int32 indexColsToMainColMap = 2; // Map from index cols to maint table columns
+        repeated int32 indexColsToMainColMap = 2; // Map from index cols to main table columns
         optional bool unique = 3; // Is the Index Unique
         optional bool uniqueWithDuplicateNulls = 4; // Does the unique index support duplicate nullls
         repeated bool descColumns = 5; // Whether the columns are descending
@@ -277,6 +280,7 @@ message Index {
         repeated string generatedClassNames = 10; // Names of the generated classes of index expressions
         repeated bytes bytecodeExprs = 11; // bytecode of the generated classes of index expressions
         repeated int32 indexColumnFormatIds = 12;  // result types of index expressions
+        repeated int32 indexColsToMainStorageColMap = 13; // map from index cols to main table columns' storage positions.
 }
 
 message Table {
@@ -286,6 +290,7 @@ message Table {
         repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
         required string tableVersion = 5; // Table Version for SerDe
         optional UUID tableUuid = 6; //the derby UUID
+        repeated int32 columnStorageOrdering = 7; // The ordering of the columns in the table using their storage number.
 }
 
 message TentativeIndex {

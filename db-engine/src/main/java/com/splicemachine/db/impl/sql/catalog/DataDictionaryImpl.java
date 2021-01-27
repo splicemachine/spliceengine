@@ -7282,6 +7282,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         int numCols=ti.getIndexColumnCount(indexNumber);
         int[] baseColumnPositions=new int[numCols];
 
+        /* system tables don't drop columns so positions / storage positions are always in-sync.*/
+        int[] baseColumnStoragePositions = baseColumnPositions;
+
         for(int colCtr=0;colCtr<numCols;colCtr++){
             baseColumnPositions[colCtr]=ti.getBaseColumnPosition(indexNumber,colCtr);
         }
@@ -7294,7 +7297,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         boolean isUnique=ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength,false,false);
+        IndexRowGenerator irg=new IndexRowGenerator("DENSE", isUnique, false,
+                                                    baseColumnPositions, baseColumnStoragePositions, isAscending,
+                                                    baseColumnLength, false, false);
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);

@@ -266,12 +266,29 @@ public class DDLUtils {
         return mainColToIndexPosMap;
     }
 
-    public static BitSet getIndexedCols(int[] indexColsToMainColMap) {
-        BitSet indexedCols = new BitSet();
-        for (int indexCol : indexColsToMainColMap) {
-            indexedCols.set(indexCol - 1);
+    public static int[] invert(int[] index) {
+        if(index == null) {
+            return null;
         }
-        return indexedCols;
+        if(index.length == 0) {
+            return new int[]{};
+        }
+        int size = Arrays.stream(index).max().getAsInt();
+        int[] result = new int[size];
+        Arrays.fill(result, -1);
+        for (int indexCol = 0; indexCol < index.length; indexCol++) {
+            int mainCol = index[indexCol];
+            result[mainCol - 1] = indexCol;
+        }
+        return result;
+    }
+
+    public static BitSet asBitSet(int[] array) {
+        BitSet result = new BitSet();
+        for (int col : array) {
+            result.set(col - 1);
+        }
+        return result;
     }
 
     public static byte[] getIndexConglomBytes(long indexConglomerate) {
@@ -1044,6 +1061,41 @@ public class DDLUtils {
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preDropColumn(DDLMessage.DDLChange change,
+                                     DataDictionary dd,
+                                     DependencyManager dm ) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropColumn with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+                transactionResource.marshallTransaction(txn);
+                DDLMessage.TentativeDropColumn message = change.getTentativeDropColumn();
+                TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                // mark the table as invalid.
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(message.getTableId()));
+                if (td != null) { // Table Descriptor transaction never committed
+                    dm.invalidateFor(td, DependencyManager.DROP_COLUMN, lcc);
+                }
+
+                // mark any affected index also as invalid
+                assert message.getAffectedIndicesSchemaIdsCount() == message.getAffectedIndicesNamesCount();
+
+                for(int i = 0; i < message.getAffectedIndicesSchemaIdsCount(); ++i) {
+                    SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(message.getAffectedIndicesSchemaIds(i)), tc);
+                    String indexName = message.getAffectedIndicesNames(i);
+                    ConglomerateDescriptor cd = dd.getConglomerateDescriptor(indexName, sd, true);
+                    if(cd != null) {
+                        dm.invalidateFor(cd, DependencyManager.DROP_COLUMN, lcc);
+                    }
+                }
+            }
+        } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
     }

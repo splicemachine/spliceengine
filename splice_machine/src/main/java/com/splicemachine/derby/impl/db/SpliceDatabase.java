@@ -334,6 +334,8 @@ public class SpliceDatabase extends BasicDatabase{
                     case ADD_PRIMARY_KEY:
                     case ADD_UNIQUE_CONSTRAINT:
                     case DROP_COLUMN:
+                        DDLUtils.preDropColumn(change, dataDictionary, dependencyManager);
+                        break;
                     case DROP_CONSTRAINT:
                     case DROP_PRIMARY_KEY:
                     case DICTIONARY_UPDATE:

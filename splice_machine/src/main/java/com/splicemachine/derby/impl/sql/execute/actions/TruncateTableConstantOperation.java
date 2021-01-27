@@ -15,15 +15,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,8 +26,17 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -93,23 +93,28 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         truncateTable(td, activation);
     }
 
-    /*
-    * TRUNCATE TABLE  TABLENAME; (quickly removes all the rows from table and
-    * it's correctponding indexes).
-    * Truncate is implemented by dropping the existing conglomerates(heap,indexes) and recreating a
-    * new ones  with the properties of dropped conglomerates. Currently Store
-    * does not have support to truncate existing conglomerated until store
-    * supports it , this is the only way to do it.
-    * Error Cases: Truncate error cases same as other DDL's statements except
-    * 1)Truncate is not allowed when the table is references by another table.
-    * 2)Truncate is not allowed when there are enabled delete triggers on the table.
-    * Note: Because conglomerate number is changed during recreate process all the statements will be
-    * marked as invalide and they will get recompiled internally on their next
-    * execution. This is okay because truncate makes the number of rows to zero
-    * it may be good idea to recompile them becuase plans are likely to be
-    * incorrect. Recompile is done internally by Derby, user does not have
-    * any effect.
-    */
+    /**
+     * TRUNCATE TABLE TABLE_NAME; (quickly removes all the rows from table and its corresponding indexes).
+     * <p>
+     * Truncate is implemented by dropping the existing conglomerates(heap,indexes) and recreating a
+     * new ones with the properties of dropped conglomerates. Currently, store
+     * does not have support to truncate existing conglomerates. Until store
+     * supports it, this is the only way to do it.
+     * </p>
+     * <p>
+     * Error Cases: Truncate error cases same as other DDL statements except:
+     * 1) Truncate is not allowed when the table is references by another table.
+     * 2) Truncate is not allowed when there are enabled delete triggers on the table.
+     * </p>
+     * <p>
+     * Note: Because conglomerate number is changed during recreate process all the statements will be
+     * marked as invalid and they will get recompiled internally on their next
+     * execution. This is okay because truncate makes the number of rows zero,
+     * it may be good idea to recompile them because plans are likely to be
+     * incorrect. Recompile is done internally by Derby, user does not have
+     * any effect.
+     * </p>
+     */
     private void truncateTable(TableDescriptor td, Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
@@ -172,15 +177,12 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         compressHeapCC.getInternalTablePropertySet(properties);
         compressHeapCC.close();
 
-            /*
-		    ** Inform the data dictionary that we are about to write to it.
-		    ** There are several calls to data dictionary "get" methods here
-		    ** that might be done in "read" mode in the data dictionary, but
-		    ** it seemed safer to do this whole operation in "write" mode.
-		    **
-		    ** We tell the data dictionary we're done writing at the end of
-		    ** the transaction.
-		     */
+        // Inform the data dictionary that we are about to write to it.
+        // There are several calls to data dictionary "get" methods here
+        // that might be done in "read" mode in the data dictionary, but
+        // it seemed safer to do this whole operation in "write" mode.
+        // We tell the data dictionary we're done writing at the end of
+        // the transaction.
         dd.startWriting(lcc);
 
 
@@ -202,7 +204,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         properties,
                         TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
-        /* Set up index info to perform truncate on them*/
+        // Set up index info to perform truncate on them
         int numIndexes = getAffectedIndexes(td);
 
 
@@ -217,7 +219,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
-        // truncate  all indexes
+        // truncate all indexes
         long[] newIndexCongloms = new long[numIndexes];
         if(numIndexes > 0) {
             for (int index = 0; index < numIndexes; index++) {
@@ -227,12 +229,11 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 
         enableReplicationIfNecessary(td, newHeapConglom, newIndexCongloms);
         // If the table has foreign key, create a new foreign key write handler
-        for(int i = 0; i < constraintDescriptors.size(); ++i) {
-            ConstraintDescriptor conDesc = constraintDescriptors.get(i);
+        for (ConstraintDescriptor conDesc : constraintDescriptors) {
             if (conDesc instanceof ForeignKeyConstraintDescriptor) {
                 ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
                 ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY, lcc).submit();
             }
         }
 
@@ -252,7 +253,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         // Now that the updated information is available in the system tables,
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
-
     }
 
     private void enableReplicationIfNecessary(TableDescriptor td, long newHeapConglom, long[] newIndexCongloms) throws StandardException {

@@ -916,6 +916,12 @@ Guide.
                 <text>Invalid timezone arithmetic operation.</text>
             </msg>
 
+            <msg>
+                <name>22032</name>
+                <text>Attempt to drop column {0} which is part of index {1}</text>
+                <arg>string</arg>
+                <arg>string</arg>
+            </msg>
 
         </family>
 

@@ -69,19 +69,21 @@ import java.util.List;
  *
  */
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
-    private static final String IS_UNIQUE_KEY          = "isUnique";
-    private static final String KEY_LENGTH_KEY         = "keyLength";
-    private static final String IS_ASC_KEY             = "isAsc";
-    private static final String NUM_BASE_COLS_KEY      = "numBaseColumns";
-    private static final String BASE_COL_POS_KEY       = "bcp";
-    private static final String ORDERED_COL_KEY        = "orderedColumns";
-    private static final String INDEX_TYPE_KEY         = "indexType";
-    private static final String IS_UNIQUE_WITH_DUP_KEY = "isUniqueWithDuplicateNulls";
-    private static final String EXCLUDE_NULLS_KEY      = "excludeNulls";
-    private static final String EXCLUDE_DEFAULTS_KEY   = "excludeDefaults";
-    private static final String NUM_INDEX_EXPR_KEY     = "numIndexExpr";
-    private static final String EXPR_TEXT_KEY          = "exprText";
-    private static final String GEN_CLASS_NAME_KEY     = "generatedClassName";
+    private static final String IS_UNIQUE_KEY              = "isUnique";
+    private static final String KEY_LENGTH_KEY             = "keyLength";
+    private static final String IS_ASC_KEY                 = "isAsc";
+    private static final String NUM_BASE_COLS_KEY          = "numBaseColumns";
+    private static final String BASE_COL_POS_KEY           = "bcp";
+    private static final String ORDERED_COL_KEY            = "orderedColumns";
+    private static final String INDEX_TYPE_KEY             = "indexType";
+    private static final String IS_UNIQUE_WITH_DUP_KEY     = "isUniqueWithDuplicateNulls";
+    private static final String EXCLUDE_NULLS_KEY          = "excludeNulls";
+    private static final String EXCLUDE_DEFAULTS_KEY       = "excludeDefaults";
+    private static final String NUM_INDEX_EXPR_KEY         = "numIndexExpr";
+    private static final String EXPR_TEXT_KEY              = "exprText";
+    private static final String GEN_CLASS_NAME_KEY         = "generatedClassName";
+    private static final String NUM_BASE_STORAGE_COLS_KEY  = "numBaseStorageColumns";
+    private static final String BASE_STORAGE_COL_POS_KEY   = "bscp";
 
 
     private boolean              isUnique;
@@ -89,6 +91,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     // column-based index: stores column mapping baseColumnPositions[indexColumnPosition] = baseColumnPosition
     // expression-based index: stores the distinct base column positions of used columns in arbitrary order
     private int[]                baseColumnPositions;
+
+    private int[]                baseColumnStoragePositions;
 
     // column-based index: empty because types are the same as base column types
     // expression-based index: stores the result types of index expressions in original order
@@ -125,44 +129,45 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
     /**
      * Constructor for an IndexDescriptorImpl
-     * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
+     *  @param indexType        The type of index
+     * @param isUnique        True means the index is unique
      * @param isUniqueWithDuplicateNulls True means the index will be unique
-     *                              for non null values but duplicate nulls
-     *                              will be allowed.
-     *                              This parameter has no effect if the isUnique
-     *                              is true. If isUnique is false and 
-     *                              isUniqueWithDuplicateNulls is set to true the
-     *                              index will allow duplicate nulls but for
-     *                              non null keys will act like a unique index.
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
+ *                              for non null values but duplicate nulls
+ *                              will be allowed.
+ *                              This parameter has no effect if the isUnique
+ *                              is true. If isUnique is false and
+ *                              isUniqueWithDuplicateNulls is set to true the
+ *                              index will allow duplicate nulls but for
+ *                              non null keys will act like a unique index.
+     * @param baseColumnPositions    An array of column positions in the base
+* 								table.  Each index column corresponds to a
+* 								column position in the base table.
+     * @param baseColumnStoragePositions
+     * @param isAscending    An array of booleans telling asc/desc on each
      * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
+     * @param numberOfOrderedColumns    In the future, it will be possible
+ * 									to store non-ordered columns in an
+ * 									index.  These will be useful for
      */
     public IndexDescriptorImpl(String indexType,
-                                boolean isUnique,
-                                boolean isUniqueWithDuplicateNulls,
-                                int[] baseColumnPositions,
-                                DataTypeDescriptor[] indexColumnTypes,
-                                boolean[] isAscending,
-                                int numberOfOrderedColumns,
-                                boolean excludeNulls,
-                                boolean excludeDefaults,
-                                String[] exprTexts,
-                                ByteArray[] exprBytecode,
-                                String[] generatedClassNames)
+                               boolean isUnique,
+                               boolean isUniqueWithDuplicateNulls,
+                               int[] baseColumnPositions,
+                               int[] baseColumnStoragePositions,
+                               DataTypeDescriptor[] indexColumnTypes,
+                               boolean[] isAscending,
+                               int numberOfOrderedColumns,
+                               boolean excludeNulls,
+                               boolean excludeDefaults,
+                               String[] exprTexts,
+                               ByteArray[] exprBytecode,
+                               String[] generatedClassNames)
     {
         this.indexType = indexType;
         this.isUnique = isUnique;
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
         this.baseColumnPositions = baseColumnPositions;
+        this.baseColumnStoragePositions = baseColumnStoragePositions;
         this.indexColumnTypes = indexColumnTypes;
         this.isAscending = isAscending;
         this.numberOfOrderedColumns = numberOfOrderedColumns;
@@ -180,14 +185,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                                boolean isUnique,
                                boolean isUniqueWithDuplicateNulls,
                                int[] baseColumnPositions,
+                               int[] baseColumnStoragePositions,
                                boolean[] isAscending,
                                int numberOfOrderedColumns,
                                boolean excludeNulls,
                                boolean excludeDefaults
     )
     {
-        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, new DataTypeDescriptor[]{},
-             isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
+        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, baseColumnStoragePositions,
+             new DataTypeDescriptor[]{}, isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
              new String[]{}, new ByteArray[]{}, new String[]{});
     }
 
@@ -217,6 +223,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	{
 		return baseColumnPositions;
 	}
+
+    public void setBaseColumnPositions(int[] newIds) {
+        baseColumnPositions = newIds;
+    }
+
+	public int[] baseColumnStoragePositions() {
+	    return baseColumnStoragePositions;
+    }
 
 	/** @see IndexDescriptor#getKeyColumnPosition */
 	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
@@ -278,22 +292,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		return isAscending;
 	}
 
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		this.baseColumnPositions = baseColumnPositions;
-	}
-
-	/** @see IndexDescriptor#setIsAscending */
+    /** @see IndexDescriptor#setIsAscending */
 	public void		setIsAscending(boolean[] isAscending)
 	{
 		this.isAscending = isAscending;
-	}
-
-	/** @see IndexDescriptor#setNumberOfOrderedColumns */
-	public void		setNumberOfOrderedColumns(int numberOfOrderedColumns)
-	{
-		this.numberOfOrderedColumns = numberOfOrderedColumns;
 	}
 
     /**
@@ -371,6 +373,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int i = 0; i < numBaseColumns; i++) {
             baseColumnPositions[i] = fh.getInt(BASE_COL_POS_KEY + i);
         }
+        int numBaseStorageColumns = fh.containsKey(NUM_BASE_STORAGE_COLS_KEY) ? fh.getInt(NUM_BASE_STORAGE_COLS_KEY) : keyLength;
+        baseColumnStoragePositions = new int[numBaseStorageColumns];
+        for (int i = 0; i < numBaseStorageColumns; i++) {
+            baseColumnStoragePositions[i] = fh.getInt(BASE_STORAGE_COL_POS_KEY + i);
+        }
         numberOfOrderedColumns = fh.getInt(ORDERED_COL_KEY);
         indexType = (String) fh.get(INDEX_TYPE_KEY);
         //isUniqueWithDuplicateNulls attribute won't be present if the index
@@ -416,6 +423,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         fh.putInt(NUM_BASE_COLS_KEY, baseColumnPositions.length);
         for (int i = 0; i < baseColumnPositions.length; i++) {
             fh.putInt(BASE_COL_POS_KEY + i, baseColumnPositions[i]);
+        }
+        fh.putInt(NUM_BASE_STORAGE_COLS_KEY, baseColumnStoragePositions.length);
+        for (int i = 0; i < baseColumnStoragePositions.length; i++) {
+            fh.putInt(BASE_STORAGE_COL_POS_KEY + i, baseColumnStoragePositions[i]);
         }
         fh.putInt(ORDERED_COL_KEY, numberOfOrderedColumns);
         fh.put(INDEX_TYPE_KEY, indexType);

@@ -935,14 +935,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
             // get the column positions for the new PK to
             // create the PK IndexDescriptor and new conglomerate
-            int [] pkColumns =
-                ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
+            int [] pkColumns = ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
             boolean[] ascending = new boolean[pkColumns.length];
-            for(int i=0;i<ascending.length;i++){
-                ascending[i] = true;
-            }
+            Arrays.fill(ascending, true);
+            int[] pkColumnsStoragePositions = ((CreateConstraintConstantOperation)constraintAction).genColumnStoragePositions(tableDescriptor, true);
             IndexDescriptor indexDescriptor =
-                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+                new IndexDescriptorImpl("PRIMARYKEY", true, false, pkColumns, pkColumnsStoragePositions, ascending, pkColumns.length, false, false);
             IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
 
             // Replace old table conglomerate with new one with the new PK conglomerate
@@ -964,7 +962,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                                        sd.getUUID());
             dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
-            // add the newly crated conglomerate to the table descriptor
+            // add the newly created conglomerate to the table descriptor
             conglomerateList.add(cgd);
 
             // set heap conglomerate Id to new one

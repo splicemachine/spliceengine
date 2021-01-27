@@ -439,9 +439,21 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      * @return int[] The column positions.
      */
     public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
-        int[] baseColumnPositions;
+        return genColumnId(td, columnsMustBeOrderable, ColumnDescriptor::getPosition);
+    }
+
+    public int[] genColumnStoragePositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
+        return genColumnId(td, columnsMustBeOrderable, ColumnDescriptor::getStoragePosition);
+    }
+
+    private interface IntOp {
+        int get(ColumnDescriptor cd);
+    }
+
+    private int[] genColumnId(TableDescriptor td, boolean columnsMustBeOrderable, IntOp intOp) throws StandardException {
+        int[] result;
         // Translate the base column names to column positions
-        baseColumnPositions = new int[columnNames.length];
+        result = new int[columnNames.length];
         for (int i = 0; i < columnNames.length; i++) {
             ColumnDescriptor columnDescriptor;
 
@@ -449,19 +461,19 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             columnDescriptor = td.getColumnDescriptor(columnNames[i]);
             if (columnDescriptor == null) {
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
-                        columnNames[i],tableName);
+                                                     columnNames[i],tableName);
             }
 
-			// Don't allow a column to be created on a non-orderable type
-			// (for primaryKey and unique constraints)
-			if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
-				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
-					columnDescriptor.getType().getTypeId().getSQLTypeName());
+            // Don't allow a column to be created on a non-orderable type
+            // (for primaryKey and unique constraints)
+            if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+                                                     columnDescriptor.getType().getTypeId().getSQLTypeName());
 
             // Remember the position in the base table of each column
-            baseColumnPositions[i] = columnDescriptor.getPosition();
+            result[i] = intOp.get(columnDescriptor);
         }
-        return baseColumnPositions;
+        return result;
     }
 
     /**
