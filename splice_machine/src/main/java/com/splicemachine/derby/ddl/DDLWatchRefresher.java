@@ -219,7 +219,8 @@ public class DDLWatchRefresher{
         if (LOG.isTraceEnabled())
             LOG.trace("processPreCommitChanges -> " + ddlChange);
         currChangeCount.incrementAndGet();
-        currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
+        // TODO: Keep currentDDLChanges up-to-date.
+        //currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
             listener.startChange(ddlChange);
@@ -235,7 +236,9 @@ public class DDLWatchRefresher{
          */
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
-            if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
+            // TODO: check for the key..
+            // if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
+            if(!children.contains(entry)){
                 LOG.info("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
