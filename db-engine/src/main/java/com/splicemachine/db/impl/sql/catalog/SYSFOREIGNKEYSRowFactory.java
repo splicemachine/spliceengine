@@ -279,32 +279,23 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 				new ColumnDescriptor("TABNAME",3,3,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("OWNER",4,4,
-						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),  // not null in DB2
-						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("OWNERTYPE",5,5,
-						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true, 1),  // not null in DB2
-						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("REFKEYNAME",6,6,
+				new ColumnDescriptor("REFKEYNAME",4,4,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("REFTABSCHEMA",7,7,
+				new ColumnDescriptor("REFTABSCHEMA",5,5,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("REFTABNAME",8,8,
+				new ColumnDescriptor("REFTABNAME",6,6,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("COLCOUNT",9,9,
+				new ColumnDescriptor("COLCOUNT",7,7,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("DELETERULE",10,10,
+				new ColumnDescriptor("DELETERULE",8,8,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("UPDATERULE",11,11,
+				new ColumnDescriptor("UPDATERULE",9,9,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
-						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("CREATE_TIME",12,12,
-						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP, true),  // not null in DB2
 						null,null,view,viewId,0,0,0),
 			});
 		return cdsl;
@@ -377,8 +368,6 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			"SELECT CC.CONSTRAINTNAME AS CONSTNAME\n" +
 			"     , VC.SCHEMANAME AS TABSCHEMA\n" +
 			"     , TC.TABLENAME AS TABNAME\n" +
-			"     , CAST(NULL AS VARCHAR(128)) AS OWNER\n" +
-			"     , CAST(NULL AS CHAR(1)) AS OWNERTYPE\n" +
 			"     , CP.CONSTRAINTNAME AS REFKEYNAME\n" +
 			"     , VP.SCHEMANAME AS REFTABSCHEMA\n" +
 			"     , TP.TABLENAME AS REFTABNAME\n" +
@@ -393,7 +382,6 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			"          WHEN 'R' THEN 'A'\n" +
 			"          WHEN 'S' THEN 'R'\n" +
 			"        END) AS UPDATERULE\n" +
-			"     , CAST(NULL AS TIMESTAMP) AS CREATE_TIME\n" +
 			"FROM --splice-properties joinOrder=fixed\n" +
 			"     SYS.SYSFOREIGNKEYS FK\n" +
 			"   , SYS.SYSCONSTRAINTS CC\n" +
