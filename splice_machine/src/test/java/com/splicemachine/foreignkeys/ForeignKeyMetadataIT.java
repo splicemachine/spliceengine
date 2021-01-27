@@ -161,13 +161,25 @@ public class ForeignKeyMetadataIT {
     public void testReferencesAndSysKeyColUseViews() throws Exception {
         methodWatcher.executeUpdate("create table if not exists SELF_REF (c int, d int, " +
                 "constraint SRPK primary key (c), constraint SRFK foreign key (c) references SELF_REF(c))");
+        methodWatcher.executeUpdate("create table if not exists TBL1_REF (c int, d int, " +
+                "constraint TRFK1 foreign key (c) references SELF_REF(c) ON DELETE SET NULL)");
+        methodWatcher.executeUpdate("create table if not exists TBL2_REF (c int, d int, " +
+                "constraint TRFK2 foreign key (c) references SELF_REF(c) ON DELETE CASCADE)");
+        methodWatcher.executeUpdate("create table if not exists TBL3_REF (c int, d int, " +
+                "constraint TRFK3 foreign key (c) references SELF_REF(c) ON DELETE RESTRICT)");
+        methodWatcher.executeUpdate("create table if not exists TBL4_REF (c int, d int, " +
+                "constraint TRFK4 foreign key (c) references SELF_REF(c) ON UPDATE RESTRICT)");
 
-        String query = "select * from syscat.references r where r.tabname = 'SELF_REF'";
+        String query = "select * from syscat.references r where r.tabname like '%_REF%'";
 
         String expected =
-                "CONSTNAME |      TABSCHEMA      | TABNAME | OWNER | OWNERTYPE |REFKEYNAME |    REFTABSCHEMA     |REFTABNAME |COLCOUNT |DELETERULE |UPDATERULE | CREATE_TIME |\n" +
-                "--------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                "   SRFK    |FOREIGNKEYMETADATAIT |SELF_REF | NULL  |   NULL    |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     A     |    NULL     |";
+                "CONSTNAME |      TABSCHEMA      | TABNAME |REFKEYNAME |    REFTABSCHEMA     |REFTABNAME |COLCOUNT |DELETERULE |UPDATERULE |\n" +
+                "----------------------------------------------------------------------------------------------------------------------------\n" +
+                "   SRFK    |FOREIGNKEYMETADATAIT |SELF_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     A     |\n" +
+                "   TRFK1   |FOREIGNKEYMETADATAIT |TBL1_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     N     |     A     |\n" +
+                "   TRFK2   |FOREIGNKEYMETADATAIT |TBL2_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     C     |     A     |\n" +
+                "   TRFK3   |FOREIGNKEYMETADATAIT |TBL3_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     R     |     A     |\n" +
+                "   TRFK4   |FOREIGNKEYMETADATAIT |TBL4_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     R     |";
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
