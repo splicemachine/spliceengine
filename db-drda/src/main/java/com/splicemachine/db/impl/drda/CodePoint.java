@@ -750,7 +750,8 @@ class CodePoint
 	static final int SECMEC_EUSRIDPWD = 9;  // Encrpyted userid and password
 	static final int SECMEC_EUSRIDNWPWD = 10;  // Encrpyted userid and password
 	static final int SECMEC_KERSEC = 11;  // Kerberos authentication
-	static final int SECMEC_TOKEN = 14;  // Token authentication
+	static final int SECMEC_PLGIN = 15;  // The Plug-in Security Mechanism
+	static final int SECMEC_TOKEN = SECMEC_PLGIN;  // Token authentication via Plug-in Security Mechanism
 
 	//---------------------Security Check Codes ---------------------------
 	static final int SECCHKCD_OK = 0;		// Security info correct and acceptable

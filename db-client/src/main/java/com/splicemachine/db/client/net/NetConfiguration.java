@@ -175,8 +175,12 @@ public class NetConfiguration {
     // Indicates Kerberos authentication.
     public static final int SECMEC_KERSEC = 0x0B;
 
-    // Indicates Token authentication.
-    public static final int SECMEC_TOKEN = 0x0E;
+    // The Plug-in Security Mechanism specifies that an external authentication mechanism is to be
+    // used to carry out the authentication.
+    public static final int SECMEC_PLGIN = 0x0F;
+
+    // Indicates Token authentication via Plug-in Security Mechanism.
+    public static final int SECMEC_TOKEN = SECMEC_PLGIN;
 
     // list of security mechanisms supported by this driver
     static final int[] SECMGR_SECMECS = {NetConfiguration.SECMEC_EUSRIDPWD,
