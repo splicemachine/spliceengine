@@ -62,9 +62,9 @@ node('splice-standalone'){
                 // Run Maven on a Unix agent.
                 dir('spliceengine'){
                     sh '''
-                    export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
+                    export SRCVER="$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
                     cd db-client/target/
-                    export JAR="$(ls | grep ".jar" | grep -v "original" | grep -v "sources" | grep -v "\\-SNAPSHOT")"
+                    export JAR="$(ls | grep ".jar" | grep -v "original" | grep -v "sources" | grep -v "-SNAPSHOT")"
                     if [ ! -z "$JAR" ]; then
                         aws s3 cp $JAR s3://splice-releases/$SRCVER/cluster/jdbc-driver/ --acl public-read
                     fi
