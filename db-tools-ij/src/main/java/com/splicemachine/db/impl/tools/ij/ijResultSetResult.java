@@ -109,7 +109,7 @@ public class ijResultSetResult extends ijResultImpl {
 			int max = JDBCDisplayUtil.getMaxDisplayWidth();
 			if( max != 256 )
 			{
-				if (maxColWidth != 0 && (max == 0 || max > maxColWidth))
+				if (maxColWidth != 0 && (max != 0 && max > maxColWidth))
 					colWidth = maxColWidth;
 				else
 					colWidth = max;
