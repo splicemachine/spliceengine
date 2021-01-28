@@ -28,45 +28,39 @@ public class UpgradeUtils {
     public static void initializeConglomerateSITable(TransactionController tc) throws IOException {
         SIDriver driver = SIDriver.driver();
         int rowsRewritten = 0;
-        try {
-            EntryDecoder entryDecoder = new EntryDecoder();
-            TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
-            BitSet fields = new BitSet();
-            fields.set(0);
-            EntryEncoder entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, fields, null, null, null);
-            try (Partition sourceTable = driver.getTableFactory().getTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
-                 Partition destTable = driver.getTableFactory().getTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
-                try (DataScanner scanner = sourceTable.openScanner(driver.baseOperationFactory().newScan())) {
-                    while (true) {
-                        List<DataCell> cells = scanner.next(0);
-                        if (cells.isEmpty())
-                            break;
-                        for (DataCell cell : cells) {
-                            CellType type = cell.dataType();
-                            if (type == CellType.USER_DATA) {
-                                byte[] key = cell.key();
-                                byte[] data = cell.value();
-                                entryDecoder.set(data);
-                                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                                byte[] nextRaw = decoder.decodeNextBytesUnsorted();
-                                Conglomerate conglomerate = DerbyBytesUtil.fromBytesUnsafe(nextRaw);
-                                byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
-                                DataPut put = driver.getOperationFactory().newDataPut(txn, key);
-                                MultiFieldEncoder encoder = entryEncoder.getEntryEncoder();
-                                encoder.reset();
-                                encoder.encodeNextUnsorted(conglomData);
-                                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-                                destTable.put(put);
-                                rowsRewritten++;
-                            }
+
+        EntryDecoder entryDecoder = new EntryDecoder();
+        TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+        BitSet fields = new BitSet();
+        fields.set(0);
+        EntryEncoder entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, fields, null, null, null);
+        try (Partition sourceTable = driver.getTableFactory().getTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+             Partition destTable = driver.getTableFactory().getTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+            try (DataScanner scanner = sourceTable.openScanner(driver.baseOperationFactory().newScan())) {
+                while (true) {
+                    List<DataCell> cells = scanner.next(0);
+                    if (cells.isEmpty())
+                        break;
+                    for (DataCell cell : cells) {
+                        CellType type = cell.dataType();
+                        if (type == CellType.USER_DATA) {
+                            byte[] key = cell.key();
+                            byte[] data = cell.value();
+                            entryDecoder.set(data);
+                            MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                            byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+                            DataPut put = driver.getOperationFactory().newDataPut(txn, key);
+                            MultiFieldEncoder encoder = entryEncoder.getEntryEncoder();
+                            encoder.reset();
+                            encoder.encodeNextUnsorted(nextRaw);
+                            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                            destTable.put(put);
+                            rowsRewritten++;
                         }
                     }
                 }
             }
-            SpliceLogUtils.info(LOG, "Wrote %d rows to SPLICE_CONGLOMERATE_SI.", rowsRewritten);
         }
-        catch (IOException | ClassNotFoundException | StandardException e) {
-            throw new IOException(e);
-        }
+        SpliceLogUtils.info(LOG, "Wrote %d rows to SPLICE_CONGLOMERATE_SI.", rowsRewritten);
     }
 }

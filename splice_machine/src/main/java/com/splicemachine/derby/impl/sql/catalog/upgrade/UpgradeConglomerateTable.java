@@ -26,10 +26,10 @@ public class UpgradeConglomerateTable extends UpgradeScriptBase {
                 UpgradeUtils.initializeConglomerateSITable(tc);
             }
         }
-        catch (IOException e) {
+        catch (Exception e) {
             // If upgrade fails for some reasons, roll back CONGLOMERATE_SI table and throw an exception
             try {
-                if (admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+                if (admin != null && admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
                     admin.deleteTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
                 }
             }
