@@ -165,6 +165,12 @@ public interface LanguageConnectionContext extends Context {
     int getTableLimitForExhaustiveSearch();
 
     /**
+     * Get value of minPlanTimeout
+     * @return value of minPlanTimeout
+     */
+    long getMinPlanTimeout();
+
+    /**
      * get the lock escalation threshold to use with this connection.
      */
     int getLockEscalationThreshold();

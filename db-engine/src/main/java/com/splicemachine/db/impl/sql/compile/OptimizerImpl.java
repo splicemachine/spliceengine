@@ -187,6 +187,9 @@ public class OptimizerImpl implements Optimizer{
 
     private static final int NANOS_TO_MILLIS = 1000000;
     private boolean forSpark = false;
+    private final long minPlanTimeout;
+    private final long maxPlanTimeout;
+    boolean foundCompleteJoinPlan = false;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -200,6 +203,10 @@ public class OptimizerImpl implements Optimizer{
                             RequiredRowOrdering requiredRowOrdering,
                             int numTablesInQuery) throws StandardException{
         assert optimizableList!=null: "optimizableList is not expected to be null";
+
+        minPlanTimeout = getSessionMinPlanTimeout() >= 0 ?
+                         getSessionMinPlanTimeout() : getMinTimeout();
+        maxPlanTimeout = Long.max(getMaxTimeout(), minPlanTimeout);
 
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
 
@@ -1147,6 +1154,8 @@ public class OptimizerImpl implements Optimizer{
             tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
             return;
         }
+        if (joinPosition == numOptimizables-1 && !foundCompleteJoinPlan)
+            foundCompleteJoinPlan = true;
 
         /* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this, predicateList, outerCost, currentRowOrdering);
@@ -2545,6 +2554,15 @@ public class OptimizerImpl implements Optimizer{
         return optimizable.estimateCost(predList, cd, outerCost,this, currentRowOrdering);
     }
 
+    private long getSessionMinPlanTimeout() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext) ContextService.
+                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return -1;
+        return lcc.getMinPlanTimeout();
+    }
+
     private boolean checkTimeout(){
         /*
          * Check whether or not optimization time as timed out
@@ -2560,17 +2578,22 @@ public class OptimizerImpl implements Optimizer{
         if(noTimeout) return false;
         if(timeExceeded || numOptimizables<=optimizableList.getTableLimitForExhaustiveSearch()) return timeExceeded;
 
+        // Must at least find one complete join plan, otherwise
+        // the query will not run at all.
+        if (!foundCompleteJoinPlan)
+            return false;
+
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:
         // currentTime, timeOptimizationStarted, timeLimit, getMinTimeout(), getMaxTimeout()
 
         long searchDuration = System.currentTimeMillis() - timeOptimizationStarted;
 
-        if (searchDuration > timeLimit && searchDuration > getMinTimeout()) {
+        if (searchDuration > timeLimit && searchDuration > minPlanTimeout) {
             // We've exceeded the best time seen so far to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration);
-        } else if (searchDuration > getMaxTimeout()) {
+        } else if (searchDuration > maxPlanTimeout) {
             // We've exceeded max time allowed to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration);

@@ -104,6 +104,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean useNativeSpark = Boolean.parseBoolean(valString);
                 properties[USE_NATIVE_SPARK.getId()] = useNativeSpark;
                 break;
+            case MINPLANTIMEOUT:
+                long minPlanTimeout = Long.parseLong(valString);
+                properties[MINPLANTIMEOUT.getId()] = minPlanTimeout;
+                break;
             default:
                 assert false;
         }
