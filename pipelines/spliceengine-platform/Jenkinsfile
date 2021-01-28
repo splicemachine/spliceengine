@@ -70,7 +70,7 @@ def generateStage(platform,slackResponse) {
 }
 
 
-node('splice-standalone'){
+node('micro-spliceengine'){
     try{
         stage("Initiate Parallel Stages"){
                 parallel parallelStagesMap
@@ -85,7 +85,7 @@ node('splice-standalone'){
         currentBuild.result = "FAILED"
         throw any
     } finally {
-        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
         slackSend(channel: slackResponse.threadId, message: "$JOB_NAME job status: $currentBuild.result $BUILD_URL")
         // success or failure, always send notifications
         notifyBuild(currentBuild.result)
