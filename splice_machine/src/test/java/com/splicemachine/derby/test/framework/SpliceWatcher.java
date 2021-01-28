@@ -126,6 +126,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             delegate.useNativeSpark(useNativeSpark);
             return this;
         }
+        public ConnectionBuilder minPlanTimeout(long minPlanTimeout) {
+            delegate.minPlanTimeout(minPlanTimeout);
+            return this;
+        }
 
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.

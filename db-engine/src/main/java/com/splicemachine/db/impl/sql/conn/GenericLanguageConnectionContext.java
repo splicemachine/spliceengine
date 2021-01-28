@@ -459,6 +459,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -662,6 +663,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (tableLimit != null)
             return tableLimit;
         return tableLimitForExhaustiveSearch;
+    }
+
+    @Override
+    public long getMinPlanTimeout() {
+        Long minPlanTimeout = (Long) sessionProperties.getProperty(
+                SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
+        if (minPlanTimeout != null)
+            return minPlanTimeout;
+        else
+            return -1;
     }
 
     @Override
