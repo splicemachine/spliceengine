@@ -29,6 +29,7 @@
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
+        <check_upgrade.script>${project.basedir}../upgrade_test/check_upgrade.sh</check_upgrade.script>
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
@@ -435,38 +436,6 @@
                     </additionalClasspathElements>
                 </configuration>
                 <executions>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
-                    <execution>
-                        <id>integration-tests-serial</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>
-                                ${excluded.categories},
-                                ${excluded.longerthan}
-                            </excludedGroups>
-                            <argLine>-Xmx2g -Xms64m</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql</dependency>
-                            </dependenciesToScan>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <excludes>
-                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
-                                </exclude>
-                            </excludes>
-                            <runOrder>alphabetical</runOrder>
-                            <systemPropertyVariables>
-                                <splice.schemaCleanup>none</splice.schemaCleanup>
-                            </systemPropertyVariables>
-                        </configuration>
-                    </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
@@ -475,13 +444,6 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>
-                                com.splicemachine.test.SerialTest,
-                                com.splicemachine.test.RestoreTest,
-                                ${excluded.categories},
-                                ${excluded.longerthan}
-                            </excludedGroups>
-                            <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
@@ -492,7 +454,7 @@
                                 <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <include>com.splicemachine.derby.impl.sql.execute.operations.UpgradeTestIT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
@@ -500,61 +462,7 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: NSDS -->
-                    <execution>
-                        <id>integration-tests-nsds</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_spark</dependency>
-                            </dependenciesToScan>
-                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>integration-tests-ensds</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_spark2</dependency>
-                            </dependenciesToScan>
-                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>com/splicemachine/spark2/splicemachine/**/*IT.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
-                    <execution>
-                        <id>integration-tests-backup</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.RestoreTest</groups>
-                            <argLine>-Xmx2g -Xms64m</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*RestoreIT.java</include>
-                            </includes>
-                            <excludes>
-                                <!-- Skip all unit tests -->
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
+
                 </executions>
             </plugin>
             <plugin>
@@ -569,6 +477,10 @@
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties"
                                          classpathref="maven.plugin.classpath"/>
                                 <mkdir dir="${tmpDir}"/>
+                                <!-- reset to previous version -->
+                                <exec executable="${shell.command}" dir="${basedir}" spawn="false">
+                                    <arg value="${check_upgrade.script}"/>
+                                </exec>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
