@@ -16,6 +16,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.compactions.SpliceCompaction;
 import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
@@ -405,10 +406,14 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
     protected void doesTableNeedSI(TableName tableName){
-        SConfiguration config = HConfiguration.getConfiguration();
-        TableType tableType= EnvUtils.getTableType(config,tableName);
-        spliceTable = tableName.getNamespaceAsString().equals(config.getNamespace());
 
+        SConfiguration config = HConfiguration.getConfiguration();
+        spliceTable = tableName.getNamespaceAsString().equals(config.getNamespace());
+        if (tableName.getQualifierAsString().equals(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+            tableEnvMatch = true;
+            return;
+        }
+        TableType tableType= EnvUtils.getTableType(config,tableName);
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableType);
         switch(tableType){
             case TRANSACTION_TABLE:
