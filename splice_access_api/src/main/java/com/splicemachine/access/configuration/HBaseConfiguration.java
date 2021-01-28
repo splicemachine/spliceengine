@@ -251,6 +251,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final String CONGLOMERATE_SI_TABLE_NAME = "SPLICE_CONGLOMERATE_SI";
+    public static final byte[] CONGLOMERATE_SI_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_SI_TABLE_NAME);
 
     public static final String[] internalTablesArr = {
             TRANSACTION_TABLE, TENTATIVE_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME,
