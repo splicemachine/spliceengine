@@ -2821,6 +2821,45 @@ public class SQLChar
         return source.substring(start, end + 1);
     }
 
+    private String db2TrimInternal(int trimType, String trimString, String source)
+    {
+        if (source == null) {
+            return null;
+        }
+
+        int len = source.length();
+        int start = 0;
+        if (trimType == LEADING || trimType == BOTH)
+        {
+            for (; start < len; start++)
+                if (trimString.charAt(start) != source.charAt(start))
+                    break;
+        }
+
+        if (start == len)
+            return "";
+
+        int end = len - 1;
+        int trimEnd = trimString.length() - 1;
+        if (trimEnd > end) {
+            trimString = trimString.substring(0, len);
+            trimEnd = end;
+        }
+        int origTrimEnd = trimEnd;
+        if (trimType == TRAILING || trimType == BOTH)
+        {
+            for (; end >= 0 && trimEnd >= 0; end--,
+                                             trimEnd = trimEnd == 0 ?
+                                               origTrimEnd : trimEnd - 1)
+                if (trimString.charAt(trimEnd) != source.charAt(end))
+                    break;
+        }
+        if (end == -1)
+            return "";
+
+        return source.substring(start, end + 1);
+    }
+
     /**
      * @param trimType  Type of trim (LEADING, TRAILING, or BOTH)
      * @param trimChar  Character to trim from this SQLChar (may be null)
@@ -2857,6 +2896,29 @@ public class SQLChar
         char trimCharacter = trimChar.getString().charAt(0);
 
         result.setValue(trimInternal(trimType, trimCharacter, getString()));
+        return result;
+    }
+
+    // The same as ansiTrim, but allow longer trim strings than one character.
+    public StringDataValue db2Trim(
+    int             trimType,
+    StringDataValue trimString,
+    StringDataValue result)
+            throws StandardException
+    {
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+
+        if (trimString == null || trimString.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        result.setValue(db2TrimInternal(trimType, trimString.getString(), getString()));
         return result;
     }
 

@@ -2024,7 +2024,6 @@ TOKEN [IGNORE_CASE] :
 |    <RANK: "rank">
 |    <ROLE: "role">
 |    <ROWNUMBER: "row_number">
-|    <RTRIM: "rtrim">
 |    <SUBSTR:    "substr">
 |    <XML:    "xml">
 |    <TEXT:    "text">
@@ -2102,6 +2101,7 @@ TOKEN [IGNORE_CASE] :
 |    <RETURNING: "returning">
 |   <RR: "rr">
 |   <RS: "rs">
+|    <RTRIM: "rtrim">
 |   <SAMPLE: "sample">
 |    <SEQUENCE: "sequence">
 |    <SEQUENTIAL: "sequential">
@@ -7123,11 +7123,12 @@ trimFunction() throws StandardException :
     ValueNode    source;
     Integer        trimType;
     ValueNode    ansiTrimNode;
+    ValueNode    trimString = null;
 }
 {
-    trimType = trimType() <LEFT_PAREN> source = additiveExpression(null,0) <RIGHT_PAREN>
+    trimType = trimType() <LEFT_PAREN> source = additiveExpression(null,0) [<COMMA> trimString = additiveExpression(null,0) ] <RIGHT_PAREN>
     {
-        return getTrimOperatorNode(trimType, null, source, null);
+        return getTrimOperatorNode(trimType, trimString, source, trimString != null, null);
     }
 |
     <TRIM> ansiTrimNode = ansiTrim()
@@ -17478,6 +17479,7 @@ nonReservedKeyword()  :
     |    tok = <ROWNUMBER>
     |   tok = <RR>
     |   tok = <RS>
+    |   tok = <RTRIM>
     |   tok = <SAMPLE>
     |    tok = <SBCS>
     |    tok = <SCALE>
