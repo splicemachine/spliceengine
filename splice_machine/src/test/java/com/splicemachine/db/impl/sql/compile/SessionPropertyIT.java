@@ -43,11 +43,16 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static java.lang.System.currentTimeMillis;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -316,5 +321,40 @@ public class SessionPropertyIT extends SpliceUnitTest {
                     query,contains,level,actualString);
             Assert.assertTrue(failMessage,actualString.contains(contains));
         }
+    }
+
+    @Test
+    public void TestMinPlanTimeout() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        String testQuery = "explain select * from t1 a, t1 b, t1 c, t1 d, t1 e, t1 f, t1 g, t1 h, t1 i, t1 j " +
+            "where a.a1 = b.a1 and b.a1 = c.a1 and c.a1 = d.a1 and d.a1 = e.a1 and e.a1 = f.a1 and f.a1 = g.a1 and g.a1 = h.a1 and h.a1 = i.a1 and i.a1 = j.a1";
+
+        long startTime = System.currentTimeMillis();
+        conn.execute("set session_property minPlanTimeout=1");
+        try (ResultSet rs = conn.query(testQuery)) { }
+        long endTime = System.currentTimeMillis();
+        Assert.assertTrue("Expected query planning to take less than 5 seconds", (endTime - startTime) < 5000);
+        conn.execute("set session_property minPlanTimeout=5000");
+        startTime = System.currentTimeMillis();
+        try (ResultSet rs = conn.query(testQuery)) { }
+        endTime = System.currentTimeMillis();
+        Assert.assertTrue("Expected query planning to take more than 5 seconds", (endTime - startTime) > 5000);
+        conn.close();
+
+        // "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;minPlanTimeout=3000";
+        conn = methodWatcher.connectionBuilder().minPlanTimeout(3000).build();
+        startTime = System.currentTimeMillis();
+        try (ResultSet rs = conn.query(testQuery)) { }
+        endTime = System.currentTimeMillis();
+        Assert.assertTrue("Expected query planning to take more than 3 seconds", (endTime - startTime) > 3000);
+        conn.execute("set session_property minPlanTimeout=1");
+        startTime = System.currentTimeMillis();
+        try (ResultSet rs = conn.query(testQuery)) { }
+        endTime = System.currentTimeMillis();
+        Assert.assertTrue("Expected query planning to take less than 3 seconds", (endTime - startTime) < 3000);
+
+        List<String> expectedErrors =
+           Arrays.asList("Invalid session property value '-1' specified, 'value should be a positive long' is expected. ");
+        testUpdateFail("set session_property minPlanTimeout=-1", expectedErrors, methodWatcher);
     }
 }
