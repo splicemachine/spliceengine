@@ -186,6 +186,11 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static SpliceTableWatcher cacheNPEtest = new SpliceTableWatcher("cacheNPEtest", spliceSchemaWatcher
             .schemaName, "(c1 int)");
 
+    protected static SpliceTableWatcher tblUnique = new SpliceTableWatcher("tblUnique", spliceSchemaWatcher
+            .schemaName, "(FIRSTC int unique)");
+
+
+
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
             spliceSchemaWatcher.schemaName,
             "(i int generated always as " +
@@ -222,6 +227,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher26)
             .around(spliceTableWatcher27)
             .around(cacheNPEtest)
+            .around(tblUnique)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -2212,6 +2218,70 @@ public class HdfsImportIT extends SpliceUnitTest {
         SpliceUnitTest.sqlExpectToString(methodWatcher,
                 "SELECT * from cacheNPEtest, " + vti + " --splice-properties joinStrategy=broadcast\n" +
                         "WHERE A=c1", expected, false);
+    }
+
+    @Test
+    public void testUniqueImport() throws Exception {
+        String path = getResourceDirectory() + "primary_same_import.csv";
+        methodWatcher.execute("drop table SPLICE.tbl01 IF EXISTS");
+        methodWatcher.execute("create table SPLICE.tbl01(FIRSTC int unique)");
+
+        String queryFormat =
+                "CALL SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', null, null, null, null, null, 100, " +
+                        "'%s', true, null)";
+        String query = String.format(queryFormat, "SPLICE", "tbl01", path, "/tmp");
+        System.out.println(query);
+        System.out.println("--------------");
+        try( ResultSet rs = methodWatcher.executeQuery(query) ) {
+            System.out.println(TestUtils.FormattedResult.ResultFactory.toString(rs) );
+        }
+        String expected =
+                "FIRSTC |\n" +
+                "--------\n" +
+                "   1   |\n" +
+                "   2   |";
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                "SELECT * from SPLICE.tbl01 ORDER BY FIRSTC", expected, false);
+    }
+
+    @Test
+    public void testUniqueImport2() throws Exception {
+        String path = getResourceDirectory() + "primary_same_import.csv";
+        methodWatcher.execute("drop table SPLICE.tblX IF EXISTS");
+        methodWatcher.execute("create table SPLICE.tblX(FIRSTC int unique)");
+
+        try( ResultSet rs = methodWatcher.executeQuery(
+                "CALL SYSCS_UTIL.IMPORT_DATA('SPLICE', 'tblX',null,'" + path + "'," +
+                        "null, null, null, null, null, 100, '/tmp', true, null)") ) {
+            System.out.println(TestUtils.FormattedResult.ResultFactory.toString(rs) );
+        }
+        String expected =
+                "FIRSTC |\n" +
+                        "--------\n" +
+                        "   1   |\n" +
+                        "   2   |";
+        SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from SPLICE.tblX", expected, false);
+        methodWatcher.execute("drop table SPLICE.tblX IF EXISTS");
+    }
+
+    @Test
+    public void testUniqueImport3() throws Exception {
+        String path = getResourceDirectory() + "primary_same_import.csv";
+        methodWatcher.execute("drop table SPLICE.tblX IF EXISTS");
+        methodWatcher.execute("create table SPLICE.tblX(FIRSTC int unique)");
+
+        try( ResultSet rs = methodWatcher.executeQuery(
+                "CALL SYSCS_UTIL.IMPORT_DATA('SPLICE', 'tblX',null,'" + path + "'," +
+                        "null, null, null, null, null, 1, '/tmp', true, null)") ) {
+            System.out.println(TestUtils.FormattedResult.ResultFactory.toString(rs) );
+        }
+        String expected =
+                "FIRSTC |\n" +
+                        "--------\n" +
+                        "   1   |\n" +
+                        "   2   |";
+        SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from SPLICE.tblX", expected, false);
+        methodWatcher.execute("drop table SPLICE.tblX IF EXISTS");
     }
 
 }
