@@ -144,7 +144,6 @@ public class Vacuum{
                         IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
                         if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK) || ignoreTxn.shouldIgnore(txn.getTxnId())) {
                             // Transaction is rolled back, we can remove it safely, don't pay any mind to the droppedId
-                            LOG.info( "Rolled back: " + table.getTableName() );
                             ignoreDroppedId = true;
                         } else {
                             // This conglomerate requires a dropped transaction id
@@ -224,8 +223,6 @@ public class Vacuum{
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } finally {
             LOG.info("Vacuum complete");
-            try{ LOG.info( "Tables remaining: " ); } catch(Exception e) {}
-            try{ partitionAdmin.listTables().forEach( td -> LOG.info(td.getTableName()) ); } catch(Exception e) {}
         }
     }
 
