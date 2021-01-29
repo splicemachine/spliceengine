@@ -280,13 +280,13 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
     }
 
     /**
@@ -337,8 +337,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             return outerCost.getLocalCostPerParallelTask() +
                    ((outerCost.rowCount()/outerCost.getParallelism())
                     * innerLocalCost) +
-            ((outerCost.rowCount())*(innerRemoteCost))
-                    + joiningRowCost/outerCost.getParallelism();
+                    (outerCost.rowCount() * innerRemoteCost) +
+                    joiningRowCost/outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
                    (outerCost.rowCount()/outerCost.getParallelism())
