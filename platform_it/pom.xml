@@ -437,107 +437,12 @@
                 </configuration>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
-                    <execution>
-                        <id>integration-tests-parallel</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <threadCount>1</threadCount>
-                            <!-- -sf- single-threaded for now -->
-                            <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx2g -Xms64m</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql</dependency>
-                            </dependenciesToScan>
-                            <includes>
-                                <include>com.splicemachine.derby.impl.sql.execute.operations.UpgradeTestIT.java</include>
-                            </includes>
-                            <runOrder>alphabetical</runOrder>
-                            <systemPropertyVariables>
-                                <splice.schemaCleanup>async</splice.schemaCleanup>
-                            </systemPropertyVariables>
-                        </configuration>
-                    </execution>
-
                 </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>############### start-splice-its (platform_it) ###############</id>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StartSpliceServer" unless="${server.skip.start}">
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
-                                         classpathref="maven.plugin.classpath"/>
-                                <mkdir dir="${tmpDir}"/>
-                                <if>
-                                    <istrue value="${failTasksRandomly}"/>
-                                    <!-- run with chaos monkey (default) -->
-                                    <then>
-                                        <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-c"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
-                                        </exec>
-                                    </then>
-                                    <else>
-                                        <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
-                                        <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
-                                        </exec>
-                                    </else>
-                                </if>
-                                <property name="classpath.test" refid="maven.test.classpath"/>
-                                <!--suppress MavenModelInspection -->
-                                <java classname="com.splicemachine.test.SpliceTestPlatformWait"
-                                      classpath="${classpath.test}" spawn="false">
-                                    <arg value="localhost"/>
-                                    <arg value="1527"/>
-                                </java>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>############### stop-splice-its ###############</id>
-                        <phase>post-integration-test</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StopSpliceServer" unless="${server.skip.start}">
-                                <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                    <arg value="${stop.script}"/>
-                                </exec>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>clean stop-splice-its</id>
-                        <phase>pre-clean</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StopSpliceServer" unless="${server.skip.start}">
-                                <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                    <arg value="${stop.script}"/>
-                                </exec>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
+                    
                 </executions>
                 <dependencies>
                     <dependency>

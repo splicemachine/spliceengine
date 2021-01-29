@@ -12,11 +12,14 @@ YARNLOG="${ROOT_DIR}"/target/yarn_it.log
 SPLICELOG="${ROOT_DIR}"/target/splice_it.log
 KAFKALOG="${ROOT_DIR}"/target/kafka.log
 
+#mkdir target
+VERSION=3.1.0.1971
 aws s3 cp s3://splice-snapshots/upgrade_tests/platform_it_${VERSION}.tar.gz .
-tar -xzf platform_it_${VERSION}.tar.gz
+#cp /home/mrupp/spliceengine2/platform_it_${VERSION}.tar.gz .
+tar -xzvf platform_it_${VERSION}.tar.gz
 rm platform_it_${VERSION}.tar.gz
-mv platform_it/target/hbase .
-mv platform_it/target/zookeeper .
+mv platform_it/target/hbase target/.
+mv platform_it/target/zookeeper target/.
 
 CHAOS="false"
 PROFILE="cdh5.8.3"  # default hbase platform profile
@@ -67,7 +70,7 @@ done
 "${SCRIPT_DIR}"/stop-splice-its
 
 # Start zookeeper in background.
-echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
+echo "UPGRADE Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
 mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo >> ${ZOOLOG} 2>&1 &
 
 #######################################################################################################
@@ -93,18 +96,18 @@ fi
 
 pushd ../standalone/ > /dev/null
 # Start SpliceTestYarnPlatform in background.
-echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
+echo "UPGRADE Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
 mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
 popd > /dev/null
 
 # Start Kafka in background.
-echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"
+echo "UPGRADE Starting TestKafkaCluster, log file is ${KAFKALOG}"
 mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka >> ${KAFKALOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
-echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
+echo "UPGRADE Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
 mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} -Ddurability=NONE >> ${SPLICELOG} 2>&1 &
-echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
+echo "UPGRADE Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
 mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 -Ddurability=NONE >> ${SPLICELOG}.member1.log 2>&1 &
 # echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
 # mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             >> ${SPLICELOG}.member2.log 2>&1 &

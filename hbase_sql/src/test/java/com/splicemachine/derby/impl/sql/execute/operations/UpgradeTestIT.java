@@ -74,4 +74,18 @@ public class UpgradeTestIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testUpgradeWorked() throws Exception {
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                "select * from UPGRADE.A ORDER BY I",
+                "I |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 2 |\n" +
+                " 3 |\n" +
+                " 4 |\n" +
+                " 5 |",
+                false);
+    }
+
 }
