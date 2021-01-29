@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.memory.LowMemory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -54,6 +55,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
@@ -327,15 +329,28 @@ public abstract class EmbedConnection implements EngineConnection
                 handleDBNotFound();
             }
 
+            // Check whether the DB exists before trying to connect to it
+            if (!createBoot) {
+                AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE, false);
+                if (af != null) {
+                    DataDictionary dd = database.getDataDictionary();
+                    TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+                    dd.getDatabaseDescriptor(getDBName(), tc, true);
+                }
+            }
+
             if (createBoot && !shutdown && !dropDatabase && !getDBName().equals(DatabaseDescriptor.STD_DB_NAME)) {
                 try {
                     AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
-                    af.elevateRawTransaction(Bytes.toBytes("boot"));
                     DataDictionary dd = database.getDataDictionary();
-                    dd.createNewDatabaseAndDatabaseOwner(getDBName(),
-                                         info.getProperty(Attribute.USERNAME_ATTR),
-                                         info.getProperty(Attribute.PASSWORD_ATTR)
-                            );
+                    TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+                    if (dd.getDatabaseDescriptor(getDBName(), tc, false) == null) {
+                        af.elevateRawTransaction(Bytes.toBytes("boot"));
+                        dd.createNewDatabaseAndDatabaseOwner(getDBName(),
+                                info.getProperty(Attribute.USERNAME_ATTR),
+                                info.getProperty(Attribute.PASSWORD_ATTR)
+                        );
+                    }
                 } catch (StandardException se) {
                     throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
                 }

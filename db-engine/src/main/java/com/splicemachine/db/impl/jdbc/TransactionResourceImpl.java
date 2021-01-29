@@ -509,7 +509,7 @@ public final class TransactionResourceImpl
 
             try {
                 StandardException se = (StandardException) thrownException;
-                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC(false);
                 if (lcc != null) {
                     String s = lcc.getTransactionCompile().getActiveStateTxIdString();
                     if (s != null) {

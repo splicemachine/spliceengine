@@ -3408,7 +3408,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
-        sb.append(getCurrentDatabase().getDatabaseName());
+        sb.append(getCurrentDatabase() == null ? initialDbName : getCurrentDatabase().getDatabaseName());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.drdaStr);

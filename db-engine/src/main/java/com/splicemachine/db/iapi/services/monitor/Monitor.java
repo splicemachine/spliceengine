@@ -478,13 +478,26 @@ public class Monitor {
         <BR>
         The service is defined by the service that the module serviceModule lives in.
 
-        @return a reference to a module or null if one cannot be found.
+        @return a reference to a module
+        @throws StandardException if not found
 
     */
-    public static Object findServiceModule(Object serviceModule, String factoryInterface)
-        throws StandardException {
+    public static Object findServiceModule(Object serviceModule, String factoryInterface) throws StandardException {
+        return findServiceModule(serviceModule, factoryInterface, true);
+    }
+
+    /**
+     Find an unidentified module within a service.
+     <BR>
+     The service is defined by the service that the module serviceModule lives in.
+
+     @return a reference to a module or null if not found and !throwIfNotFound
+     @throws StandardException if not found and throwIfNotFound
+
+     */
+    public static Object findServiceModule(Object serviceModule, String factoryInterface, boolean throwIfNotFound) throws StandardException {
         Object module = getMonitor().findModule(serviceModule, factoryInterface, (String) null);
-        if (module == null)
+        if (module == null && throwIfNotFound)
             throw Monitor.missingImplementation(factoryInterface);
         return module;
     }
