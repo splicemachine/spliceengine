@@ -637,6 +637,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
     }
 
+    @Ignore("DB-11278")
     @Test
     public void testJoinStrategyHintOnTargetTable() throws Exception {
         String query ="explain update t4 --splice-properties joinStrategy=nestedloop\n" +

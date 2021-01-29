@@ -30,7 +30,9 @@ public class SpliceCatalogUpgradeScriptsTest {
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
-            "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n";
+            "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
     // add more scripts here
 
     private String replaceVersions(String s) {

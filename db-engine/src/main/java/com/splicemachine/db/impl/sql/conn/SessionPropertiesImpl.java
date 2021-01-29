@@ -114,6 +114,10 @@ public class SessionPropertiesImpl implements SessionProperties {
             case CURRENTFUNCTIONPATH:
                 properties[CURRENTFUNCTIONPATH.getId()] = parseCurrentFunctionPath(valString);
                 break;
+            case MINPLANTIMEOUT:
+                long minPlanTimeout = Long.parseLong(valString);
+                properties[MINPLANTIMEOUT.getId()] = minPlanTimeout;
+                break;
             default:
                 assert false;
         }

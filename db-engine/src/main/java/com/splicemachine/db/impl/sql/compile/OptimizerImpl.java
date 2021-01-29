@@ -34,10 +34,10 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.loader.ClassFactoryContext;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -187,6 +187,9 @@ public class OptimizerImpl implements Optimizer{
 
     private static final int NANOS_TO_MILLIS = 1000000;
     private boolean forSpark = false;
+    private final long minPlanTimeout;
+    private final long maxPlanTimeout;
+    boolean foundCompleteJoinPlan = false;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -200,6 +203,10 @@ public class OptimizerImpl implements Optimizer{
                             RequiredRowOrdering requiredRowOrdering,
                             int numTablesInQuery) throws StandardException{
         assert optimizableList!=null: "optimizableList is not expected to be null";
+
+        minPlanTimeout = getSessionMinPlanTimeout() >= 0 ?
+                         getSessionMinPlanTimeout() : getMinTimeout();
+        maxPlanTimeout = Long.max(getMaxTimeout(), minPlanTimeout);
 
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
 
@@ -301,6 +308,27 @@ public class OptimizerImpl implements Optimizer{
          */
         bestCost=getNewCostEstimate(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
         timeLimit = Double.MAX_VALUE;
+
+        /* DB-11161
+         * This fixes a corner case in join ordering. In current algorithm,
+         * the first join order to explore is always the user specified table
+         * order (0,1,2,...), no matter how many tables there are. If we are
+         * not in jump mode, after this function is called, next round will
+         * always starts from the first order (0,1,2,...) again. However, if
+         * we are in jump mode, since we don't reset firstLookOrder and the
+         * permuteState, next round will start from firstLookOrder, which is
+         * the one calculated based on heuristics. This is usually fine,
+         * unless the best join order is just (0,1,2,...). Note that we just
+         * reset bestCost above. So the first completely explored join order
+         * will be saved as the best temporarily. If, for some reason, the
+         * heuristics don't work well and the firstLookOrder is just on the
+         * far end in solution space, it's unlikely that we explore
+         * (0,1,2,...) before time limit exceeded. As a result, a suboptimal
+         * plan is returned.
+         */
+        if (permuteState == JUMPING) {
+            permuteState = READY_TO_JUMP;
+        }
 
         /* If we have predicates that were pushed down to this OptimizerImpl
          * from an outer query, then we reset the timeout state to prepare for
@@ -1126,6 +1154,8 @@ public class OptimizerImpl implements Optimizer{
             tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
             return;
         }
+        if (joinPosition == numOptimizables-1 && !foundCompleteJoinPlan)
+            foundCompleteJoinPlan = true;
 
         /* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this, predicateList, outerCost, currentRowOrdering);
@@ -2152,13 +2182,23 @@ public class OptimizerImpl implements Optimizer{
         assignedTableMap.xor(pullMe.getReferencedTableMap());
     }
 
+    /* This check may have other side effects but we couldn't find
+     * a better way at this point. Problems:
+     * 1) The same statement, when executed at a different time (being
+     *    the first statement or executed after some other statements)
+     *    , may have 0 or 1 returned from lcc.getActivationCount().
+     * 2) Not all kinds of statement have a ResultDescription.
+     */
     private boolean isPreparedStatement() {
         LanguageConnectionContext lcc =
             (LanguageConnectionContext) ContextService.
                 getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
         if (lcc == null || lcc.getActivationCount() < 1)
             return false;
-        return lcc.getLastActivation().getPreparedStatement() != null;
+        Activation ac = lcc.getLastActivation();
+        ResultDescription rd = ac.getResultDescription();
+        return ac.getPreparedStatement() != null && rd != null &&
+                !"Explain".equals(rd.getStatementType());
     }
 
     /**
@@ -2514,6 +2554,15 @@ public class OptimizerImpl implements Optimizer{
         return optimizable.estimateCost(predList, cd, outerCost,this, currentRowOrdering);
     }
 
+    private long getSessionMinPlanTimeout() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext) ContextService.
+                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return -1;
+        return lcc.getMinPlanTimeout();
+    }
+
     private boolean checkTimeout(){
         /*
          * Check whether or not optimization time as timed out
@@ -2529,17 +2578,22 @@ public class OptimizerImpl implements Optimizer{
         if(noTimeout) return false;
         if(timeExceeded || numOptimizables<=optimizableList.getTableLimitForExhaustiveSearch()) return timeExceeded;
 
+        // Must at least find one complete join plan, otherwise
+        // the query will not run at all.
+        if (!foundCompleteJoinPlan)
+            return false;
+
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:
         // currentTime, timeOptimizationStarted, timeLimit, getMinTimeout(), getMaxTimeout()
 
         long searchDuration = System.currentTimeMillis() - timeOptimizationStarted;
 
-        if (searchDuration > timeLimit && searchDuration > getMinTimeout()) {
+        if (searchDuration > timeLimit && searchDuration > minPlanTimeout) {
             // We've exceeded the best time seen so far to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration);
-        } else if (searchDuration > getMaxTimeout()) {
+        } else if (searchDuration > maxPlanTimeout) {
             // We've exceeded max time allowed to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration);

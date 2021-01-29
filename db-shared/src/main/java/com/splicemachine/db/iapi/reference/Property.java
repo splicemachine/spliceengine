@@ -1510,6 +1510,11 @@ public interface Property {
     String CONNECTION_DEFAULT_SELECTIVITY_FACTOR = "defaultSelectivityFactor";
 
     /**
+     * minPlanTimeout for this connection
+     */
+    String CONNECTION_MIN_PLAN_TIMEOUT = "minPlanTimeout";
+
+    /**
      * Default Olap queue name for this connection
      */
     String CONNECTION_OLAP_QUEUE = "olapQueue";

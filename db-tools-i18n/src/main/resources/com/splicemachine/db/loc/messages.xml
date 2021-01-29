@@ -2689,7 +2689,11 @@ Guide.
                 <text>Properties list for table '{0}' may contain values for index or for constraint but not both.</text>
                 <arg>tableName</arg>
             </msg>
-
+            <msg>
+                <name>42Y51</name>
+                <text>The hint minPlanTimeout should be non-negative long and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42Y52</name>
                 <text>The hint skipStats needs (true/false) and does not support '{0}'.</text>

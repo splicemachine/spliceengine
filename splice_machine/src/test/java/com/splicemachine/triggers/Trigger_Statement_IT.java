@@ -16,6 +16,7 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.db.client.am.ResultSet;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
@@ -40,7 +41,7 @@ import static org.junit.Assert.fail;
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
-public class Trigger_Statement_IT {
+public class Trigger_Statement_IT extends SpliceUnitTest {
 
     private static final String SCHEMA = Trigger_Statement_IT.class.getSimpleName();
 
@@ -70,16 +71,48 @@ public class Trigger_Statement_IT {
         this.connectionString = connecitonString;
     }
 
+    private static void repopulateFeatureTables() throws Exception {
+        classWatcher.executeUpdate("delete from FeatureTable");
+        classWatcher.executeUpdate("delete from FeatureTable_History");
+        classWatcher.executeUpdate("insert into FeatureTable values (1, timestamp('2020-3-14 12:00:00'), timestamp('2020-3-14 12:00:00'), timestamp('2020-3-14 12:00:00'), 1, 2)");
+        classWatcher.executeUpdate("insert into FeatureTable values (1, timestamp('2020-3-14 10:00:00'), timestamp('2020-3-14 12:00:01'), timestamp('2020-3-14 12:00:01'), 3, 4)");
+        classWatcher.executeUpdate("insert into FeatureTable_History values (1, timestamp('2020-3-14 12:00:01'), timestamp('2020-3-14 12:00:01'), 1, 2)");
+
+    }
     @BeforeClass
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("drop table if exists T");
         classWatcher.executeUpdate("drop table if exists RECORD");
         classWatcher.executeUpdate("drop table if exists t1");
         classWatcher.executeUpdate("drop table if exists t3");
+        classWatcher.executeUpdate("drop table if exists FeatureTable");
+        classWatcher.executeUpdate("drop table if exists FeatureTable_History");
         classWatcher.executeUpdate("create table T (a int, b int, c int)");
         classWatcher.executeUpdate("create table RECORD (txt varchar(99))");
         classWatcher.executeUpdate("create table t1 (a1 int, b1 varchar(30), c1 varchar(30), primary key (a1))");
         classWatcher.executeUpdate("create table t3 (a3 int, b3 varchar(30), c3 varchar(30))");
+        classWatcher.executeUpdate("create table FeatureTable (ENTITY_KEY int, LAST_UPDATE_TS timestamp, ASOF_TS timestamp, UNTIL_TS timestamp, feature1 int, feature2 int)");
+        classWatcher.executeUpdate("create table FeatureTable_History (ENTITY_KEY int, ASOF_TS timestamp, UNTIL_TS timestamp, feature1 int, feature2 int)");
+        classWatcher.
+            executeUpdate("CREATE TRIGGER FeatureTable_History_UPDATE_PREHISTORIC\n" +
+                        "AFTER UPDATE ON FeatureTable\n" +
+                        "REFERENCING OLD_TABLE AS OLDW NEW_TABLE AS NEWW\n" +
+                        "FOR EACH STATEMENT\n" +
+                        "WHEN (\n" +
+                        "     (NOT EXISTS (SELECT 1 FROM FeatureTable_History H,NEWW N WHERE H.ENTITY_KEY=N.ENTITY_KEY AND N.LAST_UPDATE_TS >= H.ASOF_TS AND N.LAST_UPDATE_TS < H.UNTIL_TS))\n" +
+                        "     AND\n" +
+                        "     (EXISTS (SELECT 1 FROM OLDW,NEWW WHERE OLDW.ENTITY_KEY=NEWW.ENTITY_KEY AND OLDW.LAST_UPDATE_TS < NEWW.LAST_UPDATE_TS))\n" +
+                        ")\n" +
+                        "\n" +
+                        "    -- creates new history rows, only if the new update occurs after the last one\n" +
+                        "INSERT INTO FeatureTable_History (ENTITY_KEY, ASOF_TS, UNTIL_TS, feature1, feature2)\n" +
+                        "        SELECT N.ENTITY_KEY, N.LAST_UPDATE_TS, MIN(H.ASOF_TS) MIN_ASOF, N.feature1, N.feature2\n" +
+                        "        FROM OLDW O\n" +
+                        "        INNER JOIN\n" +
+                        "             NEWW N ON O.ENTITY_KEY=N.ENTITY_KEY AND O.LAST_UPDATE_TS > N.LAST_UPDATE_TS\n" +
+                        "        INNER JOIN\n" +
+                        "             FeatureTable_History H ON H.ENTITY_KEY = N.ENTITY_KEY\n" +
+                        "        GROUP BY 1,2,4,5");
     }
 
     @Before
@@ -90,6 +123,7 @@ public class Trigger_Statement_IT {
         methodWatcher.executeUpdate("delete from t1");
         methodWatcher.executeUpdate("delete from t3");
         methodWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
+        repopulateFeatureTables();
         Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
         conn.setSchema(SCHEMA.toUpperCase());
         methodWatcher.setConnection(conn);
@@ -361,6 +395,19 @@ public class Trigger_Statement_IT {
         Assert.assertEquals(0, (long)methodWatcher.query("select count(*) from t3"));
         methodWatcher.executeUpdate("drop trigger trig22");
 
+    }
+
+    @Test
+    public void DB_11252() throws Exception {
+        methodWatcher.executeUpdate("update FeatureTable set LAST_UPDATE_TS = timestamp('2020-3-14 11:00:00') where ENTITY_KEY = 1");
+        String sqlText = "select * from FeatureTable_History";
+        String expected =
+            "ENTITY_KEY |       ASOF_TS        |      UNTIL_TS        |FEATURE1 |FEATURE2 |\n" +
+            "------------------------------------------------------------------------------\n" +
+            "     1     |2020-03-14 11:00:00.0 |2020-03-14 12:00:01.0 |    1    |    2    |\n" +
+            "     1     |2020-03-14 11:00:00.0 |2020-03-14 12:00:01.0 |    3    |    4    |\n" +
+            "     1     |2020-03-14 12:00:01.0 |2020-03-14 12:00:01.0 |    1    |    2    |";
+        testQuery(sqlText, expected, methodWatcher);
     }
 
 @Test
