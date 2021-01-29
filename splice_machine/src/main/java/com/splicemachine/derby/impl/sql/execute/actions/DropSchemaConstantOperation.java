@@ -58,13 +58,10 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     /**
      *    Make the ConstantAction for a DROP SCHEMA statement.
      *
-     *    @param    schemaName            Schema name.
+     * @param    schemaName            Schema name.
+     * @param dbId
      *
      */
-    public DropSchemaConstantOperation(String schemaName, int dropBehavior) {
-        this(null, schemaName, dropBehavior);
-    }
-
     public DropSchemaConstantOperation(UUID dbId, String schemaName, int dropBehavior) {
         this.dbId = dbId;
         this.schemaName = schemaName;

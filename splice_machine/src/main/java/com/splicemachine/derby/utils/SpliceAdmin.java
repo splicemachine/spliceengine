@@ -75,7 +75,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -1457,7 +1456,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(tc.getActiveStateTxn().getTxnId(), schemaName, ownerName, (BasicUUID)sd.getUUID());
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(
+                    tc.getActiveStateTxn().getTxnId(),
+                    schemaName,
+                    ownerName,
+                    (BasicUUID)sd.getUUID(),
+                    (BasicUUID)sd.getDatabaseId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);

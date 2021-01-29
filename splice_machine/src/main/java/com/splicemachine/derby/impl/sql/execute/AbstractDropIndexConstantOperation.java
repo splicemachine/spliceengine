@@ -58,8 +58,8 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
      * @param    schemaName            Schema that index lives in.
      */
     public AbstractDropIndexConstantOperation(String fullIndexName,String indexName,String tableName,
-                                              String schemaName,UUID tableId,long tableConglomerateId){
-        super(tableId,indexName,tableName,schemaName);
+                                              String schemaName,UUID tableId,long tableConglomerateId, UUID dbId){
+        super(tableId,indexName,tableName,schemaName, dbId);
         this.fullIndexName=fullIndexName;
         this.tableConglomerateId=tableConglomerateId;
     }
@@ -111,7 +111,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
 
         invalidate(cd,dm,lcc); // invalidate locally for error handling
         // Remote Notification
-        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
+        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName, dbId);
         // Physical DD Drop
         drop(cd, td, dd, lcc);
     }

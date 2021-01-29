@@ -55,16 +55,11 @@ import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import com.splicemachine.utils.StringUtils;
-import splice.com.google.common.collect.Lists;
-import splice.com.google.common.net.HostAndPort;
 
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.Policy;
 import java.security.PrivilegedAction;
 import java.sql.*;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
@@ -1098,7 +1093,7 @@ public class SystemProcedures{
                 sqlName = st[1];
             }
             checkJarSQLName(sqlName);
-            JarUtil.install(lcc, schemaName, sqlName, url);
+            JarUtil.install(lcc, schemaName, sqlName, url, lcc.getDatabaseId());
         }
         catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -1137,7 +1132,7 @@ public class SystemProcedures{
             checkJarSQLName(sqlName);
 
             JarUtil.replace(lcc,
-                    schemaName,sqlName,url);
+                    schemaName,sqlName,url, lcc.getDatabaseId());
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
@@ -1172,7 +1167,7 @@ public class SystemProcedures{
 
             checkJarSQLName(sqlName);
 
-            JarUtil.drop(lcc,schemaName,sqlName);
+            JarUtil.drop(lcc,schemaName,sqlName, lcc.getDatabaseId());
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);

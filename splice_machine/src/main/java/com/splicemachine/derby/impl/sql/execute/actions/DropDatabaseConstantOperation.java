@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
@@ -62,6 +63,7 @@ public class DropDatabaseConstantOperation extends DDLConstantOperation {
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
 
         /*
          * Inform the data dictionary that we are about to write to it.
@@ -84,10 +86,17 @@ public class DropDatabaseConstantOperation extends DDLConstantOperation {
             dropAllDatabaseObjects(activation, dbDesc);
         }
 
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropDatabase(
+                tc.getActiveStateTxn().getTxnId(),
+                dbName,
+                (BasicUUID)dbDesc.getUUID());
+        // Run locally first to capture any errors.
+        dm.invalidateFor(dbDesc, DependencyManager.DROP_DATABASE, lcc);
+        // Run remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
         //dd.dropAllDatabasePermDescriptors(dbDesc.getObjectID(),tc); XXX (arnaud multidb) implement this
         dbDesc.drop(lcc, activation);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropDatabase(tc.getActiveStateTxn().getTxnId(), dbName, (BasicUUID)dbDesc.getUUID());
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
     void dropAllDatabaseObjects(Activation activation, DatabaseDescriptor dbDesc) throws StandardException {

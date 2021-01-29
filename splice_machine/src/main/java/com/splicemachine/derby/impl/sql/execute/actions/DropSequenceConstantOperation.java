@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -78,7 +79,11 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
         // invalidate compiled statements which depend on this sequence
         dm.invalidateFor(sequenceDescriptor, DependencyManager.DROP_SEQUENCE, lcc);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.dropSequence(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), schemaDescriptor.getSchemaName(),sequenceName);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.dropSequence(
+                ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                schemaDescriptor.getSchemaName(),
+                sequenceName,
+                (BasicUUID) schemaDescriptor.getDatabaseId());
         // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         // drop the sequence
