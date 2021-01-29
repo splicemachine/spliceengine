@@ -84,12 +84,17 @@ public class OptimizerImpl implements Optimizer{
     private static final int JUMPING=2;
     private static final int WALK_HIGH=3;
     private static final int WALK_LOW=4;
-    private static final int PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND = 2000;
+    private static final int STORED_PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND = 10;
+    private static final int HINTED_JOINSTRATEGY_TIME_LIMIT_LOWER_BOUND = 2;
+
     protected DataDictionary dDictionary;
     /* The number of tables in the query as a whole.  (Size of bit maps.) */
     protected final int numTablesInQuery;
     /* The number of optimizables in the list to optimize */
     private final int numOptimizables;
+    private final boolean compilingTriggerOrStoredPreparedStatement;
+    private final boolean hasJoinStrategyHint;
+
     /* Bit map of tables that have already been assigned to slots.
      * Useful for pushing join clauses as slots are assigned.
      */
@@ -187,8 +192,8 @@ public class OptimizerImpl implements Optimizer{
 
     private static final int NANOS_TO_MILLIS = 1000000;
     private boolean forSpark = false;
-    private final long minPlanTimeout;
-    private final long maxPlanTimeout;
+    private long minPlanTimeout = -1;
+    private long maxPlanTimeout = -1;
     boolean foundCompleteJoinPlan = false;
 
     protected OptimizerImpl(OptimizableList optimizableList,
@@ -204,10 +209,6 @@ public class OptimizerImpl implements Optimizer{
                             int numTablesInQuery) throws StandardException{
         assert optimizableList!=null: "optimizableList is not expected to be null";
 
-        minPlanTimeout = getSessionMinPlanTimeout() >= 0 ?
-                         getSessionMinPlanTimeout() : getMinTimeout();
-        maxPlanTimeout = Long.max(getMaxTimeout(), minPlanTimeout);
-
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
 
         currentCost=getNewCostEstimate(0.0d,0.0d,0.0d);
@@ -221,6 +222,10 @@ public class OptimizerImpl implements Optimizer{
 
         this.numTablesInQuery=numTablesInQuery;
         numOptimizables=optimizableList.size();
+
+        compilingTriggerOrStoredPreparedStatement = compilingTriggerOrStoredPreparedStatement();
+        hasJoinStrategyHint = hasJoinStrategyHint();
+
         proposedJoinOrder=new int[numOptimizables];
         if(numOptimizables>optimizableList.getTableLimitForExhaustiveSearch() && optimizableList.optimizeJoinOrder()){
             permuteState=READY_TO_JUMP;
@@ -2201,6 +2206,24 @@ public class OptimizerImpl implements Optimizer{
                 !"Explain".equals(rd.getStatementType());
     }
 
+    private boolean compilingTriggerOrStoredPreparedStatement() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext) ContextService.
+                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return false;
+        return lcc.compilingStoredPreparedStatement();
+    }
+
+    private boolean hasJoinStrategyHint() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext) ContextService.
+                getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return false;
+        return lcc.hasJoinStrategyHint();
+    }
+
     /**
      * Is the cost of this join order lower than the best one we've
      * found so far?  If so, remember it.
@@ -2257,9 +2280,15 @@ public class OptimizerImpl implements Optimizer{
             // prepared statement does not need to be compiled on every
             // invocation, just once in a while.  So, it is time well
             // spent if it means we can compile a more optimal plan.
-            if (timeLimit < PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND &&
-                isPreparedStatement())
-                timeLimit = PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND;
+            // The same applies to queries with join strategy hints.
+            // We need more planning time to try enough permutations
+            // to pick up all the hints.
+            if (compilingTriggerOrStoredPreparedStatement &&
+                timeLimit < STORED_PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND)
+                timeLimit = STORED_PREPARED_STATEMENT_TIME_LIMIT_LOWER_BOUND;
+            if (hasJoinStrategyHint &&
+                timeLimit < HINTED_JOINSTRATEGY_TIME_LIMIT_LOWER_BOUND)
+                    timeLimit = HINTED_JOINSTRATEGY_TIME_LIMIT_LOWER_BOUND;
         }
 
         /*
@@ -2563,6 +2592,23 @@ public class OptimizerImpl implements Optimizer{
         return lcc.getMinPlanTimeout();
     }
 
+    private long minPlanTimeOut() {
+        if (minPlanTimeout == -1) {
+            minPlanTimeout = getSessionMinPlanTimeout() >= 0 ?
+                             getSessionMinPlanTimeout() : getMinTimeout();
+        }
+        return minPlanTimeout;
+    }
+
+    private long maxPlanTimeOut() {
+        if (maxPlanTimeout == -1) {
+            if (minPlanTimeout == -1)
+                minPlanTimeOut();
+            maxPlanTimeout = Long.max(getMaxTimeout(), minPlanTimeout);
+        }
+        return maxPlanTimeout;
+    }
+
     private boolean checkTimeout(){
         /*
          * Check whether or not optimization time as timed out
@@ -2589,11 +2635,11 @@ public class OptimizerImpl implements Optimizer{
 
         long searchDuration = System.currentTimeMillis() - timeOptimizationStarted;
 
-        if (searchDuration > timeLimit && searchDuration > minPlanTimeout) {
+        if (searchDuration > timeLimit && searchDuration > minPlanTimeOut()) {
             // We've exceeded the best time seen so far to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration);
-        } else if (searchDuration > maxPlanTimeout) {
+        } else if (searchDuration > maxPlanTimeOut()) {
             // We've exceeded max time allowed to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration);

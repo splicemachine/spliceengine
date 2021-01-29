@@ -1518,4 +1518,12 @@ public interface LanguageConnectionContext extends Context {
 
     void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
 
+    boolean hasJoinStrategyHint();
+
+    void setHasJoinStrategyHint(boolean newValue);
+
+    boolean compilingStoredPreparedStatement();
+
+    void setCompilingStoredPreparedStatement(boolean newValue);
+
 }

@@ -359,6 +359,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private Object sparkContext = null;
     private int applicationJarsHashCode = 0;
     private SparkSQLUtils sparkSQLUtils;
+    private boolean hasJoinStrategyHint;
+    private boolean compilingStoredPreparedStatement;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4137,5 +4139,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
         this.sparkSQLUtils = sparkSQLUtils;
+    }
+
+    @Override
+    public boolean hasJoinStrategyHint() {
+        return hasJoinStrategyHint;
+    }
+
+    @Override
+    public void setHasJoinStrategyHint(boolean newValue) {
+        hasJoinStrategyHint = newValue;
+    }
+
+    @Override
+    public boolean compilingStoredPreparedStatement() {
+        return compilingStoredPreparedStatement;
+    }
+
+    @Override
+    public void setCompilingStoredPreparedStatement(boolean newValue) {
+        compilingStoredPreparedStatement = newValue;
     }
 }

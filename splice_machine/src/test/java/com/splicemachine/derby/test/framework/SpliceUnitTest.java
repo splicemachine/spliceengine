@@ -400,6 +400,11 @@ public class SpliceUnitTest {
         return Double.parseDouble(m1.group().substring("scannedRows=".length()));
     }
 
+    protected void runQuery(String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+        }
+    }
+
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
