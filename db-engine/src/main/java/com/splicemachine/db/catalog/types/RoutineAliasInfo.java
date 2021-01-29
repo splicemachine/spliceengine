@@ -41,12 +41,14 @@ import java.io.ObjectOutput;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Describe a routine (procedure or function) alias.
  *
  * @see com.splicemachine.db.catalog.AliasInfo
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class RoutineAliasInfo extends MethodAliasInfo
 {
 
@@ -442,18 +444,19 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	 */
 	public String toString() {
 
-		StringBuilder sb = new StringBuilder(100);
-		toStringParameters(sb);
+        StringBuilder sb = new StringBuilder(100);
+        toStringParameters(sb);
 
-		sb.append(" LANGUAGE ");
-		sb.append(this.language);	// Language can now be Python
-		sb.append(" PARAMETER STYLE " );
+        sb.append(" LANGUAGE ");
+        sb.append(this.language);	// Language can now be Python
+        sb.append(" PARAMETER STYLE " );
 
-		switch( parameterStyle )
-		{
-		    case PS_JAVA:    sb.append( "JAVA " ); break;
-		    case PS_SPLICE_JDBC_RESULT_SET:    sb.append( "SPLICE_JDBC_RESULT_SET " ); break;
-		}
+        switch( parameterStyle )
+        {
+            case PS_JAVA:                   sb.append( "JAVA " ); break;
+            case PS_SPLICE_JDBC_RESULT_SET: sb.append( "SPLICE_JDBC_RESULT_SET " ); break;
+            default: break;
+        }
         
         if ( isDeterministic() )
         { sb.append( " DETERMINISTIC " ); }
@@ -461,24 +464,24 @@ public class RoutineAliasInfo extends MethodAliasInfo
         if ( hasDefinersRights())
         { sb.append( " EXTERNAL SECURITY DEFINER " ); }
 
-		sb.append(RoutineAliasInfo.SQL_CONTROL[getSQLAllowed()]);
-		if ((returnType == null) &&
-			(dynamicResultSets != 0))
-		{ // Only print dynamic result sets if this is a PROCEDURE
-		  // because it's not valid syntax for FUNCTIONs.
-			sb.append(" DYNAMIC RESULT SETS ");
-			sb.append(dynamicResultSets);
-		}
+        sb.append(RoutineAliasInfo.SQL_CONTROL[getSQLAllowed()]);
+        if ((returnType == null) &&
+            (dynamicResultSets != 0))
+        { // Only print dynamic result sets if this is a PROCEDURE
+          // because it's not valid syntax for FUNCTIONs.
+            sb.append(" DYNAMIC RESULT SETS ");
+            sb.append(dynamicResultSets);
+        }
 
-		if (returnType != null) {
-		// this a FUNCTION, so append the syntax telling what to
-		// do with a null parameter.
-			sb.append(calledOnNullInput ? " CALLED " : " RETURNS NULL ");
-			sb.append("ON NULL INPUT");
-		}
-		
-		return sb.toString();
-	}
+        if (returnType != null) {
+        // this a FUNCTION, so append the syntax telling what to
+        // do with a null parameter.
+            sb.append(calledOnNullInput ? " CALLED " : " RETURNS NULL ");
+            sb.append("ON NULL INPUT");
+        }
+
+        return sb.toString();
+    }
 
 	public static String parameterMode(int parameterMode) {
 		switch (parameterMode) {
