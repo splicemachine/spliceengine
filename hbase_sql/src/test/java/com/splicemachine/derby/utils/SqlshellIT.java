@@ -175,9 +175,9 @@ public class SqlshellIT {
         executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
             "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
             "-------------------------------------------------------------------------------------------------------\n" +
-            "SQLSHELLIT          |ABC                                               |§      |                    \n" +
-            "SQLSHELLIT          |TX2                                               |§      |                    \n" +
-            "SQLSHELLIT          |T_2                                               |§      |                    \n" +
+            "SQLSHELLIT          |ABC                                               |§|                    \n" +
+            "SQLSHELLIT          |TX2                                               |§|                    \n" +
+            "SQLSHELLIT          |T_2                                               |§|                    \n" +
             "\n" +
             "3 rows selected\n") );
     }
@@ -344,10 +344,10 @@ public class SqlshellIT {
             executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
                     "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
                     "-------------------------------------------------------------------------------------------------------\n" +
-                    "SQLSHELLIT          |ABC                                               |§      |                    \n" +
-                    "SQLSHELLIT          |TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_&|§      |                    \n" +
-                    "SQLSHELLIT          |TX2                                               |§      |                    \n" +
-                    "SQLSHELLIT          |T_2                                               |§      |                    \n" +
+                    "SQLSHELLIT          |ABC                                               |§|                    \n" +
+                    "SQLSHELLIT          |TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_&|§|                    \n" +
+                    "SQLSHELLIT          |TX2                                               |§|                    \n" +
+                    "SQLSHELLIT          |T_2                                               |§|                    \n" +
                     "\n" +
                     "4 rows selected\n") );
 
@@ -366,10 +366,10 @@ public class SqlshellIT {
             executeR( "show tables in SQLSHELLIT;\n", escapeRegexp(
                     "TABLE_S&|TABLE_N&|CONGLOM&|REMARKS \n" +
                     "-----------------------------------\n" +
-                    "SQLSHEL&|ABC     |§    |        \n" +
-                    "SQLSHEL&|TABLE_W&|§    |        \n" +
-                    "SQLSHEL&|TX2     |§    |        \n" +
-                    "SQLSHEL&|T_2     |§    |        \n" +
+                    "SQLSHEL&|ABC     |§|        \n" +
+                    "SQLSHEL&|TABLE_W&|§|        \n" +
+                    "SQLSHEL&|TX2     |§|        \n" +
+                    "SQLSHEL&|T_2     |§|        \n" +
                     "\n" +
                     "4 rows selected\n") );
         }
@@ -386,7 +386,7 @@ public class SqlshellIT {
             executeR("show indexes from SQLSHELLIT.TX2;\n", escapeRegexp(
                 "TABLE_NAME                                        |INDEX_NAME                                        |COLUMN_NAME         |ORDINAL&|NON_UNIQUE|TYPE |ASC&|CONGLOM_NO\n" +
                 "--------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                "TX2                                               |IDX1                                              |ABC                 |1       |true      |BTREE|A   |§      \n" +
+                "TX2                                               |IDX1                                              |ABC                 |1       |true      |BTREE|A   |§\n" +
                 "\n" +
                 "1 row selected\n" ) );
 
@@ -395,7 +395,7 @@ public class SqlshellIT {
             executeR("show indexes from SQLSHELLIT.T_2;\n",
                     escapeRegexp(   "TABLE_NAME|INDEX_NAME|COLUMN_NA&|ORDINAL_P&|NON_UNIQUE|TYPE      |ASC_OR_DE&|CONGLOM_NO\n" +
                                     "---------------------------------------------------------------------------------------\n" +
-                                    "T_2       |ID_1      |COL_1     |1         |true      |BTREE     |A         |§      \n" +
+                                    "T_2       |ID_1      |COL_1     |1         |true      |BTREE     |A         |§\n" +
                                     "\n" +
                                     "1 row selected\n") );
 
