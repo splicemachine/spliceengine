@@ -324,31 +324,24 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 
 	public String toString()
 	{
-		if (SanityManager.DEBUG)
-		{
-			StringBuilder keyString = new StringBuilder();
+        StringBuilder keyString = new StringBuilder();
 
-			if (indexable && columnNames != null )
-			{
-				int[] keyColumns = indexRowGenerator.baseColumnPositions();
+        if (indexable && columnNames != null )
+        {
+            int[] keyColumns = indexRowGenerator.baseColumnPositions();
 
-				keyString.append(", key columns = {").append(columnNames[keyColumns[0] - 1]);
-				for (int index = 1; index < keyColumns.length; index++)
-				{
-					keyString.append(", ").append(columnNames[keyColumns[index] - 1]);
-				}
-				keyString.append("}");
-			}
+            keyString.append(", key columns = {").append(columnNames[keyColumns[0] - 1]);
+            for (int index = 1; index < keyColumns.length; index++)
+            {
+                keyString.append(", ").append(columnNames[keyColumns[index] - 1]);
+            }
+            keyString.append("}");
+        }
 
-			return "ConglomerateDescriptor: conglomerateNumber = " + conglomerateNumber +
-				" name = " + name +
-				" uuid = " + uuid +
-				" indexable = " + indexable + keyString.toString();
-		}
-		else
-		{
-			return "";
-		}
+        return "ConglomerateDescriptor: conglomerateNumber = " + conglomerateNumber +
+            " name = " + name +
+            " uuid = " + uuid +
+            " indexable = " + indexable + keyString.toString();
 	}
 
 	/** @see TupleDescriptor#getDescriptorType */

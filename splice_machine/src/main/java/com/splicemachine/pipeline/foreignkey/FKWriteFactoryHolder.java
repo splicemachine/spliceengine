@@ -227,4 +227,11 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         return parentInterceptWriteFactory;
     }
 
+    @Override
+    public String toString() {
+        return "FKWriteFactoryHolder{" +
+                "childInterceptWriteFactories=" + childInterceptWriteFactories +
+                ", parentInterceptWriteFactory=" + parentInterceptWriteFactory +
+                '}';
+    }
 }

@@ -206,4 +206,11 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "IndexWriteHandler{" +
+                "super=" + super.toString() +
+                '}';
+    }
+
 }

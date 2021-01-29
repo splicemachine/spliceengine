@@ -440,27 +440,20 @@ public abstract class ConstraintDescriptor
 
 	public String	toString()
 	{
-		if (SanityManager.DEBUG)
-		{
-			String tableDesc =
-				"table: " +
-				table.getQualifiedName() + "(" +
-				table.getUUID()+","+
-				table.getTableType()+")";
+        String tableDesc =
+            "table: " +
+            table.getQualifiedName() + "(" +
+            table.getUUID()+","+
+            table.getTableType()+")";
 
-			return tableDesc + "\n"+
-				"constraintName: " + constraintName + "\n" +
-				"constraintId: " + constraintId + "\n" +
-				"deferrable: " + deferrable + "\n" +
-				"initiallyDeferred: " + initiallyDeferred + "\n" +
-				"referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
-				"schemaDesc: " + schemaDesc + "\n"
-				;
-		}
-		else
-		{
-			return "";
-		}
+        return tableDesc + "\n"+
+            "constraintName: " + constraintName + "\n" +
+            "constraintId: " + constraintId + "\n" +
+            "deferrable: " + deferrable + "\n" +
+            "initiallyDeferred: " + initiallyDeferred + "\n" +
+            "referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
+            "schemaDesc: " + schemaDesc + "\n"
+            ;
 	}
 
 	////////////////////////////////////////////////////////////////////

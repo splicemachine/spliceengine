@@ -59,6 +59,8 @@ public class ConstraintFactory {
 
     @Override
     public String toString() {
-        return "ConstraintFactory{localConstraint=" + localConstraint + "}";
+        return "ConstraintFactory{" +
+                "localConstraint=" + localConstraint +
+                '}';
     }
 }

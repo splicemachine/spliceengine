@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline;
 
+import com.google.protobuf.TextFormat;
 import splice.com.google.common.base.Optional;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Multimap;
@@ -159,6 +160,9 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     @Override
     public void ddlChange(DDLMessage.DDLChange ddlChange){
         DDLMessage.DDLChangeType ddlChangeType=ddlChange.getDdlChangeType();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Processing DDLChange " + TextFormat.shortDebugString(ddlChange));
+        }
         switch(ddlChangeType){
             case ADD_PRIMARY_KEY:
             case DROP_PRIMARY_KEY:
@@ -177,6 +181,9 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             case CREATE_INDEX:
                 DDLMessage.TentativeIndex tentativeIndex=ddlChange.getTentativeIndex();
                 if(tentativeIndex.getTable().getConglomerate()==conglomId){
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Adding index");
+                    }
                     indexFactories.replace(IndexFactory.create(ddlChange));
                 }
                 break;
@@ -257,6 +264,10 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 continue;
             }
 
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Adding constraint " + cDescriptor);
+            }
+
             switch(cDescriptor.getConstraintType()){
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     constraintFactories.add(buildPrimaryKey(cDescriptor,osf,pef));
@@ -295,6 +306,10 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         // This is how we tell if the current context is being configured for a base or index table.
         //
         if(cd.isIndex()){
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Adding unique constraint for index ");
+            }
+
             // we are an index, so just map a constraint rather than an attached index
             addUniqueIndexConstraint(td,cd,osf,pef);
             // safe to clear here because we don't chain indices -- we don't send index writes to other index tables.
@@ -319,6 +334,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     // conglom descriptor for the current conglom number.
                     ConglomerateDescriptor srcConglomDesc=uniqueIndexConglom.isPresent()?uniqueIndexConglom.get():currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor=srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
+
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Adding index " + indexDescriptor + " with conglomerate " + conglomerateNumber);
+                    }
+
                     // Fill the partial row with nulls of the correct type
                     ColumnDescriptorList cdl = td.getColumnDescriptorList();
                     DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,td.getBaseConglomerateDescriptor().getConglomerateNumber(),

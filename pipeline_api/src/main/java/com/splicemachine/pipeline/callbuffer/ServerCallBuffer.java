@@ -89,7 +89,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     @Override
     public void add(Pair<byte[], PartitionBuffer> element) throws Exception {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "add {%s, %s}", Bytes.toString(element.getFirst()), element);
+            SpliceLogUtils.trace(LOG, "add {%s, %s}", Bytes.toString(element.getFirst()), element.getSecond().toString());
         buffers.put(element.getFirst(), element.getSecond());
         lastElement = element;
     }
@@ -202,5 +202,12 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
                 writeStats.merge(retStats);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ServerCallBuffer{" +
+                "server=" + server +
+                '}';
     }
 }

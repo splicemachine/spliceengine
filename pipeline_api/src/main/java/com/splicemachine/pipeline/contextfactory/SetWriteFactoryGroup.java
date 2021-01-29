@@ -58,4 +58,11 @@ public class SetWriteFactoryGroup implements WriteFactoryGroup{
     public boolean hasDependentWrites() {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "SetWriteFactoryGroup{" +
+                "factories=" + factories +
+                '}';
+    }
 }

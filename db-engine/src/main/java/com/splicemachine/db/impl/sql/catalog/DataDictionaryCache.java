@@ -238,7 +238,7 @@ public class DataDictionaryCache {
             return null;
         TableDescriptor td =  oidTdCache.getIfPresent(tableID);
         if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheFind " + tableID + (td != null ? " found" : " null"));
+            LOG.debug("oidTdCacheFind " + tableID + " " + td);
         if (td!=null) // bind in previous command might have set
             td.setReferencedColumnMap(null);
         return td;

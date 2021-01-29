@@ -349,4 +349,11 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public PartitionDescriptor getDescriptor() throws IOException {
         return new HPartitionDescriptor(table.getTableDescriptor());
     }
+
+    @Override
+    public String toString() {
+        return "ClientPartition{" +
+                "tableName=" + tableName +
+                '}';
+    }
 }

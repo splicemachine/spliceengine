@@ -43,6 +43,7 @@ import java.util.List;
  */
 public class PartitionWriteHandler implements WriteHandler {
     static final Logger LOG = Logger.getLogger(PartitionWriteHandler.class);
+
     protected final TransactionalRegion region;
     protected List<KVPair> mutations = Lists.newArrayList();
     protected ResettableCountDownLatch writeLatch;
@@ -215,4 +216,10 @@ public class PartitionWriteHandler implements WriteHandler {
         mutations = null; // Dereference
     }
 
+    @Override
+    public String toString() {
+        return "PartitionWriteHandler{" +
+                "region=" + region +
+                '}';
+    }
 }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline;
 
+import com.google.protobuf.TextFormat;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -107,7 +108,10 @@ class IndexFactory implements LocalWriteFactory{
 
     @Override
     public String toString() {
-        return "indexConglomId=" + indexConglomerateId + " isUnique=" + tentativeIndex.getIndex().getUnique() +
-                " isUniqueWithDuplicateNulls=" + tentativeIndex.getIndex().getUniqueWithDuplicateNulls();
+        return "IndexFactory{" +
+                "tentativeIndex=" + TextFormat.shortDebugString(tentativeIndex) +
+                ", txn=" + txn +
+                ", indexConglomerateId=" + indexConglomerateId +
+                '}';
     }
 }

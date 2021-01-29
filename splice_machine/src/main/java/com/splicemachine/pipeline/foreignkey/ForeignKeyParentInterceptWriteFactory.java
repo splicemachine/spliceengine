@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.google.protobuf.TextFormat;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -22,6 +23,8 @@ import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import splice.com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * LocalWriteFactory for ForeignKeyParentInterceptWriteHandler -- see that class for details.
@@ -97,5 +100,17 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
     @Override
     public void replace(LocalWriteFactory newFactory){
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        return "ForeignKeyParentInterceptWriteFactory{" +
+                "parentTableName='" + parentTableName + '\'' +
+                ", referencingIndexConglomerateNumbers=" + referencingIndexConglomerateNumbers +
+                ", exceptionFactory=" + exceptionFactory +
+                ", constraintInfos=" + constraintInfos.stream().filter(Objects::nonNull).map(TextFormat::shortDebugString).collect(Collectors.joining(",")) +
+                ", hasCascadingDeleteFK=" + hasCascadingDeleteFK +
+                ", constraintsChanged=" + constraintsChanged +
+                '}';
     }
 }

@@ -230,6 +230,9 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
                 // FK - child intercept (of inserts/updates)
                 fkGroup.addFactories(context,false,expectedWrites);
             }
+        } else {
+            LOG.error("Unexpected state: " + state);
+            throw new IllegalStateException("State should be " + State.RUNNING + " but is " + state);
         }
     }
 
@@ -246,7 +249,8 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         //someone else may have initialized this if so, we don't need to repeat, so return
         if (state.get() != State.STARTING) return;
 
-        SpliceLogUtils.debug(LOG, "Setting up index for conglomerate %d", conglomId);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Setting up index for conglomerate %d with transaction " + txn, conglomId);
 
         if (!initializationLock.tryLock(startupLockBackoffPeriod, TimeUnit.MILLISECONDS)) {
             throw new IndexNotSetUpException("Unable to initialize index management for table " + conglomId
@@ -260,6 +264,12 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             ddlFactories = factoryLoader.getDDLFactories();
             fkGroup = factoryLoader.getForeignKeyFactories();
             constraintFactories = factoryLoader.getConstraintFactories();
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Index factories: " + indexFactories);
+                LOG.debug("DDL factories: " + ddlFactories);
+                LOG.debug("FK factories: " + fkGroup);
+                LOG.debug("Constraint factories: " + constraintFactories);
+            }
             state.set(State.RUNNING);
         }catch(IndexNotSetUpException inse){
             state.set(State.READY_TO_START);

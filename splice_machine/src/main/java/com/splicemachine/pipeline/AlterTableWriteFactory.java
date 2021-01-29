@@ -16,6 +16,7 @@ package com.splicemachine.pipeline;
 
 import java.io.IOException;
 
+import com.google.protobuf.TextFormat;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -79,5 +80,13 @@ public class AlterTableWriteFactory implements LocalWriteFactory{
     @Override
     public long getConglomerateId() {
         return ddlDescriptor.getConglomerateNumber();
+    }
+
+    @Override
+    public String toString() {
+        return "AlterTableWriteFactory{" +
+                "ddlChange=" + TextFormat.shortDebugString(ddlChange) +
+                ", ddlDescriptor=" + ddlDescriptor +
+                '}';
     }
 }

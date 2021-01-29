@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.google.protobuf.TextFormat;
 import splice.com.google.common.primitives.Longs;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -71,5 +72,14 @@ class ForeignKeyChildInterceptWriteFactory implements LocalWriteFactory{
     @Override
     public void replace(LocalWriteFactory newFactory){
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        return "ForeignKeyChildInterceptWriteFactory{" +
+                "referencedConglomerateNumber=" + referencedConglomerateNumber +
+                ", fkConstraintInfo=" + TextFormat.shortDebugString(fkConstraintInfo) +
+                ", exceptionFactory=" + exceptionFactory +
+                '}';
     }
 }

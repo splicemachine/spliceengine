@@ -84,4 +84,11 @@ public class ListWriteFactoryGroup implements WriteFactoryGroup{
     public boolean hasDependentWrites() {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "ListWriteFactoryGroup{" +
+                "factories=" + factories +
+                '}';
+    }
 }

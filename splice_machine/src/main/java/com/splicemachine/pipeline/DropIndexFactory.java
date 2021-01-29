@@ -111,4 +111,13 @@ class DropIndexFactory implements LocalWriteFactory{
     public LocalWriteFactory getDelegate() {
         return delegate;
     }
+
+    @Override
+    public String toString() {
+        return "DropIndexFactory{" +
+                "dropTxn=" + dropTxn +
+                ", delegate=" + delegate +
+                ", indexConglomId=" + indexConglomId +
+                '}';
+    }
 }

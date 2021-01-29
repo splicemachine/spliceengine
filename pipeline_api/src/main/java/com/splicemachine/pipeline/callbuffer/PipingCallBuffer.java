@@ -394,4 +394,11 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public KVPair lastElement(){
         return lastKvPair;
     }
+
+    @Override
+    public String toString() {
+        return "PipingCallBuffer{" +
+                "table=" + table +
+                '}';
+    }
 }
