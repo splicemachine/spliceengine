@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1996-SNAPSHOT</version>
+        <version>3.2.0.1996</version>
     </parent>
     <dependencies>
         <dependency>
