@@ -239,7 +239,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                         throw StandardException.newException(SQLState.LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST,
                                                              Arrays.toString(candidateSchemas), candidateSchema);
                     }
-                    setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, candidateSchema == null);
+                    sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, candidateSchema == null);
                     if (ad != null) { // resolution complete
                         break;
                     }
@@ -247,7 +247,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             }
             if(ad == null) { // couldn't resolve with candidate schemas (if any), try with current one.
                 sd = getSchemaDescriptor(schemaName, schemaName != null);
-                setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, schemaName == null);
+                sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, schemaName == null);
             }
 
             if (handleAggregate()) {
@@ -390,11 +390,13 @@ public class StaticMethodCallNode extends MethodCallNode {
         return false;
     }
 
-    private void setAliasDescriptor(FromList fromList,
-                                    SubqueryList subqueryList,
-                                    List<AggregateNode> aggregateVector,
-                                    SchemaDescriptor sd,
-                                    boolean noSchema) throws StandardException {
+    private SchemaDescriptor setAliasDescriptor(FromList fromList,
+                                                SubqueryList subqueryList,
+                                                List<AggregateNode> aggregateVector,
+                                                SchemaDescriptor sd,
+                                                boolean noSchema) throws StandardException {
+
+        SchemaDescriptor result = sd;
 
         // The field methodName is used by resolveRoutine and
         // is set to the name of the routine (procedureName.getTableName()).
@@ -413,11 +415,12 @@ public class StaticMethodCallNode extends MethodCallNode {
             // was not qualified. E.g. COS(angle). The
             // SYSFUN functions are not in SYSALIASES but
             // an in-memory table, set up in DataDictionaryImpl.
-            sd = getSchemaDescriptor("SYSFUN", true);
+            result = getSchemaDescriptor("SYSFUN", true);
 
-            resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+            resolveRoutine(fromList, subqueryList, aggregateVector, result);
             setIsSystemFunction(true);
         }
+        return result;
     }
 
     /**
