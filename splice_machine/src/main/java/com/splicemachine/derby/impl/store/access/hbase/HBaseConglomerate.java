@@ -40,11 +40,11 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -114,15 +114,19 @@ public class HBaseConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    public void dropColumn(TransactionManager xact_manager,int column_id) throws StandardException{
-        SpliceLogUtils.trace(LOG,"dropColumn column_id=%s, table_nam=%s",column_id,getContainerid());
-        try{
-            format_ids=ConglomerateUtils.dropValueFromArray(format_ids,column_id-1);
-            collation_ids=ConglomerateUtils.dropValueFromArray(collation_ids,column_id-1);
-            ConglomerateUtils.updateConglomerate(this,(Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
-        }catch(StandardException e){
-            SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
-        }finally{
+    public void dropColumn(TransactionManager xactManager, int columnId) throws StandardException {
+        SpliceLogUtils.trace(LOG, "dropColumn columnId=%s, tableName=%s", columnId, getContainerid());
+        try {
+//            format_ids = ConglomerateUtils.dropValueFromArray(format_ids, columnId - 1);
+//            collation_ids = ConglomerateUtils.dropValueFromArray(collation_ids, columnId - 1);
+//            for (int i = 0; i < columnOrdering.length; ++i) {
+//                if (columnOrdering[i] > columnId - 1) {
+//                    columnOrdering[i]--;
+//                }
+//            }
+            ConglomerateUtils.updateConglomerate(this, (Txn) ((SpliceTransactionManager) xactManager).getActiveStateTxn());
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrow(LOG, "exception in HBaseConglomerate#addColumn", e);
         }
     }
 

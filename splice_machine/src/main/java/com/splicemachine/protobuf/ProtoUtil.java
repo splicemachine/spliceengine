@@ -344,6 +344,7 @@ public class ProtoUtil {
         Table.Builder builder=Table.newBuilder()
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
+                .addAllFormatStorageIds(td.getColumnDescriptorList().stream().map(ColumnDescriptor::getStoragePosition).collect(Collectors.toList()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
                 .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID()));
         String tV = DataDictionaryUtils.getTableVersion(lcc,td.getUUID());

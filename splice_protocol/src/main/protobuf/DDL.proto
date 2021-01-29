@@ -291,6 +291,7 @@ message Table {
         required string tableVersion = 5; // Table Version for SerDe
         optional UUID tableUuid = 6; //the derby UUID
         repeated int32 columnStorageOrdering = 7; // The ordering of the columns in the table using their storage number.
+        repeated int32 formatStorageIds = 8;
 }
 
 message TentativeIndex {

@@ -81,8 +81,10 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
             init(execRow);
         ExecRow misMatchedRow = execRow;
         int numIndexExprs = transformer.getNumIndexExprs();
+        int[] mapping = new int[indexRow.nColumns()];
         if (numIndexExprs <= 0) {
             for (int i = 0; i < projectedMapping.length; i++) {
+                mapping[i] = tentativeIndex.getIndex().getIndexColsToMainStorageColMap(i);
                 indexRow.setColumn(i + 1, misMatchedRow.getColumn(projectedMapping[i] + 1));
             }
         } else {
@@ -100,6 +102,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
                 }
             }
             for (int i = 0; i < numIndexExprs; i++) {
+                mapping[i] = i;
                 BaseExecutableIndexExpression execExpr = transformer.getExecutableIndexExpression(i);
                 execExpr.runExpression(expandedRow, indexRow);
             }
@@ -111,7 +114,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         indexRow.setKey(misMatchedRow.getKey());
         KVPair kvPair;
         if (!isSystemTable) {
-            kvPair = transformer.writeDirectIndex(indexRow);
+            kvPair = transformer.writeDirectIndex(indexRow, mapping);
         }
         else {
             kvPair = transformer.encodeSystemTableIndex(indexRow);

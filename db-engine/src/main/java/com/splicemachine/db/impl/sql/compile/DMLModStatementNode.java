@@ -835,7 +835,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
         ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
         for (ConglomerateDescriptor cd : cdl) {
             if (cd.isPrimaryKey()) {
-                return cd.getIndexDescriptor().baseColumnPositions();
+                return cd.getIndexDescriptor().baseColumnStoragePositions();
             }
         }
         return null;

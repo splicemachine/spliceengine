@@ -37,7 +37,6 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
-    private BitSet indexedColumns;
 
     public IndexWriteHandler(boolean keepState,
                              int expectedWrites,
@@ -45,7 +44,6 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         super(transformer.getIndexConglomBytes(),keepState);
         this.expectedWrites = expectedWrites;
         this.transformer = transformer;
-        this.indexedColumns = transformer.gitIndexedCols();
     }
 
     @Override
@@ -93,7 +91,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
-                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
+                if (transformer.areIndexKeysModified(mutation, transformer.gitIndexedCols())) { // Do I need to update?
                     delete = deleteIndexRecord(mutation, ctx, false);
                     return createIndexRecord(mutation, ctx, delete);
                 }
@@ -172,7 +170,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
          * 3. issue a delete against the index table
          */
         try {
-            KVPair indexDelete = transformer.createIndexDelete(mutation, ctx, indexedColumns);
+            KVPair indexDelete = transformer.createIndexDelete(mutation, ctx, transformer.gitIndexedCols());
             if (indexDelete == null) {
                 // we can't find the old row, it may have been deleted already, but we'll have to update the
                 // index anyway in the calling method

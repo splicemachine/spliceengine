@@ -928,13 +928,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     break;
             }
             if (j == numRefCols) {// column not referenced
-                if ((cd instanceof CheckConstraintDescriptor) && changed) {
+                if (changed) {
                     dd.dropConstraintDescriptor(cd, tc);
                     for (j = 0; j < numRefCols; j++) {
                         if (referencedColumns[j] > droppedColumnPosition)
                             referencedColumns[j]--;
                     }
-                    ((CheckConstraintDescriptor) cd).setReferencedColumnsDescriptor(new ReferencedColumnsDescriptorImpl(referencedColumns));
                     dd.addConstraintDescriptor(cd, tc);
                 }
                 continue;
@@ -1004,20 +1003,25 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                                  TransactionController tc) throws StandardException
     {
         // get a list of table indices
-        String[] indices = td.getIndexLister().getIndexNames();
+        ConglomerateDescriptorList conglomerateDescriptors = td.getConglomerateDescriptorList();
 
         List<ConglomerateDescriptor> toRefresh = new ArrayList<>();
 
         // check if the dropped column is touching an index column, if so abort.
-        for(String index : indices) {
-            ConglomerateDescriptor conglom = dd.getConglomerateDescriptor(index, td.getSchemaDescriptor(), true /* maybe we can improve this */);
-            int[] relColPositions = conglom.getIndexDescriptor().baseColumnPositions();
-
-            for(int relColPos : relColPositions) {
-                if(relColPos == droppedColumnPosition) {
-                    throw StandardException.newException(SQLState.LANG_DROPPED_COL_IS_INDEX_COL, columnName, conglom.getDescriptorName());
-                } else if (relColPos > droppedColumnPosition) {
-                    toRefresh.add(conglom);
+        for(ConglomerateDescriptor conglomerateDescriptor : conglomerateDescriptors) {
+            IndexRowGenerator index = conglomerateDescriptor.getIndexDescriptor();
+            if(index != null && index.getIndexDescriptor() != null) {
+                int[] relColPositions = index.baseColumnPositions();
+                // lock it
+                ConglomerateDescriptor conglom = dd.getConglomerateDescriptor(conglomerateDescriptor.getConglomerateName(),
+                                                                              td.getSchemaDescriptor(),
+                                                                              true /* maybe we can improve this */);
+                for(int relColPos : relColPositions) {
+                    if(relColPos == droppedColumnPosition) {
+                        throw StandardException.newException(SQLState.LANG_DROPPED_COL_IS_INDEX_COL, columnName, conglom.getDescriptorName());
+                    } else if (relColPos > droppedColumnPosition) {
+                        toRefresh.add(conglom);
+                    }
                 }
             }
         }
@@ -1029,6 +1033,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         refreshIndicesLocally(droppedColumnPosition, lcc, dd, tc, toRefresh);
 
         refreshIndicesRemotely((BasicUUID)td.getUUID(), lcc, tc, toRefresh);
+
+        // force refresh
+        // dd.getTableDescriptor(td.getObjectID());
     }
 
     private static void refreshIndicesLocally(int droppedColumnPosition,
@@ -1036,6 +1043,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                               DataDictionary dd,
                                               TransactionController tc,
                                               List<ConglomerateDescriptor> toRefresh) throws StandardException {
+
+        if(toRefresh == null || toRefresh.isEmpty()) {
+            return;
+        }
+
         DependencyManager dm = dd.getDependencyManager();
 
         // refresh all affected indices, adjust column positions as necessary
@@ -1068,12 +1080,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                                TransactionController tc,
                                                List<ConglomerateDescriptor> toRefresh) throws StandardException {
 
-        if(toRefresh.isEmpty()) {
+        if(toRefresh == null || toRefresh.isEmpty()) {
             return;
         }
 
         List<BasicUUID> indicesSchemaIds = toRefresh.stream().map(i -> (BasicUUID)i.getSchemaID()).collect(Collectors.toList());
         List<String> indicesNames = toRefresh.stream().map(ConglomerateDescriptor::getConglomerateName).collect(Collectors.toList());
+
+        SanityManager.ASSERT(indicesSchemaIds.size() == indicesNames.size(), "indices names and schema Ids do not match!");
 
         DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeDropColumn(tc.getActiveStateTxId(), tableId, indicesSchemaIds, indicesNames, lcc);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
