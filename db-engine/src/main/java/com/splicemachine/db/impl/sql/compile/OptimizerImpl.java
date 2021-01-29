@@ -1143,12 +1143,18 @@ public class OptimizerImpl implements Optimizer{
         }
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
+        boolean isJoinTypeSaved = false;
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0) {
                 savedJoinType = outerCost.getJoinType();
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
+                isJoinTypeSaved = true;
+            } else if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN && fromTable.getOuterJoinLevel() == 0) {
+                savedJoinType = outerCost.getJoinType();
+                outerCost.setJoinType(JoinNode.INNERJOIN);
+                isJoinTypeSaved = true;
             }
         }
 
@@ -1167,10 +1173,8 @@ public class OptimizerImpl implements Optimizer{
         /* reset the OuterJoin flag so that we can cost correctly if the outer optimizable later joins with
            other optimizable through inner join
          */
-        if (optimizable instanceof FromTable) {
-            FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0)
-                outerCost.setJoinType(savedJoinType);
+        if (optimizable instanceof FromTable && isJoinTypeSaved) {
+            outerCost.setJoinType(savedJoinType);
         }
     }
 
