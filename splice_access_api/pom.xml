@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.1.1996</version>
+        <version>3.0.1.1997-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
-            <version>3.0.1.1996</version>
+            <version>3.0.1.1997-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
