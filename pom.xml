@@ -962,6 +962,7 @@
                 <module>hbase_sql</module>
                 <module>standalone</module>
                 <module>platform_it</module>
+                <module>upgrade_test</module>
                 <module>spark_sql</module>
                 <module>splice_ck</module>
                 <module>splice_spark</module>
@@ -1043,6 +1044,7 @@
                 <module>hbase_sql</module>
                 <module>standalone</module>
                 <module>platform_it</module>
+                <module>upgrade_test</module>
                 <module>spark_sql</module>
                 <module>splice_ck</module>
                 <module>splice_spark</module>

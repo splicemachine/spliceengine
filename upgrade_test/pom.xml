@@ -15,8 +15,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>platform_it</artifactId>
-    <description>Integration Tests for SQL engine based on HBase</description>
+    <artifactId>upgrade_test</artifactId>
+    <description>Upgrade tests</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
@@ -27,9 +27,8 @@
         <server.skip.start>skipServerStart</server.skip.start>
         <!--Ant task to run shell scripts-->
         <shell.command>/bin/bash</shell.command>
-        <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
-        <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
-        <check_upgrade.script>${project.basedir}/../upgrade_test/check_upgrade.sh</check_upgrade.script>
+        <start.script>${project.basedir}//src/test/bin/start-splice-its</start.script>
+        <stop.script>${project.basedir}//src/test/bin/stop-splice-its</stop.script>
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
@@ -357,17 +356,17 @@
             </extension>
         </extensions>
         <plugins>
-           <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-jar-plugin</artifactId>
-               <executions>
-                   <execution>
-                       <goals>
-                           <goal>test-jar</goal>
-                       </goals>
-                   </execution>
-               </executions>
-           </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
@@ -438,7 +437,7 @@
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
-                        <id>integration-tests-parallel</id>
+                        <id>upgrade-test</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
@@ -462,39 +461,27 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
-
                 </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>############### start-splice-its (platform_it) ###############</id>
+                        <id>############### upgrade-start (upgrade) ###############</id>
                         <phase>pre-integration-test</phase>
                         <configuration>
                             <skip>${skipTests}</skip>
-                            <target name="StartSpliceServer" unless="${server.skip.start}">
+                            <target name="StartSpliceServer">
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties"
                                          classpathref="maven.plugin.classpath"/>
                                 <mkdir dir="${tmpDir}"/>
-                                <if>
-                                    <istrue value="${failTasksRandomly}"/>
-                                    <!-- run with chaos monkey (default) -->
-                                    <then>
-                                        <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-c"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
-                                        </exec>
-                                    </then>
-                                    <else>
-                                        <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
-                                        <exec executable="${shell.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
-                                        </exec>
-                                    </else>
-                                </if>
+
+                                <exec executable="${shell.command}" dir="${basedir}" spawn="false">
+                                    <arg value="${start.script}"/>
+                                    <arg value="-c"/>
+                                    <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
+                                </exec>
+
                                 <property name="classpath.test" refid="maven.test.classpath"/>
                                 <!--suppress MavenModelInspection -->
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait"

@@ -1,0 +1,112 @@
+#!/bin/bash
+
+##################################################################################
+# Start Zookeeper and the Splice HBase servers
+# See usage() below.
+##################################################################################
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd)
+ROOT_DIR=$(pwd)
+
+ZOOLOG="${ROOT_DIR}"/target/zoo_it.log
+YARNLOG="${ROOT_DIR}"/target/yarn_it.log
+SPLICELOG="${ROOT_DIR}"/target/splice_it.log
+KAFKALOG="${ROOT_DIR}"/target/kafka.log
+
+aws s3 cp s3://splice-snapshots/upgrade_tests/platform_it_${VERSION}.tar.gz .
+tar -xzf platform_it_${VERSION}.tar.gz
+rm platform_it_${VERSION}.tar.gz
+mv platform_it/target/hbase .
+mv platform_it/target/zookeeper .
+
+CHAOS="false"
+PROFILE="cdh5.8.3"  # default hbase platform profile
+HBASE_PROFILE=${PROFILE}
+
+MAVEN_OPTS="$MAVEN_OPTS -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40"
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 -c -p [<hbase_profile>] -h[elp]"
+    echo "Where: "
+    echo "  -c is an optional flag determining random task failures. Default is that the chaos"
+    echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
+    echo "        grep 'task fail' splice_machine/splice.log"
+    echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
+    echo "  cdh5.6.0, cdh5.7.0, hdp2.4.2, hdp2.5.0, mapr5.1.0, mapr5.2.0"
+    echo "  Default is cdh5.6.0."
+    echo "  -h => print this message"
+}
+
+while getopts ":chp:b:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        c)
+        # start server with the chaos monkey (random task failures)
+            CHAOS="true"
+        ;;
+        p)
+        # the hbase profile
+            t=$(echo "$OPTARG" | tr -d [[:space:]])
+            HBASE_PROFILE=${t%%,*}
+            PROFILE=insecure,${t}
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
+
+# Check if server running. Shut down if so.
+"${SCRIPT_DIR}"/stop-splice-its
+
+# Start zookeeper in background.
+echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo >> ${ZOOLOG} 2>&1 &
+
+#######################################################################################################
+# Wait for up to 130 seconds for zoo to start, checking nc periodically to see if we are connected
+# This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
+# In particular, it uses netcat (nc) to pipe the command 'ruok' to zookeeper on it's connection port.
+# If ZooKeeper responds with 'imok', then the server is up. If it returns empty, then zookeeper
+# hasn't started yet. If the count goes to 0, and we never got 'imok', then we want to blow up because
+# ZooKeeper didn't start up properly
+#######################################################################################################
+COUNT=130
+ZOO_UP=""
+until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
+    sleep 1
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
+    let COUNT-=1
+done
+
+if [ ${COUNT} -eq 0 ]; then
+    echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOOLOG} for more information"
+    exit 5
+fi
+
+pushd ../standalone/ > /dev/null
+# Start SpliceTestYarnPlatform in background.
+echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
+popd > /dev/null
+
+# Start Kafka in background.
+echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka >> ${KAFKALOG} 2>&1 &
+
+# Start SpliceTestPlaform in background.
+echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} -Ddurability=NONE >> ${SPLICELOG} 2>&1 &
+echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 -Ddurability=NONE >> ${SPLICELOG}.member1.log 2>&1 &
+# echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
+# mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             >> ${SPLICELOG}.member2.log 2>&1 &
+
+popd &>/dev/null
