@@ -395,7 +395,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
 
 	    // Use a join so we can test native spark execution.
 	    try (ResultSet rs = methodWatcher.executeQuery(
-	            "SELECT RTRIM(a.a,a.b), a.c from " + tableWatcherK + " a --splice-properties useSpark=" + useSpark +
+	            "SELECT RTRIM(a.a,a.b), a.c from " + tableWatcherK + " a --splice-properties joinStrategy=nestedloop,useSpark=" + useSpark +
                     "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b")) {
 
             while (rs.next()) {
@@ -405,7 +405,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 count++;
             }
         }
-	    Assert.assertEquals("Incorrect row count", 11, count);
+	    Assert.assertEquals("Incorrect row count", 13, count);
     }
 
     @Test
