@@ -71,7 +71,7 @@ public class DropColumnIT extends SpliceUnitTest {
                 .withRows(rows(row(1,2,3,4)))
                 .withInsert(format("insert into %s values (?,?,?,?)", tableWithConstraints))
                 .create();
-        new TableCreator(conn).withCreate(format("create table %s (a int, b int, c int references(a), d int)", tableWithConstraints2))
+        new TableCreator(conn).withCreate(format("create table %s (a int, b int, c int references %s.a, d int)", tableWithConstraints2, tableName))
                 .withRows(rows(row(1,2,3,4)))
                 .withInsert(format("insert into %s values (?,?,?,?)", tableWithConstraints2))
                 .create();
