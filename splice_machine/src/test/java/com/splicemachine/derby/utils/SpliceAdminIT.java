@@ -554,43 +554,49 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
     @Test
     public void testSetGlobalDatabaseProperty() throws Exception {
+        // might have been set by previous execution of this test
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'NULL')");
 
         try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'true')") ) {
             String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertEquals(
                     "name       |                             value                             |\n" +
-                    "---------------------------------------------------------------------------------\n" +
-                    "      KEY       |                     not.existing.property                     |\n" +
-                    "   NEW VALUE    |                             true                              |\n" +
-                    "PREVIOUS VALUE  |                             true                              |\n" +
-                    "                |                                                               |\n" +
-                    "!!! WARNING !!! |Database Property 'not.existing.property' seems to be unknown! |", actual );
+                            "---------------------------------------------------------------------------------\n" +
+                            " PROPERTY_NAME  |                     not.existing.property                     |\n" +
+                            "   NEW VALUE    |                             true                              |\n" +
+                            "PREVIOUS VALUE  |                             NULL                              |\n" +
+                            "                |                                                               |\n" +
+                            "!!! WARNING !!! |Database Property 'not.existing.property' seems to be unknown! |", actual);
+        } finally {
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'NULL')");
         }
-
 
         String timestampFormat = "call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', %s )";
         methodWatcher.execute(String.format(timestampFormat, "NULL"));
 
-        try( ResultSet rs = methodWatcher.executeQuery( String.format(timestampFormat, "'YYYY'")) ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(
-                    "name      |             value              |\n" +
-                    "-------------------------------------------------\n" +
-                    "      KEY      |splice.function.timestampFormat |\n" +
-                    "   NEW VALUE   |             YYYY               |\n" +
-                    "PREVIOUS VALUE |             NULL               |", actual );
-        }
+        try {
+            try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'YYYY'"))) {
+                String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                Assert.assertEquals(
+                        "name      |             value              |\n" +
+                                "-------------------------------------------------\n" +
+                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
+                                "   NEW VALUE   |             YYYY               |\n" +
+                                "PREVIOUS VALUE |             NULL               |\n" +
+                                "     INFO      |                                |", actual);
+            }
 
-        try( ResultSet rs = methodWatcher.executeQuery( String.format(timestampFormat, "'yyyy-MM-dd HH:mm:ss'")) ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(
-                    "name      |             value              |\n" +
-                    "-------------------------------------------------\n" +
-                    "      KEY      |splice.function.timestampFormat |\n" +
-                    "   NEW VALUE   |      yyyy-MM-dd HH:mm:ss       |\n" +
-                    "PREVIOUS VALUE |             YYYY               |", actual );
-        }
-        finally {
+            try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'yyyy-MM-dd HH:mm:ss'"))) {
+                String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                Assert.assertEquals(
+                        "name      |             value              |\n" +
+                                "-------------------------------------------------\n" +
+                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
+                                "   NEW VALUE   |      yyyy-MM-dd HH:mm:ss       |\n" +
+                                "PREVIOUS VALUE |             YYYY               |\n" +
+                                "     INFO      |                                |", actual);
+            }
+        } finally {
             methodWatcher.execute(String.format(timestampFormat, "NULL"));
         }
     }
