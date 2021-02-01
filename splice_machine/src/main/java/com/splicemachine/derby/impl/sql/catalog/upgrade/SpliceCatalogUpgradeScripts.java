@@ -76,6 +76,10 @@ public class SpliceCatalogUpgradeScripts{
         this.tc=tc;
 
         scripts = new ArrayList<>();
+        // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
+        // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
+        // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
+        // these upgrades would fail
         addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
 
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
