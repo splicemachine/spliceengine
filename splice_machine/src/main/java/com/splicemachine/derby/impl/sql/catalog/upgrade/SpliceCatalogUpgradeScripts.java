@@ -76,6 +76,8 @@ public class SpliceCatalogUpgradeScripts{
         this.tc=tc;
 
         scripts = new ArrayList<>();
+        addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
+
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
         addUpgradeScript(baseVersion1, 1917, new UpgradeScriptForMultiTenancy(sdd,tc));
@@ -103,7 +105,6 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1985, new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
-        addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 
