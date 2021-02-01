@@ -287,6 +287,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         Statement stmt = lcf.getStatement(dd.getSchemaDescriptor(compSchemaId, null), text, true, lcc);
 
         try {
+            lcc.setCompilingStoredPreparedStatement(true);
             preparedStatement = (ExecPreparedStatement) stmt.prepareStorable(
                     lcc,
                     preparedStatement,
@@ -294,6 +295,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                     getSchemaDescriptor(),
                     type == SPS_TYPE_TRIGGER);
         } finally {
+            lcc.setCompilingStoredPreparedStatement(false);
             if (triggerTable != null) {
                 lcc.popTriggerTable(triggerTable);
             }
