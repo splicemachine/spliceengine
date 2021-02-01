@@ -47,6 +47,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
 
@@ -222,6 +223,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         return getKeyFormatIds(scanInformation.getColumnOrdering(),scanInformation.getConglomerate().getFormat_ids());
     }
 
+
+    // TODO probably needs correction
     public static int[] getKeyFormatIds(int[] keyColumnEncodingOrder, int[] formatIds) throws StandardException {
         if(keyColumnEncodingOrder==null) return null; //no keys to worry about
         int[] keyFormatIds=new int[keyColumnEncodingOrder.length];
@@ -233,6 +236,21 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             }
         }
         return keyFormatIds;
+    }
+
+    public static int[] getKeyColumnFormatIds(List<Integer> columnOrdering, List<Integer> formatIds,
+                                              List<Integer> formatStorageIds) throws StandardException {
+
+        if(columnOrdering==null) {
+            return null; //no keys to worry about
+        }
+
+        int[] result = new int[columnOrdering.size()];
+        for(int i = 0; i < columnOrdering.size(); ++i) {
+            int pkStorageIndexPosition = formatStorageIds.indexOf(columnOrdering.get(i) + 1); // result is 1-based.
+            result[i] = formatIds.get(pkStorageIndexPosition); // 0-based.
+        }
+        return result;
     }
 
     /**

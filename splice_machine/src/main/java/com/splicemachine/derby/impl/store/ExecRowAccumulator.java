@@ -63,7 +63,8 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
                                                     int[] columnMap,
                                                     boolean[] columnSortOrder,
                                                     FormatableBitSet cols,
-                                                    String tableVersion){
+                                                    String tableVersion,
+                                                    int[] columnStorageMap){
         DataValueDescriptor[] dvds = row.getRowArray();
         BitSet fieldsToCollect = new BitSet(dvds.length);
         boolean hasColumns = false;
@@ -102,16 +103,18 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
                                                     ExecRow row,
                                                     int[] columnMap,
                                                     FormatableBitSet cols,
-                                                    String tableVersion){
-        return newAccumulator(predicateFilter,returnIndex,row,columnMap,null,cols,tableVersion);
+                                                    String tableVersion,
+                                                    int[] columnStorageMap){
+        return newAccumulator(predicateFilter,returnIndex,row,columnMap,null,cols,tableVersion, columnStorageMap);
     }
 
     public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
                                                     boolean returnIndex,
                                                     ExecRow row,
                                                     int[] keyColumns,
-                                                    String tableVersion){
-        return newAccumulator(predicateFilter,returnIndex,row,keyColumns,null,tableVersion);
+                                                    String tableVersion,
+                                                    int[] keyColumnsStorageMap){
+        return newAccumulator(predicateFilter,returnIndex,row,keyColumns,null,tableVersion, keyColumnsStorageMap);
     }
 
     @Override

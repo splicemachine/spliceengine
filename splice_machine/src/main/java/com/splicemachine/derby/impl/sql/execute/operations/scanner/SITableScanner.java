@@ -44,7 +44,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -62,6 +61,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     };
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
     private final Counter filterCounter;
+    private final int[] baseColumnStorageMap;
     private DataScanner regionScanner;
     private final TransactionalRegion region;
     private final DataScan scan;
@@ -108,8 +108,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              SIFilterFactory filterFactory,
                              ExecRow defaultRow,
                              FormatableBitSet defaultValueMap,
-                             boolean ignoreRecentTransactions
-    ) {
+                             boolean ignoreRecentTransactions,
+                             int[] baseColumnStorageMap) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
         regionId.set(region.getRegionName());
@@ -135,6 +135,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             this.filterFactory = filterFactory;
         this.defaultRow = defaultRow;
         this.defaultValueMap = defaultValueMap;
+        this.baseColumnStorageMap = baseColumnStorageMap;
     }
 
     protected SITableScanner(DataScanner scanner,
@@ -155,10 +156,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final long demarcationPoint,
                              ExecRow defaultRow,
                              FormatableBitSet defaultValueMap,
-                             boolean ignoreRecentTransactions) {
+                             boolean ignoreRecentTransactions, int[] baseColumnStorageMap) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory, defaultRow, defaultValueMap, ignoreRecentTransactions);
+                tableVersion, filterFactory, defaultRow, defaultValueMap, ignoreRecentTransactions, baseColumnStorageMap);
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint,ignoreRecentTransactions);
@@ -183,10 +184,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              DataValueDescriptor optionalProbeValue,
                              ExecRow defaultRow,
                              FormatableBitSet defaultValueMap,
-                             boolean ignoreRecentTransactions) {
+                             boolean ignoreRecentTransactions, int[] baseColumnStorageMap) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory,demarcationPoint, defaultRow, defaultValueMap, ignoreRecentTransactions);
+                tableVersion, filterFactory,demarcationPoint, defaultRow, defaultValueMap, ignoreRecentTransactions,
+             baseColumnStorageMap);
         this.optionalProbeValue = optionalProbeValue;
     }
 
@@ -383,7 +385,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         if(siFilter==null) {
             boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
             predicateFilter= buildInitialPredicateFilter();
-            accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+            accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion, baseColumnStorageMap);
             siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
         }
         return siFilter;
@@ -463,7 +465,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         keyDecoder.set(data.keyArray(), data.keyOffset(), data.keyLength());
         if(keyAccumulator==null)
             keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
-                    keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
+                    keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion, baseColumnStorageMap);
         keyAccumulator.reset();
         primaryKeyIndex.reset();
         return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);

@@ -91,6 +91,11 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
     @Override
+    public int[] getBaseColumnStorageMap() {
+        return new int[0];
+    }
+
+    @Override
     public ExecRow compactRow(ExecRow candidateRow,
                               ScanInformation scanInfo) throws StandardException {
 				int	numCandidateCols = candidateRow.nColumns();

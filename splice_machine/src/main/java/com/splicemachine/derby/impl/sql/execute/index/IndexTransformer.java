@@ -627,7 +627,7 @@ public class IndexTransformer {
     private ExecRowAccumulator getExecRowAccumulator() {
         if (execRowAccumulator == null) {
             execRowAccumulator = ExecRowAccumulator.newAccumulator(EntryPredicateFilter.emptyPredicate(), false,
-                                                                   defaultValuesExecRow, new int[]{0}, version);
+                                                                   defaultValuesExecRow, new int[]{0}, version, mainColToIndexStoragePosMap);
         }
         return execRowAccumulator;
     }

@@ -253,6 +253,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .storedAs(storedAs)
                 .location(location)
                 .baseColumnMap(operationInformation.getBaseColumnMap())
+                .baseColumnStorageMap(operationInformation.getBaseColumnStorageMap())
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
                 .buildDataSet(this).map(new CloneFunction<>(operationContext)).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));

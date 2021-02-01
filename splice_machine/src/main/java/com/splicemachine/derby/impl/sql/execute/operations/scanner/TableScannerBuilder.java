@@ -56,6 +56,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] keyColumnTypes;
     protected int[] keyDecodingMap;
     protected int[] baseColumnMap;
+    protected int[] baseColumnStorageMap;
     protected FormatableBitSet accessedKeys;
     protected boolean reuseRowLocation=true;
     protected String indexName;
@@ -157,7 +158,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * <p/>
      * For example, if your row is (a,b,c,d), and the key columns are (c,a).Now, suppose
      * that you are returning rows (a,c,d); then, the row decoding map would be [-1,-1,-1,2] (d's position
-     * in the entire row is 3, so it has to be located at that index, and it's location in the decoded row is 2,
+     * in the entire row is 3, so it has to be located at that index, and its location in the decoded row is 2,
      * so that's the value).
      * <p/>
      * Note that the row decoding map should be -1 for all row elements which are kept in the key.
@@ -177,6 +178,13 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap){
         assert baseColumnMap!=null:"Null column maps are not allowed";
         this.baseColumnMap=baseColumnMap;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> baseColumnStorageMap(int[] baseColumnStorageMap) {
+        assert baseColumnStorageMap!=null:"Null column maps are not allowed";
+        this.baseColumnStorageMap=baseColumnStorageMap;
         return this;
     }
 
@@ -409,7 +417,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     optionalProbeValue,
                     defaultRow,
                     defaultValueMap,
-                    ignoreRecentTransactions);
+                    ignoreRecentTransactions,
+                    baseColumnStorageMap);
     }
 
     @Override
@@ -441,6 +450,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(baseColumnMap!=null);
             if(baseColumnMap!=null){
                 ArrayUtil.writeIntArray(out,baseColumnMap);
+            }
+            if(baseColumnStorageMap!=null){
+                ArrayUtil.writeIntArray(out,baseColumnStorageMap);
             }
             out.writeObject(accessedKeys);
             out.writeBoolean(reuseRowLocation);
@@ -522,6 +534,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             }
             if(in.readBoolean()){
                 baseColumnMap=ArrayUtil.readIntArray(in);
+            }
+            if(in.readBoolean()) {
+                baseColumnStorageMap=ArrayUtil.readIntArray(in);
             }
             accessedKeys=(FormatableBitSet)in.readObject();
             reuseRowLocation = in.readBoolean();
@@ -636,6 +651,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     public int[] getBaseColumnMap() {
         return baseColumnMap;
+    }
+
+    public int[] getBaseColumnStorageMap() {
+        return baseColumnStorageMap;
     }
 
     public long getBaseTableConglomId() {

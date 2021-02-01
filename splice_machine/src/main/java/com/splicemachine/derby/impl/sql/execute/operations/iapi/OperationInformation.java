@@ -56,6 +56,8 @@ public interface OperationInformation {
 		 */
 		int[] getBaseColumnMap();
 
+		int[] getBaseColumnStorageMap();
+
         ExecRow compactRow(ExecRow candidateRow,
 						   FormatableBitSet accessedColumns,
 						   boolean isKeyed) throws StandardException;

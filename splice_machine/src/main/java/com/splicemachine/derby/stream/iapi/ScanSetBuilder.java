@@ -73,6 +73,7 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap);
 
+    ScanSetBuilder<V> baseColumnStorageMap(int[] baseColumnStorageMap);
 
     ScanSetBuilder<V> reuseRowLocation(boolean reuseRowLocation);
 
