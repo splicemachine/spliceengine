@@ -221,7 +221,7 @@ public class TriggerEventActivator {
                 // to create lcc and TriggerExecutionContext for each row and each trigger,
                 // each make non-cached dictionary calls for
                 // defaultroles, defaultSchema, storedPreparedStatement ...
-                boolean runConcurrently = !fromSparkExecution;
+                boolean runConcurrently = true;  // !fromSparkExecution;   // msirek-temp
                 if (runConcurrently) {
                     for (String sql : td.getTriggerDefinitionList()) {
                         sql = sql.toUpperCase();
@@ -242,6 +242,17 @@ public class TriggerEventActivator {
             } else {
                 addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
+            // Pre-compile the trigger.
+            LanguageConnectionContext lcc = null;
+            try {
+                lcc = ConnectionUtil.getCurrentLCC();
+            }
+            catch (SQLException e) {
+                throw StandardException.plainWrapException(e);
+            }
+            if (lcc != null)
+                td.getSPS(lcc, -1, tec.getSpsCache());
+
         }
     }
 

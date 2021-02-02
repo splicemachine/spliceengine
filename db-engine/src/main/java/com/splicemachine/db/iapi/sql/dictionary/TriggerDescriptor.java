@@ -313,7 +313,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
+    public SPSDescriptor getSPS(LanguageConnectionContext lcc,
                                  int index, ManagedCache<UUID, SPSDescriptor>localCache)
             throws StandardException
     {
@@ -338,6 +338,12 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
         if (sps == null) {
             sps = dd.getSPSDescriptor(spsId);
+            if (sps != null) {
+                if (!sps.isValid()) {
+                    sps.getPreparedStatement(true);  // msirek-temp
+                    dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+                }
+            }
             if (localCache != null && sps != null)
                 localCache.put(spsId, sps);
         }

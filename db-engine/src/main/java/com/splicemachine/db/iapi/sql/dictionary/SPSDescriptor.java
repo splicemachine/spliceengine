@@ -216,6 +216,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             }
         }
         compileStatement(lcc, triggerTable, tc);
+        DataDictionary dd = lcc.getDataDictionary();
+        dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(this);
         preparedStatement.makeInvalid(DependencyManager.PREPARED_STATEMENT_RELEASE, lcc);
     }
 

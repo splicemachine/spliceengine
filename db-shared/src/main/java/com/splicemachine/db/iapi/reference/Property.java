@@ -632,7 +632,7 @@ public interface Property {
      * Externally visible.
      */
     String	LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
-    int		LANG_SPS_CACHE_SIZE_DEFAULT =32;
+    int		LANG_SPS_CACHE_SIZE_DEFAULT =4096;
 
     /**
      * The size of the sequence generator cache

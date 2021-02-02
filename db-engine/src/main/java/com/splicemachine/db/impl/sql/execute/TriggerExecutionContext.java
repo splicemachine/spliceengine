@@ -126,6 +126,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      */
     private Map<String, Long> aiHT;
 
+    private static final int MANAGED_CACHE_MAX_SIZE = 256;
+
     public TriggerExecutionContext() {}
 
     /**
@@ -166,7 +168,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         // does not store its SPS in the data dictionary, so needs to use
         // a ManagedCache.
         if (fromSparkExecution || fromTableDmlSpsDescriptor != null) {
-            this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
+            this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(MANAGED_CACHE_MAX_SIZE).build(), MANAGED_CACHE_MAX_SIZE);
             if (fromTableDmlSpsDescriptor != null)
                 spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
         }
@@ -690,7 +692,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (hasSpsCache)
             spsCache = (ManagedCache<UUID, SPSDescriptor> ) in.readObject();
         else if (fromSparkExecution || hasFromTableDmlSpsDescriptor) {
-            spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
+            spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(MANAGED_CACHE_MAX_SIZE).build(), MANAGED_CACHE_MAX_SIZE);
             if (hasFromTableDmlSpsDescriptor)
                 spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
         }
