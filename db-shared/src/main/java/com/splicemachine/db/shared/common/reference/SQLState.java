@@ -752,6 +752,7 @@ public interface SQLState {
     String LANG_INVALID_AGGREGATION_DATATYPE          = "2202E";
     String LANG_INVALID_TIME_SPAN_OPERATION           = "2202F";
     String LANG_FIELD_POSITION_ZERO                   = "22030";
+    String LANG_INVALID_TIMEZONE_OPERATION            = "22031";
     /*
      ** Integrity violations.
      */
@@ -1030,7 +1031,7 @@ public interface SQLState {
     String LANG_INVALID_FORCED_INDEX2                                      = "42Y48";
     String LANG_DUPLICATE_PROPERTY                                         = "42Y49";
     String LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED                  = "42Y50";
-    //    String LANG_INVALID_FORCED_INDEX4                                = "42Y51";
+    String LANG_INVALID_MIN_PLAN_TIMEOUT                                   = "42Y51";
     String LANG_INVALID_FORCED_SKIPSTATS                                   = "42Y52";
     String LANG_INVALID_SPLITS                                             = "42Y53";
     String LANG_INVALID_SELECTIVITY                                        = "42Y54";

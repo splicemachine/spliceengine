@@ -45,11 +45,26 @@ properties([
                     'mem'
                     ], 
                 description: ''
+                ),
+        choice(name: 'DEBUG', 
+                choices: [
+                    'false',
+                    'true'
+                    ], 
+                description: 'Create an on-demand instance to allow for debugging issues'
                 )
     ]),
 ])
 
-node('spliceengine'){
+def node_name = ""
+
+if (env.DEBUG == 'true') {
+    node_name = "spliceengine-debug"
+} else {
+    node_name = "spliceengine"
+}
+
+node(node_name){
     def artifact_values  = [
         [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
             [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
@@ -127,7 +142,7 @@ node('spliceengine'){
         throw any
 
     } finally {
-        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
         // success or failure, always send notifications
         notifyBuild(currentBuild.result)
     }

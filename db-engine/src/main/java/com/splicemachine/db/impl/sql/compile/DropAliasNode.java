@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -54,6 +56,14 @@ public class DropAliasNode extends DDLStatementNode
 {
 	private char aliasType;
 	private char nameSpace;
+
+	public DropAliasNode() {}
+
+	public DropAliasNode(Object dropAliasName, Character aliasType, ContextManager cm) throws StandardException {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.DROP_ALIAS_NODE);
+		init(dropAliasName, aliasType);
+	}
 
 	/**
 	 * Initializer for a DropAliasNode
@@ -175,6 +185,10 @@ public class DropAliasNode extends DDLStatementNode
 			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 				typeName = "TYPE";
 				break;
+			default:
+				if (SanityManager.DEBUG) {
+					SanityManager.THROWASSERT("Unexpected nodeType = " + actualType);
+				}
 		}
 		return typeName;
 	}

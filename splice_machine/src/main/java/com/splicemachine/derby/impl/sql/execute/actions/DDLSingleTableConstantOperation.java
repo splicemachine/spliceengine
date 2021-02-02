@@ -390,13 +390,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         final long tableConglomId = td.getHeapConglomerateId();
         final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
         TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
-        //get the top-most transaction, that's the actual user transaction
         TransactionController tc = lcc.getTransactionExecute();
-        TxnView t = uTxn;
-        while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
-            uTxn = t;
-            t = uTxn.getParentTxnView();
-        }
         final TxnView userTxn = uTxn;
         DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));

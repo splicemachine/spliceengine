@@ -165,6 +165,12 @@ public interface LanguageConnectionContext extends Context {
     int getTableLimitForExhaustiveSearch();
 
     /**
+     * Get value of minPlanTimeout
+     * @return value of minPlanTimeout
+     */
+    long getMinPlanTimeout();
+
+    /**
      * get the lock escalation threshold to use with this connection.
      */
     int getLockEscalationThreshold();
@@ -1511,5 +1517,13 @@ public interface LanguageConnectionContext extends Context {
     int getApplicationJarsHashCode();
 
     void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
+
+    boolean hasJoinStrategyHint();
+
+    void setHasJoinStrategyHint(boolean newValue);
+
+    boolean compilingStoredPreparedStatement();
+
+    void setCompilingStoredPreparedStatement(boolean newValue);
 
 }

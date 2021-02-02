@@ -721,6 +721,7 @@ public class FromBaseTable extends FromTable {
                     }
                     break;
                 case "joinstrategy":
+                    getLanguageConnectionContext().setHasJoinStrategyHint(true);
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
                     if (userSpecifiedJoinStrategy.equals("CROSS")) {
                         dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
