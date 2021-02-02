@@ -2467,6 +2467,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y06</name>
+                <text>Session parameter CurrentFunctionPath is set with following schemas '{0}', the schema '{1}' does not exist</text>
+                <arg>schemas</arg>
+                <arg>schemaName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y07</name>
                 <text>Schema '{0}' does not exist</text>
                 <arg>schemaNamet</arg>

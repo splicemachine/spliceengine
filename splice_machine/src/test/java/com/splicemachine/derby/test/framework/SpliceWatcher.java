@@ -130,6 +130,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             delegate.minPlanTimeout(minPlanTimeout);
             return this;
         }
+        public ConnectionBuilder setCurrentFunctionPath(String currentFunctionPath) {
+            delegate.setCurrentFunctionPath(currentFunctionPath);
+            return this;
+        }
 
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
