@@ -19,12 +19,13 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -55,6 +56,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
 
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
@@ -109,7 +112,6 @@ public class TriggerHandler {
                           String tableVersion,
                           SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
-        initConnectionContext(activation.getLanguageConnectionContext());
 
         this.beforeEvent = beforeEvent;
         this.afterEvent = afterEvent;
@@ -238,8 +240,9 @@ public class TriggerHandler {
                         @Override
                         public Void call() throws Exception {
                             ActivationHolder ah = new ActivationHolder(activation, null);
+                            LanguageConnectionContext newLCC = null;
                             try {
-                                LanguageConnectionContext oldLCC, newLCC;
+                                LanguageConnectionContext oldLCC;
                                 oldLCC = getLcc();
                                 // Use a new LCC for this thread, but
                                 // allow the transaction to remain elevatable.
@@ -254,16 +257,23 @@ public class TriggerHandler {
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
+                            finally {
+                                if (ah != null)
+                                    ah.close();
+                            }
                             return null;
                         }
                     };
                 }
             };
+            final boolean sparkExecution =
+                !SpliceClient.isRegionServer ||
+                activation.datasetProcessorType().isOlap();
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
                     null, SIDriver.driver().getExecutorService(), withContext,
-                    heapList, !SpliceClient.isRegionServer, fromTableDmlSpsDescriptor);
+                    heapList, sparkExecution, fromTableDmlSpsDescriptor);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
