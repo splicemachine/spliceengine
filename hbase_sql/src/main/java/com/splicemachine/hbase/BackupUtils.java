@@ -400,7 +400,7 @@ public class BackupUtils {
         PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
         if (!partitionAdmin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME)) {
             HBaseConnectionFactory hcf = HBaseConnectionFactory.getInstance(EngineDriver.driver().getConfiguration());
-            hcf.createRestoreTable();
+            hcf.createTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
         }
 
         Partition table = partitionFactory.getTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
