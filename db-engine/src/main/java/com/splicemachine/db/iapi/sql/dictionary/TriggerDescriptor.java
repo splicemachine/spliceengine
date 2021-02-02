@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
@@ -57,6 +58,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -290,37 +292,61 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * SYSSTATEMENTS was introduced with DERBY-4874
      *
      * @param lcc The LanguageConnectionContext to use.
+     * @param activation The Activation to use.
      * @return the trigger action sps
      */
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index) throws StandardException {
-
-        return getSPS(lcc, index, null);
-
+    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, Activation activation, int index) throws StandardException {
+        return getSPS(lcc, activation, index);
     }
 
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index, ManagedCache<UUID, SPSDescriptor>localCache) throws StandardException {
-
-        return getSPS(lcc, index, localCache);
-
+    private boolean
+    olapStatementIntializingOnRegionServer(Activation activation) {
+        return activation.datasetProcessorType().isOlap() &&
+               isDRDAConnThread();
     }
+
+    private boolean
+    isDRDAConnThread() {
+        return Thread.currentThread().currentThread().getName().startsWith("DRDAConnThread");
+    }
+
+    private boolean
+    skipLocalCacheLookup() {
+        if (!isDRDAConnThread())
+            return false;
+        if (!(this instanceof TriggerDescriptorV4))
+            return true;
+        TriggerDescriptorV4 tdV4 = (TriggerDescriptorV4)this;
+        if (!tdV4.isSpecialFromTableTrigger())
+            return true;
+        return false;
+    }
+
+
 
     /**
      * Get the SPS for the triggered SQL statement or the WHEN clause.
      *
      * @param lcc the LanguageConnectionContext to use
+     * @param activation the Activation to use
      * @param index {@code -1} if the SPS for the WHEN clause is
      *   requested, {@code >=0} if it is one of the triggered SQL statements
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
-                                 int index, ManagedCache<UUID, SPSDescriptor>localCache)
+    public SPSDescriptor getSPS(LanguageConnectionContext lcc,
+                                Activation activation,
+                                int index)
             throws StandardException
     {
+        final boolean isDRDAConnThread = isDRDAConnThread();
+        final boolean skipLocalCacheLookup = skipLocalCacheLookup();
+        ManagedCache<UUID, SPSDescriptor>localCache = lcc.getLocalSpsCache();
         boolean isWhenClause = index == -1;
         DataDictionary dd = getDataDictionary();
         UUID spsId = isWhenClause ? whenSPSId : actionSPSIdList.get(index);
         String originalSQL = isWhenClause ? whenClauseText : triggerDefinitionList.get(index);
+        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
         //bug 4821 - do the sysstatement look up in a nested readonly
         //transaction rather than in the user transaction. Because of
@@ -333,14 +359,17 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         // cannot begin a new txn.
         //  lcc.beginNestedTransaction(true);
         SPSDescriptor sps = null;
-        if (localCache != null)
+
+        // On main derby thread the local cache might be reused between requests,
+        // in which case we should fill it with the most up-to-date SPSDescriptor.
+        if (localCache != null && !skipLocalCacheLookup)
             sps = localCache.getIfPresent(spsId);
 
         if (sps == null) {
             sps = dd.getSPSDescriptor(spsId);
-            if (localCache != null && sps != null)
-                localCache.put(spsId, sps);
         }
+        boolean wasValid = sps.isValid();
+        boolean needsSpecialRecompile = !sps.isValid() && isRow && usesReferencingClause;
 
         assert sps != null : "sps should not be null";
 
@@ -358,9 +387,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         //To fix varchar(30) in trigger action sql to varchar(64), we need
         //to regenerate the trigger action sql. This new trigger action sql
         //will then get updated into SYSSTATEMENTS table.
-        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
-        if ((!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
+        if (needsSpecialRecompile) {
+
             SchemaDescriptor compSchema = dd.getSchemaDescriptor(triggerSchemaId, null);
             CompilerContext newCC = lcc.pushCompilerContext(compSchema);
             Parser pa = newCC.getParser();
@@ -400,9 +429,40 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
+            //Recompile it to store the latest updates in sys.sysstatements.
+            if (isDRDAConnThread)
+                sps = sps.shallowClone();
+            sps.getPreparedStatement(true, lcc);
         }
+        // Force recompile before execution if Olap.
+        // Concurrent control execution has the ability to
+        // cache the triggers that are concurrently compiled,
+        // So this is only needed for Spark execution.
+        final boolean olapQueryInit = olapStatementIntializingOnRegionServer(activation);
+        final boolean olapQuery = olapQueryInit || isOlapServer();
 
+        if (!sps.isValid() &&
+            (olapQueryInit || isOlapServer())) {
+            if (isDRDAConnThread)
+                sps = sps.shallowClone();
+            sps.getPreparedStatement(true, lcc);
+        }
+        boolean compileDone = wasValid != sps.isValid();
+        if (compileDone || olapQuery) {
+            // Put the valid SPSDescriptor into local cache.
+            // This will be propagated to the executors in
+            // ActivationHolder.writeExternal.
+            if (localCache != null)
+                localCache.put(spsId, sps);
+        }
         return sps;
+    }
+
+    private static boolean isOlapServer() {
+        String threadName = Thread.currentThread().currentThread().getName();
+
+        return threadName.startsWith("OlapServer") ||
+               threadName.startsWith("olap-worker");
     }
 
     public int getNumBaseTableColumns() {
@@ -437,12 +497,12 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the trigger when clause sps
      */
-    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, ManagedCache<UUID, SPSDescriptor> localCache) throws StandardException {
+    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, Activation activation) throws StandardException {
         if (whenSPSId == null) {
             // This trigger doesn't have a WHEN clause.
             return null;
         }
-        return getSPS(lcc, -1, localCache);
+        return getSPS(lcc, activation, -1);
     }
 
     /**

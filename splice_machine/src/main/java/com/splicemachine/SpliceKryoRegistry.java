@@ -84,6 +84,7 @@ import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import splice.com.google.common.base.Optional;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -898,5 +899,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
         instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER,336);
         instance.register(Vector.class,110);
+        instance.register(SPSDescriptor.class,EXTERNALIZABLE_SERIALIZER,337);
+        try {
+            instance.register(Class.forName("splice.com.google.common.collect.EmptyImmutableList"), 338);
+        }
+        catch (ClassNotFoundException e) { }
+        instance.register(ImmutableList.class, 339);
+        instance.register(TriggerInfo2.class,EXTERNALIZABLE_SERIALIZER,340);
     }
 }

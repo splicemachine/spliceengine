@@ -81,6 +81,7 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 import splice.com.google.common.base.Optional;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -872,5 +873,12 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(Vector.class);
         instance.register(KafkaReadFunction.Message.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SPSDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        try {
+            instance.register(Class.forName("splice.com.google.common.collect.EmptyImmutableList"));
+        }
+        catch (ClassNotFoundException e) { }
+        instance.register(ImmutableList.class);
     }
+
 }
