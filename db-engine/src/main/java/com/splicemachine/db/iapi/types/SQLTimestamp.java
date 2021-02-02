@@ -953,6 +953,21 @@ public final class SQLTimestamp extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getDays
+     *
+     * @exception StandardException  Thrown on error
+     */
+    public NumberDataValue getDays(NumberDataValue result)
+            throws StandardException
+    {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getDays(encodedDate), result);
+        }
+    }
+
+    /**
      * @see DateTimeDataValue#getHours
      *
      * @exception StandardException  Thrown on error

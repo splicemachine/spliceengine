@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -115,6 +117,7 @@ public class BinaryOperatorNode extends OperatorNode
     public final static int XMLQUERY_OP = 1;
     public final static int REPEAT = 2;
     public final static int SIMPLE_LOCALE_STRING = 3;
+    public final static int MULTIPLY_ALT = 3;
 
     // NOTE: in the following 4 arrays, order
     // IS important.
@@ -122,25 +125,29 @@ public class BinaryOperatorNode extends OperatorNode
     static final String[] BinaryOperators = {
         "xmlexists",
         "xmlquery",
-        "repeat"
+        "repeat",
+        "multiply_alt"
     };
 
     static final String[] BinaryMethodNames = {
         "XMLExists",
         "XMLQuery",
-        "repeat"
+        "repeat",
+        "multiply_alt"
     };
 
     static final String[] BinaryResultTypes = {
         ClassName.BooleanDataValue,        // XMLExists
         ClassName.XMLDataValue,            // XMLQuery
-        ClassName.StringDataValue       // repeat
+        ClassName.StringDataValue,      // repeat
+        ClassName.NumberDataValue       // multiply_alt
     };
 
     static final String[][] BinaryArgTypes = {
         {ClassName.StringDataValue, ClassName.XMLDataValue},    // XMLExists
         {ClassName.StringDataValue, ClassName.XMLDataValue},    // XMLQuery
-        {ClassName.StringDataValue, ClassName.NumberDataValue}  // repeat
+        {ClassName.StringDataValue, ClassName.NumberDataValue}, // repeat
+        {ClassName.NumberDataValue, ClassName.NumberDataValue}, // multiply_alt
     };
 
     /** The query expression if the operator is XMLEXISTS or XMLQUERY. */
@@ -324,6 +331,8 @@ public class BinaryOperatorNode extends OperatorNode
             return bindXMLQuery();
         else if (operatorType == REPEAT)
             return bindRepeat();
+        else if (operatorType == MULTIPLY_ALT)
+            return bindMultiplyAlt(fromList, subqueryList, aggregateVector);
 
         bindParameters();
 
@@ -422,6 +431,66 @@ public class BinaryOperatorNode extends OperatorNode
 
         return genSQLJavaSQLTree();
     }
+
+    public ValueNode bindMultiplyAlt(FromList fromList,
+                SubqueryList subqueryList,
+                List<AggregateNode>    aggregateVector) throws StandardException
+    {
+        boolean castToDecfloat =
+                leftOperand.requiresTypeFromContext() ||
+                leftOperand.getTypeId() == null ||
+                !(leftOperand.getTypeId().isIntegerNumericTypeId() || leftOperand.getTypeId().getJDBCTypeId() == Types.DECIMAL) ||
+                rightOperand.requiresTypeFromContext() ||
+                rightOperand.getTypeId() == null ||
+                !(rightOperand.getTypeId().isIntegerNumericTypeId() || rightOperand.getTypeId().getJDBCTypeId() == Types.DECIMAL);
+        if (castToDecfloat) {
+            leftOperand = (ValueNode)
+                    getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            leftOperand,
+                            DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
+                            getContextManager());
+            ((CastNode) leftOperand).bindCastNodeOnly();
+            rightOperand = (ValueNode)
+                    getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            rightOperand,
+                            DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
+                            getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+        }
+        ValueNode multiplication = ((BinaryArithmeticOperatorNode) getNodeFactory().getNode(
+                C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+                leftOperand,
+                rightOperand,
+                getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+        if (castToDecfloat) {
+            return multiplication;
+        } else {
+            int leftPrecision = leftOperand.getTypeServices().getPrecision();
+            int rightPrecision = rightOperand.getTypeServices().getPrecision();
+            int leftScale = leftOperand.getTypeServices().getScale();
+            int rightScale = rightOperand.getTypeServices().getScale();
+            int precision = Math.min(38, leftPrecision + rightPrecision);
+            int scale;
+            if (leftScale == 0 && rightScale == 0) {
+                scale = 0;
+            } else if (leftPrecision + rightPrecision <= 38) {
+                scale = Math.min(38, leftScale + rightScale);
+            } else {
+                scale = Math.max(Math.min(3, leftScale + rightScale), 38 - (leftPrecision - leftScale + rightPrecision - rightScale));
+            }
+            ValueNode castToDecimal = (ValueNode)
+                getNodeFactory().getNode(
+                        C_NodeTypes.CAST_NODE,
+                        multiplication,
+                        DataTypeDescriptor.getSQLDataTypeDescriptor(
+                                "java.math.BigDecimal", precision, scale, true, precision),
+                        getContextManager());
+            ((CastNode) castToDecimal).bindCastNodeOnly();
+            return castToDecimal;
+    }
+}
 
     public ValueNode bindRepeat() throws StandardException {
         /*
@@ -527,12 +596,12 @@ public class BinaryOperatorNode extends OperatorNode
         String        resultTypeName;
         String        receiverType;
 
-/*
-** if i have a operator.getOrderableType() == constant, then just cache 
-** it in a field.  if i have QUERY_INVARIANT, then it would be good to
-** cache it in something that is initialized each execution,
-** but how?
-*/
+        /*
+        ** if i have a operator.getOrderableType() == constant, then just cache
+        ** it in a field.  if i have QUERY_INVARIANT, then it would be good to
+        ** cache it in something that is initialized each execution,
+        ** but how?
+        */
 
         // The number of arguments to pass to the method that implements the
         // operator, depends on the type of the operator.

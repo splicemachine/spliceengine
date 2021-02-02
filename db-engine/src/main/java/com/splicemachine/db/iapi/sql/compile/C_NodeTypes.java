@@ -293,8 +293,10 @@ public interface C_NodeTypes
 
     int TYPEOF_OPERATOR_NODE = 281;
 
+    int MULTIPLY_ALT_FUNCTION_NODE = 282;
+
     // Final value in set, keep up to date!
-    int FINAL_VALUE = TYPEOF_OPERATOR_NODE;
+    int FINAL_VALUE = MULTIPLY_ALT_FUNCTION_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

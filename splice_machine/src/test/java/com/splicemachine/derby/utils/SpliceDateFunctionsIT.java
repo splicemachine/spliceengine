@@ -875,6 +875,23 @@ public class SpliceDateFunctionsIT {
     }
 
     @Test
+    public void testExtractDaysTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(DAYS FROM ts), DAYS(ts), typeof(DAYS(ts)) from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                    "TS           |   2   |   3   |   4   |\n" +
+                    "------------------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |733409 |733409 |BIGINT |\n" +
+                    "2009-07-02 11:22:33.04 |733590 |733590 |BIGINT |\n" +
+                    "2009-09-02 11:22:33.04 |733652 |733652 |BIGINT |\n" +
+                    "2012-12-31 00:00:00.03 |734868 |734868 |BIGINT |\n" +
+                    " 2012-12-31 20:38:40.0 |734868 |734868 |BIGINT |\n" +
+                    "2013-12-31 05:22:33.04 |735233 |735233 |BIGINT |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
     public void testExtractHourTimestamp() throws Exception {
         String sqlText = "select ts, EXTRACT(HOUR FROM ts) as \"HOUR\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
