@@ -27,4 +27,6 @@ public interface UpgradeManager {
     default List<String> unloadRegions(String hostAndPort) throws StandardException {return null;}
 
     default List<String> loadRegions(String serverName) throws StandardException { return null;}
+
+    default void restartOlapServer() throws StandardException {}
 }

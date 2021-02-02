@@ -684,6 +684,8 @@ public class BackupSystemProcedures {
             changeId = DDLUtils.notifyMetadataChange(change);
             DDLUtils.finishMetadataChange(changeId);
 
+            EngineDriver.driver().manager().getUpgradeManager().restartOlapServer();
+
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
