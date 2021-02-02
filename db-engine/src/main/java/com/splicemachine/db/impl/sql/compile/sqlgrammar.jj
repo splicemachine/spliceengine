@@ -3316,7 +3316,7 @@ deleteBody() throws StandardException :
         return getDeleteNode(fromTable, tableName, whereClause, null, parameterList);
     }
 |
-    <FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    [<FROM>] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         [
             LOOKAHEAD
             ( { (getToken(1).kind != EOF) && (getToken(1).kind != RIGHT_PAREN) &&
