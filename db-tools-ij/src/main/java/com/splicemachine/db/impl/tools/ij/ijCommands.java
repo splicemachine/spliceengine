@@ -377,21 +377,15 @@ public class ijCommands {
         try {
             haveConnection();
 
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery
-                        ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
-                                "ORDER BY ROLEID ASC");
+            rs = theConnection.createStatement().executeQuery
+                    ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
+                            "ORDER BY ROLEID ASC");
 
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "ROLEID", 30)
+            };
 
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
+            return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
             try {
                 if(rs!=null)
@@ -401,44 +395,6 @@ public class ijCommands {
             throw e;
         }
     }
-
-    /**
-     * Return a resultset of enabled roles, sorted on ROLEID. No information
-     * schema is available, we select from VTI SYSCS_DIAG.CONTAINED_ROLES
-     * instead.
-     */
-    public ijResult showEnabledRoles() throws SQLException {
-        ResultSet rs = null;
-        try {
-            haveConnection();
-
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery
-                        ("SELECT * FROM" +
-                                "	 TABLE(" +
-                                "	   SYSCS_DIAG.CONTAINED_ROLES(CURRENT_ROLE)) T " +
-                                "ORDER BY ROLEID");
-
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
-
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
-        } catch (SQLException e) {
-            try {
-                if(rs!=null)
-                    rs.close();
-            } catch (SQLException se) {
-            }
-            throw e;
-        }
-    }
-
 
     /**
      * Return a resultset of settable roles, sorted on ROLEID.  This has the
@@ -463,19 +419,13 @@ public class ijCommands {
         try {
             haveConnection();
 
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery(query);
+            rs = theConnection.createStatement().executeQuery(query);
 
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "ROLEID", 30)
+            };
 
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
+            return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
             try {
                 if(rs!=null)

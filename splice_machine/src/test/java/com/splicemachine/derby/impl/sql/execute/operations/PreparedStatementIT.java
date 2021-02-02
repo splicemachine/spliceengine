@@ -21,9 +21,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,7 +35,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 6/19/13
  */
-public class PreparedStatementIT { 
+public class PreparedStatementIT extends SpliceUnitTest {
     private static final String CLASS_NAME = PreparedStatementIT.class.getSimpleName().toUpperCase();
 
     private static final List<String> customerVals = Arrays.asList(
@@ -392,5 +394,116 @@ public class PreparedStatementIT {
         ps.setInt(1, 1577836800);
         ps.setDate(2, Date.valueOf("2020-01-01"));
         testReturnRowCount(ps, 0);
+    }
+
+    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
+        PreparedStatement ps = conn.prepareStatement(sqlText);
+        if (arg instanceof String) {
+            ps.setString(1, (String) arg);
+        } else if (arg instanceof Integer) {
+            ps.setInt(1, (Integer) arg);
+        } else if (arg instanceof Double) {
+            ps.setDouble(1, (Double) arg);
+        } else if (arg instanceof BigDecimal) {
+            ps.setBigDecimal(1, (BigDecimal) arg);
+        }
+
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testParameterOperandInUnaryOperator() throws Exception {
+        /* unary date/time operator */
+
+        String expected = "1     |\n" +
+                "------------\n" +
+                "2010-04-16 |";
+        testOneParamHelper("select date(?) + 105 days from sysibm.sysdummy1", "2010-01-01", expected);
+
+        expected = "1    |\n" +
+                "----------\n" +
+                "01:02:03 |";
+        testOneParamHelper("select time(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1           |\n" +
+                "-----------------------\n" +
+                "2010-01-02 01:02:03.0 |";
+        testOneParamHelper("select timestamp(?) + 1 days from sysibm.sysdummy1", "2010-01-01 01:02:03", expected);
+
+        /* extract operator */
+
+        expected = "1  |\n" +
+                "------\n" +
+                "2010 |";
+        testOneParamHelper("select year(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select quarter(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select month(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testOneParamHelper("select day(?) from sysibm.sysdummy1", "2010-01-02", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select hour(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testOneParamHelper("select minute(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 3 |";
+        testOneParamHelper("select second(?) from sysibm.sysdummy1", "01:02:03", expected);
+    }
+
+    @Test
+    public void testCastOnParameter() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                "20 |";
+        testOneParamHelper("select int(?) from sysibm.sysdummy1", "20", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                "15 |";
+        testOneParamHelper("select char(?) from sysibm.sysdummy1", 15, expected);
+
+        expected = "1  |\n" +
+                "------\n" +
+                "0.02 |";
+        testOneParamHelper("select varchar(?) from sysibm.sysdummy1", 0.02, expected);
+
+        expected = "1   |\n" +
+                "-------\n" +
+                "12.50 |";
+        testOneParamHelper("select cast(? as decimal(4,2)) from sysibm.sysdummy1", BigDecimal.valueOf(12.50), expected);
+    }
+
+    @Test
+    public void testParameterOperandInDateTimeExpr() throws Exception {
+        try {
+            String expected = "1     |\n" +
+                    "------------\n" +
+                    "2010-04-16 |";
+            testOneParamHelper("select ? + 105 days from sysibm.sysdummy1", "2010-01-01", expected);
+            Assert.fail("Expect failure due to parameter in date/time expression.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42816", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("A datetime value or duration in an expression is invalid"));
+        }
     }
 }

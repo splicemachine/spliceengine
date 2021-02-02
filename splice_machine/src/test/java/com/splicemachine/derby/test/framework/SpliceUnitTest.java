@@ -400,6 +400,11 @@ public class SpliceUnitTest {
         return Double.parseDouble(m1.group().substring("scannedRows=".length()));
     }
 
+    protected void runQuery(String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+        }
+    }
+
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1178,7 +1183,8 @@ public class SpliceUnitTest {
     {
         String[] paths = {
                 System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
-                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../mem_sql/target/sql-it/sql-it.jar",
         };
         for(String path : paths ) {
             if( new File(path).exists())

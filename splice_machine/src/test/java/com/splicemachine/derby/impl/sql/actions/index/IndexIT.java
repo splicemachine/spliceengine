@@ -854,6 +854,65 @@ public class IndexIT extends SpliceUnitTest{
 
     }
 
+    @Test
+    public void testIndexMetadata() throws Exception {
+        String tableName1 = "TEST_IDX_META_1";
+        String tableName2 = "TEST_IDX_META_2";
+        String tableName3 = "TEST_IDX_META_3";
+        methodWatcher.executeUpdate(format("create table %s (i int, d double, primary key(d, i))", tableName1));
+        methodWatcher.executeUpdate(format("create table %s (d2 double unique, c char(3))", tableName2));
+        methodWatcher.executeUpdate(format("create table %s (col1 char(4), col2 char(4))", tableName3));
+        methodWatcher.executeUpdate(format("create unique index %s_UIDX on %s (col1)", tableName3, tableName3));
+        methodWatcher.executeUpdate(format("create index %s_IDX on %s (col2)", tableName3, tableName3));
+
+        // cannot test NAME column individually because for constraints, names are generated
+        // test index created for PK
+        try(ResultSet rs = methodWatcher.executeQuery(format("select creator, tbname, tbcreator, uniquerule, colcount from sysibm.sysindexes where tbname = '%s'", tableName1))) {
+            String expected =
+                    "CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-------------------------------------------------------------\n" +
+                    " INDEXIT |TEST_IDX_META_1 |  INDEXIT  |     P     |    2    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test index created for UNIQUE constraint
+        try(ResultSet rs = methodWatcher.executeQuery(format("select creator, tbname, tbcreator, uniquerule, colcount from sysibm.sysindexes where tbname = '%s'", tableName2))) {
+            String expected =
+                    "CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-------------------------------------------------------------\n" +
+                    " INDEXIT |TEST_IDX_META_2 |  INDEXIT  |     C     |    1    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test index created by user
+        try(ResultSet rs = methodWatcher.executeQuery(format("select * from sysibm.sysindexes where tbname = '%s'", tableName3))) {
+            String expected =
+                    "NAME         | CREATOR |    TBNAME      | TBCREATOR |UNIQUERULE |COLCOUNT |\n" +
+                    "-----------------------------------------------------------------------------------\n" +
+                    "TEST_IDX_META_3_UIDX | INDEXIT |TEST_IDX_META_3 |  INDEXIT  |     U     |    1    |\n" +
+                    " TEST_IDX_META_3_IDX | INDEXIT |TEST_IDX_META_3 |  INDEXIT  |     D     |    1    |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // test join with syscat.indexcoluse view, use its synonym sysibm.sysindexcoluse
+        try(ResultSet rs = methodWatcher.executeQuery(format("SELECT \n" +
+                "  K.COLNAME, K.COLSEQ \n" +
+                "FROM SYSIBM.SYSINDEXES I, SYSIBM.SYSINDEXCOLUSE K \n" +
+                "WHERE I.NAME = K.INDNAME \n" +
+                "      AND I.CREATOR = K.INDSCHEMA \n" +
+                "      AND I.TBNAME = '%s' \n" +
+                "      AND I.TBCREATOR = '%s' \n" +
+                "      AND I.UNIQUERULE = 'P' \n" +
+                "ORDER BY K.COLSEQ", tableName1, SCHEMA_NAME))) {
+            String expected =
+                    "COLNAME |COLSEQ |\n" +
+                    "------------------\n" +
+                    "    D    |   1   |\n" +
+                    "    I    |   2   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     // ===============================================================================
     // Index expression tests - create, insert, and update
     // ===============================================================================

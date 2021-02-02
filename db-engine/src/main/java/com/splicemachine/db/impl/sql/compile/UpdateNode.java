@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -94,6 +95,15 @@ public final class UpdateNode extends DMLModStatementNode
     /* Subquery name for updating from multi-column subquery case */
     public static final String SUBQ_NAME = "UPDSBQ";
 
+    public UpdateNode() {}
+    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.UPDATE_NODE);
+        super.init(resultSet);
+        this.targetTableName = tableName;
+        this.cursorUpdate = cursorUpdate;
+    }
+
     /**
      * Initializer for an UpdateNode.
      *
@@ -101,7 +111,6 @@ public final class UpdateNode extends DMLModStatementNode
      * @param resultSet        The ResultSet that will generate
      *                the rows to update from the given table
      */
-
     public void init(
                Object targetTableName,
                Object resultSet,
@@ -280,8 +289,9 @@ public final class UpdateNode extends DMLModStatementNode
             // expression, we pull it up to its corresponding top select result column
             // and remove it from the inner select list. If it references columns that is
             // not already selected, add them to the inner select list, too.
+            FromSubquery fromSubq = (FromSubquery) sel.getFromList().elementAt(1);
             ResultColumnList selRCL = sel.getResultColumns();
-            ResultColumnList innerRCL = ((FromSubquery) sel.getFromList().elementAt(1)).getSubquery().getResultColumns();
+            ResultColumnList innerRCL = fromSubq.getSubquery().getResultColumns();
             assert selRCL.size() == innerRCL.size();
 
             ResultColumnList toAppend = new ResultColumnList();
@@ -297,7 +307,7 @@ public final class UpdateNode extends DMLModStatementNode
                             toAppend.addResultColumn(cr.generateResultColumn());
                             TableName crTblName = cr.getTableNameNode();
                             cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                    crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                    crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                         }
                     }
                     ResultColumn selRC = selRCL.elementAt(i);
@@ -332,7 +342,7 @@ public final class UpdateNode extends DMLModStatementNode
                         }
                         TableName crTblName = cr.getTableNameNode();
                         cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                crTblName == null ? null : crTblName.getSchemaName(), SUBQ_NAME));
+                                crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
                     }
                 }
             }

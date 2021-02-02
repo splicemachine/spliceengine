@@ -911,6 +911,11 @@ Guide.
                 <text>Field position must be greater than zero.</text>
             </msg>
 
+            <msg>
+                <name>22031</name>
+                <text>Invalid timezone arithmetic operation.</text>
+            </msg>
+
 
         </family>
 
@@ -1516,6 +1521,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42816</name>
+                <text>A datetime value or duration in an expression is invalid.</text>
+            </msg>
+
+            <msg>
                 <name>42818</name>
                 <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must also have matching collation. If collation does not match, a possible solution is to cast operands to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE CAST(tablename AS VARCHAR(128)) = 'T1')</text>
                 <arg>type</arg>
@@ -2104,6 +2114,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42X67</name>
+                <text>Invalid UPDATE statement syntax.</text>
+            </msg>
+
+            <msg>
                 <name>42X68</name>
                 <text>No field '{0}' was found belonging to class '{1}'.  It may be that the field exists, but it is not public, or that the class does not exist or is not public.</text>
                 <arg>fieldName</arg>
@@ -2667,7 +2682,11 @@ Guide.
                 <text>Properties list for table '{0}' may contain values for index or for constraint but not both.</text>
                 <arg>tableName</arg>
             </msg>
-
+            <msg>
+                <name>42Y51</name>
+                <text>The hint minPlanTimeout should be non-negative long and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42Y52</name>
                 <text>The hint skipStats needs (true/false) and does not support '{0}'.</text>

@@ -28,6 +28,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -352,7 +353,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
-        TableDescriptor td = getTableDescriptor("INDEXCOLUSE", sysCatSchemaDesc, tc);
+        String viewName = "INDEXCOLUSE";
+        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
 
         // drop it if it exists
         if (td != null) {
@@ -365,9 +367,80 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "INDEXCOLUSE", 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 1, sysCatSchemaDesc, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL);
 
-        SpliceLogUtils.info(LOG, "View INDEXCOLUSE in SYSCAT is created!");
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+
+        // create an synonym SYSIBM.SYSINDEXCOLUSE for SYSCAT.INDEXCOLUSE
+        String synonymName = "SYSINDEXCOLUSE";
+        TableDescriptor synonymTD = getTableDescriptor(synonymName, sysIBMSchemaDesc, tc);
+        if (synonymTD == null)
+        {
+            // To prevent any possible deadlocks with SYSTABLES, we insert a row into
+            // SYSTABLES also for synonyms. This also ensures tables/views/synonyms share
+            // same namespace
+            DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+            td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
+                    TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null,null,false,false,null);
+            addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            // Create a new alias descriptor with a UUID filled in.
+            UUID synonymID = getUUIDFactory().createUUID();
+            AliasDescriptor ads = new AliasDescriptor(this, synonymID,
+                    synonymName,
+                    sysIBMSchemaDesc.getUUID(),
+                    null,
+                    AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR,
+                    AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
+                    true,
+                    new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
+                    null);
+            addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
+                    false, tc, false);
+
+            SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
+        }
+    }
+
+    public void createReferencesViewInSysCat(TransactionController tc) throws StandardException {
+        String viewName = "REFERENCES";
+        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSFOREIGNKEYS_CATALOG_NUM, viewName, 0, sysCatSchemaDesc, SYSFOREIGNKEYSRowFactory.SYSCAT_REFERENCES_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+    }
+
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        String viewName = "SYSINDEXES";
+        TableDescriptor td = getTableDescriptor(viewName, sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, viewName, 2, sysIBMSchemaDesc, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSIBM is created!");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -646,6 +719,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createAliasToTableSystemView(tc);
 
         createIndexColumnUseViewInSysCat(tc);
+
+        createReferencesViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
     }
 
     @Override
@@ -1283,7 +1360,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // scan the sysroles table
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -1294,13 +1371,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 0,                          // startSearchOperation - none
                 null,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                        // stopSearchOperation - none
 
-        int batch = 1024;
-        ExecRow[] rowList = new ExecRow[batch];
-        RowLocation[] rowLocationList = new RowLocation[batch];
+            int batch = 1024;
+            ExecRow[] rowList = new ExecRow[batch];
+            RowLocation[] rowLocationList = new RowLocation[batch];
 
-        try{
             int i = 0;
             while(scanController.fetchNext(outRow.getRowArray())){
                 rowList[i%batch] = outRow.getClone();
@@ -1314,8 +1390,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             // insert last batch
             if (i % batch > 0)
                 ti.insertIndexRowListImpl(rowList, rowLocationList, tc, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, i%batch);
-        }finally{
-            scanController.close();
         }
 
         // reset TI for sysroles in NonCoreTI array, as we only used the 4th index here, so inforamtion about the other
@@ -1330,7 +1404,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl ti = getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
         SYSROUTINEPERMSRowFactory rf=(SYSROUTINEPERMSRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -1341,15 +1415,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 0,                          // startSearchOperation - none
                 null,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                        // stopSearchOperation - none
 
-        List<RoutinePermsDescriptor> listToDelete = new ArrayList<>();
+            List<RoutinePermsDescriptor> listToDelete = new ArrayList<>();
 
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
+            while (scanController.fetchNext(outRow.getRowArray())) {
                 String aliasUUIDString = outRow.getColumn(SYSROUTINEPERMSRowFactory.ALIASID_COL_NUM).getString();
                 UUID aliasUUID = getUUIDFactory().recreateUUID(aliasUUIDString);
-                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor)rf.buildDescriptor(outRow, null, this);
+                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor) rf.buildDescriptor(outRow, null, this);
                 // we have looked up the sysaliases table when building the permsDescriptor above,
                 // if the aliasid does not exist, routineName is null
                 String ad = permsDescriptor.getRoutineName();
@@ -1357,13 +1430,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     listToDelete.add(permsDescriptor);
                 }
             }
-        }finally{
-            scanController.close();
-        }
 
-        // delete the obselete rows
-        for (RoutinePermsDescriptor permsDescriptor: listToDelete) {
-            addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
+            // delete the obselete rows
+            for (RoutinePermsDescriptor permsDescriptor : listToDelete) {
+                addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
+            }
         }
         
         SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
@@ -1374,7 +1445,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
         SYSDEPENDSRowFactory rf=(SYSDEPENDSRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -1385,15 +1456,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 0,                          // startSearchOperation - none
                 null,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                        // stopSearchOperation - none
 
-        List<RowLocation> rowsToDelete = new ArrayList<>();
+            List<RowLocation> rowsToDelete = new ArrayList<>();
 
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
+            while (scanController.fetchNext(outRow.getRowArray())) {
                 RowLocation rowLocation = scanController.newRowLocationTemplate();
                 scanController.fetchLocation(rowLocation);
-                DependencyDescriptor dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null, this);
+                DependencyDescriptor dependencyDescriptor = (DependencyDescriptor) rf.buildDescriptor(outRow, null, this);
                 // check if the dependencyDescriptors are the ones that we want
                 DependableFinder finder = dependencyDescriptor.getDependentFinder();
                 if (finder == null)
@@ -1408,25 +1478,22 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
                 // is the provider a role definition, or a permission descriptor
                 finder = dependencyDescriptor.getProviderFinder();
-                String objectType = finder == null? "":finder.getSQLObjectType();
+                String objectType = finder == null ? "" : finder.getSQLObjectType();
                 if (objectType.equals(Dependable.ROLE_GRANT) ||
-                    objectType.equals(Dependable.SCHEMA_PERMISSION) ||
-                    objectType.equals(Dependable.TABLE_PERMISSION) ||
-                    objectType.equals(Dependable.COLUMNS_PERMISSION)) {
-                        rowsToDelete.add(rowLocation);
+                        objectType.equals(Dependable.SCHEMA_PERMISSION) ||
+                        objectType.equals(Dependable.TABLE_PERMISSION) ||
+                        objectType.equals(Dependable.COLUMNS_PERMISSION)) {
+                    rowsToDelete.add(rowLocation);
                 }
             }
-        }finally{
-            scanController.close();
-        }
 
-        // delete the unwanted dependency rows
-        for (RowLocation rowLocation: rowsToDelete) {
-            ti.deleteRowBasedOnRowLocation(tc, rowLocation, true, null);
+            // delete the unwanted dependency rows
+            for (RowLocation rowLocation : rowsToDelete) {
+                ti.deleteRowBasedOnRowLocation(tc, rowLocation, true, null);
+            }
+            SpliceLogUtils.info(LOG,
+                    "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
         }
-
-        SpliceLogUtils.info(LOG,
-                "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
     }
 
     public int upgradeTablePriorities(TransactionController tc) throws Exception {
@@ -1846,7 +1913,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     false,
                     false);
             /* Scan the entire heap */
-            ScanController sc=
+            try (ScanController sc=
                     tc.openScan(
                             ti.getHeapConglomerate(),
                             false,
@@ -1858,19 +1925,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                             ScanController.NA,
                             scanQualifier,
                             null,
-                            ScanController.NA);
+                            ScanController.NA)) {
 
-            while(sc.fetchNext(rowTemplate)){
-                /* Replace the column in the table */
-                for (int i=0; i<rowTemplate.length; i++) {
-                    if (i+1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
-                        replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
-                    else
-                        replaceRow[i] = rowTemplate[i].cloneValue(false);
+                while (sc.fetchNext(rowTemplate)) {
+                    /* Replace the column in the table */
+                    for (int i = 0; i < rowTemplate.length; i++) {
+                        if (i + 1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
+                            replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
+                        else
+                            replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    }
+                    sc.replace(replaceRow, columnToUpdateSet);
                 }
-                sc.replace(replaceRow,columnToUpdateSet);
             }
-            sc.close();
         }
     }
 
@@ -1892,7 +1959,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc = tc.openScan(
+        try (ScanController sc = tc.openScan(
                 ti.getHeapConglomerate(),
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
@@ -1903,19 +1970,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 ScanController.NA,
                 null,
                 null,
-                ScanController.NA);
+                ScanController.NA)) {
 
-        while (sc.fetchNext(rowTemplate)) {
-            for (int i = 0; i < rowTemplate.length; i++) {
-                replaceRow[i] = rowTemplate[i].cloneValue(false);
-                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
-                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
-                    replaceRow[i] = new SQLLongvarchar("NULL");
+            while (sc.fetchNext(rowTemplate)) {
+                for (int i = 0; i < rowTemplate.length; i++) {
+                    replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                    if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                        replaceRow[i] = new SQLLongvarchar("NULL");
+                    }
                 }
+                sc.replace(replaceRow, columnToUpdateSet);
             }
-            sc.replace(replaceRow, columnToUpdateSet);
         }
-        sc.close();
     }
 
     @Override
