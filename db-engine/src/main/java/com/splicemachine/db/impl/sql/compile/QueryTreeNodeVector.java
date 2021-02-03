@@ -32,8 +32,10 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.ArrayList;
@@ -46,7 +48,22 @@ import java.util.List;
  * lists of query tree nodes inherit from QueryTreeNodeVector.
  */
 
-abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode implements Iterable<T>{
+class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode implements Iterable<T>{
+
+    final Class<T> eltClass; // needed for cast in #acceptChildren
+
+    QueryTreeNodeVector(Class<T> eltClass, ContextManager cm) {
+        super(cm);
+        this.eltClass = eltClass;
+    }
+    QueryTreeNodeVector(ContextManager cm) {
+        super(cm);
+        eltClass = null;
+    }
+    QueryTreeNodeVector() {
+        eltClass = null;
+    }
+
     private List<T> v=new ArrayList<>();
 
     public final int size(){
@@ -150,9 +167,12 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
         int size=size();
-        for(int index=0;index<size;index++){
-            //noinspection unchecked
-            setElementAt((T)elementAt(index).accept(v, this),index);
+        for(int index=0; index < size; index++) {
+            Visitable vbl = elementAt(index).accept(v, this);
+            if(eltClass != null)
+                setElementAt(eltClass.cast(vbl), index);
+            else
+                setElementAt((T)vbl, index);
         }
     }
 
