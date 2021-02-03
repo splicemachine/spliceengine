@@ -142,7 +142,7 @@ class SICompactionStateMutate {
      */
     private void mutate(Cell element, TxnView txn, SortedSet<Cell> dataToReturn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
-        IgnoreTxnSupplier ignoreTxn = SIDriver.driver().getIgnoreTxnSupplier();
+        IgnoreTxnSupplier ignoreTxn = SIDriver.driver() == null ? null : SIDriver.driver().getIgnoreTxnSupplier();
         if (element.getType() != Cell.Type.Put) {
             if (LOG.isDebugEnabled())
                 LOG.debug("Removing cell " + element + " because it's a delete");
@@ -160,7 +160,7 @@ class SICompactionStateMutate {
             assert txnIsNull;
             assert timeStampInElement : "Element does not contain a timestamp: " + element;
             long commitTimestamp = CellUtils.getCommitTimestamp(element);
-            if (!ignoreTxn.shouldIgnore(commitTimestamp)) {
+            if (ignoreTxn == null || !ignoreTxn.shouldIgnore(commitTimestamp)) {
                 dataToReturn.add(element);
             }
             return;
@@ -172,7 +172,10 @@ class SICompactionStateMutate {
         }
         Txn.State txnState = txn.getEffectiveState();
 
-        if (txnState == Txn.State.ROLLEDBACK || ignoreTxn.shouldIgnore(txn.getTxnId()) ) {
+        if (txnState == Txn.State.ROLLEDBACK || 
+            ( ignoreTxn != null && ignoreTxn.shouldIgnore(txn.getTxnId()) )
+        )
+        {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Removing cell " + element + " because txn is rolledback: " + txn);
             }
