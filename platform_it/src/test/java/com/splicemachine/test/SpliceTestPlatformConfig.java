@@ -256,9 +256,10 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.assignment.dispatch.wait.msec", 0); // remove 150ms pause when creating table
         config.setInt("hbase.procedure.remote.dispatcher.max.queue.size", 0); // remove 150ms pause when creating table
         config.setInt("hbase.procedure.store.wal.sync.wait.msec", 5); // remove 100ms pause when storing Master procedures
+        config.setInt("hbase.rowlock.wait.duration",30000);
 
-        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
-        config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
+        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(20)); // hbase.regionserver.lease.period is deprecated
+        config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(5));
         config.setLong("hbase.regionserver.handler.count", 50);
         config.setLong("hbase.regionserver.metahandler.count", 50);
         config.setInt("hbase.hconnection.threads.max", 128);
@@ -290,7 +291,7 @@ class SpliceTestPlatformConfig {
         //
         // Memstore, store files, splits
         //
-        config.setLong(HConstants.HREGION_MAX_FILESIZE, 32 * MiB); // hbase.hregion.max.filesize
+        config.setLong(HConstants.HREGION_MAX_FILESIZE, 10240 * MiB); // hbase.hregion.max.filesize
         config.setLong("hbase.hregion.memstore.flush.size", 128 * MiB); // was 512 MiB
         config.setLong("hbase.hregion.memstore.block.multiplier", 4);
         config.setFloat("hbase.regionserver.global.memstore.size", 0.25f); // set mem store to 25% of heap

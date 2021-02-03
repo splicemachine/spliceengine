@@ -220,6 +220,10 @@ public class SpliceTestYarnPlatform {
         conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);
         conf.setClass(YarnConfiguration.RM_SCHEDULER, FifoScheduler.class, ResourceScheduler.class);
         conf.set("yarn.application.classpath", new File(yarnSiteConfigURL.getPath()).getParent());
+        conf.setInt("yarn.nodemanager.resource.cpu-vcores", 9);
+        conf.setInt("yarn.scheduler.maximum-allocation-vcores", 9);
+        conf.setInt("yarn.nodemanager.resource.memory-mb", 15000);
+        conf.setInt("yarn.scheduler.maximum-allocation-mb", 13000);
     }
 
     private static void waitForNMToRegister(NodeManager nm)

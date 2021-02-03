@@ -970,7 +970,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx3g</argument>
+                                <argument>-Xmx20g</argument>
                                 <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -986,9 +986,9 @@
                                     -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
-                                <argument>-Dsplice.spark.driver.memory=1g</argument>
+                                <argument>-Dsplice.spark.driver.memory=4g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
-                                <argument>-Dsplice.spark.executor.cores=3</argument>
+                                <argument>-Dsplice.spark.executor.cores=8</argument>
                                 <argument>${spark.defaultfs}</argument>
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}:${project.build.directory}/classes:${project.build.directory}/dependency/*
@@ -1003,7 +1003,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
-                                <argument>-Dsplice.spark.executor.memory=2000M</argument>
+                                <argument>-Dsplice.spark.executor.memory=6g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
                                 <argument>-Dspark.broadcast.compress=true</argument>
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
@@ -1131,7 +1131,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx3g</argument>
+                                <argument>-Xmx15g</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
