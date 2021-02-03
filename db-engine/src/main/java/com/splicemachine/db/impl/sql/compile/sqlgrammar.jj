@@ -6498,11 +6498,6 @@ nonSecondDatetimeField() :
         return DateTimeDataValue.DAY_FIELD;
     }
 |
-    <DAYS>
-    {
-        return DateTimeDataValue.DAYS_FIELD;
-    }
-|
     <HOUR>
     {
         return DateTimeDataValue.HOUR_FIELD;
@@ -6809,6 +6804,7 @@ numericValueFunction() throws StandardException :
     {
         return value;
     }
+    <DAYS> value = daysFunction()
 }
 
 ValueNode

@@ -45,11 +45,10 @@ public interface DateTimeDataValue extends DataValueDescriptor
     int WEEK_DAY_FIELD = 5;
     int WEEKDAYNAME_FIELD = 6;
     int DAY_OF_YEAR_FIELD = 7;
-    int DAYS_FIELD = 8;
-    int DAY_FIELD = 9;
-    int HOUR_FIELD = 10;
-    int MINUTE_FIELD = 11;
-    int SECOND_FIELD = 12;
+    int DAY_FIELD = 8;
+    int HOUR_FIELD = 9;
+    int MINUTE_FIELD = 10;
+    int SECOND_FIELD = 11;
 
     // The JDBC interval types
     int FRAC_SECOND_INTERVAL = 0;

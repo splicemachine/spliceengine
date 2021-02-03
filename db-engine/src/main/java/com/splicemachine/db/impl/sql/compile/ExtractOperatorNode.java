@@ -49,8 +49,8 @@ import java.sql.Types;
 
 import java.util.List;
 
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.HOUR_FIELD;
 import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
-import static com.splicemachine.db.iapi.types.DateTimeDataValue.DAYS_FIELD;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -61,14 +61,14 @@ import static com.splicemachine.db.iapi.types.DateTimeDataValue.DAYS_FIELD;
 public class ExtractOperatorNode extends UnaryOperatorNode {
 
     static private final String fieldName[] = {
-        "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "WEEKDAYNAME", "DAYOFYEAR", "DAYS", "DAY", "HOUR", "MINUTE", "SECOND"
+        "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
     };
     static private final String fieldMethod[] = {
-        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear", "getDays", "getDate","getHours","getMinutes","getSeconds"
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear", "getDate","getHours","getMinutes","getSeconds"
     };
 
     static private final long fieldCardinality[] = {
-            5L, 4L, 12L, 12L, 52L, 7L, 7L, 365L, Long.MAX_VALUE, 31L, 24L, 60L, 60L
+            5L, 4L, 12L, 12L, 52L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
     private int extractField;
@@ -118,7 +118,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         if (opTypeId.isStringTypeId())
         {
             TypeCompiler tc = getOperand().getTypeCompiler();
-            int castType = (extractField < 9) ? Types.DATE : Types.TIME;
+            int castType = (extractField < HOUR_FIELD) ? Types.DATE : Types.TIME;
             setOperand((ValueNode)
                 getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
@@ -183,11 +183,6 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
                     14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
                     )
             );
-        } else if (extractField == DAYS_FIELD) {
-            setType(new DataTypeDescriptor(
-                    TypeId.BIGINT_ID,
-                    operand.getTypeServices().isNullable()
-            ));
         } else {
             setType(new DataTypeDescriptor(
                             TypeId.INTEGER_ID,
@@ -217,7 +212,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
     }
 
     public String sparkFunctionName() throws StandardException{
-        if (extractField == MONTHNAME_FIELD || extractField == DAYS_FIELD)
+        if (extractField == MONTHNAME_FIELD)
             throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
         return fieldName[extractField];
     }
