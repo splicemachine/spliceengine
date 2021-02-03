@@ -54,12 +54,21 @@ public class MergeNodeIT
         // when matched UPDATE
         methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j) when matched then update set dest.i = src.j");
 
+        // using from subquery
+        methodWatcher.execute("merge into A_dest dest using (select i*2, j from A_new) src on (src.i = src.j)" +
+                " when matched then update set dest.i = src.j ");
+
         // when matched DELETE
         methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j) when matched then delete");
 
         // when + AND
         methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j)" +
                 " when matched AND dest.i > 0 then update set dest.i = src.j ");
+
+        // multiple WHEN matched
+        methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j)" +
+                " when matched AND dest.i > 0 then update set dest.i = src.j " +
+                " when matched AND dest.i < 0 then update set dest.i = src.j+1 ");
 
         // when not matched insert
         methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j)" +
