@@ -117,7 +117,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         if (opTypeId.isStringTypeId())
         {
             TypeCompiler tc = operand.getTypeCompiler();
-            int castType = (extractField < 9) ? Types.DATE : Types.TIME;
+            int castType = (extractField < DateTimeDataValue.HOUR_FIELD) ? Types.DATE : Types.TIME;
             operand =  (ValueNode)
                 getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
