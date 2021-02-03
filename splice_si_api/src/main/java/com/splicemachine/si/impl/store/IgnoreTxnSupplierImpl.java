@@ -56,12 +56,14 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
         boolean ignore = false;
 
         init();
-        
-        if (!cache.isEmpty()) {
-            for (Pair<Long, Long> range : cache) {
-                if (txnId > range.getFirst() && txnId < range.getSecond()) {
-                    ignore = true;
-                    break;
+
+        synchronized (this) {
+            if (!cache.isEmpty()) {
+                for (Pair<Long, Long> range : cache) {
+                    if (txnId > range.getFirst() && txnId < range.getSecond()) {
+                        ignore = true;
+                        break;
+                    }
                 }
             }
         }
