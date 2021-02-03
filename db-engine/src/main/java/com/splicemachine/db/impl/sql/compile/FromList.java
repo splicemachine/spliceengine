@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -82,6 +83,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     private List<ResultColumn> aliases = new ArrayList<>();
     /// @sa useAliases
     private boolean aliasesUsable = false;
+
+    public FromList() {}
+    public FromList(ContextManager contextManager) {
+        setContextManager(contextManager);
+    }
 
     /**
      * Initializer for a FromList

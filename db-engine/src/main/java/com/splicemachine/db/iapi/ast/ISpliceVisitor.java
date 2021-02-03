@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
+import org.json4s.Merge;
 
 /**
  * Visitor interface with methods for each of Derby's Visitable nodes (which make up the QueryTreeNode hierarchy).
@@ -225,5 +226,7 @@ public interface ISpliceVisitor {
     Visitable visit(StringAggregateNode node) throws StandardException;
     Visitable visit(ToInstantOperatorNode node) throws StandardException;
     Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException;
+    Visitable visit(MergeNode node) throws StandardException;
+    Visitable visit(MatchingClauseNode node) throws StandardException;
 
 }

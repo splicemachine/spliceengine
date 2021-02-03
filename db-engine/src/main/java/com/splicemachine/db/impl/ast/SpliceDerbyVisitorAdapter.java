@@ -70,7 +70,17 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
             Method m = methods.get(nClass, new Callable<Method>() {
                 @Override
                 public Method call() throws Exception {
-                    Method m = ISpliceVisitor.class.getMethod("visit", nClass);
+                    Method m = null;
+                    try {
+                        m = ISpliceVisitor.class.getMethod("visit", nClass);
+                    }
+                    catch(Exception e){
+                        throw e;
+                    }
+//                    } catch(NoSuchMethodException e) {
+//                    }
+//                    if( m == null )
+//                        m = ISpliceVisitor.class.getMethod("defaultVisit", Visitable.class);
                     m.setAccessible(true);
                     return m;
                 }

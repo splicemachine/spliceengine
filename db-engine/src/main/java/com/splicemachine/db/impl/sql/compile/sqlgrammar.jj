@@ -1872,6 +1872,7 @@ TOKEN [IGNORE_CASE] :
 |    <LOGGED: "logged">
 |    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
+|    <MATCHED: "matched">
 |    <MESSAGE_TEXT: "message_text">
 |    <MINUTES: "minutes">
 |    <MINVALUE: "minvalue">
@@ -2613,7 +2614,8 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
         statementNode = kafkaExportStatement() |
-        statementNode = signalStatement()
+        statementNode = signalStatement() |
+        statementNode = mergeStatement()
     )
     {
         return statementNode;
@@ -17404,6 +17406,7 @@ nonReservedKeyword()  :
     |    tok = <LOGGED>
     |    tok = <LONG>
     |    tok = <MAXVALUE>
+    |    tok = <MATCHED>
     |    tok = <MESSAGE_TEXT>
     |    tok = <MINUTES>
     |    tok = <MINVALUE>
@@ -17664,3 +17667,132 @@ void extraSelectClauses(MutableInt optimizeForRows, MutableInt forUpdate, Vector
         optimizeForRows.setValue(optimizeForRowsInternal);
     }
 }
+
+
+/// merge statement
+
+
+StatementNode
+mergeStatement() throws StandardException :
+{
+    FromTable   targetTable;
+    FromTable       sourceTable;
+    ValueNode       searchCondition;
+    QueryTreeNodeVector<MatchingClauseNode> matchingClauses;
+}
+{
+  <MERGE> <INTO> targetTable = tableFactor()
+    <USING> sourceTable = tableFactor()
+    searchCondition = joinCondition()
+    matchingClauses = matchingClauseList()
+  {
+    setUpAndLinkParameters();
+
+    return new MergeNode
+    (
+        targetTable,
+        sourceTable,
+        searchCondition,
+        matchingClauses,
+        getContextManager()
+    );
+  }
+}
+
+QueryTreeNodeVector<MatchingClauseNode>
+matchingClauseList() throws StandardException :
+{
+    QueryTreeNodeVector<MatchingClauseNode> matchingClauses =
+            new QueryTreeNodeVector<MatchingClauseNode>(MatchingClauseNode.class, getContextManager());
+}
+{
+  matchingClause( matchingClauses ) ( matchingClause( matchingClauses ) ) *
+  {
+        return matchingClauses;
+  }
+}
+
+void matchingClause(QueryTreeNodeVector<MatchingClauseNode> matchingClauses) throws StandardException :
+{
+    ValueNode   matchingRefinement = null;
+    ResultColumnList               updateColumns = null;
+    ResultColumnList               insertColumns = null;
+    ResultColumnList               insertValues = new ResultColumnList( getContextManager() );
+    MatchingClauseNode             matchingClause;
+}
+{
+    LOOKAHEAD ( { getToken(1).kind == WHEN && getToken(2).kind != NOT } )
+    <WHEN> <MATCHED> [ <AND> matchingRefinement = valueExpression() ]
+    <THEN>
+    (
+        <DELETE>
+        |
+        <UPDATE> <SET> updateColumns = setClauseList()
+    )
+  {
+        if ( updateColumns != null )
+        {
+            matchingClause = MatchingClauseNode.makeUpdateClause
+            ( matchingRefinement, updateColumns, getContextManager() );
+        }
+        else
+        {
+            matchingClause = MatchingClauseNode.makeDeleteClause
+            ( matchingRefinement, getContextManager() );
+        }
+
+        matchingClauses.addElement(matchingClause);
+  }
+|
+    LOOKAHEAD ( { getToken(1).kind == WHEN && getToken(2).kind == NOT } )
+    <WHEN> <NOT> <MATCHED> [ <AND> matchingRefinement = valueExpression() ]
+    <THEN>
+    <INSERT> [ <LEFT_PAREN> insertColumns = insertColumnList() <RIGHT_PAREN> ]
+    <VALUES> <LEFT_PAREN> rowValueConstructorList( insertValues ) <RIGHT_PAREN>
+  {
+        matchingClause = MatchingClauseNode.makeInsertClause
+        ( matchingRefinement, insertColumns, insertValues, getContextManager() );
+
+        matchingClauses.addElement(matchingClause);
+  }
+}
+
+
+
+/*
+StatementNode
+mergeStatement() throws StandardException :
+{
+        CharConstantNode errorCode;
+        ValueNode errorText = null;
+}
+{
+    <MERGE> <INTO> 
+      // [TABLENAME] [DESTINATION_ALIAS], e.g. emp_table_new dest
+      // tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) // {object_name | subquery} [ [AS] alias ]
+    <USING>
+      // [SELECT_EXPRESSION] [SOURCE_ALIAS], e.g. (select * from emp_table) src
+      // tableReference // table_reference [ [AS] alias ]
+    <ON>
+      // [CONDITION], e.g.  (src.empno = dest.empno)
+      // search_condition
+    <WHEN> <MATCHED> <THEN> <UPDATE> <SET>
+    /////// see tableElement()
+      // [COLUMN] = [EXPRESSION] | DEFAULT
+      // e.g. dest.ename    = src.ename,  dest.sal      = src.sal, [...]
+      // column = { expression | DEFAULT }[, ...]
+    <WHEN> <NOT> <MATCHED> <THEN> <INSERT>
+      //[( column[, ...] )] VALUES ( expression[, ...] );
+
+
+    errorCode = stringLiteral()
+    errorText = optionalErrorText()
+    {
+        return (StatementNode) nodeFactory.getNode(
+                                        C_NodeTypes.SIGNAL_NODE,
+                                        errorCode.getString(),
+                                        errorText,
+                                        getContextManager());
+    }
+}
+*/

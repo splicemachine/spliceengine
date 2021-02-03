@@ -211,6 +211,12 @@ public class FromBaseTable extends FromTable {
     // expressions in whole query referencing columns in this base table
     private Set<ValueNode> referencingExpressions = null;
 
+    public FromBaseTable() {}
+    public FromBaseTable(TableName tableName, String correlationName, Object rclOrUD, Object propsOrRcl, ContextManager contextManager) {
+        setContextManager(contextManager);
+        init(tableName, correlationName, rclOrUD, propsOrRcl);
+    }
+
     @Override
     public boolean isParallelizable(){
         return false;

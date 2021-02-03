@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
@@ -135,6 +136,34 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private String tempTriggerSQLText;
     private String tempTriggerName;
     private Vector<ParameterNode> fromTableParameterList;
+
+    public FromVTI() {}
+    public FromVTI(MethodCallNode invocation,
+                   String correlationName,
+                   ResultColumnList derivedRCL,
+                   Properties tableProperties,
+                   TypeDescriptor typeDescriptor,
+                   Vector fromTableParameterList,
+                   Object forFromTable,
+                   ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        init( invocation,
+                correlationName,
+                derivedRCL,
+                tableProperties,
+                typeDescriptor,
+                fromTableParameterList,
+                forFromTable);
+    }
+    public FromVTI(MethodCallNode invocation,
+            String correlationName,
+            ResultColumnList derivedRCL,
+            Properties tableProperties,
+            TableName exposedTableName,
+            TypeDescriptor typeDescriptor, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        init( invocation, correlationName, derivedRCL, tableProperties, exposedTableName, typeDescriptor, contextManager);
+    }
 
     /**
      * @param invocation        The constructor or static method for the VTI

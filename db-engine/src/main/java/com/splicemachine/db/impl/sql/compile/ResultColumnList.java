@@ -116,6 +116,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     public ResultColumnList(){
     }
+    public ResultColumnList(ContextManager cm) {
+        super(cm);
+    }
 
     /**
      * Add a ResultColumn (at this point, ResultColumn or
