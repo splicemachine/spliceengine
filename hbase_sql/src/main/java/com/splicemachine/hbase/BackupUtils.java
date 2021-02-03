@@ -391,45 +391,4 @@ public class BackupUtils {
     public static String getBackupLockPath() {
         return HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.DEFAULT_BACKUP_LOCK_PATH;
     }
-
-    public static void setIgnoreTable(List<Pair<Long, Long>> ignoreTxns) throws IOException {
-        if (ignoreTxns.isEmpty())
-            return;
-
-        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
-        PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
-        if (!partitionAdmin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME)) {
-            HBaseConnectionFactory hcf = HBaseConnectionFactory.getInstance(EngineDriver.driver().getConfiguration());
-            hcf.createTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
-        }
-
-        Partition table = partitionFactory.getTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
-        TxnOperationFactory opFactory = SIDriver.driver().getOperationFactory();
-        EntryEncoder entryEncoder = getEntryEncoder();
-        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(1);
-        for(Pair<Long, Long> ignoreTxn : ignoreTxns) {
-            keyEncoder.reset();
-            MultiFieldEncoder fieldEncoder = entryEncoder.getEntryEncoder();
-            fieldEncoder.reset();
-            long start = ignoreTxn.getFirst();
-            byte[] key = keyEncoder.encodeNext(start).build();
-            long end = ignoreTxn.getSecond();
-            fieldEncoder.encodeNext(start).encodeNext(end);
-            byte[] value = entryEncoder.encode();
-            DataPut put=opFactory.newDataPut(null,key);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,value);
-            table.mutate(put);
-        }
-    }
-
-    private static EntryEncoder getEntryEncoder() {
-        com.carrotsearch.hppc.BitSet fields  = new com.carrotsearch.hppc.BitSet(2);
-        fields.set(0,2);
-        com.carrotsearch.hppc.BitSet scalarFields = new com.carrotsearch.hppc.BitSet(2);
-        scalarFields.set(1, 2);
-        com.carrotsearch.hppc.BitSet floatFields = new com.carrotsearch.hppc.BitSet(0);
-        com.carrotsearch.hppc.BitSet doubleFields = new com.carrotsearch.hppc.BitSet(0);
-
-        return EntryEncoder.create(SpliceKryoRegistry.getInstance(),2,fields,scalarFields,floatFields,doubleFields);
-    }
 }
