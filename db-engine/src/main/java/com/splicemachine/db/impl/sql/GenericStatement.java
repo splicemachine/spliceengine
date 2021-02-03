@@ -252,24 +252,45 @@ public class GenericStatement implements Statement{
         return 0;
     }
 
-    private boolean isExplainStatement(){
+    private static boolean isExplainStatement(String statementText){
 
-        String s=statementText.trim().toUpperCase();
-        if(!s.contains("EXPLAIN")){
+        if(statementText == null) {
+            return false;
+        }
+
+        String s=statementText.trim();
+        if(!s.toUpperCase().contains("EXPLAIN")){
             // If the statement does not contain keyword explain, this is not an explain statement
             return false;
         }
 
         // Strip off all comments before keyword explain
-        while(!s.isEmpty() && s.startsWith("--")){
-            int index=s.indexOf('\n');
-            if(index==-1){
-                index=s.length();
-            }
-            s=s.substring(index+1).trim();
-        }
+        s = stripComments(s);
 
-        return s.startsWith("EXPLAIN");
+        return s.toUpperCase().startsWith("EXPLAIN");
+    }
+
+    private static String getExplainedStatement(String statementText) {
+
+        assert isExplainStatement(statementText);
+
+        String result = stripComments(statementText);
+        return result.substring("EXPLAIN".length()).trim();
+    }
+
+    private static String stripComments(String statementText) {
+        if (statementText == null) {
+            return null;
+        }
+        String result = statementText;
+        while (!result.isEmpty() && result.startsWith("--")) {
+            int index = result.indexOf('\n');
+            if (index == -1) {
+                index = result.length();
+            }
+            result = result.substring(index + 1).trim();
+        }
+        return result;
     }
 
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
@@ -804,7 +825,7 @@ public class GenericStatement implements Statement{
      * 3. optimize: Perform cost-based optimization
      * 4. generate: Generate the actual byte code to be executed
      */
-    private void fourPhasePrepare(LanguageConnectionContext lcc,
+    private StatementNode fourPhasePrepare(LanguageConnectionContext lcc,
                                   Object[] paramDefaults,
                                   long[] timestamps,
                                   boolean foundInCache,
@@ -826,7 +847,7 @@ public class GenericStatement implements Statement{
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
 
-                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
+                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc);
             }
             else {
                 lcc.beginNestedTransaction(true);
@@ -846,6 +867,8 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
+
+            return qt;
         } catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
@@ -854,6 +877,22 @@ public class GenericStatement implements Statement{
             if (boundAndOptimizedStatement == null)
                 lcc.popCompilerContext(cc);
         }
+    }
+
+    private void handleExplainNode(LanguageConnectionContext lcc,
+                                   CompilerContext cc,
+                                   StatementNode statementNode) throws StandardException {
+        if (!(statementNode instanceof ExplainNode)) {
+            return;
+        }
+
+        ExplainNode explainNode = (ExplainNode)statementNode;
+
+        String explained = getExplainedStatement(statementText);
+
+        GenericStatement queryNode = new GenericStatement(compilationSchema,explained, isForReadOnly /*this could be incorrect with updatableCursors*/, lcc);
+        lcc.lookupStatement(queryNode);
+        explainNode.setOptimizedPlanRoot(fourPhasePrepare(lcc, null, new long[4], false, cc, null));
     }
 
     private StatementNode parse(LanguageConnectionContext lcc,
@@ -882,7 +921,7 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary) throws StandardException{
+                                 DataDictionary dataDictionary, CompilerContext cc) throws StandardException{
 
         try{
             // start a nested transaction -- all locks acquired by bind
@@ -902,12 +941,9 @@ public class GenericStatement implements Statement{
 
             maintainCacheEntry(lcc, qt, foundInCache);
 
+            handleExplainNode(lcc, cc, qt);
+
             qt.optimizeStatement();
-
-            if(qt instanceof ExplainNode) {
-                ((GenericLanguageConnectionContext)lcc).getDataDictionary().getDataDictionaryCache().statementCacheAdd(this, );
-            }
-
 
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
@@ -968,7 +1004,11 @@ public class GenericStatement implements Statement{
         }
     }
 
-    public Timestamp generate(LanguageConnectionContext lcc,
+    /**
+     * Performs code generation for `qt`.
+     * @return the time code generation took in milliseconds.
+     */
+    private Timestamp generate(LanguageConnectionContext lcc,
                                long[] timestamps,
                                CompilerContext cc,
                                StatementNode qt,
@@ -1019,7 +1059,7 @@ public class GenericStatement implements Statement{
             preparedStmt.completeCompile(qt);
             preparedStmt.setCompileTimeWarnings(cc.getWarnings());
 
-        }catch(StandardException e){    // hold it, throw it
+        }catch(StandardException e){
             lcc.commitNestedTransaction();
             throw e;
         }
