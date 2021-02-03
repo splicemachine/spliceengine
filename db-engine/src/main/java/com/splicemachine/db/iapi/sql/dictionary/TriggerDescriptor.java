@@ -179,6 +179,13 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.numBaseTableColumns = td.getNumberOfColumns();
         this.version = 1;
     }
+
+    public static boolean needsSecondDDCacheUpdate(LanguageConnectionContext lcc) {
+        if (lcc == null)
+            return false;
+        return lcc !=
+           ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+    }
     
     /**
      * Get the trigger UUID
@@ -342,6 +349,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                 if (!sps.isValid()) {
                     sps.getPreparedStatement(true);  // msirek-temp
                     dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+                    if (needsSecondDDCacheUpdate(lcc))
+                        lcc.getDataDictionary().getDataDictionaryCache().
+                            storedPreparedStatementCacheAdd(sps);
                 }
             }
             if (localCache != null && sps != null)

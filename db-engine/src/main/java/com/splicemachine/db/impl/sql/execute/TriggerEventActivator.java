@@ -250,10 +250,20 @@ public class TriggerEventActivator {
             catch (SQLException e) {
                 throw StandardException.plainWrapException(e);
             }
-            if (lcc != null)
-                td.getSPS(lcc, -1, tec.getSpsCache());
+            if (lcc != null) {
+                preCompileTrigger(td, lcc);
+            }
 
         }
+    }
+
+    private void preCompileTrigger(TriggerDescriptor td,
+                                   LanguageConnectionContext lcc) throws StandardException {
+        //pushTriggerExecutionContext();  // msirek-temp
+        td.getWhenClauseSPS(lcc, tec.getSpsCache());
+        int numActions = td.getActionIdList().size();
+        for (int i=0; i < numActions; i++)
+            td.getActionSPS(lcc, i, tec.getSpsCache());
     }
 
     /**

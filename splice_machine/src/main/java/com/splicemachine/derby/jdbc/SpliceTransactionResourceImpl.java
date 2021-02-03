@@ -15,6 +15,7 @@
 package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -25,7 +26,10 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -37,6 +41,7 @@ import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -86,15 +91,24 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
-        this.marshallTransaction(txn, null);
-    }
-
-    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        this.marshallTransaction(txn, propertyCache, null, null, null);
+        this.marshallTransaction(txn, null, null, null, null, null);
     }
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
-                                       TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    ManagedCache<String, List<String>> defaultRoleCache,
+                                    ManagedCache<String, SchemaDescriptor> schemaCache,
+                                    ManagedCache<Long, Conglomerate> conglomerateCache) throws StandardException, SQLException {
+        this.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoleCache, schemaCache, conglomerateCache, null, null, null);
+    }
+
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    ManagedCache<String, List<String>> defaultRoleCache,
+                                    ManagedCache<String, SchemaDescriptor> schemaCache,
+                                    ManagedCache<Long,Conglomerate> conglomerateCache,
+                                    TransactionController reuseTC,
+                                    String localUserName, Integer sessionNumber) throws StandardException, SQLException{
         if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
@@ -112,6 +126,22 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             grouplist.add(userName);
             if (propertyCache != null) {
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
+            }
+            if (storedPreparedStatementCache != null) {
+                database.getDataDictionary().getDataDictionaryCache().
+                    setStoredPreparedStatementCache(storedPreparedStatementCache);
+            }
+            if (defaultRoleCache != null) {
+                database.getDataDictionary().getDataDictionaryCache().
+                    setDefaultRoleCache(defaultRoleCache);
+            }
+            if (schemaCache != null) {
+                database.getDataDictionary().getDataDictionaryCache().
+                    setSchemaCache(schemaCache);
+            }
+            if (conglomerateCache != null) {
+                database.getDataDictionary().getDataDictionaryCache().
+                    setConglomerateCache(conglomerateCache);
             }
 
             lcc=database.generateLanguageConnectionContext(

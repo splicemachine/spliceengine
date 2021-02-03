@@ -17,6 +17,9 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.utils.Pair;
 import splice.com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -156,14 +159,26 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      **/
     Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
         Conglomerate conglomerate = null;
-        if (database!=null && database.getDataDictionary() !=null) {
-            conglomerate = database.getDataDictionary().getDataDictionaryCache().conglomerateCacheFind(xact_mgr,conglomid);
+        DataDictionary dd = database!=null ? database.getDataDictionary() : null;
+        if (dd !=null) {
+            conglomerate = dd.getDataDictionaryCache().conglomerateCacheFind(xact_mgr,conglomid);
         }
         if (conglomerate != null)
             return conglomerate;
+        if (conglomid>= DataDictionary.FIRST_USER_TABLE_NUMBER && dd != null && xact_mgr != null) {
+            if (database.getDataDictionary().useTxnAwareCache()) {
+                long txnId = xact_mgr.getActiveStateTxId();
+                if (txnId != -1)
+                    conglomerate = dd.getDataDictionaryCache().
+                        txnAwareConglomerateCacheFind(new Pair(txnId, conglomid));
+                if (conglomerate != null)
+                    return conglomerate;
+            }
+        }
+
         conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, conglomid);
-        if (conglomerate!=null && database!=null && database.getDataDictionary() !=null)
-            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate,xact_mgr);
+        if (conglomerate!=null && dd !=null)
+            dd.getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate,xact_mgr);
         return conglomerate;
     }
 

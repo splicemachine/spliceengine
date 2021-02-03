@@ -355,8 +355,20 @@ public class DataDictionaryCache {
         return storedPreparedStatementCache.getIfPresent(uuid);
     }
 
+    public ManagedCache<UUID, SPSDescriptor> getStoredPreparedStatementCache() { return storedPreparedStatementCache; }
+
+    public void setStoredPreparedStatementCache(ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache) {
+        this.storedPreparedStatementCache = storedPreparedStatementCache;
+    }
+
     public void clearStoredPreparedStatementCache() {
         storedPreparedStatementCache.invalidateAll();
+    }
+
+    public ManagedCache<Long,Conglomerate> getConglomerateCache() { return conglomerateCache; }
+
+    public void setConglomerateCache(ManagedCache<Long,Conglomerate> conglomerateCache) {
+        this.conglomerateCache = conglomerateCache;
     }
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
@@ -417,6 +429,11 @@ public class DataDictionaryCache {
         conglomerateCache.invalidate(conglomId);
     }
 
+    public ManagedCache<String,SchemaDescriptor> getSchemaCache() { return schemaCache; }
+
+    public void setSchemaCache(ManagedCache<String,SchemaDescriptor> schemaCache) {
+        this.schemaCache = schemaCache;
+    }
 
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
         if (!dd.canReadCache(null))
@@ -575,6 +592,12 @@ public class DataDictionaryCache {
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheRemove " + roleName);
         roleCache.invalidate(roleName);
+    }
+
+    public ManagedCache<String,List<String>> getDefaultRoleCache() { return defaultRoleCache; }
+
+    public void setDefaultRoleCache(ManagedCache<String,List<String>> defaultRoleCache) {
+        this.defaultRoleCache = defaultRoleCache;
     }
 
     public void defaultRoleCacheAdd(String userName, List<String> roleList) throws StandardException {
