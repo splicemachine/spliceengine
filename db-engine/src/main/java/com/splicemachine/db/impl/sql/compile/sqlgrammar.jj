@@ -5137,6 +5137,9 @@ queryExpression(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) t
 {
     term = nonJoinQueryTerm(leftSide, operatorType, topNOut) [ term = unionOrExcept(term) ]
     {
+        if (topNOut != null && term instanceof UnionNode) {
+            ((UnionNode) term).markTopUnionNode();
+        }
         return term;
     }
 }
@@ -10853,7 +10856,7 @@ tableValueConstructorList() throws StandardException :
     {
         if (resultSetNode instanceof UnionNode)
         {
-            ((UnionNode) resultSetNode).markTopTableConstructor();
+            ((UnionNode) resultSetNode).markTopUnionNode();
         }
 
         return resultSetNode;
