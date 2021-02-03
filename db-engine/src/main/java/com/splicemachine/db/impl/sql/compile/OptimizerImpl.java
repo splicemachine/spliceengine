@@ -1638,9 +1638,9 @@ public class OptimizerImpl implements Optimizer{
 
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
-        destCost.setLocalCost(destCost.localCost()+addend.localCost());
+        destCost.setLocalCost(addend.getLocalCostPerParallelTask() * addend.getParallelism());
         destCost.setRemoteCostPerParallelTask(addend.getRemoteCostPerParallelTask());
-        destCost.setLocalCostPerParallelTask(destCost.getLocalCostPerParallelTask()+addend.getLocalCostPerParallelTask());
+        destCost.setLocalCostPerParallelTask(addend.getLocalCostPerParallelTask());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
