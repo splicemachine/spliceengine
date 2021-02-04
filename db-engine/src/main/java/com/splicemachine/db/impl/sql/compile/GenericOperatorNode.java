@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A BinaryOperatorNode represents a built-in binary operator as defined by
@@ -116,7 +115,9 @@ public class GenericOperatorNode extends OperatorNode
                              List<AggregateNode>    aggregateVector) throws StandardException
     {
         for (int i = 0; i < operands.size(); ++i) {
-            operands.set(i, operands.get(i).bindExpression(fromList, subqueryList, aggregateVector));
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).bindExpression(fromList, subqueryList, aggregateVector));
+            }
         }
     }
 
@@ -170,7 +171,7 @@ public class GenericOperatorNode extends OperatorNode
 
     @Override
     public boolean checkCRLevel(int level){
-        return operands.stream().anyMatch(op -> op.checkCRLevel(level));
+        return operands.stream().anyMatch(op -> op != null && op.checkCRLevel(level));
     }
 
 
@@ -223,6 +224,7 @@ public class GenericOperatorNode extends OperatorNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
+    @Override
     protected int getOrderableVariantType() throws StandardException {
         int min = Qualifier.CONSTANT;
         for (ValueNode op : operands) {
@@ -295,7 +297,7 @@ public class GenericOperatorNode extends OperatorNode
         int hashCode = getBaseHashCode();
         hashCode = 31 * hashCode + methodName.hashCode();
         for (ValueNode operand: operands) {
-            hashCode = 31 * hashCode + operand.hashCode();
+            hashCode = 31 * hashCode + (operand == null ? 0 : operand.hashCode());
         }
         return hashCode;
     }
@@ -319,7 +321,9 @@ public class GenericOperatorNode extends OperatorNode
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = 0;
         for (ValueNode op : operands) {
-            cardinality = Math.max(cardinality, op.nonZeroCardinality(numberOfRows));
+            if (op != null) {
+                cardinality = Math.max(cardinality, op.nonZeroCardinality(numberOfRows));
+            }
         }
         return cardinality;
     }
@@ -335,7 +339,7 @@ public class GenericOperatorNode extends OperatorNode
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
-        return operands.stream().allMatch(op -> op != null && op.isConstantOrParameterTreeNode());
+        return operands.stream().allMatch(op -> op == null || op.isConstantOrParameterTreeNode());
     }
 
     @Override

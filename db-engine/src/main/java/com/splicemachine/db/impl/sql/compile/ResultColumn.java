@@ -1958,7 +1958,7 @@ public class ResultColumn extends ValueNode
                 other = vcn.getSourceColumn();
                 continue;
             } else if (other.expression instanceof TernaryOperatorNode) {
-                return ((TernaryOperatorNode) other.expression).receiver.getTableNumber();
+                return ((TernaryOperatorNode) other.expression).getReceiver().getTableNumber();
             } else if (other.expression == null) {
                 return -1;
             }

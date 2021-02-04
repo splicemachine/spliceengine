@@ -253,10 +253,6 @@ public class BinaryOperatorNode extends GenericOperatorNode
         this.operatorType = -1;
     }
 
-    public String getOperatorString(){
-        return operator;
-    }
-
     /**
      * Set the methodName.
      *

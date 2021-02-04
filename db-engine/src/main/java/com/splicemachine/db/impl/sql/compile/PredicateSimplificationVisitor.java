@@ -177,7 +177,7 @@ class PredicateSimplificationVisitor implements Visitor {
             }
         } else if (node instanceof TernaryOperatorNode) {
             TernaryOperatorNode ton = (TernaryOperatorNode)node;
-            if (ton.getOperator().equals("like")) {
+            if (ton.getOperatorString().equals("like")) {
                 ValueNode receiver = ton.getReceiver();
                 if (isConstantNull(receiver)) {
                     bindExpressionsWithParametersBeforeEliminating(ton.getLeftOperand());
