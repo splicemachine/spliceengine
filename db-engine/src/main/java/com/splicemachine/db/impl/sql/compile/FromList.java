@@ -84,6 +84,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     /// @sa useAliases
     private boolean aliasesUsable = false;
 
+    public FromList() {}
     public FromList(ContextManager contextManager) {
         super(contextManager);
         setNodeType(C_NodeTypes.FROM_LIST);

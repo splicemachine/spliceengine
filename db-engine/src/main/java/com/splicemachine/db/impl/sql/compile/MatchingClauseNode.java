@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -51,6 +52,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -191,120 +193,120 @@ public class MatchingClauseNode extends QueryTreeNode {
         if (isInsertClause()) {
             throw new RuntimeException("INSERT operation not yet supported");
             //bindInsert( dd, mergeNode, fullFromList, targetTable );
-            // }
         }
+    }
 
-        /** Bind the optional refinement condition in the MATCHED clause */
-        void bindRefinement (MergeNode mergeNode, FromList fullFromList ) throws StandardException
-        {
-            if (_matchingRefinement != null) {
-                FromList fromList = fullFromList;
+    /** Bind the optional refinement condition in the MATCHED clause */
+    void bindRefinement (MergeNode mergeNode, FromList fullFromList ) throws StandardException
+    {
+        if (_matchingRefinement != null) {
+            FromList fromList = fullFromList;
 
-                //
-                // For an INSERT action, the WHEN NOT MATCHED refinement can only
-                // mention columns in the source table.
-                //
-                if (isInsertClause()) {
-                    fromList = new FromList( /*getOptimizerFactory().doJoinOrderOptimization(),*/ getContextManager());
-                    fromList.addElement(fullFromList.elementAt(MergeNode.SOURCE_TABLE_INDEX));
-                }
-
-                mergeNode.bindExpression(_matchingRefinement, fromList);
-            }
-        }
-
-        /** Collect the columns mentioned by expressions in this MATCHED clause */
-        void getColumnsInExpressions (MergeNode mergeNode, HashMap < String, ColumnReference > drivingColumnMap )
-            throws StandardException
-        {
-            if (_matchingRefinement != null) {
-                mergeNode.getColumnsInExpression(drivingColumnMap, _matchingRefinement, ColumnReference.MERGE_UNKNOWN);
+            //
+            // For an INSERT action, the WHEN NOT MATCHED refinement can only
+            // mention columns in the source table.
+            //
+            if (isInsertClause()) {
+                fromList = new FromList( /*getOptimizerFactory().doJoinOrderOptimization(),*/ getContextManager());
+                fromList.addElement(fullFromList.elementAt(MergeNode.SOURCE_TABLE_INDEX));
             }
 
-            if (isUpdateClause()) {
-                TableName targetTableName = mergeNode.getTargetTable().getTableName();
+            mergeNode.bindExpression(_matchingRefinement, fromList);
+        }
+    }
 
-                //
-                // Get all columns mentioned on both sides of SET operators in WHEN MATCHED ... THEN UPDATE clauses.
-                // We need the left side because UPDATE needs before and after images of columns.
-                // We need the right side because there may be columns in the expressions there.
-                //
-                for (ResultColumn rc : _updateColumns) {
-                    mergeNode.getColumnsInExpression(drivingColumnMap, rc.getExpression(), ColumnReference.MERGE_UNKNOWN);
-
-                    ColumnReference leftCR = new ColumnReference(rc.getName(), targetTableName, getContextManager());
-                    mergeNode.addColumn(drivingColumnMap, leftCR, ColumnReference.MERGE_TARGET);
-                }
-            } else if (isInsertClause()) {
-                // get all columns mentioned in the VALUES subclauses of WHEN NOT MATCHED ... THEN INSERT clauses
-                for (ResultColumn rc : _insertValues) {
-                    mergeNode.getColumnsInExpression(drivingColumnMap, rc.getExpression(), ColumnReference.MERGE_UNKNOWN);
-                }
-            } else if (isDeleteClause()) {
-                // add all of the THEN columns
-                mergeNode.getColumnsFromList(drivingColumnMap, _thenColumns, ColumnReference.MERGE_TARGET);
-            }
+    /** Collect the columns mentioned by expressions in this MATCHED clause */
+    void getColumnsInExpressions (MergeNode mergeNode, HashMap < String, ColumnReference > drivingColumnMap )
+        throws StandardException
+    {
+        if (_matchingRefinement != null) {
+            mergeNode.getColumnsInExpression(drivingColumnMap, _matchingRefinement, ColumnReference.MERGE_UNKNOWN);
         }
 
-        ////////////////
+        if (isUpdateClause()) {
+            TableName targetTableName = mergeNode.getTargetTable().getTableName();
+
+            //
+            // Get all columns mentioned on both sides of SET operators in WHEN MATCHED ... THEN UPDATE clauses.
+            // We need the left side because UPDATE needs before and after images of columns.
+            // We need the right side because there may be columns in the expressions there.
+            //
+            for (ResultColumn rc : _updateColumns) {
+                mergeNode.getColumnsInExpression(drivingColumnMap, rc.getExpression(), ColumnReference.MERGE_UNKNOWN);
+
+                ColumnReference leftCR = new ColumnReference(rc.getName(), targetTableName, getContextManager());
+                mergeNode.addColumn(drivingColumnMap, leftCR, ColumnReference.MERGE_TARGET);
+            }
+        } else if (isInsertClause()) {
+            // get all columns mentioned in the VALUES subclauses of WHEN NOT MATCHED ... THEN INSERT clauses
+            for (ResultColumn rc : _insertValues) {
+                mergeNode.getColumnsInExpression(drivingColumnMap, rc.getExpression(), ColumnReference.MERGE_UNKNOWN);
+            }
+        } else if (isDeleteClause()) {
+            // add all of the THEN columns
+            mergeNode.getColumnsFromList(drivingColumnMap, _thenColumns, ColumnReference.MERGE_TARGET);
+        }
+    }
+
+    ////////////////
+    //
+    // BIND UPDATE
+    //
+    ////////////////
+
+    /** Bind a WHEN MATCHED ... THEN UPDATE clause */
+    private void bindUpdate(DataDictionary dd, MergeNode mergeNode,FromList fullFromList, FromBaseTable targetTable)
+        throws StandardException
+    {
+        ResultColumnList setClauses = realiasSetClauses(targetTable);
+        bindSetClauses(mergeNode, fullFromList, targetTable, setClauses);
+
+        TableName tableName = targetTable.getTableNameField();
+        FromList selectFromList = fullFromList;
+
+        SelectNode selectNode = new SelectNode(setClauses, selectFromList,
+                null,      // where clause
+                null,      // group by list
+                null,      // having clause
+                null,      // window list
+                null,      // optimizer plan override
+                getContextManager());
+        // todo
+        _dml = new UpdateNode(tableName, selectNode, this, getContextManager());
+
+        _dml.bindStatement();
+
         //
-        // BIND UPDATE
+        // Don't add USAGE privilege on user-defined types.
         //
-        ////////////////
+        // todo
+        // boolean wasSkippingTypePrivileges = getCompilerContext().skipTypePrivileges(true);
 
-        /** Bind a WHEN MATCHED ... THEN UPDATE clause */
-        private void bindUpdate (DataDictionary dd, MergeNode mergeNode, FromList fullFromList, FromBaseTable
-        targetTable)
-            throws StandardException
-        {
-            ResultColumnList setClauses = realiasSetClauses(targetTable);
-            bindSetClauses(mergeNode, fullFromList, targetTable, setClauses);
+        //
+        // Split the update row into its before and after images.
+        //
+        ResultColumnList beforeColumns = new ResultColumnList(getContextManager());
+        ResultColumnList afterColumns = new ResultColumnList(getContextManager());
+        ResultColumnList fullUpdateRow = getBoundSelectUnderUpdate().getResultColumns();
 
-            TableName tableName = targetTable.getTableNameField();
-            FromList selectFromList = fullFromList;
+        // the full row is the before image, the after image, and a row location
+        int rowSize = fullUpdateRow.size() / 2;
 
-            SelectNode selectNode = new SelectNode(setClauses, selectFromList,
-                    null,      // where clause
-                    null,      // group by list
-                    null,      // having clause
-                    null,      // window list
-                    null,      // optimizer plan override
-                    getContextManager());
-            // todo
-            _dml = new UpdateNode(tableName, selectNode, this, getContextManager());
+        // split the row into before and after images
+        for (int i = 0; i < rowSize; i++) {
+            ResultColumn origBeforeRC = fullUpdateRow.elementAt(i);
+            ResultColumn origAfterRC = fullUpdateRow.elementAt(i + rowSize);
+            ResultColumn beforeRC = origBeforeRC.cloneMe();
+            ResultColumn afterRC = origAfterRC.cloneMe();
 
-            _dml.bindStatement();
-
-            //
-            // Don't add USAGE privilege on user-defined types.
-            //
-            boolean wasSkippingTypePrivileges = getCompilerContext().skipTypePrivileges(true);
-
-            //
-            // Split the update row into its before and after images.
-            //
-            ResultColumnList beforeColumns = new ResultColumnList(getContextManager());
-            ResultColumnList afterColumns = new ResultColumnList(getContextManager());
-            ResultColumnList fullUpdateRow = getBoundSelectUnderUpdate().getResultColumns();
-
-            // the full row is the before image, the after image, and a row location
-            int rowSize = fullUpdateRow.size() / 2;
-
-            // split the row into before and after images
-            for (int i = 0; i < rowSize; i++) {
-                ResultColumn origBeforeRC = fullUpdateRow.elementAt(i);
-                ResultColumn origAfterRC = fullUpdateRow.elementAt(i + rowSize);
-                ResultColumn beforeRC = origBeforeRC.cloneMe();
-                ResultColumn afterRC = origAfterRC.cloneMe();
-
-                beforeColumns.addResultColumn(beforeRC);
-                afterColumns.addResultColumn(afterRC);
-            }
-
-            buildThenColumnsForUpdate(fullFromList, targetTable, fullUpdateRow, beforeColumns, afterColumns);
-
-            getCompilerContext().skipTypePrivileges(wasSkippingTypePrivileges);
+            beforeColumns.addResultColumn(beforeRC);
+            afterColumns.addResultColumn(afterRC);
         }
+
+        buildThenColumnsForUpdate(fullFromList, targetTable, fullUpdateRow, beforeColumns, afterColumns);
+
+        // todo
+        //getCompilerContext().skipTypePrivileges(wasSkippingTypePrivileges);
     }
 
     /**
@@ -604,6 +606,93 @@ public class MatchingClauseNode extends QueryTreeNode {
         return result;
     }
 
+    /////////////////
+    //
+    // BIND MINIONS
+    //
+    /////////////////
+
+    /**
+     * <p>
+     * Make a ResultColumn for an identity column which is being set to the DEFAULT
+     * value. This special ResultColumn will make it through code generation so that it
+     * will be calculated when the INSERT/UPDATE action is run.
+     * </p>
+     */
+    private ResultColumn makeAutoGenRC( FromTable targetTable, ResultColumn   origRC,
+                                        int virtualColumnID)
+            throws StandardException
+    {
+        String              columnName = origRC.getName();
+        ColumnReference autoGenCR = new ColumnReference( columnName, targetTable.getTableName(), getContextManager() );
+        ResultColumn    autoGenRC = new ResultColumn( autoGenCR, null, getContextManager() );
+        VirtualColumnNode autoGenVCN = new VirtualColumnNode( targetTable, autoGenRC, virtualColumnID, getContextManager() );
+        ResultColumn    newRC = new ResultColumn( autoGenCR, autoGenVCN, getContextManager() );
+
+        // set the type so that buildThenColumnSignature() will function correctly
+        newRC.setType( origRC.getTypeServices() );
+
+        return newRC;
+    }
+
+    /** Boilerplate for binding a list of ResultColumns against a FromList */
+    private void bindExpressions( ResultColumnList rcl, FromList fromList )
+            throws StandardException
+    {
+        CompilerContext cc = getCompilerContext();
+        final int previousReliability = cc.getReliability();
+
+        // todo
+        //boolean wasSkippingTypePrivileges = cc.skipTypePrivileges( true );
+        cc.setReliability( previousReliability | CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
+
+        try {
+            rcl.bindExpressions(fromList, new SubqueryList( getContextManager() ), new ArrayList<AggregateNode>() );
+        }
+        finally
+        {
+            // Restore previous compiler state
+            cc.setReliability( previousReliability );
+            // todo
+            //cc.skipTypePrivileges( wasSkippingTypePrivileges );
+        }
+    }
+
+    /**
+     * <p>
+     * Forbid subqueries in WHEN [ NOT ] MATCHED clauses.
+     * </p>
+     */
+    private void forbidSubqueries()
+            throws StandardException {
+        forbidSubqueries(_matchingRefinement);
+        forbidSubqueries(_updateColumns);
+        forbidSubqueries(_insertColumns);
+        forbidSubqueries(_insertValues);
+    }
+
+    private void forbidSubqueries(ResultColumnList rcl)
+            throws StandardException {
+        if (rcl != null) {
+            for (int i = 0; i < rcl.size(); i++) {
+                forbidSubqueries(rcl.elementAt(i));
+            }
+        }
+    }
+
+    private void forbidSubqueries(ValueNode expr)
+            throws StandardException {
+        if (expr != null) {
+            CollectNodesVisitorT<SubqueryNode> getSubqueries =
+                    new CollectNodesVisitorT<>(SubqueryNode.class);
+            expr.accept(getSubqueries);
+            if (getSubqueries.getList().size() > 0) {
+                throw new RuntimeException("LANG_NO_SUBQUERIES_IN_MATCHED_CLAUSE");
+                //throw StandardException.newException(SQLState.LANG_NO_SUBQUERIES_IN_MATCHED_CLAUSE);
+            }
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // optimize() BEHAVIOR
@@ -642,15 +731,17 @@ public class MatchingClauseNode extends QueryTreeNode {
             refinementName = userExprFun.getName();
         }
 
-        return getGenericConstantActionFactory().getMatchingClauseConstantAction(
-                getClauseType(),
-                refinementName,
-                buildThenColumnSignature(),
-                _rowMakingMethodName,
-                _resultSetFieldName,
-                _actionMethodName,
-                _dml.makeConstantAction()
-        );
+        // todo
+        throw new RuntimeException("Not implemented: getMatchingClauseConstantAction");
+//        return getGenericConstantActionFactory().getMatchingClauseConstantAction(
+//                getClauseType(),
+//                refinementName,
+//                buildThenColumnSignature(),
+//                _rowMakingMethodName,
+//                _resultSetFieldName,
+//                _actionMethodName,
+//                _dml.makeConstantAction()
+//        );
     }
     private int getClauseType()
     {
