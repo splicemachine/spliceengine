@@ -56,7 +56,7 @@ import java.util.stream.Stream;
  */
 public class ShowCreateTableIT extends SpliceUnitTest
 {
-    private static final String SYSTEM_SQL_NAME_PATTERN = "\\bSQL[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b";
+    public static final String SYSTEM_SQL_NAME_PATTERN = "\\bSQL[0-9A-F]{32}\\b";
     private static final String SCHEMA = ShowCreateTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 

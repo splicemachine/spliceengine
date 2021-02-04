@@ -8156,7 +8156,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public String getSystemSQLName(){
         StringBuilder generatedSystemSQLName = new StringBuilder("SQL");
-        generatedSystemSQLName.append(uuidFactory.createUUID().toString());
+        generatedSystemSQLName.append(uuidFactory.createUUID().toString().toUpperCase().replaceAll("-",""));
         return generatedSystemSQLName.toString();
     }
 
