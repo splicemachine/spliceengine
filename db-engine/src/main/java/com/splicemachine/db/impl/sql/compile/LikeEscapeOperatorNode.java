@@ -40,8 +40,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.util.ReuseFactory;

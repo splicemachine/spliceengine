@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 import java.sql.Types;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -63,72 +64,68 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     public void init( Object date,
                       Object time)
     {
-        leftOperand = (ValueNode) date;
-        rightOperand = (ValueNode) time;
+        operands = Arrays.asList((ValueNode) date, (ValueNode) time);
         operator = "timestamp";
         methodName = "getTimestamp";
     }
 
 
-	/**
-	 * Bind this expression.  This means binding the sub-expressions,
-	 * as well as figuring out what the return type is for this expression.
-	 *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this expression.  This means binding the sub-expressions,
+     * as well as figuring out what the return type is for this expression.
+     *
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public ValueNode bindExpression( FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)  throws StandardException {
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList, 
-			aggregateVector);
-		rightOperand = rightOperand.bindExpression(fromList, subqueryList, 
-			aggregateVector);
+    public ValueNode bindExpression( FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)  throws StandardException {
+        bindOperands(fromList, subqueryList, aggregateVector);
 
-		//Set the type if there is a parameter involved here 
-		if (leftOperand.requiresTypeFromContext()) {
-			leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE));
-		}
-		//Set the type if there is a parameter involved here 
-		if (rightOperand.requiresTypeFromContext()) {
-			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME));
-		}
+        //Set the type if there is a parameter involved here
+        if (getLeftOperand().requiresTypeFromContext()) {
+            getLeftOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE));
+        }
+        //Set the type if there is a parameter involved here
+        if (getRightOperand().requiresTypeFromContext()) {
+            getRightOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME));
+        }
 
-		TypeId leftTypeId = leftOperand.getTypeId();
-        TypeId rightTypeId = rightOperand.getTypeId();
-        if( !(leftOperand.requiresTypeFromContext() || leftTypeId.isStringTypeId() || leftTypeId.getJDBCTypeId() == Types.DATE))
+        TypeId leftTypeId = getLeftOperand().getTypeId();
+        TypeId rightTypeId = getRightOperand().getTypeId();
+        if( !(getLeftOperand().requiresTypeFromContext() || leftTypeId.isStringTypeId() || leftTypeId.getJDBCTypeId() == Types.DATE))
             throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED, 
                                                  operator, leftTypeId.getSQLTypeName(), rightTypeId.getSQLTypeName());
-        if( !(rightOperand.requiresTypeFromContext() || rightTypeId.isStringTypeId() || rightTypeId.getJDBCTypeId() == Types.TIME))
+        if( !(getRightOperand().requiresTypeFromContext() || rightTypeId.isStringTypeId() || rightTypeId.getJDBCTypeId() == Types.TIME))
             throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED, 
                                                  operator, leftTypeId.getSQLTypeName(), rightTypeId.getSQLTypeName());
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP));
-		return genSQLJavaSQLTree();
-	} // end of bindExpression
+        return genSQLJavaSQLTree();
+    } // end of bindExpression
 
     /**
-	 * Do code generation for this binary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the code to place the code
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * Do code generation for this binary operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the code to place the code
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-		throws StandardException
-	{
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+        throws StandardException
+    {
         acb.pushDataValueFactory(mb);
-		leftOperand.generateExpression(acb, mb);
+        getLeftOperand().generateExpression(acb, mb);
         mb.cast( ClassName.DataValueDescriptor);
-		rightOperand.generateExpression(acb, mb);
+        getRightOperand().generateExpression(acb, mb);
         mb.cast( ClassName.DataValueDescriptor);
         mb.callMethod( VMOpcode.INVOKEINTERFACE, null, methodName, ClassName.DateTimeDataValue, 2);
     } // end of generateExpression
@@ -136,36 +133,36 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     /**
      * Return whether or not this expression tree is cloneable.
      *
-     * @return boolean	Whether or not this expression tree is cloneable.
+     * @return boolean    Whether or not this expression tree is cloneable.
      */
     public boolean isCloneable()
     {
-        return leftOperand.isCloneable() && rightOperand.isCloneable();
+        return getLeftOperand().isCloneable() && getRightOperand().isCloneable();
     }
 
 
     /**
      * Return a clone of this node.
      *
-     * @return ValueNode	A clone of this node.
+     * @return ValueNode    A clone of this node.
      *
-     * @exception StandardException			Thrown on error
+     * @exception StandardException            Thrown on error
      */
     public ValueNode getClone() throws StandardException {
         TimestampOperatorNode newTS = (TimestampOperatorNode) getNodeFactory().getNode(
             C_NodeTypes.TIMESTAMP_OPERATOR_NODE,
-            leftOperand,
-            rightOperand,
+            getLeftOperand(),
+            getRightOperand(),
             getContextManager());
 
         newTS.copyFields(this);
         return newTS;
     }
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		double localCost = SIMPLE_OP_COST * 2.0;
-		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
-		return localCost + callCost + getChildrenCost();
-	}
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost = SIMPLE_OP_COST * 2.0;
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return localCost + callCost + super.getBaseOperationCost();
+    }
 }

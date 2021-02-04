@@ -275,8 +275,7 @@ public class ParameterNode extends ValueNode
      * @return    The variant type for the underlying expression.
      */
     @Override
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // Parameters are invariant for the life of the query
         return orderableVariantType;
     }
@@ -404,8 +403,7 @@ public class ParameterNode extends ValueNode
         mb.cast(getTypeCompiler().interfaceName());
     } // End of generateExpression
 
-    public TypeId getTypeId() throws StandardException
-    {
+    public TypeId getTypeId() {
         return (returnOutputParameter != null) ?
             returnOutputParameter.getTypeId() : super.getTypeId();
     }
@@ -527,8 +525,7 @@ public class ParameterNode extends ValueNode
     /**
      * @inheritDoc
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         return this == o;
     }
 

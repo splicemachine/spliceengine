@@ -801,8 +801,7 @@ public class UnaryOperatorNode extends OperatorNode
      * @return	The variant type for the underlying expression.
      * @exception StandardException	thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         /*
          ** If we have nothing in the operator, then
          ** it must be constant.
@@ -892,8 +891,7 @@ public class UnaryOperatorNode extends OperatorNode
      * @throws StandardException
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             UnaryOperatorNode other = (UnaryOperatorNode)o;

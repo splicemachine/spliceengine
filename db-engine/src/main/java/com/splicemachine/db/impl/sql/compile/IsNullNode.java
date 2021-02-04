@@ -273,7 +273,7 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
      * @return
      */
     @Override
-    public long nonZeroCardinality(long numberOfRows) {
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return Math.min(2L, numberOfRows);
     }
 

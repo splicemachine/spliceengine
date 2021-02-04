@@ -448,7 +448,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      * @return The variant type for the underlying expression.
      */
     @Override
-    protected int getOrderableVariantType() throws StandardException{
+    protected int getOrderableVariantType() throws StandardException {
         int leftType=leftOperandList.getOrderableVariantType();
         int rightType=rightOperandList.getOrderableVariantType();
 
