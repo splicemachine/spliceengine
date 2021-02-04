@@ -759,8 +759,8 @@ public class MergeNode extends DMLModStatementNode
     {
         if ( cr.getTableName() == null )
         {
-            cr = cr.bindExpression(_leftJoinFromList, new SubqueryList(getContextManager()), new ArrayList<AggregateNode>());
-            TableName       tableName = cr.getQualifiedTableName();
+            cr = cr.bindExpression2(_leftJoinFromList, new SubqueryList(getContextManager()), new ArrayList<AggregateNode>());
+            TableName tableName = cr.getTableNameNode(); // getQualifiedTableName
             cr = new ColumnReference( cr.getColumnName(), tableName, getContextManager() );
         }
 
@@ -852,9 +852,11 @@ public class MergeNode extends DMLModStatementNode
             mcn.generate( acb, _selectList, generatedScan, _hojn, i );
             clauseActions[ i ] = mcn.makeConstantAction( acb );
         }
-        _constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );
 
-        mb.callMethod( VMOpcode.INVOKEINTERFACE, (String) null, "getMergeResultSet", ClassName.ResultSet, 1 );
+        // todo
+        throw new RuntimeException("Not implemented: mergeNode: generate getMergeConstantAction");
+        //_constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );
+        //mb.callMethod( VMOpcode.INVOKEINTERFACE, (String) null, "getMergeResultSet", ClassName.ResultSet, 1 );
     }
 
     @Override

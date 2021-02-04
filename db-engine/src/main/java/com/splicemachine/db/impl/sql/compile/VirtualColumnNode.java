@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -64,6 +65,17 @@ public class VirtualColumnNode extends ValueNode
     int columnId;
 
     private boolean correlated = false;
+
+    public VirtualColumnNode() {}
+    public VirtualColumnNode(ResultSetNode sourceResultSet, ResultColumn sourceColumn,
+                             int columnId, ContextManager cm) throws StandardException {
+        super(cm);
+        this.sourceResultSet = sourceResultSet;
+        this.sourceColumn = sourceColumn;
+        this.columnId = columnId;
+        //setType(sourceColumn.getTypeServices());
+        sourceColumn.setType(sourceColumn.getTypeServices());
+    }
 
 
     /**

@@ -525,6 +525,34 @@ public class ColumnReference extends ValueNode {
         return fromList.bindColumnReference(this);
     }
 
+    ColumnReference bindExpression2(FromList fromList,
+                                   SubqueryList subqueryList,
+                                   List<AggregateNode> aggregates)
+            throws StandardException
+    {
+        ValueNode matchingRC;
+
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(fromList != null, "fromList is expected to be non-null");
+        }
+
+        if (fromList.size() == 0)
+        {
+            throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
+        }
+
+        matchingRC = fromList.bindColumnReference(this);
+
+        /* Error if no match found in fromList */
+        if (matchingRC == null)
+        {
+            throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+        }
+
+        return this;
+    }
+
     /**
      * Get the column name for purposes of error
      * messages or debugging. This returns the column

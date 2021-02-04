@@ -147,8 +147,40 @@ public class ResultColumn extends ValueNode
     public ResultColumn() {}
     public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
                         ContextManager contextManager) throws StandardException {
-        setContextManager(contextManager);
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
         init(rowLocationColumnName, rowLocationColumnName);
+    }
+
+    public ResultColumn(ColumnReference cr,
+                        ValueNode expression,
+                        ContextManager cm) {
+        super(cm);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        setTypeExpressionAndDefault(expression);
+        this.name = cr.getColumnName();
+        this.exposedName = cr.getColumnName();
+
+        // When we bind, we'll want to make sure the reference has the right
+        // table name.
+        this.reference = cr;
+    }
+
+    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) {
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        this.name = this.exposedName = columnName;
+    }
+
+    private void setTypeExpressionAndDefault(ValueNode expression) {
+        setExpression(expression);
+
+        if (expression != null &&
+                expression instanceof DefaultNode) {
+            // This result column represents a <default> keyword in an insert or
+            // update statement
+            defaultColumn = true;
+        }
     }
 
     /**
