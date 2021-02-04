@@ -1692,6 +1692,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
                             .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
                             .build(),
+                    Procedure.newBuilder().name("RTRIM")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build(),
                     Procedure.newBuilder().name("REGEXP_LIKE")
                             .numOutputParams(0)
                             .numResultSets(0)
