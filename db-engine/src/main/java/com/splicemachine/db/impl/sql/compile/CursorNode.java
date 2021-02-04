@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -83,6 +84,25 @@ public class CursorNode extends DMLStatementNode{
     //Following is the position of the session table names list in savedObjects in compiler context
     //At generate time, we save this position in activation for easy access to session table names list from compiler context
     private int indexOfSessionTableNamesInSavedObjects=-1;
+
+    // true if this CursorNode is the driving left-join of a MERGE statement
+    private boolean forMergeStatement = false;
+
+    public CursorNode(String statementType,
+                      ResultSetNode resultSet,
+                      String name,
+                      OrderByList orderByList,
+                      ValueNode offset,
+                      ValueNode fetchFirst,
+                      Boolean hasJDBClimitClause,
+                      Integer updateMode,
+                      Vector updatableColumns,
+                      boolean forMergeStatement, ContextManager contextManager) {
+        setNodeType(C_NodeTypes.CURSOR_NODE);
+        setContextManager(contextManager);
+        this.forMergeStatement = forMergeStatement;
+        init(statementType, resultSet, name, orderByList, offset, fetchFirst, hasJDBClimitClause, updateMode, updatableColumns);
+    }
 
     /**
      * Initializer for a CursorNode
@@ -231,7 +251,7 @@ public class CursorNode extends DMLStatementNode{
             // this rejects any untyped nulls in the select list
             // pass in null to indicate that we don't have any
             // types for this node
-            resultSet.bindUntypedNullsToResultColumns(null);
+            if ( !forMergeStatement ) resultSet.bindUntypedNullsToResultColumns(null);
 
             // Reject any XML values in the select list; JDBC doesn't
             // define how we bind these out, so we don't allow it.

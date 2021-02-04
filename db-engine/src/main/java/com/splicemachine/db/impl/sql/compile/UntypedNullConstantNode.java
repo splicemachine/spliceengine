@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -57,7 +58,11 @@ public final class UntypedNullConstantNode extends ConstantNode
 		super();
 	}
 
-	/**
+    public UntypedNullConstantNode(ContextManager contextManager) {
+		setContextManager(contextManager);
+    }
+
+    /**
 	 * Return the length
 	 *
 	 * @return	The length of the value this node represents

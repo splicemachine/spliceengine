@@ -105,6 +105,19 @@ public final class UpdateNode extends DMLModStatementNode
     }
 
     /**
+     * Constructor for an UpdateNode from a MatchingClause of a MergeNode
+     */
+    UpdateNode( TableName targetTableName, ResultSetNode resultSet, MatchingClauseNode matchingClause, ContextManager cm )
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.UPDATE_NODE);
+        super.init(resultSet);
+        this.targetTableName = targetTableName;
+        this.cursorUpdate = false;
+        setMatchingClause(matchingClause);
+    }
+
+    /**
      * Initializer for an UpdateNode.
      *
      * @param targetTableName    The name of the table to update

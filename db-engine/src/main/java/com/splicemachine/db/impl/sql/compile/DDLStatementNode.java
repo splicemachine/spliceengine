@@ -103,10 +103,6 @@ abstract class DDLStatementNode extends StatementNode
     public DDLStatementNode() {
     }
 
-    public DDLStatementNode(ContextManager cm) {
-        super(cm);
-    }
-
 
     public void init(Object objectName)
         throws StandardException {

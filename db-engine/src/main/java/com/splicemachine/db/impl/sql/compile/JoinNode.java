@@ -637,6 +637,23 @@ public class JoinNode extends TableOperatorNode{
         }
     }
 
+    /** Make a FromList for binding */
+    public  FromList    makeFromList
+    (
+            boolean    useLeftChild,
+            boolean    useRightChild
+    )
+            throws StandardException
+    {
+        // todo
+        FromList fromList = new FromList( /*getOptimizerFactory().doJoinOrderOptimization(), */ getContextManager() );
+
+        if ( useLeftChild ) { fromList.addElement((FromTable) leftResultSet); }
+        if ( useRightChild ) { fromList.addElement((FromTable) rightResultSet); }
+
+        return fromList;
+    }
+
     /**
      * Bind the result columns of this ResultSetNode when there is no
      * base table to bind them to.  This is useful for SELECT statements,

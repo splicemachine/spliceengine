@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
@@ -62,6 +63,11 @@ import java.util.Objects;
  */
 
 public class ColumnReference extends ValueNode {
+    // For associating columns with the SOURCE and TARGET tables of MERGE statements.
+    public  static  final   int MERGE_UNKNOWN = 0;
+    public  static  final   int MERGE_SOURCE = MERGE_UNKNOWN + 1;
+    public  static  final   int MERGE_TARGET = MERGE_SOURCE + 1;
+
     String    columnName;
 
     /*
@@ -148,6 +154,18 @@ public class ColumnReference extends ValueNode {
        and has been remapped multiple times.
      */
     private java.util.ArrayList remaps;
+
+    /** Columns mentioned by MERGE statements need to be associated
+     * the SOURCE or TARGET table */
+    private int _mergeTableID = MERGE_UNKNOWN;
+
+    public ColumnReference(String columnName, TableName tableName, ContextManager contextManager) {
+        setContextManager(contextManager);
+        this.columnName = columnName;
+        this.tableName = tableName;
+        tableNumber = -1;
+        remaps = null;
+    }
 
     /**
      * Initializer.
@@ -1397,6 +1415,39 @@ public class ColumnReference extends ValueNode {
     protected boolean isScoped()
     {
         return scoped;
+    }
+
+    /** Associate this column with a SOURCE or TARGET table of a MERGE statement */
+    void setMergeTableID( int mergeTableID )
+    {
+        // Changing the association of a column means we are confused. Shouldn't happen.
+        if ( (_mergeTableID != MERGE_UNKNOWN) && (_mergeTableID != mergeTableID)  )
+        {
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.ASSERT( _mergeTableID == mergeTableID,
+                                "MERGE statement can't re-associate column " + getSQLColumnName() +
+                                        " from " + prettyPrintMergeTableID( _mergeTableID ) +
+                                        " to " + prettyPrintMergeTableID( mergeTableID ) );
+            }
+        }
+
+        _mergeTableID = mergeTableID;
+    }
+    private String prettyPrintMergeTableID( int mergeTableID )
+    {
+        switch ( mergeTableID )
+        {
+            case MERGE_SOURCE: return "SOURCE";
+            case MERGE_TARGET: return "TARGET";
+            default: return "UNKNOWN";
+        }
+    }
+
+    /** Get the MERGE table (SOURCE or TARGET) associated with this column */
+    int getMergeTableID()
+    {
+        return _mergeTableID;
     }
 
     /**
