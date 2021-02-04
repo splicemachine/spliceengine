@@ -437,40 +437,40 @@ public class BinaryOperatorNode extends OperatorNode
                 List<AggregateNode>    aggregateVector) throws StandardException
     {
         boolean castToDecfloat =
-                leftOperand.requiresTypeFromContext() ||
-                leftOperand.getTypeId() == null ||
-                !(leftOperand.getTypeId().isIntegerNumericTypeId() || leftOperand.getTypeId().getJDBCTypeId() == Types.DECIMAL) ||
-                rightOperand.requiresTypeFromContext() ||
-                rightOperand.getTypeId() == null ||
-                !(rightOperand.getTypeId().isIntegerNumericTypeId() || rightOperand.getTypeId().getJDBCTypeId() == Types.DECIMAL);
+                getLeftOperand().requiresTypeFromContext() ||
+                getLeftOperand().getTypeId() == null ||
+                !(getLeftOperand().getTypeId().isIntegerNumericTypeId() || getLeftOperand().getTypeId().getJDBCTypeId() == Types.DECIMAL) ||
+                getRightOperand().requiresTypeFromContext() ||
+                getRightOperand().getTypeId() == null ||
+                !(getRightOperand().getTypeId().isIntegerNumericTypeId() || getRightOperand().getTypeId().getJDBCTypeId() == Types.DECIMAL);
         if (castToDecfloat) {
-            leftOperand = (ValueNode)
+            setLeftOperand((ValueNode)
                     getNodeFactory().getNode(
                             C_NodeTypes.CAST_NODE,
-                            leftOperand,
+                            getLeftOperand(),
                             DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
-                            getContextManager());
-            ((CastNode) leftOperand).bindCastNodeOnly();
-            rightOperand = (ValueNode)
+                            getContextManager()));
+            ((CastNode) getLeftOperand()).bindCastNodeOnly();
+            setRightOperand((ValueNode)
                     getNodeFactory().getNode(
                             C_NodeTypes.CAST_NODE,
-                            rightOperand,
+                            getRightOperand(),
                             DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
-                            getContextManager());
-            ((CastNode) rightOperand).bindCastNodeOnly();
+                            getContextManager()));
+            ((CastNode) getRightOperand()).bindCastNodeOnly();
         }
         ValueNode multiplication = ((BinaryArithmeticOperatorNode) getNodeFactory().getNode(
                 C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
-                leftOperand,
-                rightOperand,
+                getLeftOperand(),
+                getRightOperand(),
                 getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
         if (castToDecfloat) {
             return multiplication;
         } else {
-            int leftPrecision = leftOperand.getTypeServices().getPrecision();
-            int rightPrecision = rightOperand.getTypeServices().getPrecision();
-            int leftScale = leftOperand.getTypeServices().getScale();
-            int rightScale = rightOperand.getTypeServices().getScale();
+            int leftPrecision = getLeftOperand().getTypeServices().getPrecision();
+            int rightPrecision = getRightOperand().getTypeServices().getPrecision();
+            int leftScale = getLeftOperand().getTypeServices().getScale();
+            int rightScale = getRightOperand().getTypeServices().getScale();
             int precision = Math.min(38, leftPrecision + rightPrecision);
             int scale;
             if (leftScale == 0 && rightScale == 0) {
