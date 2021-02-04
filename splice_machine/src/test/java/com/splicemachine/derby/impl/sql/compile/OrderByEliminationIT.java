@@ -435,7 +435,11 @@ public class OrderByEliminationIT extends SpliceUnitTest {
 
     @Test
     public void testOrderByEliminationInteractionWithFlattenedOuterJoin() throws Exception {
-        /* Q1 */
+        /* DB-9669 note
+         * "order by c1 desc" should not be eliminated just because c1=5. It's an outer join,
+         * so c1 = 5 doesn't mean the result column c1 is constant 5. Also, row order of t1
+         * doesn't satisfy "c1 desc". So an "OrderBy" operation is a must.
+         */
         String sqlText = "select c1, c2 from t1 left join t2 on c1=c2 and c1=5 order by c1 desc";
         String expected = "C1 | C2  |\n" +
                 "----------\n" +
@@ -445,27 +449,41 @@ public class OrderByEliminationIT extends SpliceUnitTest {
                 " 1 |NULL |\n" +
                 " 1 |NULL |";
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
         rowContainsQuery(3, "explain "+sqlText, "OrderBy", methodWatcher);
     }
 
     @Test
     public void testOrderByEliminationInteractionWithFlattenedOuterJoin2() throws Exception {
-        /* Q1 */
-        String sqlText = "select a1, b1, c1, a2 from t1 left join t2 on a1=a2 and a1=5 order by b1";
+        /* DB-9669 note
+         * "order by b1" could be removed if row order of t1 can be preserved during the join
+         * operation. We have no predicate on b1, either. With merge join selected, no
+         * "OrderBy" is needed.
+         * DB-11238 note
+         * With the change of DB-11238, this query selects merge join plus order by eliminated
+         * without any hint. However, we hint here to make sure the test is stable and not
+         * subject to plan changes later. We are testing order by elimination with outer join
+         * here, not which join strategy should be selected.
+         */
+        String sqlText = "select a1, b1, c1, a2 from t1 left join t2 --splice-properties joinStrategy=merge\n" +
+                " on a1=a2 and a1=5 order by b1";
         String expected = "A1 |B1 |C1 | A2  |\n" +
                 "------------------\n" +
                 " 1 | 1 | 1 |NULL |\n" +
-                " 1 | 2 | 3 |NULL |\n" +
                 " 2 | 2 | 3 |NULL |\n" +
+                " 1 | 2 | 3 |NULL |\n" +
                 " 3 | 2 | 3 |NULL |\n" +
                 " 1 | 3 | 1 |NULL |";
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-        rowContainsQuery(3, "explain "+sqlText, "OrderBy", methodWatcher);
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + sqlText)) {
+            Assert.assertFalse(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs).contains("OrderBy"));
+        }
     }
 }

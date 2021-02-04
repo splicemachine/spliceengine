@@ -350,11 +350,21 @@ public class CrossJoinIT extends SpliceUnitTest {
 
     @Test
     public void testPickBroadcastWithIndex() throws Exception {
+        /* DB-11238 note
+         * Since the cost of nested loop join is corrected (effectively lowered) on OLTP,
+         * this query selects nested loop join instead. To make broadcast join attractive,
+         * we need to increase the number of outer rows. However, statistics of column c2
+         * seems to be weird:
+         * s2.c2 < 10  : output 1 row
+         * s2.c2 < 100 : output 1 row
+         * s2.c2 < 1000: output 956 row
+         * If statistics are better, there should be no need to bump it to 1000.
+         */
         String sqlText =
                 format("explain select count(*) from %s as s1 inner join %s as s2 " +
-                        "--SPLICE-PROPERTIES useSpark=%s \n" +
-                        " on s1.c1 = s2.c2 and s2.c2 < 10" , bigTable, bigTable, useSpark);
-        rowContainsQuery(6, sqlText,"Broadcast", classWatcher);
+                        "--SPLICE-PROPERTIES useSpark=%s\n" +
+                        " on s1.c1 = s2.c2 and s2.c2 < 1000" , bigTable, bigTable, useSpark);
+        rowContainsQuery(new int[]{6,8}, sqlText, classWatcher, "Broadcast", "IndexScan");
     }
 
     @Ignore("Ignore this test because of DB-8204")
