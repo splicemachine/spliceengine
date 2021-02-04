@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -43,7 +44,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
         setContextManager(cm);
         setNodeType(C_NodeTypes.DECIMAL_FUNCTION_NODE);
         this.functionName = functionName;
-        this.operand = operand;
+        this.operands = Collections.singletonList(operand);
         this.precision = precision == null ? -1 : precision.intValue();
         this.scale = scale == null ? -1 : scale.intValue();
         this.decimalChar = decimalChar == null ? "" : decimalChar;
@@ -58,7 +59,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
                                     List<AggregateNode> aggregateVector) throws StandardException {
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        switch (operand.getTypeId().getTypeFormatId()) {
+        switch (getOperand().getTypeId().getTypeFormatId()) {
             case StoredFormatIds.TINYINT_TYPE_ID: // fallthrough
             case StoredFormatIds.SQL_TINYINT_ID: // fallthrough
             case StoredFormatIds.SMALLINT_TYPE_ID: // fallthrough
@@ -120,7 +121,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
                 }
                 break;
             default:
-                throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_TYPE, operand.getTypeId().getSQLTypeName());
+                throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_TYPE, getOperand().getTypeId().getSQLTypeName());
         }
         if (scale == -1) {
             scale = 0;
@@ -133,7 +134,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
         assert decimalTypeId != null;
 
         setType(new DataTypeDescriptor(decimalTypeId, precision,
-                                       scale, operand.getTypeServices().isNullable(), DataTypeUtilities.computeMaxWidth(precision, scale)));
+                                       scale, getOperand().getTypeServices().isNullable(), DataTypeUtilities.computeMaxWidth(precision, scale)));
         setOperator("get_decimal_db2");
         setMethodName("getDecimalDb2");
         return this;
@@ -144,7 +145,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
      */
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.upCast(ClassName.DataValueDescriptor);
         mb.push(precision);
         mb.push(scale);

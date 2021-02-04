@@ -34,9 +34,11 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -156,10 +158,12 @@ public class GenericOperatorNode extends OperatorNode
             throws StandardException
     {
         for (int i = 0; i < operands.size(); ++i) {
-            operands.set(i, operands.get(i).preprocess(
-                    numTables,
-                    outerFromList, outerSubqueryList,
-                    outerPredicateList));
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).preprocess(
+                        numTables,
+                        outerFromList, outerSubqueryList,
+                        outerPredicateList));
+            }
         }
         return this;
     }
@@ -182,7 +186,9 @@ public class GenericOperatorNode extends OperatorNode
             throws StandardException
     {
         for (int i = 0; i < operands.size(); ++i) {
-            operands.set(i, operands.get(i).remapColumnReferencesToExpressions());
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).remapColumnReferencesToExpressions());
+            }
         }
         return this;
     }
@@ -194,13 +200,13 @@ public class GenericOperatorNode extends OperatorNode
      */
     public boolean isConstantExpression()
     {
-        return operands.stream().allMatch(ValueNode::isConstantExpression);
+        return operands.stream().allMatch(op -> op == null || op.isConstantExpression());
     }
 
     /** @see ValueNode#constantExpression */
     public boolean constantExpression(PredicateList whereClause)
     {
-        return operands.stream().allMatch(op -> op.constantExpression(whereClause));
+        return operands.stream().allMatch(op -> op == null || op.constantExpression(whereClause));
     }
 
 
@@ -218,9 +224,11 @@ public class GenericOperatorNode extends OperatorNode
      * @exception StandardException    thrown on error
      */
     protected int getOrderableVariantType() throws StandardException {
-        int min = Integer.MAX_VALUE;
+        int min = Qualifier.CONSTANT;
         for (ValueNode op : operands) {
-            min = Math.min(min, op.getOrderableVariantType());
+            if (op != null) {
+                min = Math.min(min, op.getOrderableVariantType());
+            }
         }
         return min;
     }
@@ -252,7 +260,9 @@ public class GenericOperatorNode extends OperatorNode
         if (operands.size() != other.operands.size())
             return false;
         for (int i = 0 ; i < operands.size(); ++i) {
-            if (!operands.get(i).isEquivalent(other.operands.get(i)))
+            if (operands.get(i) == null ^ other.operands.get(i) == null)
+                return false;
+            if (operands.get(i) != null && !operands.get(i).isEquivalent(other.operands.get(i)))
                 return false;
         }
         return true;
@@ -272,7 +282,9 @@ public class GenericOperatorNode extends OperatorNode
         if (operands.size() != other.operands.size())
             return false;
         for (int i = 0 ; i < operands.size(); ++i) {
-            if (!operands.get(i).isSemanticallyEquivalent(other.operands.get(i)))
+            if (operands.get(i) == null ^ other.operands.get(i) == null)
+                return false;
+            if (operands.get(i) != null && !operands.get(i).isSemanticallyEquivalent(other.operands.get(i)))
                 return false;
         }
         return true;
@@ -289,7 +301,7 @@ public class GenericOperatorNode extends OperatorNode
     }
 
     public List<? extends QueryTreeNode> getChildren() {
-        return operands;
+        return operands.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
@@ -323,7 +335,7 @@ public class GenericOperatorNode extends OperatorNode
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
-        return operands.stream().allMatch(ValueNode::isConstantOrParameterTreeNode);
+        return operands.stream().allMatch(op -> op != null && op.isConstantOrParameterTreeNode());
     }
 
     @Override

@@ -70,7 +70,7 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
             throw StandardException.newException(SQLState.LANG_MISSING_LEAD_LAG_ARG);
         }
         super.init(arg3, arg1, Boolean.FALSE, arg4, arg2, false);
-        setType(this.operand.getTypeServices());
+        setType(this.getOperand().getTypeServices());
         if (arg5 != null) {
             this.offset = (int) arg5;
             if (offset <= 0 || offset >= Integer.MAX_VALUE) {
@@ -107,12 +107,12 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
 
     @Override
     public List<ValueNode> getOperands() {
-        return (operand != null ? Lists.newArrayList(operand) : Collections.EMPTY_LIST);
+        return (getOperand() != null ? Lists.newArrayList(getOperand()) : Collections.EMPTY_LIST);
     }
 
     @Override
     public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
-        this.operand = newVal;
+        setOperand(newVal);
     }
 
     @Override

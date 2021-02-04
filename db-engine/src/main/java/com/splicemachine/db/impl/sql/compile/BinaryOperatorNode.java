@@ -281,33 +281,6 @@ public class BinaryOperatorNode extends GenericOperatorNode
         this.operatorType = -1;
     }
 
-    /**
-     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-     * how tree printing is supposed to work.
-     *
-     * @param depth        The depth of this node in the tree
-     */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
-            super.printSubNodes(depth);
-
-            if (getLeftOperand() != null)
-            {
-                printLabel(depth, "leftOperand: ");
-                getLeftOperand().treePrint(depth + 1);
-            }
-
-            if (getRightOperand() != null)
-            {
-                printLabel(depth, "rightOperand: ");
-                getRightOperand().treePrint(depth + 1);
-            }
-        }
-    }
-
     protected void bindParameters() throws StandardException {
         /* Is there a ? parameter on the left? */
         if (getLeftOperand().requiresTypeFromContext()) {

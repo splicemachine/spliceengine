@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,7 +42,7 @@ public class TypeofOperatorNode extends UnaryOperatorNode {
     {
         setContextManager(cm);
         setNodeType(C_NodeTypes.TYPEOF_OPERATOR_NODE);
-        this.operand = operand;
+        this.operands = Collections.singletonList(operand);
     }
 
     /**
@@ -63,7 +64,7 @@ public class TypeofOperatorNode extends UnaryOperatorNode {
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
         {
-            mb.push(operand.getTypeServices().toString());
+            mb.push(getOperand().getTypeServices().toString());
 
             acb.generateDataValue(mb, getTypeCompiler(),
                     getTypeServices().getCollationType(), (LocalField) null);
