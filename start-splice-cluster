@@ -11,11 +11,26 @@
 #   while true ; do sleep 1 ; grep -q 6 /tmp/myfifo && echo 'i found a 6!' ; done
 ##################################################################################
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
+PROFILE=$DEFAULT_PROFILE
+IN_MEM_PROFILE="mem"
+RUN_DIR="${BASE_DIR}/platform_it"
+
+BUILD="1"
+CLEAN="1"
+CHAOS="false"
+
+MEMBERS=2
+DEBUG_PATH=""
+
+
+
 ##################################################################################
 # Function to kill all splice test processes - zoo, SpliceTestPlatform, YARN, and
 # anything started from maven exec, i.e., mvn exec:exec
 ##################################################################################
-_kill_em_all () {
+function _kill_em_all {
   SIG=$1
    local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|OlapServerMaster/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
@@ -32,49 +47,204 @@ _kill_em_all () {
    P=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 }
-export -f _kill_em_all
 
-wait_for () {
-	LOG_FILE=$1
-	shift
-	NEEDLE=$*
-
-	echo -n "  Waiting. "
-	while ! grep -q "$NEEDLE" $LOG_FILE 
-		do echo -n ". " 
-		sleep 2
-	done
-	echo
-}
-
+##################################################################################
+# check if port ${2} on host {1} is open
+#
+# note there's two versions of nc: GNU and OpenBSD
+# OpenBSD supports -z (only check port), but GNU not.
+# GNU would work with 'exit', OpenBSD needs 'exit\n'
+# this one works in both and on mac
+##################################################################################
 function is_port_open
 {
   host1=$1
   port2=$2
-  # note there's two versions of nc: GNU and OpenBSD
-  # OpenBSD supports -z (only check port), but GNU not.
-  # GNU would work with 'exit', OpenBSD needs 'exit\n'
-  # this one works in both and on mac
   echo 'exit\n' | nc ${host1} ${port2} > /dev/null 2> /dev/null
 }
 
+##################################################################################
+# print message ${1} and wait until port {2} is open
+##################################################################################
+function _wait_for_port
+{
+  msg=${1}
+  port=${2}
+  echo -n ${msg}
+  echo -n " "
+  counter=0
+  until is_port_open localhost ${port}; do
+    echo -n "${counter} - "
+    counter=$((counter+1))
+    sleep 2
+  done
+  echo "done!"
+}
 
-BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
-PROFILE=$DEFAULT_PROFILE
-IN_MEM_PROFILE="mem"
-RUN_DIR="${BASE_DIR}/platform_it"
+##################################################################################
+# wait until file ${1} contains the text ${2}
+##################################################################################
+function _wait_for_file_content
+{
+  LOG_FILE=$1
+  shift
+  NEEDLE=$*
 
-BUILD="1"
-CLEAN="1"
-CHAOS="false"
+  echo -n "  Waiting. "
+  counter=0
+  while ! grep -q "$NEEDLE" $LOG_FILE ; do
+    echo -n "${counter} - "
+    counter=$((counter+1));
+    sleep 2
+  done
+  echo
+}
 
-MEMBERS=2
-DEBUG_PATH=""
+##################################################################################
+# zookeeper
+##################################################################################
+function _start_zookeeper
+{
+  ZOO_LOG="${RUN_DIR}/zoo.log"
+  echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
+  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 
-MVN='mvn -B'
+}
 
-usage() {
+#######################################################################################################
+# Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
+# This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
+# In particular, it uses netcat (nc) to pipe the command 'ruok' to zookeeper on it's connection port.
+# If ZooKeeper responds with 'imok', then the server is up. If it returns empty, then zookeeper
+# hasn't started yet. If the count goes to 0, and we never got 'imok', then we want to blow up because
+# ZooKeeper didn't start up properly
+#######################################################################################################
+function _wait_zookeeper
+{
+  COUNT=65
+  ZOO_UP=""
+  until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
+      sleep 1
+      ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
+      let COUNT-=1
+  done
+
+  if [ ${COUNT} -eq 0 ]; then
+      echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOO_LOG} for more information"
+      exit 5
+  fi
+}
+
+
+##################################################################################
+# # Start Kafka in background
+##################################################################################
+function _start_kafka {
+  KAFKALOG="${RUN_DIR}"/kafka.log
+  echo "Starting Kafka. Log file is ${KAFKALOG}"
+  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+}
+
+##################################################################################
+#  yarn
+##################################################################################
+function _start_yarn
+{
+  pushd ../standalone/ > /dev/null
+  YARN_LOG="${RUN_DIR}/yarn.log"
+  echo "Starting YARN. Log file is ${YARN_LOG}"
+  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+  popd > /dev/null
+}
+
+##################################################################################
+# region servers
+##################################################################################
+function _start_region_servers {
+  if [[ ${MEMBERS} -gt 0 ]]; then
+    for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
+      REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
+      echo "Starting Region Server ${REGION_SVR_LOG}"
+      ## (region server, splice on 1528, 1529, ...)
+      (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} \
+                        -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    done
+  fi
+}
+
+function _wait_for_region_servers {
+  if [[ ${MEMBERS} -gt 0 ]]; then
+    for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
+      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} ))
+    done
+  fi
+}
+
+##################################################################################
+# start master
+##################################################################################
+function _start_master {
+  SPLICE_LOG="${RUN_DIR}/splice.log"
+  echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
+  ## (master + region server on 1527)
+
+  if [ -z "${SERVER_SSLMODE}" ]; then
+    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} \
+                      -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  else
+    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} \
+                      -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  fi
+}
+
+function _wait_for_master {
+  _wait_for_port "Waiting for Master to be ready ..." 1527
+  
+}
+
+##################################################################################
+# start with KDFS and HDFS (DISTRIBUTED=1 mode)
+##################################################################################
+function _start_kdc_hdfs
+{
+  KDC_LOG="${RUN_DIR}/kdc.log"
+  echo "Starting KDC. Log file is ${KDC_LOG}"
+  (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
+  _wait_for_file_content ${KDC_LOG} "KDC cluster started" 
+  
+  export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
+  
+  HDFS_LOG="${RUN_DIR}/hdfs.log"
+  echo "Starting HDFS. Log file is ${HDFS_LOG}"
+  (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
+  _wait_for_file_content ${HDFS_LOG} "HDFS cluster started"
+}
+
+##################################################################################
+# mem platform
+##################################################################################
+function _start_mem
+{
+  MEM_LOG="${RUN_DIR}/spliceMem.log"
+  echo "Starting MEM. Log file is ${MEM_LOG}"
+  (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" \
+                ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) & ## IN MEMORY
+}
+
+function _wait_for_mem
+{
+  _wait_for_port "Waiting until Mem Platform is ready ..." 1527
+}
+
+export -f _kill_em_all
+
+
+########################################################################################################
+# Command Line Options
+########################################################################################################
+
+function usage
+{
     # $1 is an error, if any
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
@@ -88,10 +258,12 @@ usage() {
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
     echo "  -k just KILL any and all splice processes currently running."
+    echo "  -K like k, but will also reset database to clean. Needs some rebuild afterwards (use -l)."
+    echo "  -T <n> use -T <n> with maven (build with n threads)."
     echo "  -h => print this message"
 }
 
-while getopts "chkp:s:bld:f" flag ; do
+while getopts "chkp:s:bld:fT:K" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -109,10 +281,10 @@ while getopts "chkp:s:bld:f" flag ; do
         # DO NOT clean first
             CLEAN="0"
         ;;
-	f)
-	# Fully distributed & secure
-		DISTRIBUTED="1"
-	;;
+        f)
+        # Fully distributed & secure
+          DISTRIBUTED="1"
+        ;;
         p)
         # the hbase profile
             PROFILE="${OPTARG}"
@@ -130,6 +302,20 @@ while getopts "chkp:s:bld:f" flag ; do
            _kill_em_all 9
            exit 0
         ;;
+        K)
+        # KILL current processes + reset to clean database
+           _kill_em_all 9
+           echo "reset database..."
+           rm -rf platform_it/target/hbase
+           rm -rf platform_it/target/zookeeper
+           rm -rf platform_it/target/hbase-site.xml
+           rm -rf platform_it/target/SpliceTestYarnPlatform
+           exit 0
+        ;;
+        T)
+        # number of threads
+           MVN_THREADS="-T ${OPTARG}"
+        ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
             exit 1
@@ -137,12 +323,13 @@ while getopts "chkp:s:bld:f" flag ; do
     esac
 done
 
+MVN="mvn -B ${MVN_THREADS}"
+
 SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
-
-#=============================================================================
+########################################################################################################
 # Run...
-#=============================================================================
+########################################################################################################
 _kill_em_all 9
 
 HBASE_PROFILE=${PROFILE%%,*}
@@ -179,87 +366,26 @@ pushd "${RUN_DIR}" > /dev/null
 
 # Run IN MEMORY
 if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
-  MEM_LOG="${RUN_DIR}/spliceMem.log"
-  echo "Starting MEM. Log file is ${MEM_LOG}"
-  (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
-  echo -n "wait until ready . "
-  until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
-  echo "MEM Started!"
+  _start_mem
+  _wait_for_mem
+  popd > /dev/null
   exit 0;
 fi
 
-ZOO_LOG="${RUN_DIR}/zoo.log"
-echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
-(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
-#######################################################################################################
-# Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
-# This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
-# In particular, it uses netcat (nc) to pipe the command 'ruok' to zookeeper on it's connection port.
-# If ZooKeeper responds with 'imok', then the server is up. If it returns empty, then zookeeper
-# hasn't started yet. If the count goes to 0, and we never got 'imok', then we want to blow up because
-# ZooKeeper didn't start up properly
-#######################################################################################################
-COUNT=65
-ZOO_UP=""
-until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
-    sleep 1
-    ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
-    let COUNT-=1
-done
-
-if [ ${COUNT} -eq 0 ]; then
-    echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOO_LOG} for more information"
-    exit 5
-fi
+_start_zookeeper
+_wait_zookeeper # wait for zookeeper before starting others
 
 if [[ "${DISTRIBUTED}" == "1" ]]; then
-    KDC_LOG="${RUN_DIR}/kdc.log"
-    echo "Starting KDC. Log file is ${KDC_LOG}"
-    (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
-    wait_for ${KDC_LOG} "KDC cluster started" 
-    
-    export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
-    
-    HDFS_LOG="${RUN_DIR}/hdfs.log"
-    echo "Starting HDFS. Log file is ${HDFS_LOG}"
-    (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
-    wait_for ${HDFS_LOG} "HDFS cluster started"
+  _start_kdc_hdfs
 fi 
   
-pushd ../standalone/ > /dev/null
-YARN_LOG="${RUN_DIR}/yarn.log"
-echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
-popd > /dev/null
+_start_yarn
+_start_kafka
 
-KAFKALOG="${RUN_DIR}"/kafka.log
-# Start Kafka in background.
-echo "Starting Kafka. Log file is ${KAFKALOG}"
-(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+_start_master
+_start_region_servers
 
-SPLICE_LOG="${RUN_DIR}/splice.log"
-echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
-## (master + region server on 1527)
+_wait_for_master
+_wait_for_region_servers
 
-if [ -z "${SERVER_SSLMODE}" ]; then
-  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
-else
-  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
-fi
-
-echo -n "  Waiting. "
-until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
-echo
-
-if [[ ${MEMBERS} -gt 0 ]]; then
-  for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-    REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
-    echo "Starting Region Server ${REGION_SVR_LOG}"
-    ## (region server, splice on 1528, 1529, ...)
-    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
-    echo -n "  Waiting. "
-    until is_port_open localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
-    echo
-  done
-fi
 popd > /dev/null
