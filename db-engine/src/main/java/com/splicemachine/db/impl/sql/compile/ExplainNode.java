@@ -89,6 +89,10 @@ public class ExplainNode extends DMLStatementNode {
         }
     }
 
+    public boolean isSparkExplain() {
+        return sparkExplainKind != SparkExplainKind.NONE;
+    }
+
     int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
 
     public String statementToString() { return "Explain"; }

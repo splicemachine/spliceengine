@@ -884,7 +884,7 @@ public class GenericStatement implements Statement{
                                    CompilerContext cc,
                                    StatementNode statementNode,
                                    boolean cacheMe) throws StandardException {
-        if (!(statementNode instanceof ExplainNode)) {
+        if (!(statementNode instanceof ExplainNode) || ((ExplainNode)statementNode).isSparkExplain()) {
             return;
         }
 
