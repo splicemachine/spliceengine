@@ -73,6 +73,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private FormatableBitSet accessedNonPkCols;
     private FormatableBitSet accessedPkCols;
     private SpliceMethod<ExecRow> resultRowAllocator;
+    private ExecRow resultRow;
     private SpliceMethod<ExecIndexRow> startKeyGetter;
     private SpliceMethod<ExecIndexRow> stopKeyGetter;
     private SpliceConglomerate conglomerate;
@@ -81,6 +82,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private String tableVersion;
     private String defaultRowMethodName;
     private SpliceMethod<ExecRow> defaultRowAllocator;
+    private ExecRow defaultRow;
     private int defaultValueMapItem;
     private FormatableBitSet defaultValueMap;
 
@@ -127,9 +129,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public ExecRow getResultRow() throws StandardException {
-        if (resultRowAllocator == null)
-            resultRowAllocator = new SpliceMethod<>(resultRowAllocatorMethodName, activation);
-        return resultRowAllocator.invoke();
+        if (resultRow == null) {
+            if (resultRowAllocator == null)
+                resultRowAllocator = new SpliceMethod<>(resultRowAllocatorMethodName, activation);
+            resultRow = resultRowAllocator.invoke();
+        }
+        return resultRow;
     }
 
     @Override
@@ -137,9 +142,13 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         if (defaultRowMethodName == null)
             return null;
 
-        if (defaultRowAllocator == null)
-            defaultRowAllocator = new SpliceMethod<>(defaultRowMethodName, activation);
-        return defaultRowAllocator.invoke();
+        if (defaultRow == null) {
+            if (defaultRowAllocator == null)
+                defaultRowAllocator = new SpliceMethod<>(defaultRowMethodName, activation);
+            defaultRow = defaultRowAllocator.invoke();
+            return defaultRow;
+        }
+        return defaultRow;
     }
 
     @Override
@@ -262,6 +271,18 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         out.writeBoolean(rowIdKey);
         SerializationUtils.writeNullableString(defaultRowMethodName, out);
         out.writeInt(defaultValueMapItem);
+        if (resultRow == null)
+            out.writeBoolean(false);
+        else {
+            out.writeBoolean(true);
+            out.writeObject(resultRow);
+        }
+        if (defaultRow == null)
+            out.writeBoolean(false);
+        else {
+            out.writeBoolean(true);
+            out.writeObject(defaultRow);
+        }
     }
 
     @Override
@@ -280,6 +301,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.rowIdKey = in.readBoolean();
         defaultRowMethodName = SerializationUtils.readNullableString(in);
         defaultValueMapItem = in.readInt();
+        boolean hasResultRow = in.readBoolean();
+        if (hasResultRow)
+            resultRow = (ExecRow)in.readObject();
+        boolean hasDefaultRow = in.readBoolean();
+        if (hasDefaultRow)
+            defaultRow = (ExecRow)in.readObject();
     }
 
     @Override
