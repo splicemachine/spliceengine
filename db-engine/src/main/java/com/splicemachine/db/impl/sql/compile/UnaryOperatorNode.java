@@ -63,7 +63,7 @@ import java.util.List;
  *
  */
 
-public class UnaryOperatorNode extends GenericOperatorNode
+public class UnaryOperatorNode extends OperatorNode
 {
     /**
      * Operator type, only valid for XMLPARSE and XMLSERIALIZE.

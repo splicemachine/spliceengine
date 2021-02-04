@@ -57,7 +57,7 @@ import java.util.List;
  *
  */
 
-public class BinaryOperatorNode extends GenericOperatorNode
+public class BinaryOperatorNode extends OperatorNode
 {
     ValueNode    receiver; // used in generation
 

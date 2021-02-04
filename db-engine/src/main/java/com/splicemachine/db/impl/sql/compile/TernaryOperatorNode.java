@@ -61,7 +61,7 @@ import java.util.*;
  *
  */
 
-public class TernaryOperatorNode extends GenericOperatorNode
+public class TernaryOperatorNode extends OperatorNode
 {
     int            operatorType;
 
