@@ -359,6 +359,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private Object sparkContext = null;
     private int applicationJarsHashCode = 0;
     private SparkSQLUtils sparkSQLUtils;
+    private boolean hasJoinStrategyHint;
+    private boolean compilingStoredPreparedStatement;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -462,6 +464,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
+            setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -4137,5 +4140,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
         this.sparkSQLUtils = sparkSQLUtils;
+    }
+
+    @Override
+    public boolean hasJoinStrategyHint() {
+        return hasJoinStrategyHint;
+    }
+
+    @Override
+    public void setHasJoinStrategyHint(boolean newValue) {
+        hasJoinStrategyHint = newValue;
+    }
+
+    @Override
+    public boolean compilingStoredPreparedStatement() {
+        return compilingStoredPreparedStatement;
+    }
+
+    @Override
+    public void setCompilingStoredPreparedStatement(boolean newValue) {
+        compilingStoredPreparedStatement = newValue;
     }
 }

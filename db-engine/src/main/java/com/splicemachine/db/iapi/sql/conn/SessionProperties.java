@@ -55,7 +55,8 @@ public interface SessionProperties {
         TABLELIMITFOREXHAUSTIVESEARCH(11),
         DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
         USE_NATIVE_SPARK(13),
-        MINPLANTIMEOUT(14);
+        MINPLANTIMEOUT(14),
+        CURRENTFUNCTIONPATH(15);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
