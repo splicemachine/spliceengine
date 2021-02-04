@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -141,6 +142,13 @@ public class ResultColumn extends ValueNode
 
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
+
+    public ResultColumn() {}
+    public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
+                        ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        init(rowLocationColumnName, rowLocationColumnName);
+    }
 
     /**
      * Different types of initializer parameters indicate different

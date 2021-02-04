@@ -118,6 +118,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     protected TableName origTableName;
 
+    /** for resolving column references in MERGE statements in tough cases*/
+    private int _mergeTableID = ColumnReference.MERGE_UNKNOWN;
+
     /* semi-join related variables */
     public boolean existsTable;
     public boolean isNotExists;
@@ -1267,6 +1270,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public TableName getOrigTableName(){
         return this.origTableName;
     }
+
+    /** set the merge table id */
+    void    setMergeTableID( int mergeTableID ) { _mergeTableID = mergeTableID; }
+
+    /** get the merge table id */
+    int     getMergeTableID() { return _mergeTableID; }
 
     public ResultColumn getRowIdColumn(){
         return null;

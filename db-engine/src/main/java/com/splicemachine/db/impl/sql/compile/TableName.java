@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -51,6 +53,13 @@ public class TableName extends QueryTreeNode
 	String	tableName;
 	String	schemaName;
 	private boolean hasSchema;
+
+	public TableName() {}
+	public TableName(String schemaName, String tableName, ContextManager contextManager) {
+		setNodeType(C_NodeTypes.TABLE_NAME);
+		setContextManager(contextManager);
+		init(schemaName, tableName);
+	}
 
 	/**
 	 * Initializer for when you have both the table and schema names.
@@ -199,6 +208,23 @@ public class TableName extends QueryTreeNode
 		{
 			return fullTableName.equals(otherTableName.getFullTableName());
 		}
+	}
+
+	/** Clone this TableName */
+	public TableName cloneMe()
+	{
+		return new TableName( schemaName, tableName, getContextManager() );
+	}
+
+	/**
+	 *	Bind this TableName. This means filling in the schema name if it
+	 *	wasn't specified.
+	 *
+	 *	@exception StandardException		Thrown on error
+	 */
+	void bind() throws StandardException
+	{
+		schemaName = getSchemaDescriptor(schemaName).getSchemaName();
 	}
 
 	/**

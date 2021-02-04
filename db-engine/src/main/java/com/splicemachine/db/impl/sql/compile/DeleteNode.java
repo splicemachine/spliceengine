@@ -78,6 +78,7 @@ import java.util.Vector;
 
 public class DeleteNode extends DMLModStatementNode
 {
+    // todo: need adjustments with inMatchingClause()
     public static final String PIN = "pin";
     /* Column name for the RowLocation column in the ResultSet */
     // Splice fork: changed this to public, like it is in UpdateNode.
