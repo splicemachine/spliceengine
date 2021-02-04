@@ -14,26 +14,16 @@
 
 package com.splicemachine.hbase;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.backup.BackupMessage;
 import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.BackupDescriptor;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataPut;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.backup.BackupMessage.BackupRegionStatus;
 import org.apache.hadoop.conf.Configuration;
@@ -44,7 +34,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
