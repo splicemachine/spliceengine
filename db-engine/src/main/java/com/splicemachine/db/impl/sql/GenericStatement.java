@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -48,7 +47,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
-import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -68,8 +66,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -111,6 +107,10 @@ public class GenericStatement implements Statement{
         } else {
             this.statementTextTrimed = statementText;
         }
+    }
+
+    public String getStatementText() {
+        return statementTextTrimed;
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
@@ -501,7 +501,7 @@ public class GenericStatement implements Statement{
                 setSSQFlatteningForUpdateDisabled(lcc, cc);
                 setVarcharDB2CompatibilityMode(lcc, cc);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement,cacheMe);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -826,12 +826,13 @@ public class GenericStatement implements Statement{
      * 4. generate: Generate the actual byte code to be executed
      */
     private StatementNode fourPhasePrepare(LanguageConnectionContext lcc,
-                                  Object[] paramDefaults,
-                                  long[] timestamps,
-                                  boolean foundInCache,
-                                  CompilerContext cc,
-                                  StatementNode boundAndOptimizedStatement) throws StandardException{
-        lcc.logStartCompiling(getSource());
+                                           Object[] paramDefaults,
+                                           long[] timestamps,
+                                           boolean foundInCache,
+                                           CompilerContext cc,
+                                           StatementNode boundAndOptimizedStatement,
+                                           boolean cacheMe) throws StandardException{
+       lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
@@ -847,7 +848,7 @@ public class GenericStatement implements Statement{
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
 
-                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc);
+                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
                 lcc.beginNestedTransaction(true);
@@ -881,7 +882,8 @@ public class GenericStatement implements Statement{
 
     private void handleExplainNode(LanguageConnectionContext lcc,
                                    CompilerContext cc,
-                                   StatementNode statementNode) throws StandardException {
+                                   StatementNode statementNode,
+                                   boolean cacheMe) throws StandardException {
         if (!(statementNode instanceof ExplainNode)) {
             return;
         }
@@ -891,8 +893,41 @@ public class GenericStatement implements Statement{
         String explained = getExplainedStatement(statementText);
 
         GenericStatement queryNode = new GenericStatement(compilationSchema,explained, isForReadOnly /*this could be incorrect with updatableCursors*/, lcc);
-        lcc.lookupStatement(queryNode);
-        explainNode.setOptimizedPlanRoot(fourPhasePrepare(lcc, null, new long[4], false, cc, null));
+        queryNode.sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
+
+        if(cacheMe) {
+            // similar to ANALYSE statement, EXPLAIN statement will
+            // force invalidate the currently cached statement if it exists
+            // the assumption here is when running EXPLAIN, the user expects
+            // the plan to correspond to what the system currently thinks is
+            // the best plan, retrieving it from the cache instead could be
+            // misleading to say the least.
+            lcc.removeStatement(queryNode);
+
+            // add the statement to the statement cache
+            lcc.lookupStatement(queryNode);
+        }
+
+        // proceed to optimize and generate code for it
+        StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe);
+
+        // plug back the statement in the EXPLAIN plan, so we can proceed
+        // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
+        // will bypass the underlying node since it is already optimized
+        // and the workflow continues as usual with code generation and
+        // execution returning the expected output of EXPLAIN.
+        // by doing this we achieve two goals:
+        // 1. we cache exactly the same execution plan that EXPLAIN
+        //    reports back to the user.
+        // 2. we only optimize the underlying plan once, guaranteeing
+        //    a what-you-see-is-what-you-get next time we attempt to
+        //    run the same statement (as long as we don't run something
+        //    that invalidates the cache inbetween such as ANALYSE or
+        //    SYSCS_EMPTY_STATEMENT_CACHE.
+        explainNode.setOptimizedPlanRoot(optimizedPlan);
+
+        // calling bind will create new nested transaction.
+        lcc.commitNestedTransaction();
     }
 
     private StatementNode parse(LanguageConnectionContext lcc,
@@ -900,6 +935,10 @@ public class GenericStatement implements Statement{
                                 long[] timestamps,
                                 CompilerContext cc) throws StandardException{
         Parser p=cc.getParser();
+
+        if(preparedStmt == null) {
+            preparedStmt = (GenericStorablePreparedStatement)lcc.lookupStatement(this);
+        }
 
         cc.setCurrentDependent(preparedStmt);
 
@@ -921,13 +960,12 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary, CompilerContext cc) throws StandardException{
-
+                                 DataDictionary dataDictionary, CompilerContext cc, boolean cacheMe) throws StandardException{
+        // start a nested transaction -- all locks acquired by bind
+        // and optimize will be released when we end the nested
+        // transaction.
+        lcc.beginNestedTransaction(true);
         try{
-            // start a nested transaction -- all locks acquired by bind
-            // and optimize will be released when we end the nested
-            // transaction.
-            lcc.beginNestedTransaction(true);
             dumpParseTree(lcc,qt,false);
 
             qt.bindStatement();
@@ -941,7 +979,7 @@ public class GenericStatement implements Statement{
 
             maintainCacheEntry(lcc, qt, foundInCache);
 
-            handleExplainNode(lcc, cc, qt);
+            handleExplainNode(lcc, cc, qt, cacheMe);
 
             qt.optimizeStatement();
 
