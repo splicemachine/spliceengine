@@ -1521,6 +1521,14 @@ public interface LanguageConnectionContext extends Context {
 
     void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
 
+    boolean hasJoinStrategyHint();
+
+    void setHasJoinStrategyHint(boolean newValue);
+
+    boolean compilingStoredPreparedStatement();
+
+    void setCompilingStoredPreparedStatement(boolean newValue);
+
     /**
      * This method will remove a statement from the statement cache.
      * It should only be called if there is an exception preparing

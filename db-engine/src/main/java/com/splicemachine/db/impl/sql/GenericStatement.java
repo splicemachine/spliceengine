@@ -875,6 +875,7 @@ public class GenericStatement implements Statement{
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
+            lcc.setHasJoinStrategyHint(false);
             if (boundAndOptimizedStatement == null)
                 lcc.popCompilerContext(cc);
         }

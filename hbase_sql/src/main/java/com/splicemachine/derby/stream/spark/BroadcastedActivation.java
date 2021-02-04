@@ -98,9 +98,9 @@ public class BroadcastedActivation implements Externalizable {
         return baos.toByteArray();
     }
 
-    private boolean isSparkDriver() {
+    private boolean isOlapWorker() {
         String threadName = Thread.currentThread().getName();
-        return (threadName.startsWith("olap-worker-") || SpliceClient.isClient());
+        return threadName.startsWith("olap-worker-");
     }
 
     public ActivationHolderAndBytes readActivationHolder(){
@@ -111,7 +111,7 @@ public class BroadcastedActivation implements Externalizable {
 
             // Record the hash of user jars so we can detect later
             // if any were added during query execution.
-            if (isSparkDriver()) {
+            if (isOlapWorker()) {
                 JavaSparkContext jsc = SpliceSpark.getContext();
                 LanguageConnectionContext lccFromContext = QueryJob.getLCC();
 
