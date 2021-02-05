@@ -887,7 +887,7 @@ public class TimestampIT extends SpliceUnitTest {
     }
 
     private void withFormat(String format) throws Exception {
-        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', '%s' )", format));
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', '%s' )", format));
     }
 
     private void shouldEqual(String inputTimestamp, String expectedTimestamp) throws SQLException {
@@ -942,10 +942,10 @@ public class TimestampIT extends SpliceUnitTest {
         for(int i=0; i<100; i++)
         {
             boolean bOK;
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
+            methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
             bOK = "2020-12-06 21:50:13.1".length()
                     == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
+            methodWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
             bOK = bOK && "2020-12-06 21:50:13.123456789".length()
                     == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
 

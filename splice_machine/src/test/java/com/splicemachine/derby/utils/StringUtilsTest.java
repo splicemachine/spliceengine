@@ -16,7 +16,6 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.impl.ast.StringUtils;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import com.splicemachine.utils.DbEngineUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -84,17 +83,5 @@ public class StringUtilsTest {
         String test = "\\u0009hello goodbye";
         String result = StringUtils.parseControlCharacters(test);
         Assert.assertEquals("\thello goodbye",result);
-    }
-
-    @Test
-    public void testGetJavaRegexpFilterFromAsteriskFilter() {
-        Assert.assertEquals( "Hello.*World.*", DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter("Hello*World*") );
-        Assert.assertEquals( "H.llo.World", DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter("H?llo?World") );
-        Assert.assertEquals( "With things\\-to\\-\\(escape\\)",
-                DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(
-                "With things-to-(escape)"));
-        Assert.assertEquals( "With \\\\backslash\\\\ and dot\\.",
-                DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(
-                        "With \\backslash\\ and dot."));
     }
 }
