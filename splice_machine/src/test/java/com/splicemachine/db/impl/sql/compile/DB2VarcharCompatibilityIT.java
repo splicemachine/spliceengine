@@ -108,12 +108,12 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
-        spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
     }
 
     @AfterClass
     public static void exitDB2CompatibilityMode() throws Exception {
-        spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
     }
 
@@ -294,7 +294,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     @Test
     public void testInvalidateStoredStatements() throws Exception {
         // Turn off DB2 varchar compatibility mode.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         methodWatcher.executeUpdate("delete from t11");
         methodWatcher.executeUpdate("create trigger trig1\n" +
                                     "after insert on t1\n" +
@@ -306,7 +306,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("insert into t1 values (1, 'a     ')");
 
         // Turn on DB2 varchar compatibility mode.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
 
         // The following statement should cause all triggers to be recompiled
         // the next time they are fired.
@@ -334,7 +334,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
         methodWatcher.executeUpdate("drop trigger trig1");
         methodWatcher.executeUpdate("delete from t11");
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
 
         // Delete the rows we created so we don't impact other tests.
         methodWatcher.executeUpdate("delete from t1 where b = 'a     '");
@@ -342,7 +342,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 		methodWatcher.executeUpdate("insert into t11 select * from t1");
 
         // Restore the flag setting to the value when this test started.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
     }
 
     @Test
