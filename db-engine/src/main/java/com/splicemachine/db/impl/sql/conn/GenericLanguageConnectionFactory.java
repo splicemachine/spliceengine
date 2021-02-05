@@ -353,9 +353,9 @@ public class GenericLanguageConnectionFactory
         else if (key.equals(Property.DEFAULT_CONNECTION_MODE_PROPERTY))
         {
             String value_s = (String)value;
-            if (!StringUtil.SQLEqualsIgnoreCase(value_s, Property.NO_ACCESS) &&
-                !StringUtil.SQLEqualsIgnoreCase(value_s, Property.READ_ONLY_ACCESS) &&
-                !StringUtil.SQLEqualsIgnoreCase(value_s, Property.FULL_ACCESS))
+            if (!StringUtil.SQLEqualsIgnoreCase(value_s, PropertyHelper.NO_ACCESS) &&
+                !StringUtil.SQLEqualsIgnoreCase(value_s, PropertyHelper.READ_ONLY_ACCESS) &&
+                !StringUtil.SQLEqualsIgnoreCase(value_s, PropertyHelper.FULL_ACCESS))
                 throw StandardException.newException(SQLState.AUTH_INVALID_AUTHORIZATION_PROPERTY, key, value_s);
 
             return true;

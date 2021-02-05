@@ -25,6 +25,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>utilities</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>

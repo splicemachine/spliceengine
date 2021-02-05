@@ -262,20 +262,17 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
         if(operator.equals("+")) {
             functionName = "TIMEZONE_ADD";
         }
-        MethodCallNode methodNode = (MethodCallNode) getNodeFactory().getNode(
-                C_NodeTypes.STATIC_METHOD_CALL_NODE,
+
+        MethodCallNode methodNode = new StaticMethodCallNode(
                 functionName,
                 "com.splicemachine.derby.utils.SpliceDateFunctions",
-                getContextManager()
-        );
+                getContextManager());
         Vector<ValueNode> parameterList = new Vector<>();
         parameterList.addElement(getLeftOperand());
         parameterList.addElement(getRightOperand());
         methodNode.addParms(parameterList);
-        return ((ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                methodNode,
-                getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+        return new JavaToSQLValueNode(methodNode,
+                                      getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
     }
 
     private ValueNode bindTimeSpanOperation(FromList fromList,
