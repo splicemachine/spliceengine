@@ -875,6 +875,8 @@ public class BinaryOperatorNode extends OperatorNode
      * @return True if it is commutative, false otherwise.
      */
     public boolean isCommutative() {
+        if (methodName == null)
+            return false;
         // Only methodName is always set for all kinds of binary operators.
         // Do not use operator or operatorType here.
         switch (methodName) {
@@ -909,14 +911,5 @@ public class BinaryOperatorNode extends OperatorNode
 
     public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
     public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
-
-    @Override
-    public int getTableNumber() {
-        return operands.stream()
-                .filter(op -> op != null && op.getTableNumber() != -1)
-                .findFirst()
-                .map(ValueNode::getTableNumber)
-                .orElse(-1);
-    }
 }
 

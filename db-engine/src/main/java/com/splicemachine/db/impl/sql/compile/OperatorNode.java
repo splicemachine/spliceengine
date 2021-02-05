@@ -398,4 +398,13 @@ public abstract class OperatorNode extends ValueNode
         // generated for the operator.
         mb.getField(sqlXmlUtil);
     }
+
+    @Override
+    public int getTableNumber() {
+        return operands.stream()
+                .filter(op -> op != null && op.getTableNumber() != -1)
+                .findFirst()
+                .map(ValueNode::getTableNumber)
+                .orElse(-1);
+    }
 }
