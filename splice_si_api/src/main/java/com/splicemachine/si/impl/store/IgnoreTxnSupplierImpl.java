@@ -37,7 +37,7 @@ import java.util.function.BiPredicate;
  */
 public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
     private static final Logger LOG = Logger.getLogger(IgnoreTxnSupplier.class);
-    private Set<Pair<Long, Long>> cache;
+    private volatile Set<Pair<Long, Long>> cache;
     private EntryDecoder entryDecoder;
     final private PartitionFactory partitionFactory;
     final private TxnOperationFactory txnOperationFactory;
@@ -57,13 +57,11 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
 
         init();
 
-        synchronized (this) {
-            if (!cache.isEmpty()) {
-                for (Pair<Long, Long> range : cache) {
-                    if (txnId > range.getFirst() && txnId < range.getSecond()) {
-                        ignore = true;
-                        break;
-                    }
+        if (!cache.isEmpty()) {
+            for (Pair<Long, Long> range : cache) {
+                if (txnId > range.getFirst() && txnId < range.getSecond()) {
+                    ignore = true;
+                    break;
                 }
             }
         }
@@ -72,8 +70,8 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
     }
 
 
-    private void populateIgnoreTxnCache() throws IOException {
-
+    private Set<Pair<Long, Long>> populateIgnoreTxnCache() throws IOException {
+        Set<Pair<Long, Long>> newCache = new HashSet<>();
         PartitionAdmin admin = partitionFactory.getAdmin();
         ignoreTxnTableExists = admin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
         if (ignoreTxnTableExists) {
@@ -91,15 +89,17 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
                         MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                         long startTxnId = decoder.decodeNextLong();
                         long endTxnId = decoder.decodeNextLong();
-                        cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+                        newCache.add(new Pair<Long, Long>(startTxnId, endTxnId));
                     }
                 }
             }
-            cache = combineOverlappingRanges(cache);
+            newCache = combineOverlappingRanges(newCache);
         }
+        return newCache;
     }
 
     static Set<Pair<Long, Long>> combineOverlappingRanges(Set<Pair<Long, Long>> cache) {
+        LOG.info("Starting combineOverlappingRanges");
         BiPredicate<Pair<Long, Long>, Pair<Long, Long>> overlapping = (a, b) ->
             (a.getFirst() < b.getFirst() && b.getFirst() < a.getSecond()) ||
             (a.getFirst() < b.getSecond() && b.getSecond() < a.getSecond());
@@ -123,6 +123,7 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
             ranges.removeAll( discard );
             discard.clear();
         }
+        LOG.info("Completed combineOverlappingRanges");
         return newCache;
     }
 
@@ -135,7 +136,7 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
         if (!initialized) {
             synchronized (this) {
                 if (!initialized) {
-                    populateIgnoreTxnCache();
+                    cache = populateIgnoreTxnCache();
                     initialized = true;
                 }
             }
@@ -145,9 +146,8 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
     @Override
     public void refresh() {
         synchronized (this) {
-            cache.clear();
             try {
-                populateIgnoreTxnCache();
+                cache = populateIgnoreTxnCache();
             } catch (IOException e) {
                 LOG.error("Couldn't populate Ignore Cache", e);
                 // Force restart
