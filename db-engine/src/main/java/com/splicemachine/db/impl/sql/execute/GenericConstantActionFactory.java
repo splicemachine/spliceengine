@@ -107,7 +107,7 @@ public abstract class GenericConstantActionFactory {
      *    @param tableConglomerateId    heap conglomerate id of table
      *  @param tableType    Type of table (e.g., BASE).
      *  @param columnInfo    Information on all the columns in the table.
-     *  @param constraintActions    ConstraintConstantAction[] for constraints
+     *  @param constraintActions    ConstantAction[] for constraints
      * @param lockGranularity    The lock granularity.
      *    @param compressTable    Whether or not this is a compress table
      *    @param behavior            drop behavior of dropping column
@@ -890,9 +890,4 @@ public abstract class GenericConstantActionFactory {
     public abstract ConstantAction getRevokeRoleConstantAction(List roleNames, List grantees);
 
     public abstract ConstantAction[] createConstraintConstantActionArray(int size);
-    
-    public boolean primaryKeyConstantActionCheck(ConstantAction constantAction) {
-        return (constantAction instanceof ConstraintConstantAction) && ((ConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;
-    }
-    
 }
