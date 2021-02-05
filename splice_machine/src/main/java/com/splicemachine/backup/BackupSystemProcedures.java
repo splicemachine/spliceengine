@@ -35,6 +35,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
@@ -684,7 +685,7 @@ public class BackupSystemProcedures {
             changeId = DDLUtils.notifyMetadataChange(change);
             DDLUtils.finishMetadataChange(changeId);
 
-            EngineDriver.driver().manager().getUpgradeManager().restartOlapServer();
+            UpgradeSystemProcedures.restartOlapServer();
 
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
         } catch (Throwable t) {
