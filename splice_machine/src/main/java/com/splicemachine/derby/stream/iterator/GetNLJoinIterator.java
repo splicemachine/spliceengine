@@ -96,7 +96,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     protected void cleanup() {
         if (cm != null) {
             if (lccPushed)
-                cm.popContext();
+                cm.popContext(ctx.getActivation().getLanguageConnectionContext());
             if (newContextManager)
                 ContextService.getFactory().resetCurrentContextManager(cm);
             cm = null;

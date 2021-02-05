@@ -371,20 +371,50 @@ public class DataDictionaryCache {
         this.conglomerateCache = conglomerateCache;
     }
 
+    private Conglomerate txnAwareConglomerateCacheFind(TransactionController xactMgr, Long conglomId) throws StandardException {
+        if (dd.useTxnAwareCache()) {
+            long txnId = xactMgr.getActiveStateTxId();
+            if (txnId == -1)
+                return null;
+            return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
+        }
+        return null;
+    }
+
+    private Conglomerate localConglomerateCacheFind(Long conglomId) {
+        if (dd.canUseLocalConglomerateCache()) {
+            LanguageConnectionContext lcc =
+                (LanguageConnectionContext)ContextService.getCurrentContextManager().
+                                    getContext(LanguageConnectionContext.CONTEXT_ID);
+            if (lcc == null)
+                return null;
+            return lcc.localConglomerateCacheFind(conglomId);
+        }
+        return null;
+    }
+
+    private void localConglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) {
+        if (dd.canUseLocalConglomerateCache()) {
+            LanguageConnectionContext lcc =
+                (LanguageConnectionContext)ContextService.getCurrentContextManager().
+                                    getContext(LanguageConnectionContext.CONTEXT_ID);
+            if (lcc != null)
+                lcc.localConglomerateCacheAdd(conglomId, conglomerate);
+        }
+    }
+
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
+        boolean found;
         if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER) {
             // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
-            if (dd.useTxnAwareCache()) {
-                long txnId = xactMgr.getActiveStateTxId();
-                if (txnId == -1)
-                    return null;
-                return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
-            }
-            return null;
+            return localConglomerateCacheFind(conglomId);
         }
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
-        return conglomerateCache.getIfPresent(conglomId);
+        Conglomerate foundConglomerate = conglomerateCache.getIfPresent(conglomId);
+        if (foundConglomerate != null)
+            return foundConglomerate;
+        return localConglomerateCacheFind(conglomId);
     }
 
     public Conglomerate conglomerateCacheFind(Long conglomId) throws StandardException {
@@ -397,7 +427,8 @@ public class DataDictionaryCache {
                 long txnId = xactMgr.getActiveStateTxId();
                 if (txnId == -1)
                     return;
-                txnAwareConglomerateCacheAdd(new Pair(txnId, conglomId), conglomerate);
+                localConglomerateCacheAdd(conglomId, conglomerate);
+                // txnAwareConglomerateCacheAdd(new Pair(txnId, conglomId), conglomerate);  // msirek-temp
             }
 
             return;

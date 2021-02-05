@@ -165,17 +165,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         }
         if (conglomerate != null)
             return conglomerate;
-        if (conglomid>= DataDictionary.FIRST_USER_TABLE_NUMBER && dd != null && xact_mgr != null) {
-            if (database.getDataDictionary().useTxnAwareCache()) {
-                long txnId = xact_mgr.getActiveStateTxId();
-                if (txnId != -1)
-                    conglomerate = dd.getDataDictionaryCache().
-                        txnAwareConglomerateCacheFind(new Pair(txnId, conglomid));
-                if (conglomerate != null)
-                    return conglomerate;
-            }
-        }
-
         conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, conglomid);
         if (conglomerate!=null && dd !=null)
             dd.getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate,xact_mgr);

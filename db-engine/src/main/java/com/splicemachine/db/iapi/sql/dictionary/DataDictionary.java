@@ -2200,6 +2200,8 @@ public interface DataDictionary{
 
     boolean canUseSPSCache() throws StandardException;
 
+    boolean canUseLocalConglomerateCache();
+
     void addBackup(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteBackup(long backupId, TransactionController tc) throws StandardException;

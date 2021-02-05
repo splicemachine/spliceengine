@@ -233,7 +233,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             if (isOpen) {
-                if (!activation.isSubStatement())
+                if (!activation.isRowTrigger())
                     logExecutionEnd();
             }
         }
@@ -320,7 +320,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
             String intTkn = activation.getLanguageConnectionContext().getRdbIntTkn();
             uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType(), intTkn);
-            if (!activation.isSubStatement())
+            if (!activation.isRowTrigger())
                 logExecutionStart(dsp);
             openCore();
         } catch (Exception e) {

@@ -103,6 +103,7 @@ final public class GenericActivationHolder implements Activation
     private final LanguageConnectionContext lcc;
 
     private boolean isSubStatement = false;
+    private boolean isRowTrigger = false;
 
     /**
      * Constructor for an ActivationHolder
@@ -872,8 +873,17 @@ final public class GenericActivationHolder implements Activation
 	public boolean isSubStatement() { return isSubStatement; }
 
 	@Override
-        public void setSubStatement(boolean newValue) {
+    public void setSubStatement(boolean newValue) {
 	    isSubStatement = newValue;
 	    ac.setSubStatement(newValue);
+	}
+
+	@Override
+	public boolean isRowTrigger() { return isRowTrigger; }
+
+	@Override
+    public void setIsRowTrigger(boolean newValue) {
+	    isRowTrigger = newValue;
+	    ac.setIsRowTrigger(newValue);
 	}
 }

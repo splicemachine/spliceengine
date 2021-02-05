@@ -205,7 +205,7 @@ public class ContextManager
 	 * (already removed), no action is taken.
 	 * @param theContext the Context object to remove.
 	 */
-	void popContext(Context theContext)
+	public void popContext(Context theContext)
 	{
 		checkInterrupt();
 		if (SanityManager.DEBUG)

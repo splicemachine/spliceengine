@@ -112,7 +112,7 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {
             whenClauseRetrieved = true;
-            whenClause = triggerd.getWhenClauseSPS(lcc, tec.getSpsCache());
+            whenClause = triggerd.getWhenClauseSPS(lcc, lcc.getSpsCache());
         }
         return whenClause;
     }
@@ -120,7 +120,7 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor getAction(int index) throws StandardException {
         if (!actionRetrievedList.get(index)) {
             actionRetrievedList.set(index, true);
-            actionList.set(index, triggerd.getActionSPS(lcc, index, tec.getSpsCache()));
+            actionList.set(index, triggerd.getActionSPS(lcc, index, lcc.getSpsCache()));
         }
         return actionList.get(index);
     }
@@ -298,6 +298,7 @@ public abstract class GenericTriggerExecutor {
                          ExecPreparedStatement ps,
                          int index) throws StandardException {
         boolean isWhen = index == -1;
+        boolean isRowTrigger = this instanceof RowTriggerExecutor;
 
         // The SPS activation will set its parent activation from
         // the statement context. Reset it to the original parent
@@ -316,6 +317,8 @@ public abstract class GenericTriggerExecutor {
         // it should be valid since we've just prepared for it
         ps.setValid();
         Activation spsActivation = ps.getActivation(lcc, false);
+        if (isRowTrigger)
+            spsActivation.setIsRowTrigger(true);
 
         /*
          * Normally, we want getSource() for an sps invocation

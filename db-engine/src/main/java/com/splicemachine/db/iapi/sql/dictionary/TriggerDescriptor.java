@@ -183,8 +183,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     public static boolean needsSecondDDCacheUpdate(LanguageConnectionContext lcc) {
         if (lcc == null)
             return false;
-        return lcc !=
-           ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        LanguageConnectionContext contextLCC =
+            (LanguageConnectionContext)ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        return contextLCC != null && lcc != contextLCC;
     }
     
     /**
@@ -328,6 +329,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         DataDictionary dd = getDataDictionary();
         UUID spsId = isWhenClause ? whenSPSId : actionSPSIdList.get(index);
         String originalSQL = isWhenClause ? whenClauseText : triggerDefinitionList.get(index);
+        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
         //bug 4821 - do the sysstatement look up in a nested readonly
         //transaction rather than in the user transaction. Because of
@@ -346,17 +348,17 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         if (sps == null) {
             sps = dd.getSPSDescriptor(spsId);
             if (sps != null) {
-                if (!sps.isValid()) {
-                    sps.getPreparedStatement(true);  // msirek-temp
-                    dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
-                    if (needsSecondDDCacheUpdate(lcc))
-                        lcc.getDataDictionary().getDataDictionaryCache().
-                            storedPreparedStatementCacheAdd(sps);
-                }
+//                if (!sps.isValid()) {
+//                    sps.getPreparedStatement(true);  // msirek-temp
+//                    dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+//                    if (needsSecondDDCacheUpdate(lcc))
+//                        lcc.getDataDictionary().getDataDictionaryCache().
+//                            storedPreparedStatementCacheAdd(sps);
+//                }  // msirek-temp
             }
-            if (localCache != null && sps != null)
-                localCache.put(spsId, sps);
         }
+        boolean needsSpecialRecompile =
+            (!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause;
 
         assert sps != null : "sps should not be null";
 
@@ -374,9 +376,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         //To fix varchar(30) in trigger action sql to varchar(64), we need
         //to regenerate the trigger action sql. This new trigger action sql
         //will then get updated into SYSSTATEMENTS table.
-        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
-        if ((!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
+        if (needsSpecialRecompile) {
             SchemaDescriptor compSchema = dd.getSchemaDescriptor(triggerSchemaId, null);
             CompilerContext newCC = lcc.pushCompilerContext(compSchema);
             Parser pa = newCC.getParser();
@@ -417,8 +418,37 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
         }
+        // Force recompile before execution
+        if (!sps.isValid() && isOlapServer()) {
+            sps.getPreparedStatement(true);  // msirek-temp
 
+        }  // msirek-temp
+        dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+        boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
+        LanguageConnectionContext contextLCC = null;
+        if (needsSecondDDCacheUpdate) {
+            contextLCC =
+                (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+            if (contextLCC != null)
+                contextLCC.getDataDictionary().getDataDictionaryCache().
+                    storedPreparedStatementCacheAdd(sps);
+        }
+        if (sps != null) {
+            if (localCache != null)
+                localCache.put(spsId, sps);
+            if (needsSecondDDCacheUpdate) {
+                if (contextLCC != null) {
+                    ManagedCache<UUID, SPSDescriptor> alternateLocalCache = contextLCC.getSpsCache();
+                    if (alternateLocalCache != null)
+                        alternateLocalCache.put(spsId, sps);
+                }
+            }
+        }
         return sps;
+    }
+
+    private static boolean isOlapServer() {
+        return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
     }
 
     public int getNumBaseTableColumns() {

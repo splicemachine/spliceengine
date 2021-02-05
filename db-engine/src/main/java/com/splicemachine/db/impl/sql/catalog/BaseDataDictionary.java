@@ -227,4 +227,9 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	public boolean canUseSPSCache() throws StandardException{
 		return canWriteCache(null);
 	}
+
+	@Override
+	public boolean canUseLocalConglomerateCache() {
+		return false;
+	}
 }

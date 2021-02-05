@@ -67,6 +67,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
@@ -75,6 +76,7 @@ import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -90,10 +92,12 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
  * <p/>
  * The generic impl does not provide statement caching.
  */
-public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext{
+public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext {
 
     private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
-    private static Logger LOG=Logger.getLogger(GenericLanguageConnectionContext.class);
+    private static Logger LOG = Logger.getLogger(GenericLanguageConnectionContext.class);
+    private static final int LOCAL_MANAGED_CACHE_MAX_SIZE = 256;
+
 
     private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
         @Override
@@ -116,16 +120,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     };
     // make sure these are not zeros
-    private final static int NON_XA=0;
-    private final static int XA_ONE_PHASE=1;
-    private final static int XA_TWO_PHASE=2;
+    private final static int NON_XA = 0;
+    private final static int XA_ONE_PHASE = 1;
+    private final static int XA_TWO_PHASE = 2;
 
     /*
         fields
      */
 
     private final ArrayList<Activation> acts;
-    private volatile boolean unusedActs=false;
+    private volatile boolean unusedActs = false;
     /**
      * The maximum size of acts since the last time it was trimmed. Used to
      * determine whether acts should be trimmed to reclaim space.
@@ -140,7 +144,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     //The currentSavepointLevel is used to provide the rollback behavior of 
     //temporary tables.  At any point, this variable has the total number of 
     //savepoints defined for the transaction.
-    private int currentSavepointLevel=0;
+    private int currentSavepointLevel = 0;
 
     protected long nextCursorId;
 
@@ -159,6 +163,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String rdbIntTkn;
 
     private Object lastQueryTree; // for debugging
+    private ManagedCache<UUID, SPSDescriptor> spsCache = null;
+    private ManagedCache<Long, Conglomerate> conglomerateCache = null;
 
     /**
      * The transaction to use within this language connection context.  It may
@@ -176,7 +182,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * with a nested transaction context.
      *
      */
-    private final List<TransactionController> nestedTransactions=new LinkedList<>();
+    private final List<TransactionController> nestedTransactions = new LinkedList<>();
 
     /**
      * If non-null indicates that a read-only nested
@@ -206,7 +212,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
 
-    /* 
+    /*
      * A statement context is "pushed" and "popped" at the beginning and
      * end of every statement so that only that statement is cleaned up
      * on a Statement Exception.  As a performance optimization, we only push
@@ -215,12 +221,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * invocation, though we still push and pop it as needed.  All other
      * statement contexts will allocated and pushed and popped on demand.
      */
-    private final StatementContext[] statementContexts=new StatementContext[2];
+    private final StatementContext[] statementContexts = new StatementContext[2];
     private int statementDepth;
-    private int outermostTrigger=-1;
+    private int outermostTrigger = -1;
 
     protected Authorizer authorizer;
-    protected String userName=null; //The name the user connects with.
+    protected String userName = null; //The name the user connects with.
     protected List<String> groupuserlist = null; // name of ldap user group
 
     //May still be quoted.
@@ -240,7 +246,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Used to hold the computed value of the initial default schema,
      * cf logic in initDefaultSchemaDescriptor.
      */
-    private SchemaDescriptor cachedInitialDefaultSchemaDescr=null;
+    private SchemaDescriptor cachedInitialDefaultSchemaDescr = null;
 
     /**
      * Used to hold the defaultRoles
@@ -248,10 +254,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private List<String> defaultRoles = null;
 
     // RESOLVE - How do we want to set the default.
-    private int defaultIsolationLevel=ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
-    protected int isolationLevel=defaultIsolationLevel;
+    private int defaultIsolationLevel = ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
+    protected int isolationLevel = defaultIsolationLevel;
 
-    private boolean isolationLevelExplicitlySet=false;
+    private boolean isolationLevelExplicitlySet = false;
     // Isolation level can be changed using JDBC api Connection.setTransactionIsolation
     // or it can be changed using SQL "set current isolation = NEWLEVEL".
     // 
@@ -267,12 +273,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     // then BrokeredConnection's isolation level state will be brought upto date
     // with Real Connection's isolation level and this flag will be set to false
     // after that.
-    private boolean isolationLevelSetUsingSQLorJDBC=false;
+    private boolean isolationLevelSetUsingSQLorJDBC = false;
 
     // isolation level to when preparing statements.
     // if unspecified, the statement won't be prepared with a specific 
     // scan isolationlevel
-    protected int prepareIsolationLevel=ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
+    protected int prepareIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
 
     // Whether or not to write executing statement info to db2j.log
     private boolean logStatementText;
@@ -335,7 +341,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /**
      * If in restore mode, statements can't be executed
      */
-    private boolean restoreMode=false;
+    private boolean restoreMode = false;
 
     /**
      * Allows fallback to distributed mode when we read too many rows on control mode
@@ -362,45 +368,55 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     /* constructor */
     public GenericLanguageConnectionContext(
-            ContextManager cm,
-            TransactionController tranCtrl,
-            LanguageFactory lf,
-            LanguageConnectionFactory lcf,
-            InternalDatabase db,
-            String userName,
-            List<String> groupuserlist,
-            int instanceNumber,
-            String drdaID,
-            String dbname,
-            String rdbIntTkn,
-            DataSetProcessorType type,
-            SparkExecutionType sparkExecutionType,
-            boolean skipStats,
-            double defaultSelectivityFactor,
-            String ipAddress,
-            String defaultSchema,
-            Properties connectionProperties
-    ) throws StandardException{
-        super(cm,ContextId.LANG_CONNECTION);
-        acts=new ArrayList<>();
-        tran=tranCtrl;
+        ContextManager cm,
+        TransactionController tranCtrl,
+        LanguageFactory lf,
+        LanguageConnectionFactory lcf,
+        InternalDatabase db,
+        String userName,
+        List<String> groupuserlist,
+        int instanceNumber,
+        String drdaID,
+        String dbname,
+        String rdbIntTkn,
+        DataSetProcessorType type,
+        SparkExecutionType sparkExecutionType,
+        boolean skipStats,
+        double defaultSelectivityFactor,
+        String ipAddress,
+        String defaultSchema,
+        ManagedCache<UUID, SPSDescriptor> spsCache,
+        List<String> defaultRoles,
+        SchemaDescriptor initialDefaultSchemaDescriptor,
+        ManagedCache<Long, Conglomerate> conglomerateCache,
+        Properties connectionProperties
+    ) throws StandardException {
+        super(cm, ContextId.LANG_CONNECTION);
+        acts = new ArrayList<>();
+        tran = tranCtrl;
         this.type = type;
         this.sparkExecutionType = sparkExecutionType;
         this.ipAddress = ipAddress;
-        dataFactory=lcf.getDataValueFactory();
-        tcf=lcf.getTypeCompilerFactory();
-        of=lcf.getOptimizerFactory();
-        langFactory=lf;
-        connFactory=lcf;
-        this.db=db;
-        this.userName=userName;
-        this.groupuserlist=groupuserlist;
-        this.instanceNumber=instanceNumber;
-        this.drdaID=drdaID;
-        this.dbname=dbname;
-        this.rdbIntTkn=rdbIntTkn;
+        dataFactory = lcf.getDataValueFactory();
+        tcf = lcf.getTypeCompilerFactory();
+        of = lcf.getOptimizerFactory();
+        langFactory = lf;
+        connFactory = lcf;
+        this.db = db;
+        this.userName = userName;
+        this.groupuserlist = groupuserlist;
+        this.instanceNumber = instanceNumber;
+        this.drdaID = drdaID;
+        this.dbname = dbname;
+        this.rdbIntTkn = rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
+        this.spsCache = spsCache;
+        this.conglomerateCache = conglomerateCache;
+        this.defaultRoles = defaultRoles;
+        this.cachedInitialDefaultSchemaDescr = initialDefaultSchemaDescriptor;
+        if (initialDefaultSchemaDescriptor != null)
+            initialDefaultSchemaDescriptor.setDataDictionary(getDataDictionary());
 
         if (defaultSchema != null) {
             if (defaultSchema.charAt(0) == '"') {
@@ -414,8 +430,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         /* Find out whether or not to log info on executing statements to error log
          */
-        String logStatementProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logStatementText");
-        logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty);
+        String logStatementProperty = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.logStatementText");
+        logStatementText = logStatementProperty == null || Boolean.valueOf(logStatementProperty);
         // log statements by default
         if (!logStatementText) {
             stmtLogger.setLevel(Level.OFF);
@@ -423,10 +439,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.maxStatementLogLen");
         maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.parseInt
-                (maxStatementLogLenStr);
+            (maxStatementLogLenStr);
 
-        String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
-        logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
+        String logQueryPlanProperty = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.logQueryPlan");
+        logQueryPlan = Boolean.valueOf(logQueryPlanProperty);
 
         try {
             String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
@@ -439,17 +455,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         try {
             String nljPredPushDownString =
-                    PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
+                PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
             if (nljPredPushDownString != null)
                 nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
         } catch (Exception e) {
             // no op, use default value 6
         }
 
-        lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
-        stmtValidators=new ArrayList<>();
-        triggerTables=new ArrayList<>();
-        limiter=ControlExecutionLimiter.NO_OP;
+        lockEscalationThreshold = Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
+        stmtValidators = new ArrayList<>();
+        triggerTables = new ArrayList<>();
+        limiter = ControlExecutionLimiter.NO_OP;
         sessionProperties = new SessionPropertiesImpl();
         // transfer setting of skipStats and defaultSelectivityFactor from jdbc connnection string to sessionProperties
         if (skipStats)
@@ -472,7 +488,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
             String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
             if (disableNestedLoopJoinPredicatePushDown != null &&
-                    disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
+                disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
             }
         }
@@ -505,33 +521,34 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * executing with definer's rights), the sessionUser is constant in a
      * session.
      */
-    private String sessionUser=null;
+    private String sessionUser = null;
 
     @Override
-    public void initialize() throws StandardException{
-        interruptedException=null;
-        sessionUser=IdUtil.getUserAuthorizationId(userName);
+    public void initialize() throws StandardException {
+        interruptedException = null;
+        sessionUser = IdUtil.getUserAuthorizationId(userName);
         /*
-        ** Set the authorization id.  User shouldn't
-        ** be null or else we are going to blow up trying
-        ** to create a schema for this user.
-        */
-        if(SanityManager.DEBUG){
-            if(getSessionUserId()==null){
-                SanityManager.THROWASSERT("User name is null,"+
-                        " check the connection manager to make sure it is set"+
-                        " reasonably");
+         ** Set the authorization id.  User shouldn't
+         ** be null or else we are going to blow up trying
+         ** to create a schema for this user.
+         */
+        if (SanityManager.DEBUG) {
+            if (getSessionUserId() == null) {
+                SanityManager.THROWASSERT("User name is null," +
+                    " check the connection manager to make sure it is set" +
+                    " reasonably");
             }
         }
-        referencedColumnMap=new WeakHashMap<>();
-        defaultRoles = initDefaultRoleSet();
-        SchemaDescriptor sd=initDefaultSchemaDescriptor();
+        referencedColumnMap = new WeakHashMap<>();
+        if (defaultRoles == null)
+            defaultRoles = initDefaultRoleSet();
+        SchemaDescriptor sd = initDefaultSchemaDescriptor();
         /*
          * It is possible for Splice's startup sequence to end up in this code on the same thread
          * as a connection. When this happens, we need to ensure that we do not destroy the schema
          * set by the user by default (if such a schema is set already).
          */
-        if(getDefaultSchema()==null)
+        if (getDefaultSchema() == null)
             setDefaultSchema(sd);
     }
 
@@ -539,24 +556,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Initialize the LCC without the extraneous SQL Calls.
      */
     @Override
-    public void initializeSplice(String sessionUser,SchemaDescriptor defaultSchemaDescriptor) throws StandardException{
-        interruptedException=null;
-        this.sessionUser=sessionUser;
+    public void initializeSplice(String sessionUser, SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
+        interruptedException = null;
+        this.sessionUser = sessionUser;
 
-            /*
-            ** Set the authorization id.  User shouldn't
-            ** be null or else we are going to blow up trying
-            ** to create a schema for this user.
-            */
-        if(SanityManager.DEBUG){
-            if(getSessionUserId()==null){
-                SanityManager.THROWASSERT("User name is null,"+
-                        " check the connection manager to make sure it is set"+
-                        " reasonably");
+        /*
+         ** Set the authorization id.  User shouldn't
+         ** be null or else we are going to blow up trying
+         ** to create a schema for this user.
+         */
+        if (SanityManager.DEBUG) {
+            if (getSessionUserId() == null) {
+                SanityManager.THROWASSERT("User name is null," +
+                    " check the connection manager to make sure it is set" +
+                    " reasonably");
             }
         }
         setDefaultSchema(defaultSchemaDescriptor);
-        referencedColumnMap=new WeakHashMap<>();
+        referencedColumnMap = new WeakHashMap<>();
     }
 
 
@@ -566,34 +583,34 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return computed initial default schema value for this session
      * @throws StandardException
      */
-    protected SchemaDescriptor initDefaultSchemaDescriptor() throws StandardException{
+    protected SchemaDescriptor initDefaultSchemaDescriptor() throws StandardException {
         /*
-        ** - If the database supports schemas and a schema with the
-        ** same name as the user's name exists (has been created using
-        ** create schema already) the database will set the users
-        ** default schema to the the schema with the same name as the
-        ** user.
-        ** - Else Set the default schema to SPLICE.
-        */
-        if(cachedInitialDefaultSchemaDescr==null){
-            DataDictionary dd=getDataDictionary();
+         ** - If the database supports schemas and a schema with the
+         ** same name as the user's name exists (has been created using
+         ** create schema already) the database will set the users
+         ** default schema to the the schema with the same name as the
+         ** user.
+         ** - Else Set the default schema to SPLICE.
+         */
+        if (cachedInitialDefaultSchemaDescr == null) {
+            DataDictionary dd = getDataDictionary();
             SchemaDescriptor sd;
             if (defaultSchema != null) {
                 sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
             } else {
                 sd = dd.getSchemaDescriptor(
-                        getSessionUserId(), getTransactionCompile(), false);
+                    getSessionUserId(), getTransactionCompile(), false);
             }
-            if(sd==null){
-                sd=new SchemaDescriptor(
-                        dd,
-                        getSessionUserId(),
-                        getSessionUserId(),
-                        null,
-                        false);
+            if (sd == null) {
+                sd = new SchemaDescriptor(
+                    dd,
+                    getSessionUserId(),
+                    getSessionUserId(),
+                    null,
+                    false);
             }
 
-            cachedInitialDefaultSchemaDescr=sd;
+            cachedInitialDefaultSchemaDescr = sd;
         }
         return cachedInitialDefaultSchemaDescr;
     }
@@ -604,20 +621,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return computed initial default roles for this session
      * @throws StandardException
      */
-    protected List<String> initDefaultRoleSet() throws StandardException{
-        if(defaultRoles==null){
-            DataDictionary dd=getDataDictionary();
+    protected List<String> initDefaultRoleSet() throws StandardException {
+        if (defaultRoles == null) {
+            DataDictionary dd = getDataDictionary();
             defaultRoles = new ArrayList<>();
-            List<String>  userRoles =
-                    dd.getDefaultRoles(getSessionUserId(),getTransactionCompile());
+            List<String> userRoles =
+                dd.getDefaultRoles(getSessionUserId(), getTransactionCompile());
             defaultRoles.addAll(userRoles);
             List<String> publicRoles =
-                    dd.getDefaultRoles("PUBLIC", getTransactionCompile());
+                dd.getDefaultRoles("PUBLIC", getTransactionCompile());
             defaultRoles.addAll(publicRoles);
             if (groupuserlist != null) {
                 for (String groupuser : groupuserlist) {
                     List<String> groupRoles =
-                            dd.getDefaultRoles(groupuser, getTransactionCompile());
+                        dd.getDefaultRoles(groupuser, getTransactionCompile());
                     defaultRoles.addAll(groupRoles);
                 }
             }
@@ -626,15 +643,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return defaultRoles;
     }
 
-    private List<String> getDefaultRoles() {
+    public List<String> getDefaultRoles() {
         return defaultRoles;
     }
+
     /**
      * Get the computed value for the initial default schema.
      *
      * @return the schema descriptor of the computed initial default schema
      */
-    private SchemaDescriptor getInitialDefaultSchemaDescriptor(){
+    public SchemaDescriptor getInitialDefaultSchemaDescriptor() {
         return cachedInitialDefaultSchemaDescr;
     }
 
@@ -644,24 +662,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     //
 
     @Override
-    public boolean getLogStatementText(){
+    public boolean getLogStatementText() {
         return logStatementText;
     }
 
     @Override
-    public void setLogStatementText(boolean logStatementText){
-        this.logStatementText=logStatementText;
+    public void setLogStatementText(boolean logStatementText) {
+        this.logStatementText = logStatementText;
     }
 
     @Override
-    public boolean getLogQueryPlan(){
+    public boolean getLogQueryPlan() {
         return logQueryPlan;
     }
 
     @Override
     public int getTableLimitForExhaustiveSearch() {
         Integer tableLimit = (Integer) sessionProperties.getProperty(
-                SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
+            SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
         if (tableLimit != null)
             return tableLimit;
         return tableLimitForExhaustiveSearch;
@@ -670,7 +688,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public long getMinPlanTimeout() {
         Long minPlanTimeout = (Long) sessionProperties.getProperty(
-                SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
+            SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
         if (minPlanTimeout != null)
             return minPlanTimeout;
         else
@@ -678,7 +696,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public boolean usesSqlAuthorization(){
+    public boolean usesSqlAuthorization() {
         return getDataDictionary().usesSqlAuthorization();
     }
 
@@ -686,7 +704,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * get the lock escalation threshold.
      */
     @Override
-    public int getLockEscalationThreshold(){
+    public int getLockEscalationThreshold() {
         return lockEscalationThreshold;
     }
 
@@ -695,45 +713,45 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public void addActivation(Activation a)
-            throws StandardException{
+        throws StandardException {
         acts.add(a);
 
-        if(acts.size()>maxActsSize){
-            maxActsSize=acts.size();
+        if (acts.size() > maxActsSize) {
+            maxActsSize = acts.size();
         }
     }
 
     @Override
-    public void closeUnusedActivations() throws StandardException{
+    public void closeUnusedActivations() throws StandardException {
         // DERBY-418. Activations which are marked unused,
         // are closed here. Activations Vector is iterated 
         // to identify and close unused activations, only if 
         // unusedActs flag is set to true and if the total 
         // size exceeds 20.
-        if((unusedActs) && (acts.size()>20)){
-            unusedActs=false;
+        if ((unusedActs) && (acts.size() > 20)) {
+            unusedActs = false;
 
-            for(int i=acts.size()-1;i>=0;i--){
+            for (int i = acts.size() - 1; i >= 0; i--) {
 
                 // it maybe the case that a Activation's reset() ends up
                 // closing one or more activation leaving our index beyond
                 // the end of the array
-                if(i>=acts.size())
+                if (i >= acts.size())
                     continue;
 
-                Activation a1=acts.get(i);
-                if(!a1.isInUse()){
+                Activation a1 = acts.get(i);
+                if (!a1.isInUse()) {
                     a1.close();
                 }
             }
         }
 
-        if(SanityManager.DEBUG){
+        if (SanityManager.DEBUG) {
 
-            if(SanityManager.DEBUG_ON("memoryLeakTrace")){
+            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-                if(acts.size()>20)
-                    System.out.println("memoryLeakTrace:GenericLanguageContext:activations "+acts.size());
+                if (acts.size() > 20)
+                    System.out.println("memoryLeakTrace:GenericLanguageContext:activations " + acts.size());
             }
         }
     }
@@ -741,67 +759,67 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /**
      * Make a note that some activations are marked unused
      */
-    public void notifyUnusedActivation(){
-        unusedActs=true;
+    public void notifyUnusedActivation() {
+        unusedActs = true;
     }
 
     @Override
-    public boolean checkIfAnyDeclaredGlobalTempTablesForThisConnection(){
-        return (allDeclaredGlobalTempTables!=null);
+    public boolean checkIfAnyDeclaredGlobalTempTablesForThisConnection() {
+        return (allDeclaredGlobalTempTables != null);
     }
 
     @Override
-    public void addDeclaredGlobalTempTable(TableDescriptor td) throws StandardException{
+    public void addDeclaredGlobalTempTable(TableDescriptor td) throws StandardException {
 
-        if(findDeclaredGlobalTempTable(td.getName())!=null){
+        if (findDeclaredGlobalTempTable(td.getName()) != null) {
             //if table already declared, throw an exception
             throw StandardException.newException(
-                    SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-                    "Temporary table",
-                    td.getName(),
-                    "Schema",
-                    td.getSchemaName());
+                SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                "Temporary table",
+                td.getName(),
+                "Schema",
+                td.getSchemaName());
         }
 
         //save all the information about temp table in this special class
-        TempTableInfo tempTableInfo=
-                new TempTableInfo(td,currentSavepointLevel);
+        TempTableInfo tempTableInfo =
+            new TempTableInfo(td, currentSavepointLevel);
 
         // Rather than exist in a catalog, a simple array is kept of the 
         // tables currently active in the transaction.
 
-        if(allDeclaredGlobalTempTables==null)
-            allDeclaredGlobalTempTables=new ArrayList<>();
+        if (allDeclaredGlobalTempTables == null)
+            allDeclaredGlobalTempTables = new ArrayList<>();
 
         allDeclaredGlobalTempTables.add(tempTableInfo);
     }
 
     @Override
-    public boolean dropDeclaredGlobalTempTable(TableDescriptor td){
-        TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(td.getName());
+    public boolean dropDeclaredGlobalTempTable(TableDescriptor td) {
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(td.getName());
 
-        if(tempTableInfo!=null){
-            if(SanityManager.DEBUG){
-                if(tempTableInfo.getDeclaredInSavepointLevel()>currentSavepointLevel){
+        if (tempTableInfo != null) {
+            if (SanityManager.DEBUG) {
+                if (tempTableInfo.getDeclaredInSavepointLevel() > currentSavepointLevel) {
                     SanityManager.THROWASSERT(
-                            "declared in savepoint level ("+
-                                    tempTableInfo.getDeclaredInSavepointLevel()+
-                                    ") can not be higher than current savepoint level ("+
-                                    currentSavepointLevel+
-                                    ").");
+                        "declared in savepoint level (" +
+                            tempTableInfo.getDeclaredInSavepointLevel() +
+                            ") can not be higher than current savepoint level (" +
+                            currentSavepointLevel +
+                            ").");
                 }
             }
 
             // check if the table was declared in the current unit of work.
-            if(tempTableInfo.getDeclaredInSavepointLevel()==currentSavepointLevel){
+            if (tempTableInfo.getDeclaredInSavepointLevel() == currentSavepointLevel) {
                 // since the table was declared in this unit of work, the drop 
                 // table method should remove it from the valid list of temp 
                 // table for this unit of work
                 allDeclaredGlobalTempTables.remove(allDeclaredGlobalTempTables.indexOf(tempTableInfo));
 
-                if(allDeclaredGlobalTempTables.isEmpty())
-                    allDeclaredGlobalTempTables=null;
-            }else{
+                if (allDeclaredGlobalTempTables.isEmpty())
+                    allDeclaredGlobalTempTables = null;
+            } else {
                 // since the table was not declared in this unit of work, the
                 // drop table method will just mark the table as dropped
                 // in the current unit of work. This information will be used 
@@ -811,7 +829,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
 
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -841,8 +859,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
                 return true;
             return false;
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
     }
@@ -854,23 +871,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * savepoint level, then we should change them to the current savepoint
      * level
      */
-    private void tempTablesReleaseSavepointLevels(){
+    private void tempTablesReleaseSavepointLevels() {
         // unlike rollback, here we check for dropped in / declared in / 
         // modified in savepoint levels > current savepoint level only.
         // This is because the temp tables with their savepoint levels same as 
         // currentSavepointLevel have correct value assigned to them and
         // do not need to be changed and hence no need to check for >=
 
-        for(TempTableInfo tempTableInfo : allDeclaredGlobalTempTables){
-            if(tempTableInfo.getDroppedInSavepointLevel()>currentSavepointLevel){
+        for (TempTableInfo tempTableInfo : allDeclaredGlobalTempTables) {
+            if (tempTableInfo.getDroppedInSavepointLevel() > currentSavepointLevel) {
                 tempTableInfo.setDroppedInSavepointLevel(currentSavepointLevel);
             }
 
-            if(tempTableInfo.getDeclaredInSavepointLevel()>currentSavepointLevel){
+            if (tempTableInfo.getDeclaredInSavepointLevel() > currentSavepointLevel) {
                 tempTableInfo.setDeclaredInSavepointLevel(currentSavepointLevel);
             }
 
-            if(tempTableInfo.getModifiedInSavepointLevel()>currentSavepointLevel){
+            if (tempTableInfo.getModifiedInSavepointLevel() > currentSavepointLevel) {
                 tempTableInfo.setModifiedInSavepointLevel(currentSavepointLevel);
             }
         }
@@ -893,19 +910,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *                          temp tables at commit time.
      * @throws StandardException Standard exception policy.
      **/
-    private void tempTablesAndCommit(boolean in_xa_transaction) throws StandardException{
+    private void tempTablesAndCommit(boolean in_xa_transaction) throws StandardException {
         // loop through all declared global temporary tables and determine
         // what to do at commit time based on if they were dropped during
         // the current savepoint level.
-        for(int i=allDeclaredGlobalTempTables.size()-1;i>=0;i--){
-            TempTableInfo tempTableInfo=allDeclaredGlobalTempTables.get(i);
+        for (int i = allDeclaredGlobalTempTables.size() - 1; i >= 0; i--) {
+            TempTableInfo tempTableInfo = allDeclaredGlobalTempTables.get(i);
 
-            if(tempTableInfo.getDroppedInSavepointLevel()!=-1){
+            if (tempTableInfo.getDroppedInSavepointLevel() != -1) {
                 // this means table was dropped in this unit of work and hence 
                 // should be removed from valid list of temp tables
 
                 allDeclaredGlobalTempTables.remove(i);
-            }else{
+            } else {
                 //this table was not dropped in this unit of work, hence set 
                 //its declaredInSavepointLevel as -1 and also mark it as not 
                 //modified 
@@ -926,31 +943,31 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // the transaction until loop below finds one it needs to 
         // process.
 
-        for(TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables){
-            TableDescriptor td=allDeclaredGlobalTempTable.getTableDescriptor();
-            if(!td.isOnCommitDeleteRows()){
+        for (TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables) {
+            TableDescriptor td = allDeclaredGlobalTempTable.getTableDescriptor();
+            if (!td.isOnCommitDeleteRows()) {
                 // do nothing for temp table with ON COMMIT PRESERVE ROWS
-            }else if(!checkIfAnyActivationHasHoldCursor(td.getName())){
+            } else if (!checkIfAnyActivationHasHoldCursor(td.getName())) {
                 // temp tables with ON COMMIT DELETE ROWS and 
                 // no open held cursors
                 getDataDictionary().getDependencyManager().invalidateFor(
-                        td,DependencyManager.DROP_TABLE,this);
+                    td, DependencyManager.DROP_TABLE, this);
 
-                if(!in_xa_transaction){
+                if (!in_xa_transaction) {
                     // delay physical cleanup to after the commit for XA
                     // transactions.   In XA the transaction is likely in
                     // prepare state at this point and physical changes to
                     // store are not allowed until after the commit.
                     // Do the work here for non-XA so that fast path does
                     // have to do the 2 commits that the XA path will.
-                    cleanupTempTableOnCommitOrRollback(td,true);
+                    cleanupTempTableOnCommitOrRollback(td, true);
                 }
             }
         }
     }
 
-    private void tempTablesXApostCommit() throws StandardException{
-        TransactionController tc=getTransactionExecute();
+    private void tempTablesXApostCommit() throws StandardException {
+        TransactionController tc = getTransactionExecute();
 
         // at commit time for an XA transaction drop all temporary tables.
         // A transaction context may not be maintained from one
@@ -959,9 +976,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // tables again.  To provide consistent behavior in embedded vs
         // network server, consistently remove temp tables at XA commit
         // transaction boundary.
-        for(int i=0;i<allDeclaredGlobalTempTables.size();i++){
+        for (int i = 0; i < allDeclaredGlobalTempTables.size(); i++) {
             // remove all temp tables from this context.
-            TableDescriptor td=allDeclaredGlobalTempTables.get(i).getTableDescriptor();
+            TableDescriptor td = allDeclaredGlobalTempTables.get(i).getTableDescriptor();
 
             //remove the conglomerate created for this temp table
             tc.dropConglomerate(td.getHeapConglomerateId());
@@ -975,11 +992,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
-    public void resetFromPool() throws StandardException{
-        interruptedException=null;
+    public void resetFromPool() throws StandardException {
+        interruptedException = null;
 
         // Reset IDENTITY_VAL_LOCAL
-        identityNotNull=false;
+        identityNotNull = false;
 
         // drop all temp tables.
         dropAllDeclaredGlobalTempTables();
@@ -993,7 +1010,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // Reset the current user
         getCurrentSQLSessionContext().setUser(getSessionUserId());
 
-        referencedColumnMap=new WeakHashMap<>();
+        referencedColumnMap = new WeakHashMap<>();
 
         sessionProperties.resetAll();
 
@@ -1006,12 +1023,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     // debug methods
 
     @Override
-    public void setLastQueryTree(Object queryTree){
-        lastQueryTree=queryTree;
+    public void setLastQueryTree(Object queryTree) {
+        lastQueryTree = queryTree;
     }
 
     @Override
-    public Object getLastQueryTree(){
+    public Object getLastQueryTree() {
         return lastQueryTree;
     }
 
@@ -1023,51 +1040,51 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * connection are dropped before a new connection handle is issued on that
      * same physical database connection.
      */
-    private void dropAllDeclaredGlobalTempTables() throws StandardException{
-        if(allDeclaredGlobalTempTables==null)
+    private void dropAllDeclaredGlobalTempTables() throws StandardException {
+        if (allDeclaredGlobalTempTables == null)
             return;
 
-        StandardException topLevelStandardException=null;
+        StandardException topLevelStandardException = null;
 
-        GenericExecutionFactory execFactory=(GenericExecutionFactory)getLanguageConnectionFactory().getExecutionFactory();
-        GenericConstantActionFactory constantActionFactory=execFactory.getConstantActionFactory();
+        GenericExecutionFactory execFactory = (GenericExecutionFactory) getLanguageConnectionFactory().getExecutionFactory();
+        GenericConstantActionFactory constantActionFactory = execFactory.getConstantActionFactory();
 
         // collect all the exceptions we might receive while dropping the
         // temporary tables and throw them as one chained exception at the end.
-        int i=0;
-        for(TempTableInfo tempTableInfo : allDeclaredGlobalTempTables){
-            try{
+        int i = 0;
+        for (TempTableInfo tempTableInfo : allDeclaredGlobalTempTables) {
+            try {
 
-                TableDescriptor td=tempTableInfo.getTableDescriptor();
+                TableDescriptor td = tempTableInfo.getTableDescriptor();
 
-                if(tempTableInfo.getDroppedInSavepointLevel()!=-1){
+                if (tempTableInfo.getDroppedInSavepointLevel() != -1) {
                     // this means table was dropped in this unit of work and hence
                     // should be removed from valid list of temp tables
 
                     allDeclaredGlobalTempTables.remove(i);
-                }else{
+                } else {
 
                     // Drop the temp table via normal drop table action
-                    ConstantAction action=constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
-                            td.getName(),
-                            td.getSchemaDescriptor(),
-                            td.getHeapConglomerateId(),
-                            td.getUUID(),StatementType.DROP_CASCADE);
+                    ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
+                        td.getName(),
+                        td.getSchemaDescriptor(),
+                        td.getHeapConglomerateId(),
+                        td.getUUID(), StatementType.DROP_CASCADE);
 
-                    action.executeConstantAction(new DropTableActivation(this,td));
+                    action.executeConstantAction(new DropTableActivation(this, td));
                 }
-            }catch(StandardException e){
-                if(topLevelStandardException==null){
+            } catch (StandardException e) {
+                if (topLevelStandardException == null) {
                     // always keep the first exception unchanged
-                    topLevelStandardException=e;
-                }else{
-                    try{
+                    topLevelStandardException = e;
+                } else {
+                    try {
                         // Try to create a chain of exceptions. If successful,
                         // the current exception is the top-level exception,
                         // and the previous exception the cause of it.
                         e.initCause(topLevelStandardException);
-                        topLevelStandardException=e;
-                    }catch(IllegalStateException ise){
+                        topLevelStandardException = e;
+                    } catch (IllegalStateException ise) {
                         // initCause() has already been called on e. We don't
                         // expect this to happen, but if it happens, just skip
                         // the current exception from the chain. This is safe
@@ -1078,24 +1095,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             ++i;
         }
 
-        allDeclaredGlobalTempTables=null;
-        try{
+        allDeclaredGlobalTempTables = null;
+        try {
             internalCommit(true);
-        }catch(StandardException e){
+        } catch (StandardException e) {
             // do the same chaining as above
-            if(topLevelStandardException==null){
-                topLevelStandardException=e;
-            }else{
-                try{
+            if (topLevelStandardException == null) {
+                topLevelStandardException = e;
+            } else {
+                try {
                     e.initCause(topLevelStandardException);
-                    topLevelStandardException=e;
-                }catch(IllegalStateException ise){
+                    topLevelStandardException = e;
+                } catch (IllegalStateException ise) {
                     /* ignore */
                 }
             }
         }
 
-        if(topLevelStandardException!=null)
+        if (topLevelStandardException != null)
             throw topLevelStandardException;
     }
 
@@ -1108,9 +1125,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Note: I'm assuming, because this class extends BaseActivation, it will properly serialize and
      * work across region servers.
      */
-    private static class DropTableActivation extends BaseActivation{
+    private static class DropTableActivation extends BaseActivation {
 
-        public DropTableActivation(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{
+        public DropTableActivation(LanguageConnectionContext lcc, TableDescriptor td) throws StandardException {
             // Just pass the only pertinent info to BaseActivation
             super();
             initFromContext(lcc);
@@ -1118,39 +1135,39 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         @Override
-        protected int getExecutionCount(){
+        protected int getExecutionCount() {
             return 0;
         }
 
         @Override
-        protected void setExecutionCount(int newValue){
+        protected void setExecutionCount(int newValue) {
         }
 
         @Override
-        protected Vector getRowCountCheckVector(){
+        protected Vector getRowCountCheckVector() {
             return null;
         }
 
         @Override
-        protected void setRowCountCheckVector(Vector newValue){
+        protected void setRowCountCheckVector(Vector newValue) {
         }
 
         @Override
-        protected int getStalePlanCheckInterval(){
+        protected int getStalePlanCheckInterval() {
             return 0;
         }
 
         @Override
-        protected void setStalePlanCheckInterval(int newValue){
+        protected void setStalePlanCheckInterval(int newValue) {
         }
 
         @Override
-        public ResultSet execute() throws StandardException{
+        public ResultSet execute() throws StandardException {
             return null;
         }
 
         @Override
-        public void postConstructor() throws StandardException{
+        public void postConstructor() throws StandardException {
         }
 
         @Override
@@ -1170,19 +1187,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * 4)If an existing temp table was modified in the UOW, then get rid of
      * all the rows from the table.
      */
-    private void tempTablesAndRollback() throws StandardException{
-        for(int i=allDeclaredGlobalTempTables.size()-1;i>=0;i--){
-            TempTableInfo tempTableInfo=allDeclaredGlobalTempTables.get(i);
+    private void tempTablesAndRollback() throws StandardException {
+        for (int i = allDeclaredGlobalTempTables.size() - 1; i >= 0; i--) {
+            TempTableInfo tempTableInfo = allDeclaredGlobalTempTables.get(i);
 
-            if(tempTableInfo.getDeclaredInSavepointLevel()>=
-                    currentSavepointLevel){
-                if(tempTableInfo.getDroppedInSavepointLevel()==-1){
+            if (tempTableInfo.getDeclaredInSavepointLevel() >=
+                currentSavepointLevel) {
+                if (tempTableInfo.getDroppedInSavepointLevel() == -1) {
                     // the table was declared but not dropped in the unit of 
                     // work getting rolled back and hence we will remove it 
                     // from valid list of temporary tables and drop the 
                     // conglomerate associated with it
 
-                    TableDescriptor td=tempTableInfo.getTableDescriptor();
+                    TableDescriptor td = tempTableInfo.getTableDescriptor();
                     invalidateDroppedTempTable(td);
 
                     //remove the conglomerate created for this temp table
@@ -1191,21 +1208,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     //remove it from the list of temp tables
                     allDeclaredGlobalTempTables.remove(i);
 
-                }else if(tempTableInfo.getDroppedInSavepointLevel()>=
-                        currentSavepointLevel){
+                } else if (tempTableInfo.getDroppedInSavepointLevel() >=
+                    currentSavepointLevel) {
                     // the table was declared and dropped in the unit of work 
                     // getting rolled back
                     allDeclaredGlobalTempTables.remove(i);
                 }
-            }else if(tempTableInfo.getDroppedInSavepointLevel()>=
-                    currentSavepointLevel){
+            } else if (tempTableInfo.getDroppedInSavepointLevel() >=
+                currentSavepointLevel) {
                 // this means the table was declared in an earlier savepoint 
                 // unit / transaction and then dropped in current UOW 
 
                 // restore the old definition of temp table because drop is 
                 // being rolledback
-                TableDescriptor td=tempTableInfo.getTableDescriptor();
-                td=cleanupTempTableOnCommitOrRollback(td,false);
+                TableDescriptor td = tempTableInfo.getTableDescriptor();
+                td = cleanupTempTableOnCommitOrRollback(td, false);
 
                 // In order to store the old conglomerate information for the 
                 // temp table, we need to replace the existing table descriptor
@@ -1218,10 +1235,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // because the table data has been deleted as part of the 
                 // current rollback
                 tempTableInfo.setModifiedInSavepointLevel(-1);
-                allDeclaredGlobalTempTables.set(i,tempTableInfo);
+                allDeclaredGlobalTempTables.set(i, tempTableInfo);
 
-            }else if(tempTableInfo.getModifiedInSavepointLevel()>=
-                    currentSavepointLevel){
+            } else if (tempTableInfo.getModifiedInSavepointLevel() >=
+                currentSavepointLevel) {
                 // this means the table was declared in an earlier savepoint 
                 // unit / transaction and modified in current UOW
 
@@ -1229,7 +1246,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // because the table data will be deleted as part of the 
                 // current rollback
                 tempTableInfo.setModifiedInSavepointLevel(-1);
-                TableDescriptor td=tempTableInfo.getTableDescriptor();
+                TableDescriptor td = tempTableInfo.getTableDescriptor();
 
                 invalidateDroppedTempTable(td);
             }
@@ -1238,17 +1255,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // unit/transaction and not modified
         }
 
-        if(allDeclaredGlobalTempTables.isEmpty()){
-            allDeclaredGlobalTempTables=null;
+        if (allDeclaredGlobalTempTables.isEmpty()) {
+            allDeclaredGlobalTempTables = null;
         }
     }
 
     /**
      * Invalidate a dropped temp table
      */
-    private void invalidateDroppedTempTable(TableDescriptor td) throws StandardException{
-        getDataDictionary().getDependencyManager().invalidateFor(td,DependencyManager.DROP_TABLE,this);
-        cleanupTempTableOnCommitOrRollback(td,true);
+    private void invalidateDroppedTempTable(TableDescriptor td) throws StandardException {
+        getDataDictionary().getDependencyManager().invalidateFor(td, DependencyManager.DROP_TABLE, this);
+        cleanupTempTableOnCommitOrRollback(td, true);
     }
 
     /**
@@ -1266,21 +1283,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *                  getting changed
      * @param td        New table descriptor for the temporary table
      */
-    private void replaceDeclaredGlobalTempTable(String tableName,TableDescriptor td){
-        TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(tableName);
+    private void replaceDeclaredGlobalTempTable(String tableName, TableDescriptor td) {
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
         tempTableInfo.setDroppedInSavepointLevel(-1);
         tempTableInfo.setDeclaredInSavepointLevel(-1);
         tempTableInfo.setTableDescriptor(td);
 
-        allDeclaredGlobalTempTables.set(allDeclaredGlobalTempTables.indexOf(tempTableInfo),tempTableInfo);
+        allDeclaredGlobalTempTables.set(allDeclaredGlobalTempTables.indexOf(tempTableInfo), tempTableInfo);
     }
 
     /**
      * @see LanguageConnectionContext#getTableDescriptorForTempTable
      */
-    public TableDescriptor getTableDescriptorForTempTable(String tableName){
-        TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(tableName);
-        if(tempTableInfo==null)
+    public TableDescriptor getTableDescriptorForTempTable(String tableName) {
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
+        if (tempTableInfo == null)
             return null;
         else
             return tempTableInfo.getTableDescriptor();
@@ -1292,20 +1309,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param tableName look for this table name in the saved list
      * @return data structure defining the temporary table if found. Else, return null
      */
-    private TempTableInfo findDeclaredGlobalTempTable(String tableName){
-        if(allDeclaredGlobalTempTables==null)
+    private TempTableInfo findDeclaredGlobalTempTable(String tableName) {
+        if (allDeclaredGlobalTempTables == null)
             return null;
 
-        for(TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables){
-            if(allDeclaredGlobalTempTable.matches(tableName))
+        for (TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables) {
+            if (allDeclaredGlobalTempTable.matches(tableName))
                 return allDeclaredGlobalTempTable;
         }
         return null;
     }
 
     @Override
-    public void markTempTableAsModifiedInUnitOfWork(String tableName){
-        TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(tableName);
+    public void markTempTableAsModifiedInUnitOfWork(String tableName) {
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
         tempTableInfo.setModifiedInSavepointLevel(currentSavepointLevel);
     }
 
@@ -1313,46 +1330,46 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema,
                                                       String sqlText,
                                                       boolean isForReadOnly,
-                                                      boolean forMetaData) throws StandardException{
-        if(restoreMode){
+                                                      boolean forMetaData) throws StandardException {
+        if (restoreMode) {
             throw StandardException.newException(
-                    SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
+                SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
         }
-        if(forMetaData){
+        if (forMetaData) {
             //DERBY-2946
             //Make sure that metadata queries always run with SYS as
             //compilation schema. This will make sure that the collation
             //type of character string constants will be UCS_BASIC which
             //is also the collation of character string columns belonging
             //to system tables.
-            compilationSchema=getDataDictionary().getSystemSchemaDescriptor();
+            compilationSchema = getDataDictionary().getSystemSchemaDescriptor();
         }
-        return connFactory.getStatement(compilationSchema,sqlText,isForReadOnly, this).prepare(this,forMetaData);
+        return connFactory.getStatement(compilationSchema, sqlText, isForReadOnly, this).prepare(this, forMetaData);
     }
 
 
     @Override
-    public PreparedStatement prepareInternalStatement(String sqlText) throws StandardException{
-        if(restoreMode){
+    public PreparedStatement prepareInternalStatement(String sqlText) throws StandardException {
+        if (restoreMode) {
             throw StandardException.newException(SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
         }
-        return connFactory.getStatement(getDefaultSchema(),sqlText,true, this).prepare(this);
+        return connFactory.getStatement(getDefaultSchema(), sqlText, true, this).prepare(this);
     }
 
     /**
      * Remove the activation to those known about by this connection.
      */
     @Override
-    public void removeActivation(Activation a){
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(a.isClosed(),"Activation is not closed");
+    public void removeActivation(Activation a) {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(a.isClosed(), "Activation is not closed");
         }
 
         acts.remove(a);
 
-        if(maxActsSize>20 && (maxActsSize>2*acts.size())){
+        if (maxActsSize > 20 && (maxActsSize > 2 * acts.size())) {
             acts.trimToSize();
-            maxActsSize=acts.size();
+            maxActsSize = acts.size();
         }
     }
 
@@ -1364,7 +1381,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * the next commit/rollback).
      */
     @Override
-    public int getActivationCount(){
+    public int getActivationCount() {
         return acts.size();
     }
 
@@ -1376,19 +1393,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return the activation for the given cursor, null if none was found.
      */
     @Override
-    public CursorActivation lookupCursorActivation(String cursorName){
+    public CursorActivation lookupCursorActivation(String cursorName) {
 
-        int size=acts.size();
-        if(size>0){
-            int cursorHash=cursorName.hashCode();
+        int size = acts.size();
+        if (size > 0) {
+            int cursorHash = cursorName.hashCode();
 
-            for(Activation a : acts){
-                if(!a.isInUse()){
+            for (Activation a : acts) {
+                if (!a.isInUse()) {
                     continue;
                 }
 
 
-                String executingCursorName=a.getCursorName();
+                String executingCursorName = a.getCursorName();
 
                 // If the executing cursor has no name, or if the hash code of
                 // its name is different from the one we're looking for, it
@@ -1401,22 +1418,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // determine that the names don't match. Even if the hash codes
                 // are equal, we still need to call equals() to verify that the
                 // two names actually are equal.
-                if(executingCursorName==null || executingCursorName.hashCode()!=cursorHash){
+                if (executingCursorName == null || executingCursorName.hashCode() != cursorHash) {
                     continue;
                 }
 
-                if(cursorName.equals(executingCursorName)){
+                if (cursorName.equals(executingCursorName)) {
 
-                    ResultSet rs=a.getResultSet();
-                    if(rs==null)
+                    ResultSet rs = a.getResultSet();
+                    if (rs == null)
                         continue;
 
                     // if the result set is closed, the the cursor doesn't exist
-                    if(rs.isClosed()){
+                    if (rs.isClosed()) {
                         continue;
                     }
 
-                    return (CursorActivation)a;
+                    return (CursorActivation) a;
                 }
             }
         }
@@ -1434,7 +1451,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param statement Statement to remove
      * @throws StandardException thrown if lookup goes wrong.
      */
-    public void removeStatement(GenericStatement statement) throws StandardException{
+    public void removeStatement(GenericStatement statement) throws StandardException {
         getDataDictionary().getDataDictionaryCache().statementCacheRemove(statement);
     }
 
@@ -1446,22 +1463,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * if none was found.
      * @throws StandardException thrown if lookup goes wrong.
      */
-    public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException{
+    public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException {
         GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
-        if (ps==null) {
+        if (ps == null) {
             ps = new GenericStorablePreparedStatement(statement);
-            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement,ps);
+            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement, ps);
         }
-        synchronized(ps){
-            if(ps.upToDate()){
-                GeneratedClass ac=ps.getActivationClass();
+        synchronized (ps) {
+            if (ps.upToDate()) {
+                GeneratedClass ac = ps.getActivationClass();
 
                 // Check to see if the statement was prepared before some change
                 // in the class loading set. If this is the case then force it to be invalid
-                int currentClasses=getLanguageConnectionFactory().getClassFactory().getClassLoaderVersion();
+                int currentClasses = getLanguageConnectionFactory().getClassFactory().getClassLoaderVersion();
 
-                if(ac.getClassLoaderVersion()!=currentClasses){
-                    ps.makeInvalid(DependencyManager.INTERNAL_RECOMPILE_REQUEST,this);
+                if (ac.getClassLoaderVersion() != currentClasses) {
+                    ps.makeInvalid(DependencyManager.INTERNAL_RECOMPILE_REQUEST, this);
                 }
 
                 // note that the PreparedStatement is not kept in the cache. This is because
@@ -1477,22 +1494,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     /* Get a connection unique system generated name for a cursor. */
-    public String getUniqueCursorName(){
-        return getNameString("SQLCUR",nextCursorId++);
+    public String getUniqueCursorName() {
+        return getNameString("SQLCUR", nextCursorId++);
     }
 
     /* Get a connection unique system generated name for an unnamed savepoint. */
     @Override
-    public String getUniqueSavepointName(){
-        return getNameString("SAVEPT",nextSavepointId++);
+    public String getUniqueSavepointName() {
+        return getNameString("SAVEPT", nextSavepointId++);
     }
 
     /**
      * Get a connection unique system generated id for an unnamed savepoint.
      */
     @Override
-    public int getUniqueSavepointID(){
-        return nextSavepointId-1;
+    public int getUniqueSavepointID() {
+        return nextSavepointId - 1;
     }
 
     /**
@@ -1502,11 +1519,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param number The number to append for uniqueness
      * @return A unique String for a statement name.
      */
-    private String getNameString(String prefix,long number){
-        if(sb!=null){
+    private String getNameString(String prefix, long number) {
+        if (sb != null) {
             sb.setLength(0);
-        }else{
-            sb=new StringBuffer();
+        } else {
+            sb = new StringBuffer();
         }
         sb.append(prefix).append(number);
 
@@ -1521,8 +1538,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown on failure
      */
     @Override
-    public void internalCommit(boolean commitStore) throws StandardException{
-        doCommit(commitStore,true,NON_XA,false);
+    public void internalCommit(boolean commitStore) throws StandardException {
+        doCommit(commitStore, true, NON_XA, false);
     }
 
     /**
@@ -1534,8 +1551,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown on failure
      */
     @Override
-    public void userCommit() throws StandardException{
-        doCommit(true,true,NON_XA,true);
+    public void userCommit() throws StandardException {
+        doCommit(true, true, NON_XA, true);
     }
 
 
@@ -1554,8 +1571,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown on failure
      */
     @Override
-    public final void internalCommitNoSync(int commitflag) throws StandardException{
-        doCommit(true,false,commitflag,false);
+    public final void internalCommitNoSync(int commitflag) throws StandardException {
+        doCommit(true, false, commitflag, false);
     }
 
     /**
@@ -1566,12 +1583,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *                 prepared state.
      */
     @Override
-    public final void xaCommit(boolean onePhase) throws StandardException{
+    public final void xaCommit(boolean onePhase) throws StandardException {
         // further overload internalCommit to make it understand 2 phase commit
         doCommit(true /* commit store */,
-                true /* sync */,
-                onePhase?XA_ONE_PHASE:XA_TWO_PHASE,
-                true);
+            true /* sync */,
+            onePhase ? XA_ONE_PHASE : XA_TWO_PHASE,
+            true);
     }
 
 
@@ -1615,15 +1632,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                             boolean sync,
                             int commitflag,
                             boolean requestedByUser)
-            throws StandardException{
-        StatementContext statementContext=getStatementContext();
+        throws StandardException {
+        StatementContext statementContext = getStatementContext();
 
-        if(requestedByUser &&
-                (statementContext!=null) &&
-                statementContext.inUse() &&
-                statementContext.isAtomic()){
+        if (requestedByUser &&
+            (statementContext != null) &&
+            statementContext.inUse() &&
+            statementContext.isAtomic()) {
             throw StandardException.newException(
-                    SQLState.LANG_NO_COMMIT_IN_NESTED_CONNECTION);
+                SQLState.LANG_NO_COMMIT_IN_NESTED_CONNECTION);
         }
 
         logCommit();
@@ -1631,43 +1648,43 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         endTransactionActivationHandling(false);
 
         // Do clean up work required for temporary tables at commit time.  
-        if(allDeclaredGlobalTempTables!=null){
-            tempTablesAndCommit(commitflag!=NON_XA);
+        if (allDeclaredGlobalTempTables != null) {
+            tempTablesAndCommit(commitflag != NON_XA);
         }
 
         //reset the current savepoint level for the connection to 0 at the end 
         //of commit work for temp tables
-        currentSavepointLevel=0;
+        currentSavepointLevel = 0;
 
         // now commit the Store transaction
-        TransactionController tc=getTransactionExecute();
+        TransactionController tc = getTransactionExecute();
 
         // Check that any nested transaction has been destoyed
         // before a commit.
-        if(SanityManager.DEBUG){
-            if(readOnlyNestedTransaction!=null){
+        if (SanityManager.DEBUG) {
+            if (readOnlyNestedTransaction != null) {
                 SanityManager.THROWASSERT("Nested transaction active!");
             }
         }
 
-        if(tc!=null && commitStore){
-            if(sync){
-                if(commitflag==NON_XA){
+        if (tc != null && commitStore) {
+            if (sync) {
+                if (commitflag == NON_XA) {
                     // regular commit
                     tc.commit();
-                }else{
+                } else {
                     // This may be a xa_commit, check overloaded commitflag.
 
-                    if(SanityManager.DEBUG)
-                        SanityManager.ASSERT(commitflag==XA_ONE_PHASE ||
-                                        commitflag==XA_TWO_PHASE,
-                                "invalid commit flag");
+                    if (SanityManager.DEBUG)
+                        SanityManager.ASSERT(commitflag == XA_ONE_PHASE ||
+                                commitflag == XA_TWO_PHASE,
+                            "invalid commit flag");
 
-                    ((XATransactionController)tc).xa_commit(
-                            commitflag==XA_ONE_PHASE);
+                    ((XATransactionController) tc).xa_commit(
+                        commitflag == XA_ONE_PHASE);
 
                 }
-            }else{
+            } else {
                 tc.commitNoSync(commitflag);
             }
 
@@ -1677,8 +1694,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             resetSavepoints();
 
             // Do post commit XA temp table cleanup if necessary.
-            if((allDeclaredGlobalTempTables!=null) &&
-                    (commitflag!=NON_XA)){
+            if ((allDeclaredGlobalTempTables != null) &&
+                (commitflag != NON_XA)) {
                 tempTablesXApostCommit();
             }
         }
@@ -1698,46 +1715,46 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * temp table (because the drop on it is being rolled back).
      */
     private TableDescriptor cleanupTempTableOnCommitOrRollback(TableDescriptor td,
-                                                               boolean dropAndRedeclare) throws StandardException{
+                                                               boolean dropAndRedeclare) throws StandardException {
         // need to upgrade txn to write
         getDataDictionary().startWriting(this);
-        TransactionController tc=getTransactionExecute();
+        TransactionController tc = getTransactionExecute();
 
         //create new conglomerate with same properties as the old conglomerate 
         //and same row template as the old conglomerate
-        long conglomId=
-                tc.createConglomerate(td.getTableType() == TableDescriptor.EXTERNAL_TYPE,
-                        "heap", // we're requesting a heap conglomerate
-                        td.getEmptyExecRow().getRowArray(), // row template
-                        null, //column sort order - not required for heap
-                        td.getColumnCollationIds(),  // same ids as old conglomerate
-                        null, // properties
-                        (TransactionController.IS_TEMPORARY|
-                                TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
+        long conglomId =
+            tc.createConglomerate(td.getTableType() == TableDescriptor.EXTERNAL_TYPE,
+                "heap", // we're requesting a heap conglomerate
+                td.getEmptyExecRow().getRowArray(), // row template
+                null, //column sort order - not required for heap
+                td.getColumnCollationIds(),  // same ids as old conglomerate
+                null, // properties
+                (TransactionController.IS_TEMPORARY |
+                    TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
-        long cid=td.getHeapConglomerateId();
+        long cid = td.getHeapConglomerateId();
 
         //remove the old conglomerate descriptor from the table descriptor
-        ConglomerateDescriptor cgd=td.getConglomerateDescriptor(cid);
+        ConglomerateDescriptor cgd = td.getConglomerateDescriptor(cid);
         td.getConglomerateDescriptorList().dropConglomerateDescriptorByUUID(
-                cgd.getUUID());
+            cgd.getUUID());
 
         //add the new conglomerate descriptor to the table descriptor
-        cgd=getDataDictionary().getDataDescriptorGenerator().newConglomerateDescriptor(conglomId,null,false,null,false,null,td.getUUID(),
-                td.getSchemaDescriptor().getUUID());
-        ConglomerateDescriptorList conglomList=
-                td.getConglomerateDescriptorList();
+        cgd = getDataDictionary().getDataDescriptorGenerator().newConglomerateDescriptor(conglomId, null, false, null, false, null, td.getUUID(),
+            td.getSchemaDescriptor().getUUID());
+        ConglomerateDescriptorList conglomList =
+            td.getConglomerateDescriptorList();
         conglomList.add(cgd);
 
         //reset the heap conglomerate number in table descriptor to -1 so it 
         //will be refetched next time with the new value
         td.resetHeapConglomNumber();
 
-        if(dropAndRedeclare){
+        if (dropAndRedeclare) {
             //remove the old conglomerate from the system
             tc.dropConglomerate(cid);
 
-            replaceDeclaredGlobalTempTable(td.getName(),td);
+            replaceDeclaredGlobalTempTable(td.getName(), td);
         }
 
         return (td);
@@ -1769,8 +1786,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown on failure
      */
     @Override
-    public void internalRollback() throws StandardException{
-        doRollback(false /* non-xa */,false);
+    public void internalRollback() throws StandardException {
+        doRollback(false /* non-xa */, false);
     }
 
     /**
@@ -1780,16 +1797,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * sure that users aren't doing anything bad.
      */
     @Override
-    public void userRollback() throws StandardException{
-        doRollback(false /* non-xa */,true);
+    public void userRollback() throws StandardException {
+        doRollback(false /* non-xa */, true);
     }
 
     /**
      * Same as userRollback() except rolls back a distrubuted transaction.
      */
     @Override
-    public void xaRollback() throws StandardException{
-        doRollback(true /* xa */,true);
+    public void xaRollback() throws StandardException {
+        doRollback(true /* xa */, true);
     }
 
     /**
@@ -1813,12 +1830,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param requestedByUser true if requested by user
      * @throws StandardException thrown on failure
      */
-    private void doRollback(boolean xa,boolean requestedByUser) throws StandardException{
-        StatementContext statementContext=getStatementContext();
-        if(requestedByUser &&
-                (statementContext!=null) &&
-                statementContext.inUse() &&
-                statementContext.isAtomic()){
+    private void doRollback(boolean xa, boolean requestedByUser) throws StandardException {
+        StatementContext statementContext = getStatementContext();
+        if (requestedByUser &&
+            (statementContext != null) &&
+            statementContext.inUse() &&
+            statementContext.isAtomic()) {
             throw StandardException.newException(SQLState.LANG_NO_ROLLBACK_IN_NESTED_CONNECTION);
         }
 
@@ -1826,24 +1843,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         endTransactionActivationHandling(true);
 
-        currentSavepointLevel=0; //reset the current savepoint level for the connection to 0 at the beginning of rollback work for temp tables
-        if(allDeclaredGlobalTempTables!=null)
+        currentSavepointLevel = 0; //reset the current savepoint level for the connection to 0 at the beginning of rollback work for temp tables
+        if (allDeclaredGlobalTempTables != null)
             tempTablesAndRollback();
 
         // If a nested transaction is active then
         // ensure it is destroyed before working
         // with the user transaction.
-        if(readOnlyNestedTransaction!=null){
+        if (readOnlyNestedTransaction != null) {
             readOnlyNestedTransaction.destroy();
-            readOnlyNestedTransaction=null;
-            queryNestingDepth=0;
+            readOnlyNestedTransaction = null;
+            queryNestingDepth = 0;
         }
 
         // now rollback the Store transaction
-        TransactionController tc=getTransactionExecute();
-        if(tc!=null){
-            if(xa)
-                ((XATransactionController)tc).xa_rollback();
+        TransactionController tc = getTransactionExecute();
+        if (tc != null) {
+            if (xa)
+                ((XATransactionController) tc).xa_rollback();
             else
                 tc.abort();
 
@@ -1862,11 +1879,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @throws StandardException thrown if something goes wrong
      */
-    private void resetSavepoints() throws StandardException{
-        final ContextManager cm=getContextManager();
-        final List<Context> stmts=cm.getContextStack(ContextId.LANG_STATEMENT);
-        for(Context stmt : stmts){
-            ((StatementContext)stmt).resetSavePoint();
+    private void resetSavepoints() throws StandardException {
+        final ContextManager cm = getContextManager();
+        final List<Context> stmts = cm.getContextStack(ContextId.LANG_STATEMENT);
+        for (Context stmt : stmts) {
+            ((StatementContext) stmt).resetSavePoint();
         }
     }
 
@@ -1884,26 +1901,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if something goes wrong
      */
     @Override
-    public void internalRollbackToSavepoint(String savepointName,boolean refreshStyle,Object kindOfSavepoint)
-            throws StandardException{
+    public void internalRollbackToSavepoint(String savepointName, boolean refreshStyle, Object kindOfSavepoint)
+        throws StandardException {
         // now rollback the Store transaction to the savepoint
-        TransactionController tc=getTransactionExecute();
-        if(tc!=null){
+        TransactionController tc = getTransactionExecute();
+        if (tc != null) {
             boolean closeConglomerates;
 
-            if(refreshStyle){
-                closeConglomerates=true;
+            if (refreshStyle) {
+                closeConglomerates = true;
                 // bug 5145 - don't forget to close the activations while rolling
                 // back to a savepoint
                 endTransactionActivationHandling(true);
-            }else{
-                closeConglomerates=false;
+            } else {
+                closeConglomerates = false;
             }
 
-            currentSavepointLevel=tc.rollbackToSavePoint(savepointName,closeConglomerates,kindOfSavepoint);
+            currentSavepointLevel = tc.rollbackToSavePoint(savepointName, closeConglomerates, kindOfSavepoint);
         }
 
-        if(tc!=null && refreshStyle && allDeclaredGlobalTempTables!=null)
+        if (tc != null && refreshStyle && allDeclaredGlobalTempTables != null)
             tempTablesAndRollback();
     }
 
@@ -1917,12 +1934,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *                        A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
      */
     @Override
-    public void releaseSavePoint(String savepointName,Object kindOfSavepoint) throws StandardException{
-        TransactionController tc=getTransactionExecute();
-        if(tc!=null){
-            currentSavepointLevel=tc.releaseSavePoint(savepointName,kindOfSavepoint);
+    public void releaseSavePoint(String savepointName, Object kindOfSavepoint) throws StandardException {
+        TransactionController tc = getTransactionExecute();
+        if (tc != null) {
+            currentSavepointLevel = tc.releaseSavePoint(savepointName, kindOfSavepoint);
             //after a release of a savepoint, we need to go through our temp tables list.
-            if(allDeclaredGlobalTempTables!=null)
+            if (allDeclaredGlobalTempTables != null)
                 tempTablesReleaseSavepointLevels();
         }
     }
@@ -1938,10 +1955,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if something goes wrong
      */
     @Override
-    public void languageSetSavePoint(String savepointName,Object kindOfSavepoint) throws StandardException{
-        TransactionController tc=getTransactionExecute();
-        if(tc!=null){
-            currentSavepointLevel=tc.setSavePoint(savepointName,kindOfSavepoint);
+    public void languageSetSavePoint(String savepointName, Object kindOfSavepoint) throws StandardException {
+        TransactionController tc = getTransactionExecute();
+        if (tc != null) {
+            currentSavepointLevel = tc.setSavePoint(savepointName, kindOfSavepoint);
         }
     }
 
@@ -1951,34 +1968,34 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * track of how many times we have tried to start a NUT.
      */
     @Override
-    public void beginNestedTransaction(boolean readOnly) throws StandardException{
+    public void beginNestedTransaction(boolean readOnly) throws StandardException {
         // DERBY-2490 incremental rework, currently this is only called
         // with read-only true. Future changes will have this
         // method support read-write nested transactions as well
         // instead of callers using the startNestedUserTransaction
         // directly on tran.
-        if(SanityManager.DEBUG){
+        if (SanityManager.DEBUG) {
             // if called for update transactions, compile would start using
             // non-readonly xacts for compile.  For now, throw an error if
             // someone tries to use this call to make non readonly transaction.
             SanityManager.ASSERT(
-                    readOnly,
-                    "Routine not yet coded to support non-readonly transactions.");
+                readOnly,
+                "Routine not yet coded to support non-readonly transactions.");
         }
 
-        if(readOnlyNestedTransaction==null)
-            readOnlyNestedTransaction=
-                    getTransactionExecute().startNestedUserTransaction(readOnly,true);
+        if (readOnlyNestedTransaction == null)
+            readOnlyNestedTransaction =
+                getTransactionExecute().startNestedUserTransaction(readOnly, true);
 
         queryNestingDepth++;
     }
 
     @Override
-    public void commitNestedTransaction() throws StandardException{
-        if(--queryNestingDepth==0){
+    public void commitNestedTransaction() throws StandardException {
+        if (--queryNestingDepth == 0) {
             readOnlyNestedTransaction.commit();
             readOnlyNestedTransaction.destroy();
-            readOnlyNestedTransaction=null;
+            readOnlyNestedTransaction = null;
         }
     }
 
@@ -1988,44 +2005,46 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * transaction.
      */
     @Override
-    public TransactionController getTransactionCompile(){
-        return (readOnlyNestedTransaction!=null)?readOnlyNestedTransaction:tran;
+    public TransactionController getTransactionCompile() {
+        return (readOnlyNestedTransaction != null) ? readOnlyNestedTransaction : tran;
     }
 
     @Override
-    public TransactionController getTransactionExecute(){
-        return nestedTransactions.isEmpty()?tran:nestedTransactions.get(0);
+    public TransactionController getTransactionExecute() {
+        return nestedTransactions.isEmpty() ? tran : nestedTransactions.get(0);
     }
 
     @Override
-    public void pushNestedTransaction(TransactionController nestedTransaction){
-        nestedTransactions.add(0,nestedTransaction);
+    public void pushNestedTransaction(TransactionController nestedTransaction) {
+        nestedTransactions.add(0, nestedTransaction);
     }
 
     @Override
-    public TransactionController popNestedTransaction(){
+    public TransactionController popNestedTransaction() {
         return nestedTransactions.remove(0);
     }
 
     @Override
-    public boolean hasNestedTransaction() { return !nestedTransactions.isEmpty(); }
+    public boolean hasNestedTransaction() {
+        return !nestedTransactions.isEmpty();
+    }
 
     /**
      * Get the data value factory to use with this language connection context.
      */
     @Override
-    public DataValueFactory getDataValueFactory(){
+    public DataValueFactory getDataValueFactory() {
         return dataFactory;
     }
 
     /* Get the language factory to use with this language connection context. */
     @Override
-    public LanguageFactory getLanguageFactory(){
+    public LanguageFactory getLanguageFactory() {
         return langFactory;
     }
 
     @Override
-    public OptimizerFactory getOptimizerFactory(){
+    public OptimizerFactory getOptimizerFactory() {
         return of;
     }
 
@@ -2033,7 +2052,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Get the language connection factory to use with this language connection context.
      */
     @Override
-    public LanguageConnectionFactory getLanguageConnectionFactory(){
+    public LanguageConnectionFactory getLanguageConnectionFactory() {
         return connFactory;
     }
 
@@ -2043,10 +2062,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param tableName look for any activations referencing this table name
      * @return boolean  false if found no activations
      */
-    private boolean checkIfAnyActivationHasHoldCursor(String tableName) throws StandardException{
-        for(int i=acts.size()-1;i>=0;i--){
-            Activation a=acts.get(i);
-            if(a.checkIfThisActivationHasHoldCursor(tableName))
+    private boolean checkIfAnyActivationHasHoldCursor(String tableName) throws StandardException {
+        for (int i = acts.size() - 1; i >= 0; i--) {
+            Activation a = acts.get(i);
+            if (a.checkIfThisActivationHasHoldCursor(tableName))
                 return true;
         }
         return false;
@@ -2065,36 +2084,36 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
-    public boolean verifyAllHeldResultSetsAreClosed() throws StandardException{
-        boolean seenOpenResultSets=false;
+    public boolean verifyAllHeldResultSetsAreClosed() throws StandardException {
+        boolean seenOpenResultSets = false;
 
         /* For every activation */
-        for(int i=acts.size()-1;i>=0;i--){
+        for (int i = acts.size() - 1; i >= 0; i--) {
 
-            Activation a=acts.get(i);
+            Activation a = acts.get(i);
 
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(a instanceof CursorActivation,"a is not a CursorActivation");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(a instanceof CursorActivation, "a is not a CursorActivation");
             }
 
-            if(!a.isInUse()){
+            if (!a.isInUse()) {
                 continue;
             }
 
-            if(!a.getResultSetHoldability()){
+            if (!a.getResultSetHoldability()) {
                 continue;
             }
 
-            ResultSet rs=a.getResultSet();
+            ResultSet rs = a.getResultSet();
 
             /* is there an open result set? */
-            if((rs!=null) && !rs.isClosed() && rs.returnsRows()){
-                seenOpenResultSets=true;
+            if ((rs != null) && !rs.isClosed() && rs.returnsRows()) {
+                seenOpenResultSets = true;
                 break;
             }
         }
 
-        if(!seenOpenResultSets)
+        if (!seenOpenResultSets)
             return (true);
 
         // There may be open ResultSet's that are yet to be garbage collected
@@ -2103,26 +2122,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         System.runFinalization();
 
         /* For every activation */
-        for(int i=acts.size()-1;i>=0;i--){
+        for (int i = acts.size() - 1; i >= 0; i--) {
 
-            Activation a=acts.get(i);
+            Activation a = acts.get(i);
 
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(a instanceof CursorActivation,"a is not a CursorActivation");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(a instanceof CursorActivation, "a is not a CursorActivation");
             }
 
-            if(!a.isInUse()){
+            if (!a.isInUse()) {
                 continue;
             }
 
-            if(!a.getResultSetHoldability()){
+            if (!a.getResultSetHoldability()) {
                 continue;
             }
 
-            ResultSet rs=a.getResultSet();
+            ResultSet rs = a.getResultSet();
 
             /* is there an open held result set? */
-            if((rs!=null) && !rs.isClosed() && rs.returnsRows()){
+            if ((rs != null) && !rs.isClosed() && rs.returnsRows()) {
                 return (false);
             }
         }
@@ -2140,43 +2159,43 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
-    public boolean verifyNoOpenResultSets(PreparedStatement pStmt,Provider provider,int action)
-            throws StandardException{
+    public boolean verifyNoOpenResultSets(PreparedStatement pStmt, Provider provider, int action)
+        throws StandardException {
         /*
-        ** It is not a problem to create an index when there is an open
-        ** result set, since it doesn't invalidate the access path that was
-        ** chosen for the result set.
-        */
-        boolean seenOpenResultSets=false;
+         ** It is not a problem to create an index when there is an open
+         ** result set, since it doesn't invalidate the access path that was
+         ** chosen for the result set.
+         */
+        boolean seenOpenResultSets = false;
 
         /* For every activation */
 
         // synchronize on acts as other threads may be closing activations
         // in this list, thus invalidating the Enumeration
-        for(int i=acts.size()-1;i>=0;i--){
+        for (int i = acts.size() - 1; i >= 0; i--) {
 
-            Activation a=acts.get(i);
+            Activation a = acts.get(i);
 
-            if(!a.isInUse()){
+            if (!a.isInUse()) {
                 continue;
             }
-            
+
             /* for this prepared statement */
-            if(pStmt==a.getPreparedStatement()){
-                ResultSet rs=a.getResultSet();
+            if (pStmt == a.getPreparedStatement()) {
+                ResultSet rs = a.getResultSet();
 
                 /* is there an open result set? */
-                if(rs!=null && !rs.isClosed()){
-                    if(!rs.returnsRows())
+                if (rs != null && !rs.isClosed()) {
+                    if (!rs.returnsRows())
                         continue;
-                    seenOpenResultSets=true;
+                    seenOpenResultSets = true;
                     break;
                 }
 
             }
         }
 
-        if(!seenOpenResultSets)
+        if (!seenOpenResultSets)
             return false;
 
         // There may be open ResultSet's that are yet to be garbage collected
@@ -2187,26 +2206,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         /* For every activation */
         // synchronize on acts as other threads may be closing activations
         // in this list, thus invalidating the Enumeration
-        for(int i=acts.size()-1;i>=0;i--){
+        for (int i = acts.size() - 1; i >= 0; i--) {
 
-            Activation a=acts.get(i);
+            Activation a = acts.get(i);
 
-            if(!a.isInUse()){
+            if (!a.isInUse()) {
                 continue;
             }
 
             /* for this prepared statement */
-            if(pStmt==a.getPreparedStatement()){
-                ResultSet rs=a.getResultSet();
+            if (pStmt == a.getPreparedStatement()) {
+                ResultSet rs = a.getResultSet();
 
                 /* is there an open result set? */
-                if(rs!=null && !rs.isClosed()){
-                    if((provider!=null) && rs.returnsRows()){
-                        DependencyManager dmgr=getDataDictionary().getDependencyManager();
+                if (rs != null && !rs.isClosed()) {
+                    if ((provider != null) && rs.returnsRows()) {
+                        DependencyManager dmgr = getDataDictionary().getDependencyManager();
 
                         throw StandardException.newException(SQLState.LANG_CANT_INVALIDATE_OPEN_RESULT_SET,
-                                dmgr.getActionString(action),
-                                provider.getObjectName());
+                            dmgr.getActionString(action),
+                            provider.getObjectName());
 
                     }
                     return true;
@@ -2221,7 +2240,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @return String the authorization id of the session user.
      */
-    public String getSessionUserId(){
+    public String getSessionUserId() {
         return sessionUser;
     }
 
@@ -2244,73 +2263,73 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // (*) SpaceTable#getConglomInfo,
         //     SystemProcedures#{INSTALL|REPLACE|REMOVE}_JAR
 
-        SchemaDescriptor s=getDefaultSchema();
-        if(null==s)
+        SchemaDescriptor s = getDefaultSchema();
+        if (null == s)
             return null;
         return s.getSchemaName();
     }
 
     @Override
     public String getCurrentSchemaName(Activation a) {
-        SchemaDescriptor s=getDefaultSchema(a);
-        if(null==s)
+        SchemaDescriptor s = getDefaultSchema(a);
+        if (null == s)
             return null;
         return s.getSchemaName();
     }
 
     @Override
-    public boolean isInitialDefaultSchema(String schemaName){
+    public boolean isInitialDefaultSchema(String schemaName) {
         return cachedInitialDefaultSchemaDescr.getSchemaName().
-                equals(schemaName);
+            equals(schemaName);
     }
 
     @Override
-    public void setDefaultSchema(SchemaDescriptor sd) throws StandardException{
-        if(sd==null){
-            sd=getInitialDefaultSchemaDescriptor();
+    public void setDefaultSchema(SchemaDescriptor sd) throws StandardException {
+        if (sd == null) {
+            sd = getInitialDefaultSchemaDescriptor();
         }
         getCurrentSQLSessionContext().setDefaultSchema(sd);
     }
 
     @Override
-    public void setDefaultSchema(Activation a,SchemaDescriptor sd) throws StandardException{
-        if(sd==null){
-            sd=getInitialDefaultSchemaDescriptor();
+    public void setDefaultSchema(Activation a, SchemaDescriptor sd) throws StandardException {
+        if (sd == null) {
+            sd = getInitialDefaultSchemaDescriptor();
         }
 
         getCurrentSQLSessionContext(a).setDefaultSchema(sd);
     }
 
     @Override
-    public void resetSchemaUsages(Activation activation,String schemaName) throws StandardException{
+    public void resetSchemaUsages(Activation activation, String schemaName) throws StandardException {
 
-        Activation parent=activation.getParentActivation();
-        SchemaDescriptor defaultSchema=getInitialDefaultSchemaDescriptor();
+        Activation parent = activation.getParentActivation();
+        SchemaDescriptor defaultSchema = getInitialDefaultSchemaDescriptor();
 
         // walk SQL session context chain
-        while(parent!=null){
-            SQLSessionContext ssc=parent.getSQLSessionContextForChildren();
-            SchemaDescriptor s=ssc.getDefaultSchema();
+        while (parent != null) {
+            SQLSessionContext ssc = parent.getSQLSessionContextForChildren();
+            SchemaDescriptor s = ssc.getDefaultSchema();
 
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(s!=null,"s should not be empty here");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(s != null, "s should not be empty here");
             }
 
-            if(schemaName.equals(s.getSchemaName())){
+            if (schemaName.equals(s.getSchemaName())) {
                 ssc.setDefaultSchema(defaultSchema);
             }
-            parent=parent.getParentActivation();
+            parent = parent.getParentActivation();
         }
 
         // finally top level
-        SQLSessionContext top=getTopLevelSQLSessionContext();
-        SchemaDescriptor sd=top.getDefaultSchema();
+        SQLSessionContext top = getTopLevelSQLSessionContext();
+        SchemaDescriptor sd = top.getDefaultSchema();
 
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(sd!=null,"sd should not be empty here");
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(sd != null, "sd should not be empty here");
         }
 
-        if(schemaName.equals(sd.getSchemaName())){
+        if (schemaName.equals(sd.getSchemaName())) {
             top.setDefaultSchema(defaultSchema);
         }
     }
@@ -2321,8 +2340,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return the generated identity column value
      */
     @Override
-    public Long getIdentityValue(){
-        return identityNotNull?identityVal:null;
+    public Long getIdentityValue() {
+        return identityNotNull ? identityVal : null;
     }
 
     /**
@@ -2331,9 +2350,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param val the generated identity column value
      */
     @Override
-    public void setIdentityValue(long val){
-        identityVal=val;
-        identityNotNull=true;
+    public void setIdentityValue(long val) {
+        identityVal = val;
+        identityNotNull = true;
     }
 
     /**
@@ -2344,7 +2363,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return the compiler context
      */
     @Override
-    public final CompilerContext pushCompilerContext(){
+    public final CompilerContext pushCompilerContext() {
         return pushCompilerContext(null);
     }
 
@@ -2376,52 +2395,52 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * on the given input above.
      */
     @Override
-    public CompilerContext pushCompilerContext(SchemaDescriptor sd){
+    public CompilerContext pushCompilerContext(SchemaDescriptor sd) {
         CompilerContext cc;
-        boolean firstCompilerContext=false;
+        boolean firstCompilerContext = false;
 
-        cc=(CompilerContext)(getContextManager().getContext(CompilerContext.CONTEXT_ID));
+        cc = (CompilerContext) (getContextManager().getContext(CompilerContext.CONTEXT_ID));
 
         /*
-        ** If there is no compiler context, this is the first one on the
-        ** stack, so don't pop it when we're done (saves time).
-        */
-        if(cc==null){
-            firstCompilerContext=true;
+         ** If there is no compiler context, this is the first one on the
+         ** stack, so don't pop it when we're done (saves time).
+         */
+        if (cc == null) {
+            firstCompilerContext = true;
         }
 
-        if(cc==null || cc.getInUse()){
-            cc=new CompilerContextImpl(getContextManager(),this,tcf);
-            if(firstCompilerContext){
+        if (cc == null || cc.getInUse()) {
+            cc = new CompilerContextImpl(getContextManager(), this, tcf);
+            if (firstCompilerContext) {
                 cc.firstOnStack();
             }
-        }else{
-            /* Reset the next column,table, subquery and ResultSet numbers at 
-            * the beginning of each statement 
-            */
+        } else {
+            /* Reset the next column,table, subquery and ResultSet numbers at
+             * the beginning of each statement
+             */
             cc.resetContext();
         }
 
         cc.setInUse(true);
 
-        StatementContext sc=getStatementContext();
-        if(sc.getSystemCode())
+        StatementContext sc = getStatementContext();
+        if (sc.getSystemCode())
             cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
 
         /*
          * Set the compilation schema when its UUID is available.
          * i.e.:  Schema may not have been physically created yet, so
          *        its UUID will be null.
-         * 
+         *
          * o For trigger SPS recompilation, the system must use its
-         *   compilation schema to recompile the statement. 
-         * 
+         *   compilation schema to recompile the statement.
+         *
          * o For view recompilation, we set the compilation schema
          *   for this compiler context if its UUID is available.
          *   Otherwise, the compilation schema will be determined
          *   at execution time of view creation.
          */
-        if(sd!=null && sd.getUUID()!=null){
+        if (sd != null && sd.getUUID() != null) {
             cc.setCompilationSchema(sd);
         }
 
@@ -2435,13 +2454,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param cc The compiler context.
      */
     @Override
-    public void popCompilerContext(CompilerContext cc){
+    public void popCompilerContext(CompilerContext cc) {
         cc.setCurrentDependent(null);
         cc.setInUse(false);
         /* Only pop the compiler context if it's not the first one on the stack. */
-        if(!cc.isFirstOnStack()){
+        if (!cc.isFirstOnStack()) {
             cc.popMe();
-        }else{
+        } else {
             cc.setCompilationSchema(null);
         }
     }
@@ -2468,63 +2487,63 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return StatementContext  The statement context.
      */
     @Override
-    public StatementContext pushStatementContext(boolean isAtomic,boolean isForReadOnly,
-                                                 String stmtText,ParameterValueSet pvs,
+    public StatementContext pushStatementContext(boolean isAtomic, boolean isForReadOnly,
+                                                 String stmtText, ParameterValueSet pvs,
                                                  boolean rollbackParentContext,
                                                  long timeoutMillis) {
-        int parentStatementDepth=statementDepth;
-        boolean inTrigger=false;
-        boolean parentIsAtomic=false;
+        int parentStatementDepth = statementDepth;
+        boolean inTrigger = false;
+        boolean parentIsAtomic = false;
 
         // by default, assume we are going to use the outermost statement context
-        StatementContext statementContext=statementContexts[0];
+        StatementContext statementContext = statementContexts[0];
 
         /*
-        ** If we haven't allocated any statement contexts yet, allocate
-        ** the outermost stmt context now and push it.
-        */
+         ** If we haven't allocated any statement contexts yet, allocate
+         ** the outermost stmt context now and push it.
+         */
 
-        if(statementContext==null){
-            statementContext=statementContexts[0]=new GenericStatementContext(this);
+        if (statementContext == null) {
+            statementContext = statementContexts[0] = new GenericStatementContext(this);
             statementContext.
-                    setSQLSessionContext(getTopLevelSQLSessionContext());
-        }else if(statementDepth>0){
+                setSQLSessionContext(getTopLevelSQLSessionContext());
+        } else if (statementDepth > 0) {
             StatementContext parentStatementContext;
             /*
-            ** We also cache a 2nd statement context, though we still
-            ** push and pop it. Note, new contexts are automatically pushed.
-            */
-            if(statementDepth==1){
-                statementContext=statementContexts[1];
+             ** We also cache a 2nd statement context, though we still
+             ** push and pop it. Note, new contexts are automatically pushed.
+             */
+            if (statementDepth == 1) {
+                statementContext = statementContexts[1];
 
-                if(statementContext==null)
-                    statementContext=statementContexts[1]=new GenericStatementContext(this);
+                if (statementContext == null)
+                    statementContext = statementContexts[1] = new GenericStatementContext(this);
                 else
                     statementContext.pushMe();
 
-                parentStatementContext=statementContexts[0];
-            }else{
-                parentStatementContext=(StatementContext)getContextManager().getContext(ContextId.LANG_STATEMENT);
-                statementContext=new GenericStatementContext(this);
+                parentStatementContext = statementContexts[0];
+            } else {
+                parentStatementContext = (StatementContext) getContextManager().getContext(ContextId.LANG_STATEMENT);
+                statementContext = new GenericStatementContext(this);
             }
 
             statementContext.setSQLSessionContext(
-                    parentStatementContext.getSQLSessionContext());
+                parentStatementContext.getSQLSessionContext());
 
-            inTrigger=parentStatementContext.inTrigger() || (outermostTrigger==parentStatementDepth);
-            parentIsAtomic=parentStatementContext.isAtomic();
-            statementContext.setSQLAllowed(parentStatementContext.getSQLAllowed(),false);
-            if(parentStatementContext.getSystemCode())
+            inTrigger = parentStatementContext.inTrigger() || (outermostTrigger == parentStatementDepth);
+            parentIsAtomic = parentStatementContext.isAtomic();
+            statementContext.setSQLAllowed(parentStatementContext.getSQLAllowed(), false);
+            if (parentStatementContext.getSystemCode())
                 statementContext.setSystemCode();
-        }else{
+        } else {
             statementContext.
-                    setSQLSessionContext(getTopLevelSQLSessionContext());
+                setSQLSessionContext(getTopLevelSQLSessionContext());
         }
 
         incrementStatementDepth();
 
-        statementContext.setInUse(inTrigger,isAtomic || parentIsAtomic,isForReadOnly,stmtText,pvs,timeoutMillis);
-        if(rollbackParentContext)
+        statementContext.setInUse(inTrigger, isAtomic || parentIsAtomic, isForReadOnly, stmtText, pvs, timeoutMillis);
+        if (rollbackParentContext)
             statementContext.setParentRollback();
         return statementContext;
     }
@@ -2536,63 +2555,63 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param error            The error, if any  (Only relevant for DEBUG)
      */
     @Override
-    public void popStatementContext(StatementContext statementContext,Throwable error){
-        if(statementContext!=null){
+    public void popStatementContext(StatementContext statementContext, Throwable error) {
+        if (statementContext != null) {
             /*
-            ** If someone beat us to the punch, then it is ok,
-            ** just silently ignore it.  We probably got here
-            ** because we had a try catch block around a push/pop
-            ** statement context, and we already got the context
-            ** on a cleanupOnError.
-            */
-            if(!statementContext.inUse()){
+             ** If someone beat us to the punch, then it is ok,
+             ** just silently ignore it.  We probably got here
+             ** because we had a try catch block around a push/pop
+             ** statement context, and we already got the context
+             ** on a cleanupOnError.
+             */
+            if (!statementContext.inUse()) {
                 return;
             }
             statementContext.clearInUse();
         }
 
         decrementStatementDepth();
-        if(statementDepth==-1){
+        if (statementDepth == -1) {
             /*
              * Only ignore the pop request for an already
              * empty stack when dealing with a session exception.
              */
-            if(SanityManager.DEBUG){
-                int severity=(error instanceof StandardException)?
-                        ((StandardException)error).getSeverity():
-                        0;
-                SanityManager.ASSERT(error!=null,
-                        "Must have error to try popStatementContext with 0 depth");
+            if (SanityManager.DEBUG) {
+                int severity = (error instanceof StandardException) ?
+                    ((StandardException) error).getSeverity() :
+                    0;
+                SanityManager.ASSERT(error != null,
+                    "Must have error to try popStatementContext with 0 depth");
                 SanityManager.ASSERT(
-                        (severity==ExceptionSeverity.SESSION_SEVERITY),
-                        "Must have session severity error to try popStatementContext with 0 depth");
-                SanityManager.ASSERT(statementContext==statementContexts[0],
-                        "statementContext is expected to equal statementContexts[0]");
+                    (severity == ExceptionSeverity.SESSION_SEVERITY),
+                    "Must have session severity error to try popStatementContext with 0 depth");
+                SanityManager.ASSERT(statementContext == statementContexts[0],
+                    "statementContext is expected to equal statementContexts[0]");
             }
             resetStatementDepth(); // pretend we did nothing.
-        }else if(statementDepth==0){
-            if(SanityManager.DEBUG){
+        } else if (statementDepth == 0) {
+            if (SanityManager.DEBUG) {
                 /* Okay to pop last context on a session exception.
                  * (We call clean up on error when exiting connection.)
                  */
-                int severity=(error instanceof StandardException)?
-                        ((StandardException)error).getSeverity():
-                        0;
-                if((error==null) ||
-                        (severity!=ExceptionSeverity.SESSION_SEVERITY)){
-                    SanityManager.ASSERT(statementContext==statementContexts[0],
-                            "statementContext is expected to equal statementContexts[0]");
+                int severity = (error instanceof StandardException) ?
+                    ((StandardException) error).getSeverity() :
+                    0;
+                if ((error == null) ||
+                    (severity != ExceptionSeverity.SESSION_SEVERITY)) {
+                    SanityManager.ASSERT(statementContext == statementContexts[0],
+                        "statementContext is expected to equal statementContexts[0]");
                 }
             }
-        }else{
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(statementContext!=statementContexts[0],
-                        "statementContext is not expected to equal statementContexts[0]");
-                if(statementDepth<=0)
+        } else {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(statementContext != statementContexts[0],
+                    "statementContext is not expected to equal statementContexts[0]");
+                if (statementDepth <= 0)
                     SanityManager.THROWASSERT(
-                            "statement depth expected to be >0, was "+statementDepth);
+                        "statement depth expected to be >0, was " + statementDepth);
 
-                if(getContextManager().getContext(statementContext.getIdName())!=statementContext){
+                if (getContextManager().getContext(statementContext.getIdName()) != statementContext) {
                     SanityManager.THROWASSERT("trying to pop statement context from middle of stack");
                 }
             }
@@ -2618,7 +2637,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param validator the validator to add
      */
     @Override
-    public void pushExecutionStmtValidator(ExecutionStmtValidator validator){
+    public void pushExecutionStmtValidator(ExecutionStmtValidator validator) {
         stmtValidators.add(validator);
     }
 
@@ -2629,11 +2648,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param validator the validator to remove
      */
     @Override
-    public void popExecutionStmtValidator(ExecutionStmtValidator validator) throws StandardException{
-        boolean foundElement=stmtValidators.remove(validator);
-        if(SanityManager.DEBUG){
-            if(!foundElement){
-                SanityManager.THROWASSERT("statement validator "+validator+" not found");
+    public void popExecutionStmtValidator(ExecutionStmtValidator validator) throws StandardException {
+        boolean foundElement = stmtValidators.remove(validator);
+        if (SanityManager.DEBUG) {
+            if (!foundElement) {
+                SanityManager.THROWASSERT("statement validator " + validator + " not found");
             }
         }
     }
@@ -2645,12 +2664,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException on trigger recursion error
      */
     @Override
-    public void pushTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException{
-        if(triggerStack==null){
-            triggerStack=new TriggerExecutionStack();
+    public void pushTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
+        if (triggerStack == null) {
+            triggerStack = new TriggerExecutionStack();
         }
-        if(outermostTrigger==-1){
-            outermostTrigger=statementDepth;
+        if (outermostTrigger == -1) {
+            outermostTrigger = statementDepth;
         }
         triggerStack.pushTriggerExecutionContext(tec);
     }
@@ -2661,19 +2680,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param tec the tec to remove
      */
     @Override
-    public void popTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException{
-        if(outermostTrigger==statementDepth){
-            outermostTrigger=-1;
+    public void popTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
+        if (outermostTrigger == statementDepth) {
+            outermostTrigger = -1;
         }
-        if(triggerStack!=null){
+        if (triggerStack != null) {
             triggerStack.popTriggerExecutionContext(tec);
         }
     }
 
     @Override
-    public void popAllTriggerExecutionContexts(){
-        outermostTrigger=-1;
-        if(triggerStack!=null){
+    public void popAllTriggerExecutionContexts() {
+        outermostTrigger = -1;
+        if (triggerStack != null) {
             triggerStack.popAllTriggerExecutionContexts();
         }
     }
@@ -2682,8 +2701,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Get the topmost tec.
      */
     @Override
-    public TriggerExecutionContext getTriggerExecutionContext(){
-        if(triggerStack==null){
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        if (triggerStack == null) {
             return null;
         }
         return triggerStack.getTriggerExecutionContext();
@@ -2697,12 +2716,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param constantAction the constantAction that is about to be executed (and should be validated
      * @throws StandardException on validation failure
      */
-    public void validateStmtExecution(ConstantAction constantAction) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(constantAction!=null,"constantAction is null");
+    public void validateStmtExecution(ConstantAction constantAction) throws StandardException {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(constantAction != null, "constantAction is null");
         }
-        if(!stmtValidators.isEmpty()){
-            for(ExecutionStmtValidator stmtValidator : stmtValidators){
+        if (!stmtValidators.isEmpty()) {
+            for (ExecutionStmtValidator stmtValidator : stmtValidators) {
                 stmtValidator.validateStatement(constantAction);
             }
         }
@@ -2714,7 +2733,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param td the table that the trigger is defined upon
      */
     @Override
-    public void pushTriggerTable(TableDescriptor td){
+    public void pushTriggerTable(TableDescriptor td) {
         triggerTables.add(td);
     }
 
@@ -2724,11 +2743,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param td the table to remove from the stack.
      */
     @Override
-    public void popTriggerTable(TableDescriptor td){
-        boolean foundElement=triggerTables.remove(td);
-        if(SanityManager.DEBUG){
-            if(!foundElement){
-                SanityManager.THROWASSERT("trigger table not found: "+td);
+    public void popTriggerTable(TableDescriptor td) {
+        boolean foundElement = triggerTables.remove(td);
+        if (SanityManager.DEBUG) {
+            if (!foundElement) {
+                SanityManager.THROWASSERT("trigger table not found: " + td);
             }
         }
     }
@@ -2740,46 +2759,44 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * aren't in the middle of compiling a create
      * trigger.
      */
-    public TableDescriptor getTriggerTable(){
-        return triggerTables.isEmpty() ?null:triggerTables.get(triggerTables.size()-1);
+    public TableDescriptor getTriggerTable() {
+        return triggerTables.isEmpty() ? null : triggerTables.get(triggerTables.size() - 1);
     }
 
     @Override
-    public InternalDatabase getDatabase(){
+    public InternalDatabase getDatabase() {
         return db;
     }
 
     @Override
-    public int incrementBindCount(){
+    public int incrementBindCount() {
         bindCount++;
         return bindCount;
     }
 
     @Override
-    public int decrementBindCount(){
+    public int decrementBindCount() {
         bindCount--;
-        if(SanityManager.DEBUG){
-            if(bindCount<0)
+        if (SanityManager.DEBUG) {
+            if (bindCount < 0)
                 SanityManager.THROWASSERT(
-                        "Level of nested binding == "+bindCount);
+                    "Level of nested binding == " + bindCount);
         }
         return bindCount;
     }
 
     @Override
-    public int getBindCount(){
+    public int getBindCount() {
         return bindCount;
     }
 
     @Override
-    public final void setDataDictionaryWriteMode()
-    {
+    public final void setDataDictionaryWriteMode() {
         ddWriteMode = true;
     }
 
     @Override
-    public final boolean dataDictionaryInWriteMode()
-    {
+    public final boolean dataDictionaryInWriteMode() {
         return ddWriteMode;
     }
 
@@ -2789,25 +2806,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @return a statement level >= OUTERMOST_STATEMENT
      */
     @Override
-    public int getStatementDepth(){
+    public int getStatementDepth() {
         return statementDepth;
     }
 
     @Override
-    public boolean isIsolationLevelSetUsingSQLorJDBC(){
+    public boolean isIsolationLevelSetUsingSQLorJDBC() {
         return isolationLevelSetUsingSQLorJDBC;
     }
 
     @Override
-    public void resetIsolationLevelFlagUsedForSQLandJDBC(){
-        isolationLevelSetUsingSQLorJDBC=false;
+    public void resetIsolationLevelFlagUsedForSQLandJDBC() {
+        isolationLevelSetUsingSQLorJDBC = false;
     }
 
     @Override
-    public void setIsolationLevel(int isolationLevel) throws StandardException{
-        StatementContext stmtCtxt=getStatementContext();
-        if(stmtCtxt!=null && stmtCtxt.inTrigger())
-            throw StandardException.newException(SQLState.LANG_NO_XACT_IN_TRIGGER,getTriggerExecutionContext().toString());
+    public void setIsolationLevel(int isolationLevel) throws StandardException {
+        StatementContext stmtCtxt = getStatementContext();
+        if (stmtCtxt != null && stmtCtxt.inTrigger())
+            throw StandardException.newException(SQLState.LANG_NO_XACT_IN_TRIGGER, getTriggerExecutionContext().toString());
 
         // find if there are any held cursors from previous isolation level.
         // if yes, then throw an exception that isolation change not allowed until
@@ -2817,8 +2834,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // there still would be held cursors but the transaction state would be idle.
         // In order to check the above mentioned case, the held cursor check
         // shouldn't rely on transaction state.
-        if(this.isolationLevel!=isolationLevel){
-            if(!verifyAllHeldResultSetsAreClosed()){
+        if (this.isolationLevel != isolationLevel) {
+            if (!verifyAllHeldResultSetsAreClosed()) {
                 throw StandardException.newException(SQLState.LANG_CANT_CHANGE_ISOLATION_HOLD_CURSOR);
             }
         }
@@ -2827,106 +2844,106 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          * NOTE: We commit first in case there's some kind
          * of error, like can't commit within a server side jdbc call.
          */
-        TransactionController tc=getTransactionExecute();
-        if(!tc.isIdle()){
+        TransactionController tc = getTransactionExecute();
+        if (!tc.isIdle()) {
             // If this transaction is in progress, commit it.
             // However, do not allow commit to happen if this is a global
             // transaction.
-            if(tc.isGlobal())
+            if (tc.isGlobal())
                 throw StandardException.newException(SQLState.LANG_NO_SET_TRAN_ISO_IN_GLOBAL_CONNECTION);
 
             userCommit();
         }
-        this.isolationLevel=isolationLevel;
-        this.isolationLevelExplicitlySet=true;
-        this.isolationLevelSetUsingSQLorJDBC=true;
+        this.isolationLevel = isolationLevel;
+        this.isolationLevelExplicitlySet = true;
+        this.isolationLevelSetUsingSQLorJDBC = true;
     }
 
     @Override
-    public int getCurrentIsolationLevel(){
-        return (isolationLevel==ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL)?defaultIsolationLevel:isolationLevel;
+    public int getCurrentIsolationLevel() {
+        return (isolationLevel == ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) ? defaultIsolationLevel : isolationLevel;
     }
 
     @Override
-    public String getCurrentIsolationLevelStr(){
-        if(isolationLevel>=0 && isolationLevel<ExecutionContext.CS_TO_SQL_ISOLATION_MAP.length)
+    public String getCurrentIsolationLevelStr() {
+        if (isolationLevel >= 0 && isolationLevel < ExecutionContext.CS_TO_SQL_ISOLATION_MAP.length)
             return ExecutionContext.CS_TO_SQL_ISOLATION_MAP[isolationLevel][0];
         return ExecutionContext.CS_TO_SQL_ISOLATION_MAP[ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL][0];
     }
 
     @Override
-    public void setPrepareIsolationLevel(int level){
-        prepareIsolationLevel=level;
+    public void setPrepareIsolationLevel(int level) {
+        prepareIsolationLevel = level;
     }
 
     @Override
-    public int getPrepareIsolationLevel(){
-        if(!isolationLevelExplicitlySet)
+    public int getPrepareIsolationLevel() {
+        if (!isolationLevelExplicitlySet)
             return prepareIsolationLevel;
         else
             return ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
     }
 
     @Override
-    public StatementContext getStatementContext(){
+    public StatementContext getStatementContext() {
         StatementContext sCtx = statementContexts[0];
-        if(sCtx==null)
-            sCtx = (StatementContext)getContextManager().getContext(ContextId.LANG_STATEMENT);
+        if (sCtx == null)
+            sCtx = (StatementContext) getContextManager().getContext(ContextId.LANG_STATEMENT);
         return sCtx;
     }
 
     @Override
-    public boolean setOptimizerTrace(boolean onOrOff){
-        if(of==null){
+    public boolean setOptimizerTrace(boolean onOrOff) {
+        if (of == null) {
             return false;
         }
-        if(!of.supportsOptimizerTrace()){
+        if (!of.supportsOptimizerTrace()) {
             return false;
         }
-        optimizerTrace=onOrOff;
+        optimizerTrace = onOrOff;
         return true;
     }
 
     @Override
-    public boolean getOptimizerTrace(){
+    public boolean getOptimizerTrace() {
         return optimizerTrace;
     }
 
     /**
      * @see LanguageConnectionContext#setOptimizerTraceHtml
      */
-    public boolean setOptimizerTraceHtml(boolean onOrOff){
-        if(of==null){
+    public boolean setOptimizerTraceHtml(boolean onOrOff) {
+        if (of == null) {
             return false;
         }
-        if(!of.supportsOptimizerTrace()){
+        if (!of.supportsOptimizerTrace()) {
             return false;
         }
-        optimizerTraceHtml=onOrOff;
+        optimizerTraceHtml = onOrOff;
         return true;
     }
 
     @Override
-    public boolean getOptimizerTraceHtml(){
+    public boolean getOptimizerTraceHtml() {
         return optimizerTraceHtml;
     }
 
     @Override
-    public void setOptimizerTraceOutput(String startingText){
-        if(optimizerTrace){
-            lastOptimizerTraceOutput=optimizerTraceOutput;
-            optimizerTraceOutput=startingText;
+    public void setOptimizerTraceOutput(String startingText) {
+        if (optimizerTrace) {
+            lastOptimizerTraceOutput = optimizerTraceOutput;
+            optimizerTraceOutput = startingText;
         }
     }
 
     @Override
-    public void appendOptimizerTraceOutput(String output){
-        optimizerTraceOutput=
-                (optimizerTraceOutput==null)?output:optimizerTraceOutput+output;
+    public void appendOptimizerTraceOutput(String output) {
+        optimizerTraceOutput =
+            (optimizerTraceOutput == null) ? output : optimizerTraceOutput + output;
     }
 
     @Override
-    public String getOptimizerTraceOutput(){
+    public String getOptimizerTraceOutput() {
         return lastOptimizerTraceOutput;
     }
 
@@ -2937,7 +2954,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * false otherwise
      */
     @Override
-    public boolean isTransactionPristine(){
+    public boolean isTransactionPristine() {
         return getTransactionExecute().isPristine();
     }
 
@@ -2970,47 +2987,47 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *                           cleanupOnError's to throw exceptions.
      */
     @Override
-    public void cleanupOnError(Throwable error) throws StandardException{
+    public void cleanupOnError(Throwable error) throws StandardException {
 
         /*
-        ** If it isn't a StandardException, then assume
-        ** session severity. It is probably an unexpected
-        ** java error somewhere in the language.
-        ** Store layer treats JVM error as session severity, 
-        ** hence to be consistent and to avoid getting rawstore
-        ** protocol violation errors, we treat java errors here
-        ** to be of session severity.
-        */
+         ** If it isn't a StandardException, then assume
+         ** session severity. It is probably an unexpected
+         ** java error somewhere in the language.
+         ** Store layer treats JVM error as session severity,
+         ** hence to be consistent and to avoid getting rawstore
+         ** protocol violation errors, we treat java errors here
+         ** to be of session severity.
+         */
 
-        int severity=(error instanceof StandardException)?
-                ((StandardException)error).getSeverity():
-                ExceptionSeverity.SESSION_SEVERITY;
+        int severity = (error instanceof StandardException) ?
+            ((StandardException) error).getSeverity() :
+            ExceptionSeverity.SESSION_SEVERITY;
 
-        if(statementContexts[0]!=null){
+        if (statementContexts[0] != null) {
             statementContexts[0].clearInUse();
 
             // Force the StatementContext that's normally
             // left on the stack for optimization to be popped
             // when the session is closed. Ensures full cleanup
             // and no hanging refrences in the ContextManager.
-            if(severity>=ExceptionSeverity.SESSION_SEVERITY)
+            if (severity >= ExceptionSeverity.SESSION_SEVERITY)
                 statementContexts[0].popMe();
         }
-        if(statementContexts[1]!=null){
+        if (statementContexts[1] != null) {
             statementContexts[1].clearInUse();
         }
 
         // closing the activations closes all the open cursors.
         // the activations are, for all intents and purposes, the
         // cursors.
-        if(severity>=ExceptionSeverity.SESSION_SEVERITY){
-            for(int i=acts.size()-1;i>=0;i--){
+        if (severity >= ExceptionSeverity.SESSION_SEVERITY) {
+            for (int i = acts.size() - 1; i >= 0; i--) {
                 // it maybe the case that a reset()/close() ends up closing
                 // one or more activation leaving our index beyond
                 // the end of the array
-                if(i>=acts.size())
+                if (i >= acts.size())
                     continue;
-                Activation a=acts.get(i);
+                Activation a = acts.get(i);
                 a.reset();
                 a.close();
             }
@@ -3021,11 +3038,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         /*
-        ** We have some global state that we need
-        ** to clean up no matter what.  Be sure
-        ** to do so.
-        */
-        else if(severity>=ExceptionSeverity.TRANSACTION_SEVERITY){
+         ** We have some global state that we need
+         ** to clean up no matter what.  Be sure
+         ** to do so.
+         */
+        else if (severity >= ExceptionSeverity.TRANSACTION_SEVERITY) {
             internalRollback();
         }
     }
@@ -3055,25 +3072,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @throws StandardException thrown on failure
      */
-    private void endTransactionActivationHandling(boolean forRollback) throws StandardException{
+    private void endTransactionActivationHandling(boolean forRollback) throws StandardException {
 
         // don't use an enumeration as the activation may remove
         // itself from the list, thus invalidating the Enumeration
-        for(int i=acts.size()-1;i>=0;i--){
+        for (int i = acts.size() - 1; i >= 0; i--) {
 
             // it maybe the case that a reset() ends up closing
             // one or more activation leaving our index beyond
             // the end of the array
-            if(i>=acts.size())
+            if (i >= acts.size())
                 continue;
 
-            Activation a=acts.get(i);
+            Activation a = acts.get(i);
             /*
-            ** Look for stale activations.  Activations are
-            ** marked as unused during statement finalization.
-            ** Here, we sweep and remove this inactive ones.
-            */
-            if(!a.isInUse()){
+             ** Look for stale activations.  Activations are
+             ** marked as unused during statement finalization.
+             ** Here, we sweep and remove this inactive ones.
+             */
+            if (!a.isInUse()) {
                 a.close();
                 continue;
             }
@@ -3082,12 +3099,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             //returns rows. For such an activation, we need to take special
             //actions during commit and rollback as explained in the comments
             //below.
-            ResultSet activationResultSet=a.getResultSet();
-            boolean resultsetReturnsRows=
-                    (activationResultSet!=null) && activationResultSet.returnsRows();
+            ResultSet activationResultSet = a.getResultSet();
+            boolean resultsetReturnsRows =
+                (activationResultSet != null) && activationResultSet.returnsRows();
 
-            if(forRollback){
-                if(resultsetReturnsRows) {
+            if (forRollback) {
+                if (resultsetReturnsRows) {
                     //Since we are dealing with rollback, we need to reset 
                     //the activation no matter what the holdability might 
                     //be provided that resultset returns rows. An example
@@ -3106,10 +3123,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         ps.makeInvalid(DependencyManager.ROLLBACK, this);
                     }
                 }
-            }else{
+            } else {
                 //We are dealing with commit here. 
-                if(resultsetReturnsRows){
-                    if(!a.getResultSetHoldability())
+                if (resultsetReturnsRows) {
+                    if (!a.getResultSetHoldability())
                         //Close result sets that return rows and are not held 
                         //across commit. This is to implement closing JDBC 
                         //result sets that are CLOSE_CURSOR_ON_COMMIT at commit 
@@ -3142,34 +3159,34 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /**
      * Increments the statement depth.
      */
-    private void incrementStatementDepth(){
+    private void incrementStatementDepth() {
         statementDepth++;
     }
 
     /**
      * Decrements the statement depth
      */
-    private void decrementStatementDepth(){
+    private void decrementStatementDepth() {
         statementDepth--;
     }
 
     /**
      * Resets the statementDepth.
      */
-    protected void resetStatementDepth(){
-        statementDepth=0;
+    protected void resetStatementDepth() {
+        statementDepth = 0;
     }
 
     @Override
-    public DataDictionary getDataDictionary(){
+    public DataDictionary getDataDictionary() {
         return getDatabase().getDataDictionary();
     }
 
     @Override
-    public void setReadOnly(boolean on) throws StandardException{
-        if(!tran.isPristine())
+    public void setReadOnly(boolean on) throws StandardException {
+        if (!tran.isPristine())
             throw StandardException.newException(SQLState.AUTH_SET_CONNECTION_READ_ONLY_IN_ACTIVE_XACT);
-        getAuthorizer().setReadOnlyConnection(on,true);
+        getAuthorizer().setReadOnlyConnection(on, true);
     }
 
     @Override
@@ -3204,51 +3221,51 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
      */
     @Override
-    public Long lastAutoincrementValue(String schemaName,String tableName,String columnName){
-        String aiKey=AutoincrementCounter.makeIdentity(schemaName,tableName,columnName);
-        if(triggerStack!=null){
-            for(TriggerExecutionContext tec : triggerStack.asList()){
-                Long value=tec.getAutoincrementValue(aiKey);
-                if(value==null){
+    public Long lastAutoincrementValue(String schemaName, String tableName, String columnName) {
+        String aiKey = AutoincrementCounter.makeIdentity(schemaName, tableName, columnName);
+        if (triggerStack != null) {
+            for (TriggerExecutionContext tec : triggerStack.asList()) {
+                Long value = tec.getAutoincrementValue(aiKey);
+                if (value == null) {
                     continue;
                 }
                 return value;
             }
         }
-        if(autoincrementHT==null){
+        if (autoincrementHT == null) {
             return null;
         }
         return autoincrementHT.get(aiKey);
     }
 
     @Override
-    public void setAutoincrementUpdate(boolean flag){
-        autoincrementUpdate=flag;
+    public void setAutoincrementUpdate(boolean flag) {
+        autoincrementUpdate = flag;
     }
 
     @Override
-    public boolean getAutoincrementUpdate(){
+    public boolean getAutoincrementUpdate() {
         return autoincrementUpdate;
     }
 
     @Override
-    public void autoincrementCreateCounter(String s,String t,String c,
-                                           Long initialValue,long increment,
-                                           int position){
-        String key=AutoincrementCounter.makeIdentity(s,t,c);
-        if(autoincrementCacheHashtable==null){
-            autoincrementCacheHashtable=new HashMap<>();
+    public void autoincrementCreateCounter(String s, String t, String c,
+                                           Long initialValue, long increment,
+                                           int position) {
+        String key = AutoincrementCounter.makeIdentity(s, t, c);
+        if (autoincrementCacheHashtable == null) {
+            autoincrementCacheHashtable = new HashMap<>();
         }
 
-        AutoincrementCounter aic=autoincrementCacheHashtable.get(key);
-        if(aic!=null){
-            if(SanityManager.DEBUG){
-                SanityManager.THROWASSERT("Autoincrement Counter already exists:"+key);
+        AutoincrementCounter aic = autoincrementCacheHashtable.get(key);
+        if (aic != null) {
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("Autoincrement Counter already exists:" + key);
             }
             return;
         }
-        aic=new AutoincrementCounter(initialValue,increment,0,s,t,c,position);
-        autoincrementCacheHashtable.put(key,aic);
+        aic = new AutoincrementCounter(initialValue, increment, 0, s, t, c, position);
+        autoincrementCacheHashtable.put(key, aic);
     }
 
     /**
@@ -3261,17 +3278,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param columnName identify the column uniquely in the system.
      */
     @Override
-    public long nextAutoincrementValue(String schemaName,String tableName,
-                                       String columnName) throws StandardException{
-        String key=AutoincrementCounter.makeIdentity(schemaName,tableName,columnName);
-        AutoincrementCounter aic=autoincrementCacheHashtable.get(key);
+    public long nextAutoincrementValue(String schemaName, String tableName,
+                                       String columnName) throws StandardException {
+        String key = AutoincrementCounter.makeIdentity(schemaName, tableName, columnName);
+        AutoincrementCounter aic = autoincrementCacheHashtable.get(key);
 
-        if(aic==null){
-            if(SanityManager.DEBUG){
-                SanityManager.THROWASSERT("counter doesn't exist:"+key);
+        if (aic == null) {
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("counter doesn't exist:" + key);
             }
             return 0;
-        }else{
+        } else {
             return aic.update();
         }
     }
@@ -3287,20 +3304,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
      */
     @Override
-    public void autoincrementFlushCache(UUID tableUUID) throws StandardException{
-        if(autoincrementCacheHashtable==null)
+    public void autoincrementFlushCache(UUID tableUUID) throws StandardException {
+        if (autoincrementCacheHashtable == null)
             return;
 
-        if(autoincrementHT==null)
-            autoincrementHT= new HashMap<>();
+        if (autoincrementHT == null)
+            autoincrementHT = new HashMap<>();
 
-        DataDictionary dd=getDataDictionary();
-        for(Map.Entry<String, AutoincrementCounter> stringAutoincrementCounterEntry : autoincrementCacheHashtable.entrySet()){
-            AutoincrementCounter aic= stringAutoincrementCounterEntry.getValue();
-            Long value=aic.getCurrentValue();
-            aic.flushToDisk(getTransactionExecute(),dd,tableUUID);
-            if(value!=null){
-                autoincrementHT.put(stringAutoincrementCounterEntry.getKey(),value);
+        DataDictionary dd = getDataDictionary();
+        for (Map.Entry<String, AutoincrementCounter> stringAutoincrementCounterEntry : autoincrementCacheHashtable.entrySet()) {
+            AutoincrementCounter aic = stringAutoincrementCounterEntry.getValue();
+            Long value = aic.getCurrentValue();
+            aic.flushToDisk(getTransactionExecute(), dd, tableUUID);
+            if (value != null) {
+                autoincrementHT.put(stringAutoincrementCounterEntry.getKey(), value);
             }
         }
         autoincrementCacheHashtable.clear();
@@ -3312,23 +3329,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * kept in the languageconnectioncontext.
      */
     @Override
-    public void copyHashtableToAIHT(Map<String, Long> from){
-        if(from.isEmpty()){
+    public void copyHashtableToAIHT(Map<String, Long> from) {
+        if (from.isEmpty()) {
             return;
         }
-        if(autoincrementHT==null){
-            autoincrementHT=new HashMap<>();
+        if (autoincrementHT == null) {
+            autoincrementHT = new HashMap<>();
         }
         autoincrementHT.putAll(from);
     }
 
     @Override
-    public int getInstanceNumber(){
+    public int getInstanceNumber() {
         return instanceNumber;
     }
 
     @Override
-    public String getDrdaID(){
+    public String getDrdaID() {
         return drdaID;
     }
 
@@ -3338,28 +3355,28 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setDrdaID(String drdaID){
-        this.drdaID=drdaID;
+    public void setDrdaID(String drdaID) {
+        this.drdaID = drdaID;
     }
 
     @Override
-    public String getDbname(){
+    public String getDbname() {
         return dbname;
     }
 
     @Override
-    public Activation getLastActivation(){
-        return acts.get(acts.size()-1);
+    public Activation getLastActivation() {
+        return acts.get(acts.size() - 1);
     }
 
     @Override
-    public StringBuffer appendErrorInfo(){
+    public StringBuffer appendErrorInfo() {
 
-        TransactionController tc=getTransactionExecute();
-        if(tc==null)
+        TransactionController tc = getTransactionExecute();
+        if (tc == null)
             return null;
 
-        StringBuffer sb=new StringBuffer(200);
+        StringBuffer sb = new StringBuffer(200);
 
         sb.append(LanguageConnectionContext.xidStr);
         sb.append(tc.getTransactionIdString());
@@ -3437,14 +3454,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public String getCurrentGroupUserDelimited(Activation a) throws StandardException {
-        if(LOG.isDebugEnabled()) {
+        if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("getCurrentGroupUserDelimited():%n" +
-                            "sessionUser: %s,%n" +
-                            "defaultRoles: %s,%n" +
-                            "groupUserList: %s%n",
-                    sessionUser,
-                    (defaultRoles==null?"null":defaultRoles.toString()),
-                    (groupuserlist==null?"null":groupuserlist.toString())));
+                    "sessionUser: %s,%n" +
+                    "defaultRoles: %s,%n" +
+                    "groupUserList: %s%n",
+                sessionUser,
+                (defaultRoles == null ? "null" : defaultRoles.toString()),
+                (groupuserlist == null ? "null" : groupuserlist.toString())));
         }
         List<String> groupUsers = getCurrentSQLSessionContext(a).getCurrentGroupUser();
 
@@ -3452,7 +3469,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return null;
 
         String listString = null;
-        for (String groupUser: groupUsers) {
+        for (String groupUser : groupUsers) {
             if (listString == null)
                 listString = IdUtil.normalToDelimited(groupUser);
             else
@@ -3463,18 +3480,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
-        if(LOG.isDebugEnabled()) {
+    public String getCurrentRoleIdDelimited(Activation a) throws StandardException {
+        if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("getCurrentRoleIdDelimited():%n" +
-                            "sessionUser: %s,%n" +
-                            "defaultRoles: %s,%n" +
-                            "groupUserList: %s%n",
-                    sessionUser,
-                    (defaultRoles==null?"null":defaultRoles.toString()),
-                    (groupuserlist==null?"null":groupuserlist.toString())));
+                    "sessionUser: %s,%n" +
+                    "defaultRoles: %s,%n" +
+                    "groupUserList: %s%n",
+                sessionUser,
+                (defaultRoles == null ? "null" : defaultRoles.toString()),
+                (groupuserlist == null ? "null" : groupuserlist.toString())));
         }
 
-        List<String> roles=getCurrentSQLSessionContext(a).getRoles();
+        List<String> roles = getCurrentSQLSessionContext(a).getRoles();
 
         refreshCurrentRoles(a);
         String roleListString = null;
@@ -3499,7 +3516,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (rolesToRemove == null || rolesToRemove.isEmpty())
             return;
 
-        for (String aRole: rolesToRemove)
+        for (String aRole : rolesToRemove)
             getCurrentSQLSessionContext(a).removeRole(aRole);
 
         return;
@@ -3507,8 +3524,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setSessionProperties(Properties newProperties) {
-        for (Map.Entry<Object, Object> propertyEntry: newProperties.entrySet()) {
-            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)propertyEntry.getKey();
+        for (Map.Entry<Object, Object> propertyEntry : newProperties.entrySet()) {
+            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME) propertyEntry.getKey();
             sessionProperties.setProperty(propertyName, propertyEntry.getValue());
         }
 
@@ -3526,27 +3543,27 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public boolean roleIsSettable(Activation a,String role) throws StandardException{
+    public boolean roleIsSettable(Activation a, String role) throws StandardException {
 
-        DataDictionary dd=getDataDictionary();
-        String dbo=dd.getAuthorizationDatabaseOwner();
+        DataDictionary dd = getDataDictionary();
+        String dbo = dd.getAuthorizationDatabaseOwner();
 
-        RoleGrantDescriptor grantDesc=null;
-        String currentUser=getCurrentUserId(a);
+        RoleGrantDescriptor grantDesc = null;
+        String currentUser = getCurrentUserId(a);
         List<String> groupuserList = getCurrentGroupUser(a);
 
-        if(currentUser.equals(dbo) || (groupuserList != null && groupuserList.contains(dbo))){
-            grantDesc=dd.getRoleDefinitionDescriptor(role);
-        }else{
+        if (currentUser.equals(dbo) || (groupuserList != null && groupuserList.contains(dbo))) {
+            grantDesc = dd.getRoleDefinitionDescriptor(role);
+        } else {
             // since DB-6636, we allow non-splice admin user, roles' grantor is no longer necessary splice(dbo)
             // set grantor to null to fetch grant description regardless of the grantor
-            grantDesc=dd.getRoleGrantDescriptor
-                    (role,currentUser);
+            grantDesc = dd.getRoleGrantDescriptor
+                (role, currentUser);
 
-            if(grantDesc==null){
+            if (grantDesc == null) {
                 // or if not, via PUBLIC?
-                grantDesc=dd.getRoleGrantDescriptor
-                        (role,Authorizer.PUBLIC_AUTHORIZATION_ID);
+                grantDesc = dd.getRoleGrantDescriptor
+                    (role, Authorizer.PUBLIC_AUTHORIZATION_ID);
             }
 
             // or via group user
@@ -3558,7 +3575,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 }
             }
         }
-        return grantDesc!=null;
+        return grantDesc != null;
     }
 
     /**
@@ -3569,16 +3586,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SQLSessionContext getCurrentSQLSessionContext(Activation activation) {
         SQLSessionContext curr;
 
-        Activation parent=activation.getParentActivation();
+        Activation parent = activation.getParentActivation();
 
-        if(parent==null){
+        if (parent == null) {
             // top level
-            curr=getTopLevelSQLSessionContext();
-        }else{
+            curr = getTopLevelSQLSessionContext();
+        } else {
             // inside a nested connection (stored procedure/function), or when
             // executing a substatement the SQL session context is maintained
             // in the activation of the parent
-            curr=parent.getSQLSessionContextForChildren();
+            curr = parent.getSQLSessionContextForChildren();
         }
 
         return curr;
@@ -3589,20 +3606,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Return the current SQL session context based on statement context
      */
     private SQLSessionContext getCurrentSQLSessionContext() {
-        StatementContext ctx=getStatementContext();
+        StatementContext ctx = getStatementContext();
         SQLSessionContext curr;
 
-        if(ctx==null || !ctx.inUse()){
-            curr=getTopLevelSQLSessionContext();
-        }else{
+        if (ctx == null || !ctx.inUse()) {
+            curr = getTopLevelSQLSessionContext();
+        } else {
             // We are inside a nested connection in a procedure of
             // function.
-            curr=ctx.getSQLSessionContext();
+            curr = ctx.getSQLSessionContext();
 
-            if(SanityManager.DEBUG){
+            if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(
-                        curr!=null,
-                        "SQL session context should never be empty here");
+                    curr != null,
+                    "SQL session context should never be empty here");
             }
         }
 
@@ -3610,33 +3627,33 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setupNestedSessionContext(Activation a,boolean definersRights,String definer) throws StandardException{
-        setupSessionContextMinion(a,true,definersRights,definer);
+    public void setupNestedSessionContext(Activation a, boolean definersRights, String definer) throws StandardException {
+        setupSessionContextMinion(a, true, definersRights, definer);
     }
 
     private void setupSessionContextMinion(
-            Activation a,
-            boolean push,
-            boolean definersRights,
-            String definer) throws StandardException{
+        Activation a,
+        boolean push,
+        boolean definersRights,
+        String definer) throws StandardException {
 
-        if(SanityManager.DEBUG){
-            if(definersRights){
+        if (SanityManager.DEBUG) {
+            if (definersRights) {
                 SanityManager.ASSERT(push);
             }
         }
 
-        SQLSessionContext sc=a.setupSQLSessionContextForChildren(push);
+        SQLSessionContext sc = a.setupSQLSessionContextForChildren(push);
 
-        if(definersRights){
+        if (definersRights) {
             sc.setUser(definer);
-        }else{
+        } else {
             // A priori: invoker's rights: Current user
             sc.setUser(getCurrentUserId(a));
         }
 
 
-        if(definersRights){
+        if (definersRights) {
             // No role a priori. Cf. SQL 2008, section 10.4 <routine
             // invocation>, GR 5 j) i) 1) B) "If the external security
             // characteristic of R is DEFINER, then the top cell of the
@@ -3644,7 +3661,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // authorization identifier of R.
 
             sc.setRole(null);
-        }else{
+        } else {
             // Semantics for roles dictate (SQL 4.34.1.1 and 4.27.3.) that the
             // role is initially inherited from the current session context
             // when we run with INVOKER security characteristic.
@@ -3652,26 +3669,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
 
-        if(definersRights){
-            SchemaDescriptor sd=getDataDictionary().getSchemaDescriptor(
-                    definer,
-                    getTransactionExecute(),
-                    false);
+        if (definersRights) {
+            SchemaDescriptor sd = getDataDictionary().getSchemaDescriptor(
+                definer,
+                getTransactionExecute(),
+                false);
 
-            if(sd==null){
-                sd=new SchemaDescriptor(
-                        getDataDictionary(),definer,definer,(UUID)null,false);
+            if (sd == null) {
+                sd = new SchemaDescriptor(
+                    getDataDictionary(), definer, definer, (UUID) null, false);
             }
 
             sc.setDefaultSchema(sd);
-        }else{
+        } else {
             // Inherit current default schema. The initial value of the
             // default schema is implementation defined. In Derby we
             // inherit it when we invoke stored procedures and functions.
             sc.setDefaultSchema(getDefaultSchema(a));
         }
 
-        StatementContext stmctx=getStatementContext();
+        StatementContext stmctx = getStatementContext();
 
         // Since the statement is an invocation (iff push=true), it will now be
         // associated with the pushed SQLSessionContext (and no longer just
@@ -3691,17 +3708,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
 
     @Override
-    public void setupSubStatementSessionContext(Activation a) throws StandardException{
-        setupSessionContextMinion(a,false,false,null);
+    public void setupSubStatementSessionContext(Activation a) throws StandardException {
+        setupSessionContextMinion(a, false, false, null);
     }
 
     @Override
     public SQLSessionContext getTopLevelSQLSessionContext() {
-        if(topLevelSSC==null){
-            topLevelSSC=new SQLSessionContextImpl(
-                    getInitialDefaultSchemaDescriptor(),
-                    getSessionUserId(),
-                    defaultRoles, groupuserlist);
+        if (topLevelSSC == null) {
+            topLevelSSC = new SQLSessionContextImpl(
+                getInitialDefaultSchemaDescriptor(),
+                getSessionUserId(),
+                defaultRoles, groupuserlist);
         }
         return topLevelSSC;
     }
@@ -3710,9 +3727,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public SQLSessionContext createSQLSessionContext() {
         return new SQLSessionContextImpl(
-                getInitialDefaultSchemaDescriptor(),
-                getSessionUserId() /* a priori */,
-                defaultRoles, groupuserlist);
+            getInitialDefaultSchemaDescriptor(),
+            getSessionUserId() /* a priori */,
+            defaultRoles, groupuserlist);
     }
 
     /**
@@ -3721,67 +3738,67 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @see com.splicemachine.db.impl.sql.compile.QueryTreeNode#treePrint(int)
      */
-    Map printedObjectsMap=null;
+    Map printedObjectsMap = null;
 
     @Override
-    public Map getPrintedObjectsMap(){
-        if(printedObjectsMap==null){
-            printedObjectsMap=new IdentityHashMap();
+    public Map getPrintedObjectsMap() {
+        if (printedObjectsMap == null) {
+            printedObjectsMap = new IdentityHashMap();
         }
         return printedObjectsMap;
     }
 
     @Override
-    public void setASTVisitor(ASTVisitor visitor){
-        astWalker=visitor;
+    public void setASTVisitor(ASTVisitor visitor) {
+        astWalker = visitor;
     }
 
     @Override
-    public ASTVisitor getASTVisitor(){
+    public ASTVisitor getASTVisitor() {
         return astWalker;
     }
 
     @Override
-    public void setInterruptedException(StandardException e){
-        interruptedException=e;
+    public void setInterruptedException(StandardException e) {
+        interruptedException = e;
     }
 
     @Override
-    public StandardException getInterruptedException(){
+    public StandardException getInterruptedException() {
         return interruptedException;
     }
 
     @Override
-    public FormatableBitSet getReferencedColumnMap(TableDescriptor td){
+    public FormatableBitSet getReferencedColumnMap(TableDescriptor td) {
         return referencedColumnMap.get(td);
     }
 
     @Override
-    public void setReferencedColumnMap(TableDescriptor td,FormatableBitSet map){
-        referencedColumnMap.put(td,map);
+    public void setReferencedColumnMap(TableDescriptor td, FormatableBitSet map) {
+        referencedColumnMap.put(td, map);
     }
 
     @Override
-    public void enterRestoreMode(){
-        this.restoreMode=true;
+    public void enterRestoreMode() {
+        this.restoreMode = true;
     }
 
     @Override
-    public void setTriggerStack(TriggerExecutionStack triggerStack){
-        if(this.triggerStack!=null){
+    public void setTriggerStack(TriggerExecutionStack triggerStack) {
+        if (this.triggerStack != null) {
             SanityManager.THROWASSERT("LCC already has a trigger stack.");
         }
-        this.triggerStack=triggerStack;
+        this.triggerStack = triggerStack;
     }
 
     @Override
-    public TriggerExecutionStack getTriggerStack(){
+    public TriggerExecutionStack getTriggerStack() {
         return this.triggerStack;
     }
 
     @Override
-    public boolean hasTriggers(){
-        return !(this.triggerStack==null || this.triggerStack.isEmpty());
+    public boolean hasTriggers() {
+        return !(this.triggerStack == null || this.triggerStack.isEmpty());
     }
 
     @Override
@@ -3839,18 +3856,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return sparkExecutionType;
     }
 
-    public void materialize() throws StandardException {}
+    public void materialize() throws StandardException {
+    }
 
-    protected Map<String,TableDescriptor> withDescriptors;
+    protected Map<String, TableDescriptor> withDescriptors;
 
     @Override
-    public void setWithStack(Map<String,TableDescriptor> withDescriptors) {
+    public void setWithStack(Map<String, TableDescriptor> withDescriptors) {
         this.withDescriptors = withDescriptors;
     }
 
     @Override
     public TableDescriptor getWithDescriptor(String name) {
-        if (withDescriptors==null)
+        if (withDescriptors == null)
             return null;
         return withDescriptors.get(name);
     }
@@ -3879,7 +3897,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartCompiling(String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
-                    getLogHeader(), formatLogStmt(statement)));
+                getLogHeader(), formatLogStmt(statement)));
         }
     }
 
@@ -3887,7 +3905,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndCompiling(String statement, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
-                    getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
         }
     }
 
@@ -3895,7 +3913,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent) {
         if (stmtLogger.isEnabledFor(Level.WARN)) {
             stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
-                    getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
         }
     }
 
@@ -3917,7 +3935,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
-                    getLogHeader(), uuid, formatLogStmt(statement)));
+                getLogHeader(), uuid, formatLogStmt(statement)));
         }
     }
 
@@ -3925,7 +3943,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
-                    getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
+                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
         }
     }
 
@@ -3934,9 +3952,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
-                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
-                    getLogHeader(), uuid, engine, formatLogStmt(stmt),
-                    pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
+                getLogHeader(), uuid, engine, formatLogStmt(stmt),
+                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
         }
     }
 
@@ -3944,37 +3962,37 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logNextBatch(ParameterValueSet pvs) {
         if (stmtLogger.isDebugEnabled()) {
             stmtLogger.debug(String.format(
-                    "Next batch for query. %s, paramsCount=%d, params=[ %s ]",
-                    getLogHeader(),
-                    pvs.getParameterCount(), pvs.toString()));
+                "Next batch for query. %s, paramsCount=%d, params=[ %s ]",
+                getLogHeader(),
+                pvs.getParameterCount(), pvs.toString()));
         }
     }
 
     @Override
     public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
-            nanoTimeSpent) {
+        nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
-                            "modifiedRows=%d, badRecords=%d",
-                    getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+                    "modifiedRows=%d, badRecords=%d",
+                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
         }
     }
 
     private String getLogHeader() {
         return String.format(
-                "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
-                getTransactionExecute().getTransactionIdString(),
-                getInstanceNumber(),
-                getDbname(),
-                getDrdaID(),
-                getSessionUserId());
+            "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
+            getTransactionExecute().getTransactionIdString(),
+            getInstanceNumber(),
+            getDbname(),
+            getDrdaID(),
+            getSessionUserId());
     }
 
     private String formatLogStmt(String statement) {
         if (statement == null) {
             return "sqlHash=null, statement=null";
         }
-        synchronized(this) {
+        synchronized (this) {
             // cache formatted statement log
             if (statement.equals(lastLogStmt)) {
                 return lastLogStmtFormat;
@@ -4015,7 +4033,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return ignoreCommentOptEnabled;
     }
 
-    public boolean clientSupportsDecimal38() { return clientSupportsDecimal38; }
+    public boolean clientSupportsDecimal38() {
+        return clientSupportsDecimal38;
+    }
 
     public void setClientSupportsDecimal38(boolean newVal) {
         clientSupportsDecimal38 = newVal;
@@ -4078,8 +4098,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
         return null;
     }
-    
-    @Override      
+
+    @Override
     public boolean isSparkJob() {
         return sparkContext != null;
     }
@@ -4128,7 +4148,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (applicationJarsHashCode == this.applicationJarsHashCode)
             return;
 
-        for (String jarPath:applicationJars)
+        for (String jarPath : applicationJars)
             sparkSQLUtils.addUserJarToSparkContext(sparkContext, jarPath);
 
         this.applicationJarsHashCode = applicationJarsHashCode;
@@ -4137,5 +4157,39 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils) {
         this.sparkSQLUtils = sparkSQLUtils;
+    }
+
+    @Override
+    public void setupLocalSPSCache(boolean fromSparkExecution,
+                                   SPSDescriptor fromTableDmlSpsDescriptor) {
+        if (fromSparkExecution || fromTableDmlSpsDescriptor != null) {
+            if (this.spsCache == null)
+                this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().
+                                    maximumSize(LOCAL_MANAGED_CACHE_MAX_SIZE).build(), LOCAL_MANAGED_CACHE_MAX_SIZE);
+            if (fromTableDmlSpsDescriptor != null)
+                spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
+        }
+    }
+
+    @Override
+    public ManagedCache<UUID, SPSDescriptor> getSpsCache() {
+        return spsCache;
+    }
+
+    @Override
+    public ManagedCache<Long, Conglomerate> getConglomerateCache() {
+        return conglomerateCache;
+    }
+
+    @Override
+    public Conglomerate localConglomerateCacheFind(Long conglomId) {
+        if (conglomerateCache == null)
+            return null;
+        return conglomerateCache.getIfPresent(conglomId);
+    }
+
+    public void localConglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) {
+        if (conglomerateCache != null)
+            conglomerateCache.put(conglomId,conglomerate);
     }
 }

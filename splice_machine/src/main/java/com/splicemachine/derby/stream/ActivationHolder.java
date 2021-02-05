@@ -15,11 +15,13 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -78,8 +80,10 @@ public class ActivationHolder implements Externalizable {
     private List<String> groupUsers = null;
     private ManagedCache<String, Optional<String>> propertyCache = null;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache = null;
-    private ManagedCache<String,List<String>> defaultRoleCache = null;
-    private ManagedCache<String,SchemaDescriptor> schemaCache = null;
+    //private ManagedCache<String,List<String>> defaultRoleCache = null;  // msirek-temp
+    private List<String> defaultRoles;
+    //private ManagedCache<String,SchemaDescriptor> schemaCache = null;  // msirek-temp
+    private SchemaDescriptor initialDefaultSchemaDescriptor = null;
     private ManagedCache<Long, Conglomerate> conglomerateCache = null;
     private boolean serializeOperationList;
     public ActivationHolder() {
@@ -149,8 +153,8 @@ public class ActivationHolder implements Externalizable {
             txnResource.marshallTransaction(txn,
                                             lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
                                             lcc.getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache(),
-                                            lcc.getDataDictionary().getDataDictionaryCache().getDefaultRoleCache(),
-                                            lcc.getDataDictionary().getDataDictionaryCache().getSchemaCache(),
+                                            lcc.getDefaultRoles(),
+                                            lcc.getInitialDefaultSchemaDescriptor(),
                                             lcc.getDataDictionary().getDataDictionaryCache().getConglomerateCache(),
                                             lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
             if (needToSet)
@@ -223,11 +227,39 @@ public class ActivationHolder implements Externalizable {
         } else {
             out.writeBoolean(false);
         }
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache());
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getDefaultRoleCache());
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getSchemaCache());
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getConglomerateCache());
+        LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        boolean canReadCache = false;
+        try {
+            canReadCache = dd.canReadCache(null);
+        }
+        catch (Exception e) { }
+
+        out.writeObject(dd.getDataDictionaryCache().getPropertyCache());
+        if (SpliceClient.isRegionServer)
+            out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache());
+        else
+            out.writeObject(lcc.getSpsCache());
+//        if (!canReadCache) {
+//            lcc.setupDefaultRoleCache()
+//        } // msirek-temp
+        List<String> defaultRoles = lcc.getDefaultRoles();
+        int numDefaultRoles = defaultRoles == null ? -1 : defaultRoles.size();
+        out.writeInt(numDefaultRoles);
+        if (numDefaultRoles > 0) {
+            for (String role:defaultRoles)
+                out.writeUTF(role);
+        }
+
+        // out.writeObject(lcc.getDefaultRoleCache());  // msirek-temp
+        SchemaDescriptor sd = lcc.getInitialDefaultSchemaDescriptor();
+        boolean hasSchemaDescriptor = sd != null;
+        out.writeBoolean(hasSchemaDescriptor);
+        if (hasSchemaDescriptor)
+            out.writeObject(sd);
+
+//        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getSchemaCache());
+        out.writeObject(activation.getLanguageConnectionContext().getConglomerateCache());  // msirek-temp
     }
 
     public LanguageConnectionContext getLCC() {
@@ -244,7 +276,8 @@ public class ActivationHolder implements Externalizable {
             }
 
             txnResource = new SpliceTransactionResourceImpl();
-            txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoleCache, schemaCache, conglomerateCache);
+            txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles,
+                                            initialDefaultSchemaDescriptor, conglomerateCache);
             impl.set(txnResource);
             if (soi == null)
                 soi = SpliceObserverInstructions.create(this);
@@ -305,9 +338,18 @@ public class ActivationHolder implements Externalizable {
             schemaDescriptor = null;
         }
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
-        storedPreparedStatementCache = (ManagedCache<UUID, SPSDescriptor>) in.readObject();
-        defaultRoleCache = (ManagedCache<String,List<String>>) in.readObject();
-        schemaCache = (ManagedCache<String,SchemaDescriptor>) in.readObject();
+        storedPreparedStatementCache = (ManagedCache<UUID, SPSDescriptor>) in.readObject(); // msirek-temp
+        //defaultRoleCache = (ManagedCache<String,List<String>>) in.readObject();
+        int numDefaultRoles = in.readInt();
+        if (numDefaultRoles >= 0) {
+            defaultRoles = new ArrayList<>(numDefaultRoles);
+            for (int i = 0; i < numDefaultRoles; i++)
+                defaultRoles.add(in.readUTF());
+        }
+        boolean hasSchemaDescriptor = in.readBoolean();
+        if (hasSchemaDescriptor)
+            initialDefaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
+//        schemaCache = (ManagedCache<String,SchemaDescriptor>) in.readObject();
         conglomerateCache = (ManagedCache<Long, Conglomerate>) in.readObject();
 
         if (!serializeOperationList) {

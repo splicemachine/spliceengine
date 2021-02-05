@@ -67,7 +67,6 @@ public class TriggerEventActivator {
     private Map<TriggerEvent, List<TriggerDescriptor>> rowExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<TriggerDescriptor>> rowConcurrentExecutorsMap = new HashMap<>();
     private Activation activation;
-    private ConnectionContext connectionContext;
     private String statementText;
     private UUID tableId;
     private String tableName;
@@ -125,11 +124,10 @@ public class TriggerEventActivator {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
-        connectionContext = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         // fromSparkExecution has to be set before initTriggerExecContext() as the latter uses this variable
         this.fromSparkExecution = fromSparkExecution;
         initTriggerExecContext(aiCounters);
-        setupExecutors(triggerInfo);
+        setupExecutors(triggerInfo, activation);
         this.executorService = executorService;
         this.withContext = withContext;
     }
@@ -194,9 +192,15 @@ public class TriggerEventActivator {
     }
 
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
+        LanguageConnectionContext lcc = getLcc();
+        // Only use the local cache for spark execution, or if we have a temporary
+        // trigger created for execution of a FROM FINAL TABLE clause, which
+        // does not store its SPS in the data dictionary, so needs to use
+        // a ManagedCache.
+        lcc.setupLocalSPSCache(fromSparkExecution, fromTableDmlSpsDescriptor);
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-        connectionContext, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+        lcc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
     }
 
@@ -206,10 +210,10 @@ public class TriggerEventActivator {
      */
     void reopen() throws StandardException {
         initTriggerExecContext(null);
-        setupExecutors(triggerInfo);
+        setupExecutors(triggerInfo, activation);
     }
 
-    private void setupExecutors(TriggerInfo triggerInfo) throws StandardException {
+    private void setupExecutors(TriggerInfo triggerInfo, Activation activation) throws StandardException {
         // The SET statement cannot be executed in parallel.
         String regex    =   "(^set[\\s]+)|([\\s]+set[\\s]+)";
         Pattern pattern =   Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -243,13 +247,13 @@ public class TriggerEventActivator {
                 addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
             // Pre-compile the trigger.
-            LanguageConnectionContext lcc = null;
-            try {
-                lcc = ConnectionUtil.getCurrentLCC();
-            }
-            catch (SQLException e) {
-                throw StandardException.plainWrapException(e);
-            }
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+//            try {
+//                lcc = ConnectionUtil.getCurrentLCC();
+//            }
+//            catch (SQLException e) {
+//                throw StandardException.plainWrapException(e);
+//            }// msirek-temp
             if (lcc != null) {
                 preCompileTrigger(td, lcc);
             }
@@ -259,11 +263,10 @@ public class TriggerEventActivator {
 
     private void preCompileTrigger(TriggerDescriptor td,
                                    LanguageConnectionContext lcc) throws StandardException {
-        //pushTriggerExecutionContext();  // msirek-temp
-        td.getWhenClauseSPS(lcc, tec.getSpsCache());
+        td.getWhenClauseSPS(lcc, lcc.getSpsCache());
         int numActions = td.getActionIdList().size();
         for (int i=0; i < numActions; i++)
-            td.getActionSPS(lcc, i, tec.getSpsCache());
+            td.getActionSPS(lcc, i, lcc.getSpsCache());
     }
 
     /**
@@ -378,7 +381,7 @@ public class TriggerEventActivator {
                             ContextService.getFactory().setCurrentContextManager(cm);
                         }
                         lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
-                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(connectionContext,
+                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(lcc,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                                 tableId, tableName, null, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
                         RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
@@ -403,7 +406,7 @@ public class TriggerEventActivator {
 
                             if (cm != null) {
                                 if (lccPushed)
-                                    cm.popContext();
+                                    cm.popContext(lcc);
                                 if (newContextManager)
                                     ContextService.getFactory().resetCurrentContextManager(cm);
                             }

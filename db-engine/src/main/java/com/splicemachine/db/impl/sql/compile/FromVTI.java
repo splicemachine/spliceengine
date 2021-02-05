@@ -540,8 +540,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     getNewTriggerExecutionContext(LanguageConnectionContext lcc, String statementText, TriggerInfo triggerInfo, UUID tableId,
                                   String targetTableName, FormatableBitSet heapList, SPSDescriptor fromTableDmlSpsDescriptor)  throws StandardException {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
-        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(
-              (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID),
+        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(lcc,
               statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
               tableId, targetTableName, null, heapList, false, fromTableDmlSpsDescriptor);
 

@@ -96,16 +96,16 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                     ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
-                                    ManagedCache<String, List<String>> defaultRoleCache,
-                                    ManagedCache<String, SchemaDescriptor> schemaCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
                                     ManagedCache<Long, Conglomerate> conglomerateCache) throws StandardException, SQLException {
-        this.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoleCache, schemaCache, conglomerateCache, null, null, null);
+        this.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles, initialDefaultSchemaDescriptor, conglomerateCache, null, null, null);
     }
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                     ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
-                                    ManagedCache<String, List<String>> defaultRoleCache,
-                                    ManagedCache<String, SchemaDescriptor> schemaCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
                                     ManagedCache<Long,Conglomerate> conglomerateCache,
                                     TransactionController reuseTC,
                                     String localUserName, Integer sessionNumber) throws StandardException, SQLException{
@@ -127,28 +127,25 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             if (propertyCache != null) {
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
             }
-            if (storedPreparedStatementCache != null) {
-                database.getDataDictionary().getDataDictionaryCache().
-                    setStoredPreparedStatementCache(storedPreparedStatementCache);
-            }
-            if (defaultRoleCache != null) {
-                database.getDataDictionary().getDataDictionaryCache().
-                    setDefaultRoleCache(defaultRoleCache);
-            }
-            if (schemaCache != null) {
-                database.getDataDictionary().getDataDictionaryCache().
-                    setSchemaCache(schemaCache);
-            }
-            if (conglomerateCache != null) {
-                database.getDataDictionary().getDataDictionaryCache().
-                    setConglomerateCache(conglomerateCache);
-            }
+//            if (schemaCache != null) {
+//                database.getDataDictionary().getDataDictionaryCache().
+//                    setSchemaCache(schemaCache);
+//            }  // msirek-temp
+//            if (conglomerateCache != null) {
+//                database.getDataDictionary().getDataDictionaryCache().
+//                    setConglomerateCache(conglomerateCache);
+//            }  // msirek-temp
 
             lcc=database.generateLanguageConnectionContext(
                     txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
                     DataSetProcessorType.DEFAULT_OLTP, SparkExecutionType.UNSPECIFIED,
                     false, -1,
-                    ipAddress, reuseTC);
+                    ipAddress,
+                    storedPreparedStatementCache,
+                    defaultRoles,
+                    initialDefaultSchemaDescriptor,
+                    conglomerateCache,
+                    reuseTC);
 
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);
