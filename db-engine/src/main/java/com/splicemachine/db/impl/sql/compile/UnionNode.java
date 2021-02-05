@@ -737,7 +737,7 @@ public class UnionNode extends SetOperatorNode{
         sb = sb.append(spaceToLevel())
                 .append(isRecursive?"RecursiveUnion":"Union").append("(")
                 .append("n=").append(getResultSetNumber());
-        sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }
