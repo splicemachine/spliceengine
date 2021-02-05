@@ -59,122 +59,122 @@ import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
 @SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ExtractOperatorNode extends UnaryOperatorNode {
 
-	static private final String fieldName[] = {
-		"YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
-	};
-	static private final String fieldMethod[] = {
-		"getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
-	};
-
-    static private final long fieldCardinality[] = {
-			5L, 4L, 12L, 12L, 52L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
+    static private final String fieldName[] = {
+        "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "DAYOFWEEK", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
+    };
+    static private final String fieldMethod[] = {
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
     };
 
-	private int extractField;
+    static private final long fieldCardinality[] = {
+            5L, 4L, 12L, 12L, 52L, 7L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
+    };
 
-	/**
-	 * Initializer for a ExtractOperatorNode
-	 *
-	 * @param field		The field to extract
-	 * @param operand	The operand
-	 */
-	public void init(Object field, Object operand) {
-		extractField = (Integer) field;
-		super.init( operand,
-					"EXTRACT "+fieldName[extractField],
-					fieldMethod[extractField] );
-	}
+    private int extractField;
 
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException  {
-		int	operandType;
-		TypeId opTypeId;
+    /**
+     * Initializer for a ExtractOperatorNode
+     *
+     * @param field        The field to extract
+     * @param operand    The operand
+     */
+    public void init(Object field, Object operand) {
+        extractField = (Integer) field;
+        super.init( operand,
+                    "EXTRACT "+fieldName[extractField],
+                    fieldMethod[extractField] );
+    }
 
-		bindOperand(fromList, subqueryList, aggregateVector);
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException  {
+        int    operandType;
+        TypeId opTypeId;
 
-		opTypeId = operand.getTypeId();
-		operandType = opTypeId.getJDBCTypeId();
+        bindOperand(fromList, subqueryList, aggregateVector);
 
-		/*
-		** Cast the operand, if necessary, - this function is allowed only on
-		** date/time types.  By default, we cast to DATE if extracting
-		** YEAR, MONTH or DAY and to TIME if extracting HOUR, MINUTE or
-		** SECOND.
-		*/
-		if (opTypeId.isStringTypeId())
-		{
+        opTypeId = operand.getTypeId();
+        operandType = opTypeId.getJDBCTypeId();
+
+        /*
+        ** Cast the operand, if necessary, - this function is allowed only on
+        ** date/time types.  By default, we cast to DATE if extracting
+        ** YEAR, MONTH or DAY and to TIME if extracting HOUR, MINUTE or
+        ** SECOND.
+        */
+        if (opTypeId.isStringTypeId())
+        {
             TypeCompiler tc = operand.getTypeCompiler();
-			int castType = (extractField < 9) ? Types.DATE : Types.TIME;
-			operand =  (ValueNode)
-				getNodeFactory().getNode(
-					C_NodeTypes.CAST_NODE,
-					operand, 
-					DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true, 
-										tc.getCastToCharWidth(
-												operand.getTypeServices(), getCompilerContext())),
-					getContextManager());
-			((CastNode) operand).bindCastNodeOnly();
+            int castType = (extractField < DateTimeDataValue.HOUR_FIELD) ? Types.DATE : Types.TIME;
+            operand =  (ValueNode)
+                getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    operand,
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true,
+                                        tc.getCastToCharWidth(
+                                                operand.getTypeServices(), getCompilerContext())),
+                    getContextManager());
+            ((CastNode) operand).bindCastNodeOnly();
 
-			opTypeId = operand.getTypeId();
-			operandType = opTypeId.getJDBCTypeId();
-		}
+            opTypeId = operand.getTypeId();
+            operandType = opTypeId.getJDBCTypeId();
+        }
 
-		if ( ! ( ( operandType == Types.DATE )
-			   || ( operandType == Types.TIME ) 
-			   || ( operandType == Types.TIMESTAMP ) 
-			)	) {
-			throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"EXTRACT "+fieldName[extractField],
-						opTypeId.getSQLTypeName());
-		}
+        if ( ! ( ( operandType == Types.DATE )
+               || ( operandType == Types.TIME )
+               || ( operandType == Types.TIMESTAMP )
+            )    ) {
+            throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "EXTRACT "+fieldName[extractField],
+                        opTypeId.getSQLTypeName());
+        }
 
-		/*
-			If the type is DATE, ensure the field is okay.
-		 */
-		if ( (operandType == Types.DATE) 
-			 && (extractField > DateTimeDataValue.DAY_FIELD) ) {
-			throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"EXTRACT "+fieldName[extractField],
-						opTypeId.getSQLTypeName());
-		}
+        /*
+            If the type is DATE, ensure the field is okay.
+         */
+        if ( (operandType == Types.DATE)
+             && (extractField > DateTimeDataValue.DAY_FIELD) ) {
+            throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "EXTRACT "+fieldName[extractField],
+                        opTypeId.getSQLTypeName());
+        }
 
-		/*
-			If the type is TIME, ensure the field is okay.
-		 */
-		if ( (operandType == Types.TIME) 
-			 && (extractField < DateTimeDataValue.HOUR_FIELD) ) {
-			throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"EXTRACT "+fieldName[extractField],
-						opTypeId.getSQLTypeName());
-		}
+        /*
+            If the type is TIME, ensure the field is okay.
+         */
+        if ( (operandType == Types.TIME)
+             && (extractField < DateTimeDataValue.HOUR_FIELD) ) {
+            throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "EXTRACT "+fieldName[extractField],
+                        opTypeId.getSQLTypeName());
+        }
 
-		/*
-		** The result type of extract is int,
-		** unless it is TIMESTAMP and SECOND, in which case
-		** for now it is DOUBLE but eventually it will need to
-		** be DECIMAL(11,9).
-		*/
-		if ( (operandType == Types.TIMESTAMP)
-			 && (extractField == DateTimeDataValue.SECOND_FIELD) ) {
-			setType(new DataTypeDescriptor(
-							TypeId.getBuiltInTypeId(Types.DOUBLE),
-							operand.getTypeServices().isNullable()
-						)
-				);
-		} else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
+        /*
+        ** The result type of extract is int,
+        ** unless it is TIMESTAMP and SECOND, in which case
+        ** for now it is DOUBLE but eventually it will need to
+        ** be DECIMAL(11,9).
+        */
+        if ( (operandType == Types.TIMESTAMP)
+             && (extractField == DateTimeDataValue.SECOND_FIELD) ) {
+            setType(new DataTypeDescriptor(
+                            TypeId.getBuiltInTypeId(Types.DOUBLE),
+                            operand.getTypeServices().isNullable()
+                        )
+                );
+        } else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
                         TypeId.CHAR_ID,
@@ -183,37 +183,37 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
                     )
             );
         } else {
-			setType(new DataTypeDescriptor(
-							TypeId.INTEGER_ID,
-							operand.getTypeServices().isNullable()
-						)
-				);
-		}
+            setType(new DataTypeDescriptor(
+                            TypeId.INTEGER_ID,
+                            operand.getTypeServices().isNullable()
+                        )
+                );
+        }
 
-		return this;
-	}
+        return this;
+    }
 
-	void bindParameter() throws StandardException
-	{
-		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
-	}
+    void bindParameter() throws StandardException
+    {
+        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
+    }
 
-	public String toString() {
-		if (SanityManager.DEBUG)
-		{
-			return "fieldName: " + fieldName[extractField] + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString() {
+        if (SanityManager.DEBUG)
+        {
+            return "fieldName: " + fieldName[extractField] + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String sparkFunctionName() throws StandardException{
-	    if (extractField == MONTHNAME_FIELD)
-	        throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
-	    return fieldName[extractField];
+    public String sparkFunctionName() throws StandardException{
+        if (extractField == MONTHNAME_FIELD)
+            throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+        return fieldName[extractField];
     }
 
     @Override
@@ -221,11 +221,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         return Math.min(fieldCardinality[extractField], numberOfRows);
     }
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		double lowerCost = getOperandCost();
-		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
-		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
-		return lowerCost + localCost + callCost;
-	}
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double lowerCost = getOperandCost();
+        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return lowerCost + localCost + callCost;
+    }
 }

@@ -17,6 +17,7 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.utils.ShowCreateTableIT;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -119,9 +120,9 @@ public class ForeignKeyCheckIT {
         }
 
         // then -- we should not be able to insert rows (that were previously there) into C
-        assertQueryFailMatch("insert into C values(1),(2),(3),(4)", "Operation on table 'C' caused a violation of foreign key constraint 'SQL\\d+' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(1),(2),(3),(4)", String.format("Operation on table 'C' caused a violation of foreign key constraint '%s' for key \\(A\\).  The statement has been rolled back.", ShowCreateTableIT.SYSTEM_SQL_NAME_PATTERN));
         // then -- we should not be able to insert rows (that were NOT previously there) into C
-        assertQueryFailMatch("insert into C values(5)", "Operation on table 'C' caused a violation of foreign key constraint 'SQL\\d+' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(5)", String.format("Operation on table 'C' caused a violation of foreign key constraint '%s' for key \\(A\\).  The statement has been rolled back.", ShowCreateTableIT.SYSTEM_SQL_NAME_PATTERN));
     }
 
     @Test
@@ -133,7 +134,7 @@ public class ForeignKeyCheckIT {
             s.executeUpdate("insert into P values(1),(2)");
             s.executeUpdate("insert into C values(1,1),(2,1),(3,1),(4,2),(5,2),(6,2)");
             s.executeUpdate("delete from C where a = 1");
-            assertQueryFailMatch("delete from P where a = 1","Operation on table 'P' caused a violation of foreign key constraint 'SQL\\d+' for key \\(B\\).  The statement has been rolled back.");
+            assertQueryFailMatch("delete from P where a = 1", String.format("Operation on table 'P' caused a violation of foreign key constraint '%s' for key \\(B\\).  The statement has been rolled back.", ShowCreateTableIT.SYSTEM_SQL_NAME_PATTERN));
         }
 
     }

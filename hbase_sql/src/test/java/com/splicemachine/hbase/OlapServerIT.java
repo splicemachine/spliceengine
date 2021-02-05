@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,10 +29,6 @@ import org.junit.experimental.categories.Category;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import static junit.framework.TestCase.fail;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -54,63 +51,16 @@ public class OlapServerIT extends SpliceUnitTest {
         assertTrue(rs.next());
         rs.close();
 
-        // get olap server master pid
-        String getPid[] = {
-                "/bin/sh",
-                "-c",
-                "ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'"
-        };
-        String env[] = { "PATH=/bin:/usr/bin"};
-        Process proc = Runtime.getRuntime().exec(getPid, env);
-        proc.waitFor();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        int pid = Integer.parseInt(reader.readLine());
+        int pid = getPid();
 
         LOG.info("Current pid " + pid);
 
-        // kill olap server master pid
-        String kill[] = {
-                "/bin/sh",
-                "-c",
-                "kill " + pid
-        };
+        killOlapServer(pid);
 
-        proc = Runtime.getRuntime().exec(kill, env);
-        proc.waitFor();
-
-        // Wait until killed
-        while (true) {
-            proc = Runtime.getRuntime().exec(getPid, env);
-            proc.waitFor();
-            reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            String line = reader.readLine();
-            if (line == null) {
-                LOG.info("Killed");
-                // killed
-                break;
-            }
-            int newPid = Integer.parseInt(line);
-            if (newPid != pid) {
-                LOG.info("Killed and restarted with pid " + newPid);
-                // killed & restarted
-                break;
-            }
-            Thread.sleep(1000);
-        }
-
-        int newPid;
-        // Wait until restarted
-        while (true) {
-            proc = Runtime.getRuntime().exec(getPid, env);
-            proc.waitFor();
-            reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            String line = reader.readLine();
-            if (line != null) {
-                newPid = Integer.parseInt(line);
-                LOG.info("Restarted with pid " + newPid);
-                break;
-            }
-            Thread.sleep(1000);
+        int newPid = pid;
+        while (newPid == pid) {
+            Thread.sleep(500);
+            newPid = getPid();
         }
         assertNotEquals(pid, newPid);
 
@@ -124,5 +74,65 @@ public class OlapServerIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sql);
         assertTrue(rs.next());
+    }
+
+    @Test(timeout = 120000)
+    public void restartOlapServer() throws Exception {
+        String sql = "select * from sys.systables --splice-properties useSpark=true";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertTrue(rs.next());
+        rs.close();
+
+        int pid = getPid();
+        LOG.info("Current pid " + pid);
+
+        rs = methodWatcher.executeQuery("call syscs_util.restart_olap_server()");
+        rs.next();
+        Assert.assertEquals("Restarted Olap server", rs.getString(1));
+
+        int newPid = getPid();
+        while (newPid == pid) {
+            Thread.sleep(500);
+            newPid = getPid();
+        }
+        LOG.info("new pid " + newPid);
+    }
+
+    private int getPid() throws Exception {
+        // get olap server master pid
+        String getPid[] = {
+                "/bin/sh",
+                "-c",
+                "ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'"
+        };
+        String env[] = { "PATH=/bin:/usr/bin"};
+        while (true) {
+            Process proc = Runtime.getRuntime().exec(getPid, env);
+            proc.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            String line = reader.readLine();
+            if (line != null) {
+                int pid = Integer.parseInt(line);
+                return pid;
+            }
+            else {
+                LOG.info("Killed");
+            }
+            Thread.sleep(1000);
+        }
+    }
+
+    private void killOlapServer(int pid) throws Exception{
+        String env[] = {"PATH=/bin:/usr/bin"};
+        // kill olap server master pid
+        String kill[] = {
+                "/bin/sh",
+                "-c",
+                "kill " + pid
+        };
+
+        Process proc = Runtime.getRuntime().exec(kill, env);
+        proc.waitFor();
+
     }
 }

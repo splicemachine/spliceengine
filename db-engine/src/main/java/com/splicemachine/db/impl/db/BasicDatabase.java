@@ -78,10 +78,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * The Database interface provides control over the physical database

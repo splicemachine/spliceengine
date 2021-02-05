@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -1021,8 +1022,8 @@ public class TableElementList extends QueryTreeNodeVector {
 	/**
 	 * Fill in the ConstraintConstantAction[] for this create/alter table.
 	 * 
-     * @param forCreateTable ConstraintConstantAction is for a create table.
-	 * @param conActions	The ConstraintConstantAction[] to be filled in.
+     * @param forCreateTable ConstantAction is for a create table.
+	 * @param conActions	The ConstantAction[] to be filled in.
 	 * @param tableName		The name of the Table being created.
 	 * @param tableSd		The schema for that table.
 	 * @param dd	    	The DataDictionary
@@ -1347,7 +1348,7 @@ public class TableElementList extends QueryTreeNodeVector {
         {
             result.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
         }
         return result;
     }
