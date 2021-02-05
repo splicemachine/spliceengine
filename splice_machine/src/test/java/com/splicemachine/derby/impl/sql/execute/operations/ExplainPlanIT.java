@@ -16,8 +16,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -31,6 +33,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 10/7/14.
  */
+@Category(SerialTest.class) // Not run in parallel since it is changing global log level
 public class ExplainPlanIT extends SpliceUnitTest  {
 
     public static final String CLASS_NAME = ExplainPlanIT.class.getSimpleName().toUpperCase();
@@ -760,5 +763,17 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Assert.assertTrue(explainStr.contains(expected[1]));
         Assert.assertFalse(explainStr.contains(expected[2]));
         Assert.assertFalse(explainStr.contains(CLASS_NAME + ".T6.A6"));
+    }
+
+    @Test
+    public void testPlanPrinterBugDB11341() throws Exception {
+        String planPrinterLevel;
+        planPrinterLevel = methodWatcher.query("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')");
+        try {
+            methodWatcher.execute("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter','DEBUG')");
+            methodWatcher.executeQuery("SELECT 1 FROM ( SELECT 1 FROM sysibm.sysdummy1 ORDER BY 1 )"); // Failed before DB-11341
+        } finally {
+            methodWatcher.execute(format("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter', '%s')", planPrinterLevel));
+        }
     }
 }
