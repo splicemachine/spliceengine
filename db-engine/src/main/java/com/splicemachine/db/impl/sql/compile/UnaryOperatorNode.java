@@ -199,6 +199,12 @@ public class UnaryOperatorNode extends OperatorNode
         this.operatorType = -1;
     }
 
+    public void init()
+    {
+        this.operands = new ArrayList<>(Collections.singletonList(null));
+        this.operatorType = -1;
+    }
+
     /**
      * Set the operator.
      *

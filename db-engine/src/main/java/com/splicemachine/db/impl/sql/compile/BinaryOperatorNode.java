@@ -215,8 +215,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object opType)
     {
         operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
-        interfaceTypes = new ArrayList<>(Arrays.asList(BinaryArgTypes[this.operatorType]));
         this.operatorType = (Integer) opType;
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(BinaryArgTypes[this.operatorType]));
         this.operator = BinaryOperators[this.operatorType];
         this.methodName = BinaryMethodNames[this.operatorType];
         this.resultInterfaceType = BinaryResultTypes[this.operatorType];
@@ -909,5 +909,14 @@ public class BinaryOperatorNode extends OperatorNode
 
     public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
     public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
+
+    @Override
+    public int getTableNumber() {
+        return operands.stream()
+                .filter(op -> op != null && op.getTableNumber() != -1)
+                .findFirst()
+                .map(ValueNode::getTableNumber)
+                .orElse(-1);
+    }
 }
 
