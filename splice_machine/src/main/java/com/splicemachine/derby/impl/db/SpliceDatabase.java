@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -204,7 +203,7 @@ public class SpliceDatabase extends BasicDatabase{
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();
         if(configuration.authenticationNativeCreateCredentialsDatabase()) {
-            System.setProperty(PropertyHelper.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
+            System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
 
         String authTypeString=configuration.getAuthentication();
@@ -247,7 +246,7 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
         SpliceLogUtils.info(LOG,"using Kerberos to authorize Splice Machine");
-        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_KERBEROS);
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_KERBEROS);
     }
 
     private void configureLDAPAuth(SConfiguration config){
@@ -264,7 +263,7 @@ public class SpliceDatabase extends BasicDatabase{
                 authenticationLDAPSearchAuthDN,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
-        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_LDAP);
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
