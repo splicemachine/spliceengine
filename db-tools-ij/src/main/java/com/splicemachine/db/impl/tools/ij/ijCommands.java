@@ -152,7 +152,7 @@ public class ijCommands {
                     new ColumnParameters( rs, "ORDINAL_POSITION", 8).maxWidth(16),
                     new ColumnParameters( rs, "NON_UNIQUE", 10).maxWidth(10),
                     new ColumnParameters( rs, "TYPE", 5).maxWidth(15),
-                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth( 11),
+                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth(11),
                     new ColumnParameters( rs, "CONGLOM_NO", 10).maxWidth(10)
             };
             if(schema!=null) {
