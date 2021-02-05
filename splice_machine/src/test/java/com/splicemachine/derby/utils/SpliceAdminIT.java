@@ -25,7 +25,6 @@ import java.util.Map;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test_dao.TableDAO;
-import com.splicemachine.utils.DbEngineUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;
@@ -551,73 +550,4 @@ public class SpliceAdminIT extends SpliceUnitTest {
         SpliceUnitTest.sqlExpectException(methodWatcher, "CALL SYSCS_UTIL.LIST_DIRECTORY('/not/existing/directory')",
                 "X0X14", false);
     }
-
-    @Test
-    public void testSetGlobalDatabaseProperty() throws Exception {
-        // might have been set by previous execution of this test
-        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'NULL')");
-
-        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'true')") ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(
-                    "name       |                             value                             |\n" +
-                            "---------------------------------------------------------------------------------\n" +
-                            " PROPERTY_NAME  |                     not.existing.property                     |\n" +
-                            "   NEW VALUE    |                             true                              |\n" +
-                            "PREVIOUS VALUE  |                             NULL                              |\n" +
-                            "                |                                                               |\n" +
-                            "!!! WARNING !!! |Database Property 'not.existing.property' seems to be unknown! |", actual);
-        } finally {
-            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('not.existing.property', 'NULL')");
-        }
-
-        String timestampFormat = "call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', %s )";
-        methodWatcher.execute(String.format(timestampFormat, "NULL"));
-
-        try {
-            try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'YYYY'"))) {
-                String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-                Assert.assertEquals(
-                        "name      |             value              |\n" +
-                                "-------------------------------------------------\n" +
-                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
-                                "   NEW VALUE   |             YYYY               |\n" +
-                                "PREVIOUS VALUE |             NULL               |\n" +
-                                "     INFO      |                                |", actual);
-            }
-
-            try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'yyyy-MM-dd HH:mm:ss'"))) {
-                String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-                Assert.assertEquals(
-                        "name      |             value              |\n" +
-                                "-------------------------------------------------\n" +
-                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
-                                "   NEW VALUE   |      yyyy-MM-dd HH:mm:ss       |\n" +
-                                "PREVIOUS VALUE |             YYYY               |\n" +
-                                "     INFO      |                                |", actual);
-            }
-        } finally {
-            methodWatcher.execute(String.format(timestampFormat, "NULL"));
-        }
-    }
-
-    @Test
-    public void testGetGlobalDatabaseProperties() throws Exception {
-        methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', NULL )");
-
-        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', false)") ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(
-                            "PROPERTY_NAME          | VALUE |INFO |\n" +
-                            "-----------------------------------------------\n" +
-                            "splice.function.timestampFormat | NULL  |     |", actual );
-        }
-
-        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', true)") ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals("", actual );
-        }
-    }
-
-
 }

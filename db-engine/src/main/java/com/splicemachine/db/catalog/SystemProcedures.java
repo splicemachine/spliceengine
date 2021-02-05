@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -56,11 +55,15 @@ import com.splicemachine.db.shared.common.reference.AuditEventType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.net.HostAndPort;
 
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.Policy;
 import java.security.PrivilegedAction;
 import java.sql.*;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
@@ -2081,9 +2084,9 @@ public class SystemProcedures{
                 throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, (Object) null);
 
             String addListProperty;
-            if(PropertyHelper.FULL_ACCESS.equals(connectionPermission)){
+            if(Property.FULL_ACCESS.equals(connectionPermission)){
                 addListProperty=Property.FULL_ACCESS_USERS_PROPERTY;
-            }else if(PropertyHelper.READ_ONLY_ACCESS.equals(connectionPermission)){
+            }else if(Property.READ_ONLY_ACCESS.equals(connectionPermission)){
                 addListProperty=Property.READ_ONLY_ACCESS_USERS_PROPERTY;
             }else if(connectionPermission==null){
                 // Remove from the lists but don't add back into any.
