@@ -35,6 +35,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
