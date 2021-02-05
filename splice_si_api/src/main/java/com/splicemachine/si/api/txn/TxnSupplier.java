@@ -93,4 +93,6 @@ public interface TxnSupplier {
 	 * @param txnId the transaction id to fetch.
 	 */
 	TaskId getTaskId(long txnId) throws IOException;
+
+	void invalidate();
 }

@@ -1239,6 +1239,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .bigint("transactionId")
                 .build());
 
+        procedures.add(Procedure.newBuilder().name("SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .bigint("transactionId")
+                .build());
+
         procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
                 .numResultSets(0).numOutputParams(0).modifiesSql()
                 .returnType(null).isDeterministic(false)

@@ -260,6 +260,9 @@ public class SimpleTxnFilter implements TxnFilter{
         if (ignoreNewerTransactions && myTxn.getBeginTimestamp() < txnId)
             return false;
 
+        if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(txnId))
+            return false;
+
         TxnView toCompare=fetchTransaction(txnId);
 
         if (isReplica && toCompare != null) {

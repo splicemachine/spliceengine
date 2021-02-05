@@ -5,6 +5,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -140,6 +142,7 @@ class SICompactionStateMutate {
      */
     private void mutate(Cell element, TxnView txn, SortedSet<Cell> dataToReturn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
+        IgnoreTxnSupplier ignoreTxn = SIDriver.driver() == null ? null : SIDriver.driver().getIgnoreTxnSupplier();
         if (element.getType() != Cell.Type.Put) {
             if (LOG.isDebugEnabled())
                 LOG.debug("Removing cell " + element + " because it's a delete");
@@ -156,7 +159,10 @@ class SICompactionStateMutate {
                 setBypassPurgeWithWarning("Element does not contain a timestamp: " + element);
             assert txnIsNull;
             assert timeStampInElement : "Element does not contain a timestamp: " + element;
-            dataToReturn.add(element);
+            long commitTimestamp = CellUtils.getCommitTimestamp(element);
+            if (ignoreTxn == null || !ignoreTxn.shouldIgnore(commitTimestamp)) {
+                dataToReturn.add(element);
+            }
             return;
         }
         if (txn == null) {
@@ -166,7 +172,10 @@ class SICompactionStateMutate {
         }
         Txn.State txnState = txn.getEffectiveState();
 
-        if (txnState == Txn.State.ROLLEDBACK) {
+        if (txnState == Txn.State.ROLLEDBACK || 
+            ( ignoreTxn != null && ignoreTxn.shouldIgnore(txn.getTxnId()) )
+        )
+        {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Removing cell " + element + " because txn is rolledback: " + txn);
             }

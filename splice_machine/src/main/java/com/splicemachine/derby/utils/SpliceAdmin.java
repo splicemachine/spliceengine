@@ -734,6 +734,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
             try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
+                partition.flush();
                 partition.compact(true);
             } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));

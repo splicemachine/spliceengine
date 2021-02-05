@@ -188,6 +188,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public void leaveRestoreMode() {
+        this.restoreMode = false;
+    }
+    @Override
     public boolean isRestoreMode() {
         return this.restoreMode;
     }

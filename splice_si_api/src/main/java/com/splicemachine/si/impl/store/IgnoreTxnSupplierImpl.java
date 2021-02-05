@@ -22,16 +22,22 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 /**
  * Created by jyuan on 10/30/17.
  */
 public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
-    private Set<Pair<Long, Long>> cache;
+    private static final Logger LOG = Logger.getLogger(IgnoreTxnSupplier.class);
+    private volatile Set<Pair<Long, Long>> cache;
     private EntryDecoder entryDecoder;
     final private PartitionFactory partitionFactory;
     final private TxnOperationFactory txnOperationFactory;
@@ -50,7 +56,7 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
         boolean ignore = false;
 
         init();
-        
+
         if (!cache.isEmpty()) {
             for (Pair<Long, Long> range : cache) {
                 if (txnId > range.getFirst() && txnId < range.getSecond()) {
@@ -64,8 +70,8 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
     }
 
 
-    private void populateIgnoreTxnCache() throws IOException {
-
+    private Set<Pair<Long, Long>> populateIgnoreTxnCache() throws IOException {
+        Set<Pair<Long, Long>> newCache = new HashSet<>();
         PartitionAdmin admin = partitionFactory.getAdmin();
         ignoreTxnTableExists = admin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
         if (ignoreTxnTableExists) {
@@ -83,11 +89,42 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
                         MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                         long startTxnId = decoder.decodeNextLong();
                         long endTxnId = decoder.decodeNextLong();
-                        cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+                        newCache.add(new Pair<Long, Long>(startTxnId, endTxnId));
                     }
                 }
             }
+            newCache = combineOverlappingRanges(newCache);
         }
+        return newCache;
+    }
+
+    static Set<Pair<Long, Long>> combineOverlappingRanges(Set<Pair<Long, Long>> cache) {
+        LOG.info("Starting combineOverlappingRanges");
+        BiPredicate<Pair<Long, Long>, Pair<Long, Long>> overlapping = (a, b) ->
+            (a.getFirst() < b.getFirst() && b.getFirst() < a.getSecond()) ||
+            (a.getFirst() < b.getSecond() && b.getSecond() < a.getSecond());
+        BiFunction<Pair<Long, Long>, Pair<Long, Long>, Pair<Long, Long>> combine = (a, b) ->
+            new Pair<Long, Long>(
+                a.getFirst() < b.getFirst() ? a.getFirst() : b.getFirst(),
+                a.getSecond() > b.getSecond() ? a.getSecond() : b.getSecond()
+            );
+        Set<Pair<Long, Long>> newCache = new HashSet<>();
+        Set<Pair<Long, Long>> discard = new HashSet<>();
+        List<Pair<Long, Long>> ranges = new ArrayList<>(cache);
+        while( ! ranges.isEmpty() ) {
+            Pair<Long, Long> r0 = ranges.remove(0);
+            for( Pair<Long, Long> r : ranges ) {
+                if( overlapping.test(r, r0) ) {
+                    r0 = combine.apply(r, r0);
+                    discard.add(r);
+                }
+            }
+            newCache.add(r0);
+            ranges.removeAll( discard );
+            discard.clear();
+        }
+        LOG.info("Completed combineOverlappingRanges");
+        return newCache;
     }
 
     private DataResultScanner openScanner(Partition table) throws IOException {
@@ -99,9 +136,22 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
         if (!initialized) {
             synchronized (this) {
                 if (!initialized) {
-                    populateIgnoreTxnCache();
+                    cache = populateIgnoreTxnCache();
                     initialized = true;
                 }
+            }
+        }
+    }
+
+    @Override
+    public void refresh() {
+        synchronized (this) {
+            try {
+                cache = populateIgnoreTxnCache();
+            } catch (IOException e) {
+                LOG.error("Couldn't populate Ignore Cache", e);
+                // Force restart
+                // System.exit(-1);
             }
         }
     }

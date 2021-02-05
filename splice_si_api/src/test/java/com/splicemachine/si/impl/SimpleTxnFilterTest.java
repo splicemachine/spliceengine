@@ -24,11 +24,7 @@ import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
-import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
-import com.splicemachine.si.impl.store.TestingTimestampSource;
-import com.splicemachine.si.impl.store.TestingTxnStore;
+import com.splicemachine.si.impl.store.*;
 import com.splicemachine.si.impl.txn.*;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestDataEnv;
@@ -369,7 +365,12 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testCantSeeIgnoredDelete() throws Exception{
-        IgnoreTxnSupplier ignoreSupplier = txnId -> txnId > 0x400L && txnId < 0x600L;
+        IgnoreTxnSupplier ignoreSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
         TxnSupplier baseStore=new CompletedTxnCacheSupplier(txnStore, 1024, 4, ignoreSupplier);
 
         txnStore.cache(new CommittedTxn(0x200L, 0x300L));
@@ -414,7 +415,12 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testCantSeeIgnoredUpdate() throws Exception{
-        IgnoreTxnSupplier ignoreSupplier = txnId -> txnId > 0x400L && txnId < 0x600L;
+        IgnoreTxnSupplier ignoreSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
         TxnSupplier baseStore=new CompletedTxnCacheSupplier(txnStore, 1024, 4, ignoreSupplier);
 
         txnStore.cache(new CommittedTxn(0x200L, 0x300L));
