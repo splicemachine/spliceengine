@@ -51,6 +51,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -159,7 +160,7 @@ public class UnaryOperatorNode extends OperatorNode
             Object		operatorOrOpType,
             Object		methodNameOrAddedArgs)
     {
-        operands = Collections.singletonList((ValueNode) operand);
+        operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         if (operatorOrOpType instanceof String)  {
             // then 2nd and 3rd params are operator and methodName,
             // respectively.
@@ -194,7 +195,7 @@ public class UnaryOperatorNode extends OperatorNode
      */
     public void init(Object	operand)
     {
-        this.operands = Collections.singletonList((ValueNode) operand);
+        this.operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         this.operatorType = -1;
     }
 

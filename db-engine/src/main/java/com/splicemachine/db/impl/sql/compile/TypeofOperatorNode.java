@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class TypeofOperatorNode extends UnaryOperatorNode {
     {
         setContextManager(cm);
         setNodeType(C_NodeTypes.TYPEOF_OPERATOR_NODE);
-        this.operands = Collections.singletonList(operand);
+        this.operands = new ArrayList<>(Collections.singletonList(operand));
     }
 
     /**

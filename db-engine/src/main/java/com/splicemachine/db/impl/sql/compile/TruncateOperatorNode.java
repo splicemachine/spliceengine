@@ -41,10 +41,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The TruncateOperatorNode class implements the trunc[ate]( {date | time} [, string] | {decimal , integer} ) function.
@@ -97,7 +94,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
      */
     public void init( Object truncOperand,
                       Object truncValue) throws StandardException {
-        operands = Arrays.asList((ValueNode) truncOperand, (ValueNode) truncValue);
+        operands = new ArrayList<>(Arrays.asList((ValueNode) truncOperand, (ValueNode) truncValue));
         operator = "truncate";
 
         checkParameterTypes();

@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -166,8 +167,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operator = (String) operator;
         this.methodName = (String) methodName;
         this.operatorType = -1;
@@ -179,8 +180,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operatorType = -1;
     }
 
@@ -213,8 +214,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object rightOperand,
             Object opType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList(BinaryArgTypes[this.operatorType]);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList(BinaryArgTypes[this.operatorType]));
         this.operatorType = (Integer) opType;
         this.operator = BinaryOperators[this.operatorType];
         this.methodName = BinaryMethodNames[this.operatorType];

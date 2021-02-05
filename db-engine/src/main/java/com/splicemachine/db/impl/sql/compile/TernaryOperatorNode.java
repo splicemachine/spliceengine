@@ -133,12 +133,12 @@ public class TernaryOperatorNode extends OperatorNode
                     Object operatorType,
                     Object trimType)
     {
-        this.operands = Arrays.asList((ValueNode) receiver, (ValueNode) leftOperand, (ValueNode) rightOperand);
+        this.operands = new ArrayList<>(Arrays.asList((ValueNode) receiver, (ValueNode) leftOperand, (ValueNode) rightOperand));
         this.operatorType = (Integer) operatorType;
         this.operator = TernaryOperators[this.operatorType];
         this.methodName = TernaryMethodNames[this.operatorType];
         this.resultInterfaceType = TernaryResultType[this.operatorType];
-        this.interfaceTypes = Arrays.asList(TernaryArgType[this.operatorType]);
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(TernaryArgType[this.operatorType]));
         if (trimType != null)
                 this.trimType = (Integer) trimType;
     }
