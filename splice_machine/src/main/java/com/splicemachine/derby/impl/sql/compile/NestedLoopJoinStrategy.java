@@ -337,7 +337,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             return outerCost.getLocalCostPerParallelTask() +
                    ((outerCost.rowCount()/outerCost.getParallelism())
                     * innerLocalCost) +
-                    (outerCost.rowCount() * innerRemoteCost) +
+                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
                     joiningRowCost/outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
