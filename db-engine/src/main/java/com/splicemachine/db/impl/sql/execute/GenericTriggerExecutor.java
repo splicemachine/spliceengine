@@ -306,7 +306,7 @@ public abstract class GenericTriggerExecutor {
         // the previously executed SPS as parent. DERBY-6348.
         lcc.getStatementContext().setActivation(activation);
 
-        ps = sps.getPreparedStatement();
+        ps = sps.getPreparedStatement(true, lcc);
         /*
          * We need to clone the prepared statement so we don't
          * wind up marking that ps that is tied to sps as finished

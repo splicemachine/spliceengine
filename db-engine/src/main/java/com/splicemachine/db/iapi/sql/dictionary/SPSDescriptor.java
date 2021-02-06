@@ -518,7 +518,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
      * @return the preparedStatement
      */
     public final ExecPreparedStatement getPreparedStatement() throws StandardException {
-        return getPreparedStatement(true);
+        return getPreparedStatement(true, null);
     }
 
     /**
@@ -530,15 +530,20 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
      * @param recompIfInvalid if false, never recompile even
      *                        if statement is invalid
      */
-    public final synchronized ExecPreparedStatement getPreparedStatement(boolean recompIfInvalid) throws StandardException {
+    public final synchronized ExecPreparedStatement getPreparedStatement(boolean recompIfInvalid,
+                                                                         LanguageConnectionContext activationLCC) throws StandardException {
 
         /*  Recompile if we are invalid, we don't have a prepared statement, or the statements activation
          *  has been cleared and cannot be reconstituted.*/
         if (recompIfInvalid && (!valid || (preparedStatement == null))) {
             ContextManager cm = ContextService.getFactory().getCurrentContextManager();
 
-            /* Find the language connection context.  Get it each time in case a connection is dropped. */
-            LanguageConnectionContext lcc = (LanguageConnectionContext)
+            /*  Find the language connection context only if the one to use
+             *  was not specified by the caller.  For concurrent triggers,
+             *  we want to use the lcc created for the proper thread.
+             **/
+            LanguageConnectionContext lcc = activationLCC != null ? activationLCC :
+                (LanguageConnectionContext)
                     cm.getContext(LanguageConnectionContext.CONTEXT_ID);
 
             if (!lcc.getDataDictionary().isReadOnlyUpgrade()) {

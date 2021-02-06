@@ -1230,7 +1230,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             pa = newCC.getParser();
             StatementNode stmtnode = (StatementNode) pa.parseStatement(newText);
             // need a current dependent for bind
-            newCC.setCurrentDependent(sps.getPreparedStatement());
+            newCC.setCurrentDependent(sps.getPreparedStatement(true, lcc));
             stmtnode.bindStatement();
 
         } catch (StandardException se) {

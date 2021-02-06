@@ -3616,7 +3616,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException{
         for(Object o : getAllSPSDescriptors()){
             SPSDescriptor spsd=(SPSDescriptor)o;
-            spsd.getPreparedStatement(true);
+            spsd.getPreparedStatement(true, lcc);
         }
     }
 

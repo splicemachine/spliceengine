@@ -358,7 +358,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             }
         }
         boolean needsSpecialRecompile =
-            (!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause;
+            (!sps.isValid() || (sps.getPreparedStatement(true, lcc) == null)) && isRow && usesReferencingClause;
 
         assert sps != null : "sps should not be null";
 
@@ -420,7 +420,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         }
         // Force recompile before execution
         if (!sps.isValid() && isOlapServer()) {
-            sps.getPreparedStatement(true);  // msirek-temp
+            sps.getPreparedStatement(true, lcc);  // msirek-temp
 
         }  // msirek-temp
         if (sps.isValid()) {
