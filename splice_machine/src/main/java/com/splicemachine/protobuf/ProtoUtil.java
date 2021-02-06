@@ -373,11 +373,6 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTxnId(txnId).setDdlChangeType(DDLChangeType.ENTER_RESTORE_MODE).build();
     }
 
-
-    public static DDLChange createLeaveRestoreMode(long txnId) {
-        return DDLChange.newBuilder().setTxnId(txnId).setDdlChangeType(DDLChangeType.LEAVE_RESTORE_MODE).build();
-    }
-
     public static DDLChange createDropPKConstraint(long txnId, long newConglomId, long oldConglomId,
                                                    int[] srcColumnOrdering, int[] targetColumnOrdering,
                                                    ColumnInfo[] columInfos, LanguageConnectionContext lcc, BasicUUID tableId) throws StandardException {

@@ -18,5 +18,4 @@ import java.io.IOException;
 
 public interface IgnoreTxnSupplier {
     boolean shouldIgnore(Long txnId) throws IOException;
-    void refresh();
 }

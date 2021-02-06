@@ -50,10 +50,6 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public void rollbackDatabase(long from, long to)throws StandardException {
-        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
-    }
-    @Override
     public void removeBackup(List<Long> backupIds) throws StandardException{
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }

@@ -88,9 +88,4 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
     public TaskId getTaskId(long txnId) throws IOException {
         return delegate.getTaskId(txnId);
     }
-
-    @Override
-    public void invalidate() {
-        cache.invalidateAll();
-    }
 }

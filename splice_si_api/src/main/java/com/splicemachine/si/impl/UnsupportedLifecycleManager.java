@@ -112,11 +112,6 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 	}
 
 	@Override
-	public void leaveRestoreMode() {
-		throw new UnsupportedOperationException("Cannot leave restore mode from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
-	}
-
-	@Override
 	public boolean isRestoreMode() {
 		throw new UnsupportedOperationException("Cannot return restore mode from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
