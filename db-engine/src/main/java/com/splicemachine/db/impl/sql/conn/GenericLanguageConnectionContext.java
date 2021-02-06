@@ -165,6 +165,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private Object lastQueryTree; // for debugging
     private ManagedCache<UUID, SPSDescriptor> spsCache = null;
     private ManagedCache<Long, Conglomerate> conglomerateCache = null;
+    private SPSDescriptor createTriggerSPSDescriptor;
 
     /**
      * The transaction to use within this language connection context.  It may
@@ -1700,7 +1701,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
         if (tc != null)
-            tc.commitDataDictionaryChange();
+            tc.commitDataDictionaryChange(this);
     }
 
     /**
@@ -1868,7 +1869,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // location, since any outer nesting
             // levels expet there to be a savepoint
             resetSavepoints();
-            tc.commitDataDictionaryChange();
+            tc.commitDataDictionaryChange(this);
         }
     }
 
@@ -4188,8 +4189,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return conglomerateCache.getIfPresent(conglomId);
     }
 
+    @Override
     public void localConglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) {
         if (conglomerateCache != null)
             conglomerateCache.put(conglomId,conglomerate);
+    }
+
+    @Override
+    public void setCreateTriggerSPSDescriptor(SPSDescriptor spsDescriptor) {
+        createTriggerSPSDescriptor = spsDescriptor;
+    }
+
+    @Override
+    public SPSDescriptor getCreateTriggerSPSescriptor() {
+        return createTriggerSPSDescriptor;
     }
 }

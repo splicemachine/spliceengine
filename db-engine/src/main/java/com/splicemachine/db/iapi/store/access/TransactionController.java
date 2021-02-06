@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -1561,7 +1562,7 @@ public interface TransactionController
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *after* the transaction that makes the change is committed.
      */
-	void commitDataDictionaryChange() throws StandardException;
+	void commitDataDictionaryChange(LanguageConnectionContext lcc) throws StandardException;
 
     /**
      * Reveals whether the transaction has ever read or written data.

@@ -1535,4 +1535,9 @@ public interface LanguageConnectionContext extends Context {
     List<String> getDefaultRoles();
 
     SchemaDescriptor getInitialDefaultSchemaDescriptor();
+
+
+    void setCreateTriggerSPSDescriptor(SPSDescriptor spsDescriptor);
+
+    SPSDescriptor getCreateTriggerSPSescriptor();
 }

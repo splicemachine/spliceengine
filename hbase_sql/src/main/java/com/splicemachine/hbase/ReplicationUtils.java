@@ -200,7 +200,7 @@ public class ReplicationUtils {
                 DDLMessage.DDLChange change = ProtoUtil.createSetReplicationRole(txn.getTxnId(), role);
                 String changeId = DDLUtils.notifyMetadataChange(change);
                 tc.prepareDataDictionaryChange(changeId);
-                tc.commitDataDictionaryChange();
+                tc.commitDataDictionaryChange(transactionResource.getLcc());
                 SpliceLogUtils.info(LOG, "Change replication role to %s", role);
             }
         } catch (Exception e) {

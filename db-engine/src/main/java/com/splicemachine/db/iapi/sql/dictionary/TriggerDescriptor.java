@@ -423,32 +423,36 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             sps.getPreparedStatement(true);  // msirek-temp
 
         }  // msirek-temp
-        dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
-        boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
-        LanguageConnectionContext contextLCC = null;
-        if (needsSecondDDCacheUpdate) {
-            contextLCC =
-                (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
-            if (contextLCC != null)
-                contextLCC.getDataDictionary().getDataDictionaryCache().
-                    storedPreparedStatementCacheAdd(sps);
-        }
-        if (sps != null) {
+        if (sps.isValid()) {
+//            dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+//            boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
+//            LanguageConnectionContext contextLCC = null;
+//            if (needsSecondDDCacheUpdate) {
+//                contextLCC =
+//                    (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+//                if (contextLCC != null)
+//                    contextLCC.getDataDictionary().getDataDictionaryCache().
+//                        storedPreparedStatementCacheAdd(sps);
+//            }  // msirek-temp
+
             if (localCache != null)
                 localCache.put(spsId, sps);
-            if (needsSecondDDCacheUpdate) {
-                if (contextLCC != null) {
-                    ManagedCache<UUID, SPSDescriptor> alternateLocalCache = contextLCC.getSpsCache();
-                    if (alternateLocalCache != null)
-                        alternateLocalCache.put(spsId, sps);
-                }
-            }
+//            if (needsSecondDDCacheUpdate) {
+//                if (contextLCC != null) {
+//                    ManagedCache<UUID, SPSDescriptor> alternateLocalCache = contextLCC.getSpsCache();
+//                    if (alternateLocalCache != null)
+//                        alternateLocalCache.put(spsId, sps);
+//                }
+//            }  // msirek-temp
         }
         return sps;
     }
 
     private static boolean isOlapServer() {
-        return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
+        String threadName = Thread.currentThread().currentThread().getName();
+
+        return threadName.startsWith("OlapServer") ||
+               threadName.startsWith("olap-worker");
     }
 
     public int getNumBaseTableColumns() {

@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import org.apache.log4j.Logger;
 
@@ -97,7 +98,7 @@ public class SpliceInternalTransactionManager extends SpliceTransactionManager {
     }
 
     @Override
-    public void commitDataDictionaryChange() throws StandardException {
+    public void commitDataDictionaryChange(LanguageConnectionContext lcc) throws StandardException {
         throw new UnsupportedOperationException();
     }
 

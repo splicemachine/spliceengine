@@ -112,8 +112,8 @@ public class TriggerEventActivator {
         if (triggerInfo == null) {
             return;
         }
-        // extrapolate the table name from the triggerdescriptors
-        this.tableName = triggerInfo.getTriggerDescriptors()[0].getTableDescriptor().getQualifiedName();
+
+        this.tableName = getTableNameFromTriggerInfo(triggerInfo);
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
@@ -130,6 +130,12 @@ public class TriggerEventActivator {
         setupExecutors(triggerInfo, activation);
         this.executorService = executorService;
         this.withContext = withContext;
+    }
+
+    private String getTableNameFromTriggerInfo(TriggerInfo triggerInfo) {
+        if (triggerInfo instanceof TriggerInfo2)
+            return ((TriggerInfo2) triggerInfo).getTableName();
+        return null;
     }
 
     private void pushExecutionStmtValidator() throws StandardException {

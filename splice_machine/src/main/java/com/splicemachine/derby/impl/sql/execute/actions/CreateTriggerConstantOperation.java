@@ -392,7 +392,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         spsd.prepareAndRelease(lcc, triggerTable);
         dd.addSPSDescriptor(spsd, tc);
-
+        lcc.setCreateTriggerSPSDescriptor(spsd);
         return spsd;
     }
 

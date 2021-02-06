@@ -25,11 +25,13 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
@@ -1834,7 +1836,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void commitDataDictionaryChange() throws StandardException {
+    public void commitDataDictionaryChange(LanguageConnectionContext lcc) throws StandardException {
         if (currentDDLChanges == null)
             return;
         try {
@@ -1844,7 +1846,24 @@ public class SpliceTransactionManager implements XATransactionController,
         } finally {
             currentDDLChanges.clear();
             currentDDLChanges = null;
+            deferredWriteOfSPSDescriptorToCache(lcc);
         }
+    }
+
+    private void deferredWriteOfSPSDescriptorToCache(LanguageConnectionContext lcc) throws StandardException {
+        if (lcc == null)
+            return;
+        SPSDescriptor spsDescriptor = lcc.getCreateTriggerSPSescriptor();
+        if (spsDescriptor == null)
+            return;
+        DataDictionary dd = lcc.getDataDictionary();
+        if (dd == null)
+            return;
+        DataDictionaryCache dataDictionaryCache = dd.getDataDictionaryCache();
+        if (dataDictionaryCache == null)
+            return;
+        dataDictionaryCache.storedPreparedStatementCacheAdd(spsDescriptor);
+        lcc.setCreateTriggerSPSDescriptor(null);
     }
 
     @Override
