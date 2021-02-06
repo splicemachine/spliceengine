@@ -78,11 +78,6 @@ public class SimpleCompletedTxnCacheSupplier implements TxnSupplier{
         return delegate.getTaskId(txnId);
     }
 
-    @Override
-    public void invalidate() {
-        cache.invalidateAll();
-    }
-
     public long getTotalEvictedEntries() { return cache.stats().evictionCount(); }
     public long getTotalHits() { return cache.stats().hitCount(); }
     public long getTotalMisses() { return cache.stats().missCount(); }

@@ -388,7 +388,6 @@ enum DDLChangeType {
     SET_REPLICATION_ROLE = 41;
     UPDATE_SYSTEM_PROCEDURES = 42;
     ROLLING_UPGRADE = 43;
-    LEAVE_RESTORE_MODE = 44;
 }
 
 message DDLChange {

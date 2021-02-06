@@ -519,9 +519,4 @@ public class MemTxnStore implements TxnStore{
     public long getOldTransactions() {
         return 0;
     }
-
-    @Override
-    public void invalidate() {
-        // no op
-    }
 }
