@@ -793,13 +793,15 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testPlanPrinterBugDB11341() throws Exception {
-        String planPrinterLevel;
-        planPrinterLevel = methodWatcher.query("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')");
-        try {
-            methodWatcher.execute("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter','DEBUG')");
-            methodWatcher.executeQuery("SELECT 1 FROM ( SELECT 1 FROM sysibm.sysdummy1 ORDER BY 1 )"); // Failed before DB-11341
-        } finally {
-            methodWatcher.execute(format("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter', '%s')", planPrinterLevel));
+        try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')")) {
+            rs.next();
+            String planPrinterLevel = rs.getString(1);
+            try {
+                methodWatcher.execute("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter','DEBUG')");
+                methodWatcher.executeQuery("SELECT 1 FROM ( SELECT 1 FROM sysibm.sysdummy1 ORDER BY 1 )"); // Failed before DB-11341
+            } finally {
+                methodWatcher.execute(format("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter', '%s')", planPrinterLevel));
+            }
         }
     }
 }
