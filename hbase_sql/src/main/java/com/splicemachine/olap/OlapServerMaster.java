@@ -423,7 +423,7 @@ public class OlapServerMaster {
 
             SparkConf sparkConf = sparkContext.conf();
 
-            Integer numNodes = rmClient.getClusterNodeCount();
+            Integer numNodes = rmClient == null ? 4 : rmClient.getClusterNodeCount();
             if (numNodes < 1)
                 numNodes = 1;
 
@@ -449,7 +449,6 @@ public class OlapServerMaster {
             ZkUtils.safeCreate(maxExecutorCoresZkPath, serializedConfig, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         } catch (Exception e) {
             LOG.error("Couldn't register maxExecutorCores due to unexpected exception", e);
-            throw e;
         }
     }
 
