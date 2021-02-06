@@ -1639,6 +1639,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
                 .build();
         procedures.add(loadRegions);
+
+        Procedure restartOlapServer = Procedure.newBuilder().name("RESTART_OLAP_SERVER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(restartOlapServer);
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)

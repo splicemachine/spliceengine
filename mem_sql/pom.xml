@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1998-SNAPSHOT</version>
+        <version>3.2.0.1998</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -33,6 +33,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>

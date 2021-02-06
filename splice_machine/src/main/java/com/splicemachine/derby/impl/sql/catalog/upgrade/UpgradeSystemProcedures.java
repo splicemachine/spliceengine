@@ -15,9 +15,18 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.List;
 
@@ -68,5 +77,33 @@ public class UpgradeSystemProcedures {
         catch (Exception e) {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
+    }
+
+    public static void RESTART_OLAP_SERVER(final ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            restartOlapServer();
+            resultSets[0] = ProcedureUtils.generateResult("Success", "Restarted Olap server");
+        }
+        catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
+    public static void restartOlapServer() throws StandardException, IOException, KeeperException, InterruptedException {
+        Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+        String quorum = conf.get("hbase.zookeeper.quorum");
+        int port = conf.getInt("hbase.zookeeper.property.clientPort", -1);
+        if (port < 0) {
+            throw StandardException.newException(SQLState.INVALID_PARAMETER, "hbase.zookeeper.property.clientPort",
+                    String.valueOf(port));
+        }
+        String hostAndPort = quorum + ":" + port;
+        ZooKeeper zk = new ZooKeeper(hostAndPort, 120000, null);
+
+        String path = SIDriver.driver().getConfiguration().getSpliceRootPath()
+                + com.splicemachine.access.configuration.HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_RESTART_PATH;
+        byte[] data = zk.getData(path, null, null);
+        int count = Integer.parseInt(new String(data, Charset.defaultCharset().name())) + 1;
+        zk.setData(path, String.valueOf(count).getBytes(Charset.defaultCharset().name()), -1);
     }
 }
