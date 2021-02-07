@@ -3241,12 +3241,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
-        if (sps!=null && sps.isValid())
+        // Make sure either the SPS is valid, or we are not in a
+        // state to write a valid SPS to cache before returning it.
+        if (sps!=null && (sps.isValid() || !canWriteCache(null)))
             return sps;
         if (sps == null)
             sps=getSPSDescriptorIndex2Scan(uuid.toString());
-//        if (!sps.isValid())
-//            sps.getPreparedStatement(true);  // msirek-temp
+        if (!sps.isValid())
+            sps.getPreparedStatement();  // msirek-temp
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
     }
