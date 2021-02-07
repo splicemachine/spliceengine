@@ -357,6 +357,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 //                }  // msirek-temp
             }
         }
+        boolean wasValid = !sps.isValid();
         boolean needsSpecialRecompile =
             (!sps.isValid() || (sps.getPreparedStatement(true, lcc) == null)) && isRow && usesReferencingClause;
 
@@ -423,7 +424,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             sps.getPreparedStatement(true, lcc);  // msirek-temp
 
         }  // msirek-temp
-        if (sps.isValid()) {
+        boolean compileDone = wasValid != sps.isValid();
+        if (compileDone) {
 //            dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
 //            boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
 //            LanguageConnectionContext contextLCC = null;
