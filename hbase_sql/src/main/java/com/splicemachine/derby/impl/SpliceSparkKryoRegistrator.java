@@ -82,7 +82,6 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 import splice.com.google.common.base.Optional;
 import splice.com.google.common.collect.ImmutableList;
-import splice.com.google.common.collect.UnmodifiableIterator;
 
 import java.io.IOException;
 import java.math.BigDecimal;
