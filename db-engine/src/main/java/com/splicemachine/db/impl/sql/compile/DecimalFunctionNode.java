@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,7 +45,7 @@ public class DecimalFunctionNode extends UnaryOperatorNode {
         setContextManager(cm);
         setNodeType(C_NodeTypes.DECIMAL_FUNCTION_NODE);
         this.functionName = functionName;
-        this.operands = Collections.singletonList(operand);
+        this.operands = new ArrayList<>(Collections.singletonList(operand));
         this.precision = precision == null ? -1 : precision.intValue();
         this.scale = scale == null ? -1 : scale.intValue();
         this.decimalChar = decimalChar == null ? "" : decimalChar;

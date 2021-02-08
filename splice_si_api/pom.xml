@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1998-SNAPSHOT</version>
+        <version>3.2.0.2000-SNAPSHOT</version>
     </parent>
     <dependencies>
         <!-- Module dependencies-->
@@ -46,6 +46,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>utilities</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>

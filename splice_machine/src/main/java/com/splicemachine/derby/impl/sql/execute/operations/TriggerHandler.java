@@ -393,8 +393,18 @@ public class TriggerHandler {
                 f.get(); // bubble up any exceptions
             }
         }
-        for (Future<Void> f : futures) {
-            f.get(); // bubble up any exceptions
+        try {
+            for (Future<Void> f : futures) {
+                f.get(); // bubble up any exceptions
+            }
+        }
+        catch (ExecutionException e) {
+            // Need to cancel the running futures so no further
+            // exceptions are hit.
+            for (Future<Void> f : futures) {
+                f.cancel(true);
+            }
+            throw e;
         }
         pendingAfterRows.clear();
     }

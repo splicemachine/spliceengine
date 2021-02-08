@@ -709,6 +709,18 @@ public final class SQLTime extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getUSWeekDay
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getUSWeekDay(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getUSWeekDay", "Time");
+    }
+
+    /**
      * @see DateTimeDataValue#getWeekDayName
      *
      * @exception StandardException        Thrown on error

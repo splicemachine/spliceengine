@@ -247,17 +247,28 @@ public abstract class OperatorNode extends ValueNode
         }
     }
 
+    private boolean isSignatureEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o))
+            return false;
+        OperatorNode other = (OperatorNode)o;
+        if (methodName == null ^ other.methodName == null)
+            return false;
+        if (methodName != null && !methodName.equals(other.methodName))
+            return false;
+        if (operator == null ^ other.operator == null)
+            return false;
+        if (operator != null && !operator.equals(other.operator))
+            return false;
+        return operands.size() == other.operands.size();
+    }
+
     /**
      * @inheritDoc
      */
     protected boolean isEquivalent(ValueNode o) throws StandardException {
-        if (!isSameNodeType(o))
+        if (!isSignatureEquivalent(o))
             return false;
         OperatorNode other = (OperatorNode)o;
-        if (!methodName.equals(other.methodName))
-            return false;
-        if (operands.size() != other.operands.size())
-            return false;
         for (int i = 0 ; i < operands.size(); ++i) {
             if (operands.get(i) == null ^ other.operands.get(i) == null)
                 return false;
@@ -272,14 +283,9 @@ public abstract class OperatorNode extends ValueNode
      */
     @Override
     protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
-        if (!isSameNodeType(o)) {
+        if (!isSignatureEquivalent(o))
             return false;
-        }
         OperatorNode other = (OperatorNode)o;
-        if (!methodName.equals(other.methodName))
-            return false;
-        if (operands.size() != other.operands.size())
-            return false;
         for (int i = 0 ; i < operands.size(); ++i) {
             if (operands.get(i) == null ^ other.operands.get(i) == null)
                 return false;
@@ -323,15 +329,6 @@ public abstract class OperatorNode extends ValueNode
             }
         }
         return cardinality;
-    }
-
-    @Override
-    public int getTableNumber() {
-        return operands.stream()
-                .filter(op -> op.getTableNumber() != -1)
-                .findFirst()
-                .map(ValueNode::getTableNumber)
-                .orElse(-1);
     }
 
     @Override
@@ -400,5 +397,14 @@ public abstract class OperatorNode extends ValueNode
         // Read the cached value and push it onto the stack in the method
         // generated for the operator.
         mb.getField(sqlXmlUtil);
+    }
+
+    @Override
+    public int getTableNumber() {
+        return operands.stream()
+                .filter(op -> op != null && op.getTableNumber() != -1)
+                .findFirst()
+                .map(ValueNode::getTableNumber)
+                .orElse(-1);
     }
 }

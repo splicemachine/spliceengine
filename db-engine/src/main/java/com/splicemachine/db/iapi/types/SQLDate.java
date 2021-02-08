@@ -722,6 +722,20 @@ public final class SQLDate extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getWeekDay
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getUSWeekDay(NumberDataValue result)
+            throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getUSWeekDay(encodedDate), result);
+        }
+    }
+
+    /**
      * @see DateTimeDataValue#getWeekDayName
      *
      * @exception StandardException        Thrown on error
@@ -950,7 +964,7 @@ public final class SQLDate extends DataType
 
     /**
      * Get the day of week from the encodedDate,
-     * 1-7.
+     * 1-7. Monday is the first day of the week
      *
      * @param encodedDate    the encoded date
      * @return                 week day name.
@@ -958,6 +972,17 @@ public final class SQLDate extends DataType
     static int getWeekDay(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.dayOfWeek().get();
+    }
+
+    /**
+     * Get the day of week from the encodedDate,
+     * 1-7. Sunday is the first day of the week
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static int getUSWeekDay(int encodedDate) {
+        return getWeekDay(encodedDate) % 7 + 1;
     }
 
     /**

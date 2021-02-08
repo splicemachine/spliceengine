@@ -77,8 +77,9 @@ public class TernaryOperatorNode extends OperatorNode
     public static final int RIGHT = 7;
     public static final int LEFT = 8;
     public static final int SPLIT_PART = 9;
-    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left", "split_part"};
-    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left", "split_part"};
+    public static final int DB2RTRIM = 10;
+    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left", "split_part", "trim"};
+    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left", "split_part", "db2Trim"};
 
     static final String[] TernaryResultType = {
             ClassName.StringDataValue,
@@ -88,6 +89,7 @@ public class TernaryOperatorNode extends OperatorNode
             ClassName.DateTimeDataValue,
             ClassName.NumberDataValue,
             ClassName.ConcatableDataValue,
+            ClassName.StringDataValue,
             ClassName.StringDataValue,
             ClassName.StringDataValue,
             ClassName.StringDataValue
@@ -102,7 +104,8 @@ public class TernaryOperatorNode extends OperatorNode
             {ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // right
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // left
-            {ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue} // split_part
+            {ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue}, // split_part
+            {ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"} // DB2 rtrim
     };
 
     public TernaryOperatorNode() {}
@@ -130,12 +133,12 @@ public class TernaryOperatorNode extends OperatorNode
                     Object operatorType,
                     Object trimType)
     {
-        this.operands = Arrays.asList((ValueNode) receiver, (ValueNode) leftOperand, (ValueNode) rightOperand);
+        this.operands = new ArrayList<>(Arrays.asList((ValueNode) receiver, (ValueNode) leftOperand, (ValueNode) rightOperand));
         this.operatorType = (Integer) operatorType;
         this.operator = TernaryOperators[this.operatorType];
         this.methodName = TernaryMethodNames[this.operatorType];
         this.resultInterfaceType = TernaryResultType[this.operatorType];
-        this.interfaceTypes = Arrays.asList(TernaryArgType[this.operatorType]);
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(TernaryArgType[this.operatorType]));
         if (trimType != null)
                 this.trimType = (Integer) trimType;
     }
@@ -199,7 +202,7 @@ public class TernaryOperatorNode extends OperatorNode
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector)  throws StandardException {
         bindOperands(fromList, subqueryList,  aggregateVector);
-        if (operatorType == TRIM)
+        if (operatorType == TRIM || operatorType == DB2RTRIM)
             trimBind();
         else if (operatorType == LOCATE)
             locateBind();
@@ -264,7 +267,7 @@ public class TernaryOperatorNode extends OperatorNode
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
 
         getReceiver().generateExpression(acb, mb);
-        if (operatorType == TRIM)
+        if (operatorType == TRIM || operatorType == DB2RTRIM)
         {
             mb.push(trimType);
             getLeftOperand().generateExpression(acb, mb);

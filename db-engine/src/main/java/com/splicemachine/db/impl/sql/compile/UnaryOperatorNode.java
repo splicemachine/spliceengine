@@ -51,6 +51,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -135,7 +136,7 @@ public class UnaryOperatorNode extends OperatorNode
      * are reset and valid only for the current access path.
      * They should not be used beyond cost estimation.
      */
-    protected ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
+    ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
 
     // 0-based index column position
     protected int operandMatchIndexExprColumnPosition = -1;
@@ -159,7 +160,7 @@ public class UnaryOperatorNode extends OperatorNode
             Object		operatorOrOpType,
             Object		methodNameOrAddedArgs)
     {
-        operands = Collections.singletonList((ValueNode) operand);
+        operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         if (operatorOrOpType instanceof String)  {
             // then 2nd and 3rd params are operator and methodName,
             // respectively.
@@ -194,7 +195,13 @@ public class UnaryOperatorNode extends OperatorNode
      */
     public void init(Object	operand)
     {
-        this.operands = Collections.singletonList((ValueNode) operand);
+        this.operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
+        this.operatorType = -1;
+    }
+
+    public void init()
+    {
+        this.operands = new ArrayList<>(Collections.singletonList(null));
         this.operatorType = -1;
     }
 

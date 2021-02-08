@@ -61,14 +61,14 @@ import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
 public class ExtractOperatorNode extends UnaryOperatorNode {
 
     static private final String fieldName[] = {
-        "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
+        "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "DAYOFWEEK", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
     };
     static private final String fieldMethod[] = {
-        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear", "getDate","getHours","getMinutes","getSeconds"
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
     };
 
     static private final long fieldCardinality[] = {
-            5L, 4L, 12L, 12L, 52L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
+            5L, 4L, 12L, 12L, 52L, 7L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
     private int extractField;

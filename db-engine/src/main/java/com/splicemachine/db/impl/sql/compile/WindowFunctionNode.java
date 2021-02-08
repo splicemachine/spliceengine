@@ -87,6 +87,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @throws StandardException
      */
     public void init(Object arg1, Object arg2) throws StandardException {
+        super.init();
         this.window = (WindowNode)arg1;
     }
 

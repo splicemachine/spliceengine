@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -173,8 +174,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operator = (String) operator;
         this.methodName = (String) methodName;
         this.operatorType = -1;
@@ -186,8 +187,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operatorType = -1;
     }
 
@@ -220,9 +221,9 @@ public class BinaryOperatorNode extends OperatorNode
             Object rightOperand,
             Object opType)
     {
-        operands = Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand);
-        interfaceTypes = Arrays.asList(BinaryArgTypes[this.operatorType]);
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
         this.operatorType = (Integer) opType;
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(BinaryArgTypes[this.operatorType]));
         this.operator = BinaryOperators[this.operatorType];
         this.methodName = BinaryMethodNames[this.operatorType];
         this.resultInterfaceType = BinaryResultTypes[this.operatorType];
@@ -943,6 +944,8 @@ public class BinaryOperatorNode extends OperatorNode
      * @return True if it is commutative, false otherwise.
      */
     public boolean isCommutative() {
+        if (methodName == null)
+            return false;
         // Only methodName is always set for all kinds of binary operators.
         // Do not use operator or operatorType here.
         switch (methodName) {

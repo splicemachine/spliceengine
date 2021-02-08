@@ -1021,8 +1021,8 @@ public class TableElementList extends QueryTreeNodeVector {
 	/**
 	 * Fill in the ConstraintConstantAction[] for this create/alter table.
 	 * 
-     * @param forCreateTable ConstraintConstantAction is for a create table.
-	 * @param conActions	The ConstraintConstantAction[] to be filled in.
+     * @param forCreateTable ConstantAction is for a create table.
+	 * @param conActions	The ConstantAction[] to be filled in.
 	 * @param tableName		The name of the Table being created.
 	 * @param tableSd		The schema for that table.
 	 * @param dd	    	The DataDictionary

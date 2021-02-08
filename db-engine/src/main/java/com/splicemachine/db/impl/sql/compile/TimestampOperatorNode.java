@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 import java.sql.Types;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -64,7 +65,7 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     public void init( Object date,
                       Object time)
     {
-        operands = Arrays.asList((ValueNode) date, (ValueNode) time);
+        operands = new ArrayList<>(Arrays.asList((ValueNode) date, (ValueNode) time));
         operator = "timestamp";
         methodName = "getTimestamp";
     }

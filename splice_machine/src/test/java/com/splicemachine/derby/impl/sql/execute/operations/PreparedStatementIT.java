@@ -396,21 +396,29 @@ public class PreparedStatementIT extends SpliceUnitTest {
         testReturnRowCount(ps, 0);
     }
 
-    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
-        PreparedStatement ps = conn.prepareStatement(sqlText);
-        if (arg instanceof String) {
-            ps.setString(1, (String) arg);
-        } else if (arg instanceof Integer) {
-            ps.setInt(1, (Integer) arg);
-        } else if (arg instanceof Double) {
-            ps.setDouble(1, (Double) arg);
-        } else if (arg instanceof BigDecimal) {
-            ps.setBigDecimal(1, (BigDecimal) arg);
-        }
+    void testParamsHelper(String sqlText, Object[] args, String expected) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(sqlText)) {
+            for (int i = 0; i < args.length; ++i) {
+                Object arg = args[i];
+                if (arg instanceof String) {
+                    ps.setString(i + 1, (String) arg);
+                } else if (arg instanceof Integer) {
+                    ps.setInt(i + 1, (Integer) arg);
+                } else if (arg instanceof Double) {
+                    ps.setDouble(i + 1, (Double) arg);
+                } else if (arg instanceof BigDecimal) {
+                    ps.setBigDecimal(i + 1, (BigDecimal) arg);
+                }
+            }
 
-        try(ResultSet rs = ps.executeQuery()) {
-            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
         }
+    }
+
+    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
+        testParamsHelper(sqlText, new Object[]{arg}, expected);
     }
 
     @Test
@@ -505,5 +513,71 @@ public class PreparedStatementIT extends SpliceUnitTest {
             Assert.assertEquals("42816", e.getSQLState());
             Assert.assertTrue(e.getMessage().contains("A datetime value or duration in an expression is invalid"));
         }
+    }
+
+    @Test
+    public void testParameterInSelectOfUnion() throws Exception {
+        testOneParamHelper("select ? from sysibm.sysdummy1 union select 1 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 order by 1", 2,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |");
+
+        testOneParamHelper("select ? from sysibm.sysdummy1 union select 2 from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 2 |\n" +
+                        " 3 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 3 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select 2 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |\n" +
+                        " 4 |");
+
+        try (PreparedStatement ignored = conn.prepareStatement("select ? from sysibm.sysdummy1 union select ? from sysibm.sysdummy1")) {
+            Assert.fail("Expect failure due to parameter in date/time expression.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Y10", e.getSQLState());
+        }
+
+        testParamsHelper("select ? from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1",
+                new Object[] {1, 2},
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |\n" +
+                        " 3 |");
+
+        testOneParamHelper("select 1, 'a' from sysibm.sysdummy1 union select 4, ? from sysibm.sysdummy1 order by 1", "a",
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 1 | a |\n" +
+                        " 4 | a |");
+
+        testParamsHelper("select ?, 'a' from sysibm.sysdummy1 union select 4, ? from sysibm.sysdummy1 order by 1", new Object[]{5, "b"},
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 4 | b |\n" +
+                        " 5 | a |");
+
+        testParamsHelper("select 1, 'a' from sysibm.sysdummy1 union select ?, ? from sysibm.sysdummy1 order by 1", new Object[]{5, "b"},
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 1 | a |\n" +
+                        " 5 | b |");
+
     }
 }

@@ -43,12 +43,13 @@ public interface DateTimeDataValue extends DataValueDescriptor
     int MONTHNAME_FIELD = 3;
     int WEEK_FIELD = 4;
     int WEEK_DAY_FIELD = 5;
-    int WEEKDAYNAME_FIELD = 6;
-    int DAY_OF_YEAR_FIELD = 7;
-    int DAY_FIELD = 8;
-    int HOUR_FIELD = 9;
-    int MINUTE_FIELD = 10;
-    int SECOND_FIELD = 11;
+    int US_WEEK_DAY_FIELD = 6;
+    int WEEKDAYNAME_FIELD = 7;
+    int DAY_OF_YEAR_FIELD = 8;
+    int DAY_FIELD = 9;
+    int HOUR_FIELD = 10;
+    int MINUTE_FIELD = 11;
+    int SECOND_FIELD = 12;
 
     // The JDBC interval types
     int FRAC_SECOND_INTERVAL = 0;
@@ -146,12 +147,25 @@ public interface DateTimeDataValue extends DataValueDescriptor
      * @param result    The result of the previous call to this method, null
      *                    if not called yet.
      *
-     * @return    A SQLVarchar containing the day of week, 0-6.
+     * @return    A SQLInt containing the day of week, 1-7. Monday is the first day of the week
      *
      * @exception StandardException        Thrown on error
      */
     NumberDataValue getWeekDay(NumberDataValue result)
                             throws StandardException;
+
+    /**
+     * Get the day of week out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A SQLInt containing the day of week, 1-7. Sunday is the first day of the week
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getUSWeekDay(NumberDataValue result)
+            throws StandardException;
 
     /**
      * Get the week day name out of a date.
