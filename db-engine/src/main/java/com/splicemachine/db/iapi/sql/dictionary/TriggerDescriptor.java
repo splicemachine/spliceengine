@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
@@ -297,34 +298,42 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * sps and update SYSSTATEMENTS using this new sps. This update of
      * SYSSTATEMENTS was introduced with DERBY-4874
      *
-     * @param lcc The LanguageConnectionContext to use.
+     * @param activation The Activation to use.
      * @return the trigger action sps
      */
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index) throws StandardException {
+    public SPSDescriptor getActionSPS(Activation activation, int index) throws StandardException {
 
-        return getSPS(lcc, index, null);
+        return getSPS(activation, index, null);
 
     }
 
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index, ManagedCache<UUID, SPSDescriptor>localCache) throws StandardException {
+    public SPSDescriptor getActionSPS(Activation activation, int index, ManagedCache<UUID, SPSDescriptor>localCache) throws StandardException {
 
-        return getSPS(lcc, index, localCache);
+        return getSPS(activation, index, localCache);
 
+    }
+
+    private boolean
+    olapStatementIntializingOnRegionServer(Activation activation) {
+        return activation.datasetProcessorType().isOlap() &&
+               Thread.currentThread().currentThread().getName().startsWith("DRDAConnThread");
     }
 
     /**
      * Get the SPS for the triggered SQL statement or the WHEN clause.
      *
-     * @param lcc the LanguageConnectionContext to use
+     * @param activation the Activation to use
      * @param index {@code -1} if the SPS for the WHEN clause is
      *   requested, {@code >=0} if it is one of the triggered SQL statements
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    public SPSDescriptor getSPS(LanguageConnectionContext lcc,
-                                 int index, ManagedCache<UUID, SPSDescriptor>localCache)
+    public SPSDescriptor getSPS(Activation activation,
+                                int index, ManagedCache<UUID, SPSDescriptor>localCache)
             throws StandardException
     {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        final boolean isOlap = activation.datasetProcessorType().isOlap();
         boolean isWhenClause = index == -1;
         DataDictionary dd = getDataDictionary();
         UUID spsId = isWhenClause ? whenSPSId : actionSPSIdList.get(index);
@@ -357,7 +366,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 //                }  // msirek-temp
             }
         }
-        boolean wasValid = !sps.isValid();
+        boolean wasValid = sps.isValid();
         boolean needsSpecialRecompile =
             (!sps.isValid() || (sps.getPreparedStatement(true, lcc) == null)) && isRow && usesReferencingClause;
 
@@ -419,14 +428,21 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
         }
-        // Force recompile before execution
-        if (!sps.isValid() && isOlapServer()) {
+        // Force recompile before execution if Olap.
+        // Concurrent control execution has the ability to
+        // cache the triggers that are concurrently compiled,
+        // So this is only needed for Spark execution.
+        final boolean olapQueryInit = olapStatementIntializingOnRegionServer(activation);
+
+        if (!sps.isValid() &&
+            (olapQueryInit || isOlapServer())) {
             sps.getPreparedStatement(true, lcc);  // msirek-temp
 
         }  // msirek-temp
         boolean compileDone = wasValid != sps.isValid();
         if (compileDone || isOlapServer()) {
-//            dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
+            if (compileDone)
+                dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
 //            boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
 //            LanguageConnectionContext contextLCC = null;
 //            if (needsSecondDDCacheUpdate) {
@@ -489,12 +505,12 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the trigger when clause sps
      */
-    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, ManagedCache<UUID, SPSDescriptor> localCache) throws StandardException {
+    public SPSDescriptor getWhenClauseSPS(Activation activation, ManagedCache<UUID, SPSDescriptor> localCache) throws StandardException {
         if (whenSPSId == null) {
             // This trigger doesn't have a WHEN clause.
             return null;
         }
-        return getSPS(lcc, -1, localCache);
+        return getSPS(activation, -1, localCache);
     }
 
     /**

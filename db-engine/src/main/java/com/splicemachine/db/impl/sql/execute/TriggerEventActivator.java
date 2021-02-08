@@ -253,26 +253,26 @@ public class TriggerEventActivator {
                 addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
             // Pre-compile the trigger.
-            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 //            try {
 //                lcc = ConnectionUtil.getCurrentLCC();
 //            }
 //            catch (SQLException e) {
 //                throw StandardException.plainWrapException(e);
 //            }// msirek-temp
-            if (lcc != null) {
-                preCompileTrigger(td, lcc);
+            if (activation != null) {
+                preCompileTrigger(td, activation);
             }
 
         }
     }
 
     private void preCompileTrigger(TriggerDescriptor td,
-                                   LanguageConnectionContext lcc) throws StandardException {
-        td.getWhenClauseSPS(lcc, lcc.getSpsCache());
+                                   Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        td.getWhenClauseSPS(activation, lcc.getSpsCache());
         int numActions = td.getActionIdList().size();
         for (int i=0; i < numActions; i++)
-            td.getActionSPS(lcc, i, lcc.getSpsCache());
+            td.getActionSPS(activation, i, lcc.getSpsCache());
     }
 
     /**

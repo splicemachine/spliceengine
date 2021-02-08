@@ -1187,8 +1187,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    FOR EACH ROW
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
-            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, null)
-                                             : trd.getActionSPS(lcc, index, null);
+            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(activation, null)
+                                             : trd.getActionSPS(activation, index, null);
             int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
             java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,

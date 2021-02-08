@@ -1846,7 +1846,7 @@ public class SpliceTransactionManager implements XATransactionController,
         } finally {
             currentDDLChanges.clear();
             currentDDLChanges = null;
-            //deferredWriteOfSPSDescriptorToCache(lcc); // msirek-temp
+            deferredWriteOfSPSDescriptorToCache(lcc); // msirek-temp
         }
     }
 
@@ -1856,6 +1856,11 @@ public class SpliceTransactionManager implements XATransactionController,
         SPSDescriptor spsDescriptor = lcc.getCreateTriggerSPSescriptor();
         if (spsDescriptor == null)
             return;
+        // Now that the CREATE TRIGGER is committed, we can compile
+        // the trigger so the cached SPSDescriptors are always valid.
+//        spsDescriptor.getPreparedStatement();  // msirek-temp
+
+        lcc.setCreateTriggerSPSDescriptor(null);
         DataDictionary dd = lcc.getDataDictionary();
         if (dd == null)
             return;
@@ -1863,7 +1868,6 @@ public class SpliceTransactionManager implements XATransactionController,
         if (dataDictionaryCache == null)
             return;
         dataDictionaryCache.storedPreparedStatementCacheAdd(spsDescriptor);
-        lcc.setCreateTriggerSPSDescriptor(null);
     }
 
     @Override

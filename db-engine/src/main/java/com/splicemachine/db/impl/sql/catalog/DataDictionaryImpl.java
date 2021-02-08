@@ -3243,7 +3243,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
         // Make sure either the SPS is valid, or we are not in a
         // state to write a valid SPS to cache before returning it.
-        if (sps!=null && (sps.isValid() || !canWriteCache(null)))
+        if (sps!=null) // && (sps.isValid() || !canWriteCache(null)))  // msirek-temp
             return sps;
         if (sps == null)
             sps=getSPSDescriptorIndex2Scan(uuid.toString());

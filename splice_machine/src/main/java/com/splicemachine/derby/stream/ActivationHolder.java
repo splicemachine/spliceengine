@@ -152,7 +152,7 @@ public class ActivationHolder implements Externalizable {
             LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             txnResource.marshallTransaction(txn,
                                             lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
-                                            lcc.getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache(),
+                                            lcc.getSpsCache(),
                                             lcc.getDefaultRoles(),
                                             lcc.getInitialDefaultSchemaDescriptor(),
                                             lcc.getDataDictionary().getDataDictionaryCache().getConglomerateCache(),
