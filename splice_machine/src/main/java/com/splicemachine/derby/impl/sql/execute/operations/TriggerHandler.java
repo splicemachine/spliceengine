@@ -261,11 +261,14 @@ public class TriggerHandler {
                     };
                 }
             };
+            final boolean sparkExecution =
+                !SpliceClient.isRegionServer ||
+                activation.datasetProcessorType().isOlap();
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
                     null, SIDriver.driver().getExecutorService(), withContext,
-                    heapList, !SpliceClient.isRegionServer, fromTableDmlSpsDescriptor);
+                    heapList, sparkExecution, fromTableDmlSpsDescriptor);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;

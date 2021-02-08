@@ -433,6 +433,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         // cache the triggers that are concurrently compiled,
         // So this is only needed for Spark execution.
         final boolean olapQueryInit = olapStatementIntializingOnRegionServer(activation);
+        final boolean olapQuery = olapQueryInit || isOlapServer();
 
         if (!sps.isValid() &&
             (olapQueryInit || isOlapServer())) {
@@ -440,7 +441,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
         }  // msirek-temp
         boolean compileDone = wasValid != sps.isValid();
-        if (compileDone || isOlapServer()) {
+        if (compileDone || olapQuery) {
             if (compileDone)
                 dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
 //            boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);

@@ -236,9 +236,9 @@ public class ActivationHolder implements Externalizable {
         catch (Exception e) { }
 
         out.writeObject(dd.getDataDictionaryCache().getPropertyCache());
-        if (SpliceClient.isRegionServer)
-            out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache());
-        else
+//        if (SpliceClient.isRegionServer)
+//            out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getStoredPreparedStatementCache());
+//        else  // msirek-temp
             out.writeObject(lcc.getSpsCache());
 //        if (!canReadCache) {
 //            lcc.setupDefaultRoleCache()
