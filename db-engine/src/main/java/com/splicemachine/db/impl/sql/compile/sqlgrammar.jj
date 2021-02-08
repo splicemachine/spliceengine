@@ -6552,19 +6552,6 @@ escapedValueFunction() throws StandardException :
                             getContextManager());
     }
 |
-    /* CONCAT( string1, string2 )
-     * CONCAT is not a reserved word.
-     */
-    <CONCAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
-            str2 = additiveExpression(null,0) <RIGHT_PAREN>
-    {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CONCATENATION_OPERATOR_NODE,
-                            str1,
-                            str2,
-                            getContextManager());
-    }
-|
     /* Method versions of USER special registers
      * are ODBC remnants.  Only supported
      * when escaped.
@@ -7463,6 +7450,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
+                getToken(1).kind == CONCAT ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == MIN ||
@@ -7564,6 +7552,8 @@ ValueNode
 miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
 {
     ValueNode value;
+    ValueNode   str1;
+    ValueNode   str2;
 }
 {
     /* miscBuiltinsCore() are the core
@@ -7614,6 +7604,15 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
     <NVL>  value = coalesceFunction("COALESCE")
     {
         return value;
+    }
+|
+    /* CONCAT( string1, string2 )
+     * CONCAT is not a reserved word.
+     */
+    <CONCAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
+            str2 = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return new ConcatenationOperatorNode(str1, str2, getContextManager());
     }
 |
     <VALUE>  value = coalesceFunction("VALUE")
