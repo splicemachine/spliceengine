@@ -383,9 +383,10 @@ _start_yarn
 _start_kafka
 
 _start_master
+_wait_for_master
+
 _start_region_servers
 
-_wait_for_master
 _wait_for_region_servers
 
 popd > /dev/null
