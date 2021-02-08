@@ -799,22 +799,44 @@ public final class SQLTime extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSeconds
+     * @see DateTimeDataValue#getSecondsAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSeconds(NumberDataValue result)
+    public NumberDataValue getSecondsAsDouble(NumberDataValue result)
                             throws StandardException
+    {
+        return getSecondsAsInt(result);
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException
     {
         if (isNull()) {
             return nullValueInt();
-        } else {    
+        } else {
             return SQLDate.setSource(getSecond(encodedTime), result);
         }
     }
 
+    /**
+     * @see DateTimeDataValue#getSecondsAsDecimal
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+            throws StandardException
+    {
+        return getSecondsAsInt(result);
+    }
+
     /*
-    ** String display of value
+     ** String display of value
     */
 
     public String toString()

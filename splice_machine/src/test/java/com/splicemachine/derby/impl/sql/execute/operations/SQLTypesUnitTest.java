@@ -4,9 +4,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.homeless.SerializationTest;
-import com.splicemachine.primitives.Bytes;
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -87,7 +84,7 @@ public class SQLTypesUnitTest {
         SQLInteger i = new SQLInteger();
         Assert.assertEquals( ts.getHours(i).getInt(), 04);
         Assert.assertEquals( ts.getMinutes(i).getInt(), 38);
-        Assert.assertEquals( ts.getSeconds(i).getInt(), 01);
+        Assert.assertEquals( ts.getSecondsAsDouble(i).getInt(), 01);
         Assert.assertEquals( ts.getNanos(), 42612300);
 
         Assert.assertEquals( ts.getYear(i).getInt(), 1867);

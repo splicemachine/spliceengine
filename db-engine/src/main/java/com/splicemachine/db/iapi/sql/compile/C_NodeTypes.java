@@ -293,7 +293,9 @@ public interface C_NodeTypes
 
     int TYPEOF_OPERATOR_NODE = 281;
 
-    int MULTIPLY_ALT_FUNCTION_NODE = 282;
+    int DAYS_FUNCTION_NODE = 282;
+    int SECOND_FUNCTION_NODE = 283;
+    int MULTIPLY_ALT_FUNCTION_NODE = 284;
 
     // Final value in set, keep up to date!
     int FINAL_VALUE = MULTIPLY_ALT_FUNCTION_NODE;

@@ -64,7 +64,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "DAYOFWEEK", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
     };
     static private final String fieldMethod[] = {
-        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSecondsAsDouble"
     };
 
     static private final long fieldCardinality[] = {
@@ -119,15 +119,9 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         {
             TypeCompiler tc = getOperand().getTypeCompiler();
             int castType = (extractField < HOUR_FIELD) ? Types.DATE : Types.TIME;
-            setOperand((ValueNode)
-                getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getOperand(),
-                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true,
-                                        tc.getCastToCharWidth(
-                                                getOperand().getTypeServices(), getCompilerContext())),
-                    getContextManager()));
-            ((CastNode) getOperand()).bindCastNodeOnly();
+            castOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                    castType, true,
+                    tc.getCastToCharWidth(getOperand().getTypeServices(), getCompilerContext())));
 
             opTypeId = getOperand().getTypeId();
             operandType = opTypeId.getJDBCTypeId();
@@ -194,6 +188,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         return this;
     }
 
+    @Override
     void bindParameter() throws StandardException
     {
         getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));

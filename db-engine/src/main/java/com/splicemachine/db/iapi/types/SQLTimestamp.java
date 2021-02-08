@@ -62,7 +62,6 @@ import java.text.ParseException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.GregorianCalendar;
 
 
@@ -1012,17 +1011,17 @@ public final class SQLTimestamp extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSeconds
+     * @see DateTimeDataValue#getSecondsAsDouble
      *
      * @exception StandardException  Thrown on error
      */
-    public NumberDataValue getSeconds(NumberDataValue source)
+    public NumberDataValue getSecondsAsDouble(NumberDataValue source)
                             throws StandardException
     {
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(source == null || source.isDoubleType(),
-        "getSeconds for a timestamp was given a source other than a SQLDouble");
+        "getSecondsAsDouble for a timestamp was given a source other than a SQLDouble");
         }
         NumberDataValue result;
 
@@ -1037,6 +1036,64 @@ public final class SQLTimestamp extends DataType
 
         result.setValue((double)(SQLTime.getSecond(encodedTime))
                 + ((double)nanos)/1.0e9);
+
+        return result;
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException  Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue source)
+            throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(source == null || source.getTypeName().equals(TypeId.INTEGER_NAME),
+                    "getSecondsAsInt for a timestamp was given a source other than a SQLInt");
+        }
+        NumberDataValue result;
+
+        if (isNull()) {
+            return nullValueInt();
+        }
+
+        if (source != null)
+            result = source;
+        else
+            result = new SQLInteger();
+
+        result.setValue(SQLTime.getSecond(encodedTime));
+
+        return result;
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsDecimal
+     *
+     * @exception StandardException  Thrown on error
+     */
+    public NumberDataValue getSecondsAsDecimal(NumberDataValue source)
+            throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(source == null || source.getTypeName().equals(TypeId.DECIMAL_NAME),
+                    "getSecondsAsDecimal for a timestamp was given a source other than a SQLDecimal");
+        }
+        NumberDataValue result;
+
+        if (isNull()) {
+            return new SQLDecimal(null, 11, 9);
+        }
+
+        if (source != null)
+            result = source;
+        else
+            result = new SQLDecimal(null, 11, 9);
+
+        result.setValue(SQLTime.getSecond(encodedTime) + ((double)nanos)/1.0e9);
 
         return result;
     }

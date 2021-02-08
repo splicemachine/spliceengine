@@ -68,6 +68,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
+import com.splicemachine.db.impl.sql.compile.DaysFunctionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.FromList;
@@ -95,6 +96,7 @@ import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
 import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
+import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
 import com.splicemachine.db.impl.sql.compile.StatementListNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
@@ -6813,13 +6815,16 @@ numericValueFunction() throws StandardException :
     {
         return value;
     }
+|
     <DAYS> value = daysFunction()
+    {
+        return value;
+    }
 }
 
 ValueNode
 multiplyAltFunction() throws StandardException :
 {
-    ValueNode value;
     ValueNode lhs;
     ValueNode rhs;
 }
@@ -6832,6 +6837,18 @@ multiplyAltFunction() throws StandardException :
                 rhs,
                 ReuseFactory.getInteger(BinaryOperatorNode.MULTIPLY_ALT),
                 getContextManager());
+    }
+}
+
+ValueNode
+daysFunction() throws StandardException :
+{
+    ValueNode op;
+}
+{
+    <LEFT_PAREN> op = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return new DaysFunctionNode(op, getContextManager());
     }
 }
 
@@ -8455,7 +8472,7 @@ dateTimeScalarFunction() throws StandardException :
                                 getContextManager());
     }
 |
-        field = datetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+        field = nonSecondDatetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.EXTRACT_OPERATOR_NODE,
@@ -8463,8 +8480,28 @@ dateTimeScalarFunction() throws StandardException :
                                 value,
                                 getContextManager());
     }
+|
+    <SECOND> value = secondFunctionNode()
+    {
+        return value;
+    }
 }
 
+ValueNode
+secondFunctionNode() throws StandardException :
+{
+    ValueNode param1;
+    ValueNode param2 = null;
+}
+{
+    <LEFT_PAREN>
+        param1 = additiveExpression(null, 0)
+        [ <COMMA> param2 = additiveExpression(null, 0) ]
+    <RIGHT_PAREN>
+    {
+        return new SecondFunctionNode(param1, param2, getContextManager());
+    }
+}
 
 /*
  * <A NAME="truncateFunctionCompletion">truncateFunctionCompletion</A>

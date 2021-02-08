@@ -818,19 +818,43 @@ public final class SQLDate extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSeconds
+     * @see DateTimeDataValue#getSecondsAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSeconds(NumberDataValue result)
+    public NumberDataValue getSecondsAsDouble(NumberDataValue result)
                             throws StandardException
     {
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                        "getSeconds", "Date");
+                        "getSecondsAsDouble", "Date");
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAsInt", "Date");
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsDecimal
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAsDecimal", "Date");
     }
 
     /*
-    ** String display of value
+     ** String display of value
     */
 
     public String toString()

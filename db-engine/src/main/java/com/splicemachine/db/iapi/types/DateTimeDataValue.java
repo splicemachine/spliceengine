@@ -251,12 +251,38 @@ public interface DateTimeDataValue extends DataValueDescriptor
      * @param result    The result of the previous call to this method, null
      *                    if not called yet.
      *
-     * @return    A NumberDataValue containing the second of the minute.
+     * @return    A NumberDataValue containing the second and fractions of seconds of the minute as a double.
      *
      * @exception StandardException        Thrown on error
      */
-    NumberDataValue getSeconds(NumberDataValue result)
+    NumberDataValue getSecondsAsDouble(NumberDataValue result)
                             throws StandardException;
+
+    /**
+     * Get the second of the minute out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the second of the minute as an integer.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException;
+
+    /**
+     * Get the second of the minute out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the second and fractions of seconds of the minute as a decimal(11, 9).
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+            throws StandardException;
 
     /**
      * Add a number of intervals to a datetime value. Implements the JDBC escape TIMESTAMPADD function.

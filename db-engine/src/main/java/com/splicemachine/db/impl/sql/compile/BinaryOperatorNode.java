@@ -445,20 +445,8 @@ public class BinaryOperatorNode extends OperatorNode
                 getRightOperand().getTypeId() == null ||
                 !(getRightOperand().getTypeId().isIntegerNumericTypeId() || getRightOperand().getTypeId().getJDBCTypeId() == Types.DECIMAL);
         if (castToDecfloat) {
-            setLeftOperand((ValueNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            getLeftOperand(),
-                            DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
-                            getContextManager()));
-            ((CastNode) getLeftOperand()).bindCastNodeOnly();
-            setRightOperand((ValueNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            getRightOperand(),
-                            DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT),
-                            getContextManager()));
-            ((CastNode) getRightOperand()).bindCastNodeOnly();
+            castLeftOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT));
+            castRightOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT));
         }
         ValueNode multiplication = ((BinaryArithmeticOperatorNode) getNodeFactory().getNode(
                 C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
@@ -980,5 +968,13 @@ public class BinaryOperatorNode extends OperatorNode
 
     public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
     public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
+
+    public void castLeftOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+       castOperandAndBindCast(0, type);
+    }
+
+    public void castRightOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(1, type);
+    }
 }
 
