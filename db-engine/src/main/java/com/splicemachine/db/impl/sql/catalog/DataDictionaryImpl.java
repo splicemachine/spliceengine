@@ -3247,8 +3247,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return sps;
         if (sps == null)
             sps=getSPSDescriptorIndex2Scan(uuid.toString());
-        if (!sps.isValid())
-            sps.getPreparedStatement();  // msirek-temp
+//        if (!sps.isValid() && canWriteCache(null))
+//            sps.getPreparedStatement();  // msirek-temp
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
     }

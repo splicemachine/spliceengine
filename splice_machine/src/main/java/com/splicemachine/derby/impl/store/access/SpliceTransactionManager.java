@@ -1846,7 +1846,7 @@ public class SpliceTransactionManager implements XATransactionController,
         } finally {
             currentDDLChanges.clear();
             currentDDLChanges = null;
-            deferredWriteOfSPSDescriptorToCache(lcc);
+            //deferredWriteOfSPSDescriptorToCache(lcc); // msirek-temp
         }
     }
 

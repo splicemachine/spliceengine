@@ -425,7 +425,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
         }  // msirek-temp
         boolean compileDone = wasValid != sps.isValid();
-        if (compileDone) {
+        if (compileDone || isOlapServer()) {
 //            dd.getDataDictionaryCache().storedPreparedStatementCacheAdd(sps);
 //            boolean needsSecondDDCacheUpdate = needsSecondDDCacheUpdate(lcc);
 //            LanguageConnectionContext contextLCC = null;
