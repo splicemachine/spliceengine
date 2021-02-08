@@ -58,7 +58,7 @@ public interface Property {
      * Property that holds the client   IP Address
      *
      */
-    String IP_ADDRESS = "ip_address";
+    public static final String IP_ADDRESS = "ip_address";
 
     /**
      * Name of the file that contains system wide properties. Has to be located
@@ -117,6 +117,7 @@ public interface Property {
      Takes precendence over db.stream.error.method.
      Takes precendence over db.stream.error.field
      */
+
     String ERRORLOG_FILE_PROPERTY = "derby.stream.error.file";
 
     /**
@@ -187,9 +188,83 @@ public interface Property {
      */
     String DELETE_ON_CREATE = "derby.__deleteOnCreate";
 
+    /**
+     db.database.forceDatabaseLock
+     <BR>
+     Derby attempts to prevent two instances of Derby from booting
+     the same database with the use of a file called db.lck inside the
+     database directory.
+
+     On some platforms, Derby can successfully prevent a second
+     instance of Derby from booting the database, and thus prevents
+     corruption. If this is the case, you will see an SQLException like the
+     following:
+
+     ERROR XJ040: Failed to start database 'toursDB', see the next exception
+     for details.
+     ERROR XSDB6: Another instance of Derby may have already booted the
+     database C:\databases\toursDB.
+
+     The error is also written to the information log.
+
+     On other platforms, Derby issues a warning message if an instance
+     of Derby attempts to boot a database that may already have a
+     running instance of Derby attached to it.
+     However, it does not prevent the second instance from booting, and thus
+     potentially corrupting, the database.
+
+     If a warning message has been issued, corruption may already have
+     occurred.
+
+
+     The warning message looks like this:
+
+     WARNING: Derby (instance 80000000-00d2-3265-de92-000a0a0a0200) is
+     attempting to boot the database /export/home/sky/wombat even though
+     Derby (instance 80000000-00d2-3265-8abf-000a0a0a0200) may still be
+     active. Only one instance of Derby
+     should boot a database at a time. Severe and non-recoverable corruption
+     can result and may have already occurred.
+
+     The warning is also written to the information log.
+
+     This warning is primarily a Technical Support aid to determine the
+     cause of corruption. However, if you see this warning, your best
+     choice is to close the connection and exit the JVM. This minimizes the
+     risk of a corruption. Close all instances of Derby, then restart
+     one instance of Derby and shut down the database properly so that
+     the db.lck file can be removed. The warning message continues to appear
+     until a proper shutdown of the Derby system can delete the db.lck
+     file.
+
+     If the "derby.database.forceDatabaseLock" property is set to true
+     then this default behavior is altered on systems where Derby cannot
+     prevent this dual booting.  If the to true, then if the platform does
+     not provide the ability for Derby to guarantee no double boot, and
+     if Derby finds a db.lck file when it boots, it will throw an
+     exception (TODO - mikem - add what exception), leave the db.lck file
+     in place and not boot the system.  At this point the system will not
+     boot until the db.lck file is removed by hand.  Note that this
+     situation can arise even when 2 VM's are not accessing the same
+     Derby system.  Also note that if the db.lck file is removed by
+     hand while a VM is still accessing a db.database, then there
+     is no way for Derby to prevent a second VM from starting up and
+     possibly corrupting the database.  In this situation no warning
+     message will be logged to the error log.
+
+     To disable the default behavior of the db.lck file set property as
+     follows:
+
+     db.database.forceDatabaseLock=true
+
+     */
+    String FORCE_DATABASE_LOCK = "derby.database.forceDatabaseLock";
+
+
     /*
      ** db.locks.* and related properties
      */
+
     String LOCKS_INTRO = "derby.locks.";
 
     /**
@@ -206,6 +281,11 @@ public interface Property {
      The default value for LOCKS_ESCALATION_THRESHOLD
      */
     int DEFAULT_LOCKS_ESCALATION_THRESHOLD = 5000;
+
+    /**
+     The minimum value for LOCKS_ESCALATION_THRESHOLD
+     */
+    int MIN_LOCKS_ESCALATION_THRESHOLD = 100;
 
     /**
      Configuration parameter for deadlock timeouts, set in seconds.
@@ -311,6 +391,11 @@ public interface Property {
     String PAGE_SIZE_PARAMETER = "derby.storage.pageSize";
 
     /**
+     * The default page size to use for tables that contain a long column.
+     **/
+    String PAGE_SIZE_DEFAULT_LONG = "32768";
+
+    /**
      * The bump threshold for pages sizes for create tables
      * If the approximate column sizes of a table is greater than this
      * threshold, the page size for the tbl is bumped to PAGE_SIZE_DEFAULT_LONG
@@ -407,6 +492,28 @@ public interface Property {
             "derby.system.durability";
 
     /**
+     * This is a value supported for db.system.durability
+     * When db.system.durability=test, the storage system does not
+     * force syncs and the system may not recover. It is also possible that
+     * the database might be in an inconsistent state
+     * @see #DURABILITY_PROPERTY
+     */
+    String DURABILITY_TESTMODE_NO_SYNC = "test";
+
+    /**
+     * db.storage.fileSyncTransactionLog
+     * <p>
+     * When set, the store system will use sync() call on the log at 
+     * commit instead of doing  a write sync on all writes to  the log;
+     * even if the write sync mode (rws) is supported in the JVM.
+     * <p>
+     *
+     **/
+    String FILESYNC_TRANSACTION_LOG =
+            "derby.storage.fileSyncTransactionLog";
+
+
+    /**
      *	db.storage.logArchiveMode
      *<BR>
      *used to identify whether the log is being archived for the database or not.
@@ -421,6 +528,17 @@ public interface Property {
      */
     String LOG_ARCHIVE_MODE = "derby.storage.logArchiveMode";
 
+
+    /**
+     *	db.storage.logDeviceWhenBackedUp
+     *<BR>
+     *  This property indicates the logDevice location(path) when the backup was
+     *  taken, used to restore the log to the same location while restoring from
+     *  backup.
+     *<P>
+     *<B>INTERNAL USE ONLY</B>
+     */
+    String LOG_DEVICE_AT_BACKUP = "derby.storage.logDeviceWhenBackedUp";
 
     /**
      * derby.module.modulename
@@ -514,7 +632,7 @@ public interface Property {
      * Externally visible.
      */
     String	LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
-    int		LANG_SPS_CACHE_SIZE_DEFAULT =32;
+    int		LANG_SPS_CACHE_SIZE_DEFAULT =256;
 
     /**
      * The size of the sequence generator cache
@@ -727,6 +845,14 @@ public interface Property {
     double STORAGE_AUTO_INDEX_STATS_DEBUG_LNDIFF_THRESHOLD_DEFAULT = 1.0;
 
     /**
+     * Specifies the size of the work unit queue in the index statistics update
+     * daemon.
+     */
+    String STORAGE_AUTO_INDEX_STATS_DEBUG_QUEUE_SIZE =
+            "derby.storage.indexStats.debug.queueSize";
+    int STORAGE_AUTO_INDEX_STATS_DEBUG_QUEUE_SIZE_DEFAULT = 20;
+
+    /**
      * Specifies whether to revert to 10.8 behavior and keep disposable stats.
      */
     String STORAGE_AUTO_INDEX_STATS_DEBUG_KEEP_DISPOSABLE_STATS =
@@ -780,6 +906,10 @@ public interface Property {
     String
             DEFAULT_CONNECTION_MODE_PROPERTY = "derby.database.defaultConnectionMode";
 
+    String NO_ACCESS = "NOACCESS";
+    String READ_ONLY_ACCESS = "READONLYACCESS";
+    String FULL_ACCESS = "FULLACCESS";
+
     /**
      * List of users with read-only connection level authorization.
      */
@@ -808,6 +938,97 @@ public interface Property {
 
     // These are the different built-in providers Derby supports
 
+    String AUTHENTICATION_PROVIDER_NATIVE =
+            "NATIVE:";
+
+    String AUTHENTICATION_PROVIDER_BUILTIN =
+            "BUILTIN";
+
+    String AUTHENTICATION_PROVIDER_LDAP =
+            "LDAP";
+
+    String AUTHENTICATION_PROVIDER_KERBEROS =
+            "KERBEROS";
+    String AUTHENTICATION_SERVER_PARAMETER =
+            "derby.authentication.server";
+
+    // this suffix on the NATIVE authentication provider means that
+    // database operations should be authenticated locally
+    String AUTHENTICATION_PROVIDER_LOCAL_SUFFIX =
+            ":LOCAL";
+
+    // when local native authentication is enabled, we store this value for db.authentication.provider
+    String AUTHENTICATION_PROVIDER_NATIVE_LOCAL =
+            AUTHENTICATION_PROVIDER_NATIVE + AUTHENTICATION_PROVIDER_LOCAL_SUFFIX;
+
+    // Property to force the creation of the native credentials database.
+    // Generally, this is only done at the time of the creation of the whole Splice/Derby database.
+    // In this particular instance, there are Splice beta customers with AnA disabled and they want to
+    // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
+    String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE =
+            "derby.authentication.native.create.credentials.database";
+
+    // lifetime (in milliseconds) of a NATIVE password. if <= 0, then the password never expires
+    String AUTHENTICATION_NATIVE_PASSWORD_LIFETIME =
+            "derby.authentication.native.passwordLifetimeMillis";
+
+    // default lifetime (in milliseconds) of a NATIVE password. FOREVER
+    long MILLISECONDS_IN_DAY = 1000L * 60L * 60L * 24L;
+    long AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT = 0L;
+
+    // threshhold for raising a warning that a password is about to expire.
+    // raise a warning if the remaining password lifetime is less than this proportion of the max lifetime.
+    String  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD =
+            "derby.authentication.native.passwordLifetimeThreshold";
+    double  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT = 0.125;
+
+
+    /**
+     * Property that specifies the name of the hash algorithm to use with
+     * the configurable hash authentication scheme.
+     */
+    String AUTHENTICATION_BUILTIN_ALGORITHM =
+            "derby.authentication.builtin.algorithm";
+
+    /**
+     * Default value for db.authentication.builtin.algorithm when creating
+     * a new database.
+     */
+    String AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT =
+            "SHA-256";
+
+    /**
+     * Alternative default value for db.authentication.builtin.algorithm if
+     * {@link #AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT} is not available at
+     * database creation time.
+     */
+    String AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK =
+            "SHA-1";
+
+    /**
+     * Property that specifies the number of bytes with random salt to use
+     * when hashing credentials using the configurable hash authentication
+     * scheme.
+     */
+    String AUTHENTICATION_BUILTIN_SALT_LENGTH =
+            "derby.authentication.builtin.saltLength";
+
+    /**
+     * The default value for db.authentication.builtin.saltLength.
+     */
+    int AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT = 16;
+
+    /**
+     * Property that specifies the number of times to apply the hash
+     * function in the configurable hash authentication scheme.
+     */
+    String AUTHENTICATION_BUILTIN_ITERATIONS =
+            "derby.authentication.builtin.iterations";
+
+    /**
+     * Default value for db.authentication.builtin.iterations.
+     */
+    int AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT = 1000;
 
     /*
      ** Log
@@ -827,6 +1048,29 @@ public interface Property {
      Property name for specifying log archival location
      */
     String LOG_ARCHIVAL_DIRECTORY = "derby.storage.logArchive";
+
+    /**
+     Property name for specifying log Buffer Size
+     */
+    String LOG_BUFFER_SIZE = "derby.storage.logBufferSize";
+
+
+    /*
+     ** Replication
+     */
+
+    /** Property name for specifying the size of the replication log buffers */
+    String REPLICATION_LOG_BUFFER_SIZE= "derby.replication.logBufferSize";
+
+    /** Property name for specifying the minimum log shipping interval*/
+    String REPLICATION_MIN_SHIPPING_INTERVAL = "derby.replication.minLogShippingInterval";
+
+    /** Property name for specifying the maximum log shipping interval*/
+    String REPLICATION_MAX_SHIPPING_INTERVAL = "derby.replication.maxLogShippingInterval";
+
+    /** Property name for specifying whether or not replication messages are
+     * written to the log*/
+    String REPLICATION_VERBOSE = "derby.replication.verbose";
 
     /*
      ** Upgrade
@@ -861,6 +1105,10 @@ public interface Property {
      <B>INTERNAL USE ONLY</B>
      */
     String DELETE_ROOT_ON_ERROR  = PROPERTY_RUNTIME_PREFIX  + "deleteRootOnError";
+
+    String HTTP_DB_FILE_OFFSET = "db2j.http.file.offset";
+    String HTTP_DB_FILE_LENGTH = "db2j.http.file.length";
+    String HTTP_DB_FILE_NAME =   "db2j.http.file.name";
 
     /**
      * db.drda.startNetworkServer
@@ -972,6 +1220,74 @@ public interface Property {
     String SERVICE_LOCALE = "derby.serviceLocale";
 
     String COLLATION = "derby.database.collation";
+    // These are the six possible values for collation type if the collation
+    // derivation is not NONE. If collation derivation is NONE, then collation
+    // type should be ignored. The TERRITORY_BASED collation uses the default
+    // collator strength while the four with a colon uses a specific strength.
+    String UCS_BASIC_COLLATION =
+            "UCS_BASIC";
+    String TERRITORY_BASED_COLLATION =
+            "TERRITORY_BASED";
+    String TERRITORY_BASED_PRIMARY_COLLATION =
+            "TERRITORY_BASED:PRIMARY";
+    String TERRITORY_BASED_SECONDARY_COLLATION =
+            "TERRITORY_BASED:SECONDARY";
+    String TERRITORY_BASED_TERTIARY_COLLATION =
+            "TERRITORY_BASED:TERTIARY";
+    String TERRITORY_BASED_IDENTICAL_COLLATION =
+            "TERRITORY_BASED:IDENTICAL";
+    // Define a static string for collation derivation NONE
+    String COLLATION_NONE =
+            "NONE";
+
+    /**
+     * db2j.storage.dataNotSyncedAtCheckPoint
+     * <p>
+     * When set, the store system will not force a sync() call on the
+     * containers during a checkpoint.
+     * <p>
+     * An internal debug system only flag.  The recovery system will not
+     * work properly if this flag is enabled, it is provided to do performance
+     * debugging to see whether the system is I/O bound based on checkpoint
+     * synchronous I/O.
+     * <p>
+     *
+     **/
+    String STORAGE_DATA_NOT_SYNCED_AT_CHECKPOINT =
+            "db2j.storage.dataNotSyncedAtCheckPoint";
+
+    /**
+     * db2j.storage.dataNotSyncedAtAllocation
+     * <p>
+     * When set, the store system will not force a sync() call on the
+     * containers when pages are allocated.
+     * <p>
+     * An internal debug system only flag.  The recovery system will not
+     * work properly if this flag is enabled, it is provided to do performance
+     * debugging to see whether the system is I/O bound based on page allocation
+     * synchronous I/O.
+     * <p>
+     *
+     **/
+    String STORAGE_DATA_NOT_SYNCED_AT_ALLOCATION =
+            "db2j.storage.dataNotSyncedAtAllocation";
+
+    /**
+     * db2j.storage.logNotSynced
+     * <p>
+     * When set, the store system will not force a sync() call on the log at 
+     * commit.
+     * <p>
+     * An internal debug system only flag.  The recovery system will not
+     * work properly if this flag is enabled, it is provided to do performance
+     * debugging to see whether the system is I/O bound based on log file
+     * synchronous I/O.
+     * <p>
+     *
+     **/
+    String STORAGE_LOG_NOT_SYNCED =
+            "db2j.storage.logNotSynced";
+
 
     /**
      * db.storage.useDefaultFilePermissions = {false,true}

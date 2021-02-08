@@ -1185,14 +1185,9 @@ public final class SConfigurationImpl implements SConfiguration {
             }
             config.put(field.getName(), (value == null ? "null" : value));
         }
-        try {
-            for (Map.Entry<String, String> hadoopEntry : getConfigSource().prefixMatch(null).entrySet()) {
-                String value = hadoopEntry.getValue();
-                config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
-            }
-        } catch(sun.reflect.generics.reflectiveObjects.NotImplementedException e) {
-            // on mem platform we can't access this
-            LOG.info("can't access SConfigurationImpl.getConfigSource. Is this Mem Platform?");
+        for (Map.Entry<String,String> hadoopEntry : getConfigSource().prefixMatch(null).entrySet()) {
+            String value = hadoopEntry.getValue();
+            config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
         }
         return config;
     }

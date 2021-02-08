@@ -37,7 +37,7 @@ import com.splicemachine.db.catalog.types.RowMultiSetImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
-import com.splicemachine.db.iapi.reference.PropertyHelper;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -55,6 +55,7 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
+import static com.splicemachine.db.iapi.types.TypeId.DECFLOAT_PRECISION;
 
 /**
  * DataTypeDescriptor describes a runtime SQL type.
@@ -1013,17 +1014,17 @@ public class DataTypeDescriptor implements Formatable{
      * @return The collation type, or -1 if not recognized.
      */
     public static int getCollationType(String collationName){
-        if(collationName.equalsIgnoreCase(PropertyHelper.UCS_BASIC_COLLATION))
+        if(collationName.equalsIgnoreCase(Property.UCS_BASIC_COLLATION))
             return StringDataValue.COLLATION_TYPE_UCS_BASIC;
-        else if(collationName.equalsIgnoreCase(PropertyHelper.TERRITORY_BASED_COLLATION))
+        else if(collationName.equalsIgnoreCase(Property.TERRITORY_BASED_COLLATION))
             return StringDataValue.COLLATION_TYPE_TERRITORY_BASED;
-        else if(collationName.equalsIgnoreCase(PropertyHelper.TERRITORY_BASED_PRIMARY_COLLATION))
+        else if(collationName.equalsIgnoreCase(Property.TERRITORY_BASED_PRIMARY_COLLATION))
             return StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
-        else if(collationName.equalsIgnoreCase(PropertyHelper.TERRITORY_BASED_SECONDARY_COLLATION))
+        else if(collationName.equalsIgnoreCase(Property.TERRITORY_BASED_SECONDARY_COLLATION))
             return StringDataValue.COLLATION_TYPE_TERRITORY_BASED_SECONDARY;
-        else if(collationName.equalsIgnoreCase(PropertyHelper.TERRITORY_BASED_TERTIARY_COLLATION))
+        else if(collationName.equalsIgnoreCase(Property.TERRITORY_BASED_TERTIARY_COLLATION))
             return StringDataValue.COLLATION_TYPE_TERRITORY_BASED_TERTIARY;
-        else if(collationName.equalsIgnoreCase(PropertyHelper.TERRITORY_BASED_IDENTICAL_COLLATION))
+        else if(collationName.equalsIgnoreCase(Property.TERRITORY_BASED_IDENTICAL_COLLATION))
             return StringDataValue.COLLATION_TYPE_TERRITORY_BASED_IDENTICAL;
         else
             return -1;
@@ -1041,7 +1042,7 @@ public class DataTypeDescriptor implements Formatable{
      */
     public String getCollationName(){
         if(getCollationDerivation()==StringDataValue.COLLATION_DERIVATION_NONE)
-            return PropertyHelper.COLLATION_NONE;
+            return Property.COLLATION_NONE;
         else
             return getCollationName(getCollationType());
     }
@@ -1055,17 +1056,17 @@ public class DataTypeDescriptor implements Formatable{
     public static String getCollationName(int collationType){
         switch(collationType){
             case StringDataValue.COLLATION_TYPE_TERRITORY_BASED:
-                return PropertyHelper.TERRITORY_BASED_COLLATION;
+                return Property.TERRITORY_BASED_COLLATION;
             case StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY:
-                return PropertyHelper.TERRITORY_BASED_PRIMARY_COLLATION;
+                return Property.TERRITORY_BASED_PRIMARY_COLLATION;
             case StringDataValue.COLLATION_TYPE_TERRITORY_BASED_SECONDARY:
-                return PropertyHelper.TERRITORY_BASED_SECONDARY_COLLATION;
+                return Property.TERRITORY_BASED_SECONDARY_COLLATION;
             case StringDataValue.COLLATION_TYPE_TERRITORY_BASED_TERTIARY:
-                return PropertyHelper.TERRITORY_BASED_TERTIARY_COLLATION;
+                return Property.TERRITORY_BASED_TERTIARY_COLLATION;
             case StringDataValue.COLLATION_TYPE_TERRITORY_BASED_IDENTICAL:
-                return PropertyHelper.TERRITORY_BASED_IDENTICAL_COLLATION;
+                return Property.TERRITORY_BASED_IDENTICAL_COLLATION;
             default:
-                return PropertyHelper.UCS_BASIC_COLLATION;
+                return Property.UCS_BASIC_COLLATION;
         }
     }
 
