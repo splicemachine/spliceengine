@@ -31,42 +31,29 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
-
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
 import com.splicemachine.db.iapi.reference.SQLState;
-
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-
-import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.vti.CompileTimeSchema;
 
-import javax.el.MethodNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static java.sql.ResultSetMetaData.columnNullable;
