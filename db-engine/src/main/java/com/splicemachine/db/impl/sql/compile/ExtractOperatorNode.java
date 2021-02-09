@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -49,8 +47,7 @@ import java.sql.Types;
 
 import java.util.List;
 
-import static com.splicemachine.db.iapi.types.DateTimeDataValue.HOUR_FIELD;
-import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.*;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -67,7 +64,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSecondsAndFractionOfSecondAsDouble"
     };
 
-    static private final long fieldCardinality[] = {
+    static private final long fieldMaxCardinality[] = {
             5L, 4L, 12L, 12L, 52L, 7L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
@@ -213,8 +210,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
     }
 
     @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        return Math.min(fieldCardinality[extractField], numberOfRows);
+    public long nonZeroCardinality(long numberOfRows) {
+        if (extractField == SECOND_FIELD && getOperand().getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
+            return numberOfRows;
+        }
+        return Math.min(fieldMaxCardinality[extractField], numberOfRows);
     }
 
     @Override

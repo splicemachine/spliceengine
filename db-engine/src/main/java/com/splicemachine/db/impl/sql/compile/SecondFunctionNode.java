@@ -27,6 +27,8 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.SECOND_FIELD;
+
 /**
  * This node represents the SECOND function, which returns the "second" part of a time / timestamp
  * This node provides two compatibility options:
@@ -84,8 +86,18 @@ public class SecondFunctionNode extends OperatorNode {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
                     "SECOND() expects 1 operand in SPLICE compatibility mode");
         }
-        methodName = "getSecondsAndFractionOfSecondAsDouble";
-        setType(new DataTypeDescriptor(TypeId.DOUBLE_ID, operands.get(0).getTypeServices().isNullable() ));
+        switch(operands.get(0).getTypeId().getJDBCTypeId()) {
+            case Types.TIME:
+                methodName = "getSecondsAsInt";
+                setType(new DataTypeDescriptor(TypeId.INTEGER_ID, operands.get(0).getTypeServices().isNullable() ));
+                break;
+            case Types.TIMESTAMP:
+                methodName = "getSecondsAndFractionOfSecondAsDouble";
+                setType(new DataTypeDescriptor(TypeId.DOUBLE_ID, operands.get(0).getTypeServices().isNullable() ));
+                break;
+            default:
+                assert false;
+        }
         return this;
     }
 
@@ -136,5 +148,13 @@ public class SecondFunctionNode extends OperatorNode {
         acb.generateNull(mb, getTypeCompiler(), getTypeServices());
         mb.cast(resultTypeName);
         mb.callMethod(VMOpcode.INVOKEINTERFACE, null, methodName, resultTypeName, 1);
+    }
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) {
+        if (getTypeId().getJDBCTypeId() == Types.INTEGER) {
+            return Math.min(60, numberOfRows);
+        }
+        return numberOfRows;
     }
 }

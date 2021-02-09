@@ -44,17 +44,17 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
     public static void createDataSet() throws Exception {
         Connection conn = spliceClassWatcher.getOrCreateConnection();
         new TableCreator(conn)
-                .withCreate("create table ts_low_cardinality (c1 int, c2 varchar(56), c3 timestamp, c4 boolean)")
-                .withInsert("insert into ts_low_cardinality values(?,?,?,?)")
+                .withCreate("create table ts_low_cardinality (c1 int, c2 varchar(56), c3 timestamp, c4 boolean, c5 time)")
+                .withInsert("insert into ts_low_cardinality values(?,?,?,?,?)")
                 .withRows(rows(
-                        row(1, "1", "1960-01-01 23:03:20", false),
-                        row(2, "2", "1980-01-01 23:03:20", false),
-                        row(3, "3", "1985-01-01 23:03:20", false),
-                        row(4, "4", "1990-01-01 23:03:20", false),
-                        row(5, "5", "1995-01-01 23:03:20", false),
-                        row(null, null, null, null),
-                        row(null, null, null, null),
-                        row(null, null, null, null)))
+                        row(1, "1", "1960-01-01 23:03:20", false, "23:03:20"),
+                        row(2, "2", "1980-01-01 23:03:20", false, "23:03:20"),
+                        row(3, "3", "1985-01-01 23:03:20", false, "23:03:20"),
+                        row(4, "4", "1990-01-01 23:03:20", false, "23:03:20"),
+                        row(5, "5", "1995-01-01 23:03:20", false, "23:03:20"),
+                        row(null, null, null, null, null),
+                        row(null, null, null, null, null),
+                        row(null, null, null, null, null)))
                 .create();
         for (int i = 0; i < 10; i++) {
             spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
@@ -123,7 +123,8 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select distinct day(c3) from ts_low_cardinality", "rows=31", methodWatcher);
         firstRowContainsQuery("explain select distinct hour(c3) from ts_low_cardinality", "rows=24", methodWatcher);
         firstRowContainsQuery("explain select distinct minute(c3) from ts_low_cardinality", "rows=60", methodWatcher);
-        firstRowContainsQuery("explain select distinct second(c3) from ts_low_cardinality", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select distinct second(c5) from ts_low_cardinality", "rows=60", methodWatcher);
+        firstRowContainsQuery("explain select distinct extract(second from c5) from ts_low_cardinality", "rows=60", methodWatcher);
         firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "rows=12", methodWatcher);
     }
 

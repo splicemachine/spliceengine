@@ -646,19 +646,19 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
             String sqlText = "select second(t), typeof(second(t)), t from " + tableWatcherI + " order by t";
             try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
                 String expected =
-                        "1  |   2   |    T    |\n" +
-                                "------------------------\n" +
-                                " 1.0 |DOUBLE |00:00:01 |\n" +
-                                "33.0 |DOUBLE |05:22:33 |\n" +
-                                "33.0 |DOUBLE |05:22:33 |\n" +
-                                "33.0 |DOUBLE |05:22:33 |\n" +
-                                "29.0 |DOUBLE |10:30:29 |\n" +
-                                "28.0 |DOUBLE |18:44:28 |\n" +
-                                "40.0 |DOUBLE |20:38:40 |\n" +
-                                "59.0 |DOUBLE |23:59:59 |";
+                        "1 |   2    |    T    |\n" +
+                                "-----------------------\n" +
+                                " 1 |INTEGER |00:00:01 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "29 |INTEGER |10:30:29 |\n" +
+                                "28 |INTEGER |18:44:28 |\n" +
+                                "40 |INTEGER |20:38:40 |\n" +
+                                "59 |INTEGER |23:59:59 |";
                 assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             }
-            checkExpressionType("second(current time)", "DOUBLE NOT NULL", methodWatcher.getOrCreateConnection());
+            checkExpressionType("second(current time)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
             assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 2)", "42X01");
 
             withSecondCompatibilityMode("db2");
