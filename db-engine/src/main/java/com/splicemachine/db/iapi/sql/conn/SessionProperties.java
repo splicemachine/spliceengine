@@ -54,7 +54,9 @@ public interface SessionProperties {
         SPARK_RESULT_STREAMING_BATCH_SIZE(10),
         TABLELIMITFOREXHAUSTIVESEARCH(11),
         DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
-        USE_NATIVE_SPARK(13);
+        USE_NATIVE_SPARK(13),
+        MINPLANTIMEOUT(14),
+        CURRENTFUNCTIONPATH(15);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -88,7 +90,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch");
+                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout");
         }
 
         String valString = pair.getSecond();
@@ -134,10 +136,11 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 break;
             case SNAPSHOT_TIMESTAMP:
-                long timestamp;
+            case MINPLANTIMEOUT:
+                long longValue;
                 try {
-                    timestamp = Long.parseLong(valString);
-                    if (timestamp <= 0)
+                    longValue = Long.parseLong(valString);
+                    if (longValue <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
                 } catch (NumberFormatException parseIntE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");

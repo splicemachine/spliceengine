@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.BitSet;
  * @author Scott Fines
  *         Created on: 7/5/13
  */
-public class EntryEncoder {
+public class EntryEncoder implements AutoCloseable{
     private BitIndex bitIndex;
     /*
      * The threshold at which we compress the data. If the data length is less than
@@ -161,7 +161,7 @@ public class EntryEncoder {
 
 				resetEncoder();
     }
-
+    @Override
     public void close(){
     }
 

@@ -101,7 +101,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
      *  @param tableName          Name of table.
      * @param tableId            UUID of table
      * @param columnInfo          Information on all the columns in the table.
-     * @param constraintActions  ConstraintConstantAction[] for constraints
+     * @param constraintActions  ConstantAction[] for constraints
      * @param behavior            drop behavior for dropping column
      * @param indexNameForStatistics  Will name the index whose statistics
      */

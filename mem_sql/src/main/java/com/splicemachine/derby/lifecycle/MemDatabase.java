@@ -72,6 +72,7 @@ public class MemDatabase{
                 admin.newPartition().withName("SPLICE_TXN").create();
                 admin.newPartition().withName("TENTATIVE_DDL").create();
                 admin.newPartition().withName("SPLICE_CONGLOMERATE").create();
+                admin.newPartition().withName("SPLICE_CONGLOMERATE_SI").create();
                 admin.newPartition().withName("SPLICE_SEQUENCES").create();
             }
 

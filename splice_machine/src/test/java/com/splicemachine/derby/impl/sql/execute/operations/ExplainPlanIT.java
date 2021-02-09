@@ -16,13 +16,17 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -31,6 +35,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 10/7/14.
  */
+@Category(SerialTest.class) // Not run in parallel since it is changing global log level
 public class ExplainPlanIT extends SpliceUnitTest  {
 
     public static final String CLASS_NAME = ExplainPlanIT.class.getSimpleName().toUpperCase();
@@ -637,12 +642,37 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
     }
 
+    @Ignore("DB-11278")
     @Test
     public void testJoinStrategyHintOnTargetTable() throws Exception {
         String query ="explain update t4 --splice-properties joinStrategy=nestedloop\n" +
                              "set (a4,b4) = (select 1,1 from t1 where c1 = a4)";
 
         rowContainsQuery(3, query, "NestedLoopJoin", methodWatcher);
+    }
+
+    @Test
+    public void testTriggerWithManyJoinsUsesMoreThan10msInQueryPlanner() throws Exception {
+        methodWatcher.execute("CREATE TRIGGER MyTrig\n" +
+            "BEFORE INSERT ON T4\n" +
+            "FOR EACH STATEMENT\n" +
+            "WHEN (EXISTS (SELECT 1 FROM t4 a, t4 b, t4 c, t4 d, t4 e, t4 f, t4 g, t4 h, t4 i, t4 j " +
+            "WHERE a.a4 = b.a4 and b.a4=c.a4 and c.a4 = d.a4 and d.a4 = e.a4 and e.a4 = f.a4 and" +
+                  " f.a4 = g.a4 and g.a4 = h.a4 and h.a4 = i.a4 and i.a4 = j.a4))\n" +
+            "SIGNAL SQLSTATE '12345' ('No inserts allowed')\n");
+
+        long startTime = System.currentTimeMillis();
+        String query ="insert into t4 values (20,20,20)";
+
+        List<String> expectedErrors =
+           Arrays.asList("Application raised error or warning with diagnostic text: \"No inserts allowed\"");
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_INVALIDATE_STORED_STATEMENTS()");
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+        testUpdateFail(query, expectedErrors, methodWatcher);
+        long endTime = System.currentTimeMillis();
+        long runTime = (endTime - startTime);
+        Assert.assertTrue("Expected query planning to take more than 10 ms.  Actual time: " + runTime + " milliseconds", runTime > 10);
+        methodWatcher.execute("DROP TRIGGER MyTrig");
     }
 
     @Test
@@ -759,5 +789,19 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Assert.assertTrue(explainStr.contains(expected[1]));
         Assert.assertFalse(explainStr.contains(expected[2]));
         Assert.assertFalse(explainStr.contains(CLASS_NAME + ".T6.A6"));
+    }
+
+    @Test
+    public void testPlanPrinterBugDB11341() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')")) {
+            rs.next();
+            String planPrinterLevel = rs.getString(1);
+            try {
+                methodWatcher.execute("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter','DEBUG')");
+                methodWatcher.executeQuery("SELECT 1 FROM ( SELECT 1 FROM sysibm.sysdummy1 ORDER BY 1 )"); // Failed before DB-11341
+            } finally {
+                methodWatcher.execute(format("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter', '%s')", planPrinterLevel));
+            }
+        }
     }
 }

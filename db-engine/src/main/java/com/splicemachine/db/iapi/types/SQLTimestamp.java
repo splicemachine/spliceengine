@@ -910,6 +910,20 @@ public final class SQLTimestamp extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getUSWeekDay
+     *
+     * @exception StandardException  Thrown on error
+     */
+    public NumberDataValue getUSWeekDay(NumberDataValue result)
+            throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getUSWeekDay(encodedDate), result);
+        }
+    }
+
+    /**
      * @see DateTimeDataValue#getWeekDayName
      *
      * @exception StandardException  Thrown on error
