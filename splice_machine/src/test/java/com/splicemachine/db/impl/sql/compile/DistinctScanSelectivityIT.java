@@ -123,7 +123,7 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select distinct day(c3) from ts_low_cardinality", "rows=31", methodWatcher);
         firstRowContainsQuery("explain select distinct hour(c3) from ts_low_cardinality", "rows=24", methodWatcher);
         firstRowContainsQuery("explain select distinct minute(c3) from ts_low_cardinality", "rows=60", methodWatcher);
-        firstRowContainsQuery("explain select distinct second(c3) from ts_low_cardinality", "rows=60", methodWatcher);
+        firstRowContainsQuery("explain select distinct second(c3) from ts_low_cardinality", "rows=5", methodWatcher);
         firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "rows=12", methodWatcher);
     }
 

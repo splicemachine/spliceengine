@@ -69,4 +69,10 @@ public class DaysFunctionNode extends UnaryOperatorNode {
 
         return this;
     }
+
+    void bindParameter() throws StandardException {
+        // for parameter, if we don't know the type, assume it is CHAR
+        getOperand().setType(
+                new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR), true));
+    }
 }

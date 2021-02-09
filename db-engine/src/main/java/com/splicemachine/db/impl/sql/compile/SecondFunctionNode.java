@@ -58,7 +58,7 @@ public class SecondFunctionNode extends OperatorNode {
                                     List<AggregateNode> aggregateVector) throws StandardException {
         bindOperands(fromList, subqueryList, aggregateVector);
 
-        if (operands.get(0).getTypeId().isStringTypeId()) {
+        if (operands.get(0).requiresTypeFromContext() || operands.get(0).getTypeId().isStringTypeId()) {
             castOperandAndBindCast(0, DataTypeDescriptor.getBuiltInDataTypeDescriptor(
                     Types.TIME));
         }
