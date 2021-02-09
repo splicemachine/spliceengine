@@ -194,8 +194,7 @@ public class SqlJJarIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Add the jar file into the global DB class path.
-        rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        methodWatcher.execute(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 
         // Select from the user defined VTI
         rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
@@ -245,8 +244,7 @@ public class SqlJJarIT extends SpliceUnitTest {
         Assert.assertEquals("Global database CLASSPATH is incorrect!", JAR_FILE_SQL_NAME, dbClassPath);
 
         // Remove the jar file from the global DB class path.
-        rc = methodWatcher.executeUpdate(CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT);
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        methodWatcher.execute(CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT);
 
         // Remove the jar file from the DB.
         rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));

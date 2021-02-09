@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -678,7 +679,7 @@ public class CreateTableNode extends DDLStatementNode
 
                 properties.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
             }
         }
 
