@@ -100,9 +100,8 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
 
     static Set<Pair<Long, Long>> combineOverlappingRanges(Set<Pair<Long, Long>> cache) {
         LOG.info("Starting combineOverlappingRanges");
-        BiPredicate<Pair<Long, Long>, Pair<Long, Long>> overlapping = (a, b) ->
-            (a.getFirst() < b.getFirst() && b.getFirst() < a.getSecond()) ||
-            (a.getFirst() < b.getSecond() && b.getSecond() < a.getSecond());
+        BiPredicate<Pair<Long, Long>, Pair<Long, Long>> disjoint = (a, b) -> 
+            a.getFirst() >= b.getSecond() || a.getSecond() <= b.getFirst();
         BiFunction<Pair<Long, Long>, Pair<Long, Long>, Pair<Long, Long>> combine = (a, b) ->
             new Pair<Long, Long>(
                 a.getFirst() < b.getFirst() ? a.getFirst() : b.getFirst(),
@@ -114,7 +113,7 @@ public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
         while( ! ranges.isEmpty() ) {
             Pair<Long, Long> r0 = ranges.remove(0);
             for( Pair<Long, Long> r : ranges ) {
-                if( overlapping.test(r, r0) ) {
+                if( ! disjoint.test(r, r0) ) {
                     r0 = combine.apply(r, r0);
                     discard.add(r);
                 }
