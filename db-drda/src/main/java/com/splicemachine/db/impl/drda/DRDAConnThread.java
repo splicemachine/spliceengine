@@ -1515,6 +1515,7 @@ class DRDAConnThread extends Thread {
      * @return security check code, 0 is O.K.
      * @exception DRDAProtocolException
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-11046")
     private int getConnFromDatabaseName() throws DRDAProtocolException
     {
         Properties p = new Properties();

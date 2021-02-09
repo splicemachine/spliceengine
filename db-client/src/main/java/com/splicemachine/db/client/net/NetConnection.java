@@ -2168,6 +2168,7 @@ public class NetConnection extends ClientConnection {
         this.serverPrincipal = serverPrincipal;
     }
 
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-11046")
     private void flowUSRIDTokenconnect(String authenticator, String token) throws SqlException {
         flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_TOKEN,
                 null); // publicKey
