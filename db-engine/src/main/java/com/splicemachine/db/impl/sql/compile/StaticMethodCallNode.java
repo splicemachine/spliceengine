@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -542,11 +543,14 @@ public class StaticMethodCallNode extends MethodCallNode {
             RoutineAliasInfo routineInfo = (RoutineAliasInfo) proc.getAliasInfo();
             int parameterCount = routineInfo.getParameterCount();
             if (parameterCount != methodParms.length) {
-                String err = "- Parameter count is wrong (provided " + methodParms.length + ", but needs " +
-                        parameterCount + ")\n  for ";
-                errorList.append(err);
-                routineInfo.toStringParameters(errorList);
-                errorList.append("\n");
+
+                StringBuilder sb = new StringBuilder();
+                routineInfo.toStringParameters(sb);
+                // - Parameter count is wrong (provided {0}, but needs {1})\n  for {2}\n
+                Object[] arguments = {  String.valueOf(methodParms.length),
+                                        String.valueOf(parameterCount),
+                                        sb.toString() };
+                errorList.append(MessageService.getCompleteMessage(SQLState.ERROR_CALL_PARAMETER_COUNT_WRONG, arguments));
                 continue;
             }
 
@@ -670,11 +674,12 @@ public class StaticMethodCallNode extends MethodCallNode {
                     }
                     catch( StandardException se )
                     {
-                        errorList.append( "- ERROR for parameter " +  p + ": " );
-                        errorList.append( se.getMessage() );
-                        errorList.append( ":\n  for " );
-                        routineInfo.toStringParameters(errorList);
-                        errorList.append("\n");
+                        StringBuilder sb = new StringBuilder();
+                        routineInfo.toStringParameters(sb);
+                        // - ERROR for parameter {0}: {1}:\n  for {2}\n
+                        Object[] arguments = { String.valueOf(p), se.getMessage(), sb.toString() };
+                        errorList.append(MessageService.getCompleteMessage(
+                                SQLState.ERROR_CALL_PARAMETER_CAST_ERROR, arguments));
                         return;
                     }
                 }

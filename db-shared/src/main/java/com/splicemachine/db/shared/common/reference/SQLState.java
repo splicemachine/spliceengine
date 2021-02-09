@@ -2101,6 +2101,8 @@ public interface SQLState {
 
     String HBASE_OPERATION_ERROR = "HO001";
 
+    String ERROR_CALL_PARAMETER_COUNT_WRONG = "44004";
+    String ERROR_CALL_PARAMETER_CAST_ERROR = "44005";
 
 }
 

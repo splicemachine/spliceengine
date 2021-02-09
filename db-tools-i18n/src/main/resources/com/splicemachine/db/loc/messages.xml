@@ -3436,6 +3436,27 @@ Guide.
                 <text>Timestamp '{0}' is out of range (~ from 21 Sep 1677 00:12:44 GMT to 11 Apr 2262 23:47:16 GMT).</text>
                 <arg>dateOrTimestamp</arg>
             </msg>
+
+            <msg>
+                <name>44004</name>
+                <text>- Parameter count is wrong (provided {0}, but needs {1})
+  for {2}
+</text>
+                <arg>providedParameterCount</arg>
+                <arg>needsParameterCount</arg>
+                <arg>routineInfo</arg>
+            </msg>
+
+            <msg>
+                <name>44005</name>
+                <text>- ERROR for parameter {0}: {1}:
+  for {2}
+</text>
+                <arg>parameterNumber</arg>
+                <arg>errorMsg</arg>
+                <arg>routineInfo</arg>
+            </msg>
+
         </family>
 
 
