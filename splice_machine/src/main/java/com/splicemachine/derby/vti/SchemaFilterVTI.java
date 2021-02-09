@@ -68,9 +68,12 @@ public class SchemaFilterVTI implements DatasetProvider, VTICosting {
         return dsp.createDataSet(items.iterator());
     }
 
-    @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
+    public static ResultSetMetaData getMetaData() throws SQLException {
         return metadata;
+    }
+
+    public static boolean schemaKnownAtCompileTime() {
+        return true;
     }
 
     @Override

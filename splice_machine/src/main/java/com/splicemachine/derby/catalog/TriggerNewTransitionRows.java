@@ -317,8 +317,9 @@ public class TriggerNewTransitionRows
 
 		return resultSet;
 	}
-    
-    public ResultSetMetaData getMetaData() throws SQLException
+
+	@Override
+    public ResultSetMetaData getRuntimeMetaData() throws SQLException
     {
         if (resultSet != null)
             return resultSet.getMetaData();

@@ -99,9 +99,12 @@ public class SpliceAllRolesVTI implements DatasetProvider, VTICosting {
         return false;
     }
 
-    @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
+    public static ResultSetMetaData getMetaData() throws SQLException {
         return metadata;
+    }
+
+    public static boolean schemaKnownAtCompileTime() {
+        return true;
     }
 
     @Override

@@ -80,7 +80,6 @@ public class KafkaVTI implements DatasetProvider, VTICosting{
         return false;
     }
 
-    @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         throw new SQLException("not supported");
     }

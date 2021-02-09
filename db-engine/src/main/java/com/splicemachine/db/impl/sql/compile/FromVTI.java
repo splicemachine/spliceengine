@@ -257,7 +257,13 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * in the expanded list.
          */
         this.exposedName = (TableName) exposedTableName;
-        this.typeDescriptor = (TypeDescriptor) typeDescriptor;
+        if(typeDescriptor != null) {
+            this.typeDescriptor = (TypeDescriptor) typeDescriptor;
+        } else {
+            if(invocation instanceof NewInvocationNode) {
+                this.typeDescriptor = ((NewInvocationNode)invocation).getTypeDescriptor();
+            }
+        }
     }
 
     // Optimizable interface
