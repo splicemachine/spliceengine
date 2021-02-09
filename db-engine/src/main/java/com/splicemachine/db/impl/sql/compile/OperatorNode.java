@@ -97,6 +97,7 @@ public abstract class OperatorNode extends ValueNode
         if (SanityManager.DEBUG)
         {
             super.printSubNodes(depth);
+            SanityManager.ASSERT(operands != null);
             for (int i = 0; i < operands.size(); ++i) {
                 ValueNode op = operands.get(i);
                 if (op != null) {
@@ -111,6 +112,8 @@ public abstract class OperatorNode extends ValueNode
                              SubqueryList subqueryList,
                              List<AggregateNode>    aggregateVector) throws StandardException
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0; i < operands.size(); ++i) {
             if (operands.get(i) != null) {
                 operands.set(i, operands.get(i).bindExpression(fromList, subqueryList, aggregateVector));
@@ -125,6 +128,8 @@ public abstract class OperatorNode extends ValueNode
      */
     public ValueNode genSQLJavaSQLTree() throws StandardException
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0; i < operands.size(); ++i) {
             TypeId typeId = operands.get(i).getTypeId();
             if (typeId.userType())
@@ -155,6 +160,8 @@ public abstract class OperatorNode extends ValueNode
                                 PredicateList outerPredicateList)
             throws StandardException
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0; i < operands.size(); ++i) {
             if (operands.get(i) != null) {
                 operands.set(i, operands.get(i).preprocess(
@@ -168,6 +175,8 @@ public abstract class OperatorNode extends ValueNode
 
     @Override
     public boolean checkCRLevel(int level){
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream().anyMatch(op -> op != null && op.checkCRLevel(level));
     }
 
@@ -183,6 +192,8 @@ public abstract class OperatorNode extends ValueNode
     public ValueNode remapColumnReferencesToExpressions()
             throws StandardException
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0; i < operands.size(); ++i) {
             if (operands.get(i) != null) {
                 operands.set(i, operands.get(i).remapColumnReferencesToExpressions());
@@ -198,12 +209,16 @@ public abstract class OperatorNode extends ValueNode
      */
     public boolean isConstantExpression()
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream().allMatch(op -> op == null || op.isConstantExpression());
     }
 
     /** @see ValueNode#constantExpression */
     public boolean constantExpression(PredicateList whereClause)
     {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream().allMatch(op -> op == null || op.constantExpression(whereClause));
     }
 
@@ -223,6 +238,8 @@ public abstract class OperatorNode extends ValueNode
      */
     @Override
     protected int getOrderableVariantType() throws StandardException {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         int min = Qualifier.CONSTANT;
         for (ValueNode op : operands) {
             if (op != null) {
@@ -240,6 +257,8 @@ public abstract class OperatorNode extends ValueNode
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0; i < operands.size(); ++i) {
             if (operands.get(i) != null) {
                 operands.set(i, (ValueNode) operands.get(i).accept(v, this));
@@ -259,6 +278,8 @@ public abstract class OperatorNode extends ValueNode
             return false;
         if (operator != null && !operator.equals(other.operator))
             return false;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.size() == other.operands.size();
     }
 
@@ -269,6 +290,8 @@ public abstract class OperatorNode extends ValueNode
         if (!isSignatureEquivalent(o))
             return false;
         OperatorNode other = (OperatorNode)o;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0 ; i < operands.size(); ++i) {
             if (operands.get(i) == null ^ other.operands.get(i) == null)
                 return false;
@@ -286,6 +309,8 @@ public abstract class OperatorNode extends ValueNode
         if (!isSignatureEquivalent(o))
             return false;
         OperatorNode other = (OperatorNode)o;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (int i = 0 ; i < operands.size(); ++i) {
             if (operands.get(i) == null ^ other.operands.get(i) == null)
                 return false;
@@ -299,6 +324,8 @@ public abstract class OperatorNode extends ValueNode
     public int hashCode() {
         int hashCode = getBaseHashCode();
         hashCode = 31 * hashCode + methodName.hashCode();
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (ValueNode operand: operands) {
             hashCode = 31 * hashCode + (operand == null ? 0 : operand.hashCode());
         }
@@ -306,23 +333,31 @@ public abstract class OperatorNode extends ValueNode
     }
 
     public List<? extends QueryTreeNode> getChildren() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
     public QueryTreeNode getChild(int index) {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.get(index);
     }
 
     @Override
     public void setChild(int index, QueryTreeNode newValue) {
         assert newValue instanceof ValueNode;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         operands.set(index, (ValueNode) newValue);
     }
 
     @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = 0;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         for (ValueNode op : operands) {
             if (op != null) {
                 cardinality = Math.max(cardinality, op.nonZeroCardinality(numberOfRows));
@@ -333,11 +368,15 @@ public abstract class OperatorNode extends ValueNode
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream().allMatch(op -> op == null || op.isConstantOrParameterTreeNode());
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         double cost = 0.0;
         for (ValueNode op : operands) {
             cost += op == null ? 0.0 : op.getBaseOperationCost();
@@ -401,6 +440,8 @@ public abstract class OperatorNode extends ValueNode
 
     @Override
     public int getTableNumber() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
         return operands.stream()
                 .filter(op -> op != null && op.getTableNumber() != -1)
                 .findFirst()
