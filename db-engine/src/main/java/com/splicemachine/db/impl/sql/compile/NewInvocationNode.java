@@ -59,6 +59,7 @@ import com.splicemachine.db.vti.CompileTimeSchema;
 import javax.el.MethodNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import java.sql.ResultSetMetaData;
@@ -505,13 +506,21 @@ public class NewInvocationNode extends MethodCallNode
                 try {
                     Class clazz;
                     clazz = inspector.getClass(getJavaClassName());
-                    boolean hasCompileTimeSchema = (Boolean)clazz.getDeclaredMethod("schemaKnownAtCompileTime").invoke(null, (Object[]) null);
+                    Method schemaKnownAtCompileTime, getMetaData = null;
+                    try {
+                        schemaKnownAtCompileTime = clazz.getDeclaredMethod("schemaKnownAtCompileTime");
+                        getMetaData = clazz.getDeclaredMethod("getMetaData");
+                    } catch (NoSuchMethodException ignored) { // class doesn't define its own static version of these methods, therefore we ignore it.
+                        return null;
+                    }
+
+                    boolean hasCompileTimeSchema = (Boolean)schemaKnownAtCompileTime.invoke(null, (Object[]) null);
                     if(!hasCompileTimeSchema) {
                         return null;
                     }
-                    ResultSetMetaData metadata = (ResultSetMetaData)clazz.getDeclaredMethod("getMetaData").invoke(null, (Object[]) null);
+                    ResultSetMetaData metadata = (ResultSetMetaData)getMetaData.invoke(null, (Object[]) null);
                     return toTypeDescriptor(metadata);
-                } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException | SQLException e) {
+                } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | SQLException e) {
                     throw StandardException.plainWrapException(e);
                 }
             }

@@ -1787,9 +1787,5 @@ public class DataTypeDescriptor implements Formatable{
         return typeId.getStructField(columnName, getPrecision(), getScale(), childStructField);
 
     }
-
-    public TypeDescriptorImpl getTypeDescriptor() {
-        return typeDescriptor;
-    }
 }
 
