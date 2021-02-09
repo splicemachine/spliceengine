@@ -84,7 +84,7 @@ public class SecondFunctionNode extends OperatorNode {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
                     "SECOND() expects 1 operand in SPLICE compatibility mode");
         }
-        methodName = "getSecondsAsDouble";
+        methodName = "getSecondsAndFractionOfSecondAsDouble";
         setType(new DataTypeDescriptor(TypeId.DOUBLE_ID, operands.get(0).getTypeServices().isNullable() ));
         return this;
     }
@@ -97,18 +97,22 @@ public class SecondFunctionNode extends OperatorNode {
                 setType(new DataTypeDescriptor(TypeId.INTEGER_ID, isNullable));
                 break;
             case 2:
-                methodName = "getSecondsAsDecimal";
+                methodName = "getSecondsAndFractionOfSecondAsDecimal";
                 TypeId decimalTypeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
                 assert decimalTypeId != null;
-                if (!operands.get(1).isConstantExpression() ||
+                if (operands.get(1).requiresTypeFromContext() ||
+                    !operands.get(1).isConstantExpression() ||
                     !operands.get(1).getTypeId().isIntegerNumericTypeId()) {
-                    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                            "Operand 2 of second needs to be a constant between 1 and 12");
+                    throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE,
+                            operands.get(1).requiresTypeFromContext() ? "?" : operands.get(1).getTypeId().getSQLTypeName(),
+                            2,
+                            "SECOND");
                 }
                 int scale = (Integer)operands.get(1).getConstantValueAsObject();
                 if (scale < 1 || scale > 12) {
-                    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                            "Operand 2 of second needs to be a constant between 1 and 12");
+                    throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
+                            scale,
+                            "SECOND");
                 }
                 int precision = scale + 2;
                 setType(new DataTypeDescriptor(

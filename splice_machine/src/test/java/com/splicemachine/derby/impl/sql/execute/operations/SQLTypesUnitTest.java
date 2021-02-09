@@ -84,7 +84,7 @@ public class SQLTypesUnitTest {
         SQLInteger i = new SQLInteger();
         Assert.assertEquals( ts.getHours(i).getInt(), 04);
         Assert.assertEquals( ts.getMinutes(i).getInt(), 38);
-        Assert.assertEquals( ts.getSecondsAsDouble(i).getInt(), 01);
+        Assert.assertEquals( ts.getSecondsAndFractionOfSecondAsDouble(i).getInt(), 01);
         Assert.assertEquals( ts.getNanos(), 42612300);
 
         Assert.assertEquals( ts.getYear(i).getInt(), 1867);

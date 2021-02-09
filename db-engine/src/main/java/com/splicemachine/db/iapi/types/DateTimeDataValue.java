@@ -255,7 +255,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
      *
      * @exception StandardException        Thrown on error
      */
-    NumberDataValue getSecondsAsDouble(NumberDataValue result)
+    NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException;
 
     /**
@@ -281,7 +281,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
      *
      * @exception StandardException        Thrown on error
      */
-    NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+    NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
             throws StandardException;
 
     /**

@@ -818,15 +818,15 @@ public final class SQLDate extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDouble
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSecondsAsDouble(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException
     {
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                        "getSecondsAsDouble", "Date");
+                        "getSecondsAndFractionOfSecondAsDouble", "Date");
     }
 
     /**
@@ -842,15 +842,15 @@ public final class SQLDate extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDecimal
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
             throws StandardException
     {
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                "getSecondsAsDecimal", "Date");
+                "getSecondsAndFractionOfSecondAsDecimal", "Date");
     }
 
     /*

@@ -1011,17 +1011,17 @@ public final class SQLTimestamp extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDouble
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
      *
      * @exception StandardException  Thrown on error
      */
-    public NumberDataValue getSecondsAsDouble(NumberDataValue source)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue source)
                             throws StandardException
     {
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(source == null || source.isDoubleType(),
-        "getSecondsAsDouble for a timestamp was given a source other than a SQLDouble");
+        "getSecondsAndFractionOfSecondAsDouble for a timestamp was given a source other than a SQLDouble");
         }
         NumberDataValue result;
 
@@ -1070,17 +1070,17 @@ public final class SQLTimestamp extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDecimal
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
      *
      * @exception StandardException  Thrown on error
      */
-    public NumberDataValue getSecondsAsDecimal(NumberDataValue source)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue source)
             throws StandardException
     {
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(source == null || source.getTypeName().equals(TypeId.DECIMAL_NAME),
-                    "getSecondsAsDecimal for a timestamp was given a source other than a SQLDecimal");
+                    "getSecondsAndFractionOfSecondAsDecimal for a timestamp was given a source other than a SQLDecimal");
         }
         NumberDataValue result;
 

@@ -799,11 +799,11 @@ public final class SQLTime extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDouble
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSecondsAsDouble(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException
     {
         return getSecondsAsInt(result);
@@ -825,11 +825,11 @@ public final class SQLTime extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSecondsAsDecimal
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSecondsAsDecimal(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
             throws StandardException
     {
         return getSecondsAsInt(result);
