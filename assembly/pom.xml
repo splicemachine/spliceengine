@@ -1598,6 +1598,12 @@
                                     </artifactItem>
                                     <artifactItem>
                                       <groupId>com.splicemachine</groupId>
+                                      <artifactId>db-engine</artifactId>
+                                      <version>${project.parent.version}</version>
+                                      <type>jar</type>
+                                    </artifactItem>
+                                    <artifactItem>
+                                      <groupId>com.splicemachine</groupId>
                                       <artifactId>db-tools-ij</artifactId>
                                       <version>${project.parent.version}</version>
                                       <type>jar</type>
