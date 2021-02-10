@@ -141,7 +141,7 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
         long startTime = System.currentTimeMillis();
         // Make sure spark is warmed up
         if (useSpark) {
-            try (ResultSet rs = methodWatcher.executeQuery("select * from sys.systables" +
+            try (ResultSet rs = methodWatcher.executeQuery("select * from sourceTable" +
                 "--splice-properties useSpark=" + useSpark + "\n")) {
             }
         }
