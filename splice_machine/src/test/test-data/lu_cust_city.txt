@@ -1,3 +1,0 @@
-1	,Addison,13
-2	,Fred,12
-3	,Joe,17

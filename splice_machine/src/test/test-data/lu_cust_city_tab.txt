@@ -1,3 +1,0 @@
-1	Sophie	13
-2	Joe	14
-3	Joan	17
