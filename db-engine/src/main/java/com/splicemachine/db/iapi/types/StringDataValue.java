@@ -174,6 +174,13 @@ public interface StringDataValue extends ConcatableDataValue
 			StringDataValue result)
 		throws StandardException;
 
+	// Same as ansiTrim, but allow a trimString longer than a single character.
+	StringDataValue db2Trim(
+			int trimType,
+			StringDataValue trimString,
+			StringDataValue result)
+		throws StandardException;
+
 	/**
 	 * Convert the string to upper case.
 	 *

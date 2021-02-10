@@ -40,6 +40,7 @@ import splice.com.google.common.cache.LoadingCache;
 
 public class SpliceStringFunctions {
 
+    public static final String TRAILING_WHITESPACE_REGEXP = "\\s+$";
     /**
      * Implements logic for the SQL function INSTR.
      * 
@@ -109,6 +110,22 @@ public class SpliceStringFunctions {
 			return (s != null) ? patternCache.get(regexp).matcher(s).matches() : false;
 	    } catch (ExecutionException e) {
 	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
+	    }
+    }
+
+    /**
+     * Implements logic for the SQL function RTRIM.
+     *
+     * @param s string to be trimmed.
+     *
+     * @return The input string s, with trailing whitespaces removed.
+     */
+    public static String RTRIM(String s)
+    {
+    	try {
+			return (s != null) ? patternCache.get(TRAILING_WHITESPACE_REGEXP).matcher(s).replaceAll("") : null;
+	    } catch (ExecutionException e) {
+	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", TRAILING_WHITESPACE_REGEXP), e);
 	    }
     }
 
