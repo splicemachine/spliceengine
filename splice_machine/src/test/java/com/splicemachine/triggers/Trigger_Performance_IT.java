@@ -82,7 +82,6 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
 		spliceClassWatcher.executeUpdate(sqlText);
 		spliceClassWatcher.executeUpdate(sqlText);
 		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
 
 		spliceClassWatcher.execute(format("call syscs_util.syscs_flush_table('%s', 'sourceTable')", CLASS_NAME));
 
