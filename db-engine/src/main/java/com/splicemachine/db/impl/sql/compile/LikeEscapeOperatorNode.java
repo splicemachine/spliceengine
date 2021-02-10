@@ -79,7 +79,7 @@ import java.util.Vector;
 
     CHAR(n), VARCHAR(n), LONG VARCHAR where n >= 255
 
-        >= prefix backed up one characer
+        >= prefix backed up one character
         <= prefix appended with '\uffff'
 
         no elimination of like
@@ -156,9 +156,16 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         String pattern = null;
 
-        // pattern must be a string or a parameter
+        if(!(leftOperand.requiresTypeFromContext()) && isBitDataString(leftOperand)) {
+            leftOperand = castArgToString(leftOperand, true);
+        }
 
-        if (!(leftOperand.requiresTypeFromContext()) && 
+        if(rightOperand != null &&!(rightOperand.requiresTypeFromContext()) && isBitDataString(rightOperand)) {
+            rightOperand = castArgToString(rightOperand, true);
+        }
+
+        // pattern must be a string or a parameter
+        if (!(leftOperand.requiresTypeFromContext()) &&
              !(leftOperand.getTypeId().isStringTypeId()))
         {
             throw StandardException.newException(
@@ -218,6 +225,9 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             {
                 leftOperand.setType(receiver.getTypeServices());
             }
+            else if(isBitDataString(receiver)) { // we will add a cast to string later on
+                leftOperand.setType(new DataTypeDescriptor(receiver.getTypeId(), true));
+            }
             else
             {
                 leftOperand.setType(
@@ -247,6 +257,9 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             {
                 rightOperand.setType(receiver.getTypeServices());
             }
+            else if(isBitDataString(receiver)) { // we will add a cast to string later on
+                leftOperand.setType(new DataTypeDescriptor(receiver.getTypeId(), true));
+            }
             else
             {
                 rightOperand.setType(
@@ -264,6 +277,9 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         /* The receiver must be a string type
         */
+        if(!(receiver.requiresTypeFromContext()) && isBitDataString(receiver)) {
+            receiver = castArgToString(receiver, true);
+        }
         if (! receiver.getTypeId().isStringTypeId())
         {
             throw StandardException.newException(
@@ -275,12 +291,12 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          */
         if (!leftOperand.getTypeId().isStringTypeId())
         {
-            leftOperand = castArgToString(leftOperand);
+            leftOperand = castArgToString(leftOperand, true);
         }
 
         if (rightOperand != null)
         {
-            rightOperand = castArgToString(rightOperand);
+            rightOperand = castArgToString(rightOperand, true);
         }
 
         /* 
