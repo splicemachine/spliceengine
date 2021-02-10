@@ -3243,8 +3243,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
         if (sps!=null)
             return sps;
-        if (sps == null)
-            sps=getSPSDescriptorIndex2Scan(uuid.toString());
+        sps=getSPSDescriptorIndex2Scan(uuid.toString());
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
     }

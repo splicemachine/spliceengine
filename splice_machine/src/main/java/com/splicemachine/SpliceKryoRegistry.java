@@ -903,7 +903,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         try {
             instance.register(Class.forName("splice.com.google.common.collect.EmptyImmutableList"), 338);
         }
-        catch (ClassNotFoundException e) { }
+        catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         instance.register(ImmutableList.class, 339);
         instance.register(TriggerInfo2.class,EXTERNALIZABLE_SERIALIZER,340);
     }

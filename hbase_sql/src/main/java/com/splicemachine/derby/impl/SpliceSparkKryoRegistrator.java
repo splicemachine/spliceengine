@@ -878,7 +878,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         try {
             instance.register(Class.forName("splice.com.google.common.collect.EmptyImmutableList"));
         }
-        catch (ClassNotFoundException e) { }
+        catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         instance.register(ImmutableList.class);
     }
 
