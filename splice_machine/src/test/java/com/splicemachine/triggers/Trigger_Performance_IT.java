@@ -138,13 +138,16 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
 
     @Test
     public void testConcurrentTriggersRuntimeUnderLimit() throws Exception {
-        long startTime = System.currentTimeMillis();
         // Make sure spark is warmed up
         if (useSpark) {
             try (ResultSet rs = methodWatcher.executeQuery("select * from sourceTable" +
                 "--splice-properties useSpark=" + useSpark + "\n")) {
             }
+            try (ResultSet rs = methodWatcher.executeQuery("select * from sourceTable" +
+                "--splice-properties useSpark=" + useSpark + "\n")) {
+            }
         }
+        long startTime = System.currentTimeMillis();
         methodWatcher.execute("insert into targetTable --splice-properties useSpark=" + useSpark +
                               "\n select * from sourceTable");
         long endTime = System.currentTimeMillis();
