@@ -368,10 +368,11 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         if (sps == null) {
             sps = dd.getSPSDescriptor(spsId);
         }
+        assert sps != null : "sps should not be null";
+
         boolean wasValid = sps.isValid();
         boolean needsSpecialRecompile = !sps.isValid() && isRow && usesReferencingClause;
 
-        assert sps != null : "sps should not be null";
 
         // lcc.commitNestedTransaction();
 

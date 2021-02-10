@@ -452,7 +452,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             int value = valueString == null ? 0 : Integer.parseInt(valueString);
             if (value > 0)
                 tableLimitForExhaustiveSearch = value;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            throw e;
+        }  catch (Exception e) {
             // no op, use default value 6
         }
 
@@ -461,6 +463,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
             if (nljPredPushDownString != null)
                 nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             // no op, use default value 6
         }
