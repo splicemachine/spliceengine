@@ -418,12 +418,7 @@ public class AggregateNode extends UnaryOperatorNode {
             // a new aggregator that uses the final result type is allocated.
             // When there is no overflow, a final CAST is applied in
             // methoc SpliceGeneratorAggregator.finish.
-            setOperand((ValueNode)
-                            getNodeFactory().getNode(C_NodeTypes.CAST_NODE,
-                                    getOperand(),
-                                    resultType,
-                                    getContextManager()));
-            ((CastNode) getOperand()).bindCastNodeOnly();
+            castOperandAndBindCast(resultType);
         }
 
         checkAggregatorClassName(aggregatorClassName.toString());

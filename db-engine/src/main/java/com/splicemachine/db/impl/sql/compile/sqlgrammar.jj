@@ -68,6 +68,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
+import com.splicemachine.db.impl.sql.compile.DaysFunctionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.FromList;
@@ -95,6 +96,7 @@ import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
 import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
+import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
 import com.splicemachine.db.impl.sql.compile.StatementListNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
@@ -1883,6 +1885,7 @@ TOKEN [IGNORE_CASE] :
 |    <MONTHS: "months">
 |    <MONTHNAME: "monthname">
 |    <_MORE: "more">
+|    <MULTIPLY_ALT: "multiply_alt">
 |    <MUMPS: "mumps">
 |    <NAME: "name">
 |    <NCLOB: "nclob">
@@ -6794,6 +6797,46 @@ numericValueFunction() throws StandardException :
     {
         return value;
     }
+|
+    <MULTIPLY_ALT> value = multiplyAltFunction()
+    {
+        return value;
+    }
+|
+    <DAYS> value = daysFunction()
+    {
+        return value;
+    }
+}
+
+ValueNode
+multiplyAltFunction() throws StandardException :
+{
+    ValueNode lhs;
+    ValueNode rhs;
+}
+{
+    <LEFT_PAREN> lhs = additiveExpression(null, 0) <COMMA> rhs = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.MULTIPLY_ALT_FUNCTION_NODE,
+                lhs,
+                rhs,
+                ReuseFactory.getInteger(BinaryOperatorNode.MULTIPLY_ALT),
+                getContextManager());
+    }
+}
+
+ValueNode
+daysFunction() throws StandardException :
+{
+    ValueNode op;
+}
+{
+    <LEFT_PAREN> op = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return new DaysFunctionNode(op, getContextManager());
+    }
 }
 
 ValueNode
@@ -7458,79 +7501,83 @@ miscBuiltins() throws StandardException :
      *     built-in functions, not a static method invocation alias.
      */
     LOOKAHEAD( {
-             ( (getToken(1).kind == GET_CURRENT_CONNECTION ||
+             ( (
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
-                getToken(1).kind == DECFLOAT ||
-                getToken(1).kind == SQRT ||
-                getToken(1).kind == MOD ||
+                getToken(1).kind == ARRAY ||
+                getToken(1).kind == CHAR ||
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == CONCAT ||
-                getToken(1).kind == NVL ||
-                getToken(1).kind == VALUE ||
-                getToken(1).kind == MIN ||
-                getToken(1).kind == MAX ||
-                getToken(1).kind == LEAST ||
+                getToken(1).kind == DATE ||
+                getToken(1).kind == DAY ||
+                getToken(1).kind == DAYOFWEEK_ISO ||
+                getToken(1).kind == DAYOFYEAR ||
+                getToken(1).kind == DAYS ||
+                getToken(1).kind == DEC ||
+                getToken(1).kind == DECFLOAT ||
+                getToken(1).kind == DECIMAL ||
+                getToken(1).kind == DIGITS ||
+                getToken(1).kind == DOUBLE ||
+                getToken(1).kind == EXTRACT ||
+                getToken(1).kind == GET_CURRENT_CONNECTION ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ||
                 getToken(1).kind == GREATEST ||
-                getToken(1).kind == SUBSTRING ||
-                getToken(1).kind == SUBSTR ||
-                getToken(1).kind == RIGHT ||
+                getToken(1).kind == GROUPING ||
+                getToken(1).kind == HOUR ||
+                getToken(1).kind == INT ||
+                getToken(1).kind == INTEGER ||
+                getToken(1).kind == LCASE ||
+                getToken(1).kind == LEAST ||
                 getToken(1).kind == LEFT ||
+                getToken(1).kind == LENGTH ||
+                getToken(1).kind == LOCATE ||
+                getToken(1).kind == LONGINT ||
+                getToken(1).kind == LOWER ||
+                getToken(1).kind == LTRIM ||
+                getToken(1).kind == MAX ||
+                getToken(1).kind == MIN ||
+                getToken(1).kind == MINUTE ||
+                getToken(1).kind == MOD ||
+                getToken(1).kind == MONTH ||
+                getToken(1).kind == MONTHNAME ||
+                getToken(1).kind == MULTIPLY_ALT ||
+                getToken(1).kind == NVL ||
+                getToken(1).kind == QUARTER ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
-                getToken(1).kind == UPPER ||
-                getToken(1).kind == LOWER ||
-                getToken(1).kind == UCASE ||
-                getToken(1).kind == LCASE ||
-                getToken(1).kind == LTRIM ||
+                getToken(1).kind == RIGHT ||
                 getToken(1).kind == RTRIM ||
-                getToken(1).kind == TRIM ||
+                getToken(1).kind == SECOND ||
+                getToken(1).kind == SMALLINT ||
+                getToken(1).kind == SPLIT_PART ||
+                getToken(1).kind == SQRT ||
                 getToken(1).kind == STRIP ||
-                getToken(1).kind == DATE ||
+                getToken(1).kind == SUBSTR ||
+                getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == TIME ||
                 getToken(1).kind == TIMESTAMP ||
+                getToken(1).kind == TINYINT ||
+                getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TRIM ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
                 getToken(1).kind == TYPEOF ||
-                getToken(1).kind == DOUBLE ||
-                getToken(1).kind == CHAR ||
+                getToken(1).kind == UCASE ||
+                getToken(1).kind == UPPER ||
+                getToken(1).kind == VALUE ||
                 getToken(1).kind == VARCHAR ||
-                getToken(1).kind == INTEGER ||
-                getToken(1).kind == INT ||
-                getToken(1).kind == SMALLINT ||
-                getToken(1).kind == ARRAY ||
-                getToken(1).kind == TINYINT ||
-                getToken(1).kind == LONGINT ||
-                getToken(1).kind == YEAR ||
-                getToken(1).kind == QUARTER ||
-                getToken(1).kind == MONTH ||
-                getToken(1).kind == MONTHNAME ||
                 getToken(1).kind == WEEK ||
                 getToken(1).kind == WEEKDAY ||
                 getToken(1).kind == DAYOFWEEK ||
                 getToken(1).kind == DAYOFWEEK_ISO ||
                 getToken(1).kind == WEEKDAYNAME ||
-                getToken(1).kind == DAYOFYEAR ||
-                getToken(1).kind == DAY ||
-                getToken(1).kind == HOUR ||
-                getToken(1).kind == MINUTE ||
-                getToken(1).kind == SECOND ||
-                getToken(1).kind == EXTRACT ||
-                getToken(1).kind == LENGTH ||
-                getToken(1).kind == LOCATE ||
-                getToken(1).kind == DIGITS ||
-                getToken(1).kind == XMLPARSE ||
-                getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
+                getToken(1).kind == XMLPARSE ||
                 getToken(1).kind == XMLQUERY ||
-                getToken(1).kind == GROUPING ||
-                getToken(1).kind == TO_INSTANT ||
-                getToken(1).kind == TO_HBASE_ESCAPED ||
-                getToken(1).kind == SPLIT_PART ||
-                getToken(1).kind == GET_NEAREST_TRANSACTION ||
-                getToken(1).kind == DECIMAL ||
-                getToken(1).kind == DEC ) &&
-                getToken(2).kind == LEFT_PAREN
+                getToken(1).kind == XMLSERIALIZE ||
+                getToken(1).kind == YEAR
+                ) && getToken(2).kind == LEFT_PAREN
               )
     } )
     /* miscBuiltins() are composed of the core
@@ -8424,7 +8471,7 @@ dateTimeScalarFunction() throws StandardException :
                                 getContextManager());
     }
 |
-        field = datetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+        field = nonSecondDatetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.EXTRACT_OPERATOR_NODE,
@@ -8432,8 +8479,28 @@ dateTimeScalarFunction() throws StandardException :
                                 value,
                                 getContextManager());
     }
+|
+    <SECOND> value = secondFunctionNode()
+    {
+        return value;
+    }
 }
 
+ValueNode
+secondFunctionNode() throws StandardException :
+{
+    ValueNode param1;
+    ValueNode param2 = null;
+}
+{
+    <LEFT_PAREN>
+        param1 = additiveExpression(null, 0)
+        [ <COMMA> param2 = additiveExpression(null, 0) ]
+    <RIGHT_PAREN>
+    {
+        return new SecondFunctionNode(param1, param2, getContextManager());
+    }
+}
 
 /*
  * <A NAME="truncateFunctionCompletion">truncateFunctionCompletion</A>
@@ -17429,6 +17496,7 @@ nonReservedKeyword()  :
     |    tok = <MONTHS>
     |    tok = <MONTHNAME>
     |    tok = <_MORE>
+    |    tok = <MULTIPLY_ALT>
     |    tok = <MUMPS>
     |    tok = <NAME>
     |    tok = <NCLOB>

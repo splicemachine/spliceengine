@@ -172,15 +172,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 maxWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
             }
 
-            setLeftOperand((ValueNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            getLeftOperand(),
-                            new DataTypeDescriptor(rightType, precision,
-                                    scale, nullableResult,
-                                    maxWidth),
-                            getContextManager()));
-            ((CastNode) getLeftOperand()).bindCastNodeOnly();
+            castLeftOperandAndBindCast(new DataTypeDescriptor(rightType, precision, scale, nullableResult, maxWidth));
         }
         else if (rightType.isStringTypeId() && leftType.isNumericTypeId())
         {
@@ -203,15 +195,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 maxWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
             }
 
-            setRightOperand((ValueNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            getRightOperand(),
-                            new DataTypeDescriptor(leftType, precision,
-                                    scale, nullableResult,
-                                    maxWidth),
-                            getContextManager()));
-            ((CastNode) getRightOperand()).bindCastNodeOnly();
+            castRightOperandAndBindCast(new DataTypeDescriptor(leftType, precision, scale, nullableResult, maxWidth));
         }
 
         /*

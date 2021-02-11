@@ -108,6 +108,7 @@ public interface ISpliceVisitor {
     Visitable visit(CurrentDatetimeOperatorNode node) throws StandardException;
     Visitable visit(CurrentRowLocationNode node) throws StandardException;
     Visitable visit(CursorNode node) throws StandardException;
+    Visitable visit(DaysFunctionNode node) throws StandardException;
     Visitable visit(DB2LengthOperatorNode node) throws StandardException;
     Visitable visit(DefaultNode node) throws StandardException;
     Visitable visit(DeleteNode node) throws StandardException;
@@ -169,6 +170,7 @@ public interface ISpliceVisitor {
     Visitable visit(SavepointNode node) throws StandardException;
     Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException;
     Visitable visit(DecimalFunctionNode node) throws StandardException;
+    Visitable visit(SecondFunctionNode node) throws StandardException;
     Visitable visit(SetRoleNode node) throws StandardException;
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;

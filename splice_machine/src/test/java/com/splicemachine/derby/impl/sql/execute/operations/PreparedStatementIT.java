@@ -476,6 +476,11 @@ public class PreparedStatementIT extends SpliceUnitTest {
                 "----\n" +
                 " 3 |";
         testOneParamHelper("select second(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select days(?) from sysibm.sysdummy1", "0001-01-01", expected);
     }
 
     @Test
