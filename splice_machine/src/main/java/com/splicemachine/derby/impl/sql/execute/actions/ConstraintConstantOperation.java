@@ -29,17 +29,16 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.util.List;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	constraint creation at Execution time.
+ * This class describes actions that are ALWAYS performed for a
+ * constraint creation at Execution time.
  *
- *	@version 0.1
+ * @version 0.1
  */
 public abstract class ConstraintConstantOperation extends DDLSingleTableConstantOperation {
     private static final Logger LOG = Logger.getLogger(ConstraintConstantOperation.class);
@@ -51,16 +50,16 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
     protected ConstantAction indexAction;
 
     /**
-     *	Make one of these puppies.
+     * Make one of these puppies.
      *
-     *  @param constraintName	Constraint name.
-     *  @param constraintType	Constraint type.
-     *  @param tableName		Table name.
-     *  @param tableId			UUID of table.
-     *  @param schemaName		schema that table and constraint lives in.
-     *  @param indexAction		IndexConstantAction for constraint (if necessary)
+     *  @param constraintName Constraint name.
+     *  @param constraintType Constraint type.
+     *  @param tableName  Table name.
+     *  @param tableId   UUID of table.
+     *  @param schemaName  schema that table and constraint lives in.
+     *  @param indexAction  IndexConstantAction for constraint (if necessary)
      *  RESOLVE - the next parameter should go away once we use UUIDs
-     *			  (Generated constraint names will be based off of uuids)
+     *     (Generated constraint names will be based off of uuids)
      */
     ConstraintConstantOperation(String constraintName,int constraintType,
                        String tableName,UUID tableId,String schemaName, ConstantAction indexAction) {
@@ -71,8 +70,9 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
         this.tableName = tableName;
         this.indexAction = indexAction;
         this.schemaName = schemaName;
-        if (SanityManager.DEBUG)
+        if (SanityManager.DEBUG) {
             SanityManager.ASSERT(schemaName != null, "Constraint schema name is null");
+        }
     }
 
     /**
@@ -88,26 +88,17 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
      *
      * @return The constraint type
      */
-    public	int getConstraintType() {
+    public int getConstraintType() {
         return constraintType;
     }
 
     /**
-      *	Get the constraint name
+      * Get the constraint name
       *
-      *	@return	the constraint name
+      * @return the constraint name
       */
-    public	String	getConstraintName() {
+    public String getConstraintName() {
         return constraintName;
-    }
-
-    /**
-      *	Get the associated index constant action.
-      *
-      *	@return	the constant action for the backing index
-      */
-    public	ConstantAction	getIndexAction() {
-        return indexAction;
     }
 
     public void validateSupported() throws StandardException{
@@ -121,21 +112,12 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
      * table locking at level 2.  Pass in the scans to
      * the BulkRIChecker.  If any rows fail, barf.
      *
-     * @param    tc        transaction controller
-     * @param    dd        data dictionary
      * @param    fkConstraint        foreign key constraint
      * @param    parentKeyConstraint    referenced key
-     * @param    indexTemplateRow    index template row
-     *
-     * @param lcc
-     * @exception StandardException on error
      */
-    static void validateFKConstraint(
-            TransactionController tc,
-            DataDictionary dd,
-            ForeignKeyConstraintDescriptor fkConstraint,
-            ReferencedKeyConstraintDescriptor parentKeyConstraint,
-            ExecRow indexTemplateRow, LanguageConnectionContext lcc) throws StandardException {
+    static void validateFKConstraint( ForeignKeyConstraintDescriptor fkConstraint,
+                                      ReferencedKeyConstraintDescriptor parentKeyConstraint,
+                                      LanguageConnectionContext lcc) throws StandardException {
 
         TableDescriptor childTd = fkConstraint.getTableDescriptor();
         TableDescriptor parentTd = parentKeyConstraint.getTableDescriptor();
@@ -205,80 +187,73 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
      * and run it by compiling and executing it.   Will
      * work ok if the table is empty and query returns null.
      *
-     * @param constraintName	constraint name
-     * @param constraintText	constraint text
-     * @param td				referenced table
-     * @param lcc				the language connection context
-     * @param isCheckConstraint	the constraint is a check constraint
+     * @param constraintName constraint name
+     * @param constraintText constraint text
+     * @param td    referenced table
+     * @param lcc    the language connection context
+     * @param isCheckConstraint the constraint is a check constraint
      *
      * @return true if null constraint passes, false otherwise
      *
      * @exception StandardException if check constraint fails
      */
-     public static boolean validateConstraint (
-        String							constraintName,
-        String							constraintText,
-        TableDescriptor					td,
-        LanguageConnectionContext		lcc,
-        boolean							isCheckConstraint ) throws StandardException {
-            SpliceLogUtils.error(LOG, "validateConstraint %s using qualifier {%s}",constraintName, constraintText);
-        StringBuilder checkStmt = new StringBuilder();
-        /* should not use select sum(not(<check-predicate>) ? 1: 0) because
-         * that would generate much more complicated code and may exceed Java
-         * limits if we have a large number of check constraints, beetle 4347
-         */
-        checkStmt.append("SELECT COUNT(*) FROM ");
-        checkStmt.append(td.getQualifiedName());
-        checkStmt.append(" WHERE NOT(");
-        checkStmt.append(constraintText);
-        checkStmt.append(")");
+     public static boolean validateConstraint ( String constraintName,
+                                                String constraintText,
+                                                TableDescriptor td,
+                                                LanguageConnectionContext lcc,
+                                                boolean isCheckConstraint ) throws StandardException {
 
-        ResultSet rs = null;
-        try
-        {
-            PreparedStatement ps = lcc.prepareInternalStatement(checkStmt.toString());
+         SpliceLogUtils.trace(LOG, "validateConstraint %s using qualifier {%s}", constraintName, constraintText);
+         StringBuilder checkStmt = new StringBuilder();
+         /* should not use select sum(not(<check-predicate>) ? 1: 0) because
+          * that would generate much more complicated code and may exceed Java
+          * limits if we have a large number of check constraints, beetle 4347
+          */
+         checkStmt.append("SELECT COUNT(*) FROM ");
+         checkStmt.append(td.getQualifiedName());
+         checkStmt.append(" WHERE NOT(");
+         checkStmt.append(constraintText);
+         checkStmt.append(")");
 
-            // This is a substatement; for now, we do not set any timeout
-            // for it. We might change this behaviour later, by linking
-            // timeout to its parent statement's timeout settings.
-            rs = ps.executeSubStatement(lcc, false, 0L);
-            ExecRow row = rs.getNextRow();
-            if (SanityManager.DEBUG)
-            {
-                if (row == null)
-                {
-                    SanityManager.THROWASSERT("did not get any rows back from query: "+checkStmt.toString());
-                }
-            }
+         ResultSet rs = null;
+         try {
+             PreparedStatement ps = lcc.prepareInternalStatement(checkStmt.toString());
 
-            Number value = ((Number)(row.getRowArray()[0]).getObject());
-            /*
-            ** Value may be null if there are no rows in the
-            ** table.
-            */
-            if ((value != null) && (value.longValue() != 0))
-            {
-                //check constraint violated
-                if (isCheckConstraint)
-                    throw StandardException.newException(SQLState.LANG_ADD_CHECK_CONSTRAINT_FAILED,
-                        constraintName, td.getQualifiedName(), value.toString());
-                /*
-                 * for not null constraint violations exception will be thrown in caller
-                 * check constraint will not get here since exception is thrown
-                 * above
-                 */
-                return false;
-            }
-        }
-        finally
-        {
-            if (rs != null)
-            {
-                rs.close();
-            }
-        }
-        return true;
-    }
+             // This is a substatement; for now, we do not set any timeout
+             // for it. We might change this behaviour later, by linking
+             // timeout to its parent statement's timeout settings.
+             rs = ps.executeSubStatement(lcc, false, 0L);
+             ExecRow row = rs.getNextRow();
+             if (SanityManager.DEBUG) {
+                 if (row == null) {
+                     SanityManager.THROWASSERT("did not get any rows back from query: " + checkStmt.toString());
+                 }
+             }
+
+             Number value = ((Number) (row.getRowArray()[0]).getObject());
+             /*
+              ** Value may be null if there are no rows in the
+              ** table.
+              */
+             if ((value != null) && (value.longValue() != 0)) {
+                 //check constraint violated
+                 if (isCheckConstraint)
+                     throw StandardException.newException(SQLState.LANG_ADD_CHECK_CONSTRAINT_FAILED,
+                                                          constraintName, td.getQualifiedName(), value.toString());
+                 /*
+                  * for not null constraint violations exception will be thrown in caller
+                  * check constraint will not get here since exception is thrown
+                  * above
+                  */
+                 return false;
+             }
+         } finally {
+             if (rs != null) {
+                 rs.close();
+             }
+         }
+         return true;
+     }
 
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
@@ -288,7 +263,6 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 
 
         private ColumnDescriptorNameFunction(TableDescriptor tableDescriptor, String alias) {
-            this.tableDescriptor = tableDescriptor;
             this.alias = alias;
         }
 
