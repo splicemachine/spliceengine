@@ -190,7 +190,6 @@ public class SubqueryNode extends ValueNode{
     protected int resultSetNumber=-1;
 
     private boolean hintNotFlatten=false;
-    private boolean thisSubqueryAddedToSubqueryList = false;
 
     /**
      * Initializer.
