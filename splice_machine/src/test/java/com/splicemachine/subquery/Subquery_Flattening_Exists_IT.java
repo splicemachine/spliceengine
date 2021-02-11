@@ -873,6 +873,22 @@ public class Subquery_Flattening_Exists_IT {
         rs.close();
     }
 
+    @Test
+    public void test_DB_11405() throws Exception {
+            String R = "1 |\n" +
+                        "----\n" +
+                        "14 |";
+
+            /* subquery selects constant */
+            assertUnorderedResult(conn(), "values (\n" +
+                "    nullif(\n" +
+                "        case when\n" +
+                "            EXISTS (select C1 from C where EXISTS (select A1 from A))\n" +
+                "        then 14 end,\n" +
+                "        4)\n" +
+                ")", THREE_SUBQUERY_NODES, R);
+     }
+
     private TestConnection conn() {
         return methodWatcher.getOrCreateConnection();
     }
