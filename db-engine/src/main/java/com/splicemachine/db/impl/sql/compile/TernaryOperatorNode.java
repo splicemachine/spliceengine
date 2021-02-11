@@ -703,6 +703,12 @@ public class TernaryOperatorNode extends OperatorNode
     /* cast arg to a varchar */
     protected ValueNode castArgToString(ValueNode vn) throws StandardException
     {
+        return castArgToString(vn, false);
+    }
+
+    /* cast arg to a varchar */
+    protected ValueNode castArgToString(ValueNode vn, boolean parseSingleByteCharacterSet) throws StandardException
+    {
         TypeCompiler vnTC = vn.getTypeCompiler();
         if (! vn.getTypeId().isStringTypeId())
         {
@@ -722,9 +728,16 @@ public class TernaryOperatorNode extends OperatorNode
             newNode.setCollationUsingCompilationSchema();
 
             ((CastNode) newNode).bindCastNodeOnly();
+            if(parseSingleByteCharacterSet && isBitDataString(vn)) {
+                ((CastNode) newNode).setForSbcsData(true);
+            }
             return newNode;
         }
         return vn;
+    }
+
+    protected boolean isBitDataString(ValueNode vn) throws StandardException {
+        return vn.getTypeId().isVarBitDataTypeId() || vn.getTypeId().isFixedBitDataTypeId() || vn.getTypeId().isLongVarbinaryTypeId();
     }
 
     // cast arg to Varbit
