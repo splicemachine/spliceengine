@@ -1,0 +1,100 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.splicemachine.derby.vti;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
+import com.splicemachine.db.impl.sql.catalog.SYSMONGETCONNECTIONRowFactory;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.control.MaterializedControlDataSet;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.vti.iapi.DatasetProvider;
+
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class MonGetConnectionVTI implements DatasetProvider {
+    private OperationContext<SpliceOperation> operationContext;
+
+    private final Long applicationHandle; // null -> all connections.
+    private final Integer member; // -1 (or null) current database, -2 all active databases.
+    private final Integer systemApplications; // 0 (or null) system application info is not returned, 1 system application info is returned.
+
+    public MonGetConnectionVTI() {
+        this(null, null, null);
+    }
+
+    public MonGetConnectionVTI(Long applicationHandle) {
+        this(applicationHandle, null, null);
+    }
+
+    public MonGetConnectionVTI(Long applicationHandle, Integer member) {
+        this(applicationHandle, member, null);
+    }
+
+    public MonGetConnectionVTI(Long applicationHandle, Integer member, Integer systemApplications) {
+        this.applicationHandle = applicationHandle;
+        this.member = member == null ? -1 : member;
+        this.systemApplications = systemApplications;
+    }
+
+    @Override
+    public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+        operationContext = dsp.createOperationContext(op);
+        List<ExecRow> rows = new ArrayList<>();
+        ExecRow valueRow = new ValueRow(SYSMONGETCONNECTIONRowFactory.COLUMN_COUNT);
+        SYSMONGETCONNECTIONRowFactory.makeCompileTimeRow(valueRow, null);
+        /*
+        // TODO: add logic to pull connections and add row for each connection similar to below.
+        valueRow.setColumnValue(SYSMONGETCONNECTIONRowFactory.APPLICATION_NAME, new SQLVarchar("Hello World!"));
+        valueRow.setColumnValue(SYSMONGETCONNECTIONRowFactory.CONNECTION_START_TIME, new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
+        rows.add(valueRow);
+        */
+        return new MaterializedControlDataSet<>(rows );
+    }
+
+    public static ResultSetMetaData getMetaData() throws SQLException {
+        return metadata;
+    }
+
+    public static boolean schemaKnownAtCompileTime() {
+        return true;
+    }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
+
+    /*
+     * Metadata
+     */
+    private static final ResultColumnDescriptor[] columnInfo = Arrays
+            .stream(SYSMONGETCONNECTIONRowFactory.buildCompileTimeColumnList())
+            .map(c -> EmbedResultSetMetaData.getResultColumnDescriptor(c.getName(), c.getType()))
+            .toArray(ResultColumnDescriptor[]::new);
+
+    private static final ResultSetMetaData metadata = new EmbedResultSetMetaData(columnInfo);
+}
