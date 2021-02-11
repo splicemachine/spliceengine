@@ -43,15 +43,17 @@ show_help() {
    echo -e "\t-f script\t sql file to be executed"
    echo -e "\t-o output\t file for output"
    echo -e "\t-q \t\t quiet mode"
+   echo -e "\t-x \t\t WITHOUT HEADER mode"
 }
 
 HOSTARG=""
 PORTARG=""
 USERARG=""
 PASSARG=""
+ADDITIONAL_IJ_ARGS=""
 
 # Process command line args
-while getopts "U:h:p:u:Qs:PSk:K:w:f:o:q" opt; do
+while getopts "U:h:p:u:Qs:PSk:K:w:f:o:qx" opt; do
    case $opt in
       U)
          URL="${OPTARG}"
@@ -94,6 +96,9 @@ while getopts "U:h:p:u:Qs:PSk:K:w:f:o:q" opt; do
          ;;
       q)
          QUIET=1
+         ;;
+     x)
+         ADDITIONAL_IJ_ARGS="${ADDITIONAL_IJ_ARGS} -Dij.omitHeader=true"
          ;;
       \?)
          show_help
@@ -201,7 +206,7 @@ fi
 
 # Setup IJ_SYS_ARGS based on input options
 GEN_SYS_ARGS="-Djava.awt.headless=true"
-IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver"
+IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver ${ADDITIONAL_IJ_ARGS}"
 
 # add width via ij.maximumDisplayWidth
 if [[ "$WIDTH" != "128" ]]; then
