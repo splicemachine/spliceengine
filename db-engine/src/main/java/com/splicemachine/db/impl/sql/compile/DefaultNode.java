@@ -298,8 +298,7 @@ public  class DefaultNode extends ValueNode
     /**
      * @inheritDoc
      */
-    protected boolean isEquivalent(ValueNode other)
-    {
+    protected boolean isEquivalent(ValueNode other) throws StandardException {
         return this == other;
     }
 

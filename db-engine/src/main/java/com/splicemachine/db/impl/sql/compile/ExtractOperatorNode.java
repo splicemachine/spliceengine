@@ -105,7 +105,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        opTypeId = operand.getTypeId();
+        opTypeId = getOperand().getTypeId();
         operandType = opTypeId.getJDBCTypeId();
 
         /*
@@ -116,19 +116,19 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         */
         if (opTypeId.isStringTypeId())
         {
-            TypeCompiler tc = operand.getTypeCompiler();
+            TypeCompiler tc = getOperand().getTypeCompiler();
             int castType = (extractField < DateTimeDataValue.HOUR_FIELD) ? Types.DATE : Types.TIME;
-            operand =  (ValueNode)
+            setOperand((ValueNode)
                 getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
-                    operand,
+                    getOperand(),
                     DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true,
                                         tc.getCastToCharWidth(
-                                                operand.getTypeServices(), getCompilerContext())),
-                    getContextManager());
-            ((CastNode) operand).bindCastNodeOnly();
+                                                getOperand().getTypeServices(), getCompilerContext())),
+                    getContextManager()));
+            ((CastNode) getOperand()).bindCastNodeOnly();
 
-            opTypeId = operand.getTypeId();
+            opTypeId = getOperand().getTypeId();
             operandType = opTypeId.getJDBCTypeId();
         }
 
@@ -171,21 +171,21 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
              && (extractField == DateTimeDataValue.SECOND_FIELD) ) {
             setType(new DataTypeDescriptor(
                             TypeId.getBuiltInTypeId(Types.DOUBLE),
-                            operand.getTypeServices().isNullable()
+                            getOperand().getTypeServices().isNullable()
                         )
                 );
         } else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
                         TypeId.CHAR_ID,
-                        operand.getTypeServices().isNullable(),
+                        getOperand().getTypeServices().isNullable(),
                         14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
                     )
             );
         } else {
             setType(new DataTypeDescriptor(
                             TypeId.INTEGER_ID,
-                            operand.getTypeServices().isNullable()
+                            getOperand().getTypeServices().isNullable()
                         )
                 );
         }
@@ -195,7 +195,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 
     void bindParameter() throws StandardException
     {
-        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
     }
 
     public String toString() {
@@ -217,14 +217,14 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
     }
 
     @Override
-    public long nonZeroCardinality(long numberOfRows) {
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return Math.min(fieldCardinality[extractField], numberOfRows);
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        double lowerCost = getOperandCost();
-        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : 2.0);
         double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         return lowerCost + localCost + callCost;
     }

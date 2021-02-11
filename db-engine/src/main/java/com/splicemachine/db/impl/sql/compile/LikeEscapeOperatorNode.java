@@ -40,8 +40,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.util.ReuseFactory;
@@ -156,26 +154,26 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         String pattern = null;
 
-        if(!(leftOperand.requiresTypeFromContext()) && isBitDataString(leftOperand)) {
-            leftOperand = castArgToString(leftOperand, true);
+        if(!(getLeftOperand().requiresTypeFromContext()) && isBitDataString(getLeftOperand())) {
+            setLeftOperand(castArgToString(getLeftOperand(), true));
         }
 
-        if(rightOperand != null &&!(rightOperand.requiresTypeFromContext()) && isBitDataString(rightOperand)) {
-            rightOperand = castArgToString(rightOperand, true);
+        if(getRightOperand() != null &&!(getRightOperand().requiresTypeFromContext()) && isBitDataString(getRightOperand())) {
+            setRightOperand(castArgToString(getRightOperand(), true));
         }
 
         // pattern must be a string or a parameter
-        if (!(leftOperand.requiresTypeFromContext()) &&
-             !(leftOperand.getTypeId().isStringTypeId()))
+        if (!(getLeftOperand().requiresTypeFromContext()) &&
+             !(getLeftOperand().getTypeId().isStringTypeId()))
         {
             throw StandardException.newException(
                 SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LIKE", "FUNCTION");
         }
 
         // escape must be a string or a parameter
-        if ((rightOperand != null) && 
-            !(rightOperand.requiresTypeFromContext()) && 
-            !(rightOperand.getTypeId().isStringTypeId()))
+        if ((getRightOperand() != null) &&
+            !(getRightOperand().requiresTypeFromContext()) &&
+            !(getRightOperand().getTypeId().isStringTypeId()))
         {
             throw StandardException.newException(
                 SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LIKE", "FUNCTION");
@@ -190,21 +188,21 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         *  a parameter on the right copies its length from
         *  the left, since it won't match if it is any longer than it.
         */
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
-            receiver.setType(
+            getReceiver().setType(
                 new DataTypeDescriptor(
                     TypeId.getBuiltInTypeId(Types.VARCHAR), true));
             //check if this parameter can pick up it's collation from pattern
             //or escape clauses in that order. If not, then it will take it's
             //collation from the compilation schema.
-            if (!leftOperand.requiresTypeFromContext()) {
-                receiver.setCollationInfo(leftOperand.getTypeServices());
+            if (!getLeftOperand().requiresTypeFromContext()) {
+                getReceiver().setCollationInfo(getLeftOperand().getTypeServices());
 
-            } else if (rightOperand != null && !rightOperand.requiresTypeFromContext()) {
-                receiver.setCollationInfo(rightOperand.getTypeServices());          	
+            } else if (getRightOperand() != null && !getRightOperand().requiresTypeFromContext()) {
+                getReceiver().setCollationInfo(getRightOperand().getTypeServices());
             } else {
-    			receiver.setCollationUsingCompilationSchema();            	
+    			getReceiver().setCollationUsingCompilationSchema();
             }
         }
 
@@ -215,22 +213,22 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          *  both will be max length.
          *  REMIND: should nullability be copied, or set to true?
          */
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
             /*
             * Set the pattern to the type of the left parameter, if
             * the left is a string, otherwise set it to be VARCHAR. 
             */
-            if (receiver.getTypeId().isStringTypeId())
+            if (getReceiver().getTypeId().isStringTypeId())
             {
-                leftOperand.setType(receiver.getTypeServices());
+                getLeftOperand().setType(getReceiver().getTypeServices());
             }
-            else if(isBitDataString(receiver)) { // we will add a cast to string later on
-                leftOperand.setType(new DataTypeDescriptor(receiver.getTypeId(), true));
+            else if(isBitDataString(getReceiver())) { // we will add a cast to string later on
+                getLeftOperand().setType(new DataTypeDescriptor(getReceiver().getTypeId(), true));
             }
             else
             {
-                leftOperand.setType(
+                getLeftOperand().setType(
                     new DataTypeDescriptor(
                         TypeId.getBuiltInTypeId(Types.VARCHAR), true));
             }
@@ -238,7 +236,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for the other ? in LIKE clause
-            leftOperand.setCollationInfo(receiver.getTypeServices());          	
+            getLeftOperand().setCollationInfo(getReceiver().getTypeServices());
         }
 
         /* 
@@ -247,22 +245,22 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          *  both will be max length.  nullability is set to true.
          */
 
-        if (rightOperand != null && rightOperand.requiresTypeFromContext())
+        if (getRightOperand() != null && getRightOperand().requiresTypeFromContext())
         {
             /*
              * Set the pattern to the type of the left parameter, if
              * the left is a string, otherwise set it to be VARCHAR. 
              */
-            if (receiver.getTypeId().isStringTypeId())
+            if (getReceiver().getTypeId().isStringTypeId())
             {
-                rightOperand.setType(receiver.getTypeServices());
+                getRightOperand().setType(getReceiver().getTypeServices());
             }
-            else if(isBitDataString(receiver)) { // we will add a cast to string later on
-                leftOperand.setType(new DataTypeDescriptor(receiver.getTypeId(), true));
+            else if(isBitDataString(getReceiver())) { // we will add a cast to string later on
+                getLeftOperand().setType(new DataTypeDescriptor(getReceiver().getTypeId(), true));
             }
             else
             {
-                rightOperand.setType(
+                getRightOperand().setType(
                     new DataTypeDescriptor(
                         TypeId.getBuiltInTypeId(Types.VARCHAR), true));
             }
@@ -270,17 +268,17 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for the other ? in LIKE clause
-            rightOperand.setCollationInfo(receiver.getTypeServices());    	
+            getRightOperand().setCollationInfo(getReceiver().getTypeServices());
         }
 
         bindToBuiltIn();
 
         /* The receiver must be a string type
         */
-        if(!(receiver.requiresTypeFromContext()) && isBitDataString(receiver)) {
-            receiver = castArgToString(receiver, true);
+        if(!(getReceiver().requiresTypeFromContext()) && isBitDataString(getReceiver())) {
+            setReceiver(castArgToString(getReceiver(), true));
         }
-        if (! receiver.getTypeId().isStringTypeId())
+        if (! getReceiver().getTypeId().isStringTypeId())
         {
             throw StandardException.newException(
                 SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LIKE", "FUNCTION");
@@ -289,14 +287,14 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         /* If either the left or right operands are non-string types,
          * then we generate an implicit cast to VARCHAR.
          */
-        if (!leftOperand.getTypeId().isStringTypeId())
+        if (!getLeftOperand().getTypeId().isStringTypeId())
         {
-            leftOperand = castArgToString(leftOperand, true);
+            setLeftOperand(castArgToString(getLeftOperand(), true));
         }
 
-        if (rightOperand != null)
+        if (getRightOperand() != null)
         {
-            rightOperand = castArgToString(rightOperand, true);
+            setRightOperand(castArgToString(getRightOperand(), true));
         }
 
         /* 
@@ -304,24 +302,24 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          * constant.  We need to remember here so that we can transform LIKE 
          * 'constant' into = 'constant' for non unicode based collation columns.
          */
-        boolean leftConstant = (leftOperand instanceof CharConstantNode);
+        boolean leftConstant = (getLeftOperand() instanceof CharConstantNode);
         if (leftConstant)
         {
-            pattern = ((CharConstantNode) leftOperand).getString();
+            pattern = ((CharConstantNode) getLeftOperand()).getString();
         }
 
-        boolean rightConstant = (rightOperand instanceof CharConstantNode);
+        boolean rightConstant = (getRightOperand() instanceof CharConstantNode);
 
         if (rightConstant)
         {
-            escape = ((CharConstantNode) rightOperand).getString();
+            escape = ((CharConstantNode) getRightOperand()).getString();
             if (escape.length() != 1)
             {
                 throw StandardException.newException(
                     SQLState.LANG_INVALID_ESCAPE_CHARACTER, escape);
             }
         }
-        else if (rightOperand == null)
+        else if (getRightOperand() == null)
         {
             // No Escape clause: Let optimization continue for the = case below
             rightConstant = true;
@@ -338,16 +336,16 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         // The left and the pattern of the LIKE must be same collation type
         // and derivation.
-        if (!receiver.getTypeServices().compareCollationInfo(
-        		leftOperand.getTypeServices()))
+        if (!getReceiver().getTypeServices().compareCollationInfo(
+        		getLeftOperand().getTypeServices()))
         {
             // throw error.
             throw StandardException.newException(
                         SQLState.LANG_LIKE_COLLATION_MISMATCH, 
-                        receiver.getTypeServices().getSQLstring(),
-                        receiver.getTypeServices().getCollationName(),
-                        leftOperand.getTypeServices().getSQLstring(),
-                        leftOperand.getTypeServices().getCollationName());
+                        getReceiver().getTypeServices().getSQLstring(),
+                        getReceiver().getTypeServices().getCollationName(),
+                        getLeftOperand().getTypeServices().getSQLstring(),
+                        getLeftOperand().getTypeServices().getCollationName());
         }
 
         /* If the left side of LIKE is a ColumnReference and right side is a 
@@ -368,7 +366,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          *     LIKE   =
          */
 
-        if ((receiver instanceof ColumnReference) && 
+        if ((getReceiver() instanceof ColumnReference) &&
             leftConstant                          && 
             rightConstant)
         {
@@ -399,7 +397,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                 {
                     // met all conditions, transform LIKE into a "LIKE and ="
 
-                    ValueNode leftClone = receiver.getClone();
+                    ValueNode leftClone = getReceiver().getClone();
 
                     // Remember that we did xform, see preprocess()
                     addedEquals = true;
@@ -466,12 +464,12 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         */
 
         boolean nullableResult =
-            receiver.getTypeServices().isNullable() || 
-            leftOperand.getTypeServices().isNullable();
+            getReceiver().getTypeServices().isNullable() ||
+            getLeftOperand().getTypeServices().isNullable();
 
-        if (rightOperand != null)
+        if (getRightOperand() != null)
         {
-            nullableResult |= rightOperand.getTypeServices().isNullable();
+            nullableResult |= getRightOperand().getTypeServices().isNullable();
         }
 
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
@@ -486,8 +484,8 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
     public void bindComparisonOperator()
         throws StandardException
     {
-        TypeId receiverType = receiver.getTypeId();
-        TypeId leftType     = leftOperand.getTypeId();
+        TypeId receiverType = getReceiver().getTypeId();
+        TypeId leftType     = getLeftOperand().getTypeId();
 
         /*
         ** Check the type of the operands - this function is allowed only on
@@ -506,11 +504,11 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                 SQLState.LANG_LIKE_BAD_TYPE, leftType.getSQLTypeName());
         }
 
-        if (rightOperand != null && ! rightOperand.getTypeId().isStringTypeId())
+        if (getRightOperand() != null && ! getRightOperand().getTypeId().isStringTypeId())
         {
             throw StandardException.newException(
                 SQLState.LANG_LIKE_BAD_TYPE, 
-                rightOperand.getTypeId().getSQLTypeName());
+                getRightOperand().getTypeId().getSQLTypeName());
         }
     }
 
@@ -548,7 +546,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          * comparison.
          * RESOLVE: should this check be for LONG VARCHAR also?
          */
-        if (receiver.getTypeId().getSQLTypeName().equals("CLOB")) 
+        if (getReceiver().getTypeId().getSQLTypeName().equals("CLOB"))
         {
             return this;
         }
@@ -565,8 +563,8 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         /* if like pattern is not a constant and not a parameter, 
          * then can't optimize, eg. column LIKE column
          */
-        if (!(leftOperand instanceof CharConstantNode) && 
-                !(leftOperand.requiresTypeFromContext()))
+        if (!(getLeftOperand() instanceof CharConstantNode) &&
+                !(getLeftOperand().requiresTypeFromContext()))
         {
             return this;
         }
@@ -574,7 +572,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         /* This transformation is only worth doing if it is pushable, ie, if
          * the receiver is a ColumnReference.
          */
-        if (!(receiver instanceof ColumnReference))
+        if (!(getReceiver() instanceof ColumnReference))
         {
             // We also do an early return here if in bindExpression we found 
             // we had a territory based Char and put a CAST above the receiver.
@@ -598,7 +596,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          * o National char's didn't try to produce a < than, is there a way
          *   in collation?
          */
-        if (receiver.getTypeServices().getCollationType() != 
+        if (getReceiver().getTypeServices().getCollationType() !=
                 StringDataValue.COLLATION_TYPE_UCS_BASIC)
         {
             // don't do any < or >= transformations for non default collations.
@@ -613,16 +611,16 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          */
 
         // Build String constants if right side (pattern) is a constant
-        if (leftOperand instanceof CharConstantNode)
+        if (getLeftOperand() instanceof CharConstantNode)
         {
-            String pattern = ((CharConstantNode) leftOperand).getString();
+            String pattern = ((CharConstantNode) getLeftOperand()).getString();
 
             if (!Like.isOptimizable(pattern))
             {
                 return this;
             }
 
-            int maxWidth = receiver.getTypeServices().getMaximumWidth();
+            int maxWidth = getReceiver().getTypeServices().getMaximumWidth();
 
             greaterEqualString = 
                 Like.greaterEqualString(pattern, escape, maxWidth);
@@ -666,19 +664,19 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          * leftOperand is a parameter.
          */
         if (lessThanString != null || 
-            leftOperand.requiresTypeFromContext())
+            getLeftOperand().requiresTypeFromContext())
         {
             QueryTreeNode likeLTopt;
-            if (leftOperand.requiresTypeFromContext())
+            if (getLeftOperand().requiresTypeFromContext())
             {
                 // pattern string is a parameter 
 
                 likeLTopt = 
                     setupOptimizeStringFromParameter(
-                        leftOperand, 
-                        rightOperand, 
+                        getLeftOperand(),
+                        getRightOperand(),
                         "lessThanStringFromParameter", 
-                        receiver.getTypeServices().getMaximumWidth());
+                        getReceiver().getTypeServices().getMaximumWidth());
             }
             else
             {
@@ -693,7 +691,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             BinaryComparisonOperatorNode lessThan = 
                 (BinaryComparisonOperatorNode) getNodeFactory().getNode(
                     C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
-                    receiver.getClone(), 
+                    getReceiver().getClone(),
                     likeLTopt,
                     getContextManager());
 
@@ -720,7 +718,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          */
 
         ValueNode likeGEopt;
-        if (leftOperand.requiresTypeFromContext()) 
+        if (getLeftOperand().requiresTypeFromContext())
         {
             // the pattern is a ?, eg. c1 LIKE ?
 
@@ -729,10 +727,10 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
             likeGEopt    = 
                 setupOptimizeStringFromParameter(
-                    leftOperand, 
-                    rightOperand, 
+                    getLeftOperand(),
+                    getRightOperand(),
                     "greaterEqualStringFromParameter", 
-                    receiver.getTypeServices().getMaximumWidth());
+                    getReceiver().getTypeServices().getMaximumWidth());
         } 
         else 
         {
@@ -752,7 +750,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         BinaryComparisonOperatorNode greaterEqual = 
             (BinaryComparisonOperatorNode) getNodeFactory().getNode(
                 C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-                receiver.getClone(), 
+                getReceiver().getClone(),
                 likeGEopt,
                 getContextManager());
 
@@ -852,19 +850,19 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         **     result field>)
         */
 
-        receiver.generateExpression(acb, mb);   // first arg
+        getReceiver().generateExpression(acb, mb);   // first arg
 
-        receiverInterfaceType = receiver.getTypeCompiler().interfaceName();
+        setReceiverInterfaceType(getReceiver().getTypeCompiler().interfaceName());
 
-        mb.upCast(receiverInterfaceType);       // cast the method instance
+        mb.upCast(getReceiverInterfaceType());       // cast the method instance
 
-        leftOperand.generateExpression(acb, mb);
-        mb.upCast(leftInterfaceType);           // first arg with cast
+        getLeftOperand().generateExpression(acb, mb);
+        mb.upCast(getLeftInterfaceType());           // first arg with cast
 
-        if (rightOperand != null)
+        if (getRightOperand() != null)
         {
-            rightOperand.generateExpression(acb, mb);
-            mb.upCast(rightInterfaceType);      // second arg with cast
+            getRightOperand().generateExpression(acb, mb);
+            mb.upCast(getRightInterfaceType());      // second arg with cast
         }
 
         /* Figure out the result type name */
@@ -875,7 +873,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             null, 
             methodName, 
             resultInterfaceType, 
-            rightOperand == null ? 1 : 2);
+            getRightOperand() == null ? 1 : 2);
     }
 
     private ValueNode setupOptimizeStringFromParameter(

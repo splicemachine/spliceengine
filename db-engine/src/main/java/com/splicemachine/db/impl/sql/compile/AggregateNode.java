@@ -306,7 +306,7 @@ public class AggregateNode extends UnaryOperatorNode {
         CompilerContext cc = getCompilerContext();
 
         // operand being null means a count(*)
-        if (operand != null) {
+        if (getOperand() != null) {
             int previousReliability = orReliability(CompilerContext.AGGREGATE_RESTRICTION);
             bindOperand(fromList, subqueryList, aggregateVector);
             cc.setReliability(previousReliability);
@@ -317,7 +317,7 @@ public class AggregateNode extends UnaryOperatorNode {
              ** any ResultSetNodes.
              */
             HasNodeVisitor visitor = new HasNodeVisitor(this.getClass(), ResultSetNode.class);
-            operand.accept(visitor);
+            getOperand().accept(visitor);
 
             /*
              * We relax the constraint there for window functions for SPLICE-969
@@ -335,14 +335,14 @@ public class AggregateNode extends UnaryOperatorNode {
 
             // Also forbid any window function inside an aggregate unless in
             // subquery, cf. SQL 2003, section 10.9, SR 7 a).
-            SelectNode.checkNoWindowFunctions(operand, aggregateName);
-            SelectNode.checkNoGroupingFunctions(operand, aggregateName);
+            SelectNode.checkNoWindowFunctions(getOperand(), aggregateName);
+            SelectNode.checkNoGroupingFunctions(getOperand(), aggregateName);
 
             /*
              ** Check the type of the operand.  Make sure that the user
              ** defined aggregate can handle the operand datatype.
              */
-            dts = operand.getTypeServices();
+            dts = getOperand().getTypeServices();
 
             /* Convert count(nonNullableColumn) to count(*)	*/
             if (uad instanceof CountAggregateDefinition &&
@@ -363,7 +363,7 @@ public class AggregateNode extends UnaryOperatorNode {
                  ** to check to see if the type implements Orderable
                  **
                  */
-                if (!operand.getTypeId().orderable(cf)) {
+                if (!getOperand().getTypeId().orderable(cf)) {
                     throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
                             dts.getTypeId().getSQLTypeName());
                 }
@@ -373,7 +373,7 @@ public class AggregateNode extends UnaryOperatorNode {
             /*
              ** Don't allow an untyped null
              */
-            if (operand instanceof UntypedNullConstantNode) {
+            if (getOperand() instanceof UntypedNullConstantNode) {
                 throw StandardException.newException
                         (SQLState.LANG_USER_AGGREGATE_BAD_TYPE_NULL, getSQLName());
 
@@ -392,7 +392,7 @@ public class AggregateNode extends UnaryOperatorNode {
                     (
                             SQLState.LANG_USER_AGGREGATE_BAD_TYPE,
                             getSQLName(),
-                            operand.getTypeId().getSQLTypeName()
+                            getOperand().getTypeId().getSQLTypeName()
                     );
 
         }
@@ -400,14 +400,14 @@ public class AggregateNode extends UnaryOperatorNode {
         // coerced to the expected input type of the aggregator.
         if (isUserDefinedAggregate()) {
             ValueNode castNode = ((UserAggregateDefinition) uad).castInputValue
-                    (operand, getContextManager());
+                    (getOperand(), getContextManager());
             if (castNode != null) {
-                operand = castNode.bindExpression(fromList, subqueryList, aggregateVector);
+                setOperand(castNode.bindExpression(fromList, subqueryList, aggregateVector));
             }
         } else if (isWindowFunction() &&
                 uad instanceof SumAvgAggregateDefinition &&
-                operand != null &&
-                operand.getTypeId().getTypeFormatId() !=
+                getOperand() != null &&
+                getOperand().getTypeId().getTypeFormatId() !=
                         resultType.getTypeId().getTypeFormatId()) {
             // For now, the receiver data type picked by
             // getAggregator() must match the data type of the
@@ -418,13 +418,12 @@ public class AggregateNode extends UnaryOperatorNode {
             // a new aggregator that uses the final result type is allocated.
             // When there is no overflow, a final CAST is applied in
             // methoc SpliceGeneratorAggregator.finish.
-            operand =
-                    (ValueNode)
+            setOperand((ValueNode)
                             getNodeFactory().getNode(C_NodeTypes.CAST_NODE,
-                                    operand,
+                                    getOperand(),
                                     resultType,
-                                    getContextManager());
-            ((CastNode) operand).bindCastNodeOnly();
+                                    getContextManager()));
+            ((CastNode) getOperand()).bindCastNodeOnly();
         }
 
         checkAggregatorClassName(aggregatorClassName.toString());
@@ -460,7 +459,7 @@ public class AggregateNode extends UnaryOperatorNode {
             throw StandardException.newException(SQLState.LANG_BAD_AGGREGATOR_CLASS2,
                     className,
                     getSQLName(),
-                    operand.getTypeId().getSQLTypeName());
+                    getOperand().getTypeId().getSQLTypeName());
         }
     }
 
@@ -615,9 +614,9 @@ public class AggregateNode extends UnaryOperatorNode {
          ** so we'll have to create a new null node and put
          ** that in place.
          */
-        node = (operand == null) ?
+        node = (getOperand() == null) ?
                 this.getNewNullResultExpression() :
-                operand;
+                getOperand();
 
 
         return (ResultColumn) getNodeFactory().getNode(
@@ -728,16 +727,16 @@ public class AggregateNode extends UnaryOperatorNode {
 
     @Override
     public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        if (operand != null) {
-            operand = operand.replaceIndexExpression(childRCL);
+        if (getOperand() != null) {
+            setOperand(getOperand().replaceIndexExpression(childRCL));
         }
         return this;
     }
 
     @Override
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
-        if (operand != null) {
-            return operand.collectExpressions(exprMap);
+        if (getOperand() != null) {
+            return getOperand().collectExpressions(exprMap);
         }
         return true;
     }

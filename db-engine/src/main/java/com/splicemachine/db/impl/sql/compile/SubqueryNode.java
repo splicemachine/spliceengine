@@ -1803,7 +1803,7 @@ public class SubqueryNode extends ValueNode{
      * @return The variant type for the underlying expression.
      */
     @Override
-    protected int getOrderableVariantType() throws StandardException{
+    protected int getOrderableVariantType() throws StandardException {
         /*
          * If the subquery is variant, than return
          * VARIANT.  Otherwise, if we have an expression
@@ -1826,7 +1826,7 @@ public class SubqueryNode extends ValueNode{
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o){
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         return this==o;
     }
 

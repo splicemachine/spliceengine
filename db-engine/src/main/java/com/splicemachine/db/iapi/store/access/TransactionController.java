@@ -1076,7 +1076,7 @@ public interface TransactionController
                     get row column[qualifier[and_clause][or_clause].getColumnId()];
 
                 boolean or_qualifies = 
-                row_col.compare(qualifier[i].getOperator,
+                row_col.compare(qualifier[i].getOperatorString,
                 <blockquote><pre>
                 key,
                 qualifier[i].getOrderedNulls,
