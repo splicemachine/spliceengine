@@ -78,8 +78,8 @@ public final class RankFunctionNode extends WindowFunctionNode  {
     public List<ValueNode> getOperands() {
         List<OrderedColumn> orderedColumns = getWindow().getOrderByList();
         List<ValueNode> operands = new ArrayList<>(orderedColumns.size()+1);
-        if (operand != null) {
-            operands.add(operand);
+        if (getOperand() != null) {
+            operands.add(getOperand());
         }
         for (OrderedColumn orderedColumn : orderedColumns) {
             operands.add(orderedColumn.getColumnExpression());

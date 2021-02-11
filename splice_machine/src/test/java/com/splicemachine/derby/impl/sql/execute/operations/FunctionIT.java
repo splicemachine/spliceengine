@@ -1064,5 +1064,32 @@ public class FunctionIT extends SpliceUnitTest {
         // DB-11090
         checkNullExpression("CAST(NULL AS INT) NOT IN (1)", methodWatcher.getOrCreateConnection());
     }
+
+    @Test
+    public void testMultiplyAlt() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            // Types
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(38, 3)),  cast(1 as decimal(15, 8)))", "DECIMAL(38,3) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(33, 23)), cast(1 as decimal(10, 1)))", "DECIMAL(38,19) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(25, 17)), cast(1 as decimal(20, 19)))", "DECIMAL(38,29) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(23, 3)),  cast(1 as decimal(17, 8)))", "DECIMAL(38,9) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(33, 5)),  cast(1 as decimal(11, 0)))", "DECIMAL(38,3) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(28, 1)),  cast(1 as decimal(15, 1)))", "DECIMAL(38,2) NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(1 as smallint))", "DECIMAL(15,0) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(1 as decimal(15, 8)))", "DECIMAL(25,8) NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(1 as double),  cast(1 as integer))", "DECFLOAT NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decfloat),  cast(1 as integer))", "DECFLOAT NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(null as decfloat),  cast(1 as integer))", "DECFLOAT", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(null as integer),  cast(1 as integer))", "DECIMAL(20,0)", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decfloat),  cast(null as integer))", "DECFLOAT", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(null as integer))", "DECIMAL(20,0)", conn);
+
+            checkDecfloatExpression("MULTIPLY_ALT(cast('1.23456789' as DECFLOAT), 2)", "2.46913578", conn);
+            checkStringExpression("varchar(MULTIPLY_ALT(cast(737823 as bigint), 86400.))", "63747907200", conn);
+        }
+    }
 }
 

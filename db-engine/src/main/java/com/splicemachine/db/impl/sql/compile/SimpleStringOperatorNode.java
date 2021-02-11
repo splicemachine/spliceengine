@@ -53,130 +53,130 @@ import java.util.List;
 @SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SimpleStringOperatorNode extends UnaryOperatorNode
 {
-	/**
-	 * Initializer for a SimpleOperatorNode
-	 *
-	 * @param operand		The operand
-	 * @param methodName	The method name
-	 */
+    /**
+     * Initializer for a SimpleOperatorNode
+     *
+     * @param operand        The operand
+     * @param methodName    The method name
+     */
 
-	public void init(Object operand, Object methodName)
-	{
-		super.init(operand, methodName, methodName);
-	}
+    public void init(Object operand, Object methodName)
+    {
+        super.init(operand, methodName, methodName);
+    }
 
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException {
-		TypeId	operandType;
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        TypeId    operandType;
 
-		bindOperand(fromList, subqueryList, 
-				aggregateVector);
+        bindOperand(fromList, subqueryList,
+                aggregateVector);
 
-		/*
-		** Check the type of the operand - this function is allowed only on
-		** string value (char and bit) types.
-		*/
-		operandType = operand.getTypeId();
+        /*
+        ** Check the type of the operand - this function is allowed only on
+        ** string value (char and bit) types.
+        */
+        operandType = getOperand().getTypeId();
 
-		switch (operandType.getJDBCTypeId())
-		{
-				case Types.CHAR:
-				case Types.VARCHAR:
-				case Types.LONGVARCHAR:
-				case Types.CLOB:
-					break;
-				case Types.JAVA_OBJECT:
-				case Types.OTHER:	
-				{
-					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-										methodName,
-										operandType.getSQLTypeName());
-				}
+        switch (operandType.getJDBCTypeId())
+        {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    break;
+                case Types.JAVA_OBJECT:
+                case Types.OTHER:
+                {
+                    throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                                        methodName,
+                                        operandType.getSQLTypeName());
+                }
 
-				default:
-					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
-							  operand.getTypeCompiler().
-								getCastToCharWidth(
-									operand.getTypeServices(), getCompilerContext()));
-			
-					operand =  (ValueNode)
-						getNodeFactory().getNode(
-							C_NodeTypes.CAST_NODE,
-							operand,
-							dtd,
-							getContextManager());
-					
-				// DERBY-2910 - Match current schema collation for implicit cast as we do for
-				// explicit casts per SQL Spec 6.12 (10)					
-			    operand.setCollationUsingCompilationSchema();
-			    
-				((CastNode) operand).bindCastNodeOnly();
-					operandType = operand.getTypeId();
-		}
+                default:
+                    DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true,
+                              getOperand().getTypeCompiler().
+                                getCastToCharWidth(
+                                    getOperand().getTypeServices(), getCompilerContext()));
 
-		/*
-		** The result type of upper()/lower() is the type of the operand.
-		*/
+                    setOperand((ValueNode)
+                        getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            getOperand(),
+                            dtd,
+                            getContextManager()));
 
-		setType(new DataTypeDescriptor(operandType,
-				operand.getTypeServices().isNullable(),
-				operand.getTypeCompiler().
-					getCastToCharWidth(operand.getTypeServices(), getCompilerContext())
-						)
-				);
-		//Result of upper()/lower() will have the same collation as the   
-		//argument to upper()/lower(). 
-        setCollationInfo(operand.getTypeServices());
+                // DERBY-2910 - Match current schema collation for implicit cast as we do for
+                // explicit casts per SQL Spec 6.12 (10)
+                getOperand().setCollationUsingCompilationSchema();
 
-		return this;
-	}
+                ((CastNode) getOperand()).bindCastNodeOnly();
+                    operandType = getOperand().getTypeId();
+        }
 
-	/**
-	 * Bind a ? parameter operand of the upper/lower function.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+        /*
+        ** The result type of upper()/lower() is the type of the operand.
+        */
 
-	void bindParameter()
-			throws StandardException
-	{
-		/*
-		** According to the SQL standard, if bit_length has a ? operand,
-		** its type is bit varying with the implementation-defined maximum length
-		** for a bit.
-		*/
+        setType(new DataTypeDescriptor(operandType,
+                getOperand().getTypeServices().isNullable(),
+                getOperand().getTypeCompiler().
+                    getCastToCharWidth(getOperand().getTypeServices(), getCompilerContext())
+                        )
+                );
+        //Result of upper()/lower() will have the same collation as the
+        //argument to upper()/lower().
+        setCollationInfo(getOperand().getTypeServices());
 
-		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-		//collation of ? operand should be same as the compilation schema
-		operand.setCollationUsingCompilationSchema();
-	}
+        return this;
+    }
 
-	/**
-	 * This is a length operator node.  Overrides this method
-	 * in UnaryOperatorNode for code generation purposes.
-	 */
-	public String getReceiverInterfaceName() {
-	    return ClassName.StringDataValue;
-	}
+    /**
+     * Bind a ? parameter operand of the upper/lower function.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		double lowerCost = getOperandCost();
-		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : Math.min(operand.getTypeServices().getNull().getLength(), 64));
-		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
-		return lowerCost + localCost + callCost;
-	}
+    void bindParameter()
+            throws StandardException
+    {
+        /*
+        ** According to the SQL standard, if bit_length has a ? operand,
+        ** its type is bit varying with the implementation-defined maximum length
+        ** for a bit.
+        */
+
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+        //collation of ? operand should be same as the compilation schema
+        getOperand().setCollationUsingCompilationSchema();
+    }
+
+    /**
+     * This is a length operator node.  Overrides this method
+     * in UnaryOperatorNode for code generation purposes.
+     */
+    public String getReceiverInterfaceName() {
+        return ClassName.StringDataValue;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : Math.min(getOperand().getTypeServices().getNull().getLength(), 64));
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return lowerCost + localCost + callCost;
+    }
 }

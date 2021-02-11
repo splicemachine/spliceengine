@@ -1468,6 +1468,8 @@ public interface Property {
      */
     String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
 
+    String SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice.function.secondCompatibilityMode";
+
     String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
     String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
