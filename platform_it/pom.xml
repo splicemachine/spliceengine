@@ -477,6 +477,7 @@
                         <configuration>
                             <excludedGroups>
                                 com.splicemachine.test.SerialTest,
+                                com.splicemachine.test.RollbackToTransactionTest,
                                 com.splicemachine.test.RestoreTest,
                                 ${excluded.categories},
                                 ${excluded.longerthan}
@@ -533,6 +534,26 @@
                             <includes>
                                 <include>com/splicemachine/spark2/splicemachine/**/*IT.java</include>
                             </includes>
+                        </configuration>
+                    </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: ROLLBACK -->
+                    <execution>
+                        <id>integration-tests-rollback</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <groups>com.splicemachine.test.RollbackToTransactionTest</groups>
+                            <argLine>-Xmx2g -Xms64m</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>**/*RollbackToTransactionIT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
