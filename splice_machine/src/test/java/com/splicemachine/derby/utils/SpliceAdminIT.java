@@ -386,36 +386,6 @@ public class SpliceAdminIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testCallWithWrongParameters() throws Exception {
-        // wrong parameter count
-        try {
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('hello')");
-        }
-        catch(SQLException e )
-        {
-            Assert.assertEquals(
-                    "java.sql.SQLSyntaxErrorException: Could not resolve function or procedure call 'SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY':\n" +
-                    "- Parameter count is wrong (provided 1, but needs 2)\n" +
-                    "  for SYSCS_SET_GLOBAL_DATABASE_PROPERTY(IN \"KEY\" VARCHAR(128), IN \"VALUE\" VARCHAR(32672))\n",
-                    e.toString());
-        }
-
-        // wrong parameter type
-        try {
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 123, 123 )");
-        }
-        catch(SQLException e )
-        {
-            Assert.assertEquals(
-                    "java.sql.SQLSyntaxErrorException: Could not resolve function or procedure call 'SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY':\n" +
-                    "- ERROR for parameter 0: Cannot convert types 'INTEGER' to 'VARCHAR'.:\n" +
-                    "  for SYSCS_SET_GLOBAL_DATABASE_PROPERTY(IN \"KEY\" VARCHAR(128), IN \"VALUE\" VARCHAR(32672))\n",
-                    e.toString());
-        }
-    }
-
-
-    @Test
     public void testUpdateSchemaOwner() throws Exception {
         String schemaName = "SPLICEADMINITSCHEMAFOO";
         String userName = "SPLICEADMINITUSERFRED";
