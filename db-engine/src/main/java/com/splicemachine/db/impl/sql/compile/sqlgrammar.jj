@@ -61,6 +61,7 @@ import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
+import com.splicemachine.db.impl.sql.compile.BlobFunctionNode;
 import com.splicemachine.db.impl.sql.compile.CallStatementNode;
 import com.splicemachine.db.impl.sql.compile.CharConstantNode;
 import com.splicemachine.db.impl.sql.compile.CastNode;
@@ -7461,6 +7462,7 @@ miscBuiltins() throws StandardException :
              ( (getToken(1).kind == GET_CURRENT_CONNECTION ||
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
+                getToken(1).kind == BLOB ||
                 getToken(1).kind == DECFLOAT ||
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
@@ -7731,7 +7733,7 @@ ValueNode
     {
         return value;
     }
-    |
+|
      dts = numericFunctionType() <LEFT_PAREN> operand = additiveExpression(null,0) <RIGHT_PAREN>
       {
             value = (ValueNode) nodeFactory.getNode(
@@ -7744,7 +7746,7 @@ ValueNode
 
             return value;
       }
-     |
+ |
      charType = charOrVarchar()
      <LEFT_PAREN>
      operand = additiveExpression(null,0)
@@ -7769,6 +7771,27 @@ ValueNode
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         return value;
+    }
+|
+    <BLOB> value = blobFunction()
+    {
+       return value;
+    }
+}
+
+ValueNode
+blobFunction() throws StandardException :
+{
+    ValueNode operand;
+    ValueNode length = null;
+}
+{
+    <LEFT_PAREN>
+    operand = additiveExpression(null, 0)
+    [ <COMMA> length = additiveExpression(null, 0) ]
+    <RIGHT_PAREN>
+    {
+        return new BlobFunctionNode(operand, length, getContextManager());
     }
 }
 

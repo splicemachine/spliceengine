@@ -17,7 +17,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.test.SerialTest;
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -25,10 +27,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+import java.util.function.BiConsumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -55,6 +55,7 @@ public class FunctionIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TMM",FunctionIT.class.getSimpleName(),"(i int, db double, dc decimal(3,1), c char(4), vc varchar(4), ts timestamp, bl blob(1K), cl clob(1K))");  // XML column not implemented
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("COA",FunctionIT.class.getSimpleName(),"(d date, i int)");
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("TEST_FN_DATETIME_CHAR",FunctionIT.class.getSimpleName(),"(d date, t time, ts timestamp)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("TEST_BLOB",FunctionIT.class.getSimpleName(),"(i int, a char(3), b varchar(3), c char(3) for bit data, d varchar(3) for bit data, e blob)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -65,6 +66,7 @@ public class FunctionIT extends SpliceUnitTest {
         .around(spliceTableWatcher2)
         .around(spliceTableWatcher3)
         .around(spliceTableWatcher4)
+        .around(spliceTableWatcher5)
         .around(spliceFunctionWatcher)
         .around(new SpliceDataWatcher(){
             @Override
@@ -108,6 +110,7 @@ public class FunctionIT extends SpliceUnitTest {
                 "('1960-03-01', '12:00:00', '1960-01-01 23:03:20'), " +
                 "('1960-03-01', '12:01:00', '1960-01-01 23:03:20'), " +
                 "('1960-03-01', '24:00:00', '1960-01-01 23:03:20')");
+        spliceClassWatcher.executeUpdate("insert into " + schemaName + ".TEST_BLOB values (1, 'abc', 'abc', 'abc', 'abc', cast('abc' as blob)), (2, null, null, null, null, null)");
         spliceClassWatcher.commit();
     }
 
@@ -1063,6 +1066,51 @@ public class FunctionIT extends SpliceUnitTest {
     public void testDb11090() throws Exception {
         // DB-11090
         checkNullExpression("CAST(NULL AS INT) NOT IN (1)", methodWatcher.getOrCreateConnection());
+    }
+
+    @Test
+    public void testBlobFunction() throws Exception {
+        try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
+            // Check types
+            // BLOB(op)
+            checkExpressionType("BLOB('abc')", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(varchar('abc'))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as char(3) for bit data))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as varchar(3) for bit data))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as blob))", "BLOB(2147483647) NOT NULL", conn);
+
+            // BLOB(op, n)
+            checkExpressionType("BLOB('abc', 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(varchar('abc'), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as char(3) for bit data), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as varchar(3) for bit data), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as blob), 10)", "BLOB(10) NOT NULL", conn);
+        }
+
+        runOltpOlapOlapNativeSpark( (useSpark, useNativeSpark) -> {
+            String sql = format("select i, blob(a), blob(b), blob(c), blob(d), blob(e) from %s.TEST_BLOB --splice-properties useSpark=%s, useNativeSpark=%s\n" +
+                    "order by 1", getSchemaName(), useSpark, useNativeSpark);
+            try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+                rs.next();
+                for (int i = 2; i <= 6; ++i) {
+                    Blob blob = rs.getBlob(i);
+                    Assert.assertEquals("abc", IOUtils.toString(blob.getBinaryStream()));
+                }
+                rs.next();
+                for (int i = 2; i <= 6; ++i) {
+                    Object o = rs.getObject(i);
+                    Assert.assertNull(o);
+                }
+            }
+        });
+
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select blob(?)")) {
+            ps.setBytes(1, Bytes.toBytes("abc"));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                Assert.assertEquals("abc", IOUtils.toString(rs.getBlob(1).getBinaryStream()));
+            }
+        }
     }
 }
 
