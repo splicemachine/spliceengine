@@ -172,15 +172,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
                 rightPadCharConstantNode((CharConstantNode) getRightOperand(), (ColumnReference) getLeftOperand());
             }
             // cast String to BitType but keep the original string's length
-            setRightOperand((ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getRightOperand(),
-                    new DataTypeDescriptor(
-                            leftTypeId,
-                            true,
-                            getRightOperand().getTypeServices().getMaximumWidth()),
-                    getContextManager()));
-            ((CastNode) getRightOperand()).bindCastNodeOnly();
+            castRightOperandAndBindCast(
+                new DataTypeDescriptor(leftTypeId, true, getRightOperand().getTypeServices().getMaximumWidth()));
             rightTypeId = getRightOperand().getTypeId();
         } else if ((rightTypeId.isFixedBitDataTypeId() || rightTypeId.isVarBitDataTypeId()) && leftTypeId.isStringTypeId()) {
             // pad the constant value before casting for fixed bit data type
@@ -189,15 +182,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             }
 
             // cast String to BitType
-            setLeftOperand((ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getLeftOperand(),
-                    new DataTypeDescriptor(
-                            rightTypeId,
-                            true,
-                            getLeftOperand().getTypeServices().getMaximumWidth()),
-                    getContextManager()));
-            ((CastNode) getLeftOperand()).bindCastNodeOnly();
+            castLeftOperandAndBindCast(
+                new DataTypeDescriptor(rightTypeId, true, getLeftOperand().getTypeServices().getMaximumWidth()));
             leftTypeId = getLeftOperand().getTypeId();
         }
 
@@ -216,22 +202,10 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
             // If right side is the decimal then promote the left side integer
             if (rightTypeId.isDecimalTypeId()) {
-                setLeftOperand((ValueNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.CAST_NODE,
-                                getLeftOperand(),
-                                dty,
-                                getContextManager()));
-                ((CastNode) getLeftOperand()).bindCastNodeOnly();
+                castLeftOperandAndBindCast(dty);
             } else {
                 // Otherwise, left side is the decimal so promote the right side integer
-                setRightOperand((ValueNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.CAST_NODE,
-                                getRightOperand(),
-                                dty,
-                                getContextManager()));
-                ((CastNode) getRightOperand()).bindCastNodeOnly();
+                castRightOperandAndBindCast(dty);
             }
 
         }
