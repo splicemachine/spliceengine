@@ -1437,6 +1437,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param statement Statement to remove
      * @throws StandardException thrown if lookup goes wrong.
      */
+    @Override
     public void removeStatement(GenericStatement statement) throws StandardException{
         getDataDictionary().getDataDictionaryCache().statementCacheRemove(statement);
     }
@@ -1449,6 +1450,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * if none was found.
      * @throws StandardException thrown if lookup goes wrong.
      */
+    @Override
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException{
         GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
         if (ps==null) {

@@ -1098,6 +1098,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          * Procedure to empty the statement caches on all region servers in the cluster.
          * Essentially a wrapper around the Derby version of SYSCS_EMPTY_STATEMENT_CACHE
          * which only operates on a single node.
+         *
+         * Also, a procedure to show a list of all cached statements across region servers
+         * in the cluster.
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
                 .numOutputParams(0)
@@ -1127,6 +1130,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .returnType(null).isDeterministic(false)
                 .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                 .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .returnType(null)
+                .isDeterministic(false)
+                .build()
+        );
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS_LOCAL")
+               .numOutputParams(0)
+               .numResultSets(1)
+               .ownerClass(SpliceAdmin.class.getCanonicalName())
+               .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+               .returnType(null)
+               .isDeterministic(false)
+               .build()
+        );
 
         // Stored procedure that updates the owner (authorization id) of an existing schema.
         procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")

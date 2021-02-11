@@ -64,6 +64,7 @@ public class ExplainNode extends DMLStatementNode {
 
     private final List<SQLVarchar> noStatsTables  = new ArrayList<>();
     private final List<SQLVarchar> noStatsColumns = new ArrayList<>();
+    private boolean rootOptimized = false;
 
     public enum SparkExplainKind {
         NONE("none"),
@@ -88,6 +89,10 @@ public class ExplainNode extends DMLStatementNode {
         }
     }
 
+    public boolean isSparkExplain() {
+        return sparkExplainKind != SparkExplainKind.NONE;
+    }
+
     int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
 
     public String statementToString() { return "Explain"; }
@@ -109,12 +114,20 @@ public class ExplainNode extends DMLStatementNode {
         return node;
     }
 
+    public void setOptimizedPlanRoot(StatementNode node) {
+        this.node = node;
+        rootOptimized = true;
+    }
+
     @Override
     public void optimizeStatement() throws StandardException {
         if (sparkExplainKind != SparkExplainKind.NONE) {
             getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_OLAP);
         }
-        node.optimizeStatement();
+
+        if(!rootOptimized) {
+            node.optimizeStatement();
+        }
 
         // collect tables and columns that are missing statistics only for splice explain
         // showNoStatsObjects == false for all kinds of spark explain
