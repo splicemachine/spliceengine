@@ -405,7 +405,7 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
                 "            UNION " +
                 "            SELECT b1+b1 FROM B ))";
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                              sql , ONE_SUBQUERY_NODE, expected );
+                              sql , TWO_SUBQUERY_NODES, expected );
         expected =
             "A1 |A2 |\n" +
             "--------\n" +
@@ -452,7 +452,7 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
                 "            UNION " +
                 "            SELECT -b1 FROM B ))";
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                              sql , ONE_SUBQUERY_NODE, expected );
+                              sql , TWO_SUBQUERY_NODES, expected );
 
     }
 
