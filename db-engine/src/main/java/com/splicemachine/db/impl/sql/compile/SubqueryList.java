@@ -49,7 +49,7 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
      */
 
     public void addSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
-        addElement(subqueryNode);
+        addElementIfNotPresent(subqueryNode);
     }
 
     /**

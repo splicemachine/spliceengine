@@ -689,10 +689,7 @@ public class SubqueryNode extends ValueNode{
         setDataTypeServices(resultColumns);
 
         /* Add this subquery to the subquery list */
-        if (!thisSubqueryAddedToSubqueryList) {
-            subqueryList.addSubqueryNode(this);
-            thisSubqueryAddedToSubqueryList = true;
-        }
+        subqueryList.addSubqueryNode(this);
 
         cc.popCurrentPrivType();
         return this;
