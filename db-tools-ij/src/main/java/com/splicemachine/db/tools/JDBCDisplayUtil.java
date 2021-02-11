@@ -77,7 +77,9 @@ public class JDBCDisplayUtil {
 	 * are ignored and the entire string is always dumped to the console, no matter how long. Generally, we don't care
 	 * to do this, but for Explain trace we do.
 	 */
-	static private int maxWidth = 256;
+	static public final int MAXWIDTH_NO_ALIGN = 0;
+	static public final int MAXWIDTH_DEFAULT = 256;
+	static private int maxWidth = MAXWIDTH_DEFAULT;
     @SuppressFBWarnings(value = {"MS_SHOULD_BE_FINAL", "MS_CANNOT_BE_FINAL"}, justification = "intentional, this field is set by reading a properties file")
 	static public boolean showSelectCount = false;
 

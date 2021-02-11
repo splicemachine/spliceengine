@@ -750,6 +750,13 @@ class SQLGrammarImpl {
     ValueNode getTrimOperatorNode(Integer trimSpec, ValueNode trimChar,
                                           ValueNode trimSource, ContextManager cm) throws StandardException
     {
+        return getTrimOperatorNode(trimSpec, trimChar, trimSource, false, cm);
+    }
+
+    ValueNode getTrimOperatorNode(Integer trimSpec, ValueNode trimChar,
+                                  ValueNode trimSource, boolean forDB2RTrim,
+                                  ContextManager cm) throws StandardException
+    {
         if (trimChar == null)
         {
             trimChar = (CharConstantNode) nodeFactory.getNode(
@@ -757,12 +764,13 @@ class SQLGrammarImpl {
                     " ",
                     getContextManager());
         }
+        final int trimType = forDB2RTrim ? TernaryOperatorNode.DB2RTRIM : TernaryOperatorNode.TRIM;
         return new TernaryOperatorNode(
                 C_NodeTypes.TRIM_OPERATOR_NODE,
                 trimSource, // receiver
                 trimChar,   // leftOperand.
                 null, // right
-                ReuseFactory.getInteger(TernaryOperatorNode.TRIM),
+                ReuseFactory.getInteger(trimType),
                 trimSpec,
                 cm == null ? getContextManager() : cm);
     }

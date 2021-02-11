@@ -147,7 +147,7 @@ public class BinaryRelationalOperatorNode
 
     public void reInitWithNodeType(int nodeType){
         setNodeType(nodeType);
-        init(leftOperand,rightOperand);
+        init(getLeftOperand(),getRightOperand());
     }
 
     /**
@@ -202,7 +202,7 @@ public class BinaryRelationalOperatorNode
              */
             // No remapping of multicolumn IN list for now.
             if (inListProbeSource.leftOperandList.size() == 1)
-                inListProbeSource.setLeftOperand(this.leftOperand);
+                inListProbeSource.setLeftOperand(this.getLeftOperand());
         }
 
         return inListProbeSource;
@@ -220,7 +220,7 @@ public class BinaryRelationalOperatorNode
         // either of this op's column references.
 
         boolean walkSubtree=true;
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
+        List<ColumnReference> columnReferences = getLeftOperand().getHashableJoinColumnReference();
         if(columnReferences != null && columnReferences.size() == 1){
             /*
             ** The left operand is a column reference.
@@ -238,7 +238,7 @@ public class BinaryRelationalOperatorNode
             }
             walkSubtree=false;
         }
-        columnReferences = rightOperand.getHashableJoinColumnReference();
+        columnReferences = getRightOperand().getHashableJoinColumnReference();
         if(columnReferences != null && columnReferences.size() == 1){
             ColumnReference cr = columnReferences.get(0);
             if (valNodeReferencesOptTable(cr, ft, false, walkSubtree)) {
@@ -262,12 +262,12 @@ public class BinaryRelationalOperatorNode
         ColumnReference cr;
 
         boolean walkSubtree=true;
-        if(leftOperand instanceof ColumnReference){
+        if(getLeftOperand() instanceof ColumnReference){
             /*
             ** The left operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)leftOperand;
+            cr=(ColumnReference)getLeftOperand();
             if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,walkSubtree)){
                 /*
                 ** The table is correct.
@@ -277,12 +277,12 @@ public class BinaryRelationalOperatorNode
             walkSubtree=false;
         }
 
-        if(rightOperand instanceof ColumnReference){
+        if(getRightOperand() instanceof ColumnReference){
             /*
             ** The right operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)rightOperand;
+            cr=(ColumnReference)getRightOperand();
             if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,walkSubtree)){
                 /*
                 ** The table is correct
@@ -291,18 +291,18 @@ public class BinaryRelationalOperatorNode
             }
         }
 
-        if(leftOperand instanceof CastNode){
-            if(((CastNode) leftOperand).castOperand instanceof ColumnReference){
-                cr = (ColumnReference)(((CastNode) leftOperand).castOperand);
+        if(getLeftOperand() instanceof CastNode){
+            if(((CastNode) getLeftOperand()).castOperand instanceof ColumnReference){
+                cr = (ColumnReference)(((CastNode) getLeftOperand()).castOperand);
                 if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
                     return cr;
                 }
             }
         }
 
-        if(rightOperand instanceof CastNode){
-            if(((CastNode) rightOperand).castOperand instanceof ColumnReference){
-                cr = (ColumnReference)(((CastNode) rightOperand).castOperand);
+        if(getRightOperand() instanceof CastNode){
+            if(((CastNode) getRightOperand()).castOperand instanceof ColumnReference){
+                cr = (ColumnReference)(((CastNode) getRightOperand()).castOperand);
                 if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
                     return cr;
                 }
@@ -319,9 +319,9 @@ public class BinaryRelationalOperatorNode
     {
         if (forIndexExpression) {
             if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
-                return rightOperand;
+                return getRightOperand();
             } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
-                return leftOperand;
+                return getLeftOperand();
             } else {
                 return null;
             }
@@ -330,14 +330,14 @@ public class BinaryRelationalOperatorNode
         ColumnReference cr;
         boolean walkSubtree=true;
 
-        if(leftOperand instanceof ColumnReference){
+        if(getLeftOperand() instanceof ColumnReference){
             /*
             ** The left operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)leftOperand;
+            cr=(ColumnReference)getLeftOperand();
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
-                return rightOperand;
+                return getRightOperand();
             }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
                 /*
@@ -348,20 +348,20 @@ public class BinaryRelationalOperatorNode
                     ** We've found the correct column -
                     ** return the other side
                     */
-                    return rightOperand;
+                    return getRightOperand();
                 }
             }
             walkSubtree=false;
         }
 
-        if(rightOperand instanceof ColumnReference){
+        if(getRightOperand() instanceof ColumnReference){
             /*
             ** The right operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)rightOperand;
+            cr=(ColumnReference)getRightOperand();
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
-                return leftOperand;
+                return getLeftOperand();
             }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
                 /*
@@ -372,7 +372,7 @@ public class BinaryRelationalOperatorNode
                     ** We've found the correct column -
                     ** return the other side
                     */
-                    return leftOperand;
+                    return getLeftOperand();
                 }
             }
         }
@@ -409,12 +409,12 @@ public class BinaryRelationalOperatorNode
             btnVis.setTableMap(valNodeBaseTables);
 
             ColumnReference cr;
-            if(leftOperand instanceof ColumnReference){
+            if(getLeftOperand() instanceof ColumnReference){
                 /*
                 ** The left operand is a column reference.
                 ** Is it the correct column?
                 */
-                cr=(ColumnReference)leftOperand;
+                cr=(ColumnReference)getLeftOperand();
                 cr.accept(btnVis);
                 valNodeBaseTables.and(optBaseTables);
                 if(valNodeBaseTables.getFirstSetBit()!=-1){
@@ -428,19 +428,19 @@ public class BinaryRelationalOperatorNode
                         ** return the appropriate side.
                         */
                         if(otherSide)
-                            return rightOperand;
-                        return leftOperand;
+                            return getRightOperand();
+                        return getLeftOperand();
                     }
                 }
             }
 
-            if(rightOperand instanceof ColumnReference){
+            if(getRightOperand() instanceof ColumnReference){
                 /*
                 ** The right operand is a column reference.
                 ** Is it the correct column?
                 */
                 valNodeBaseTables.clearAll();
-                cr=(ColumnReference)rightOperand;
+                cr=(ColumnReference)getRightOperand();
                 cr.accept(btnVis);
                 valNodeBaseTables.and(optBaseTables);
                 if(valNodeBaseTables.getFirstSetBit()!=-1){
@@ -454,8 +454,8 @@ public class BinaryRelationalOperatorNode
                         ** return the appropriate side
                         */
                         if(otherSide)
-                            return leftOperand;
-                        return rightOperand;
+                            return getLeftOperand();
+                        return getRightOperand();
                     }
                 }
             }
@@ -531,7 +531,7 @@ public class BinaryRelationalOperatorNode
 
         List<ColumnReference> lcr, rcr;
 
-        lcr = leftOperand.getHashableJoinColumnReference();
+        lcr = getLeftOperand().getHashableJoinColumnReference();
 
         /*
         ** Figure out which side the given ColumnReference is on,
@@ -541,7 +541,7 @@ public class BinaryRelationalOperatorNode
             if (forIndexExpression || lcr.size() == 1) {
                 for (ColumnReference columnReference : lcr) {
                     if (columnReference.equals(cr)) {
-                        otherSide = rightOperand;
+                        otherSide = getRightOperand();
                         break;
                     }
                 }
@@ -549,12 +549,12 @@ public class BinaryRelationalOperatorNode
         }
 
         if (otherSide == null) {
-            rcr = rightOperand.getHashableJoinColumnReference();
+            rcr = getRightOperand().getHashableJoinColumnReference();
             if (rcr != null && !rcr.isEmpty()) {
                 if (forIndexExpression || rcr.size() == 1) {
                     for (ColumnReference columnReference : rcr) {
                         if (columnReference.equals(cr)) {
-                            otherSide = leftOperand;
+                            otherSide = getLeftOperand();
                             break;
                         }
                     }
@@ -626,7 +626,7 @@ public class BinaryRelationalOperatorNode
         boolean left=false;
 
         /* Is the key column on the left or the right? */
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
+        List<ColumnReference> columnReferences = getLeftOperand().getHashableJoinColumnReference();
         if (columnReferences != null && (leftMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
             if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
                 /* The left operand is the key column */
@@ -637,7 +637,7 @@ public class BinaryRelationalOperatorNode
         if(SanityManager.DEBUG){
             if(!left){
                 boolean right = false;
-                columnReferences = rightOperand.getHashableJoinColumnReference();
+                columnReferences = getRightOperand().getHashableJoinColumnReference();
                 if (columnReferences != null && (rightMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
                     if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
                     /* The right operand is the key column */
@@ -666,12 +666,12 @@ public class BinaryRelationalOperatorNode
         boolean walkSubtree=true;
 
         /* Is a column on the left */
-        if(leftOperand instanceof ColumnReference){
+        if(getLeftOperand() instanceof ColumnReference){
             /*
             ** The left operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)leftOperand;
+            cr=(ColumnReference)getLeftOperand();
             if(valNodeReferencesOptTable(
                     cr,(FromTable)optTable,false,walkSubtree)){
                 /* Key column found on left */
@@ -680,12 +680,12 @@ public class BinaryRelationalOperatorNode
             walkSubtree=false;
         }
 
-        if(rightOperand instanceof ColumnReference){
+        if(getRightOperand() instanceof ColumnReference){
             /*
             ** The right operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)rightOperand;
+            cr=(ColumnReference)getRightOperand();
             if(valNodeReferencesOptTable(
                     cr,(FromTable)optTable,false,walkSubtree)){
                 /* Key column found on right */
@@ -767,10 +767,10 @@ public class BinaryRelationalOperatorNode
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            columnReferences = leftOperand.getHashableJoinColumnReference();
+            columnReferences = getLeftOperand().getHashableJoinColumnReference();
 
         }else{
-            columnReferences = rightOperand.getHashableJoinColumnReference();
+            columnReferences = getRightOperand().getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
@@ -807,9 +807,9 @@ public class BinaryRelationalOperatorNode
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            columnReferences = leftOperand.getHashableJoinColumnReference();
+            columnReferences = getLeftOperand().getHashableJoinColumnReference();
         }else{
-            columnReferences = rightOperand.getHashableJoinColumnReference();
+            columnReferences = getRightOperand().getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
@@ -856,9 +856,9 @@ public class BinaryRelationalOperatorNode
         */
         boolean onLeft = forIndexExpression ? indexExprOnLeft(optTable) : keyColumnOnLeft(optTable);
         if (onLeft) {
-            rightOperand.generateExpression(acb, qualMethod);
+            getRightOperand().generateExpression(acb, qualMethod);
         } else {
-            leftOperand.generateExpression(acb, qualMethod);
+            getLeftOperand().generateExpression(acb, qualMethod);
         }
 
         qualMethod.methodReturn();
@@ -903,27 +903,27 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        if(leftOperand instanceof ColumnReference){
+        if(getLeftOperand() instanceof ColumnReference){
             /*
             ** The left operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)leftOperand;
+            cr=(ColumnReference)getLeftOperand();
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
-                otherSide=rightOperand;
+                otherSide=getRightOperand();
                 found=true;
             }
             walkSubtree=false;
         }
 
-        if((!found) && (rightOperand instanceof ColumnReference)){
+        if((!found) && (getRightOperand() instanceof ColumnReference)){
             /*
             ** The right operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)rightOperand;
+            cr=(ColumnReference)getRightOperand();
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
-                otherSide=leftOperand;
+                otherSide=getLeftOperand();
                 found=true;
             }
         }
@@ -964,8 +964,8 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        List<ColumnReference> lcr = leftOperand.getHashableJoinColumnReference();
-        List<ColumnReference> rcr = rightOperand.getHashableJoinColumnReference();
+        List<ColumnReference> lcr = getLeftOperand().getHashableJoinColumnReference();
+        List<ColumnReference> rcr = getRightOperand().getHashableJoinColumnReference();
         if (lcr == null || rcr == null || lcr.size() != 1 || rcr.size() != 1) {
             // In order to have a hashable qualifier, we need to have have a column ref on both sides
             return false;
@@ -976,7 +976,7 @@ public class BinaryRelationalOperatorNode
             ** Is it the correct column?
             */
             if(valNodeReferencesOptTable(lcr.get(0),ft,forPush,walkSubtree)){
-                otherSide=rightOperand;
+                otherSide=getRightOperand();
                 found=true;
                 walkSubtree=false;
             }
@@ -987,7 +987,7 @@ public class BinaryRelationalOperatorNode
             ** Is it the correct column?
             */
             if(valNodeReferencesOptTable(rcr.get(0),ft,forPush,walkSubtree)){
-                otherSide=leftOperand;
+                otherSide=getLeftOperand();
                 found=true;
             }
         }
@@ -1014,10 +1014,10 @@ public class BinaryRelationalOperatorNode
      * @see RelationalOperator#isQualifier
      */
     public boolean isOrderedQualifier(int leftTableNumber,int leftColumnNumber,int rightTableNumber,int rightColumnNumber) throws StandardException{
-        if(isInListProbeNode() || !(leftOperand instanceof ColumnReference) || !(rightOperand instanceof ColumnReference))
+        if(isInListProbeNode() || !(getLeftOperand() instanceof ColumnReference) || !(getRightOperand() instanceof ColumnReference))
             return false;
-        ColumnReference left=(ColumnReference)leftOperand;
-        ColumnReference right=(ColumnReference)rightOperand;
+        ColumnReference left=(ColumnReference)getLeftOperand();
+        ColumnReference right=(ColumnReference)getRightOperand();
         return (left.getTableNumber() == leftTableNumber && left.getColumnNumber() == leftColumnNumber &&
                 right.getTableNumber() == rightTableNumber && right.getColumnNumber() == rightColumnNumber) ||
                 (left.getTableNumber() == rightTableNumber && left.getColumnNumber() == rightColumnNumber &&
@@ -1045,27 +1045,27 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        if(leftOperand instanceof ColumnReference){
+        if(getLeftOperand() instanceof ColumnReference){
             /*
             ** The left operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)leftOperand;
+            cr=(ColumnReference)getLeftOperand();
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
-                otherSide=rightOperand;
+                otherSide=getRightOperand();
                 found=true;
             }
             walkSubtree=false;
         }
 
-        if((!found) && (rightOperand instanceof ColumnReference)){
+        if((!found) && (getRightOperand() instanceof ColumnReference)){
             /*
             ** The right operand is a column reference.
             ** Is it the correct column?
             */
-            cr=(ColumnReference)rightOperand;
+            cr=(ColumnReference)getRightOperand();
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
-                otherSide=leftOperand;
+                otherSide=getLeftOperand();
                 found=true;
             }
         }
@@ -1094,9 +1094,9 @@ public class BinaryRelationalOperatorNode
          * the key column.
          */
         if(keyColumnOnLeft(optTable)){
-            return rightOperand.getOrderableVariantType();
+            return getRightOperand().getOrderableVariantType();
         }else{
-            return leftOperand.getOrderableVariantType();
+            return getLeftOperand().getOrderableVariantType();
         }
     }
 
@@ -1104,10 +1104,10 @@ public class BinaryRelationalOperatorNode
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         ValueNode node;
         if (optTable != null) {
-            node = keyColumnOnLeft(optTable) ? rightOperand : leftOperand;
+            node = keyColumnOnLeft(optTable) ? getRightOperand() : getLeftOperand();
             return node.isKnownConstant(considerParameters);
         } else {
-            return (rightOperand.isKnownConstant(considerParameters) || leftOperand.isKnownConstant(considerParameters));
+            return (getRightOperand().isKnownConstant(considerParameters) || getLeftOperand().isKnownConstant(considerParameters));
         }
     }
 
@@ -1119,7 +1119,7 @@ public class BinaryRelationalOperatorNode
         /* The value being compared to is on the opposite side from
         ** the key column.
         */
-        node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
+        node=keyColumnOnLeft(optTable)?getRightOperand():getLeftOperand();
         return node.getKnownConstantValue();
     }
 
@@ -1136,9 +1136,9 @@ public class BinaryRelationalOperatorNode
         columnSide=columnOnOneSide(optTable);
 
         if(columnSide==LEFT)
-            typeId=leftOperand.getTypeId();
+            typeId=getLeftOperand().getTypeId();
         else if(columnSide==RIGHT)
-            typeId=rightOperand.getTypeId();
+            typeId=getRightOperand().getTypeId();
 
         if(typeId!=null && (typeId.getJDBCTypeId()==Types.BIT ||
                 typeId.getJDBCTypeId()==Types.BOOLEAN))
@@ -1164,10 +1164,10 @@ public class BinaryRelationalOperatorNode
      * operator is known; otherwise, this operator node
      */
     ValueNode evaluateConstantExpressions() throws StandardException{
-        if(leftOperand instanceof ConstantNode &&
-                rightOperand instanceof ConstantNode){
-            ConstantNode leftOp=(ConstantNode)leftOperand;
-            ConstantNode rightOp=(ConstantNode)rightOperand;
+        if(getLeftOperand() instanceof ConstantNode &&
+                getRightOperand() instanceof ConstantNode){
+            ConstantNode leftOp=(ConstantNode)getLeftOperand();
+            ConstantNode rightOp=(ConstantNode)getRightOperand();
             DataValueDescriptor leftVal=leftOp.getValue();
             DataValueDescriptor rightVal=rightOp.getValue();
 
@@ -1261,7 +1261,7 @@ public class BinaryRelationalOperatorNode
      */
     BinaryOperatorNode getSwappedEquivalent() throws StandardException{
         BinaryOperatorNode newNode=(BinaryOperatorNode)getNodeFactory().getNode(getNodeTypeForSwap(),
-                rightOperand,leftOperand,
+                getRightOperand(),getLeftOperand(),
                 getContextManager());
         newNode.setType(getTypeServices());
         return newNode;
@@ -1480,24 +1480,24 @@ public class BinaryRelationalOperatorNode
      * @throws StandardException
      */
     public double getReferenceSelectivity(Optimizable optTable) throws StandardException {
-        if (leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference && optTable instanceof FromBaseTable) {
-            ConglomerateDescriptor cdLeft = ((ColumnReference) leftOperand).getBaseConglomerateDescriptor();
-            ConglomerateDescriptor cdRight = ((ColumnReference) rightOperand).getBaseConglomerateDescriptor();
+        if (getLeftOperand() instanceof ColumnReference && getRightOperand() instanceof ColumnReference && optTable instanceof FromBaseTable) {
+            ConglomerateDescriptor cdLeft = ((ColumnReference) getLeftOperand()).getBaseConglomerateDescriptor();
+            ConglomerateDescriptor cdRight = ((ColumnReference) getRightOperand()).getBaseConglomerateDescriptor();
             if (cdLeft ==null && cdRight==null)
                 return -1.0d;
             boolean leftFromBaseTable = cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             boolean rightFromBaseTable = cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             if (leftFromBaseTable && rightFromBaseTable) {
-                return Math.max(((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity());
+                return Math.max(((ColumnReference) getLeftOperand()).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) getRightOperand()).columnReferenceEqualityPredicateSelectivity());
             } else if (leftFromBaseTable) {
-                return ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+                return ((ColumnReference) getLeftOperand()).columnReferenceEqualityPredicateSelectivity();
             } else if (rightFromBaseTable) {
-                return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
+                return ((ColumnReference) getRightOperand()).columnReferenceEqualityPredicateSelectivity();
             }
-        } else if (leftOperand instanceof ColumnReference) {
+        } else if (getLeftOperand() instanceof ColumnReference) {
             // generalize the estimation from ParameterNode to any expression
-            double sel = ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
-            if (rightOperand instanceof ParameterNode) {
+            double sel = ((ColumnReference) getLeftOperand()).columnReferenceEqualityPredicateSelectivity();
+            if (getRightOperand() instanceof ParameterNode) {
                 // it is possible that this is a special case that actually represents an inlist condition, then it is better to facter in the
                 // number of inlist elements in the selectivity estimation
                 int factor = 1;
@@ -1511,9 +1511,9 @@ public class BinaryRelationalOperatorNode
                     sel = DEFAULT_INLIST_SELECTIVITY;
             }
             return sel;
-        } else if (rightOperand instanceof ColumnReference) {
+        } else if (getRightOperand() instanceof ColumnReference) {
             // generalize the estimation from ParameterNode to any expression
-            return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
+            return ((ColumnReference) getRightOperand()).columnReferenceEqualityPredicateSelectivity();
         }
         return -1.0d;
     }
@@ -1605,16 +1605,16 @@ public class BinaryRelationalOperatorNode
         } else { // No Right ColumnReference
             selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-        assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
+        assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + getRightOperand() + " left -> " + getLeftOperand();
         return selectivity;
     }
 
     private boolean operandMayHaveStatistics(int side) {
         if (side == LEFT) {
-            return (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null)
+            return (getLeftOperand() instanceof ColumnReference && ((ColumnReference) getLeftOperand()).getSource().getTableColumnDescriptor() != null)
                     || (leftMatchIndexExpr >= 0 && leftMatchIndexExprColumnPosition >= 0 && leftMatchIndexExprConglomDesc != null);
         } else if (side == RIGHT) {
-            return (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null)
+            return (getRightOperand() instanceof ColumnReference && ((ColumnReference) getRightOperand()).getSource().getTableColumnDescriptor() != null)
                     || (rightMatchIndexExpr >= 0 && rightMatchIndexExprColumnPosition >= 0 && rightMatchIndexExprConglomDesc != null);
         } else {
             throw new RuntimeException("invalid side argument passed in");
@@ -1632,7 +1632,7 @@ public class BinaryRelationalOperatorNode
     private ColumnReference getColumnOrIndexExprColumn(int side)
             throws StandardException
     {
-        ValueNode operand = side == LEFT ? leftOperand : rightOperand;
+        ValueNode operand = side == LEFT ? getLeftOperand() : getRightOperand();
         int tableNumber = side == LEFT ? leftMatchIndexExpr : rightMatchIndexExpr;
         int indexColumnPosition = side == LEFT ? leftMatchIndexExprColumnPosition : rightMatchIndexExprColumnPosition;
         ConglomerateDescriptor conglomDesc = side == LEFT ? leftMatchIndexExprConglomDesc : rightMatchIndexExprConglomDesc;
@@ -1670,7 +1670,7 @@ public class BinaryRelationalOperatorNode
     }
 
     public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException{
-        return (RelationalOperator)getNodeFactory().getNode(getNodeType(),otherCR,rightOperand,getContextManager());
+        return (RelationalOperator)getNodeFactory().getNode(getNodeType(),otherCR,getRightOperand(),getContextManager());
     }
 
     public boolean equalsComparisonWithConstantExpression(Optimizable optTable){
@@ -1684,9 +1684,9 @@ public class BinaryRelationalOperatorNode
             side = indexExprOnOneSide(optTable);
         }
         if(side==LEFT){
-            retval=rightOperand.isConstantExpression();
+            retval=getRightOperand().isConstantExpression();
         }else if(side==RIGHT){
-            retval=leftOperand.isConstantExpression();
+            retval=getLeftOperand().isConstantExpression();
         }
 
         return retval;
@@ -1876,10 +1876,10 @@ public class BinaryRelationalOperatorNode
          int side = indexExprOnOneSide(optTable);
          switch(side) {
              case LEFT:
-                 expr = leftOperand;
+                 expr = getLeftOperand();
                  break;
              case RIGHT:
-                 expr = rightOperand;
+                 expr = getRightOperand();
                  break;
              case NEITHER:
              default:
@@ -1909,8 +1909,8 @@ public class BinaryRelationalOperatorNode
 
     private boolean implicitVarcharComparison()
             throws StandardException {
-        TypeId leftType = leftOperand.getTypeId();
-        TypeId rightType = rightOperand.getTypeId();
+        TypeId leftType = getLeftOperand().getTypeId();
+        TypeId rightType = getRightOperand().getTypeId();
 
         return leftType.isStringTypeId() && !rightType.isStringTypeId() || rightType.isStringTypeId() && (!leftType.isStringTypeId());
 
@@ -1983,8 +1983,8 @@ public class BinaryRelationalOperatorNode
         ResultColumn rc;
         ColumnReference cr=
                 whichSide==LEFT
-                        ?(ColumnReference)leftOperand
-                        :(ColumnReference)rightOperand;
+                        ?(ColumnReference)getLeftOperand()
+                        :(ColumnReference)getRightOperand();
 
         /* When we scope a predicate we only scope one side of it--the
          * side that is to be evaluated against childRSN.  We figure out
@@ -2321,13 +2321,13 @@ public class BinaryRelationalOperatorNode
 
     public boolean hasRowId(){
         boolean ret=false;
-        if(leftOperand instanceof ColumnReference){
-            ColumnReference cr=(ColumnReference)leftOperand;
+        if(getLeftOperand() instanceof ColumnReference){
+            ColumnReference cr=(ColumnReference)getLeftOperand();
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 ret=true;
             }
-        }else if(rightOperand instanceof ColumnReference){
-            ColumnReference cr=(ColumnReference)rightOperand;
+        }else if(getRightOperand() instanceof ColumnReference){
+            ColumnReference cr=(ColumnReference)getRightOperand();
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 ret=true;
             }

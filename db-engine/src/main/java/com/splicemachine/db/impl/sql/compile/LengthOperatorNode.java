@@ -53,123 +53,123 @@ import java.util.List;
 @SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class LengthOperatorNode extends UnaryOperatorNode
 {
-	private int parameterType;
-	private int parameterWidth;
+    private int parameterType;
+    private int parameterWidth;
 
-	public void setNodeType(int nodeType)
-	{
-		String operator = null;
-		String methodName = null;
+    public void setNodeType(int nodeType)
+    {
+        String operator = null;
+        String methodName = null;
 
-		if (nodeType == C_NodeTypes.CHAR_LENGTH_OPERATOR_NODE)
-		{
-				operator = "char_length";
-				methodName = "charLength";
-				parameterType = Types.VARCHAR;
-				parameterWidth = TypeId.VARCHAR_MAXWIDTH;
-		}
-		else
-		{
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-						"Unexpected nodeType = " + nodeType);
-				}
-		}
-		setOperator(operator);
-		setMethodName(methodName);
-		super.setNodeType(nodeType);
-	}
+        if (nodeType == C_NodeTypes.CHAR_LENGTH_OPERATOR_NODE)
+        {
+                operator = "char_length";
+                methodName = "charLength";
+                parameterType = Types.VARCHAR;
+                parameterWidth = TypeId.VARCHAR_MAXWIDTH;
+        }
+        else
+        {
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                        "Unexpected nodeType = " + nodeType);
+                }
+        }
+        setOperator(operator);
+        setMethodName(methodName);
+        super.setNodeType(nodeType);
+    }
 
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException{
-		TypeId	operandType;
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException{
+        TypeId    operandType;
 
-		bindOperand(fromList, subqueryList,
-				aggregateVector);
+        bindOperand(fromList, subqueryList,
+                aggregateVector);
 
-		/*
-		** Check the type of the operand - this function is allowed only on
-		** string value types.  
-		*/
-		operandType = operand.getTypeId();
-		switch (operandType.getJDBCTypeId())
-		{
-				case Types.CHAR:
-				case Types.VARCHAR:
-				case Types.BINARY:
-				case Types.VARBINARY:
-				case Types.LONGVARBINARY:
-				case Types.LONGVARCHAR:
+        /*
+        ** Check the type of the operand - this function is allowed only on
+        ** string value types.
+        */
+        operandType = getOperand().getTypeId();
+        switch (operandType.getJDBCTypeId())
+        {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.BINARY:
+                case Types.VARBINARY:
+                case Types.LONGVARBINARY:
+                case Types.LONGVARCHAR:
                 case Types.BLOB:
                 case Types.CLOB:
-					break;
-			
-				default:
-					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-											getOperatorString(),
-											operandType.getSQLTypeName());
-		}
+                    break;
 
-		/*
-		** The result type of XXX_length is int.
-		*/
-		setType(new DataTypeDescriptor(
-							TypeId.INTEGER_ID,
-							operand.getTypeServices().isNullable()
-						)
-				);
-		return this;
-	}
+                default:
+                    throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                                            getOperatorString(),
+                                            operandType.getSQLTypeName());
+        }
 
-	/**
-	 * Bind a ? parameter operand of the XXX_length function.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+        /*
+        ** The result type of XXX_length is int.
+        */
+        setType(new DataTypeDescriptor(
+                            TypeId.INTEGER_ID,
+                            getOperand().getTypeServices().isNullable()
+                        )
+                );
+        return this;
+    }
 
-	void bindParameter()
-			throws StandardException
-	{
-		/*
-		** According to the SQL standard, if XXX_length has a ? operand,
-		** its type is varchar with the implementation-defined maximum length
-		** for a varchar.
-		** Also, for XXX_length, it doesn't matter what is VARCHAR's collation 
-		** (since for XXX_length, no collation sensitive processing is 
-		** is required) and hence we will not worry about the collation setting
-		*/
+    /**
+     * Bind a ? parameter operand of the XXX_length function.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(parameterType, true, 
-												parameterWidth));
-	}
+    void bindParameter()
+            throws StandardException
+    {
+        /*
+        ** According to the SQL standard, if XXX_length has a ? operand,
+        ** its type is varchar with the implementation-defined maximum length
+        ** for a varchar.
+        ** Also, for XXX_length, it doesn't matter what is VARCHAR's collation
+        ** (since for XXX_length, no collation sensitive processing is
+        ** is required) and hence we will not worry about the collation setting
+        */
 
-	/**
-	 * This is a length operator node.  Overrides this method
-	 * in UnaryOperatorNode for code generation purposes.
-	 */
-	public String getReceiverInterfaceName() {
-	    return ClassName.ConcatableDataValue;
-	}
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(parameterType, true,
+                                                parameterWidth));
+    }
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		double lowerCost = getOperandCost();
-		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : Math.min(operand.getTypeServices().getNull().getLength(), 16));
-		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
-		return lowerCost + localCost + callCost;
-	}
+    /**
+     * This is a length operator node.  Overrides this method
+     * in UnaryOperatorNode for code generation purposes.
+     */
+    public String getReceiverInterfaceName() {
+        return ClassName.ConcatableDataValue;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : Math.min(getOperand().getTypeServices().getNull().getLength(), 16));
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return lowerCost + localCost + callCost;
+    }
 }

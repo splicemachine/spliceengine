@@ -113,7 +113,7 @@ public class DataDictionaryCache {
          */
         int tdCacheSize = getCacheSize(startParams, Property.LANG_TD_CACHE_SIZE,
                 Property.LANG_TD_CACHE_SIZE_DEFAULT);
-        int stmtCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
+        int spsCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
                 Property.LANG_SPS_CACHE_SIZE_DEFAULT);
         int seqgenCacheSize = getCacheSize(startParams, Property.LANG_SEQGEN_CACHE_SIZE,
                 Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
@@ -163,9 +163,9 @@ public class DataDictionaryCache {
         };
         oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build(), tdCacheSize);
         nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build(), tdCacheSize);
-        if(stmtCacheSize>0){
-            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
-            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
+        if(spsCacheSize>0){
+            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
+            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
         }
         sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build(), seqgenCacheSize);
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()

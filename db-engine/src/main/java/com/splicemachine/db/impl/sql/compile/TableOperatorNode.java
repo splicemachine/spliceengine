@@ -360,12 +360,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-        /*
-        ** Parameters not allowed in select list of either side of union,
-        ** except when the union is for a table constructor.
-        */
         if (!bindRightOnly) {
-            if (!(this instanceof UnionNode) || !((UnionNode) this).tableConstructor()) {
+            if (!(this instanceof UnionNode)) {
                 leftResultSet.rejectParameters();
                 rightResultSet.rejectParameters();
             }

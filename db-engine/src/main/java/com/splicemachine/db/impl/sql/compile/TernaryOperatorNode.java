@@ -42,7 +42,6 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
@@ -52,10 +51,7 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -67,18 +63,8 @@ import java.util.Set;
 
 public class TernaryOperatorNode extends OperatorNode
 {
-    String        operator;
-    String        methodName;
     int            operatorType;
-    ValueNode    receiver;
 
-    ValueNode    leftOperand;
-    ValueNode    rightOperand;
-
-    String        resultInterfaceType;
-    String        receiverInterfaceType;
-    String        leftInterfaceType;
-    String        rightInterfaceType;
     int            trimType;
 
     public static final int TRIM = 0;
@@ -91,8 +77,9 @@ public class TernaryOperatorNode extends OperatorNode
     public static final int RIGHT = 7;
     public static final int LEFT = 8;
     public static final int SPLIT_PART = 9;
-    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left", "split_part"};
-    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left", "split_part"};
+    public static final int DB2RTRIM = 10;
+    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left", "split_part", "trim"};
+    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left", "split_part", "db2Trim"};
 
     static final String[] TernaryResultType = {
             ClassName.StringDataValue,
@@ -102,6 +89,7 @@ public class TernaryOperatorNode extends OperatorNode
             ClassName.DateTimeDataValue,
             ClassName.NumberDataValue,
             ClassName.ConcatableDataValue,
+            ClassName.StringDataValue,
             ClassName.StringDataValue,
             ClassName.StringDataValue,
             ClassName.StringDataValue
@@ -116,7 +104,8 @@ public class TernaryOperatorNode extends OperatorNode
             {ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // right
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // left
-            {ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue} // split_part
+            {ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue}, // split_part
+            {ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"} // DB2 rtrim
     };
 
     public TernaryOperatorNode() {}
@@ -144,18 +133,30 @@ public class TernaryOperatorNode extends OperatorNode
                     Object operatorType,
                     Object trimType)
     {
-        this.receiver = (ValueNode) receiver;
-        this.leftOperand = (ValueNode) leftOperand;
-        this.rightOperand = (ValueNode) rightOperand;
+        this.operands = new ArrayList<>(Arrays.asList((ValueNode) receiver, (ValueNode) leftOperand, (ValueNode) rightOperand));
         this.operatorType = (Integer) operatorType;
         this.operator = TernaryOperators[this.operatorType];
         this.methodName = TernaryMethodNames[this.operatorType];
         this.resultInterfaceType = TernaryResultType[this.operatorType];
-        this.receiverInterfaceType = TernaryArgType[this.operatorType][0];
-        this.leftInterfaceType = TernaryArgType[this.operatorType][1];
-        this.rightInterfaceType = TernaryArgType[this.operatorType][2];
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(TernaryArgType[this.operatorType]));
         if (trimType != null)
                 this.trimType = (Integer) trimType;
+    }
+
+    String getReceiverInterfaceType() {
+        return interfaceTypes.get(0);
+    }
+
+    void setReceiverInterfaceType(String iType) {
+        interfaceTypes.set(0, iType);
+    }
+
+    String getLeftInterfaceType() {
+        return interfaceTypes.get(1);
+    }
+
+    String getRightInterfaceType() {
+        return interfaceTypes.get(2);
     }
 
     /**
@@ -172,47 +173,14 @@ public class TernaryOperatorNode extends OperatorNode
             return "operator: " + operator + "\n" +
                 "methodName: " + methodName + "\n" +
                 "resultInterfaceType: " + resultInterfaceType + "\n" +
-                "receiverInterfaceType: " + receiverInterfaceType + "\n" +
-                "leftInterfaceType: " + leftInterfaceType + "\n" +
-                "rightInterfaceType: " + rightInterfaceType + "\n" +
+                "receiverInterfaceType: " + getReceiverInterfaceType() + "\n" +
+                "leftInterfaceType: " + getLeftInterfaceType() + "\n" +
+                "rightInterfaceType: " + getRightInterfaceType() + "\n" +
                 super.toString();
         }
         else
         {
             return "";
-        }
-    }
-
-    /**
-     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-     * how tree printing is supposed to work.
-     *
-     * @param depth        The depth of this node in the tree
-     */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
-            super.printSubNodes(depth);
-
-            if (receiver != null)
-            {
-                printLabel(depth, "receiver: ");
-                receiver.treePrint(depth + 1);
-            }
-
-            if (leftOperand != null)
-            {
-                printLabel(depth, "leftOperand: ");
-                leftOperand.treePrint(depth + 1);
-            }
-
-            if (rightOperand != null)
-            {
-                printLabel(depth, "rightOperand: ");
-                rightOperand.treePrint(depth + 1);
-            }
         }
     }
 
@@ -233,15 +201,8 @@ public class TernaryOperatorNode extends OperatorNode
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector)  throws StandardException {
-        receiver = receiver.bindExpression(fromList, subqueryList,  aggregateVector);
-
-        leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
-
-        if (rightOperand != null)
-        {
-            rightOperand = rightOperand.bindExpression(fromList, subqueryList,  aggregateVector);
-        }
-        if (operatorType == TRIM)
+        bindOperands(fromList, subqueryList,  aggregateVector);
+        if (operatorType == TRIM || operatorType == DB2RTRIM)
             trimBind();
         else if (operatorType == LOCATE)
             locateBind();
@@ -264,43 +225,6 @@ public class TernaryOperatorNode extends OperatorNode
     }
 
     /**
-     * Preprocess an expression tree.  We do a number of transformations
-     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
-     * subquery flattening.
-     * NOTE: This is done before the outer ResultSetNode is preprocessed.
-     *
-     * @param    numTables            Number of tables in the DML Statement
-     * @param    outerFromList        FromList from outer query block
-     * @param    outerSubqueryList    SubqueryList from outer query block
-     * @param    outerPredicateList    PredicateList from outer query block
-     *
-     * @return        The modified expression
-     *
-     * @exception StandardException        Thrown on error
-     */
-    public ValueNode preprocess(int numTables,
-                                FromList outerFromList,
-                                SubqueryList outerSubqueryList,
-                                PredicateList outerPredicateList)
-                    throws StandardException
-    {
-        receiver = receiver.preprocess(numTables,
-                                             outerFromList, outerSubqueryList,
-                                             outerPredicateList);
-
-        leftOperand = leftOperand.preprocess(numTables,
-                                             outerFromList, outerSubqueryList,
-                                             outerPredicateList);
-        if (rightOperand != null)
-        {
-            rightOperand = rightOperand.preprocess(numTables,
-                                                   outerFromList, outerSubqueryList,
-                                                   outerPredicateList);
-        }
-        return this;
-    }
-
-    /**
      * Return the variant type for the underlying expression.
      * The variant type can be:
      *        VARIANT                - variant within a scan
@@ -313,12 +237,13 @@ public class TernaryOperatorNode extends OperatorNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
+    @Override
     protected int getOrderableVariantType() throws StandardException {
-        if (operator != null && operator.equals("trim") && rightOperand == null)
+        if (operator != null && operator.equals("trim") && getRightOperand() == null)
             return Qualifier.VARIANT;
-        int leftType = leftOperand.getOrderableVariantType();
-        return rightOperand == null ?
-                leftType : Math.min(leftType, rightOperand.getOrderableVariantType());
+        int leftType = getLeftOperand().getOrderableVariantType();
+        return getRightOperand() == null ?
+                leftType : Math.min(leftType, getRightOperand().getOrderableVariantType());
     }
 
     /**
@@ -341,110 +266,110 @@ public class TernaryOperatorNode extends OperatorNode
         /* Allocate an object for re-use to hold the result of the operator */
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
 
-        receiver.generateExpression(acb, mb);
-        if (operatorType == TRIM)
+        getReceiver().generateExpression(acb, mb);
+        if (operatorType == TRIM || operatorType == DB2RTRIM)
         {
             mb.push(trimType);
-            leftOperand.generateExpression(acb, mb);
-            mb.cast(leftInterfaceType);
+            getLeftOperand().generateExpression(acb, mb);
+            mb.cast(getLeftInterfaceType());
 
             mb.getField(field);
             nargs = 3;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == LOCATE)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
-            rightOperand.generateExpression(acb, mb);
-            mb.upCast(rightInterfaceType);
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
+            getRightOperand().generateExpression(acb, mb);
+            mb.upCast(getRightInterfaceType());
             mb.getField(field);
             nargs = 3;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == SUBSTRING)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
-            if (rightOperand != null)
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
+            if (getRightOperand() != null)
             {
-                rightOperand.generateExpression(acb, mb);
-                mb.upCast(rightInterfaceType);
+                getRightOperand().generateExpression(acb, mb);
+                mb.upCast(getRightInterfaceType());
             }
             else
             {
-                mb.pushNull(rightInterfaceType);
+                mb.pushNull(getRightInterfaceType());
             }
 
             mb.getField(field); // third arg
-            mb.push(receiver.getTypeServices().getMaximumWidth());
+            mb.push(getReceiver().getTypeServices().getMaximumWidth());
             mb.push(getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID || getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID);
             nargs = 5;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == LEFT)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
             mb.getField(field);
             nargs = 2;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == RIGHT)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
             mb.getField(field);
             nargs = 2;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == TIMESTAMPADD || operatorType == TIMESTAMPDIFF)
         {
-            Object intervalType = leftOperand.getConstantValueAsObject();
+            Object intervalType = getLeftOperand().getConstantValueAsObject();
             if( SanityManager.DEBUG)
                 SanityManager.ASSERT( intervalType != null && intervalType instanceof Integer,
                                       "Invalid interval type used for " + operator);
             mb.push((Integer) intervalType);
-            rightOperand.generateExpression( acb, mb);
+            getRightOperand().generateExpression( acb, mb);
             mb.upCast( TernaryArgType[ operatorType][2]);
             acb.getCurrentDateExpression( mb);
             mb.getField(field);
             nargs = 4;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == REPLACE)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
-            if (rightOperand != null)
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
+            if (getRightOperand() != null)
             {
-                rightOperand.generateExpression(acb, mb);
-                mb.upCast(rightInterfaceType);
+                getRightOperand().generateExpression(acb, mb);
+                mb.upCast(getRightInterfaceType());
             }
             else
             {
-                mb.pushNull(rightInterfaceType);
+                mb.pushNull(getRightInterfaceType());
             }
             mb.getField(field);
             nargs = 3;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
         else if (operatorType == SPLIT_PART)
         {
-            leftOperand.generateExpression(acb, mb);
-            mb.upCast(leftInterfaceType);
-            if (rightOperand != null)
+            getLeftOperand().generateExpression(acb, mb);
+            mb.upCast(getLeftInterfaceType());
+            if (getRightOperand() != null)
             {
-                rightOperand.generateExpression(acb, mb);
-                mb.upCast(rightInterfaceType);
+                getRightOperand().generateExpression(acb, mb);
+                mb.upCast(getRightInterfaceType());
             }
             else
             {
-                mb.pushNull(rightInterfaceType);
+                mb.pushNull(getRightInterfaceType());
             }
             mb.getField(field);
             nargs = 3;
-            receiverType = receiverInterfaceType;
+            receiverType = getReceiverInterfaceType();
         }
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultInterfaceType, nargs);
@@ -456,10 +381,6 @@ public class TernaryOperatorNode extends OperatorNode
 //        mb.putField(field);
     }
 
-    public String getOperator(){
-        return operator;
-    }
-
     /**
      * Set the leftOperand to the specified ValueNode
      *
@@ -467,7 +388,7 @@ public class TernaryOperatorNode extends OperatorNode
      */
     public void setLeftOperand(ValueNode newLeftOperand)
     {
-        leftOperand = newLeftOperand;
+        operands.set(1, newLeftOperand);
     }
 
     /**
@@ -477,18 +398,12 @@ public class TernaryOperatorNode extends OperatorNode
      */
     public ValueNode getLeftOperand()
     {
-        return leftOperand;
+        return operands.get(1);
     }
 
     public void setReceiver(ValueNode receiver) {
-        this.receiver = receiver;
+        this.operands.set(0, receiver);
     }
-
-    @Override
-    public boolean checkCRLevel(int level){
-        return leftOperand.checkCRLevel(level) || (rightOperand != null ? rightOperand.checkCRLevel(level) : false) || receiver.checkCRLevel(level);
-    }
-
 
     /**
      * Set the rightOperand to the specified ValueNode
@@ -497,7 +412,7 @@ public class TernaryOperatorNode extends OperatorNode
      */
     public void setRightOperand(ValueNode newRightOperand)
     {
-        rightOperand = newRightOperand;
+        operands.set(2, newRightOperand);
     }
 
     /**
@@ -507,7 +422,7 @@ public class TernaryOperatorNode extends OperatorNode
      */
     public ValueNode getRightOperand()
     {
-        return rightOperand;
+        return operands.get(2);
     }
 
     /**
@@ -543,74 +458,15 @@ public class TernaryOperatorNode extends OperatorNode
         throws StandardException
     {
         boolean pushable;
-        pushable = receiver.categorize(referencedTabs, referencedColumns, simplePredsOnly);
-        pushable = (leftOperand.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
-        if (rightOperand != null)
+        pushable = getReceiver().categorize(referencedTabs, referencedColumns, simplePredsOnly);
+        pushable = (getLeftOperand().categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
+        if (getRightOperand() != null)
         {
-            pushable = (rightOperand.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
+            pushable = (getRightOperand().categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable);
         }
         return pushable;
     }
 
-    /**
-     * Remap all ColumnReferences in this tree to be clones of the
-     * underlying expression.
-     *
-     * @return ValueNode            The remapped expression tree.
-     *
-     * @exception StandardException            Thrown on error
-     */
-    public ValueNode remapColumnReferencesToExpressions()
-        throws StandardException
-    {
-        receiver = receiver.remapColumnReferencesToExpressions();
-        leftOperand = leftOperand.remapColumnReferencesToExpressions();
-        if (rightOperand != null)
-        {
-            rightOperand = rightOperand.remapColumnReferencesToExpressions();
-        }
-        return this;
-    }
-
-    /**
-     * Return whether or not this expression tree represents a constant expression.
-     *
-     * @return    Whether or not this expression tree represents a constant expression.
-     */
-    public boolean isConstantExpression()
-    {
-        return (receiver.isConstantExpression() &&
-                leftOperand.isConstantExpression() &&
-                (rightOperand == null || rightOperand.isConstantExpression()));
-    }
-
-    /** @see ValueNode#constantExpression */
-    public boolean constantExpression(PredicateList whereClause)
-    {
-        return (receiver.constantExpression(whereClause) &&
-                leftOperand.constantExpression(whereClause) &&
-                (rightOperand == null ||
-                    rightOperand.constantExpression(whereClause)));
-    }
-
-    /**
-     * Accept the visitor for all visitable children of this node.
-     *
-     * @param v the visitor
-     */
-    @Override
-    public void acceptChildren(Visitor v) throws StandardException {
-        super.acceptChildren(v);
-        if (receiver != null) {
-            receiver = (ValueNode)receiver.accept(v, this);
-        }
-        if (leftOperand != null) {
-            leftOperand = (ValueNode)leftOperand.accept(v, this);
-        }
-        if (rightOperand != null) {
-            rightOperand = (ValueNode)rightOperand.accept(v, this);
-        }
-    }
     /**
      * Bind trim expression.
      * The variable receiver is the string that needs to be trimmed.
@@ -631,7 +487,7 @@ public class TernaryOperatorNode extends OperatorNode
         // handle parameters here
 
         /* Is there a ? parameter for the receiver? */
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
             /*
             ** According to the SQL standard, if trim has a ? receiver,
@@ -639,28 +495,28 @@ public class TernaryOperatorNode extends OperatorNode
             ** for a varchar.
             */
 
-            receiver.setType(getVarcharDescriptor());
+            getReceiver().setType(getVarcharDescriptor());
             //check if this parameter can pick up it's collation from the
             //character that will be used for trimming. If not(meaning the
             //character to be trimmed is also a parameter), then it will take
             //it's collation from the compilation schema.
-            if (!leftOperand.requiresTypeFromContext()) {
-                receiver.setCollationInfo(leftOperand.getTypeServices());
+            if (!getLeftOperand().requiresTypeFromContext()) {
+                getReceiver().setCollationInfo(getLeftOperand().getTypeServices());
             } else {
-                receiver.setCollationUsingCompilationSchema();
+                getReceiver().setCollationUsingCompilationSchema();
             }
         }
 
         /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
             /* Set the left operand type to varchar. */
-            leftOperand.setType(getVarcharDescriptor());
+            getLeftOperand().setType(getVarcharDescriptor());
             //collation of ? operand should be picked up from the context.
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for the ? for the character that needs to be used for trimming.
-            leftOperand.setCollationInfo(receiver.getTypeServices());
+            getLeftOperand().setCollationInfo(getReceiver().getTypeServices());
         }
 
         bindToBuiltIn();
@@ -669,11 +525,11 @@ public class TernaryOperatorNode extends OperatorNode
         ** Check the type of the receiver - this function is allowed only on
         ** string value types.
         */
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         if (receiverType.userType())
             throwBadType("trim", receiverType.getSQLTypeName());
 
-        receiver = castArgToString(receiver);
+        setReceiver(castArgToString(getReceiver()));
 
         if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
         // special case for CLOBs: if we start with a CLOB, we have to get
@@ -689,11 +545,11 @@ public class TernaryOperatorNode extends OperatorNode
         ** The leftOperand should be a string value type.
         */
         TypeId    leftCTI;
-        leftCTI = leftOperand.getTypeId();
+        leftCTI = getLeftOperand().getTypeId();
         if (leftCTI.userType())
             throwBadType("trim", leftCTI.getSQLTypeName());
 
-        leftOperand = castArgToString(leftOperand);
+        setLeftOperand(castArgToString(getLeftOperand()));
 
         /*
         ** The result type of trim is varchar.
@@ -702,7 +558,7 @@ public class TernaryOperatorNode extends OperatorNode
         //Result of TRIM should pick up the collation of the character string
         //that is getting trimmed (which is variable receiver) because it has
         //correct collation set on it.
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
 
         return this;
     }
@@ -714,7 +570,7 @@ public class TernaryOperatorNode extends OperatorNode
         setType(new DataTypeDescriptor(
                         resultType,
                         true,
-                        receiver.getTypeServices().getMaximumWidth()
+                        getReceiver().getTypeServices().getMaximumWidth()
                     )
                 );
     }
@@ -738,25 +594,25 @@ public class TernaryOperatorNode extends OperatorNode
          * left/firstOperand's.  If the left/firstOperand are both parameters,
          * both will be max length.
          */
-        if( receiver.requiresTypeFromContext())
+        if( getReceiver().requiresTypeFromContext())
         {
-            if( leftOperand.requiresTypeFromContext())
+            if( getLeftOperand().requiresTypeFromContext())
             {
                 // we cannot tell whether it is StringType or BitType, so set to BitType as default
-                receiver.setType(getVarBitDescriptor());
+                getReceiver().setType(getVarBitDescriptor());
                 //Since both receiver and leftOperands are parameters, use the
                 //collation of compilation schema for receiver.
-                receiver.setCollationUsingCompilationSchema();
+                getReceiver().setCollationUsingCompilationSchema();
             }
             else
             {
-                if( leftOperand.getTypeId().isStringTypeId() || leftOperand.getTypeId().isBitTypeId())
+                if( getLeftOperand().getTypeId().isStringTypeId() || getLeftOperand().getTypeId().isBitTypeId())
                 {
                     //Since the leftOperand is not a parameter, receiver will
                     //get it's collation from leftOperand through following
                     //setType method
-                    receiver.setType(
-                                     leftOperand.getTypeServices());
+                    getReceiver().setType(
+                                     getLeftOperand().getTypeServices());
                 }
             }
         }
@@ -765,34 +621,34 @@ public class TernaryOperatorNode extends OperatorNode
          * Is there a ? parameter for the second arg.  Copy the receiver's.
          * If the receiver are both parameters, both will be max length.
          */
-        if(leftOperand.requiresTypeFromContext())
+        if(getLeftOperand().requiresTypeFromContext())
         {
-            if(receiver.requiresTypeFromContext())
+            if(getReceiver().requiresTypeFromContext())
             {
                 // we cannot tell whether it is StringType or BitType, so set to BitType as default
-                leftOperand.setType(getVarBitDescriptor());
+                getLeftOperand().setType(getVarBitDescriptor());
             }
             else
             {
-                if( receiver.getTypeId().isStringTypeId() || receiver.getTypeId().isBitTypeId())
+                if( getReceiver().getTypeId().isStringTypeId() || getReceiver().getTypeId().isBitTypeId())
                 {
-                    leftOperand.setType(
-                                     receiver.getTypeServices());
+                    getLeftOperand().setType(
+                                     getReceiver().getTypeServices());
                 }
             }
             //collation of ? operand should be picked up from the context.
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for this ?
-            leftOperand.setCollationInfo(receiver.getTypeServices());
+            getLeftOperand().setCollationInfo(getReceiver().getTypeServices());
         }
 
         /*
          * Is there a ? paramter for the third arg.  It will be an int.
          */
-        if( rightOperand.requiresTypeFromContext())
+        if( getRightOperand().requiresTypeFromContext())
         {
-            rightOperand.setType(
+            getRightOperand().setType(
                 new DataTypeDescriptor(TypeId.INTEGER_ID, true));
         }
 
@@ -804,9 +660,9 @@ public class TernaryOperatorNode extends OperatorNode
         **      firstOperand = CHAR or CharBit
         **      secondOperand = INT
         */
-        secondOperandType = leftOperand.getTypeId();
-        offsetType = rightOperand.getTypeId();
-        firstOperandType = receiver.getTypeId();
+        secondOperandType = getLeftOperand().getTypeId();
+        offsetType = getRightOperand().getTypeId();
+        firstOperandType = getReceiver().getTypeId();
 
         if (offsetType.getJDBCTypeId() != Types.INTEGER) {
             throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
@@ -825,14 +681,14 @@ public class TernaryOperatorNode extends OperatorNode
                 throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
                         "LOCATE", "FUNCTION");
             }
-            receiver = castArgToVarBit(receiver);
+            setReceiver(castArgToVarBit(getReceiver()));
         } else if (firstOperandType.isBitTypeId() && secondOperandType.isStringTypeId()) {
             // we do not support cast of Long varchar and CLOB
             if (secondOperandType.isClobTypeId() || secondOperandType.isLongVarcharTypeId()) {
                 throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
                         "LOCATE", "FUNCTION");
             }
-            leftOperand = castArgToVarBit(leftOperand);
+            setLeftOperand(castArgToVarBit(getLeftOperand()));
         }
 
         /*
@@ -909,55 +765,55 @@ public class TernaryOperatorNode extends OperatorNode
         // handle parameters here
 
         /* Is there a ? parameter for the receiver? */
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
             /*
             ** According to the SQL standard, if substr has a ? receiver,
             ** its type is varchar with the implementation-defined maximum length
             ** for a varchar.
             */
-            receiver.setType(getVarcharDescriptor());
+            getReceiver().setType(getVarcharDescriptor());
             //collation of ? operand should be same as the compilation schema
             //because that is the only context available for us to pick up the
             //collation. There are no other character operands to SUBSTR method
             //to pick up the collation from.
-            receiver.setCollationUsingCompilationSchema();
+            getReceiver().setCollationUsingCompilationSchema();
         }
 
         /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
             /* Set the left operand type to int. */
-            leftOperand.setType(
+            getLeftOperand().setType(
                 new DataTypeDescriptor(TypeId.INTEGER_ID, true));
         }
 
         /* Is there a ? parameter on the right? */
-        if ((rightOperand != null) && rightOperand.requiresTypeFromContext())
+        if ((getRightOperand() != null) && getRightOperand().requiresTypeFromContext())
         {
             /* Set the right operand type to int. */
-            rightOperand.setType(
+            getRightOperand().setType(
                 new DataTypeDescriptor(TypeId.INTEGER_ID, true));
         }
 
         bindToBuiltIn();
 
-        if (!leftOperand.getTypeId().isNumericTypeId() ||
-            (rightOperand != null && !rightOperand.getTypeId().isNumericTypeId()))
+        if (!getLeftOperand().getTypeId().isNumericTypeId() ||
+            (getRightOperand() != null && !getRightOperand().getTypeId().isNumericTypeId()))
             throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "SUBSTR", "FUNCTION");
 
         /*
         ** Check the type of the receiver - this function is allowed only on
         ** string value types.
         */
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         if (!receiverType.isStringTypeId() && !receiverType.isBitTypeId()) {
             throwBadType("SUBSTR", receiverType.getSQLTypeName());
         }
 
 
         // Determine the maximum length of the result
-        int maximumWidth = receiver.getTypeServices().getMaximumWidth();
+        int maximumWidth = getReceiver().getTypeServices().getMaximumWidth();
         boolean isFixedLength = false;
         int resultLen = maximumWidth;
 
@@ -967,26 +823,26 @@ public class TernaryOperatorNode extends OperatorNode
         // or receiver is vartype and length is constant, then result should be fixed type with known length
         if ((receiverType.getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID ||
             receiverType.getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID)) {
-            if (rightOperand != null && rightOperand instanceof ConstantNode)
+            if (getRightOperand() != null && getRightOperand() instanceof ConstantNode)
             {
-                resultLen = ((ConstantNode)rightOperand).getValue().getInt();
+                resultLen = ((ConstantNode)getRightOperand()).getValue().getInt();
                 isFixedLength = true;
-            } else if (leftOperand instanceof ConstantNode) {
-                int startPostion = ((ConstantNode)leftOperand).getValue().getInt();
+            } else if (getLeftOperand() instanceof ConstantNode) {
+                int startPostion = ((ConstantNode)getLeftOperand()).getValue().getInt();
                 resultLen = maximumWidth - startPostion + 1;
                 isFixedLength = true;
             }
         } else if ((receiverType.getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID ||
                 receiverType.getTypeFormatId() == StoredFormatIds.VARBIT_TYPE_ID)) {
-            if (rightOperand != null && rightOperand instanceof ConstantNode)
+            if (getRightOperand() != null && getRightOperand() instanceof ConstantNode)
             {
-                resultLen = ((ConstantNode)rightOperand).getValue().getInt();
+                resultLen = ((ConstantNode)getRightOperand()).getValue().getInt();
                 isFixedLength = true;
             }
         } else {
-            if (rightOperand != null && rightOperand instanceof ConstantNode)
+            if (getRightOperand() != null && getRightOperand() instanceof ConstantNode)
             {
-                resultLen =((ConstantNode)rightOperand).getValue().getInt();
+                resultLen =((ConstantNode)getRightOperand()).getValue().getInt();
                 if (resultLen > maximumWidth)
                     resultLen = maximumWidth;
             }
@@ -1018,7 +874,7 @@ public class TernaryOperatorNode extends OperatorNode
         //Result of SUSBSTR should pick up the collation of the 1st argument
         //to SUBSTR. The 1st argument to SUBSTR is represented by the variable
         //receiver in this class.
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
         return this;
     }
 
@@ -1027,22 +883,22 @@ public class TernaryOperatorNode extends OperatorNode
         TypeId    receiverType;
         TypeId    resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
 
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
-            receiver.setType(getVarcharDescriptor());
-            receiver.setCollationUsingCompilationSchema();
+            getReceiver().setType(getVarcharDescriptor());
+            getReceiver().setCollationUsingCompilationSchema();
         }
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
-            leftOperand.setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
+            getLeftOperand().setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
         }
 
         bindToBuiltIn();
 
-        if (!leftOperand.getTypeId().isIntegerNumericTypeId())
-            throwBadType("RIGHT", leftOperand.getTypeId().getSQLTypeName());
+        if (!getLeftOperand().getTypeId().isIntegerNumericTypeId())
+            throwBadType("RIGHT", getLeftOperand().getTypeId().getSQLTypeName());
 
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         switch (receiverType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -1061,12 +917,12 @@ public class TernaryOperatorNode extends OperatorNode
             resultType = receiverType;
         }
 
-        int resultLen = receiver.getTypeServices().getMaximumWidth();
+        int resultLen = getReceiver().getTypeServices().getMaximumWidth();
 
-        if (leftOperand instanceof ConstantNode)
+        if (getLeftOperand() instanceof ConstantNode)
         {
-            if (((ConstantNode)leftOperand).getValue().getInt() > resultLen)
-                resultLen = ((ConstantNode)leftOperand).getValue().getInt();
+            if (((ConstantNode)getLeftOperand()).getValue().getInt() > resultLen)
+                resultLen = ((ConstantNode)getLeftOperand()).getValue().getInt();
         }
 
         setType(new DataTypeDescriptor(
@@ -1074,7 +930,7 @@ public class TernaryOperatorNode extends OperatorNode
                 true,
                 resultLen
         ));
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
         return this;
     }
 
@@ -1083,22 +939,22 @@ public class TernaryOperatorNode extends OperatorNode
         TypeId    receiverType;
         TypeId    resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
 
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
-            receiver.setType(getVarcharDescriptor());
-            receiver.setCollationUsingCompilationSchema();
+            getReceiver().setType(getVarcharDescriptor());
+            getReceiver().setCollationUsingCompilationSchema();
         }
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
-            leftOperand.setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
+            getLeftOperand().setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
         }
 
         bindToBuiltIn();
 
-        if (!leftOperand.getTypeId().isIntegerNumericTypeId())
-            throwBadType("LEFT", leftOperand.getTypeId().getSQLTypeName());
+        if (!getLeftOperand().getTypeId().isIntegerNumericTypeId())
+            throwBadType("LEFT", getLeftOperand().getTypeId().getSQLTypeName());
 
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         switch (receiverType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -1116,12 +972,12 @@ public class TernaryOperatorNode extends OperatorNode
             resultType = receiverType;
         }
 
-        int resultLen = receiver.getTypeServices().getMaximumWidth();
+        int resultLen = getReceiver().getTypeServices().getMaximumWidth();
 
-        if (leftOperand instanceof ConstantNode)
+        if (getLeftOperand() instanceof ConstantNode)
         {
-            if (((ConstantNode)leftOperand).getValue().getInt() > resultLen)
-                resultLen = ((ConstantNode)leftOperand).getValue().getInt();
+            if (((ConstantNode)getLeftOperand()).getValue().getInt() > resultLen)
+                resultLen = ((ConstantNode)getLeftOperand()).getValue().getInt();
         }
 
         setType(new DataTypeDescriptor(
@@ -1129,7 +985,7 @@ public class TernaryOperatorNode extends OperatorNode
                 true,
                 resultLen
         ));
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
         return this;
     }
 
@@ -1150,45 +1006,45 @@ public class TernaryOperatorNode extends OperatorNode
         // See substrBind() method also, for additional comments.
 
         /* Is there a ? parameter for the receiver? */
-        if (receiver.requiresTypeFromContext())
+        if (getReceiver().requiresTypeFromContext())
         {
             // According to the SQL standard, if replace has a ? receiver,
             // its type is varchar with the implementation-defined maximum length
             // for a varchar.
-            receiver.setType(getVarcharDescriptor());
+            getReceiver().setType(getVarcharDescriptor());
 
             // collation of ? operand should be same as the compilation schema
             // because that is the only context available for us to pick up the
             // collation. There are no other character operands to SUBSTR method
             // to pick up the collation from.
-            receiver.setCollationUsingCompilationSchema();
+            getReceiver().setCollationUsingCompilationSchema();
         }
 
         /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext())
+        if (getLeftOperand().requiresTypeFromContext())
         {
             /* Set the left operand type to VARCHAR. */
-            leftOperand.setType(
+            getLeftOperand().setType(
                 new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
         }
 
         /* Is there a ? parameter on the right? */
-        if ((rightOperand != null) && rightOperand.requiresTypeFromContext())
+        if ((getRightOperand() != null) && getRightOperand().requiresTypeFromContext())
         {
             /* Set the right operand type to VARCHAR. */
-            rightOperand.setType(
+            getRightOperand().setType(
                 new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
         }
 
         bindToBuiltIn();
 
-        if (!leftOperand.getTypeId().isStringTypeId() ||
-            (rightOperand != null && !rightOperand.getTypeId().isStringTypeId()))
+        if (!getLeftOperand().getTypeId().isStringTypeId() ||
+            (getRightOperand() != null && !getRightOperand().getTypeId().isStringTypeId()))
             throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "REPLACE", "FUNCTION");
 
         // Check the type of the receiver - this function is allowed only on
         // string value types.
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         switch (receiverType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -1207,13 +1063,13 @@ public class TernaryOperatorNode extends OperatorNode
         }
 
         // Determine the maximum length of the result string
-        int maxResultLen = receiver.getTypeServices().getMaximumWidth();
+        int maxResultLen = getReceiver().getTypeServices().getMaximumWidth();
         setType(new DataTypeDescriptor(resultType, true, maxResultLen));
 
         // Result of REPLACE should pick up the collation of the 1st argument
         // to REPLACE. The 1st argument to REPLACE is represented by the variable
         // receiver in this class.
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
 
         return this;
     }
@@ -1229,17 +1085,17 @@ public class TernaryOperatorNode extends OperatorNode
      private ValueNode timestampAddBind()
             throws StandardException
     {
-        if( ! bindParameter( rightOperand, Types.INTEGER))
+        if( ! bindParameter( getRightOperand(), Types.INTEGER))
         {
-            int jdbcType = rightOperand.getTypeId().getJDBCTypeId();
+            int jdbcType = getRightOperand().getTypeId().getJDBCTypeId();
             if( jdbcType != Types.TINYINT && jdbcType != Types.SMALLINT &&
                 jdbcType != Types.INTEGER && jdbcType != Types.BIGINT)
                 throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE,
-                                                     rightOperand.getTypeId().getSQLTypeName(),
+                                                     getRightOperand().getTypeId().getSQLTypeName(),
                                                      ReuseFactory.getInteger( 2),
                                                      operator);
         }
-        bindDateTimeArg( receiver, 3);
+        bindDateTimeArg( getReceiver(), 3);
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP));
         return this;
     } // end of timestampAddBind
@@ -1255,8 +1111,8 @@ public class TernaryOperatorNode extends OperatorNode
      private ValueNode timestampDiffBind()
             throws StandardException
     {
-        bindDateTimeArg( rightOperand, 2);
-        bindDateTimeArg( receiver, 3);
+        bindDateTimeArg( getRightOperand(), 2);
+        bindDateTimeArg( getReceiver(), 3);
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.BIGINT));
         return this;
     } // End of timestampDiffBind
@@ -1289,12 +1145,12 @@ public class TernaryOperatorNode extends OperatorNode
 
         bindToBuiltIn();
 
-        if (!leftOperand.getTypeId().isStringTypeId() || !rightOperand.getTypeId().isNumericTypeId())
+        if (!getLeftOperand().getTypeId().isStringTypeId() || !getRightOperand().getTypeId().isNumericTypeId())
             throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "SPLIT_PART", "FUNCTION");
 
         // Check the type of the receiver - this function is allowed only on
         // string value types.
-        receiverType = receiver.getTypeId();
+        receiverType = getReceiver().getTypeId();
         switch (receiverType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -1312,10 +1168,10 @@ public class TernaryOperatorNode extends OperatorNode
         }
 
         // Determine the maximum length of the result string
-        int maxResultLen = receiver.getTypeServices().getMaximumWidth();
+        int maxResultLen = getReceiver().getTypeServices().getMaximumWidth();
         setType(new DataTypeDescriptor(resultType, true, maxResultLen));
 
-        setCollationInfo(receiver.getTypeServices());
+        setCollationInfo(getReceiver().getTypeServices());
 
         return this;
     }
@@ -1346,7 +1202,7 @@ public class TernaryOperatorNode extends OperatorNode
 
     public ValueNode getReceiver()
     {
-        return receiver;
+        return operands.get(0);
     }
 
     /* throw bad type message */
@@ -1365,27 +1221,27 @@ public class TernaryOperatorNode extends OperatorNode
         /* If the receiver is not a built-in type, then generate a bound conversion
          * tree to a built-in type.
          */
-        if (receiver.getTypeId().userType())
+        if (getReceiver().getTypeId().userType())
         {
-            receiver = receiver.genSQLJavaSQLTree();
+            setReceiver(getReceiver().genSQLJavaSQLTree());
         }
 
         /* If the left operand is not a built-in type, then generate a bound conversion
          * tree to a built-in type.
          */
-        if (leftOperand.getTypeId().userType())
+        if (getLeftOperand().getTypeId().userType())
         {
-            leftOperand = leftOperand.genSQLJavaSQLTree();
+            setLeftOperand(getLeftOperand().genSQLJavaSQLTree());
         }
 
         /* If the right operand is not a built-in type, then generate a bound conversion
          * tree to a built-in type.
          */
-        if (rightOperand != null)
+        if (getRightOperand() != null)
         {
-            if (rightOperand.getTypeId().userType())
+            if (getRightOperand().getTypeId().userType())
             {
-                rightOperand = rightOperand.genSQLJavaSQLTree();
+                setRightOperand(getRightOperand().genSQLJavaSQLTree());
             }
         }
     }
@@ -1396,108 +1252,6 @@ public class TernaryOperatorNode extends OperatorNode
 
     private DataTypeDescriptor getVarBitDescriptor() {
         return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARBINARY), true);
-    }
-
-    @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException {
-        if (isSameNodeType(o)) {
-            TernaryOperatorNode other = (TernaryOperatorNode) o;
-
-            /*
-             * SUBSTR function can either have 2 or 3 arguments.  In the
-             * 2-args case, rightOperand will be null and thus needs
-             * additional handling in the equivalence check.
-             */
-            return (other.methodName.equals(methodName)
-                    && other.receiver.isEquivalent(receiver)
-                    && other.leftOperand.isEquivalent(leftOperand)
-                    && ((rightOperand == null && other.rightOperand == null) ||
-                    (other.rightOperand != null &&
-                            other.rightOperand.isEquivalent(rightOperand))));
-        }
-        return false;
-    }
-
-    @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
-        if (isSameNodeType(o)) {
-            TernaryOperatorNode other = (TernaryOperatorNode) o;
-
-            /*
-             * SUBSTR function can either have 2 or 3 arguments.  In the
-             * 2-args case, rightOperand will be null and thus needs
-             * additional handling in the equivalence check.
-             */
-            return (other.methodName.equals(methodName)
-                    && other.receiver.isSemanticallyEquivalent(receiver)
-                    && other.leftOperand.isSemanticallyEquivalent(leftOperand)
-                    && ((rightOperand == null && other.rightOperand == null) ||
-                    (other.rightOperand != null &&
-                            other.rightOperand.isSemanticallyEquivalent(rightOperand))));
-        }
-        return false;
-    }
-
-    public int hashCode() {
-        int result = getBaseHashCode();
-        result = 31 * result + methodName.hashCode();
-        result = 31 * result + (receiver == null ? 0 : receiver.hashCode());
-        result = 31 * result + (leftOperand == null ? 0 : leftOperand.hashCode());
-        result = 31 * result + (rightOperand == null ? 0 : rightOperand.hashCode());
-        return result;
-    }
-
-    public List<? extends QueryTreeNode> getChildren() {
-        return new ArrayList<QueryTreeNode>(){{
-            add(receiver);
-            add(leftOperand);
-            if (rightOperand != null ) add(rightOperand);
-        }};
-    }
-
-    @Override
-    public QueryTreeNode getChild(int index) {
-        return getChildren().get(index);
-    }
-
-    @Override
-    public void setChild(int index, QueryTreeNode newValue) {
-        switch (index) {
-            case 0:
-                receiver = (ValueNode) newValue;
-                break;
-            case 1:
-                leftOperand = (ValueNode) newValue;
-                break;
-            case 2:
-                assert rightOperand != null;
-                rightOperand = (ValueNode) newValue;
-                break;
-            default:
-                assert false;
-        }
-    }
-
-    @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long c1 = leftOperand != null ? leftOperand.nonZeroCardinality(numberOfRows) : 0;
-        long c2 = rightOperand != null ? rightOperand.nonZeroCardinality(numberOfRows) : 0;
-        long c3 = receiver!= null ? receiver.nonZeroCardinality(numberOfRows) : 0;
-
-        return Math.max(Math.max(c1, c2), c3);
-    }
-
-    @Override
-    public boolean isConstantOrParameterTreeNode() {
-        if (leftOperand != null && !leftOperand.isConstantOrParameterTreeNode())
-            return false;
-        if (rightOperand != null && !rightOperand.isConstantOrParameterTreeNode())
-            return false;
-
-        if (receiver != null && !receiver.isConstantOrParameterTreeNode())
-            return false;
-
-        return true;
     }
 
     // Following 3 interfaces only applicable when this is a TRIM operator.
@@ -1512,14 +1266,14 @@ public class TernaryOperatorNode extends OperatorNode
         }
         // this special handling for like predicate is fine because like cannot appear in index expressions
         if (operatorType == LIKE) {
-            if (receiver != null) {
-                receiver = receiver.replaceIndexExpression(childRCL);
+            if (getReceiver() != null) {
+                setReceiver(getReceiver().replaceIndexExpression(childRCL));
             }
-            if (leftOperand != null) {
-                leftOperand = leftOperand.replaceIndexExpression(childRCL);
+            if (getLeftOperand() != null) {
+                setLeftOperand(getLeftOperand().replaceIndexExpression(childRCL));
             }
-            if (rightOperand != null) {
-                rightOperand = rightOperand.replaceIndexExpression(childRCL);
+            if (getRightOperand() != null) {
+                setRightOperand(getRightOperand().replaceIndexExpression(childRCL));
             }
             return this;
         } else {
@@ -1532,33 +1286,18 @@ public class TernaryOperatorNode extends OperatorNode
         // this special handling for like predicate is fine because like cannot appear in index expressions
         if (operatorType == LIKE) {
             boolean result = true;
-            if (receiver != null) {
-                result = receiver.collectExpressions(exprMap);
+            if (getReceiver() != null) {
+                result = getReceiver().collectExpressions(exprMap);
             }
-            if (leftOperand != null) {
-                result = result && leftOperand.collectExpressions(exprMap);
+            if (getLeftOperand() != null) {
+                result = result && getLeftOperand().collectExpressions(exprMap);
             }
-            if (rightOperand != null) {
-                result = result && rightOperand.collectExpressions(exprMap);
+            if (getRightOperand() != null) {
+                result = result && getRightOperand().collectExpressions(exprMap);
             }
             return result;
         } else {
             return this.collectSingleExpression(exprMap);
         }
-    }
-
-    @Override
-    public double getBaseOperationCost() throws StandardException {
-        double cost = 0.0;
-        if (receiver != null) {
-            cost += receiver.getBaseOperationCost();
-        }
-        if (leftOperand != null) {
-            cost += leftOperand.getBaseOperationCost();
-        }
-        if (rightOperand != null) {
-            cost += rightOperand.getBaseOperationCost();
-        }
-        return cost;
     }
 }

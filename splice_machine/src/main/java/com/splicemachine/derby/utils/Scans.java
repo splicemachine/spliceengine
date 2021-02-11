@@ -551,7 +551,7 @@ public class Scans extends SpliceUtils {
                 row_qualifies = !row_qualifies;
 //            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +
 //                    "orderedNulls={%s}, unknownRV={%s}",
-//                    columnValue, q.getOperator(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
+//                    columnValue, q.getOperatorString(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
             // Once an AND fails the whole Qualification fails - do a return!
             if (!row_qualifies)
                 return(false);
