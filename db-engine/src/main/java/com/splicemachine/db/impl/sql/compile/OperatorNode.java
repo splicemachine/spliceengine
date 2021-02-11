@@ -45,6 +45,9 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
 import com.splicemachine.db.iapi.types.TypeId;
 

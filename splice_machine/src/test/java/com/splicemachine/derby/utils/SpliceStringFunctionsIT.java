@@ -29,7 +29,6 @@ import java.sql.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -490,6 +489,16 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 sCell2 = rs.getString(2);
                 Assert.assertEquals("Wrong result value", sCell2, sCell1);
             }
+        }
+    }
+
+    @Test
+    public void testConcatFunctionCastOnArgs() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("select concat(year(date('2021-01-01')), '.') from sysibm.sysdummy1")) {
+            String expected = "1   |\n" +
+                    "-------\n" +
+                    "2021. |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 
