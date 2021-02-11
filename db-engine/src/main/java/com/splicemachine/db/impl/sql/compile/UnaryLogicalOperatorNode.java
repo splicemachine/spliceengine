@@ -80,7 +80,7 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
 		** the grammar, so this test will become useful.
 		*/
 
-        if(!operand.getTypeServices().getTypeId().isBooleanTypeId()){
+        if(!getOperand().getTypeServices().getTypeId().isBooleanTypeId()){
             throw StandardException.newException(SQLState.LANG_UNARY_LOGICAL_NON_BOOLEAN);
         }
 
@@ -107,12 +107,12 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-        nullableResult=operand.getTypeServices().isNullable();
+        nullableResult=getOperand().getTypeServices().isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        return getOperandCost() + SIMPLE_OP_COST;
+        return super.getBaseOperationCost() + SIMPLE_OP_COST;
     }
 }

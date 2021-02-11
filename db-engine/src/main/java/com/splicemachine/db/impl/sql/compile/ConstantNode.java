@@ -273,14 +273,12 @@ public abstract class ConstantNode extends ValueNode
      *
      * @return    The variant type for the underlying expression.
      */
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // Constants are constant for the life of the query
         return Qualifier.CONSTANT;
     }
         
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
             ConstantNode other = (ConstantNode)o;
 

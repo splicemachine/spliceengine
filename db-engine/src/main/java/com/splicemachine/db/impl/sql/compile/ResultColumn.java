@@ -1702,8 +1702,7 @@ public class ResultColumn extends ValueNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         /*
         ** If the expression is VARIANT, then
         ** return VARIANT.  Otherwise, we return
@@ -1959,7 +1958,7 @@ public class ResultColumn extends ValueNode
                 other = vcn.getSourceColumn();
                 continue;
             } else if (other.expression instanceof TernaryOperatorNode) {
-                return ((TernaryOperatorNode) other.expression).receiver.getTableNumber();
+                return ((TernaryOperatorNode) other.expression).getReceiver().getTableNumber();
             } else if (other.expression == null) {
                 return -1;
             }
@@ -1971,8 +1970,7 @@ public class ResultColumn extends ValueNode
         }
     }
 
-    public boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    public boolean isEquivalent(ValueNode o) throws StandardException {
         if (o.getNodeType() == getNodeType())
         {
             ResultColumn other = (ResultColumn)o;
@@ -1983,8 +1981,7 @@ public class ResultColumn extends ValueNode
         return false;
     }
 
-    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (o.getNodeType() == getNodeType()) {
             ResultColumn other = (ResultColumn)o;
             if (expression != null) {

@@ -118,17 +118,17 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
     @Override
     protected void bindParameters() throws StandardException {
-        if (leftOperand.requiresTypeFromContext()) {
-            if (rightOperand.requiresTypeFromContext()) {
+        if (getLeftOperand().requiresTypeFromContext()) {
+            if (getRightOperand().requiresTypeFromContext()) {
                 // DB2 compatible behavior
                 DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 254);
-                leftOperand.setType(dtd);
-                rightOperand.setType(dtd);
+                getLeftOperand().setType(dtd);
+                getRightOperand().setType(dtd);
             } else {
-                leftOperand.setType(rightOperand.getTypeServices());
+                getLeftOperand().setType(getRightOperand().getTypeServices());
             }
-        } else if (rightOperand.requiresTypeFromContext()) {
-            rightOperand.setType(leftOperand.getTypeServices());
+        } else if (getRightOperand().requiresTypeFromContext()) {
+            getRightOperand().setType(getLeftOperand().getTypeServices());
         }
     }
 
@@ -152,53 +152,53 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
                                     List<AggregateNode> aggregateVector) throws StandardException {
         super.bindExpression(fromList, subqueryList, aggregateVector);
 
-        TypeId leftTypeId = leftOperand.getTypeId();
-        TypeId rightTypeId = rightOperand.getTypeId();
+        TypeId leftTypeId = getLeftOperand().getTypeId();
+        TypeId rightTypeId = getRightOperand().getTypeId();
 
         if (! leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId())
         {
-            rightOperand = addCastNodeForStringToNonStringComparison(leftOperand, rightOperand);
-            rightTypeId = rightOperand.getTypeId();
+            setRightOperand(addCastNodeForStringToNonStringComparison(getLeftOperand(), getRightOperand()));
+            rightTypeId = getRightOperand().getTypeId();
         }
         else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
         {
-            leftOperand = addCastNodeForStringToNonStringComparison(rightOperand, leftOperand);
-            leftTypeId = leftOperand.getTypeId();
+            setLeftOperand(addCastNodeForStringToNonStringComparison(getRightOperand(), getLeftOperand()));
+            leftTypeId = getLeftOperand().getTypeId();
         }
 
         if ((leftTypeId.isFixedBitDataTypeId() || leftTypeId.isVarBitDataTypeId()) && rightTypeId.isStringTypeId()) {
             // pad the constant value before casting for fixed bit data type
-            if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof CharConstantNode)) {
-                rightPadCharConstantNode((CharConstantNode) rightOperand, (ColumnReference) leftOperand);
+            if ((getLeftOperand() instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (getRightOperand() instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) getRightOperand(), (ColumnReference) getLeftOperand());
             }
             // cast String to BitType but keep the original string's length
-            rightOperand = (ValueNode) getNodeFactory().getNode(
+            setRightOperand((ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
-                    rightOperand,
+                    getRightOperand(),
                     new DataTypeDescriptor(
                             leftTypeId,
                             true,
-                            rightOperand.getTypeServices().getMaximumWidth()),
-                    getContextManager());
-            ((CastNode) rightOperand).bindCastNodeOnly();
-            rightTypeId = rightOperand.getTypeId();
+                            getRightOperand().getTypeServices().getMaximumWidth()),
+                    getContextManager()));
+            ((CastNode) getRightOperand()).bindCastNodeOnly();
+            rightTypeId = getRightOperand().getTypeId();
         } else if ((rightTypeId.isFixedBitDataTypeId() || rightTypeId.isVarBitDataTypeId()) && leftTypeId.isStringTypeId()) {
             // pad the constant value before casting for fixed bit data type
-            if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof CharConstantNode)) {
-                rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
+            if ((getRightOperand() instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (getLeftOperand() instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) getLeftOperand(), (ColumnReference) getRightOperand());
             }
 
             // cast String to BitType
-            leftOperand = (ValueNode) getNodeFactory().getNode(
+            setLeftOperand((ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
-                    leftOperand,
+                    getLeftOperand(),
                     new DataTypeDescriptor(
                             rightTypeId,
                             true,
-                            leftOperand.getTypeServices().getMaximumWidth()),
-                    getContextManager());
-            ((CastNode) leftOperand).bindCastNodeOnly();
-            leftTypeId = leftOperand.getTypeId();
+                            getLeftOperand().getTypeServices().getMaximumWidth()),
+                    getContextManager()));
+            ((CastNode) getLeftOperand()).bindCastNodeOnly();
+            leftTypeId = getLeftOperand().getTypeId();
         }
 
         if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
@@ -216,22 +216,22 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
             // If right side is the decimal then promote the left side integer
             if (rightTypeId.isDecimalTypeId()) {
-                leftOperand =  (ValueNode)
+                setLeftOperand((ValueNode)
                         getNodeFactory().getNode(
                                 C_NodeTypes.CAST_NODE,
-                                leftOperand,
+                                getLeftOperand(),
                                 dty,
-                                getContextManager());
-                ((CastNode) leftOperand).bindCastNodeOnly();
+                                getContextManager()));
+                ((CastNode) getLeftOperand()).bindCastNodeOnly();
             } else {
                 // Otherwise, left side is the decimal so promote the right side integer
-                rightOperand =  (ValueNode)
+                setRightOperand((ValueNode)
                         getNodeFactory().getNode(
                                 C_NodeTypes.CAST_NODE,
-                                rightOperand,
+                                getRightOperand(),
                                 dty,
-                                getContextManager());
-                ((CastNode) rightOperand).bindCastNodeOnly();
+                                getContextManager()));
+                ((CastNode) getRightOperand()).bindCastNodeOnly();
             }
 
         }
@@ -239,17 +239,17 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
          * value to match the width of the column type (SQLChar columns have fixed width and and are stored in splice
          * right padded with space characters). Before this fix the start/stop scan keys from derby, for
          * TableScanOperation, would be wrong (missing space padding).*/
-        if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedStringTypeId() && (rightOperand instanceof CharConstantNode)) {
-            rightPadCharConstantNode((CharConstantNode) rightOperand, (ColumnReference) leftOperand);
-        } else if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedStringTypeId() && (leftOperand instanceof CharConstantNode)) {
-            rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
+        if ((getLeftOperand() instanceof ColumnReference) && leftTypeId.isFixedStringTypeId() && (getRightOperand() instanceof CharConstantNode)) {
+            rightPadCharConstantNode((CharConstantNode) getRightOperand(), (ColumnReference) getLeftOperand());
+        } else if ((getRightOperand() instanceof ColumnReference) && rightTypeId.isFixedStringTypeId() && (getLeftOperand() instanceof CharConstantNode)) {
+            rightPadCharConstantNode((CharConstantNode) getLeftOperand(), (ColumnReference) getRightOperand());
         }
 
         // do similar padding for fixed bit data type
-        if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof BitConstantNode)) {
-            rightPadBitDataConstantNode((BitConstantNode) rightOperand, (ColumnReference) leftOperand);
-        } else if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof BitConstantNode)) {
-            rightPadBitDataConstantNode((BitConstantNode) leftOperand, (ColumnReference) rightOperand);
+        if ((getLeftOperand() instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (getRightOperand() instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) getRightOperand(), (ColumnReference) getLeftOperand());
+        } else if ((getRightOperand() instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (getLeftOperand() instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) getLeftOperand(), (ColumnReference) getRightOperand());
         }
 
         /* Test type compatibility and set type info for this node */
@@ -304,8 +304,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
     public void bindComparisonOperator()
             throws StandardException
     {
-        ValueNode left = normalizeOperand(leftOperand);
-        ValueNode right = normalizeOperand(rightOperand);
+        ValueNode left = normalizeOperand(getLeftOperand());
+        ValueNode right = normalizeOperand(getRightOperand());
 
         boolean cmp;
         boolean nullableResult;
@@ -377,9 +377,9 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
                                 PredicateList outerPredicateList)
                     throws StandardException
     {
-        leftOperand = leftOperand.preprocess(numTables,
+        setLeftOperand(getLeftOperand().preprocess(numTables,
                                              outerFromList, outerSubqueryList,
-                                             outerPredicateList);
+                                             outerPredicateList));
 
         /* This is where we start to consider flattening expression subqueries based
          * on a uniqueness condition.  If the right child is a SubqueryNode then
@@ -398,19 +398,19 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
          * so an invalid tree is returned if we set the parent comparison operator
          * when the subquery has already been preprocessed.)
          */
-        if ((rightOperand instanceof SubqueryNode) &&
-            !((SubqueryNode) rightOperand).getPreprocessed())
+        if ((getRightOperand() instanceof SubqueryNode) &&
+            !((SubqueryNode) getRightOperand()).getPreprocessed())
         {
-            ((SubqueryNode) rightOperand).setParentComparisonOperator(this);
-            return rightOperand.preprocess(numTables,
+            ((SubqueryNode) getRightOperand()).setParentComparisonOperator(this);
+            return getRightOperand().preprocess(numTables,
                                            outerFromList, outerSubqueryList,
                                            outerPredicateList);
         }
         else
         {
-            rightOperand = rightOperand.preprocess(numTables,
+            setRightOperand(getRightOperand().preprocess(numTables,
                                                    outerFromList, outerSubqueryList,
-                                                   outerPredicateList);
+                                                   outerPredicateList));
             return this;
         }
     }
@@ -440,7 +440,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         }
 
         /* Convert the BinaryComparison operator to its negation */
-        return getNegation(leftOperand, rightOperand);
+        return getNegation(getLeftOperand(), getRightOperand());
     }
 
     /**
@@ -511,9 +511,9 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
          * then we want to mark the subquery as under a top and node.
          * That will allow us to consider flattening it.
          */
-        if (underTopAndNode && (rightOperand instanceof SubqueryNode))
+        if (underTopAndNode && (getRightOperand() instanceof SubqueryNode))
         {
-            rightOperand = rightOperand.changeToCNF(underTopAndNode);
+            setRightOperand(getRightOperand().changeToCNF(underTopAndNode));
         }
 
         return this;
@@ -522,29 +522,29 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
     /** @see BinaryOperatorNode#genSQLJavaSQLTree */
     public ValueNode genSQLJavaSQLTree() throws StandardException
     {
-        TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId leftTypeId = getLeftOperand().getTypeId();
 
         /* If I have Java types, I need only add java->sql->java if the types
          * are not comparable
          */
         if (leftTypeId.userType())
         {
-            if (leftOperand.getTypeServices().comparable(leftOperand.getTypeServices()
+            if (getLeftOperand().getTypeServices().comparable(getLeftOperand().getTypeServices()
             ))
                 return this;
 
-            leftOperand = leftOperand.genSQLJavaSQLTree();
+            setLeftOperand(getLeftOperand().genSQLJavaSQLTree());
         }
 
-        TypeId rightTypeId = rightOperand.getTypeId();
+        TypeId rightTypeId = getRightOperand().getTypeId();
 
         if (rightTypeId.userType())
         {
-            if (rightOperand.getTypeServices().comparable(rightOperand.getTypeServices()
+            if (getRightOperand().getTypeServices().comparable(getRightOperand().getTypeServices()
             ))
                 return this;
 
-            rightOperand = rightOperand.genSQLJavaSQLTree();
+            setRightOperand(getRightOperand().genSQLJavaSQLTree());
         }
 
         return this;
@@ -555,11 +555,11 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         if (childRCL == null) {
             return this;
         }
-        if (leftOperand != null) {
-            leftOperand = leftOperand.replaceIndexExpression(childRCL);
+        if (getLeftOperand() != null) {
+            setLeftOperand(getLeftOperand().replaceIndexExpression(childRCL));
         }
-        if (rightOperand != null) {
-            rightOperand = rightOperand.replaceIndexExpression(childRCL);
+        if (getRightOperand() != null) {
+            setRightOperand(getRightOperand().replaceIndexExpression(childRCL));
         }
         return this;
     }
@@ -567,11 +567,11 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
     @Override
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         boolean result = true;
-        if (leftOperand != null) {
-            result = leftOperand.collectExpressions(exprMap);
+        if (getLeftOperand() != null) {
+            result = getLeftOperand().collectExpressions(exprMap);
         }
-        if (rightOperand != null) {
-            result = result && rightOperand.collectExpressions(exprMap);
+        if (getRightOperand() != null) {
+            result = result && getRightOperand().collectExpressions(exprMap);
         }
         return result;
     }

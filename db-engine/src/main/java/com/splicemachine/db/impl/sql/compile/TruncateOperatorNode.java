@@ -41,9 +41,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The TruncateOperatorNode class implements the trunc[ate]( {date | time} [, string] | {decimal , integer} ) function.
@@ -65,26 +63,26 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 
     private void checkParameterTypes() throws StandardException {
         // do some validation...
-        TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId leftTypeId = getLeftOperand().getTypeId();
         if (leftTypeId != null) {
             int jdbcId = leftTypeId.getJDBCTypeId();
             if (jdbcId == Types.TIMESTAMP || jdbcId == Types.DATE) {
-                if (rightOperand.getTypeId().getJDBCTypeId() != Types.CHAR) {
-                    throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE, rightOperand.toString());
+                if (getRightOperand().getTypeId().getJDBCTypeId() != Types.CHAR) {
+                    throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE, getRightOperand().toString());
                 }
             } else if (jdbcId == Types.DECIMAL || jdbcId == Types.INTEGER) {
-                TypeId rightTypeId = rightOperand.getTypeId();
+                TypeId rightTypeId = getRightOperand().getTypeId();
                 if (rightTypeId == null || rightTypeId.getJDBCTypeId() != Types.INTEGER) {
-                    throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE, rightOperand.toString());
+                    throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE, getRightOperand().toString());
                 }
             } else {
-                throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
+                throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, getLeftOperand().toString());
             }
-        } else if (! (leftOperand instanceof ColumnReference) && ! (leftOperand instanceof CurrentDatetimeOperatorNode)) {
+        } else if (! (getLeftOperand() instanceof ColumnReference) && ! (getLeftOperand() instanceof CurrentDatetimeOperatorNode)) {
             // A ColumnReference will not have a type until bind time.
             // We put off further ColumnReference validation until then.
             // If we don't get a ColumnReference at this point, we can't handle the operand.
-            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
+            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, getLeftOperand().toString());
         }
     }
 
@@ -96,83 +94,81 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
      */
     public void init( Object truncOperand,
                       Object truncValue) throws StandardException {
-        leftOperand = (ValueNode) truncOperand;
-        rightOperand = (ValueNode) truncValue;
+        operands = new ArrayList<>(Arrays.asList((ValueNode) truncOperand, (ValueNode) truncValue));
         operator = "truncate";
 
         checkParameterTypes();
     }
 
     /**
-	 * Bind this expression.  This means binding the sub-expressions,
-	 * as well as figuring out what the return type is for this expression.
-	 *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * Bind this expression.  This means binding the sub-expressions,
+     * as well as figuring out what the return type is for this expression.
+     *
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public ValueNode bindExpression(FromList fromList,
+    public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
-		rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
+        bindOperands(fromList, subqueryList, aggregateVector);
 
-        int operandType = leftOperand.getTypeId().getJDBCTypeId();
+        int operandType = getLeftOperand().getTypeId().getJDBCTypeId();
         Pair typeMethod = TYPES_TO_METHOD_NAMES.get(operandType);
 
         if (typeMethod == null) {
-            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
+            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, getLeftOperand().toString());
         }
         this.methodName = typeMethod.methodName;
         this.methodClassname = typeMethod.className;
 
         // Default right side to integer (zero) when trunc decimal column ref
         // This is the first place we can verify this because a column ref's type is not known until bind time
-        if (this.methodName.equals(TRUNC_DECIMAL) && rightOperand.getTypeId().getJDBCTypeId() != Types.INTEGER) {
-            rightOperand = (ValueNode) getCompilerContext().getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, getContextManager());
+        if (this.methodName.equals(TRUNC_DECIMAL) && getRightOperand().getTypeId().getJDBCTypeId() != Types.INTEGER) {
+            setRightOperand((ValueNode) getCompilerContext().getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, getContextManager()));
         }
 
-		//Set the type if there is a parameter involved here
-		if (leftOperand.requiresTypeFromContext()) {
-			leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
-		}
-		//Set the type if there is a parameter involved here
-		if (rightOperand != null && rightOperand.requiresTypeFromContext()) {
-			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(rightOperand.getTypeId().getJDBCTypeId()));
-		}
+        //Set the type if there is a parameter involved here
+        if (getLeftOperand().requiresTypeFromContext()) {
+            getLeftOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
+        }
+        //Set the type if there is a parameter involved here
+        if (getRightOperand() != null && getRightOperand().requiresTypeFromContext()) {
+            getRightOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(getRightOperand().getTypeId().getJDBCTypeId()));
+        }
 
-		checkParameterTypes();
+        checkParameterTypes();
 
-		DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
-		if (typeDescriptor == null) {
-		    typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
-		}
-		setType(typeDescriptor);
-		return genSQLJavaSQLTree();
-	} // end of bindExpression
+        DataTypeDescriptor typeDescriptor = getLeftOperand().getTypeServices();
+        if (typeDescriptor == null) {
+            typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
+        }
+        setType(typeDescriptor);
+        return genSQLJavaSQLTree();
+    } // end of bindExpression
 
     /**
-	 * Do code generation for this binary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the code to place the code
-	 *
-	 *
-	 * @exception com.splicemachine.db.iapi.error.StandardException		Thrown on error
-	 */
+     * Do code generation for this binary operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the code to place the code
+     *
+     *
+     * @exception com.splicemachine.db.iapi.error.StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb) throws StandardException {
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb) throws StandardException {
         acb.pushDataValueFactory(mb);
-		leftOperand.generateExpression(acb, mb);
+        getLeftOperand().generateExpression(acb, mb);
         mb.cast(ClassName.DataValueDescriptor);
-		rightOperand.generateExpression(acb, mb);
+        getRightOperand().generateExpression(acb, mb);
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE, null, methodName, methodClassname, 2);
     } // end of generateExpression
@@ -189,6 +185,6 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-	    return SIMPLE_OP_COST * FN_CALL_COST_FACTOR + getChildrenCost();
-	}
+        return SIMPLE_OP_COST * FN_CALL_COST_FACTOR + super.getBaseOperationCost();
+    }
 }

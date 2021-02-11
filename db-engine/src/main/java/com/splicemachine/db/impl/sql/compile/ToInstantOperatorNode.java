@@ -57,7 +57,7 @@ public final class ToInstantOperatorNode extends UnaryOperatorNode {
 
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        TypeId operandType = operand.getTypeId();
+        TypeId operandType = getOperand().getTypeId();
         switch (operandType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -76,7 +76,7 @@ public final class ToInstantOperatorNode extends UnaryOperatorNode {
         // The return type is TIMESTAMP
         TypeId timestampTypeId = TypeId.getBuiltInTypeId(Types.TIMESTAMP);
         assert timestampTypeId != null;
-        setType(new DataTypeDescriptor(timestampTypeId, operand.getTypeServices().isNullable()));
+        setType(new DataTypeDescriptor(timestampTypeId, getOperand().getTypeServices().isNullable()));
         setOperator("to_instant");
         setMethodName("ToInstant");
         return this;
@@ -84,7 +84,7 @@ public final class ToInstantOperatorNode extends UnaryOperatorNode {
 
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.upCast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.RowIdUtil, "toInstant", ClassName.DateTimeDataValue, 1);
     }
