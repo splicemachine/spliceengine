@@ -95,24 +95,24 @@ public class AndNode extends BinaryLogicalOperatorNode{
          * the list.  That will allow us to consider converting the OR
 		 * to an IN list when we preprocess the 1st OR in the list.
 		 */
-        if(leftOperand instanceof OrNode){
-            ((OrNode)leftOperand).setFirstOr();
+        if(getLeftOperand() instanceof OrNode){
+            ((OrNode)getLeftOperand()).setFirstOr();
         }
-        leftOperand=leftOperand.preprocess(numTables,
+        setLeftOperand(getLeftOperand().preprocess(numTables,
                 outerFromList,outerSubqueryList,
-                outerPredicateList);
+                outerPredicateList));
 		/* We need to rerun the changeToCNF() phase if our left operand
 		 * is an AndNode.  This can happen due to a predicate transformation,
 		 * such as the ones for LIKE and BETWEEN, underneath us.
 		 */
-        if(leftOperand instanceof AndNode){
+        if(getLeftOperand() instanceof AndNode){
             // OrNode Cannot be Transformed to an AndNode.
             // This allows us to always believe we are a top AndNode...
             changeToCNF(true);
         }
-        rightOperand=rightOperand.preprocess(numTables,
+        setRightOperand(getRightOperand().preprocess(numTables,
                 outerFromList,outerSubqueryList,
-                outerPredicateList);
+                outerPredicateList));
         return this;
     }
 
@@ -131,8 +131,8 @@ public class AndNode extends BinaryLogicalOperatorNode{
      */
     @Override
     ValueNode eliminateNots(boolean underNotNode) throws StandardException{
-        leftOperand=leftOperand.eliminateNots(underNotNode);
-        rightOperand=rightOperand.eliminateNots(underNotNode);
+        setLeftOperand(getLeftOperand().eliminateNots(underNotNode));
+        setRightOperand(getRightOperand().eliminateNots(underNotNode));
         if(!underNotNode){
             return this;
         }
@@ -140,7 +140,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
 		/* Convert the AndNode to an OrNode */
         ValueNode orNode;
 
-        orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,leftOperand,rightOperand,getContextManager());
+        orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,getLeftOperand(),getRightOperand(),getContextManager());
         orNode.setType(getTypeServices());
         return orNode;
     }
@@ -155,8 +155,8 @@ public class AndNode extends BinaryLogicalOperatorNode{
      */
     @Override
     public ValueNode putAndsOnTop() throws StandardException{
-        assert rightOperand!=null:"rightOperand is expected to be non-null";
-        rightOperand=rightOperand.putAndsOnTop();
+        assert getRightOperand()!=null:"rightOperand is expected to be non-null";
+        setRightOperand(getRightOperand().putAndsOnTop());
 
         return this;
     }
@@ -172,10 +172,10 @@ public class AndNode extends BinaryLogicalOperatorNode{
         boolean isValid = false;
 
         if(SanityManager.ASSERT){
-            isValid=((rightOperand instanceof AndNode) || (rightOperand.isBooleanTrue()));
+            isValid=((getRightOperand() instanceof AndNode) || (getRightOperand().isBooleanTrue()));
 
-            if(rightOperand instanceof AndNode){
-                isValid=rightOperand.verifyPutAndsOnTop();
+            if(getRightOperand() instanceof AndNode){
+                isValid=getRightOperand().verifyPutAndsOnTop();
             }
         }
 
@@ -218,7 +218,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
 		 */
 
 		/* Add the true BooleanConstantNode if not there yet */
-        if(!(rightOperand instanceof AndNode) && !(rightOperand.isBooleanTrue())){
+        if(!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())){
             BooleanConstantNode trueNode;
 
             trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
@@ -252,24 +252,24 @@ public class AndNode extends BinaryLogicalOperatorNode{
 		 */
 
 		/* Pull up the AndNode chain to our left */
-        while(leftOperand instanceof AndNode){
+        while(getLeftOperand() instanceof AndNode){
 
 			/* For "clarity", we first get the new and old operands */
-            ValueNode newLeft=((AndNode)leftOperand).getLeftOperand();
-            AndNode oldLeft=(AndNode)leftOperand;
-            AndNode newRight=(AndNode)leftOperand;
-            ValueNode oldRight=rightOperand;
+            ValueNode newLeft=((AndNode)getLeftOperand()).getLeftOperand();
+            AndNode oldLeft=(AndNode)getLeftOperand();
+            AndNode newRight=(AndNode)getLeftOperand();
+            ValueNode oldRight=getRightOperand();
 
 			/* We then twiddle the tree to match the above diagram */
-            leftOperand=newLeft;
-            rightOperand=newRight;
+            setLeftOperand(newLeft);
+            setRightOperand(newRight);
             newRight.setLeftOperand(oldLeft.getRightOperand());
             newRight.setRightOperand(oldRight);
         }
 
 		/* Finally, we continue to normalize the left and right subtrees. */
-        leftOperand=leftOperand.changeToCNF(underTopAndNode);
-        rightOperand=rightOperand.changeToCNF(underTopAndNode);
+        setLeftOperand(getLeftOperand().changeToCNF(underTopAndNode));
+        setRightOperand(getRightOperand().changeToCNF(underTopAndNode));
 
         return this;
     }
@@ -288,12 +288,12 @@ public class AndNode extends BinaryLogicalOperatorNode{
         boolean isValid = false;
 
         if(SanityManager.ASSERT){
-            isValid=((rightOperand instanceof AndNode) ||
-                    (rightOperand.isBooleanTrue()));
-            if(rightOperand instanceof AndNode){
-                isValid=rightOperand.verifyChangeToCNF();
+            isValid=((getRightOperand() instanceof AndNode) ||
+                    (getRightOperand().isBooleanTrue()));
+            if(getRightOperand() instanceof AndNode){
+                isValid=getRightOperand().verifyChangeToCNF();
             }
-            isValid=!(leftOperand instanceof AndNode) && isValid && leftOperand.verifyChangeToCNF();
+            isValid=!(getLeftOperand() instanceof AndNode) && isValid && getLeftOperand().verifyChangeToCNF();
         }
 
         return isValid;
@@ -306,7 +306,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      * @throws StandardException Thrown on error
      */
     void postBindFixup() throws StandardException{
-        setType(resolveLogicalBinaryOperator(leftOperand.getTypeServices(),rightOperand.getTypeServices()));
+        setType(resolveLogicalBinaryOperator(getLeftOperand().getTypeServices(),getRightOperand().getTypeServices()));
     }
 
     /**

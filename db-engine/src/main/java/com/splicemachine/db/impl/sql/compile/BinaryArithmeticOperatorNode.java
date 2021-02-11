@@ -138,17 +138,17 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
      */
     @Override
     public ValueNode bindExpression( FromList	fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector) throws StandardException {
-        if (leftOperand instanceof TimeSpanNode || rightOperand instanceof TimeSpanNode) {
+        if (getLeftOperand() instanceof TimeSpanNode || getRightOperand() instanceof TimeSpanNode) {
             return bindTimeSpanOperation(fromList, subqueryList, aggregateVector);
-        } else if(timezoneArithmetic(leftOperand, rightOperand)) {
+        } else if(timezoneArithmetic(getLeftOperand(), getRightOperand())) {
             return bindTimezoneOperation(fromList, subqueryList, aggregateVector);
         }
         super.bindExpression(fromList, subqueryList, aggregateVector);
 
-        TypeId	leftType = leftOperand.getTypeId();
-        TypeId	rightType = rightOperand.getTypeId();
-        DataTypeDescriptor	leftDTS = leftOperand.getTypeServices();
-        DataTypeDescriptor	rightDTS = rightOperand.getTypeServices();
+        TypeId	leftType = getLeftOperand().getTypeId();
+        TypeId	rightType = getRightOperand().getTypeId();
+        DataTypeDescriptor	leftDTS = getLeftOperand().getTypeServices();
+        DataTypeDescriptor	rightDTS = getRightOperand().getTypeServices();
 
         /* Do any implicit conversions from (long) (var)char. */
         if (leftType.isStringTypeId() && rightType.isNumericTypeId())
@@ -172,15 +172,15 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 maxWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
             }
 
-            leftOperand = (ValueNode)
+            setLeftOperand((ValueNode)
                     getNodeFactory().getNode(
                             C_NodeTypes.CAST_NODE,
-                            leftOperand,
+                            getLeftOperand(),
                             new DataTypeDescriptor(rightType, precision,
                                     scale, nullableResult,
                                     maxWidth),
-                            getContextManager());
-            ((CastNode) leftOperand).bindCastNodeOnly();
+                            getContextManager()));
+            ((CastNode) getLeftOperand()).bindCastNodeOnly();
         }
         else if (rightType.isStringTypeId() && leftType.isNumericTypeId())
         {
@@ -203,15 +203,15 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 maxWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
             }
 
-            rightOperand =  (ValueNode)
+            setRightOperand((ValueNode)
                     getNodeFactory().getNode(
                             C_NodeTypes.CAST_NODE,
-                            rightOperand,
+                            getRightOperand(),
                             new DataTypeDescriptor(leftType, precision,
                                     scale, nullableResult,
                                     maxWidth),
-                            getContextManager());
-            ((CastNode) rightOperand).bindCastNodeOnly();
+                            getContextManager()));
+            ((CastNode) getRightOperand()).bindCastNodeOnly();
         }
 
         /*
@@ -219,10 +219,10 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
          ** By convention, the left operand gets to decide the result type
          ** of a binary operator.
          */
-        setType(leftOperand.getTypeCompiler().
+        setType(getLeftOperand().getTypeCompiler().
                 resolveArithmeticOperation(
-                        leftOperand.getTypeServices(),
-                        rightOperand.getTypeServices(),
+                        getLeftOperand().getTypeServices(),
+                        getRightOperand().getTypeServices(),
                         operator
                 )
         );
@@ -246,8 +246,8 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
     private ValueNode bindTimezoneOperation(FromList fromList,
                                             SubqueryList subqueryList,
                                             List<AggregateNode> aggregateVector) throws StandardException {
-        leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
-        if (leftOperand.requiresTypeFromContext()) {
+        getLeftOperand().bindExpression(fromList, subqueryList, aggregateVector);
+        if (getLeftOperand().requiresTypeFromContext()) {
             // Reference:
             // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html, Table 1
             throw StandardException.newException(SQLState.LANG_DB2_INVALID_DATETIME_EXPR);
@@ -255,7 +255,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
         if (!"+".equals(operator) && !"-".equals(operator)) {
             throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
         }
-        if(leftOperand.getTypeId().getJDBCTypeId() != Types.TIMESTAMP && leftOperand.getTypeId().getJDBCTypeId() != Types.TIME) {
+        if(getLeftOperand().getTypeId().getJDBCTypeId() != Types.TIMESTAMP && getLeftOperand().getTypeId().getJDBCTypeId() != Types.TIME) {
             throw StandardException.newException(SQLState.LANG_INVALID_TIMEZONE_OPERATION);
         }
         String functionName = "TIMEZONE_SUBTRACT";
@@ -268,8 +268,8 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 "com.splicemachine.derby.utils.SpliceDateFunctions",
                 getContextManager());
         Vector<ValueNode> parameterList = new Vector<>();
-        parameterList.addElement(leftOperand);
-        parameterList.addElement(rightOperand);
+        parameterList.addElement(getLeftOperand());
+        parameterList.addElement(getRightOperand());
         methodNode.addParms(parameterList);
         return new JavaToSQLValueNode(methodNode,
                                       getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
@@ -278,19 +278,19 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
     private ValueNode bindTimeSpanOperation(FromList fromList,
                                             SubqueryList subqueryList,
                                             List<AggregateNode> aggregateVector) throws StandardException {
-        if (leftOperand instanceof TimeSpanNode && rightOperand instanceof TimeSpanNode) {
+        if (getLeftOperand() instanceof TimeSpanNode && getRightOperand() instanceof TimeSpanNode) {
             throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);
         }
         ValueNode base;
         TimeSpanNode timespan;
-        if (leftOperand instanceof TimeSpanNode) {
-            timespan = (TimeSpanNode) leftOperand;
-            rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
-            base = rightOperand;
+        if (getLeftOperand() instanceof TimeSpanNode) {
+            timespan = (TimeSpanNode) getLeftOperand();
+            setRightOperand(getRightOperand().bindExpression(fromList, subqueryList, aggregateVector));
+            base = getRightOperand();
         } else {
-            timespan = (TimeSpanNode) rightOperand;
-            leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
-            base = leftOperand;
+            timespan = (TimeSpanNode) getRightOperand();
+            setLeftOperand(getLeftOperand().bindExpression(fromList, subqueryList, aggregateVector));
+            base = getLeftOperand();
         }
         if (base.requiresTypeFromContext()) {
             // Reference:
@@ -339,12 +339,11 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             methodNode.addParms(parameterList);
             return new JavaToSQLValueNode(methodNode, getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
         } else if (base.getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
-            ValueNode value = null;
             ValueNode intervalType = (ValueNode) getNodeFactory().getNode( C_NodeTypes.INT_CONSTANT_NODE,
                     ReuseFactory.getInteger(timespan.getUnit()),
                     getContextManager());
 
-            value = timespan.getValue();
+            ValueNode value = timespan.getValue();
             if ("-".equals(operator)) {
                 value = (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
@@ -380,9 +379,9 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                 localCost = SIMPLE_OP_COST;
                 break;
         }
-        if (leftOperand.getTypeId().isFloatingPointTypeId() || rightOperand.getTypeId().isFloatingPointTypeId()) {
+        if (getLeftOperand().getTypeId().isFloatingPointTypeId() || getRightOperand().getTypeId().isFloatingPointTypeId()) {
             localCost *= FLOAT_OP_COST_FACTOR;
         }
-        return localCost + getChildrenCost() + SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return localCost + super.getBaseOperationCost() + SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
     }
 }

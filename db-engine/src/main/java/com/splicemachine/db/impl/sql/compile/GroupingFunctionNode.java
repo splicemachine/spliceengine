@@ -83,14 +83,14 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
                 if (columnExpression instanceof ColumnReference) {
                     ResultColumn rc = ((ColumnReference) columnExpression).getSource();
                     if (rc != null) {
-                        if (operand instanceof ColumnReference &&
-                            rc == ((ColumnReference)operand).getSource()) {
+                        if (getOperand() instanceof ColumnReference &&
+                            rc == ((ColumnReference)getOperand()).getSource()) {
                             this.groupByColumnPosition = i;
                             break;
                         }
-                        if (operand instanceof VirtualColumnNode &&
-                            ((VirtualColumnNode)operand).getSourceColumn().getExpression() instanceof ColumnReference &&
-                            rc == ((ColumnReference) ((VirtualColumnNode)operand).getSourceColumn().getExpression()).getSource()) {
+                        if (getOperand() instanceof VirtualColumnNode &&
+                            ((VirtualColumnNode)getOperand()).getSourceColumn().getExpression() instanceof ColumnReference &&
+                            rc == ((ColumnReference) ((VirtualColumnNode)getOperand()).getSourceColumn().getExpression()).getSource()) {
                             this.groupByColumnPosition = i;
                             break;
                         }
@@ -120,11 +120,11 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
 
     @Override
     public String toString() {
-        return "GROUPING(" + operand.toString() + ")";
+        return "GROUPING(" + getOperand().toString() + ")";
     }
 
     public boolean isSingleColumnExpression() {
-        return operand != null && (operand instanceof ColumnReference);
+        return getOperand() != null && (getOperand() instanceof ColumnReference);
     }
 
     public String getReceiverInterfaceName() {
