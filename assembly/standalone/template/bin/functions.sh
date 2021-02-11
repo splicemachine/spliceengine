@@ -154,3 +154,13 @@ _startKafka() {
 
 }
 
+function is_port_open
+{
+  host1=$1
+  port2=$2
+  # note there's two versions of nc: GNU and OpenBSD
+  # OpenBSD supports -z (only check port), but GNU not.
+  # GNU would work with 'exit', OpenBSD needs 'exit\n'
+  # this one works in both and on mac
+  echo 'exit\n' | nc ${host1} ${port2} > /dev/null 2> /dev/null
+}
