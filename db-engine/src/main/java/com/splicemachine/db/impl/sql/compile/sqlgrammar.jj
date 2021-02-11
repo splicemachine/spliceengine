@@ -7135,9 +7135,16 @@ trimFunction() throws StandardException :
     ValueNode    trimString = null;
 }
 {
-    trimType = trimType() <LEFT_PAREN> source = additiveExpression(null,0) [<COMMA> trimString = additiveExpression(null,0) ] <RIGHT_PAREN>
+    <RTRIM> <LEFT_PAREN> source = additiveExpression(null,0) [<COMMA> trimString = additiveExpression(null,0) ] <RIGHT_PAREN>
     {
+        trimType = ReuseFactory.getInteger(StringDataValue.TRAILING);
         return getTrimOperatorNode(trimType, trimString, source, trimString != null, null);
+    }
+|
+    <LTRIM> <LEFT_PAREN> source = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        trimType = ReuseFactory.getInteger(StringDataValue.LEADING);
+        return getTrimOperatorNode(trimType, null, source, null);
     }
 |
     <TRIM> ansiTrimNode = ansiTrim()

@@ -553,6 +553,17 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testLTrimNegative() throws Exception{
+        try {
+            String sqlText = "values LTRIM('XXXXKATEXXXXXX', 'X')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+    }
+
+    @Test
     public void testRepeatNegative() throws Exception {
         try {
             String sqlText = "select repeat(a, 3) from A order by 1";
