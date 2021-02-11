@@ -230,13 +230,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
-        if (catalogNum < NUM_CORE)
-            ti=coreInfo[catalogNum];
-        else
-            ti=getNonCoreTI(catalogNum);
-        CatalogRowFactory crf=ti.getCatalogRowFactory();
 
-        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view, viewId).get(viewIndex);
+
+        ColumnDescriptor[] tableViewCds=null;
+        ViewInfoProvider crf = null;
+        if (catalogNum < NUM_CORE) {
+            ti = coreInfo[catalogNum];
+            crf=ti.getCatalogRowFactory();
+        } else if(catalogNum < NUM_NONCORE) {
+            ti = getNonCoreTI(catalogNum);
+            crf=ti.getCatalogRowFactory();
+        } else {
+            crf = getTransientViewColumns(catalogNum);
+        }
+        tableViewCds = crf.getViewColumns(view, viewId).get(viewIndex);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -480,14 +487,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
-        if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
-        }
-        initSystemIndexVariables(ibmConnectionTable);
-        return ibmConnectionTable;
-    }
-
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSIBMADM schema if it does not exists
@@ -495,14 +494,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
         }
 
-        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
-        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONViewInfoProvider.SNAPAPPL_VIEW_SQL);
 
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONViewInfoProvider.SNAPAPPL_INFO_VIEW_SQL);
 
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONViewInfoProvider.APPLICATIONS_VIEW_SQL);
 
         SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }

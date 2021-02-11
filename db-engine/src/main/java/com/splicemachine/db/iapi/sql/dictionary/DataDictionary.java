@@ -240,8 +240,16 @@ public interface DataDictionary{
     int SYSSNAPSHOT_NUM=30;
     int SYSTOKENS_NUM=31;
     int SYSREPLICATION_CATALOG_NUM=32;
-    int SYSMONGETCONNECTION_CATALOG_NUM=33;
+    int INVALID_CATALOG_NUM=33;
     int SYSNATURALNUMBERS_CATALOG_NUM=34;
+
+    /**
+     * Catalog numbers for transient views, e.g. monitoring views.
+     * these views do not depend on any system view, for now they
+     * rely on transient system VTIs.
+     */
+    int SYSMONGETCONNECTION_CATALOG_NUM=Integer.MAX_VALUE;
+
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
@@ -286,7 +294,7 @@ public interface DataDictionary{
             "1", // SYSSNAPSHOT
             "1", // SYSTOKENS
             "1", // SYSREPLICATION
-            "1", // SYSMONGETCONNECTION_CATALOG_NUM
+            "1", // INVALID
             "1"  // SYSNATURALNUMBERS
     ));
 

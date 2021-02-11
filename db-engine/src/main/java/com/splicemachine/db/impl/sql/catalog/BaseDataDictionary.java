@@ -164,7 +164,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 			"SYSTOKENS",
 			"SYSDUMMY1",
 			"SYSREPLICATION",
-			"MON_GET_CONNECTION",
+			"", // invalid entry for the removed system table MON_GET_CONNECTION which is now a table-valued function.
 			"SYSNATURALNUMBERS"
 	};
 

@@ -16,10 +16,8 @@ package com.splicemachine.derby.vti;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
-import com.splicemachine.db.impl.sql.catalog.SYSMONGETCONNECTIONRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSMONGETCONNECTIONViewInfoProvider;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.MaterializedControlDataSet;
@@ -30,7 +28,6 @@ import com.splicemachine.derby.vti.iapi.DatasetProvider;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,14 +61,10 @@ public class MonGetConnectionVTI implements DatasetProvider {
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
         List<ExecRow> rows = new ArrayList<>();
-        ExecRow valueRow = new ValueRow(SYSMONGETCONNECTIONRowFactory.COLUMN_COUNT);
-        SYSMONGETCONNECTIONRowFactory.makeCompileTimeRow(valueRow, null);
-        /*
+        ExecRow valueRow = new ValueRow(SYSMONGETCONNECTIONViewInfoProvider.COLUMN_COUNT);
+        SYSMONGETCONNECTIONViewInfoProvider.makeCompileTimeRow(valueRow);
         // TODO: add logic to pull connections and add row for each connection similar to below.
-        valueRow.setColumnValue(SYSMONGETCONNECTIONRowFactory.APPLICATION_NAME, new SQLVarchar("Hello World!"));
-        valueRow.setColumnValue(SYSMONGETCONNECTIONRowFactory.CONNECTION_START_TIME, new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
-        rows.add(valueRow);
-        */
+        // TODO: opening connections to other region servers from here should be done securely.
         return new MaterializedControlDataSet<>(rows );
     }
 
@@ -92,7 +85,7 @@ public class MonGetConnectionVTI implements DatasetProvider {
      * Metadata
      */
     private static final ResultColumnDescriptor[] columnInfo = Arrays
-            .stream(SYSMONGETCONNECTIONRowFactory.buildCompileTimeColumnList())
+            .stream(SYSMONGETCONNECTIONViewInfoProvider.buildCompileTimeColumnList())
             .map(c -> EmbedResultSetMetaData.getResultColumnDescriptor(c.getName(), c.getType()))
             .toArray(ResultColumnDescriptor[]::new);
 
