@@ -948,6 +948,7 @@ public class FromBaseTable extends FromTable {
                 scanColumnList,      // meaningless in case of index on expressions
                 indexLookupList,
                 forUpdate(),
+                dataSetProcessorType.isOlap(),
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable

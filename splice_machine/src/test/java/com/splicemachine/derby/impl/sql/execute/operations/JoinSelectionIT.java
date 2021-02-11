@@ -134,6 +134,24 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
+    private void assertJoinStrategyAnyOfTwo(String query, int level, String joinStrategy1, String joinStrategy2) throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            int count = 0;
+            while (rs.next()) {
+                count++;
+                if (count == level) {
+                    String row = rs.getString(1);
+                    String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                            row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                    Assert.assertThat(format("Join strategy must be either %s or %s", joinStrategy1, joinStrategy2),
+                            joinStrategy,
+                            anyOf(equalTo(joinStrategy1), equalTo(joinStrategy2)));
+                    break;
+                }
+            }
+        }
+    }
+
     // should be NestedLoopJoin
     @Test
     public void testInnerJoinWithSubqueryFilterExactCriteria() throws Exception {
@@ -230,17 +248,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
 //            BROADCAST_JOIN, methodWatcher);
     }
-    
+
+    /* DB-11238 note
+     * DB-4180 enables join strategies other than nested loop join available for this query.
+     * However, it's not necessary that this query doesn't select nested loop join. This
+     * choice should be based on cost estimation.
+     */
     @Test
     public void testInnerJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
-            format("explain SELECT a2.pid FROM %s a2 --splice-properties useSpark=false\n" +
-            		  "INNER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID" +
-            				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-            BROADCAST_JOIN, methodWatcher);
+    	assertJoinStrategyAnyOfTwo(
+    	    format("explain SELECT a2.pid FROM %s a2 --splice-properties useSpark=false\n" +
+                      "INNER JOIN " +
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                              "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                      "ON a2.PID = a3.PID" +
+                      " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+            4, NESTED_LOOP_JOIN, BROADCAST_JOIN
+        );
     }
 
     @Test
@@ -315,28 +339,40 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             LO_BROADCAST_JOIN, methodWatcher);
     }
 
+    /* DB-11238 note
+     * DB-4180 enables join strategies other than nested loop join available for this query.
+     * However, it's not necessary that this query doesn't select nested loop join. This
+     * choice should be based on cost estimation.
+     */
     @Test
     public void testLeftOuterJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        assertJoinStrategyAnyOfTwo(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " left outer join %s a2 --splice-properties useSpark=false\n" +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-           BROADCAST_JOIN, methodWatcher);
+                        "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                        "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                        " left outer join %s a2 --splice-properties useSpark=false\n" +
+                        " on a2.pid = a3.pid " +
+                        " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            4, NESTED_LOOP_JOIN, BROADCAST_JOIN
+        );
     }
-    
+
+    /* DB-11238 note
+     * DB-4180 enables join strategies other than nested loop join available for this query.
+     * However, it's not necessary that this query doesn't select nested loop join. This
+     * choice should be based on cost estimation.
+     */
     @Test
     public void testInnerJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        assertJoinStrategyAnyOfTwo(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " join %s a2 --splice-properties useSpark=false\n" +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            BROADCAST_JOIN, methodWatcher);
+                        "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                        "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                        " join %s a2 --splice-properties useSpark=false\n" +
+                        " on a2.pid = a3.pid " +
+                        " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            4, NESTED_LOOP_JOIN, BROADCAST_JOIN
+        );
     }
 
     @Test
@@ -539,32 +575,32 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         rowContainsQuery(4,
                 "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and a.k=3",
-                "preds=[(A.I[4:4] = B.I[4:1])]", methodWatcher);
+                "preds=[(A.I[1:1] = B.I[2:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and b.k=3",
-                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
 
         rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
                 BROADCAST_JOIN, methodWatcher);
 
-        rowContainsQuery(3,
+        rowContainsQuery(6,
                 "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
-                "preds=[(A.I[4:1] = B.I[4:4]),(A.J[4:2] = B.J[4:5])]", methodWatcher);
+                "preds=[(A.J[2:2] = B.J[1:2]),(A.I[2:1] = B.I[1:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
-                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
 
-        rowContainsQuery(4,
+        rowContainsQuery(7,
                 "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
-                "preds=[(B.K[2:3] = 3)]", methodWatcher);
+                "preds=[(B.K[0:3] = 3)]", methodWatcher);
 
         // Test DNF in nested level
         rowContainsQuery(5,
                 "explain select * from a, b where (((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and a.k=3) and b.k=3",
-                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
 
 
         // Negative test: predicate does not repeat in all clauses
