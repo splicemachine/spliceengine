@@ -362,7 +362,14 @@ public class CostEstimationIT extends SpliceUnitTest {
                 ->  TableScan[T11(2544)](n=1,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=60 B,partitions=1)
         6 rows selected
          */
-        String sqlText = "explain select * from t3 inner join t11 on b1=b3 where a3=200";
+        /* DB-11238 note
+         * Since the cost of nested loop join is corrected (effectively lowered) on OLTP,
+         * optimizer may selects nested loop join for this query. However, DB-8715 was
+         * about incorrect cost estimation on join strategies other than nested loop join.
+         * For this reason, hint the query so the test becomes stable.
+         */
+        String sqlText = "explain select * from t3 --splice-properties joinStrategy=broadcast\n" +
+                "inner join t11 on b1=b3 where a3=200";
 
         rowContainsQuery(new int[]{5,6}, sqlText, methodWatcher,
                 new String[] {"TableScan[T3", "scannedRows=1,outputRows=1"},

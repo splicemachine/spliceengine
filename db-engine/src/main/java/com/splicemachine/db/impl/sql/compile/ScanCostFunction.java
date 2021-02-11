@@ -99,6 +99,8 @@ public class ScanCostFunction{
     // will be used shortly
     private final boolean forUpdate;
 
+    private final boolean isOlap;
+
     // selectivity elements for scanning phase
     private final List<SelectivityHolder>[] scanSelectivityHolder;
 
@@ -145,6 +147,7 @@ public class ScanCostFunction{
                             BitSet baseColumnsInScan,
                             BitSet baseColumnsInLookup,
                             boolean forUpdate,
+                            boolean isOlap,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
         this.cd = cd;
@@ -157,7 +160,8 @@ public class ScanCostFunction{
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
-        this.forUpdate=forUpdate;
+        this.forUpdate = forUpdate;
+        this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
 
         /* We always allocate one extra column in a selectivity holder array because column
@@ -529,7 +533,8 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
+            double lookupCostPerRow = isOlap ? (openLatency+closeLatency) : ((openLatency+closeLatency) / 10);
+            lookupCost = totalRowCount*filterBaseTableSelectivity*lookupCostPerRow;
             scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
