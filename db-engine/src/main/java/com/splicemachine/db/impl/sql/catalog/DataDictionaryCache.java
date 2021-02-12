@@ -58,7 +58,6 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
@@ -79,7 +78,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,Conglomerate> conglomerateCache;
     private ManagedCache<Pair<Long, Long>, Conglomerate> txnAwareConglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
-    private ManagedCache<GenericStatement,StatementCacheValue> statementCache;
+    private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
     private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
@@ -526,8 +525,8 @@ public class DataDictionaryCache {
 
     public void statementCacheRemove(GenericStatement gs) throws StandardException {
         if (LOG.isDebugEnabled()) {
-            StatementCacheValue value = statementCache.getIfPresent(gs);
-            LOG.debug("statementCacheRemove " + gs.toString() +(value != null ? " found" : " null"));
+            GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
+            LOG.debug("statementCacheRemove " + gs.toString() +(gsps != null ? " found" : " null"));
         }
         statementCache.invalidate(gs);
     }
@@ -543,28 +542,16 @@ public class DataDictionaryCache {
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs.toString());
-        statementCache.put(gs,new StatementCacheValue(gsp));
-    }
-
-    public List<Pair<String, Timestamp>> cachedStatements() throws StandardException {
-        if (!dd.canReadCache(null))
-            return null;
-        List<Pair<String, Timestamp>> result = new ArrayList<>();
-        statementCache.asMap().forEach((key, value) -> result.add(new Pair<String, Timestamp>(key.getStatementText(), value.getTimestamp())));
-        return result;
+        statementCache.put(gs,gsp);
     }
 
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
-        StatementCacheValue value = statementCache.getIfPresent(gs);
+        GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
         if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheFind " + gs.toString() +(value != null ? " found" : " null"));
-        if(value == null) {
-            return null;
-        } else {
-            return value.getStatement();
-        }
+            LOG.debug("statementCacheFind " + gs.toString() +(gsps != null ? " found" : " null"));
+        return gsps;
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
