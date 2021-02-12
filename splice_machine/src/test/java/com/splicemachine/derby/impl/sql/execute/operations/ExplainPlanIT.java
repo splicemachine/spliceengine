@@ -806,6 +806,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     }
 
     @Test
+    public void testExplainSelectForUpdateDB11371() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t1 for update")) {
+            String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainStr.contains("ScrollInsensitive"));
+        }
+    }
+
+    @Test
     public void testPlanPrinterBugDB11341() throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')")) {
             rs.next();
@@ -816,14 +824,6 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             } finally {
                 methodWatcher.execute(format("call syscs_util.syscs_set_logger_level('com.splicemachine.db.impl.ast.PlanPrinter', '%s')", planPrinterLevel));
             }
-        }
-    }
-
-    @Test
-    public void testExplainSelectForUpdateDB11371() throws Exception {
-        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t1 for update")) {
-            String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
-            Assert.assertTrue(explainStr.contains("ScrollInsensitive"));
         }
     }
 }
