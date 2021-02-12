@@ -35,8 +35,6 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
-import com.splicemachine.db.iapi.services.cache.CacheManager;
-import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -55,7 +53,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
@@ -1529,28 +1526,4 @@ public interface LanguageConnectionContext extends Context {
 
     void setCompilingStoredPreparedStatement(boolean newValue);
 
-    /**
-     * This method will remove a statement from the statement cache.
-     * It should only be called if there is an exception preparing
-     * the statement. The caller must have set the flag
-     * {@code preparedStmt.compilingStatement} in the {@code GenericStatement}
-     * before calling this method in order to prevent race conditions when
-     * calling {@link CacheManager#remove(Cacheable)}.
-     *
-     * @param statement Statement to remove
-     * @throws StandardException thrown if lookup goes wrong.
-     */
-    void removeStatement(GenericStatement statement) throws StandardException;
-
-    /**
-     * See if a given statement has already been compiled for this user, and
-     * if so use its prepared statement.
-     *
-     * If the statement does not exist in the cache, it is added to it.
-     *
-     * @return the prepared statement for the given string.
-     * @throws StandardException thrown if lookup goes wrong.
-     * @note this method has side effects.
-     */
-    PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
 }

@@ -129,7 +129,7 @@ public class StatementKey {
         if (this.sql == null && other.sql != null) {
             return false;
         }
-        if (this.sql != null && !this.sql.equals(other.sql)) {
+        if (!this.sql.equals(other.sql)) {
             return false;
         }
         if (this.type != other.type) {
