@@ -3089,6 +3089,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Z89</name>
+                <text>VTI '{0}' does not does not implement compile-time schema</text>
+                <arg>vti</arg>
+            </msg>
+
+            <msg>
                 <name>42Z90</name>
                 <text>Class '{0}' does not return an updatable ResultSet.</text>
                 <arg>className</arg>
