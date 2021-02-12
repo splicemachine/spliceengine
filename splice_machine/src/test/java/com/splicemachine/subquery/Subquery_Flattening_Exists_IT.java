@@ -886,7 +886,7 @@ public class Subquery_Flattening_Exists_IT {
                 "            EXISTS (select C1 from C where EXISTS (select A1 from A))\n" +
                 "        then 14 end,\n" +
                 "        4)\n" +
-                ")", THREE_SUBQUERY_NODES, R);
+                ")", TWO_SUBQUERY_NODES, R);
      }
 
     private TestConnection conn() {
