@@ -56,6 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA;
 import static java.sql.ResultSetMetaData.columnNullable;
 
 /**
@@ -493,18 +494,13 @@ public class NewInvocationNode extends MethodCallNode
                 try {
                     Class clazz;
                     clazz = inspector.getClass(getJavaClassName());
-                    Method schemaKnownAtCompileTime, getMetaData = null;
+                    Method getMetaData = null;
                     try {
-                        schemaKnownAtCompileTime = clazz.getDeclaredMethod("schemaKnownAtCompileTime");
                         getMetaData = clazz.getDeclaredMethod("getMetaData");
-                    } catch (NoSuchMethodException ignored) { // class doesn't define its own static version of these methods, therefore we ignore it.
-                        return null;
+                    } catch (NoSuchMethodException exception) { // class doesn't define its own static version of this method, report error.
+                        throw StandardException.newException(LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA, clazz.getSimpleName());
                     }
 
-                    boolean hasCompileTimeSchema = (Boolean)schemaKnownAtCompileTime.invoke(null, (Object[]) null);
-                    if(!hasCompileTimeSchema) {
-                        return null;
-                    }
                     ResultSetMetaData metadata = (ResultSetMetaData)getMetaData.invoke(null, (Object[]) null);
                     return toTypeDescriptor(metadata);
                 } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | SQLException e) {

@@ -28,7 +28,7 @@ import java.sql.SQLException;
 /**
  * Created by jleach on 10/7/15.
  */
-public interface DatasetProvider extends CompileTimeSchema {
+public interface DatasetProvider {
     /**
      *
      * Processing pipeline supporting in memory and spark datasets.

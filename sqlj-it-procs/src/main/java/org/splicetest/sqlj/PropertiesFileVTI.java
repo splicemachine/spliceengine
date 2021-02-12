@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.vti.CompileTimeSchema;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -43,7 +44,7 @@ import java.util.Properties;
  * @author erindriggers
  *
  */
-public class PropertiesFileVTI  implements DatasetProvider, VTICosting{
+public class PropertiesFileVTI  implements DatasetProvider, VTICosting, CompileTimeSchema {
 
     private String fileName;
     
