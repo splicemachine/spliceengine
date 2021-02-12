@@ -352,6 +352,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(DaysFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(DB2LengthOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -663,6 +668,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(DecimalFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(SecondFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 

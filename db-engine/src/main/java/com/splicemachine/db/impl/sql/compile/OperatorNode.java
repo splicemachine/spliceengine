@@ -50,7 +50,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 /**
  * Abstract base-class for the various operator nodes: UnaryOperatorNode,
- * BinaryOperatorNode and TernarnyOperatorNode.
+ * BinaryOperatorNode and TernaryOperatorNode.
  */
 public abstract class OperatorNode extends ValueNode
 {

@@ -15,15 +15,14 @@
 package com.splicemachine.derby.utils;
 
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -34,7 +33,8 @@ import java.util.Date;
 
 import static org.junit.Assert.*;
 
-public class SpliceDateFunctionsIT {
+@Category(SerialTest.class) // Not run in parallel because we change global database properties
+public class SpliceDateFunctionsIT extends SpliceUnitTest {
 
     private static final String CLASS_NAME = SpliceDateFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
@@ -233,6 +233,10 @@ public class SpliceDateFunctionsIT {
    
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
+    private void withSecondCompatibilityMode(String mode) throws Exception {
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.secondCompatibilityMode', '%s' )", mode));
+    }
 
     @Test
     public void testDBMetadataGetFunctions() throws Exception {
@@ -592,16 +596,95 @@ public class SpliceDateFunctionsIT {
 
     @Test
     public void testSecondWithTimeStamp() throws Exception {
-        String sqlText = "select second(col1), col1 from " + tableWatcherH + " order by col1";
-        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            String expected =
-                "1  |        COL1          |\n" +
-                    "-----------------------------\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |";
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        try {
+            withSecondCompatibilityMode("splice");
+            String sqlText = "select second(col1), typeof(second(col1)), col1 from " + tableWatcherH + " order by col1";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1  |   2   |        COL1          |\n" +
+                                "-------------------------------------\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current timestamp)", "DOUBLE NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 2)", "42X01");
+
+            withSecondCompatibilityMode("db2");
+            sqlText = "select second(ts), second(ts, 1), second(ts, 12), second(ts, 5)," +
+                    "typeof(second(ts)), typeof(second(ts, 1)), typeof(second(ts, 12)), typeof(second(ts, 5)), ts from " + tableWatcherI + " order by ts";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |  2  |       3        |    4    |   5    |      6      |       7       |      8      |          TS           |\n" +
+                                "------------------------------------------------------------------------------------------------------------------\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-01-02 11:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-07-02 11:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-09-02 11:22:33.04 |\n" +
+                                " 0 | 0.0 |0.030000000000  | 0.03000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2012-12-31 00:00:00.03 |\n" +
+                                "40 |40.0 |40.000000000000 |40.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) | 2012-12-31 20:38:40.0 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2013-12-31 05:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2021-01-30 05:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2021-01-31 05:22:33.04 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current timestamp)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            checkExpressionType("second(current timestamp, 5)", "DECIMAL(7,5) NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 'abc')", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, days(current timestamp))", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 45)", "22008");
+        } finally {
+            withSecondCompatibilityMode("db2");
+        }
+    }
+
+    @Test
+    public void testSecondWithTime() throws Exception {
+        try {
+            withSecondCompatibilityMode("splice");
+            String sqlText = "select second(t), typeof(second(t)), t from " + tableWatcherI + " order by t";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |   2    |    T    |\n" +
+                                "-----------------------\n" +
+                                " 1 |INTEGER |00:00:01 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "29 |INTEGER |10:30:29 |\n" +
+                                "28 |INTEGER |18:44:28 |\n" +
+                                "40 |INTEGER |20:38:40 |\n" +
+                                "59 |INTEGER |23:59:59 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current time)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 2)", "42X01");
+
+            withSecondCompatibilityMode("db2");
+            sqlText = "select second(t), second(t, 1), second(t, 12), second(t, 5)," +
+                    "typeof(second(t)), typeof(second(t, 1)), typeof(second(t, 12)), typeof(second(t, 5)), t from " + tableWatcherI + " order by t";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |  2  |       3        |    4    |   5    |      6      |       7       |      8      |    T    |\n" +
+                                "----------------------------------------------------------------------------------------------------\n" +
+                                " 1 | 1.0 |1.000000000000  | 1.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |00:00:01 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "29 |29.0 |29.000000000000 |29.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |10:30:29 |\n" +
+                                "28 |28.0 |28.000000000000 |28.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |18:44:28 |\n" +
+                                "40 |40.0 |40.000000000000 |40.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |20:38:40 |\n" +
+                                "59 |59.0 |59.000000000000 |59.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |23:59:59 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current time)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            checkExpressionType("second(current time, 5)", "DECIMAL(7,5) NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 'abc')", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, days(current timestamp))", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 45)", "22008");
+        } finally {
+            withSecondCompatibilityMode("db2");
         }
     }
 
@@ -908,6 +991,26 @@ public class SpliceDateFunctionsIT {
                             "2021-01-31 05:22:33.04 | 31  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+    }
+
+    @Test
+    public void testDaysOnTimestamp() throws Exception {
+        String sqlText = "select ts, DAYS(ts), typeof(DAYS(ts)) from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                    "TS           |   2   |   3   |\n" +
+                    "----------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |733409 |BIGINT |\n" +
+                    "2009-07-02 11:22:33.04 |733590 |BIGINT |\n" +
+                    "2009-09-02 11:22:33.04 |733652 |BIGINT |\n" +
+                    "2012-12-31 00:00:00.03 |734868 |BIGINT |\n" +
+                    " 2012-12-31 20:38:40.0 |734868 |BIGINT |\n" +
+                    "2013-12-31 05:22:33.04 |735233 |BIGINT |\n" +
+                    "2021-01-30 05:22:33.04 |737820 |BIGINT |\n" +
+                    "2021-01-31 05:22:33.04 |737821 |BIGINT |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        checkExpressionType("DAYS(CURRENT TIMESTAMP)", "BIGINT NOT NULL", methodWatcher.getOrCreateConnection());
     }
 
     @Test
