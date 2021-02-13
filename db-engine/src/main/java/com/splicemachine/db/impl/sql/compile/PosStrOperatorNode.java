@@ -83,7 +83,6 @@ public class PosStrOperatorNode extends BinaryOperatorNode
                 case Types.VARCHAR:
                 case Types.LONGVARCHAR:
                 case Types.CLOB:
-                    operandType = getResultType(width, operandType);
                     break;
                 case Types.JAVA_OBJECT:
                 case Types.OTHER:
