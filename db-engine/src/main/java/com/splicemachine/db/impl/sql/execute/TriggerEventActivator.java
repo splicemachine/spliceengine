@@ -461,4 +461,15 @@ public class TriggerEventActivator {
     }
 
     public TriggerExecutionContext getTriggerExecutionContext() { return tec; }
+
+    public void setHasGeneratedColumn() {
+        if (tec != null)
+            tec.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        if (tec == null)
+            return false;
+        return tec.hasGeneratedColumn();
+    }
 }

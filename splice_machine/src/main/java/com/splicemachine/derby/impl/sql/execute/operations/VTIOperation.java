@@ -136,6 +136,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private boolean quotedEmptyIsNull;
     private GenericStorablePreparedStatement fromTableDML_SPS = null;
     private ResultSet fromTableDML_ResultSet = null;
+    DataSet<ExecRow> sourceSet;
 
 
 	/**
@@ -379,7 +380,7 @@ public class VTIOperation extends SpliceBaseOperation {
 
         dsp.prependSpliceExplainString(this.explainPlan);
 
-        DataSet<ExecRow> sourceSet = getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
+        sourceSet = getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
         return sourceSet;
 
     }

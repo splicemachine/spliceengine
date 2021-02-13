@@ -108,6 +108,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private boolean fromSparkExecution;
     private TemporaryRowHolder temporaryRowHolder;
     private SPSDescriptor fromTableDmlSpsDescriptor;
+    private boolean hasGeneratedColumn;  // Does the trigger table have a generated column?
+
 
     /*
     ** Used to track all the result sets we have given out to
@@ -667,6 +669,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeBoolean(hasFromTableDmlSpsDescriptor);
         if (hasFromTableDmlSpsDescriptor)
             out.writeObject(fromTableDmlSpsDescriptor);
+        out.writeBoolean(hasGeneratedColumn);
     }
 
     @Override
@@ -701,6 +704,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         boolean hasFromTableDmlSpsDescriptor = in.readBoolean();
         if (hasFromTableDmlSpsDescriptor)
             fromTableDmlSpsDescriptor = (SPSDescriptor) in.readObject();
+        hasGeneratedColumn = in.readBoolean();
     }
 
     /**
@@ -853,5 +857,23 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggerd == null)
             return "";
         return triggerd.getName();
+    }
+
+    public void setHasGeneratedColumn() {
+        hasGeneratedColumn = true;
+    }
+
+    public boolean hasGeneratedColumn() {
+        return hasGeneratedColumn;
+    }
+
+    public boolean needsTemporaryConglomerate() {
+        // TODO:  Can we detect when a DML statement and associated
+        //        triggers needs no temporary conglomerate?
+        //        The persisted Dataset may not always be accessible,
+        //        for example in a nested loop join iterator,
+        //        so currently we still need it.
+        return true;
+        //return hasGeneratedColumn || !fromSparkExecution;
     }
 }

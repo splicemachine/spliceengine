@@ -2132,4 +2132,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         return result && childResult.collectExpressions(exprMap);
     }
+
+    @Override public boolean isTargetTable() {
+        if (!(childResult instanceof FromTable))
+            return false;
+        FromTable child = (FromTable) childResult;
+        return child.isTargetTable();
+    }
 }

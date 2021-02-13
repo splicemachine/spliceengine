@@ -176,6 +176,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     heapConglom);
             spliceSequences=new SpliceSequence[autoIncrementRowLocationArray.length];
             int length=autoIncrementRowLocationArray.length;
+            if (length != 0 && triggerHandler != null)
+                triggerHandler.setHasGeneratedColumn();
             for(int i=0;i<length;i++){
                 HBaseRowLocation rl=(HBaseRowLocation)autoIncrementRowLocationArray[i];
                 if(rl==null){

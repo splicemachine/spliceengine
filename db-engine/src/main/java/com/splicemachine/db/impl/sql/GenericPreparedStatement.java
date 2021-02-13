@@ -284,6 +284,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                                          long timeoutMillis) throws StandardException {
         parent.getLanguageConnectionContext().setupSubStatementSessionContext(parent);
         activation.setSubStatement(true);
+        activation.setParentActivation(parent);
         return executeStmt(activation, rollbackParentContext, timeoutMillis);
     }
 
