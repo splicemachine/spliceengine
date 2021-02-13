@@ -490,4 +490,12 @@ public class TriggerHandler {
             }
         };
     }
+
+    public void setHasGeneratedColumn() {
+        triggerActivator.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        return triggerActivator.hasGeneratedColumn();
+    }
 }

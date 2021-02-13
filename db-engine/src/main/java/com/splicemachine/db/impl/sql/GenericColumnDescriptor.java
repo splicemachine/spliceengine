@@ -58,7 +58,7 @@ public final class GenericColumnDescriptor
 	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
 	public static final long serialVersionUID = -7718734896813275598l;
 
-
+    private static final int serializationMagicNumber = -314159265;
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it
@@ -249,10 +249,12 @@ public final class GenericColumnDescriptor
         } else {
             out.writeBoolean(false);
         }
+        out.writeInt(serializationMagicNumber);
         out.writeInt(columnPos);
         out.writeObject(type);
         out.writeBoolean(isAutoincrement);
         out.writeBoolean(updatableByCursor);
+        out.writeBoolean(hasGenerationClause);
     }
 
     /**
@@ -272,10 +274,19 @@ public final class GenericColumnDescriptor
         if (in.readBoolean()) {
             schemaName = in.readUTF();
         }
-        columnPos = in.readInt();
+        int tempInt = in.readInt();
+        boolean deserializeHasGenerationClause = false;
+        if (tempInt == serializationMagicNumber) {
+			columnPos = in.readInt();
+			deserializeHasGenerationClause = true;
+		}
+        else
+        	columnPos = tempInt;
         type = getStoredDataTypeDescriptor(in.readObject());
         isAutoincrement = in.readBoolean();
         updatableByCursor = in.readBoolean();
+        if (deserializeHasGenerationClause)
+            hasGenerationClause = in.readBoolean();
     }
 
 	/**

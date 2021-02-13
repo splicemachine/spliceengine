@@ -32,7 +32,7 @@ import java.util.Collection;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test Row Trigger Performance
+ * Test Trigger Performance
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
@@ -71,7 +71,23 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
         spliceClassWatcher.executeUpdate("create table sourceTable(a int, b int)");
         spliceClassWatcher.executeUpdate("insert into sourceTable values(1,1)");
 
+        spliceClassWatcher.executeUpdate("create table sourceTable2(a int, b int, primary key(a))");
+        spliceClassWatcher.executeUpdate("insert into sourceTable2 values(1,1)");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+1,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+2,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+4,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+8,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+16,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+32,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+64,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+128,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+256,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+512,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+1024,b from sourceTable2");
+		spliceClassWatcher.executeUpdate("insert into sourceTable2 select a+2048,b from sourceTable2");
+
         spliceClassWatcher.executeUpdate("create table targetTable(a int, b int)");
+        spliceClassWatcher.executeUpdate("create table targetTable2(a int, b int, primary key(a))");
 
         String sqlText = "insert into sourceTable select * from sourceTable";
 		spliceClassWatcher.executeUpdate(sqlText);
@@ -98,6 +114,19 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
                 "    select 1;\n" +
                 "  END";
         for (int i=0; i < 15; i++)
+            spliceClassWatcher.executeUpdate(format(sqlText, i));
+
+        sqlText = "CREATE TRIGGER TrigSt%d\n" +
+                "  AFTER UPDATE ON targetTable2\n" +
+                "  REFERENCING NEW TABLE AS N OLD TABLE AS O\n" +
+                "  FOR EACH STATEMENT\n" +
+                "  WHEN (EXISTS ( " +
+                "         SELECT 1 FROM N, O WHERE O.b = N.b ))\n" +
+                "  BEGIN ATOMIC\n" +
+                "    UPDATE targetTable set a = a+10000;\n" +
+                "  END";
+
+        for (int i=0; i < 8; i++)
             spliceClassWatcher.executeUpdate(format(sqlText, i));
     }
 
@@ -150,6 +179,27 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
         long startTime = System.currentTimeMillis();
         methodWatcher.execute("insert into targetTable --splice-properties useSpark=" + useSpark +
                               "\n select * from sourceTable");
+        long endTime = System.currentTimeMillis();
+        long runTime = endTime - startTime;
+        assertTrue("Expected runtime to be less than 10 seconds.  Actual time: " + runTime + " milliseconds", runTime < 10000);
+
+    }
+
+    @Test
+    public void testStatementTriggersRuntimeUnderLimit() throws Exception {
+        // Make sure spark is warmed up
+        if (useSpark) {
+            try (ResultSet rs = methodWatcher.executeQuery("select * from sourceTable" +
+                "--splice-properties useSpark=" + useSpark + "\n")) {
+            }
+            try (ResultSet rs = methodWatcher.executeQuery("select * from sourceTable" +
+                "--splice-properties useSpark=" + useSpark + "\n")) {
+            }
+        }
+        long startTime = System.currentTimeMillis();
+        methodWatcher.execute("update targetTable2 --splice-properties useSpark=" + useSpark +
+                              "\n set b = b+2048");
+
         long endTime = System.currentTimeMillis();
         long runTime = endTime - startTime;
         assertTrue("Expected runtime to be less than 10 seconds.  Actual time: " + runTime + " milliseconds", runTime < 10000);

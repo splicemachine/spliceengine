@@ -18,12 +18,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import static com.splicemachine.derby.catalog.TriggerNewTransitionRows.TriggerNewTransitionRowsKind.*;
 
 /**
  * Extract the desired columns out of the trigger result set.
@@ -32,7 +35,7 @@ import java.io.ObjectOutput;
 public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
     protected boolean initialized;
     protected TriggerExecutionContext tec;
-    boolean isOld;
+    TriggerNewTransitionRows.TriggerNewTransitionRowsKind triggerRowsKind = NEW;
     Op operation;
     ExecRow execRowDefinition;
     int nCols;
@@ -41,9 +44,9 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
         super();
     }
 
-    public TriggerRowsMapFunction(OperationContext<Op> operationContext, boolean isOld, TriggerExecutionContext tec) {
+    public TriggerRowsMapFunction(OperationContext<Op> operationContext, TriggerNewTransitionRows.TriggerNewTransitionRowsKind triggerRowsKind, TriggerExecutionContext tec) {
         super(operationContext);
-        this.isOld = isOld;
+        this.triggerRowsKind = triggerRowsKind;
         this.tec = tec;
     }
 
@@ -58,10 +61,10 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
             execRowDefinition = operation.getExecRowDefinition();
             nCols = execRowDefinition.nColumns();
         }
-        ExecRow row;
-        if (isOld)
+        ExecRow row = null;
+        if (triggerRowsKind == OLD)
             row = tec.buildOldRow(from, true);
-        else
+        else if (triggerRowsKind == NEW)
             row = tec.buildNewRow(from, true);
 
         if (row.nColumns() > nCols) {
@@ -82,7 +85,7 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(isOld);
+        out.writeInt(triggerRowsKind.ordinal());
         boolean hasTEC = tec != null;
         out.writeBoolean(hasTEC);
         if (hasTEC)
@@ -92,7 +95,7 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        isOld = in.readBoolean();
+        triggerRowsKind = TriggerNewTransitionRows.TriggerNewTransitionRowsKind.values()[in.readInt()];
         boolean hasTEC = in.readBoolean();
         if (hasTEC)
             tec = (TriggerExecutionContext) in.readObject();

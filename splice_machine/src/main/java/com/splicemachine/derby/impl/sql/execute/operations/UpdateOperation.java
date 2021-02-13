@@ -121,6 +121,8 @@ public class UpdateOperation extends DMLWriteOperation{
                     fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
+            if (hasGeneratedColumn)
+                this.triggerHandler.setHasGeneratedColumn();
         }
     }
 
