@@ -1100,6 +1100,16 @@ abstract class SQLBinary
         throw StandardException.newException(SQLState.NOT_IMPLEMENTED);
     }
 
+    public ConcatableDataValue translate(
+            StringDataValue outputTranslationTable,
+            StringDataValue inputTranslationTable,
+            StringDataValue pad,
+            ConcatableDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.NOT_IMPLEMENTED);
+    }
+
     /**
         Host variables are rejected if their length is
         bigger than the declared length, regardless of

@@ -737,6 +737,7 @@ public interface SQLState {
     String LANG_INVALID_ESCAPE_CHARACTER              = "22019";
     String LANG_INVALID_TRIM_CHARACTER                = "22020";
     String LANG_INVALID_CHARACTER_ENCODING            = "22021";
+    String LANG_INVALID_TRANSLATE_PADDING             = "22022";
     String LANG_INVALID_ESCAPE_SEQUENCE               = "22025";
     String LANG_INVALID_TRIM_SET                      = "22027";
     String LANG_STRING_TOO_LONG                       = "22028";
