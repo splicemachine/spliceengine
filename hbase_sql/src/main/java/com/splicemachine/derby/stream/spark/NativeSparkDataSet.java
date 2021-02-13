@@ -211,6 +211,13 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
+    public DataSet<V> limit(int numRows, OperationContext context) {
+        Dataset<Row> result = dataset.limit(numRows);
+        return new NativeSparkDataSet<>(result, context);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {

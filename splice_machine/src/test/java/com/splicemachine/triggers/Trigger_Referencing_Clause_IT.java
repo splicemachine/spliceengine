@@ -807,6 +807,23 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             s.execute("DROP TRIGGER mytrig");
 
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING COMBINED TABLE AS C\n" +
+            "   FOR EACH STATEMENT \n" +
+            "   WHEN (exists (select 1 from C where C_OLD.a = C_NEW.a))\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '87101' ('Hello World!');\n" +
+            "END");
+
+            expectedErrors =
+            Arrays.asList("Application raised error or warning with diagnostic text: \"Hello World!\"");
+
+            testFail("UPDATE t1 SET a=2", expectedErrors, s);
+
+            s.execute("DROP TRIGGER mytrig");
+
             s.execute("CREATE TRIGGER mytrig " +
             "AFTER UPDATE OF A, B " +
             "ON t1 " +

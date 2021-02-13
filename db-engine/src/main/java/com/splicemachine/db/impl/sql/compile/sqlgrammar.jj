@@ -2052,6 +2052,8 @@ TOKEN [IGNORE_CASE] :
 |    <AGGREGATE: "aggregate">
 |    <BEFORE: "before">
 |    <CLASS: "class">
+|   <COMBINED: "combined">
+|   <COMBINED_TABLE: "combined_table">
 |    <COMPRESS: "compress">
 |    <CONTENT: "content">
 |   <CS: "cs">
@@ -10416,7 +10418,7 @@ FromTable tableFactor() throws StandardException :
                                         getContextManager());
         correlationName = "NT_" + uniqueId;
         refClause = new Vector();
-        refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
+        refClause.addElement(new TriggerReferencingStruct(false, !isOld, false, correlationName));
 
         internalSelectStmt = "SELECT * FROM " + correlationName;
         actionTextList = new ArrayList();
@@ -13487,6 +13489,7 @@ triggerReferencingExpression(Vector vector, HashSet<String> hs, TriggerEventDML 
     String    identifier;
     boolean isNew = true;
     boolean    isRow = true;
+    boolean isCombined = false;
 }
 {
     (
@@ -13497,11 +13500,15 @@ triggerReferencingExpression(Vector vector, HashSet<String> hs, TriggerEventDML 
       <NEW_TABLE> { isRow = false;}
       |
       <OLD_TABLE> { isNew = false; isRow = false;}
+      |
+      <COMBINED_TABLE> { isNew = false; isRow = false; isCombined = true;}
+      |
+      <COMBINED> <TABLE> { isNew = false; isRow = false; isCombined = true;}
     )
 
     <AS> identifier = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
     {
-        vector.addElement(new TriggerReferencingStruct(isRow, isNew, identifier));
+        vector.addElement(new TriggerReferencingStruct(isRow, isNew, isCombined, identifier));
         if (!isNew)
             hs.add(identifier);
         else {
@@ -17384,6 +17391,8 @@ nonReservedKeyword()  :
     |    tok = <CHARACTERDELIMITER>
     |    tok = <COBOL>
     |    tok = <COLUMNDELIMITER>
+    |    tok = <COMBINED>
+    |    tok = <COMBINED_TABLE>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
     |    tok = <COMPRESSION>

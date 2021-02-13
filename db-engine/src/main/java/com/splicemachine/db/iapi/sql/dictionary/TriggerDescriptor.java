@@ -81,6 +81,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private String name;
     private String oldReferencingName;
     private String newReferencingName;
+    private String combinedReferencingName;
+
     List<String> triggerDefinitionList;
     private SchemaDescriptor sd;
     private TriggerEventDML triggerDML;
@@ -180,6 +182,15 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.whenClauseText = whenClauseText;
         this.numBaseTableColumns = td.getNumberOfColumns();
         this.version = 1;
+    }
+
+    private void derivedCombinedReferencingName() {
+        if (oldReferencingName != null && newReferencingName != null) {
+            int index = oldReferencingName.lastIndexOf("_OLD");
+            if (index > 0) {
+                combinedReferencingName = oldReferencingName.substring(0, index);
+            }
+        }
     }
     
     /**
@@ -402,6 +413,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             cols = dd.examineTriggerNodeAndCols(stmtnode,
                     oldReferencingName,
                     newReferencingName,
+                    combinedReferencingName,
                     referencedCols,
                     referencedColsInTriggerAction,
                     getTableDescriptor(),
@@ -411,6 +423,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             String newText = dd.getTriggerActionString(stmtnode,
                     oldReferencingName,
                     newReferencingName,
+                    combinedReferencingName,
                     originalSQL,
                     referencedCols,
                     referencedColsInTriggerAction,
@@ -651,6 +664,11 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         return newReferencingName;
     }
 
+    public String getCombinedReferencingName() {
+        return combinedReferencingName;
+    }
+
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -658,6 +676,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         sb.append("id=" + id + "\n");
         sb.append("oldReferencingName=" + (oldReferencingName==null?"NULL":oldReferencingName)  + "\n");
         sb.append("newReferencingName=" + (newReferencingName==null?"NULL":newReferencingName)  + "\n");
+        sb.append("combinedReferencingName=" + (combinedReferencingName==null?"NULL":combinedReferencingName)  + "\n");
         for(String def : triggerDefinitionList)
             sb.append("triggerDefinition = " + def + "\n");
         sb.append("triggerDML=" + triggerDML.toString() + "\n");
@@ -904,7 +923,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         oldReferencingName = (String) in.readObject();
         newReferencingName = (String) in.readObject();
         whenClauseText = (String) in.readObject();
-
+        derivedCombinedReferencingName();
     }
 
     @Override

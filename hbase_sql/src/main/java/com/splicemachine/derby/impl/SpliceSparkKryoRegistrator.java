@@ -23,6 +23,7 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.derby.catalog.TriggerCombinedTransitionRows;
 import splice.com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.catalog.types.*;
@@ -864,6 +865,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerNewTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerOldTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerCombinedTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER);

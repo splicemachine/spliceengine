@@ -83,6 +83,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     JBitSet                correlationMap;
     MethodCallNode    methodCall;
     TableName            exposedName;
+    TableName            combinedTriggerRowsNewName;
+    TableName            combinedTriggerRowsOldName;
     SubqueryList subqueryList;
     boolean                implementsVTICosting;
     boolean                optimized;
@@ -258,6 +260,20 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          */
         this.exposedName = (TableName) exposedTableName;
         this.typeDescriptor = (TypeDescriptor) typeDescriptor;
+
+        String javaClassName = methodCall != null ? methodCall.getJavaClassName() : null;
+        if (ClassName.TriggerCombinedTransitionRows.equals(javaClassName)) {
+            combinedTriggerRowsNewName = (TableName) getNodeFactory().getNode(
+                                           C_NodeTypes.TABLE_NAME,
+                                           exposedName.getSchemaName(),
+                                           exposedName.getTableName() + "_NEW",
+                                           exposedName.getContextManager());
+            combinedTriggerRowsOldName = (TableName) getNodeFactory().getNode(
+                                           C_NodeTypes.TABLE_NAME,
+                                           exposedName.getSchemaName(),
+                                           exposedName.getTableName() + "_OLD",
+                                           exposedName.getContextManager());
+        }
     }
 
     // Optimizable interface
@@ -1038,6 +1054,33 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         return rcList;
     }
 
+    private ResultColumn getResultColumn(ColumnReference columnReference) {
+        ResultColumn resultColumn =
+          resultColumns.getResultColumn(columnReference.getColumnName());
+        /* Did we find a match? */
+        if (resultColumn != null)
+        {
+            columnReference.setTableNumber(tableNumber);
+            columnReference.setColumnNumber(
+                    resultColumn.getColumnPosition());
+        }
+        return resultColumn;
+    }
+
+    private ResultColumn getResultColumn2(ColumnReference columnReference) {
+        ResultColumn resultColumn =
+          resultColumns.getAliasQualifiedResultColumn(columnReference, true);
+        /* Did we find a match? */
+        if (resultColumn != null)
+        {
+            columnReference.setTableNumber(tableNumber);
+            columnReference.setColumnNumber(
+                    resultColumn.getColumnPosition());
+        }
+        return resultColumn;
+    }
+
+
     /**
      * Try to find a ResultColumn in the table represented by this FromBaseTable
      * that matches the name in the given ColumnReference.
@@ -1073,16 +1116,14 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
-        if (columnsTableName == null || columnsTableName.equals(exposedName))
+        if (combinedTriggerRowsNewName != null) {
+            if (combinedTriggerRowsNewName.equals(columnsTableName) ||
+                combinedTriggerRowsOldName.equals(columnsTableName))
+                resultColumn = getResultColumn2(columnReference);
+        }
+        else if (columnsTableName == null || columnsTableName.equals(exposedName))
         {
-            resultColumn = resultColumns.getResultColumn(columnReference.getColumnName());
-            /* Did we find a match? */
-            if (resultColumn != null)
-            {
-                columnReference.setTableNumber(tableNumber);
-                columnReference.setColumnNumber(
-                        resultColumn.getColumnPosition());
-            }
+            resultColumn = getResultColumn(columnReference);
         }
 
         return resultColumn;
@@ -1775,7 +1816,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             throws StandardException
     {
         if (className.equals(ClassName.TriggerNewTransitionRows) ||
-            className.equals(ClassName.TriggerOldTransitionRows))
+            className.equals(ClassName.TriggerOldTransitionRows)  ||
+            className.equals(ClassName.TriggerCombinedTransitionRows))
         {
             // if there isn't an active trigger being compiled, error
             if (lcc.getTriggerTable() != null)
@@ -1798,10 +1840,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             throws StandardException
     {
         ResultColumnList             rcList = null;
-        ResultColumn                 resultColumn;
-        ValueNode                     valueNode;
-        ColumnDescriptor             colDesc = null;
-
 
         makeTableName(td.getSchemaName(), td.getName());
 
@@ -1810,8 +1848,26 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
-        int                     cdlSize = cdl.size();
 
+        if (combinedTriggerRowsOldName != null) {
+            addColumnsToRCList(combinedTriggerRowsOldName, rcList, cdl, td);
+            addColumnsToRCList(combinedTriggerRowsNewName, rcList, cdl, td);
+        }
+        else
+            addColumnsToRCList(exposedName, rcList, cdl, td);
+
+        return rcList;
+    }
+
+    private void addColumnsToRCList(TableName tableName,
+                                    ResultColumnList rcList,
+                                    ColumnDescriptorList cdl,
+                                    TableDescriptor td) throws StandardException {
+
+        ResultColumn                  resultColumn;
+        ValueNode                     valueNode;
+        int                           cdlSize = cdl.size();
+        ColumnDescriptor              colDesc = null;
         for (int index = 0; index < cdlSize; index++)
         {
             /* Build a ResultColumn/BaseColumnNode pair for the column */
@@ -1821,7 +1877,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             valueNode = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.BASE_COLUMN_NODE,
                     colDesc.getColumnName(),
-                    exposedName,
+                    tableName,
                     colDesc.getType(),
                     getContextManager());
             resultColumn = (ResultColumn) getNodeFactory().getNode(
@@ -1833,8 +1889,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
         }
-
-        return rcList;
     }
 
     public boolean needsSpecialRCLBinding()

@@ -211,6 +211,7 @@ public class CreateTriggerNode extends DDLStatementNode {
     */
     private String oldTableName;
     private String newTableName;
+    private String combinedTableName;
 
     private boolean oldTableInReferencingClause;
     private boolean newTableInReferencingClause;
@@ -528,6 +529,7 @@ public class CreateTriggerNode extends DDLStatementNode {
     public static String transformStatementTriggerText(
             QueryTreeNode node, String originalText,
             String oldTableName, String newTableName,
+            String combinedTableName,
             TriggerEventDML triggerEventMask,
             List<int[]> replacements)
         throws StandardException {
@@ -540,12 +542,13 @@ public class CreateTriggerNode extends DDLStatementNode {
             ** the from table is NEW or OLD (or user designated alternates
             ** REFERENCING), we turn them into a trigger table VTI.
             */
-            for (FromBaseTable fromTable : getTransitionTables(node, oldTableName, newTableName)) {
+            for (FromBaseTable fromTable : getTransitionTables(node, oldTableName, newTableName, combinedTableName)) {
                 String refTableName = fromTable.getTableName().getTableName();
                 String baseTableName = fromTable.getBaseTableName();
                 if ((baseTableName == null) ||
                         ((oldTableName == null || !oldTableName.equals(baseTableName)) &&
-                                (newTableName == null || !newTableName.equals(baseTableName)))) {
+                                (newTableName == null || !newTableName.equals(baseTableName)) &&
+                                   (combinedTableName == null || !combinedTableName.equals(baseTableName)))) {
                     continue;
                 }
                 int tokBeginOffset = fromTable.getTableNameField().getBeginOffset();
@@ -563,7 +566,9 @@ public class CreateTriggerNode extends DDLStatementNode {
                 // Replace the transition table name with a VTI.
                 final int replacementOffset = newText.length();
 
-                newText.append(baseTableName.equals(oldTableName) ?
+                newText.append(baseTableName.equals(combinedTableName) ?
+                               "new com.splicemachine.derby.catalog.TriggerCombinedTransitionRows() " :
+                               baseTableName.equals(oldTableName) ?
                                 "new com.splicemachine.derby.catalog.TriggerOldTransitionRows() " :
                                 "new com.splicemachine.derby.catalog.TriggerNewTransitionRows() ");
                 /*
@@ -602,7 +607,7 @@ public class CreateTriggerNode extends DDLStatementNode {
      * @throws StandardException if an error occurs
      */
     private static SortedSet<FromBaseTable>
-    getTransitionTables(Visitable node, String oldTableName, String newTableName)
+    getTransitionTables(Visitable node, String oldTableName, String newTableName, String combinedTableName)
             throws StandardException {
 
         CollectNodesVisitor visitor =
@@ -614,8 +619,8 @@ public class CreateTriggerNode extends DDLStatementNode {
 
         for (Object ob : visitor.getList()) {
             FromBaseTable fbt = (FromBaseTable) ob;
-            if (!isTransitionTable(fbt, oldTableName, newTableName)) {
-                // The from table is not the NEW or OLD table, so no need
+            if (!isTransitionTable(fbt, oldTableName, newTableName, combinedTableName)) {
+                // The from table is not the NEW or OLD table or COMBINED table, so no need
                 // to do anything. Skip this table.
                 continue;
             }
@@ -639,14 +644,15 @@ public class CreateTriggerNode extends DDLStatementNode {
      * @return {@code true} if {@code fbt} represents either the old or
      *   the new transition table, {@code false} otherwise
      */
-    private static boolean isTransitionTable(FromBaseTable fbt, String oldTableName, String newTableName) {
+    private static boolean isTransitionTable(FromBaseTable fbt, String oldTableName, String newTableName, String combinedTableName) {
         // DERBY-6540: It can only be a transition table if the name
         // is not schema qualified.
         if (!fbt.getOrigTableName().hasSchema()) {
             String baseTableName = fbt.getBaseTableName();
             if (baseTableName != null) {
-                return baseTableName.equals(oldTableName) ||
-                        baseTableName.equals(newTableName);
+                return baseTableName.equals(oldTableName)  ||
+                        baseTableName.equals(newTableName) ||
+                        baseTableName.equals(combinedTableName);
             }
         }
 
@@ -758,6 +764,7 @@ public class CreateTriggerNode extends DDLStatementNode {
             cols = getDataDictionary().examineTriggerNodeAndCols(actionNodeList,
                             oldTableName,
                             newTableName,
+                            combinedTableName,
                             referencedColInts,
                             referencedColsInTriggerAction,
                             triggerTableDescriptor,
@@ -770,6 +777,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                         whenClause,
                         oldTableName,
                         newTableName,
+                        combinedTableName,
                         referencedColInts,
                         referencedColsInTriggerAction,
                         triggerTableDescriptor,
@@ -786,6 +794,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                         actionNodeList.get(i),
                         oldTableName,
                         newTableName,
+                        combinedTableName,
                         originalActionTextList.get(i),
                         referencedColInts,
                         referencedColsInTriggerAction,
@@ -802,7 +811,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                 transformedWhenText =
                     getDataDictionary().getTriggerActionString(
                             whenClause, oldTableName, newTableName,
-                            originalWhenText, referencedColInts,
+                            combinedTableName, originalWhenText, referencedColInts,
                             referencedColsInTriggerAction, whenClause.getBeginOffset(),
                             triggerTableDescriptor, triggerEventMask, true,
                             whenClauseTransformations, cols);
@@ -828,12 +837,14 @@ public class CreateTriggerNode extends DDLStatementNode {
             for (int i = 0; i < originalActionTextList.size(); ++i) {
                 transformedActionTextList.add(transformStatementTriggerText(
                         actionNodeList.get(i), originalActionTextList.get(i),
-                        oldTableName, newTableName, triggerEventMask, actionTransformationsList.get(i)));
+                        oldTableName, newTableName, combinedTableName,
+                        triggerEventMask, actionTransformationsList.get(i)));
             }
             if (whenClause != null) {
                 transformedWhenText = transformStatementTriggerText(
                         whenClause, originalWhenText,
-                        oldTableName, newTableName, triggerEventMask, whenClauseTransformations);
+                        oldTableName, newTableName, combinedTableName,
+                        triggerEventMask, whenClauseTransformations);
             }
         }
 
@@ -998,7 +1009,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                 }
                 newTableName = trn.identifier;
                 newTableInReferencingClause = true;
-            } else {
+            } else if (!trn.isCombined){
                 if (oldTableInReferencingClause) {
                     throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_CLAUSE_DUPS);
                 }
@@ -1009,6 +1020,19 @@ public class CreateTriggerNode extends DDLStatementNode {
                     throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "INSERT", "new");
                 }
                 oldTableName = trn.identifier;
+                oldTableInReferencingClause = true;
+            }
+            else {
+                if (triggerEventMask == TriggerEventDML.DELETE) {
+                    throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "DELETE", "combined");
+                }
+                if (triggerEventMask == TriggerEventDML.INSERT) {
+                    throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "INSERT", "combined");
+                }
+                newTableName = trn.identifier + "_NEW";
+                oldTableName = trn.identifier + "_OLD";
+                combinedTableName = trn.identifier;
+                newTableInReferencingClause = true;
                 oldTableInReferencingClause = true;
             }
 

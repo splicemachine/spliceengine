@@ -147,6 +147,7 @@ public interface ClassName
 
 	String TriggerNewTransitionRows = "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
 	String TriggerOldTransitionRows = "com.splicemachine.derby.catalog.TriggerOldTransitionRows";
+	String TriggerCombinedTransitionRows = "com.splicemachine.derby.catalog.TriggerCombinedTransitionRows";
 	String VTICosting = "com.splicemachine.db.vti.VTICosting";
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";

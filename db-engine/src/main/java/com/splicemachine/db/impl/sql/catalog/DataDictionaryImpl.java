@@ -3832,6 +3832,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     Visitable actionStmt,
                     String oldReferencingName,
                     String newReferencingName,
+                    String combinedReferencingName,
                     int[] referencedCols,
                     int[] referencedColsInTriggerAction,
                     TableDescriptor triggerTableDescriptor,
@@ -3911,7 +3912,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             /* we need to sort on position in string, beetle 4324
              */
             SortedSet<ColumnReference> refs = getTransitionVariables(
-                                                 actionStmt, oldReferencingName, newReferencingName);
+                                                 actionStmt, oldReferencingName, newReferencingName, combinedReferencingName);
 
             if (createTriggerTime) {
                     //The purpose of following array(triggerActionColsOnly) is to
@@ -3967,7 +3968,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                             if((tableName==null) ||
                                     ((oldReferencingName==null || !oldReferencingName.equals(tableName.getTableName())) &&
-                                            (newReferencingName==null || !newReferencingName.equals(tableName.getTableName())))){
+                                            (newReferencingName==null || !newReferencingName.equals(tableName.getTableName())) &&
+                                        (combinedReferencingName==null || !combinedReferencingName.equals(tableName.getTableName())))){
                                 continue;
                             }
 
@@ -4081,6 +4083,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             Visitable actionStmt,
             String oldReferencingName,
             String newReferencingName,
+            String combinedReferencingName,
             String triggerDefinition,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
@@ -4096,7 +4099,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         int start = 0;
 
         SortedSet<ColumnReference> refs = getTransitionVariables(
-        actionStmt, oldReferencingName, newReferencingName);
+        actionStmt, oldReferencingName, newReferencingName, combinedReferencingName);
 
         //This is where we do the actual transformation of trigger action
         //sql. An eg of that is
@@ -4118,7 +4121,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     TableName tableName=ref.getTableNameNode();
             if((tableName==null) ||
                     ((oldReferencingName==null || !oldReferencingName.equals(tableName.getTableName())) &&
-                            (newReferencingName==null || !newReferencingName.equals(tableName.getTableName())))){
+                            (newReferencingName==null || !newReferencingName.equals(tableName.getTableName())) &&
+                        (combinedReferencingName==null || !combinedReferencingName.equals(tableName.getTableName())))){
                 continue;
             }
 
@@ -4232,7 +4236,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return all references to transition variables
      */
     private static SortedSet<ColumnReference> getTransitionVariables(
-        Visitable node, String oldReferencingName, String newReferencingName)
+        Visitable node, String oldReferencingName, String newReferencingName, String combinedReferencingName)
         throws StandardException
     {
         // First get all column references.
@@ -4244,7 +4248,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         while (it.hasNext()) {
             TableName tableName = it.next().getTableNameNode();
             if (!isTransitionVariable(
-                    tableName, oldReferencingName, newReferencingName)) {
+                    tableName, oldReferencingName, newReferencingName, combinedReferencingName)) {
                 it.remove();
             }
         }
@@ -4264,7 +4268,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *   {@code false} otherwise
      */
     private static boolean isTransitionVariable(TableName tableName,
-            String oldReferencingName, String newReferencingName) {
+            String oldReferencingName, String newReferencingName,
+            String combinedReferencingName) {
         if (tableName != null) {
             if (tableName.hasSchema()) {
                 // DERBY-6540: Schema-qualified names are not transition
@@ -4277,7 +4282,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             String name = tableName.getTableName();
             if (name != null) {
                 return name.equals(oldReferencingName)
-                        || name.equals(newReferencingName);
+                        || name.equals(newReferencingName)
+                        || name.equals(combinedReferencingName);
             }
         }
 

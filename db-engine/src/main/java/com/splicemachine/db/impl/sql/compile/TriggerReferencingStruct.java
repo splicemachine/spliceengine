@@ -52,20 +52,24 @@ public class TriggerReferencingStruct {
     public String identifier;
     public boolean isRow;
     public boolean isNew;
+    public boolean isCombined;
 
     public TriggerReferencingStruct(boolean isRow,
                                     boolean isNew,
+                                    boolean isCombined,
                                     String identifier) {
         this.isRow = isRow;
         this.isNew = isNew;
+        this.isCombined = isCombined;
         this.identifier = identifier;
     }
 
     @Override
     public String toString() {
-        return (isRow ? "ROW " : "TABLE ") + (isNew ? "new: " : "old: ") + identifier;
+        return (isRow ? "ROW " : "TABLE ") + (isCombined ? "combined: " : isNew ? "new: " : "old: ") + identifier;
     }
 
     public boolean isNew() { return isNew; }
+    public boolean isCombined() { return isCombined; }
     public String getIdentifier() { return identifier; }
 }

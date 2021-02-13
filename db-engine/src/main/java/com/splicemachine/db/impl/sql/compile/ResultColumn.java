@@ -398,6 +398,10 @@ public class ResultColumn extends ValueNode
         return getTableName() + "." + exposedName;
     }
 
+    public String getFullAliasedName(){
+        return getTableAliasName() + "." + exposedName;
+    }
+
     public String getSchemaName() throws StandardException
     {
         if ((columnDescriptor!=null) &&
@@ -423,6 +427,22 @@ public class ResultColumn extends ValueNode
                 (columnDescriptor.getTableDescriptor() != null))
         {
             return columnDescriptor.getTableDescriptor().getName();
+        }
+        else if (expression != null)
+        {
+            return expression.getTableName();
+        }
+        else if (indexExpression != null) {
+            return indexExpression.getTableName();
+        }
+        return null;
+    }
+
+    public String getTableAliasName()
+    {
+        if (tableName != null)
+        {
+            return tableName;
         }
         else if (expression != null)
         {

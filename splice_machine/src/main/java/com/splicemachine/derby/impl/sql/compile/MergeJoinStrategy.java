@@ -62,6 +62,17 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         throw new UnsupportedOperationException("Merge full join not supported currently");
     }
 
+    private boolean
+    joinHasTargetTable(Optimizable innerTable, Optimizer optimizer) {
+        if (innerTable.isTargetTable())
+            return true;
+        if (optimizer.getJoinPosition() < 1)
+            return false;
+        // We don't directly have access to the outer table via a parameter.
+        // Need to look it up in the OptimizableList.
+        return optimizer.getOptimizableList().getOptimizable(optimizer.getJoinPosition()-1).isTargetTable();
+    }
+
     @Override
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
@@ -83,6 +94,15 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)){
             return false;
         }
+
+        // Merge joins involving the target of an UPDATE or DELETE can be slow on Spark
+        // because the input splits for a table which is getting frequently updated
+        // are currently not calculated accurately, leading to uneven splits.
+        // It is safer to pick a join which will repartition the tables into multiple even
+        // partitions such as MergeSortJoin.
+        if (optimizer.isForSpark() && !wasHinted && joinHasTargetTable(innerTable, optimizer))
+            return false;
+
         boolean hashFeasible=super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, skipKeyCheck);
         if(!hashFeasible)
             return false;

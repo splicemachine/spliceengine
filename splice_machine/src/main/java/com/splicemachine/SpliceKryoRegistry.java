@@ -39,6 +39,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
+import com.splicemachine.derby.catalog.TriggerCombinedTransitionRows;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.ddl.DDLChangeType;
@@ -908,5 +909,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         }
         instance.register(ImmutableList.class, 339);
         instance.register(TriggerInfo2.class,EXTERNALIZABLE_SERIALIZER,340);
+        instance.register(TriggerCombinedTransitionRows.class,EXTERNALIZABLE_SERIALIZER,341);
     }
 }

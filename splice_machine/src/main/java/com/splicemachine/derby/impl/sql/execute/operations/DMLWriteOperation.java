@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -46,7 +45,6 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -69,7 +67,6 @@ import java.sql.SQLWarning;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
@@ -99,6 +96,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     private BaseSpliceTransaction internalTransaction = null;
     protected boolean exceptionHit = false;
     protected SPSDescriptor fromTableDmlSpsDescriptor;
+    protected boolean hasGeneratedColumn = false;
 
     public DMLWriteOperation(){
         super();
@@ -307,6 +305,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
+            if (hasGeneratedColumn)
+                this.triggerHandler.setHasGeneratedColumn();
         }
         //re-init with current activation
         if(generationClausesFunMethodName!=null){
@@ -342,6 +342,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         ResultColumnDescriptor[] rcd=description.getColumnInfo();
         DataValueDescriptor[] dvds=new DataValueDescriptor[rcd.length];
         for(int i=0;i<rcd.length;i++){
+            if (rcd[i].isAutoincrement() || rcd[i].hasGenerationClause())
+                hasGeneratedColumn = true;
             dvds[i]=rcd[i].getType().getNull();
             TypeId typeId=rcd[i].getType().getTypeId();
             if(typeId.getTypeFormatId()==StoredFormatIds.USERDEFINED_TYPE_ID_V3){
@@ -406,8 +408,16 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     public void fireAfterStatementTriggers() throws StandardException{
-        if(triggerHandler!=null) {
-            triggerHandler.fireAfterStatementTriggers();
+        try {
+            if (triggerHandler != null) {
+                triggerHandler.fireAfterStatementTriggers();
+            }
+        }
+        finally {
+            // Statement triggers may use a persisted Dataset.
+            // Clean it up after the triggers no longer need it.
+            if (sourceSet != null)
+                sourceSet.unpersistIt();
         }
     }
 
@@ -468,6 +478,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         if (triggerHandler!=null) {
             triggerHandler.cleanup();
         }
+        if (sourceSet != null)
+            sourceSet.unpersistIt();
         super.close();
     }
 
@@ -547,7 +559,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             dsp.decrementOpDepth();
         }
         setSourceSet(set);
+        if (needsPersistedDataset())
+            set.persist();
         return Pair.newPair(set, expectedUpdatecounts);
+    }
+
+    private boolean needsPersistedDataset() {
+        return triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause() &&
+               !triggerHandler.hasGeneratedColumn();
     }
 
     public boolean hasTriggers() { return triggerHandler != null; }

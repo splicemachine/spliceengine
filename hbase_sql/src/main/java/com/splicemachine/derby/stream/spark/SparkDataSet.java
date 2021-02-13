@@ -210,6 +210,11 @@ public class SparkDataSet<V> implements DataSet<V> {
         return distinct("Remove Duplicates", false, context, false, null);
     }
 
+    @Override
+    public DataSet<V> limit(int numRows, OperationContext context){
+        return zipWithIndex(context).mapPartitions(new OffsetFunction<SpliceOperation, V>(context, 0, numRows));
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {

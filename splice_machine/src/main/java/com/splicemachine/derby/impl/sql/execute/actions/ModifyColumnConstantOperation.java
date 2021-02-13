@@ -1194,6 +1194,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             String newText = dd.getTriggerActionString(node,
                 trd.getOldReferencingName(),
                 trd.getNewReferencingName(),
+                trd.getCombinedReferencingName(),
                 originalSQL,
                 trd.getReferencedCols(),
                 referencedColsInTriggerAction,
