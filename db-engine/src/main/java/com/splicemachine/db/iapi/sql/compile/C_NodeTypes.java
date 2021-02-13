@@ -296,8 +296,8 @@ public interface C_NodeTypes
     int DAYS_FUNCTION_NODE = 282;
     int SECOND_FUNCTION_NODE = 283;
     int MULTIPLY_ALT_FUNCTION_NODE = 284;
-    int POSSTR_OPERATOR_NODE = 285;
-
+    int BLOB_FUNCTION_NODE = 285;
+    int POSSTR_OPERATOR_NODE = 286;
     // Final value in set, keep up to date!
     int FINAL_VALUE = POSSTR_OPERATOR_NODE;
 

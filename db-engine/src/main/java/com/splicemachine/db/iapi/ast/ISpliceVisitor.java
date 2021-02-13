@@ -87,6 +87,7 @@ public interface ISpliceVisitor {
     Visitable visit(BinaryOperatorNode node) throws StandardException;
     Visitable visit(BinaryRelationalOperatorNode node) throws StandardException;
     Visitable visit(BitConstantNode node) throws StandardException;
+    Visitable visit(BlobFunctionNode node) throws StandardException;
     Visitable visit(BooleanConstantNode node) throws StandardException;
     Visitable visit(CallStatementNode node) throws StandardException;
     Visitable visit(CastNode node) throws StandardException;
