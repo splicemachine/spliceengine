@@ -1899,6 +1899,7 @@ TOKEN [IGNORE_CASE] :
 |   <PHYSICAL: "physical">
 |    <PLAIN: "plain">
 |    <PLI: "pli">
+|   <POSSTR: "posstr">
 |    <PRECISION: "precision">
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
@@ -7104,6 +7105,17 @@ characterValueFunction() throws StandardException :
         }
     }
 |
+    /* POSSTR(stringExpression, searchString) */
+    <POSSTR> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
+            str2 = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.POSSTR_OPERATOR_NODE,
+                            str1,
+                            str2,
+                            getContextManager());
+    }
+|
     /* REPEAT(string, num) */
     <REPEAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
             str2 = additiveExpression(null,0) <RIGHT_PAREN>
@@ -7542,6 +7554,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MONTHNAME ||
                 getToken(1).kind == MULTIPLY_ALT ||
                 getToken(1).kind == NVL ||
+                getToken(1).kind == POSSTR ||
                 getToken(1).kind == QUARTER ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
@@ -17527,6 +17540,7 @@ nonReservedKeyword()  :
     |   tok = <PERCENTWORD>
     |    tok = <PLAIN>
     |    tok = <PLI>
+    |    tok = <POSSTR>
     |    tok = <PRECISION>
     |    tok = <PROPERTIES>
     |    tok = <PURGE>

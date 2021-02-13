@@ -2946,6 +2946,33 @@ public class SQLChar
         return result;
     }
 
+    public NumberDataValue positionOfString(StringDataValue leftOperand, StringDataValue rightOperand,
+                                            NumberDataValue result)
+            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (NumberDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            result.setToNull();
+            return result;
+        }
+
+        String searchString = rightOperand.getString();
+        String expression = leftOperand.getString();
+        int position = expression.indexOf(searchString) + 1;
+
+        return new SQLInteger(position);
+    }
+
     public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
                                                 StringDataValue result)
             throws StandardException

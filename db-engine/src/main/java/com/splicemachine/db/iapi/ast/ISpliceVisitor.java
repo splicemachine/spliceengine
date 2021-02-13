@@ -155,6 +155,7 @@ public interface ISpliceVisitor {
     Visitable visit(OrderedColumnList node) throws StandardException;
     Visitable visit(OrNode node) throws StandardException;
     Visitable visit(ParameterNode node) throws StandardException;
+    Visitable visit(PosStrOperatorNode node) throws StandardException;
     Visitable visit(Predicate node) throws StandardException;
     Visitable visit(PredicateList node) throws StandardException;
     Visitable visit(PrivilegeNode node) throws StandardException;
