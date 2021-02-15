@@ -75,7 +75,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.numPartitions = numPartitions;
         this.batches = batches;
         this.batchSize = batchSize;
-        this.permits = new Semaphore(batches - 1); // we start with one permit taken
+        this.permits = new Semaphore(0); // we start with one permit taken
     }
 
     @Override
@@ -178,6 +178,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof StreamProtocol.Continue) {
             permits.release();
+        } else if (msg instanceof StreamProtocol.Resume) {
+            this.permits.release(this.batches - 1);
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
         } else if (msg instanceof StreamProtocol.RequestClose) {

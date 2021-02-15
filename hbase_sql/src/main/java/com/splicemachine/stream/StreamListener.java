@@ -42,6 +42,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private static final Object RETRY = new Object();
     private final int queueSize;
     private final int batchSize;
+    private final int maxParallelPartitions;
     private final UUID uuid;
     private long limit;
     private long offset;
@@ -71,7 +72,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
-        this.queueSize = batches*batchSize;
+        this.queueSize = batches * batchSize;
+        this.maxParallelPartitions = batches * 2;
         // start with this to force a channel advancement
         PartitionState first = new PartitionState(0, 0);
         first.messages.add(SENTINEL);
@@ -82,7 +84,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     public Iterator<T> getIterator() {
         // Initialize first partition
-        PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(1, queueSize));
+        PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(0, queueSize));
         if (failure != null) {
             ps.messages.add(FAILURE);
         }
@@ -117,11 +119,35 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
             partitionMap.remove(channel);
+            resumeNextPartition();
         } else {
             // Data or StreamProtocol.Skipped
             // We can't block here, we negotiate throughput with the server to guarantee it
             state.messages.add(msg);
         }
+    }
+
+    private void resumeNextPartition() {
+        if (getActivePartitionsCount() <= maxParallelPartitions) {
+            List<Integer> partitions = new ArrayList<>();
+            partitions.addAll(partitionStateMap.keySet());
+            Collections.sort(partitions);
+
+            for (Integer partition : partitions) {
+                PartitionState partitionState = partitionStateMap.get(partition);
+                if (partitionState == null) {
+                    continue;
+                }
+                if (!partitionState.started) {
+                    partitionState.channel.writeAndFlush(new StreamProtocol.Resume());
+                    partitionState.started = true;
+                    if (getActivePartitionsCount() > maxParallelPartitions) {
+                        break;
+                    }
+                }
+            }
+        }
+
     }
 
     @Override
@@ -244,8 +270,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     private void clearCurrentQueue() {
         PartitionState ps = partitionStateMap.remove(currentQueue);
-        if (ps != null && ps.channel != null)
+        if (ps != null && ps.channel != null) {
             partitionMap.remove(ps.channel);
+            resumeNextPartition();
+        }
     }
 
     /**
@@ -314,6 +342,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         if (stopped) {
             // we are already stopped, ask this stream to close
             channel.writeAndFlush(new StreamProtocol.RequestClose());
+        }
+
+        if (getActivePartitionsCount() <= maxParallelPartitions) {
+            ps.started = true;
+            channel.writeAndFlush(new StreamProtocol.Resume());
         }
 
         ctx.pipeline().addLast(this);
@@ -395,6 +428,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             }
         }
     }
+
+    private long getActivePartitionsCount() {
+        return partitionMap.values().stream().filter(v -> v.started).count();
+    }
+
 }
 
 class PartitionState {
@@ -404,6 +442,7 @@ class PartitionState {
     long consumed;
     long readTotal;
     boolean initialized;
+    boolean started;
     volatile PartitionState next = null; // used when a task is retried after a failure
 
     PartitionState(int partition, int queueSize) {
@@ -420,6 +459,7 @@ class PartitionState {
                 ", consumed=" + consumed +
                 ", initialized=" + initialized +
                 ", next=" + next +
+                ", started=" + started +
                 '}';
     }
 }

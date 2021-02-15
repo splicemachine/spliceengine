@@ -176,5 +176,16 @@ public class StreamProtocol implements Serializable {
         }
     }
 
+    public static class Resume implements Serializable, Externalizable {
+        public Resume() {}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        }
+    }
+
 }
 
