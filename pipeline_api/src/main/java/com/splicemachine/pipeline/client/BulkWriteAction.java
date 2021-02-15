@@ -123,31 +123,33 @@ public class BulkWriteAction implements Callable<WriteStats>{
         statusReporter.numExecutingFlushes.incrementAndGet();
         reportSize();
         long start=System.currentTimeMillis();
-        try{
-            Timer totalTimer=metricFactory.newTimer();
+        try {
+            Timer totalTimer = metricFactory.newTimer();
             totalTimer.startTiming();
-            if(LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"Calling BulkWriteAction: id=%d, initialBulkWritesSize=%d, initialKVPairSize=%d",id,bulkWrites.numEntries(),bulkWrites.numEntries());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Calling BulkWriteAction: id=%d, initialBulkWritesSize=%d, initialKVPairSize=%d", id, bulkWrites.numEntries(), bulkWrites.numEntries());
             execute(bulkWrites);
             totalTimer.stopTiming();
-            if(metricFactory.isActive())
+            if (metricFactory.isActive())
                 return new SimpleWriteStats(writtenCounter.getTotal(),
                         retryCounter.getTotal(),
                         thrownErrorsRows.getTotal(),
-            retriedRows.getTotal(),
-            partialRows.getTotal(),
-            partialThrownErrorRows.getTotal(),
-            partialRetriedRows.getTotal(),
-            partialIgnoredRows.getTotal(),
-            partialWrite.getTotal(),
-            ignoredRows.getTotal(),
-            catchThrownRows.getTotal(),
-            catchRetriedRows.getTotal(),
-            regionTooBusy.getTotal()
-                        );
+                        retriedRows.getTotal(),
+                        partialRows.getTotal(),
+                        partialThrownErrorRows.getTotal(),
+                        partialRetriedRows.getTotal(),
+                        partialIgnoredRows.getTotal(),
+                        partialWrite.getTotal(),
+                        ignoredRows.getTotal(),
+                        catchThrownRows.getTotal(),
+                        catchRetriedRows.getTotal(),
+                        regionTooBusy.getTotal()
+                );
             else
                 return WriteStats.NOOP_WRITE_STATS;
-        }finally{
+        } catch(Exception e) {
+            return new SimpleWriteStats(e);
+        } finally {
             long timeTakenMs=System.currentTimeMillis()-start;
             long numRecords=bulkWrites.numEntries();
             writeConfiguration.writeComplete(timeTakenMs,numRecords);
@@ -452,15 +454,23 @@ public class BulkWriteAction implements Callable<WriteStats>{
         return true;
     }
 
+    class FailedRowsException extends Exception {
+        IntObjectHashMap<WriteResult> res;
+        FailedRowsException(IntObjectHashMap<WriteResult> res) {
+            this.res = res;
+        }
+    }
+
     private Exception parseIntoException(BulkWriteResult response){
         IntObjectHashMap<WriteResult> failedRows=response.getFailedRows();
         Exception first = null;
+        Exception err = new FailedRowsException(failedRows);
         for(IntObjectCursor<WriteResult> cursor : failedRows){
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable e=pipelineExceptionFactory.processErrorResult(cursor.value);
             if(e instanceof WriteConflict){ //TODO -sf- find a way to add in StandardExceptions here
-                return (Exception)e;
+                return err; //(Exception)e;
             }else if(first==null)
-                first = (Exception)e;
+                first = err; //(Exception)e;
         }
         return first;
     }

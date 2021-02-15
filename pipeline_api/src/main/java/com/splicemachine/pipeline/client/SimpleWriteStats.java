@@ -21,21 +21,25 @@ import com.splicemachine.pipeline.api.WriteStats;
  *         Date: 2/5/14
  */
 public class SimpleWriteStats implements WriteStats {
-    private final long writtenCounter;
-    private final long retryCounter;
-    private final long thrownErrorsRows;
-    private final long retriedRows;
-    private final long partialRows;
-    private final long partialThrownErrorRows;
-    private final long partialRetriedRows;
-    private final long partialIgnoredRows;
-    private final long partialWrite;
-    private final long ignoredRows;
-    private final long catchThrownRows;
-    private final long catchRetriedRows;
-    private final long regionTooBusy;
+    private long writtenCounter;
+    private long retryCounter;
+    private long thrownErrorsRows;
+    private long retriedRows;
+    private long partialRows;
+    private long partialThrownErrorRows;
+    private long partialRetriedRows;
+    private long partialIgnoredRows;
+    private long partialWrite;
+    private long ignoredRows;
+    private long catchThrownRows;
+    private long catchRetriedRows;
+    private long regionTooBusy;
+    private Exception e;
 
-    public SimpleWriteStats(long writtenCounter, long retryCounter, long thrownErrorsRows, long retriedRows, long partialRows, long partialThrownErrorRows, long partialRetriedRows, long partialIgnoredRows, long partialWrite, long ignoredRows, long catchThrownRows, long catchRetriedRows, long regionTooBusy) {
+    public SimpleWriteStats(long writtenCounter, long retryCounter, long thrownErrorsRows, long retriedRows,
+                            long partialRows, long partialThrownErrorRows, long partialRetriedRows,
+                            long partialIgnoredRows, long partialWrite, long ignoredRows, long catchThrownRows,
+                            long catchRetriedRows, long regionTooBusy) {
         this.writtenCounter = writtenCounter;
         this.retryCounter = retryCounter;
         this.thrownErrorsRows = thrownErrorsRows;
@@ -50,6 +54,12 @@ public class SimpleWriteStats implements WriteStats {
         this.catchRetriedRows = catchRetriedRows;
         this.regionTooBusy = regionTooBusy;
     }
+    public SimpleWriteStats(Exception e) {
+        this.e = e;
+    }
+
+    @Override
+    public Exception getException() { return e; }
 
     @Override
     public long getWrittenCounter() {

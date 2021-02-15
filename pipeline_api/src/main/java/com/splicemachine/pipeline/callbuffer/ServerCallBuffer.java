@@ -132,7 +132,17 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         while (futureIterator.hasNext()) {
             Future<WriteStats> future = futureIterator.next();
             futureIterator.remove();
-            WriteStats retStats = future.get();//check for errors
+            WriteStats retStats;
+            try {
+                retStats = future.get();//check for errors
+            } catch(Exception e) {
+                // intentional for being able to set breakpoints here
+                throw e;
+            }
+            Exception e = retStats.getException();
+            if(e != null) {
+                throw e;
+            }
             writeStats.merge(retStats);
         }
     }
