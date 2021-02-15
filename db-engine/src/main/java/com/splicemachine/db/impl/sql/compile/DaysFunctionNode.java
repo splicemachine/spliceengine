@@ -17,15 +17,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataTypeUtilities;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -34,16 +30,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * This node represents the TYPEOF function which is basically a function that returns the type of an expression
+ * This node represents the DAYS function which returns the number of days since January 1, 1 CE
  */
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
-public class TypeofOperatorNode extends UnaryOperatorNode {
+public class DaysFunctionNode extends UnaryOperatorNode {
 
-    public TypeofOperatorNode(ValueNode operand, ContextManager cm)
-    {
+    public DaysFunctionNode(ValueNode operand, ContextManager cm) {
         setContextManager(cm);
-        setNodeType(C_NodeTypes.TYPEOF_OPERATOR_NODE);
-        this.operands = new ArrayList<>(Collections.singletonList(operand));
+        setNodeType(C_NodeTypes.DAYS_FUNCTION_NODE);
+        super.init(operand,"DAYS", "getDays");
     }
 
     /**
@@ -54,21 +48,31 @@ public class TypeofOperatorNode extends UnaryOperatorNode {
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
         bindOperand(fromList, subqueryList, aggregateVector);
-        setType(TypeId.getBuiltInTypeId(Types.VARCHAR),
-                false, 40);
+
+        if (getOperand().getTypeId().isStringTypeId()) {
+            castOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE));
+        }
+
+        int operandType = getOperand().getTypeId().getJDBCTypeId();
+
+        if (operandType != Types.DATE && operandType != Types.TIMESTAMP) {
+                throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "DAYS",
+                        getOperand().getTypeId().getSQLTypeName());
+        }
+
+        setType(new DataTypeDescriptor(
+                        TypeId.BIGINT_ID,
+                        getOperand().getTypeServices().isNullable()
+                )
+        );
+
         return this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        {
-            mb.push(getOperand().getTypeServices().toString());
-
-            acb.generateDataValue(mb, getTypeCompiler(),
-                    getTypeServices().getCollationType(), (LocalField) null);
-        }
+    void bindParameter() throws StandardException {
+        // for parameter, if we don't know the type, assume it is CHAR
+        getOperand().setType(
+                new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR), true));
     }
 }

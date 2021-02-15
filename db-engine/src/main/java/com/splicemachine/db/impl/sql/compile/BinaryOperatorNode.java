@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -47,7 +48,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -60,8 +62,6 @@ import java.util.List;
 
 public class BinaryOperatorNode extends OperatorNode
 {
-    String    operator;
-    String    methodName;
     ValueNode    receiver; // used in generation
 
     /*
@@ -83,12 +83,6 @@ public class BinaryOperatorNode extends OperatorNode
     public final static int LIKE    = 14;
     public final static int MOD    = 15;
 
-    ValueNode    leftOperand;
-    ValueNode    rightOperand;
-
-    String        leftInterfaceType;
-    String        rightInterfaceType;
-    String        resultInterfaceType;
     int            operatorType;
 
     /* If an operand matches an index expression. Once set,
@@ -124,6 +118,7 @@ public class BinaryOperatorNode extends OperatorNode
     public final static int XMLQUERY_OP = 1;
     public final static int REPEAT = 2;
     public final static int SIMPLE_LOCALE_STRING = 3;
+    public final static int MULTIPLY_ALT = 3;
 
     // NOTE: in the following 4 arrays, order
     // IS important.
@@ -131,25 +126,29 @@ public class BinaryOperatorNode extends OperatorNode
     static final String[] BinaryOperators = {
         "xmlexists",
         "xmlquery",
-        "repeat"
+        "repeat",
+        "multiply_alt"
     };
 
     static final String[] BinaryMethodNames = {
         "XMLExists",
         "XMLQuery",
-        "repeat"
+        "repeat",
+        "multiply_alt"
     };
 
     static final String[] BinaryResultTypes = {
         ClassName.BooleanDataValue,        // XMLExists
         ClassName.XMLDataValue,            // XMLQuery
-        ClassName.StringDataValue       // repeat
+        ClassName.StringDataValue,      // repeat
+        ClassName.NumberDataValue       // multiply_alt
     };
 
     static final String[][] BinaryArgTypes = {
         {ClassName.StringDataValue, ClassName.XMLDataValue},    // XMLExists
         {ClassName.StringDataValue, ClassName.XMLDataValue},    // XMLQuery
-        {ClassName.StringDataValue, ClassName.NumberDataValue}  // repeat
+        {ClassName.StringDataValue, ClassName.NumberDataValue}, // repeat
+        {ClassName.NumberDataValue, ClassName.NumberDataValue}, // multiply_alt
     };
 
     /** The query expression if the operator is XMLEXISTS or XMLQUERY. */
@@ -175,12 +174,10 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        this.leftOperand = (ValueNode) leftOperand;
-        this.rightOperand = (ValueNode) rightOperand;
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operator = (String) operator;
         this.methodName = (String) methodName;
-        this.leftInterfaceType = (String) leftInterfaceType;
-        this.rightInterfaceType = (String) rightInterfaceType;
         this.operatorType = -1;
     }
 
@@ -190,10 +187,8 @@ public class BinaryOperatorNode extends OperatorNode
             Object leftInterfaceType,
             Object rightInterfaceType)
     {
-        this.leftOperand = (ValueNode) leftOperand;
-        this.rightOperand = (ValueNode) rightOperand;
-        this.leftInterfaceType = (String) leftInterfaceType;
-        this.rightInterfaceType = (String) rightInterfaceType;
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
+        interfaceTypes = new ArrayList<>(Arrays.asList((String) leftInterfaceType, (String)rightInterfaceType));
         this.operatorType = -1;
     }
 
@@ -226,13 +221,11 @@ public class BinaryOperatorNode extends OperatorNode
             Object rightOperand,
             Object opType)
     {
-        this.leftOperand = (ValueNode)leftOperand;
-        this.rightOperand = (ValueNode)rightOperand;
+        operands = new ArrayList<>(Arrays.asList((ValueNode)leftOperand, (ValueNode)rightOperand));
         this.operatorType = (Integer) opType;
+        this.interfaceTypes = new ArrayList<>(Arrays.asList(BinaryArgTypes[this.operatorType]));
         this.operator = BinaryOperators[this.operatorType];
         this.methodName = BinaryMethodNames[this.operatorType];
-        this.leftInterfaceType = BinaryArgTypes[this.operatorType][0];
-        this.rightInterfaceType = BinaryArgTypes[this.operatorType][1];
         this.resultInterfaceType = BinaryResultTypes[this.operatorType];
     }
 
@@ -268,10 +261,6 @@ public class BinaryOperatorNode extends OperatorNode
         this.operatorType = -1;
     }
 
-    public String getOperatorString(){
-        return operator;
-    }
-
     /**
      * Set the methodName.
      *
@@ -290,59 +279,33 @@ public class BinaryOperatorNode extends OperatorNode
      */
     protected void setLeftRightInterfaceType(String iType)
     {
-        leftInterfaceType = iType;
-        rightInterfaceType = iType;
-        this.operatorType = -1;
-    }
-
-    /**
-     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-     * how tree printing is supposed to work.
-     *
-     * @param depth        The depth of this node in the tree
-     */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
-            super.printSubNodes(depth);
-
-            if (leftOperand != null)
-            {
-                printLabel(depth, "leftOperand: ");
-                leftOperand.treePrint(depth + 1);
-            }
-
-            if (rightOperand != null)
-            {
-                printLabel(depth, "rightOperand: ");
-                rightOperand.treePrint(depth + 1);
-            }
+        for (int i = 0; i < interfaceTypes.size(); ++i) {
+            interfaceTypes.set(i, iType);
         }
+        this.operatorType = -1;
     }
 
     protected void bindParameters() throws StandardException {
         /* Is there a ? parameter on the left? */
-        if (leftOperand.requiresTypeFromContext()) {
+        if (getLeftOperand().requiresTypeFromContext()) {
             /* Default Splice behavior:
              * It's an error if both operands are ? parameters.
              * This is overridden is some of the derived classes to be DB2 compatible.
              * DB2 doc on this:
              * https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0053561.html
              */
-            if (rightOperand.requiresTypeFromContext()) {
+            if (getRightOperand().requiresTypeFromContext()) {
                 throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
                         operator);
             }
 
             /* Set the left operand to the type of right parameter. */
-            leftOperand.setType(rightOperand.getTypeServices());
+            getLeftOperand().setType(getRightOperand().getTypeServices());
         }
         /* Is there a ? parameter on the right? */
-        else if (rightOperand.requiresTypeFromContext()) {
+        else if (getRightOperand().requiresTypeFromContext()) {
             /* Set the right operand to the type of the left parameter. */
-            rightOperand.setType(leftOperand.getTypeServices());
+            getRightOperand().setType(getLeftOperand().getTypeServices());
         }
     }
 
@@ -363,41 +326,40 @@ public class BinaryOperatorNode extends OperatorNode
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode>    aggregateVector) throws StandardException {
-        leftOperand = leftOperand.bindExpression(fromList, subqueryList,
-            aggregateVector);
-        rightOperand = rightOperand.bindExpression(fromList, subqueryList,
-            aggregateVector);
+        bindOperands(fromList, subqueryList, aggregateVector);
 
         if ((operatorType == XMLEXISTS_OP) || (operatorType == XMLQUERY_OP))
             return bindXMLQuery();
         else if (operatorType == REPEAT)
             return bindRepeat();
+        else if (operatorType == MULTIPLY_ALT)
+            return bindMultiplyAlt(fromList, subqueryList, aggregateVector);
 
         bindParameters();
 
         // Simple date/time arithmetic
         if ("+".equals(operator) || "-".equals(operator)) {
-            if (leftOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
-                leftOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
-                leftInterfaceType = ClassName.DateTimeDataValue;
-            } else if (leftOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
-                leftInterfaceType = ClassName.NumberDataValue;
+            if (getLeftOperand().getTypeId().getJDBCTypeId() == Types.DATE ||
+                getLeftOperand().getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
+                setLeftInterfaceType(ClassName.DateTimeDataValue);
+            } else if (getLeftOperand().getTypeId().getJDBCTypeId() == Types.INTEGER) {
+                setLeftInterfaceType(ClassName.NumberDataValue);
             }
 
-            if (rightOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
-                rightOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
-                if (leftOperand.getTypeId().getJDBCTypeId() == Types.INTEGER && operator.equals("+")) {
+            if (getRightOperand().getTypeId().getJDBCTypeId() == Types.DATE ||
+                getRightOperand().getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
+                if (getLeftOperand().getTypeId().getJDBCTypeId() == Types.INTEGER && operator.equals("+")) {
                     // special case for n + <datetime> commutativity. Swap operands to: <datetime> + n
-                    ValueNode temp = leftOperand.getClone();
-                    leftOperand = rightOperand.getClone();
-                    leftInterfaceType = ClassName.DateTimeDataValue;
-                    rightOperand = temp;
-                    rightInterfaceType = ClassName.NumberDataValue;
+                    ValueNode temp = getLeftOperand().getClone();
+                    setLeftOperand(getRightOperand().getClone());
+                    setLeftInterfaceType(ClassName.DateTimeDataValue);
+                    setRightOperand(temp);
+                    setRightInterfaceType(ClassName.NumberDataValue);
                 } else {
-                    rightInterfaceType = ClassName.DateTimeDataValue;
+                    setRightInterfaceType(ClassName.DateTimeDataValue);
                 }
-            } else if (rightOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
-                rightInterfaceType = ClassName.NumberDataValue;
+            } else if (getRightOperand().getTypeId().getJDBCTypeId() == Types.INTEGER) {
+                setRightInterfaceType(ClassName.NumberDataValue);
             }
         }
 
@@ -415,18 +377,18 @@ public class BinaryOperatorNode extends OperatorNode
         throws StandardException
     {
         // Check operand types.
-        TypeId rightOperandType = rightOperand.getTypeId();
+        TypeId rightOperandType = getRightOperand().getTypeId();
 
         // Left operand is query expression and must be a string
         // literal.  SQL/XML spec doesn't allow params nor expressions
         // 6.17: <XQuery expression> ::= <character string literal> 
-        if (!(leftOperand instanceof CharConstantNode))
+        if (!(getLeftOperand() instanceof CharConstantNode))
         {
             throw StandardException.newException(
                 SQLState.LANG_INVALID_XML_QUERY_EXPRESSION);
         }
         else {
-            xmlQuery = ((CharConstantNode)leftOperand).getString();
+            xmlQuery = ((CharConstantNode)getLeftOperand()).getString();
         }
 
         // Right operand must be an XML data value.  NOTE: This
@@ -443,7 +405,7 @@ public class BinaryOperatorNode extends OperatorNode
         }
 
         // Is there a ? parameter on the right?
-        if (rightOperand.requiresTypeFromContext())
+        if (getRightOperand().requiresTypeFromContext())
         {
             // For now, since JDBC has no type defined for XML, we
             // don't allow binding to an XML parameter.
@@ -471,22 +433,70 @@ public class BinaryOperatorNode extends OperatorNode
         return genSQLJavaSQLTree();
     }
 
+    public ValueNode bindMultiplyAlt(FromList fromList,
+                SubqueryList subqueryList,
+                List<AggregateNode>    aggregateVector) throws StandardException
+    {
+        boolean castToDecfloat =
+                getLeftOperand().requiresTypeFromContext() ||
+                getLeftOperand().getTypeId() == null ||
+                !(getLeftOperand().getTypeId().isIntegerNumericTypeId() || getLeftOperand().getTypeId().getJDBCTypeId() == Types.DECIMAL) ||
+                getRightOperand().requiresTypeFromContext() ||
+                getRightOperand().getTypeId() == null ||
+                !(getRightOperand().getTypeId().isIntegerNumericTypeId() || getRightOperand().getTypeId().getJDBCTypeId() == Types.DECIMAL);
+        if (castToDecfloat) {
+            castLeftOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT));
+            castRightOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT));
+        }
+        ValueNode multiplication = ((BinaryArithmeticOperatorNode) getNodeFactory().getNode(
+                C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+                getLeftOperand(),
+                getRightOperand(),
+                getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+        if (castToDecfloat) {
+            return multiplication;
+        } else {
+            int leftPrecision = getLeftOperand().getTypeServices().getPrecision();
+            int rightPrecision = getRightOperand().getTypeServices().getPrecision();
+            int leftScale = getLeftOperand().getTypeServices().getScale();
+            int rightScale = getRightOperand().getTypeServices().getScale();
+            int precision = Math.min(38, leftPrecision + rightPrecision);
+            int scale;
+            if (leftScale == 0 && rightScale == 0) {
+                scale = 0;
+            } else if (leftPrecision + rightPrecision <= 38) {
+                scale = Math.min(38, leftScale + rightScale);
+            } else {
+                scale = Math.max(Math.min(3, leftScale + rightScale), 38 - (leftPrecision - leftScale + rightPrecision - rightScale));
+            }
+            ValueNode castToDecimal = (ValueNode)
+                getNodeFactory().getNode(
+                        C_NodeTypes.CAST_NODE,
+                        multiplication,
+                        DataTypeDescriptor.getSQLDataTypeDescriptor(
+                                "java.math.BigDecimal", precision, scale, true, precision),
+                        getContextManager());
+            ((CastNode) castToDecimal).bindCastNodeOnly();
+            return castToDecimal;
+    }
+}
+
     public ValueNode bindRepeat() throws StandardException {
         /*
          * Is there a ? parameter for the first arg.
          */
-        if( leftOperand.requiresTypeFromContext())
+        if( getLeftOperand().requiresTypeFromContext())
         {
-            leftOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
-            leftOperand.setCollationUsingCompilationSchema();
+            getLeftOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+            getLeftOperand().setCollationUsingCompilationSchema();
         }
 
         /*
          * Is there a ? paramter for the second arg.  It will be an int.
          */
-        if( rightOperand.requiresTypeFromContext())
+        if( getRightOperand().requiresTypeFromContext())
         {
-            rightOperand.setType(
+            getRightOperand().setType(
                     new DataTypeDescriptor(TypeId.INTEGER_ID, true));
         }
 
@@ -495,8 +505,8 @@ public class BinaryOperatorNode extends OperatorNode
         ** for: leftOperand = CHAR, VARCHAR, LONG VARCHAR
         **      rightOperand = INT
         */
-        TypeId stringOperandType = leftOperand.getTypeId();
-        TypeId repeatOperandType = rightOperand.getTypeId();
+        TypeId stringOperandType = getLeftOperand().getTypeId();
+        TypeId repeatOperandType = getRightOperand().getTypeId();
 
         if (!stringOperandType.isStringTypeId() || stringOperandType.isClobTypeId())
             throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE, stringOperandType.getSQLTypeName(),
@@ -509,14 +519,14 @@ public class BinaryOperatorNode extends OperatorNode
         /*
         ** The result type of a repeat is of the same type as the leftOperand
         */
-        if (rightOperand instanceof ConstantNode) {
-            int repeatTimes = ((ConstantNode) rightOperand).getValue().getInt();
+        if (getRightOperand() instanceof ConstantNode) {
+            int repeatTimes = ((ConstantNode) getRightOperand()).getValue().getInt();
             if (repeatTimes < 0)
                 throw StandardException.newException(
-                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
-            int resultLength = leftOperand.getTypeId().getMaximumMaximumWidth();
-            if (leftOperand.getTypeServices().getMaximumWidth() * repeatTimes < resultLength) {
-                resultLength = leftOperand.getTypeServices().getMaximumWidth() * repeatTimes;
+                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, getRightOperand(), "REPEAT");
+            int resultLength = getLeftOperand().getTypeId().getMaximumMaximumWidth();
+            if (getLeftOperand().getTypeServices().getMaximumWidth() * repeatTimes < resultLength) {
+                resultLength = getLeftOperand().getTypeServices().getMaximumWidth() * repeatTimes;
             }
             setType(new DataTypeDescriptor(stringOperandType, true, resultLength));
         } else {
@@ -527,62 +537,9 @@ public class BinaryOperatorNode extends OperatorNode
 
     }
 
-    /** generate a SQL->Java->SQL conversion tree above the left and right
-     * operand of this Binary Operator Node if needed. Subclasses can override
-     * the default behavior.
-     */
-    public ValueNode genSQLJavaSQLTree() throws StandardException
-    {
-        TypeId leftTypeId = leftOperand.getTypeId();
-
-        if (leftTypeId.userType())
-            leftOperand = leftOperand.genSQLJavaSQLTree();
-
-        TypeId rightTypeId = rightOperand.getTypeId();
-        if (rightTypeId.userType())
-            rightOperand = rightOperand.genSQLJavaSQLTree();
-
-        return this;
-    }
-
-    /**
-     * Preprocess an expression tree.  We do a number of transformations
-     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
-     * subquery flattening.
-     * NOTE: This is done before the outer ResultSetNode is preprocessed.
-     *
-     * @param    numTables            Number of tables in the DML Statement
-     * @param    outerFromList        FromList from outer query block
-     * @param    outerSubqueryList    SubqueryList from outer query block
-     * @param    outerPredicateList    PredicateList from outer query block
-     *
-     * @return        The modified expression
-     *
-     * @exception StandardException        Thrown on error
-     */
-    public ValueNode preprocess(int numTables,
-                                FromList outerFromList,
-                                SubqueryList outerSubqueryList,
-                                PredicateList outerPredicateList)
-                    throws StandardException
-    {
-        leftOperand = leftOperand.preprocess(numTables,
-                                             outerFromList, outerSubqueryList,
-                                             outerPredicateList);
-        rightOperand = rightOperand.preprocess(numTables,
-                                               outerFromList, outerSubqueryList,
-                                               outerPredicateList);
-        return this;
-    }
-
-    @Override
-    public boolean checkCRLevel(int level){
-        return leftOperand.checkCRLevel(level) || rightOperand.checkCRLevel(level);
-    }
-
     public boolean leftIsReceiver() throws StandardException {
-        return (leftOperand.getTypeId().typePrecedence() >
-                rightOperand.getTypeId().typePrecedence() ||
+        return (getLeftOperand().getTypeId().typePrecedence() >
+                getRightOperand().getTypeId().typePrecedence() ||
                 operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING);
     }
 
@@ -628,12 +585,12 @@ public class BinaryOperatorNode extends OperatorNode
         String        resultTypeName;
         String        receiverType;
 
-/*
-** if i have a operator.getOrderableType() == constant, then just cache 
-** it in a field.  if i have QUERY_INVARIANT, then it would be good to
-** cache it in something that is initialized each execution,
-** but how?
-*/
+        /*
+        ** if i have a operator.getOrderableType() == constant, then just cache
+        ** it in a field.  if i have QUERY_INVARIANT, then it would be good to
+        ** cache it in something that is initialized each execution,
+        ** but how?
+        */
 
         // The number of arguments to pass to the method that implements the
         // operator, depends on the type of the operator.
@@ -646,8 +603,8 @@ public class BinaryOperatorNode extends OperatorNode
 
         boolean leftIsReceiver = leftIsReceiver();
         boolean receiverIsNumeric =
-                 (leftIsReceiver ? leftOperand.getTypeCompiler() instanceof NumericTypeCompiler :
-                                   rightOperand.getTypeCompiler() instanceof NumericTypeCompiler);
+                 (leftIsReceiver ? getLeftOperand().getTypeCompiler() instanceof NumericTypeCompiler :
+                                   getRightOperand().getTypeCompiler() instanceof NumericTypeCompiler);
         boolean dupReceiver = (xmlGen ||
                               !(this instanceof BinaryArithmeticOperatorNode && receiverIsNumeric));
         /*
@@ -657,7 +614,7 @@ public class BinaryOperatorNode extends OperatorNode
         */
         if (leftIsReceiver)
         {
-            receiver = leftOperand;
+            receiver = getLeftOperand();
             /*
             ** let the receiver type be determined by an
             ** overridable method so that if methods are
@@ -666,7 +623,7 @@ public class BinaryOperatorNode extends OperatorNode
             ** of the node that uses the method.
             */
             receiverType = !dupReceiver ? getTypeCompiler().interfaceName() :
-                (operatorType == -1) ? getReceiverInterfaceName() : leftInterfaceType;
+                (operatorType == -1) ? getReceiverInterfaceName() : getLeftInterfaceType();
 
             /*
             ** Generate (with <left expression> only being evaluated once)
@@ -674,7 +631,7 @@ public class BinaryOperatorNode extends OperatorNode
             **    <left expression>.method(<left expression>, <right expression>...)
             */
             if (dupReceiver)
-                leftOperand.generateExpression(acb, mb);
+                getLeftOperand().generateExpression(acb, mb);
             else
                 acb.generateNull(mb, getTypeCompiler(), getTypeServices());
 
@@ -684,12 +641,12 @@ public class BinaryOperatorNode extends OperatorNode
             if (dupReceiver)
                 mb.dup();
             else
-                leftOperand.generateExpression(acb, mb);
-            mb.cast(leftInterfaceType);
+                getLeftOperand().generateExpression(acb, mb);
+            mb.cast(getLeftInterfaceType());
             // stack: left, left
 
-            rightOperand.generateExpression(acb, mb);
-            mb.cast(rightInterfaceType); // second arg with cast
+            getRightOperand().generateExpression(acb, mb);
+            mb.cast(getRightInterfaceType()); // second arg with cast
             // stack: receiver, left, right
 
             // We've pushed two arguments
@@ -697,7 +654,7 @@ public class BinaryOperatorNode extends OperatorNode
         }
         else
         {
-            receiver = rightOperand;
+            receiver = getRightOperand();
             /*
             ** let the receiver type be determined by an
             ** overridable method so that if methods are
@@ -706,7 +663,7 @@ public class BinaryOperatorNode extends OperatorNode
             ** of the node that uses the method.
             */
             receiverType = !dupReceiver ? getTypeCompiler().interfaceName() :
-                (operatorType == -1) ? getReceiverInterfaceName() : rightInterfaceType;
+                (operatorType == -1) ? getReceiverInterfaceName() : getRightInterfaceType();
 
             /*
             ** Generate (with <right expression> only being evaluated once)
@@ -720,7 +677,7 @@ public class BinaryOperatorNode extends OperatorNode
             */
 
             if (dupReceiver)
-                rightOperand.generateExpression(acb, mb);
+                getRightOperand().generateExpression(acb, mb);
             else
                 acb.generateNull(mb, getTypeCompiler(), getTypeServices());
 
@@ -739,12 +696,12 @@ public class BinaryOperatorNode extends OperatorNode
                 if (dupReceiver)
                     mb.dup();
                 else
-                    rightOperand.generateExpression(acb, mb);
-                mb.cast(rightInterfaceType);
+                    getRightOperand().generateExpression(acb, mb);
+                mb.cast(getRightInterfaceType());
                 // stack: receiver,right
 
-                leftOperand.generateExpression(acb, mb);
-                mb.cast(leftInterfaceType); // second arg with cast
+                getLeftOperand().generateExpression(acb, mb);
+                mb.cast(getLeftInterfaceType()); // second arg with cast
                 // stack: receiver,right,left
 
                 mb.swap();
@@ -823,7 +780,7 @@ public class BinaryOperatorNode extends OperatorNode
      */
     public void setLeftOperand(ValueNode newLeftOperand)
     {
-        leftOperand = newLeftOperand;
+        operands.set(0, newLeftOperand);
     }
 
     /**
@@ -833,7 +790,7 @@ public class BinaryOperatorNode extends OperatorNode
      */
     public ValueNode getLeftOperand()
     {
-        return leftOperand;
+        return operands.get(0);
     }
 
     /**
@@ -843,7 +800,7 @@ public class BinaryOperatorNode extends OperatorNode
      */
     public void setRightOperand(ValueNode newRightOperand)
     {
-        rightOperand = newRightOperand;
+        operands.set(1, newRightOperand);
     }
 
     /**
@@ -853,7 +810,23 @@ public class BinaryOperatorNode extends OperatorNode
      */
     public ValueNode getRightOperand()
     {
-        return rightOperand;
+        return operands.get(1);
+    }
+
+    void setLeftInterfaceType(String iType) {
+        interfaceTypes.set(0, iType);
+    }
+
+    void setRightInterfaceType(String iType) {
+        interfaceTypes.set(1, iType);
+    }
+
+    String getLeftInterfaceType() {
+        return interfaceTypes.get(0);
+    }
+
+    String getRightInterfaceType() {
+        return interfaceTypes.get(1);
     }
 
     /**
@@ -892,20 +865,20 @@ public class BinaryOperatorNode extends OperatorNode
     {
         boolean pushable;
 
-        pushable = leftOperand.categorize(referencedTabs,
+        pushable = getLeftOperand().categorize(referencedTabs,
                                           referencedColumns, simplePredsOnly);
-        pushable = (rightOperand.categorize(referencedTabs,
+        pushable = (getRightOperand().categorize(referencedTabs,
                                             referencedColumns, simplePredsOnly) && pushable);
 
-        if (leftOperand instanceof ColumnReference) {
-            ColumnReference lcr = (ColumnReference) leftOperand;
+        if (getLeftOperand() instanceof ColumnReference) {
+            ColumnReference lcr = (ColumnReference) getLeftOperand();
             if (lcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
                 if (methodName.compareToIgnoreCase("NOTEQUALS") == 0) {
                     return false;
                 }
             }
-            if (rightOperand instanceof ColumnReference) {
-                ColumnReference rcr = (ColumnReference) rightOperand;
+            if (getRightOperand() instanceof ColumnReference) {
+                ColumnReference rcr = (ColumnReference) getRightOperand();
                 if (rcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
                     return false;
                 }
@@ -914,39 +887,6 @@ public class BinaryOperatorNode extends OperatorNode
         return pushable;
     }
 
-    /**
-     * Remap all ColumnReferences in this tree to be clones of the
-     * underlying expression.
-     *
-     * @return ValueNode            The remapped expression tree.
-     *
-     * @exception StandardException            Thrown on error
-     */
-    public ValueNode remapColumnReferencesToExpressions()
-        throws StandardException
-    {
-        leftOperand = leftOperand.remapColumnReferencesToExpressions();
-        rightOperand = rightOperand.remapColumnReferencesToExpressions();
-        return this;
-    }
-
-    /**
-     * Return whether or not this expression tree represents a constant expression.
-     *
-     * @return    Whether or not this expression tree represents a constant expression.
-     */
-    public boolean isConstantExpression()
-    {
-        return (leftOperand.isConstantExpression() &&
-                rightOperand.isConstantExpression());
-    }
-
-    /** @see ValueNode#constantExpression */
-    public boolean constantExpression(PredicateList whereClause)
-    {
-        return (leftOperand.constantExpression(whereClause) &&
-                rightOperand.constantExpression(whereClause));
-    }
 
     /**
      * Determine the type the binary method is called on.
@@ -966,83 +906,25 @@ public class BinaryOperatorNode extends OperatorNode
         return receiver.getTypeCompiler().interfaceName();
     }
 
-    /**
-     * Return the variant type for the underlying expression.
-     * The variant type can be:
-     *        VARIANT                - variant within a scan
-     *                              (method calls and non-static field access)
-     *        SCAN_INVARIANT        - invariant within a scan
-     *                              (column references from outer tables)
-     *        QUERY_INVARIANT        - invariant within the life of a query
-     *        CONSTANT            - immutable
-     *
-     * @return    The variant type for the underlying expression.
-     * @exception StandardException    thrown on error
-     */
-    protected int getOrderableVariantType() throws StandardException
-    {
-        int leftType = leftOperand.getOrderableVariantType();
-        int rightType = rightOperand.getOrderableVariantType();
-
-        return Math.min(leftType, rightType);
-    }
-
-    /**
-     * Accept the visitor for all visitable children of this node.
-     *
-     * @param v the visitor
-     */
-    @Override
-    public void acceptChildren(Visitor v) throws StandardException {
-        super.acceptChildren(v);
-
-        if (leftOperand != null)
-        {
-            leftOperand = (ValueNode)leftOperand.accept(v, this);
-        }
-
-        if (rightOperand != null)
-        {
-            rightOperand = (ValueNode)rightOperand.accept(v, this);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
-        if (!isSameNodeType(o))
-        {
-            return false;
-        }
-        BinaryOperatorNode other = (BinaryOperatorNode)o;
-        return methodName.equals(other.methodName)
-               && leftOperand.isEquivalent(other.leftOperand)
-               && rightOperand.isEquivalent(other.rightOperand);
-    }
 
     /**
      * {@inheritDoc}
      */
     @Override
     protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
-        if (!isSameNodeType(o)) {
-            return false;
-        }
-        BinaryOperatorNode other = (BinaryOperatorNode)o;
-        if (methodName.equals(other.methodName)) {
-            if (isCommutative()) {
-                return (leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
-                        rightOperand.isSemanticallyEquivalent(other.rightOperand)) ||
-                        (leftOperand.isSemanticallyEquivalent(other.rightOperand) &&
-                        rightOperand.isSemanticallyEquivalent(other.leftOperand));
-            } else {
-                return leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
-                        rightOperand.isSemanticallyEquivalent(other.rightOperand);
+        if (isCommutative()) {
+            if (!isSameNodeType(o)) {
+                return false;
+            }
+            BinaryOperatorNode other = (BinaryOperatorNode) o;
+            if (methodName.equals(other.methodName)) {
+                return (getLeftOperand().isSemanticallyEquivalent(other.getLeftOperand()) &&
+                        getRightOperand().isSemanticallyEquivalent(other.getRightOperand())) ||
+                        (getLeftOperand().isSemanticallyEquivalent(other.getRightOperand()) &&
+                        getRightOperand().isSemanticallyEquivalent(other.getLeftOperand()));
             }
         }
-        return false;
+        return super.isSemanticallyEquivalent(o);
     }
 
     /**
@@ -1050,6 +932,8 @@ public class BinaryOperatorNode extends OperatorNode
      * @return True if it is commutative, false otherwise.
      */
     public boolean isCommutative() {
+        if (methodName == null)
+            return false;
         // Only methodName is always set for all kinds of binary operators.
         // Do not use operator or operatorType here.
         switch (methodName) {
@@ -1064,70 +948,6 @@ public class BinaryOperatorNode extends OperatorNode
                 break;
         }
         return false;
-    }
-
-    public int hashCode() {
-        int hashCode = getBaseHashCode();
-        hashCode = 31 * hashCode + methodName.hashCode();
-        hashCode = 31 * hashCode + leftOperand.hashCode();
-        hashCode = 31 * hashCode + rightOperand.hashCode();
-        return hashCode;
-    }
-
-    public List<? extends QueryTreeNode> getChildren() {
-        return new LinkedList<QueryTreeNode>(){{
-            add(leftOperand);
-            add(rightOperand);
-            }};
-    }
-
-    @Override
-    public QueryTreeNode getChild(int index) {
-        if (index == 0) {
-            return leftOperand;
-        } else if (index == 1) {
-            return rightOperand;
-        } else {
-            assert false;
-            return null;
-        }
-    }
-
-    @Override
-    public void setChild(int index, QueryTreeNode newValue) {
-        assert newValue instanceof ValueNode;
-        if (index == 0) {
-            leftOperand = (ValueNode) newValue;
-        } else if (index == 1) {
-            rightOperand = (ValueNode) newValue;
-        } else {
-            assert false;
-        }
-    }
-
-    @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long c1 = leftOperand.nonZeroCardinality(numberOfRows);
-        long c2 = rightOperand.nonZeroCardinality(numberOfRows);
-
-        return Math.max(c1, c2);
-    }
-
-    @Override
-    public int getTableNumber() {
-        int l = leftOperand.getTableNumber();
-        int r = rightOperand.getTableNumber();
-        if (l == -1 && r == -1) {
-            return -1;
-        }
-        else if (l == -1)
-            return r;
-        else return l;
-    }
-
-    @Override
-    public boolean isConstantOrParameterTreeNode() {
-        return leftOperand.isConstantOrParameterTreeNode() && rightOperand.isConstantOrParameterTreeNode();
     }
 
     public boolean isRepeat () { return this.operatorType == REPEAT; }
@@ -1149,14 +969,12 @@ public class BinaryOperatorNode extends OperatorNode
     public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
     public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
 
-    @Override
-    public double getBaseOperationCost() throws StandardException { return getChildrenCost(); }
-
-    protected double getChildrenCost() throws StandardException {
-        double leftCost = leftOperand == null ? 0.0 : leftOperand.getBaseOperationCost();
-        double rightCost = rightOperand == null ? 0.0 : rightOperand.getBaseOperationCost();
-        return leftCost + rightCost;
+    public void castLeftOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+       castOperandAndBindCast(0, type);
     }
 
+    public void castRightOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(1, type);
+    }
 }
 

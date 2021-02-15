@@ -13,13 +13,17 @@
 
 package com.splicemachine.db.vti;
 
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-
 /**
- * This interface provides information whether a VTI has a compile-time result set, if a VTI has
+ * This marker interface provides information whether a VTI has a compile-time result set, if a VTI has
  * such a result set then query compilation is able to infer the schema of the result set of the
  * VTI even if the user did not specify it explicitly in the query.
+ *
+ * If you implement this interface, you must implement the following static method in your class:
+ *
+ * static ResultSetMetaData getMetaData() throws SQLException
+ *    this method returns the ResultSetMetaData of the VTI's ResultSet
+ * @note the column names in your schemas should be uniquely defined.
+ * See implementation example below to get an idea on how to implement this method
  *
  * Example
  * =======
@@ -49,16 +53,32 @@ import java.sql.SQLException;
  * invoking your VTI, so it makes sense to leave the method untouched e.g. if the result set returned
  * from your VTI is dynamic.
  *
+ * Implementation Example
+ * ======================
+ *
+ * Let us assume we have a VTI that returns a ResultSet comprising two columns: VARCHAR(2), and INTEGER,
+ * it implements this marker interface and provides and implementation of getMetaData() method:
+ * <pre>
+ * {@code
+ * class MyVTI implements CompileTimeSchema {
+ *
+ *    static ResultSetMetaData getMetaData() throws SQLException {
+ *         return metadata;
+ *     }
+ *
+ *     private static final ResultColumnDescriptor[] columnInfo = {
+ *        EmbedResultSetMetaData.getResultColumnDescriptor("Column1", Types.VARCHAR, false, 128),
+ *        EmbedResultSetMetaData.getResultColumnDescriptor("Column2", Types.INTEGER, false)
+ *     };
+ *
+ *     private static final ResultSetMetaData metadata = new EmbedResultSetMetaData(columnInfo);
+ *
+ *     // rest of implementation
+ * }
+ * }
+ * </pre>
+ *
+ *
  * @note the column names in your schemas should be uniquely defined.
  */
-public interface CompileTimeSchema {
-
-    static ResultSetMetaData getMetaData() throws SQLException {
-        throw new SQLException("not supported");
-    }
-
-    static boolean schemaKnownAtCompileTime() {
-        return false;
-    }
-
-}
+public interface CompileTimeSchema {}

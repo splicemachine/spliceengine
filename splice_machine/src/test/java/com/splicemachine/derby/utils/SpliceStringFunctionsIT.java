@@ -29,7 +29,6 @@ import java.sql.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -494,6 +493,16 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testConcatFunctionCastOnArgs() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("select concat(year(date('2021-01-01')), '.') from sysibm.sysdummy1")) {
+            String expected = "1   |\n" +
+                    "-------\n" +
+                    "2021. |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testReges() throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')")) {
             rs.next();
@@ -550,6 +559,17 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                         "NULL |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testLTrimNegative() throws Exception{
+        try {
+            String sqlText = "values LTRIM('XXXXKATEXXXXXX', 'X')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
     }
 
     @Test
