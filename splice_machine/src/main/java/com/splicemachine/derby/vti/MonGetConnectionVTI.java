@@ -25,6 +25,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -51,6 +52,7 @@ public class MonGetConnectionVTI implements DatasetProvider {
         this(applicationHandle, member, null);
     }
 
+    @SuppressFBWarnings(value = "BX_UNBOXING_IMMEDIATELY_REBOXED", justification = "intentional, as per DB2 API spec")
     public MonGetConnectionVTI(Long applicationHandle, Integer member, Integer systemApplications) {
         this.applicationHandle = applicationHandle;
         this.member = member == null ? -1 : member;
