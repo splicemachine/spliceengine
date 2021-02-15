@@ -18,7 +18,6 @@ package com.splicemachine.stream;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -56,12 +55,13 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private volatile long offset = 0;
     private volatile long limit = Long.MAX_VALUE;
     private Integer partition;
-    private transient  Iterator<T> locatedRowIterator;
+    private transient Iterator<T> locatedRowIterator;
     private volatile Future<Long> future;
     private transient NioEventLoopGroup workerGroup;
     private transient CountDownLatch active;
     private int batches;
     private volatile TaskContext taskContext;
+    private volatile boolean runningOnClient;
 
     // Serialization
     public ResultStreamer() {
@@ -180,7 +180,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             permits.release();
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
+            this.runningOnClient = false;
         } else if (msg instanceof StreamProtocol.RequestClose) {
+            this.runningOnClient = false;
             limit = 0; // If they want to close they don't need more data
             permits.release();
             // wait for the writing thread to finish
@@ -198,6 +200,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
     @Override
     public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
+        this.runningOnClient = true;
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
@@ -231,6 +234,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     }
                 }
             }
+            while (runningOnClient) {
+                Thread.sleep(1000);
+            }
             futureConnect.channel().closeFuture().sync();
 
             String result;
@@ -259,6 +265,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 ", limit=" + limit +
                 ", partition=" + partition +
                 ", batches=" + batches +
+                ", running=" + runningOnClient +
                 '}';
     }
 
