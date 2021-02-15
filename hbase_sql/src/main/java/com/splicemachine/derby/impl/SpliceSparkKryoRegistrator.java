@@ -737,6 +737,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(StreamProtocol.RequestClose.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StreamProtocol.Skip.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StreamProtocol.Skipped.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Finished.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SparkSpliceFunctionWrapper.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SparkSpliceFunctionWrapper2.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ResultStreamer.class,EXTERNALIZABLE_SERIALIZER);
