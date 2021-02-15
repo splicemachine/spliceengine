@@ -276,41 +276,17 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
-    public long[] getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
+    public Set<Long> getActiveTransactionIds(Txn txn,byte[] table) throws IOException{
         long minTs=this.commitTsGenerator.retrieveTimestamp();
         return getActiveTransactionIds(minTs,txn.getTxnId(),table);
     }
 
     @Override
-    public long[] getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] table) throws IOException{
+    public Set<Long> getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] table) throws IOException{
         if(table==null)
             return getAllActiveTransactions(minTxnId,maxTxnId);
         else
             return findActiveTransactions(minTxnId,maxTxnId,table);
-    }
-
-    @Override
-    public List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException{
-        List<TxnView> txns= Lists.newArrayListWithExpectedSize(txnMap.size());
-        for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
-            if(isTimedOut(txnEntry.getValue())) continue;
-            TxnView value=txnEntry.getValue().txn;
-            if(value.getEffectiveState()==Txn.State.ACTIVE
-                    && value.getTxnId()<=maxTxnId
-                    && value.getTxnId()>=minTxnid)
-                txns.add(value);
-        }
-        Collections.sort(txns,new Comparator<TxnView>(){
-            @Override
-            public int compare(TxnView o1,TxnView o2){
-                if(o1==null){
-                    if(o2==null) return 0;
-                    return -1;
-                }else if(o2==null) return 1;
-                return Longs.compare(o1.getTxnId(), o2.getTxnId());
-            }
-        });
-        return txns;
     }
 
     @Override
@@ -359,9 +335,8 @@ public class TestingTxnStore implements TxnStore{
                 (clock.currentTimeMillis()-txn.keepAliveTs)>txnTimeOutIntervalMs;
     }
 
-    private long[] getAllActiveTransactions(long minTimestamp,long maxId) throws IOException{
-
-        LongArrayList activeTxns=new LongArrayList(txnMap.size());
+    private Set<Long> getAllActiveTransactions(long minTimestamp,long maxId) throws IOException{
+        Set<Long> activeTxns=new HashSet<>(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
             TxnView value=txnEntry.getValue().txn;
@@ -370,11 +345,11 @@ public class TestingTxnStore implements TxnStore{
                     && value.getTxnId()>=minTimestamp)
                 activeTxns.add(txnEntry.getKey());
         }
-        return activeTxns.toArray();
+        return activeTxns;
     }
 
-    private long[] findActiveTransactions(long minTimestamp,long maxId,byte[] table){
-        LongArrayList activeTxns=new LongArrayList(txnMap.size());
+    private Set<Long> findActiveTransactions(long minTimestamp,long maxId,byte[] table){
+        Set<Long> activeTxns=new HashSet<>(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
             TxnView value=txnEntry.getValue().txn;
@@ -387,7 +362,7 @@ public class TestingTxnStore implements TxnStore{
                 }
             }
         }
-        return activeTxns.toArray();
+        return activeTxns;
     }
 
     public void setLifecycleManager(TxnLifecycleManager lifecycleManager){

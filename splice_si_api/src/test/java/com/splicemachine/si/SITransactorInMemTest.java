@@ -48,6 +48,7 @@ import splice.com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
@@ -155,7 +156,7 @@ public class SITransactorInMemTest {
     public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
         Txn child = control.beginChildTransaction(noSubTxns(parent), parent.getIsolationLevel(), DESTINATION_TABLE);
-        long[] activeTxns = txnStore.getActiveTransactionIds(child, null);
+        Set<Long> activeTxns = txnStore.getActiveTransactionIds(child, null);
         boolean foundParent = false;
         boolean foundChild = false;
         for(long activeTxn:activeTxns){

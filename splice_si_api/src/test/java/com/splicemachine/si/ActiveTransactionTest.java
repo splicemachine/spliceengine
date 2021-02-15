@@ -32,8 +32,9 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import splice.com.google.common.collect.Lists;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tests around the logic for fetching active transactions.
@@ -86,9 +87,11 @@ public class ActiveTransactionTest{
     public void testGetActiveWriteTransactionsShowsWriteTransactions() throws Exception{
         Txn parent=control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(parent.getTxnId());
-        long[] ids=txnStore.getActiveTransactionIds(parent,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
+        Set<Long> ids=txnStore.getActiveTransactionIds(parent, DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        Set<Long> expected = new HashSet<>(1);
+        expected.add(parent.getTxnId());
+        Assert.assertEquals("Incorrect values", expected, ids);
 
         TimestampSource timestampSource=transactorSetup.timestampSource;
         timestampSource.nextTimestamp();
@@ -98,8 +101,8 @@ public class ActiveTransactionTest{
         //now see if a read-only doesn't show
         Txn next=control.beginTransaction();
         ids=txnStore.getActiveTransactionIds(next,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        Assert.assertEquals("Incorrect values", expected, ids);
     }
 
     @Test
@@ -107,9 +110,11 @@ public class ActiveTransactionTest{
         Txn parent=control.beginTransaction(DESTINATION_TABLE);
 
         transactorSetup.timestampSource.rememberTimestamp(parent.getTxnId());
-        long[] ids=txnStore.getActiveTransactionIds(parent,null);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
+        Set<Long> ids=txnStore.getActiveTransactionIds(parent,null);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        Set<Long> expected = new HashSet<>(1);
+        expected.add(parent.getTxnId());
+        Assert.assertEquals("Incorrect values", expected, ids);
 
         TimestampSource timestampSource=transactorSetup.timestampSource;
         timestampSource.nextTimestamp();
@@ -118,9 +123,9 @@ public class ActiveTransactionTest{
 
         Txn next=control.beginTransaction(DESTINATION_TABLE);
         ids=txnStore.getActiveTransactionIds(next,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(),next.getTxnId()},ids);
+        Assert.assertEquals("Incorrect size",2,ids.size());
+        expected.add(next.getTxnId());
+        Assert.assertEquals("Incorrect values", expected, ids);
     }
 
     @Test
@@ -139,10 +144,13 @@ public class ActiveTransactionTest{
             }
         };
         Txn grandChild=control.beginChildTransaction(child,child.getIsolationLevel(),DESTINATION_TABLE);
-        long[] ids=txnStore.getActiveTransactionIds(grandChild,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",3,ids.length);
-        Arrays.sort(ids);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(),child.getTxnId(),grandChild.getTxnId()},ids);
+        Set<Long> ids=txnStore.getActiveTransactionIds(grandChild,DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect size",3,ids.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(parent.getTxnId());
+        expected.add(child.getTxnId());
+        expected.add(grandChild.getTxnId());
+        Assert.assertEquals("Incorrect values", expected, ids);
         @SuppressWarnings("UnusedDeclaration") Txn grandGrandChild=control.beginChildTransaction(child,child.getIsolationLevel(),DESTINATION_TABLE);
 
         //commit grandchild, leave child alone, and rollback parent, then see who's active. should be noone
@@ -151,17 +159,19 @@ public class ActiveTransactionTest{
 
         Txn next=control.beginTransaction(DESTINATION_TABLE);
         ids=txnStore.getActiveTransactionIds(next,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",1,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{next.getTxnId()},ids);
+        Assert.assertEquals("Incorrect size",1,ids.size());
+        expected.clear();
+        expected.add(next.getTxnId());
+        Assert.assertEquals("Incorrect values", expected, ids);
     }
 
     @Test
     public void oldestActiveTransactionsOne() throws IOException{
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t1.getTxnId());
-        long[] ids=txnStore.getActiveTransactionIds(t1,null);
-        Assert.assertEquals(1,ids.length);
-        Assert.assertEquals(t1.getTxnId(),ids[0]);
+        Set<Long> ids=txnStore.getActiveTransactionIds(t1,null);
+        Assert.assertEquals(1,ids.size());
+        Assert.assertEquals(t1.getTxnId(), (long)ids.iterator().next());
     }
 
     @Test
@@ -169,12 +179,12 @@ public class ActiveTransactionTest{
         final Txn t0=control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
-        long[] ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
-        System.out.printf("%d,%d,%s%n",t0.getTxnId(),t1.getTxnId(),Arrays.toString(ids));
-        Assert.assertEquals(2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(),ids[0]);
-        Assert.assertEquals(t1.getTxnId(),ids[1]);
+        Set<Long> ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
+        Assert.assertEquals(2,ids.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(t0.getTxnId());
+        expected.add(t1.getTxnId());
+        Assert.assertEquals(expected,ids);
     }
 
     @Test
@@ -183,11 +193,12 @@ public class ActiveTransactionTest{
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
         control.beginTransaction();
-        final long[] ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
-        Assert.assertEquals(2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(),ids[0]);
-        Assert.assertEquals(t1.getTxnId(),ids[1]);
+        final Set<Long> ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
+        Assert.assertEquals(2,ids.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(t0.getTxnId());
+        expected.add(t1.getTxnId());
+        Assert.assertEquals(expected,ids);
     }
 
     @Test
@@ -197,11 +208,12 @@ public class ActiveTransactionTest{
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
         final Txn t2=control.beginTransaction(DESTINATION_TABLE);
         t0.commit();
-        final long[] ids=txnStore.getActiveTransactionIds(t2,DESTINATION_TABLE);
-        Assert.assertEquals(2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertEquals(t1.getTxnId(),ids[0]);
-        Assert.assertEquals(t2.getTxnId(),ids[1]);
+        final Set<Long> ids=txnStore.getActiveTransactionIds(t2,DESTINATION_TABLE);
+        Assert.assertEquals(2,ids.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(t1.getTxnId());
+        expected.add(t2.getTxnId());
+        Assert.assertEquals(expected,ids);
     }
 
     @Test
@@ -212,11 +224,12 @@ public class ActiveTransactionTest{
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
         final Txn t2=control.beginTransaction(DESTINATION_TABLE);
         t1.commit();
-        final long[] ids=txnStore.getActiveTransactionIds(t2,DESTINATION_TABLE);
-        Assert.assertEquals(2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(),ids[0]);
-        Assert.assertEquals(t2.getTxnId(),ids[1]);
+        final Set<Long> ids=txnStore.getActiveTransactionIds(t2,DESTINATION_TABLE);
+        Assert.assertEquals(2,ids.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(t0.getTxnId());
+        expected.add(t2.getTxnId());
+        Assert.assertEquals(expected,ids);
     }
 
     @Test
@@ -235,21 +248,24 @@ public class ActiveTransactionTest{
     }
 
     @Test
-    public void oldestActiveTransactionsDoesNotIgnoreEffectiveStatus() throws IOException{
-        final Txn t0=new ForwardingTxnView(control.beginTransaction(DESTINATION_TABLE)) {
+    public void oldestActiveTransactionsDoesNotIgnoreEffectiveStatus() throws IOException {
+        final Txn t0 = new ForwardingTxnView(control.beginTransaction(DESTINATION_TABLE)) {
             @Override
             public boolean allowsSubtransactions() {
                 return false;
             }
         };
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1=control.beginChildTransaction(t0,DESTINATION_TABLE);
+        final Txn t1 = control.beginChildTransaction(t0, DESTINATION_TABLE);
         t1.commit();
-        final Txn t2=control.beginChildTransaction(t0,DESTINATION_TABLE);
-        long[] active=txnStore.getActiveTransactionIds(t2,DESTINATION_TABLE);
-        Assert.assertEquals(3,active.length);
-        Arrays.sort(active);
-        Assert.assertArrayEquals(new long[]{t0.getTxnId(),t1.getTxnId(),t2.getTxnId()},active);
+        final Txn t2 = control.beginChildTransaction(t0, DESTINATION_TABLE);
+        Set<Long> active = txnStore.getActiveTransactionIds(t2, DESTINATION_TABLE);
+        Assert.assertEquals(3, active.size());
+        Set<Long> expected = new HashSet<>(3);
+        expected.add(t0.getTxnId());
+        expected.add(t1.getTxnId());
+        expected.add(t2.getTxnId());
+        Assert.assertEquals(expected, active);
     }
 
     @Test
@@ -264,18 +280,19 @@ public class ActiveTransactionTest{
         }
 
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
-        final long[] ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
-        Assert.assertEquals(2,ids.length);
-        Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(),ids[0]);
-        Assert.assertEquals(t1.getTxnId(),ids[1]);
+        final Set<Long> ids=txnStore.getActiveTransactionIds(t1,DESTINATION_TABLE);
+        Set<Long> expected = new HashSet<>(2);
+        expected.add(t0.getTxnId());
+        expected.add(t1.getTxnId());
+        Assert.assertEquals(2,ids.size());
+        Assert.assertEquals(expected, ids);
         //this transaction should still be missing
     }
 
     @Test
     @Ignore("This is subject to contamination failures when other tests are running concurrently")
     public void oldestActiveTransactionsManyActive() throws IOException{
-        LongArrayList startedTxns=new LongArrayList();
+        Set<Long> startedTxns=new HashSet();
         final Txn t0=control.beginTransaction(DESTINATION_TABLE);
         startedTxns.add(t0.getTxnId());
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
@@ -289,48 +306,11 @@ public class ActiveTransactionTest{
         }
         final Txn t1=control.beginTransaction(DESTINATION_TABLE);
         startedTxns.add(t1.getTxnId());
-        final long[] ids=txnStore.getActiveTransactionIds(t0.getTxnId(),t1.getTxnId(),DESTINATION_TABLE);
-        System.out.println(startedTxns.toString());
-        System.out.println(Arrays.toString(ids));
+        final Set<Long> ids=txnStore.getActiveTransactionIds(t0.getTxnId(),t1.getTxnId(),DESTINATION_TABLE);
 
-        Assert.assertEquals(startedTxns.size(),ids.length);
-        Arrays.sort(ids);
-        Assert.assertArrayEquals(startedTxns.toArray(),ids);
+        Assert.assertEquals(startedTxns.size(),ids.size());
+        Assert.assertEquals(startedTxns,ids);
 //        Assert.assertEquals(t0.getTxnId(), ids[0]);
 //        Assert.assertEquals(t1.getTxnId(), result.get(ids.length - 1).getId());
     }
-
-    /*
-     * The intent of the below test is to ensure that no more than a certain
-     * number of transactions come back when you are fetching the active list--
-     * the functionality as implemented is awkward and difficult, since it basically
-     * defines an arbitrary constant.
-     *
-     * Further, the actual functionality that Splice uses involves the ActiveTransactionReader
-     * logic, which submits tasks and does its own form of limiting; the only reason we
-     * expose the logic in the TxnStore as this class tests is to allow us visibility into
-     * a testable structure, and thus confirm that its working as we expect that way (and, hypothetically,
-     * someone might want to use the coprocessor call directly because they don't have access to the task framework.
-     * I don't recommend that approach, but you never know).
-     *
-     * As a result of these two points, I opted to remove this test. I didn't want to delete
-     * the test, as it confers some historical interest to git spelunkers, but it has no relevance
-     * to our current system any longer
-     */
-//    @Test
-//    public void oldestActiveTransactionsTooManyActive() throws IOException {
-//        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-//        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-//        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
-//            control.beginTransaction();
-//        }
-//
-//        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-//        try {
-//            txnStore.getActiveTransactionIds(t1, null);
-//            Assert.fail();
-//        } catch (RuntimeException ex) {
-//            Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
-//        }
-//    }
 }

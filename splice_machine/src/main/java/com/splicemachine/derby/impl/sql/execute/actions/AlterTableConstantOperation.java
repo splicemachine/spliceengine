@@ -1044,11 +1044,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         }
         // Wait for past transactions to complete
         long oldestActiveTxn;
-        try {
-            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
-        } catch (IOException e) {
-            LOG.error("Unexpected error while waiting for past transactions to complete", e);
-            throw Exceptions.parseException(e);
+        if (!waitsForConcurrentTransactions()) {
+            oldestActiveTxn = -1L;
+        } else {
+            oldestActiveTxn = DDLUtils.waitForConcurrentTransactions(waitTxn, uTxn, tableConglomId);
         }
         if (oldestActiveTxn>=0) {
             throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException(alterTableActionName,oldestActiveTxn);

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.google.common.primitives.Longs;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.*;
 import com.splicemachine.access.configuration.SQLConfiguration;
@@ -68,6 +69,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.stream.Stream;
+import com.splicemachine.stream.Streams;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -835,6 +838,45 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     "hbase.coprocessor.regionserver.classes"));
         }
         return oldestActiveTransaction;
+    }
+
+    public static Stream<TxnView> getActiveTransactions(long minTxnId, long maxTxnId, byte[] destinationTable, boolean sort) throws SQLException {
+        List<TxnView> activeTransactions = new ArrayList<>();
+        try {
+            SIDriver driver = SIDriver.driver();
+            ExecutorService executorService = driver.getExecutorService();
+            Collection<PartitionServer> servers = driver.getTableFactory().getAdmin().allServers();
+
+            List<Future<List<Long>>> futures = Lists.newArrayList();
+            for (PartitionServer server : servers) {
+                ActiveTransactionsTask task = SIDriver.driver().getActiveTransactionsTaskFactory().get(
+                        server.getHostname(), server.getPort(), server.getStartupTimestamp() , minTxnId, maxTxnId, destinationTable);
+                futures.add(executorService.submit(task));
+            }
+            for (Future<List<Long>> future : futures) {
+                for(Long activeTxn : future.get()) {
+                    activeTransactions.add(SIDriver.driver().getTxnStore().getTransaction(activeTxn)); // should we get it from the cache?
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (ExecutionException e) {
+            LOG.error("Could not fetch activeTransactions", e);
+            throw PublicAPI.wrapStandardException(StandardException.newException(
+                    MISSING_COPROCESSOR_SERVICE,
+                    "com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices",
+                    "hbase.coprocessor.regionserver.classes"));
+        }
+        if(sort) {
+            activeTransactions.sort((o1, o2) -> {
+                if (o1 == null) {
+                    if (o2 == null) return 0;
+                    else return -1;
+                } else if (o2 == null) return 1;
+                return Longs.compare(o1.getTxnId(), o2.getTxnId());
+            });
+        }
+        return Streams.wrap(activeTransactions);
     }
 
     public static void VACUUM() throws SQLException{

@@ -223,6 +223,16 @@ message SpliceOldestActiveTransactionResponse {
     required int64 oldestActiveTransaction = 1;
 }
 
+message SpliceActiveTransactionsRequest {
+    optional int64 minTxnId = 1;
+    optional int64 maxTxnId = 2;
+    optional bytes destinationTable = 3;
+}
+
+message SpliceActiveTransactionsResponse {
+    repeated int64 activeTransactions = 1;
+}
+
 message TestResponse {
     optional uint64 count = 1;
 }
@@ -245,6 +255,8 @@ service SpliceRSRpcServices {
     rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
         returns (SpliceOldestActiveTransactionResponse);
 
+    rpc getActiveTransactions(SpliceActiveTransactionsRequest)
+        returns (SpliceActiveTransactionsResponse);
 }
 
 message SpliceRegionInfo{

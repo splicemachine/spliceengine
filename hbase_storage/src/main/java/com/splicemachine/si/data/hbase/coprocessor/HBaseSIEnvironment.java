@@ -72,6 +72,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
     private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final ActiveTransactionsTaskFactory activeTransactionsTaskFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnSupplier ignoreTxnSupplier;
@@ -113,6 +114,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory = TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
         this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.activeTransactionsTaskFactory = new HActiveTransactionsTaskFactory();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
@@ -146,6 +148,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory = TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
         this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.activeTransactionsTaskFactory = new HActiveTransactionsTaskFactory();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
@@ -181,6 +184,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
         return oldestActiveTransactionTaskFactory;
+    }
+
+    @Override
+    public ActiveTransactionsTaskFactory activeTransactionsTaskFactory() {
+        return activeTransactionsTaskFactory;
     }
 
     @Override

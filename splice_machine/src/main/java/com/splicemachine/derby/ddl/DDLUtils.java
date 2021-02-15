@@ -32,10 +32,10 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -54,6 +54,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -137,12 +138,7 @@ public class DDLUtils {
         }
         // Wait for past transactions to die
         long oldestActiveTxn;
-        try {
-            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
-        } catch (IOException e) {
-            LOG.error("Unexpected error while waiting for past transactions to complete", e);
-            throw Exceptions.parseException(e);
-        }
+        oldestActiveTxn = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
         if (oldestActiveTxn>=0) {
             throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("CreateIndex("+indexName+")",oldestActiveTxn);
         }
@@ -179,32 +175,30 @@ public class DDLUtils {
      * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
      *                that it be the user-level, otherwise some child transactions may be treated
      *                as active when they are not actually active.
-     * @return list of transactions still running after timeout
-     * @throws IOException
+     * @return the smallest active transaction ID which is not descending from userTxn, otherwise -1.
      */
-    public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
+    public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn, long tableConglomId) throws StandardException {
         byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
 
-        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
         SConfiguration config = SIDriver.driver().getConfiguration();
         Clock clock = SIDriver.driver().getClock();
         long waitTime = config.getDdlRefreshInterval(); //the initial time to wait
         long maxWait = config.getMaxDdlWait(); // the maximum time to wait
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
-        long activeTxnId = -1l;
-        do{
-            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
+        long activeTxnId = -1L;
+        do {
+            try (Stream<TxnView> activeTxns = SpliceAdmin.getActiveTransactions(0L, maximum.getTxnId(), conglomBytes, true)) {
                 TxnView txn;
-                while((txn = activeTxns.next())!=null){
-                    if(!txn.descendsFrom(userTxn)){
+                while ((txn = activeTxns.next()) != null) {
+                    if (!txn.descendsFrom(userTxn)) {
                         activeTxnId = txn.getTxnId();
                     }
                 }
-            } catch (StreamException e) {
-                throw new IOException(e.getCause());
+            } catch (StreamException | SQLException e) {
+                throw Exceptions.parseException(e);
             }
-            if(activeTxnId<0) return activeTxnId;
+            if (activeTxnId < 0) return activeTxnId;
             /*
              * It is possible for a sleep to pick up before the
              * waitTime is expired. Therefore, we measure that actual
@@ -213,22 +207,20 @@ public class DDLUtils {
              */
             long start = clock.currentTimeMillis();
             try {
-                clock.sleep(waitTime,TimeUnit.MILLISECONDS);
+                clock.sleep(waitTime, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                throw new IOException(e);
+                throw Exceptions.parseException(e);
             }
             long stop = clock.currentTimeMillis();
-            timeAvailable-=(stop-start);
+            timeAvailable -= (stop - start);
             /*
              * We want to exponentially back off, but only to the limit imposed on us. Once
              * our backoff exceeds that limit, we want to just defer to that limit directly.
              */
-            waitTime = Math.min(timeAvailable,scale*waitTime);
-        } while(timeAvailable>0);
+            waitTime = Math.min(timeAvailable, scale * waitTime);
+        } while (timeAvailable > 0);
 
-        if (activeTxnId>=0) {
-            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", activeTxnId));
-        }
+        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", activeTxnId));
         return activeTxnId;
     }
 
