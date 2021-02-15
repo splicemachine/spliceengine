@@ -983,7 +983,6 @@ public interface SQLState {
     String LANG_NO_SUCH_METHOD_ALIAS                                       = "42Y03.S.0";
     String LANG_NO_SUCH_PROCEDURE                                          = "42Y03.S.1";
     String LANG_NO_SUCH_FUNCTION                                           = "42Y03.S.2";
-    String LANG_NO_SUCH_PROCEDURE2                                         = "42Y03.S.3";
     String LANG_INVALID_FULL_STATIC_METHOD_NAME                            = "42Y04";
     String LANG_NO_SUCH_FOREIGN_KEY                                        = "42Y05";
     String LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST                = "42Y06";
@@ -1149,7 +1148,7 @@ public interface SQLState {
     String LANG_SHARE_ROW           = "42Z88.U";
 
     // MORE GENERIC LANGUAGE STUFF
-    // String LANG_UPDATABLE_VTI_BAD_GETRESULTSETCONCURRENCY          = "42Z89";
+    String LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA           = "42Z89";
     String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS            = "42Z90";
     String LANG_SUBQUERY                                  = "42Z91";
     String LANG_REPEATABLE_READ                           = "42Z92";
@@ -2101,8 +2100,6 @@ public interface SQLState {
 
     String HBASE_OPERATION_ERROR = "HO001";
 
-    String ERROR_CALL_PARAMETER_COUNT_WRONG = "44004";
-    String ERROR_CALL_PARAMETER_CAST_ERROR = "44005";
 
 }
 

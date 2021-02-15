@@ -254,12 +254,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
 
 		/* For SQRT, if operand is not a DOUBLE, convert it to DOUBLE */
         if(operatorType==SQRT && jdbcType!=Types.DOUBLE){
-            setOperand((ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getOperand(),
-                    new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DOUBLE),true),
-                    getContextManager()));
-            ((CastNode)getOperand()).bindCastNodeOnly();
+            castOperandAndBindCast(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DOUBLE),true));
         }
     }
 

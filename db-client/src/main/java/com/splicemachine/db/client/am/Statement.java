@@ -1638,8 +1638,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
             // for call, so that when autocommit is true, commit will not be issued until the
             // result sets are closed.
             // Currently, commit is not issued even there is no result set.
-            // do not externalize sqlcode +100
-            if (sqlcode > 0 && sqlcode != 466 && sqlcode != 100) {
+            if (sqlcode > 0 && sqlcode != 466) {
                 accumulateWarning(new SqlWarning(agent_.logWriter_, sqlca));
             }
         }
