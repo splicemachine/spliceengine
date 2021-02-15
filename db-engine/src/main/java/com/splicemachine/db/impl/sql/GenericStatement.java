@@ -502,7 +502,7 @@ public class GenericStatement implements Statement{
                 setSSQFlatteningForUpdateDisabled(lcc, cc);
                 setVarcharDB2CompatibilityMode(lcc, cc);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement,cacheMe);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement,cacheMe, false);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -851,7 +851,8 @@ public class GenericStatement implements Statement{
                                            boolean foundInCache,
                                            CompilerContext cc,
                                            StatementNode boundAndOptimizedStatement,
-                                           boolean cacheMe) throws StandardException{
+                                           boolean cacheMe,
+                                           boolean forExplain) throws StandardException{
        lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
@@ -883,7 +884,9 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            if(forExplain == false) {
+                generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            }
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
@@ -930,7 +933,7 @@ public class GenericStatement implements Statement{
         }
 
         // proceed to optimize and generate code for it
-        StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe);
+        StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
 
         // plug back the statement in the EXPLAIN plan, so we can proceed
         // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
