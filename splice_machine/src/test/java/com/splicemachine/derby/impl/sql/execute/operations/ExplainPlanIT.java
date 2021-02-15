@@ -842,6 +842,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     }
 
     private void testCachingExplainStatementInternal(String statement, String explainPrefix) throws Exception {
+        Assume.assumeFalse(isMemPlatform(methodWatcher));
         methodWatcher.execute("call syscs_util.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
         String explainQuery = explainPrefix + statement;
         methodWatcher.execute(explainQuery);
@@ -854,6 +855,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testCachingExplainStatementDifferentStatements() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
         testCachingExplainStatementInternal("select * from t7", "explain ");
         testCachingExplainStatementInternal("select * from t7 where a7 > 1", "explain ");
         testCachingExplainStatementInternal("update t7 set a7 = 40 where a7 = 42", "explain ");
@@ -863,6 +865,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testCachingExplainStatementDifferentExplainPrefix() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
         testCachingExplainStatementInternal("select * from t7", "explain ");
         testCachingExplainStatementInternal("select * from t7", "ExpLain ");
         testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain ");
