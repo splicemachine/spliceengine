@@ -442,12 +442,7 @@ public class UnaryOperatorNode extends OperatorNode
                     getOperand().getTypeServices() != null?getOperand().getTypeServices().isNullable():true,
                     DataTypeUtilities.computeMaxWidth(31, 6));
 
-            setOperand((ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getOperand(),
-                    dataTypeDescriptor,
-                    getContextManager()));
-            ((CastNode)getOperand()).bindCastNodeOnly();
+            castOperandAndBindCast(dataTypeDescriptor);
             operandType = getOperand().getTypeId();
             jdbcType = operandType.getJDBCTypeId();
         }
@@ -746,5 +741,9 @@ public class UnaryOperatorNode extends OperatorNode
         this.operandMatchIndexExpr = tableNumber;
         this.operandMatchIndexExprColumnPosition = columnPosition;
         this.operandMatchIndexExprConglomDesc = conglomDesc;
+    }
+
+    public void castOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(0, type);
     }
 }

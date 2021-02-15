@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.vti.CompileTimeSchema;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -25,7 +26,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SchemaFilterVTI implements DatasetProvider, VTICosting {
+public class SchemaFilterVTI implements DatasetProvider, VTICosting, CompileTimeSchema {
     private OperationContext operationContext;
 
     @Override
@@ -68,9 +69,12 @@ public class SchemaFilterVTI implements DatasetProvider, VTICosting {
         return dsp.createDataSet(items.iterator());
     }
 
-    @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
+    public static ResultSetMetaData getMetaData() throws SQLException {
         return metadata;
+    }
+
+    public static boolean schemaKnownAtCompileTime() {
+        return true;
     }
 
     @Override

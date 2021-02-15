@@ -105,13 +105,7 @@ public class TestConstraintNode extends UnaryLogicalOperatorNode
 
         if (!getOperand().getTypeServices().getTypeId().isBooleanTypeId())
         {
-            setOperand((ValueNode)
-                getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getOperand(),
-                    new DataTypeDescriptor(TypeId.BOOLEAN_ID, true),
-                    getContextManager()));
-            ((CastNode) getOperand()).bindCastNodeOnly();
+            castOperandAndBindCast(new DataTypeDescriptor(TypeId.BOOLEAN_ID, true));
         }
 
         /* Set the type info */

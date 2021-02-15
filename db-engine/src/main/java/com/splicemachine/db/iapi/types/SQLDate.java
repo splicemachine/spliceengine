@@ -779,6 +779,21 @@ public final class SQLDate extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getDays
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getDays(NumberDataValue result)
+            throws StandardException
+    {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getDays(encodedDate), result);
+        }
+    }
+
+    /**
      * @see DateTimeDataValue#getHours
      *
      * @exception StandardException        Thrown on error
@@ -803,19 +818,43 @@ public final class SQLDate extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSeconds
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSeconds(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException
     {
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                        "getSeconds", "Date");
+                        "getSecondsAndFractionOfSecondAsDouble", "Date");
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAsInt", "Date");
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAndFractionOfSecondAsDecimal", "Date");
     }
 
     /*
-    ** String display of value
+     ** String display of value
     */
 
     public String toString()
@@ -995,6 +1034,19 @@ public final class SQLDate extends DataType
     }
 
     /**
+     * Get the number of days since January 1, 0001 from the encodedDate,
+     *
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static long getDays(int encodedDate) {
+        LocalDate origin = new LocalDate(1, 1, 1);
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return Days.daysBetween(origin, date).getDays() + 1;
+    }
+
+    /**
      * Get the day from the encodedDate.
      *
      * @param encodedDate    the encoded date
@@ -1148,7 +1200,26 @@ public final class SQLDate extends DataType
     }
 
     /**
-        This helper routine tests the nullability of various parameters
+     This helper routine tests the nullability of various parameters
+     and sets up the result appropriately.
+
+     If source is null, a new NumberDataValue is built.
+
+     @exception StandardException    Thrown on error
+     */
+    static NumberDataValue setSource(long value,
+                                     NumberDataValue source)
+            throws StandardException {
+        if (source == null)
+            source = new SQLLongint();
+
+        source.setValue(value);
+
+        return source;
+    }
+
+    /**
+     This helper routine tests the nullability of various parameters
         and sets up the result appropriately.
 
         If source is null, a new SQLVarchar is built.

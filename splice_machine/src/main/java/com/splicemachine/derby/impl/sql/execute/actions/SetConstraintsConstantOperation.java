@@ -334,8 +334,8 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 		/*
 		** The moment of truth
 		*/
-		ConstraintConstantOperation.validateFKConstraint(tc, dd, fk, 
-							fk.getReferencedConstraint(), indexTemplateRow, lcc);
+		ConstraintConstantOperation.validateFKConstraint(fk,
+														 fk.getReferencedConstraint(), lcc);
 	}
 			
 	/*

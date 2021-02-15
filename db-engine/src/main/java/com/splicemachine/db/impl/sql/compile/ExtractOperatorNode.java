@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -49,7 +47,7 @@ import java.sql.Types;
 
 import java.util.List;
 
-import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.*;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -63,10 +61,10 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "DAYOFWEEK", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
     };
     static private final String fieldMethod[] = {
-        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSecondsAndFractionOfSecondAsDouble"
     };
 
-    static private final long fieldCardinality[] = {
+    static private final long fieldMaxCardinality[] = {
             5L, 4L, 12L, 12L, 52L, 7L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
@@ -117,16 +115,10 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         if (opTypeId.isStringTypeId())
         {
             TypeCompiler tc = getOperand().getTypeCompiler();
-            int castType = (extractField < DateTimeDataValue.HOUR_FIELD) ? Types.DATE : Types.TIME;
-            setOperand((ValueNode)
-                getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getOperand(),
-                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true,
-                                        tc.getCastToCharWidth(
-                                                getOperand().getTypeServices(), getCompilerContext())),
-                    getContextManager()));
-            ((CastNode) getOperand()).bindCastNodeOnly();
+            int castType = (extractField < HOUR_FIELD) ? Types.DATE : Types.TIME;
+            castOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                    castType, true,
+                    tc.getCastToCharWidth(getOperand().getTypeServices(), getCompilerContext())));
 
             opTypeId = getOperand().getTypeId();
             operandType = opTypeId.getJDBCTypeId();
@@ -177,9 +169,9 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         } else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
-                        TypeId.CHAR_ID,
+                    TypeId.CHAR_ID,
                         getOperand().getTypeServices().isNullable(),
-                        14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
+                    14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
                     )
             );
         } else {
@@ -193,6 +185,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         return this;
     }
 
+    @Override
     void bindParameter() throws StandardException
     {
         getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
@@ -217,8 +210,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
     }
 
     @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        return Math.min(fieldCardinality[extractField], numberOfRows);
+    public long nonZeroCardinality(long numberOfRows) {
+        if (extractField == SECOND_FIELD && getOperand().getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
+            return numberOfRows;
+        }
+        return Math.min(fieldMaxCardinality[extractField], numberOfRows);
     }
 
     @Override
