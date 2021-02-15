@@ -1383,8 +1383,8 @@ public abstract class DataType extends NullValueData
     }
 
     @Override
-    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-        return new com.yahoo.sketches.frequencies.ItemsSketch(256);
+    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch(int maxMapSize) throws StandardException {
+        return new com.yahoo.sketches.frequencies.ItemsSketch(maxMapSize);
     }
 
     @Override

@@ -33,6 +33,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -57,9 +58,9 @@ import org.apache.spark.sql.types.StructType;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Arrays;
 
 /**
  * Created by jleach on 2/27/17.
@@ -74,6 +75,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
     protected double sampleFraction;
     private boolean mergeStats;
     protected DataTypeDescriptor[] dtds;
+    protected int[] fkCols;
 
     // serialization
     public StatisticsOperation(){}
@@ -94,6 +96,13 @@ public class StatisticsOperation extends SpliceBaseOperation {
         this(scanSetBuilder, useSample, sampleFraction, mergeStats, scope, activation);
         this.dtds = dataTypeDescriptors;
         this.scanSetBuilder.template(buildTemplateRow(dtds));
+    }
+
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, boolean mergeStats,
+                               String scope, Activation activation, DataTypeDescriptor[] dataTypeDescriptors,
+                               int[] foreignKeyColumnIds) throws StandardException {
+        this(scanSetBuilder, useSample, sampleFraction, mergeStats, scope, activation, dataTypeDescriptors);
+        this.fkCols = foreignKeyColumnIds;
     }
 
     @Override
@@ -139,7 +148,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
             }
             DataSet stats = statsDataSet
                     .mapPartitions(
-                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));
+                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate(), fkCols));
             if (!mergeStats) {
                 return stats;
             }
@@ -226,6 +235,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeBoolean(mergeStats);
         out.writeObject(dtds);
         out.writeObject(operationInformation);
+        ArrayUtil.writeIntArray(out, fkCols);
     }
 
     @Override
@@ -243,6 +253,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
             throw new IOException(se.getMessage(),se);
         }
         operationInformation = (OperationInformation)in.readObject();
+        fkCols = ArrayUtil.readIntArray(in);
     }
 
     public double getSampleFraction() {

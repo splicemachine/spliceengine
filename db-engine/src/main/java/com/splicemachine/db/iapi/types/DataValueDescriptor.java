@@ -1070,7 +1070,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @return
      * @throws StandardException
      */
-    com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException;
+    com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch(int maxMapSize) throws StandardException;
 
     /**
      *

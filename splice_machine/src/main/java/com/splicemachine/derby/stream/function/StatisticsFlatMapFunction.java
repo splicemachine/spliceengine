@@ -40,6 +40,7 @@ public class StatisticsFlatMapFunction
     protected long conglomId;
     protected int[] columnPositionMap;
     protected ExecRow template;
+    protected int[] fkCols;
     boolean useSample;
     double sampleFraction;
 
@@ -47,11 +48,13 @@ public class StatisticsFlatMapFunction
     }
 
     public StatisticsFlatMapFunction(OperationContext<StatisticsOperation> operationContext,
-                                     long conglomId, int[] columnPositionMap, ExecRow template) {
+                                     long conglomId, int[] columnPositionMap, ExecRow template,
+                                     int[] foreignKeyColumnIds) {
         assert columnPositionMap != null:"columnPositionMap is null";
         this.conglomId = conglomId;
         this.columnPositionMap = columnPositionMap;
         this.template = template;
+        this.fkCols = foreignKeyColumnIds;
         useSample = operationContext.getOperation().getUseSample();
         sampleFraction = operationContext.getOperation().getSampleFraction();
     }
@@ -61,6 +64,7 @@ public class StatisticsFlatMapFunction
         out.writeLong(conglomId);
         ArrayUtil.writeIntArray(out,columnPositionMap);
         out.writeObject(template);
+        ArrayUtil.writeIntArray(out,fkCols);
         out.writeBoolean(useSample);
         out.writeDouble(sampleFraction);
     }
@@ -71,6 +75,7 @@ public class StatisticsFlatMapFunction
         conglomId = in.readLong();
         columnPositionMap = ArrayUtil.readIntArray(in);
         template = (ExecRow) in.readObject();
+        fkCols = ArrayUtil.readIntArray(in);
         useSample = in.readBoolean();
         sampleFraction = in.readDouble();
     }
@@ -84,7 +89,7 @@ public class StatisticsFlatMapFunction
         while (locatedRows.hasNext()) {
             ExecRow execRow = locatedRows.next();
             if (!initialized) {
-                statisticsRow = new StatisticsRow(execRow);
+                statisticsRow = new StatisticsRow(execRow, fkCols);
                 initialized = true;
             }
             rowWidth += execRow.getRowSize();
@@ -109,7 +114,7 @@ public class StatisticsFlatMapFunction
                 if (columnPositionMap[i] == -1)
                     break;
                 if (template.getColumn(i+1) !=null)
-                    rows.add(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) ));
+                    rows.add(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1), ColumnStatisticsImpl.DEFAULT_FREQ_SKETCH_MAP_SIZE)));
             }
             rows.add(
                     StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,

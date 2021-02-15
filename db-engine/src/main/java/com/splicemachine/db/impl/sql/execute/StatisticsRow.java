@@ -33,9 +33,11 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import org.apache.commons.lang3.ArrayUtils;
+
 /**
  *
  * Wrapper that updates statistics as data is put in the row format.
@@ -44,13 +46,16 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 public class StatisticsRow extends ValueRow {
     private ItemStatistics[] statistics;
 
-    public StatisticsRow(ExecRow execRow) throws StandardException {
+    public StatisticsRow(ExecRow execRow, int[] useMoreMemCols) throws StandardException {
         assert execRow!=null:"ExecRow passed in is null";
         this.setRowArray(execRow.getRowArray());
         statistics = new ItemStatistics[execRow.nColumns()];
         for (int i = 0; i< execRow.nColumns(); i++) {
             DataValueDescriptor dvd = execRow.getColumn(i+1);
-            statistics[i] = new ColumnStatisticsImpl(dvd);
+            statistics[i] = new ColumnStatisticsImpl(
+                    dvd,
+                    ArrayUtils.contains(useMoreMemCols, i + 1) ? ColumnStatisticsImpl.BIG_FREQ_SKETCH_MAP_SIZE
+                            : ColumnStatisticsImpl.DEFAULT_FREQ_SKETCH_MAP_SIZE);
         }
     }
 

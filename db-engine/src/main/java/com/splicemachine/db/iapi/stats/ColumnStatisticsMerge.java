@@ -65,7 +65,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     protected long totalCount = 0L;
     protected long cardinality = 0L;
     protected ItemStatistics.Type columnStatsType = ItemStatistics.Type.COLUMN;
-
+    protected int frequenciesSketchMaxMapSize;
 
     public ColumnStatisticsMerge() {
 
@@ -105,9 +105,10 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
 
             dvd = value.getColumnDescriptor();
             assert dvd!=null:"dvd should not be null";
+            frequenciesSketchMaxMapSize = value.getFrequenciesSketchMaxMapSize();
             thetaSketchUnion = Sketches.setOperationBuilder().buildUnion();
             quantilesSketchUnion = ItemsUnion.getInstance(value.getQuantilesSketch().getK(), value.getColumnDescriptor());
-            frequenciesSketch =  dvd.getFrequenciesSketch();
+            frequenciesSketch =  dvd.getFrequenciesSketch(frequenciesSketchMaxMapSize);
             initialized = true;
         }
 
@@ -166,7 +167,8 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
             return new FakeColumnStatisticsImpl(dvd, nullCount, totalCount, cardinality);
         }
 
-        return new ColumnStatisticsImpl(dvd,quantilesSketchUnion.getResult(),frequenciesSketch,thetaSketchUnion.getResult(),nullCount);
+        return new ColumnStatisticsImpl(dvd,quantilesSketchUnion.getResult(),frequenciesSketch,thetaSketchUnion.getResult(),
+                nullCount,frequenciesSketchMaxMapSize);
     }
 
     @Override

@@ -658,8 +658,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         for (ColumnDescriptor descriptor : colsToCollect ) {
             dtds[index++] = descriptor.getType();
         }
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds);
-        return op;
+        int[] fkCols = getForeignKeyColumnIds(table);
+        return new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds,fkCols);
     }
 
     private static StatisticsOperation createCollectExprIndexStatisticsOperation(ConglomerateDescriptor cd,
@@ -1009,6 +1009,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
+    }
+
+    private static int[] getForeignKeyColumnIds(TableDescriptor td) throws StandardException {
+        HashSet<Integer> fkCols = new HashSet<>();
+        for (ConstraintDescriptor c : td.getConstraintDescriptorList()) {
+            if (c.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
+                for (int colId : c.getKeyColumns()) {
+                    fkCols.add(colId);
+                }
+            }
+        }
+        return fkCols.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public static ExecRow generateRowFromStats(long conglomId,

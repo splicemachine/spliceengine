@@ -62,6 +62,9 @@ import static com.splicemachine.db.iapi.types.Orderable.*;
  * @see <a href="https://datasketches.github.io/">https://datasketches.github.io/</a>
  */
 public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>, Externalizable {
+    public static int DEFAULT_FREQ_SKETCH_MAP_SIZE = 256;
+    public static int BIG_FREQ_SKETCH_MAP_SIZE = 4096;
+
     private static Logger LOG=Logger.getLogger(ColumnStatisticsImpl.class);
     protected com.yahoo.sketches.quantiles.ItemsSketch<DataValueDescriptor> quantilesSketch;
     protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
@@ -69,6 +72,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     protected long nullCount;
     protected DataValueDescriptor dvd;
     private long rpv=-1; //rows per value excluding skewed values
+    private int frequenciesSketchMaxMapSize = DEFAULT_FREQ_SKETCH_MAP_SIZE;
 
     public ColumnStatisticsImpl() {
 
@@ -82,7 +86,24 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      * @throws StandardException
      */
     public ColumnStatisticsImpl(DataValueDescriptor dvd) throws StandardException {
-        this(dvd, dvd.getQuantilesSketch(),dvd.getFrequenciesSketch(),dvd.getThetaSketch(), 0L);
+        this(dvd, DEFAULT_FREQ_SKETCH_MAP_SIZE);
+    }
+
+    /**
+     *
+     * Generates the stats implementation based on defaults for the data type (DataValueDescriptor)
+     *
+     * @param dvd
+     * @param frequenciesSketchMaxMapSize
+     * @throws StandardException
+     */
+    public ColumnStatisticsImpl(DataValueDescriptor dvd, int frequenciesSketchMaxMapSize) throws StandardException {
+        this.dvd = dvd;
+        this.frequenciesSketchMaxMapSize = frequenciesSketchMaxMapSize;
+        this.quantilesSketch = dvd.getQuantilesSketch();
+        this.frequenciesSketch = dvd.getFrequenciesSketch(frequenciesSketchMaxMapSize);
+        this.thetaSketch = dvd.getThetaSketch();
+        this.nullCount = 0L;
     }
 
     /**
@@ -100,7 +121,26 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                                 com.yahoo.sketches.frequencies.ItemsSketch frequenciesSketch,
                                 Sketch thetaSketch, long nullCount
                                          ) {
+        this(dvd, quantilesSketch, frequenciesSketch, thetaSketch, nullCount, DEFAULT_FREQ_SKETCH_MAP_SIZE);
+    }
+
+    /**
+     *
+     *
+     *
+     * @param dvd
+     * @param quantilesSketch
+     * @param frequenciesSketch
+     * @param thetaSketch
+     * @param nullCount
+     * @param frequenciesSketchMaxMapSize
+     */
+    public ColumnStatisticsImpl(DataValueDescriptor dvd,
+                                com.yahoo.sketches.quantiles.ItemsSketch quantilesSketch,
+                                com.yahoo.sketches.frequencies.ItemsSketch frequenciesSketch,
+                                Sketch thetaSketch, long nullCount, int frequenciesSketchMaxMapSize) {
         this.dvd = dvd;
+        this.frequenciesSketchMaxMapSize = frequenciesSketchMaxMapSize;
         this.quantilesSketch = quantilesSketch;
         this.frequenciesSketch = frequenciesSketch;
         this.thetaSketch = thetaSketch;
@@ -111,6 +151,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(nullCount);
         out.writeObject(dvd);
+        out.writeInt(frequenciesSketchMaxMapSize);
         byte[] quantilesSketchBytes = quantilesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
         out.writeInt(quantilesSketchBytes.length);
         out.write(quantilesSketchBytes);
@@ -130,6 +171,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         try {
             nullCount = in.readLong();
             dvd = (DataValueDescriptor) in.readObject();
+            frequenciesSketchMaxMapSize = in.readInt();
             byte[] quantiles = new byte[in.readInt()];
             in.readFully(quantiles);
             quantMem = new NativeMemory(quantiles);
@@ -153,6 +195,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         }
     }
 
+    public int getFrequenciesSketchMaxMapSize() { return frequenciesSketchMaxMapSize; }
     /**
      *
      * Retrieves the minimum value from the quantile sketch
@@ -623,7 +666,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                 quantilesSketch,
                 frequenciesSketch,
                 thetaSketch,
-                nullCount);
+                nullCount,
+                frequenciesSketchMaxMapSize);
     }
 
     /**

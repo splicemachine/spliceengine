@@ -455,8 +455,8 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-        return dvd.getFrequenciesSketch();
+    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch(int maxMapSize) throws StandardException {
+        return dvd.getFrequenciesSketch(maxMapSize);
     }
 
     @Override
