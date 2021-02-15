@@ -33,9 +33,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Maps;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -123,6 +121,12 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
+    public void addChildren(List<WriteNode> nodes) {
+        head.getNext().addChildren(nodes);
+    }
+
+
+    @Override
     public void result(byte[] resultRowKey, WriteResult result) {
         for (KVPair kvPair : resultsMap.keySet()) {
             byte[] currentRowKey = kvPair.getRowKey();
@@ -159,16 +163,24 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
         try {
             WriteNode next = head.getNext();
-            while (next != null) {
-                next.flush();
-                next = next.getNext();
-            }
-            next = head.getNext();
-            while (next != null) {
-                next.close();
-                next = next.getNext();
-            }
 
+            boolean reversed = true;
+            List<WriteNode> list = new ArrayList<WriteNode>();
+            addChildren(list);
+
+            if(reversed) {
+                for(int i=list.size()-1; i>=0; i--) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
+            }
+            else
+            {
+                for(int i=0; i<list.size(); i++) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
+            }
         } finally {
             //clean up any outstanding table resources
             Collection<Partition> collection=partitionFactory.cachedPartitions();

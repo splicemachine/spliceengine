@@ -25,6 +25,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -121,4 +122,5 @@ public interface WriteContext {
 
     PipelineExceptionFactory exceptionFactory();
 
+    void addChildren(List<WriteNode> nodes);
 }
