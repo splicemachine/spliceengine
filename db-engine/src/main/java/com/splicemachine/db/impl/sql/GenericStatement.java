@@ -418,45 +418,10 @@ public class GenericStatement implements Statement{
             ** call a noop.
             */
             CompilerContext cc = null;
-            if (boundAndOptimizedStatement != null)
+            if (boundAndOptimizedStatement != null) {
                 cc = boundAndOptimizedStatement.getCompilerContext();
-            else {
-                cc = lcc.pushCompilerContext(compilationSchema);
-
-                if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
-                    cc.setScanIsolationLevel(prepareIsolationLevel);
-                }
-
-                // Look for stored statements that are in a system schema
-                // and with a match compilation schema. If so, allow them
-                // to compile using internal SQL constructs.
-                if (internalSQL ||
-                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
-                    cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
-                }
-
-                setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
-                setProjectionPruningEnabled(lcc, cc);
-                setMaxMulticolumnProbeValues(lcc, cc);
-                setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
-                setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
-                setDisablePredicateSimplification(lcc, cc);
-                setNativeSparkAggregationMode(lcc, cc);
-                setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
-                setNewMergeJoin(lcc, cc);
-                setDisableParallelTaskJoinCosting(lcc, cc);
-                setCurrentTimestampPrecision(lcc, cc);
-                setTimestampFormat(lcc, cc);
-                setSecondFunctionCompatibilityMode(lcc, cc);
-                setFloatingPointNotation(lcc, cc);
-                setOuterJoinFlatteningDisabled(lcc, cc);
-
-                if (!cc.isSparkVersionInitialized()) {
-                    setSparkVersion(cc);
-                }
-
-                setSSQFlatteningForUpdateDisabled(lcc, cc);
-                setVarcharDB2CompatibilityMode(lcc, cc);
+            } else {
+                cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement,cacheMe, false);
         }catch(StandardException se){
@@ -485,6 +450,48 @@ public class GenericStatement implements Statement{
             lcc.popStatementContext(statementContext,null);
 
         return preparedStmt;
+    }
+
+    private CompilerContext pushCompilerContext(LanguageConnectionContext lcc,
+                                                boolean internalSQL,
+                                                SchemaDescriptor spsSchema) throws StandardException {
+        CompilerContext cc = lcc.pushCompilerContext(compilationSchema);
+
+        if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
+            cc.setScanIsolationLevel(prepareIsolationLevel);
+        }
+
+        // Look for stored statements that are in a system schema
+        // and with a match compilation schema. If so, allow them
+        // to compile using internal SQL constructs.
+        if (internalSQL ||
+                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
+            cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
+        }
+
+        setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
+        setProjectionPruningEnabled(lcc, cc);
+        setMaxMulticolumnProbeValues(lcc, cc);
+        setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
+        setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
+        setDisablePredicateSimplification(lcc, cc);
+        setNativeSparkAggregationMode(lcc, cc);
+        setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
+        setNewMergeJoin(lcc, cc);
+        setDisableParallelTaskJoinCosting(lcc, cc);
+        setCurrentTimestampPrecision(lcc, cc);
+        setTimestampFormat(lcc, cc);
+        setSecondFunctionCompatibilityMode(lcc, cc);
+        setFloatingPointNotation(lcc, cc);
+        setOuterJoinFlatteningDisabled(lcc, cc);
+
+        if (!cc.isSparkVersionInitialized()) {
+            setSparkVersion(cc);
+        }
+
+        setSSQFlatteningForUpdateDisabled(lcc, cc);
+        setVarcharDB2CompatibilityMode(lcc, cc);
+        return cc;
     }
 
     private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -952,6 +959,8 @@ public class GenericStatement implements Statement{
         try{
             dumpParseTree(lcc,qt,false);
 
+            handleExplainNode(lcc, cc, qt, cacheMe);
+
             qt.bindStatement();
             timestamps[2]=getCurrentTimeMillis(lcc);
 
@@ -962,8 +971,6 @@ public class GenericStatement implements Statement{
             dumpBoundTree(lcc,qt);
 
             maintainCacheEntry(lcc, qt, foundInCache);
-
-            handleExplainNode(lcc, cc, qt, cacheMe);
 
             qt.optimizeStatement();
 

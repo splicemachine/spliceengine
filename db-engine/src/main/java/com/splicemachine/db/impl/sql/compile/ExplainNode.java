@@ -154,7 +154,9 @@ public class ExplainNode extends DMLStatementNode {
 
     @Override
     public void bindStatement() throws StandardException {
-        node.bindStatement();
+        if(!rootOptimized) {
+            node.bindStatement();
+        }
     }
 
     @Override
