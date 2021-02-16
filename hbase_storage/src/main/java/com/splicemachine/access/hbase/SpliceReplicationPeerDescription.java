@@ -25,13 +25,7 @@ public class SpliceReplicationPeerDescription implements ReplicationPeerDescript
     private final String clusterKey;
     private boolean serial;
 
-    public SpliceReplicationPeerDescription(String id, String clusterKey, boolean enabled) {
-        this.id = id;
-        this.clusterKey = clusterKey;
-        this.enabled = enabled;
-    }
-
-    public SpliceReplicationPeerDescription(String id, String clusterKey, boolean enabled, boolean serial) {
+    private SpliceReplicationPeerDescription(String id, String clusterKey, boolean enabled, boolean serial) {
         this.id = id;
         this.clusterKey = clusterKey;
         this.enabled = enabled;
@@ -56,5 +50,13 @@ public class SpliceReplicationPeerDescription implements ReplicationPeerDescript
     @Override
     public boolean isSerial() {
         return serial;
+    }
+
+    public static SpliceReplicationPeerDescription getReplicationPeerDescription(org.apache.hadoop.hbase.replication.ReplicationPeerDescription peer) {
+        SpliceReplicationPeerDescription replicationPeerDescription =
+                new SpliceReplicationPeerDescription(peer.getPeerId(), peer.getPeerConfig().getClusterKey(),
+                        peer.isEnabled(), peer.getPeerConfig().isSerial());
+
+        return replicationPeerDescription;
     }
 }

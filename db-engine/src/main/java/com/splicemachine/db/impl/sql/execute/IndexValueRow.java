@@ -194,7 +194,7 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
          * class interface
          */
     public String toString() {
-        return valueRow.toString();
+        return valueRow.toSimpleString();
     }
 
     @Override

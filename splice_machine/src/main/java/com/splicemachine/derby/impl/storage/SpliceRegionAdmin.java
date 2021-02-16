@@ -283,7 +283,7 @@ public class SpliceRegionAdmin {
             }
             row.setRowArray(dvds);
             dvds[0].setValue(encodedName);
-            dvds[1].setValue(execRow.toString());
+            dvds[1].setValue(execRow.toSimpleString());
 
             try {
                 decoder.set(end, 0, end.length);
@@ -292,7 +292,7 @@ public class SpliceRegionAdmin {
                 SpliceLogUtils.info(LOG,"End key %s cannot be decoded", Bytes.toHex(end));
                 decodeNextRow(partition, decoder, execRow, true, txnView);
             }
-            dvds[2].setValue(execRow.toString());
+            dvds[2].setValue(execRow.toSimpleString());
 
             dvds[3].setValue(Bytes.toStringBinary(start));
             dvds[4].setValue(Bytes.toStringBinary(end));
@@ -629,7 +629,7 @@ public class SpliceRegionAdmin {
 
         ExecRow row=new ValueRow(dvds.length);
         row.setRowArray(dvds);
-        dvds[0].setValue(execRow != null ? execRow.toString() : Bytes.toStringBinary(rowKey));
+        dvds[0].setValue(execRow != null ? execRow.toSimpleString() : Bytes.toStringBinary(rowKey));
 
         rows.add(row);
         ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[1];

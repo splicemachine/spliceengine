@@ -36,7 +36,6 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.replication.HBaseReplicationPlatformUtil;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -584,7 +583,7 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         List<ReplicationPeerDescription> replicationPeers = Lists.newArrayList();
         for (org.apache.hadoop.hbase.replication.ReplicationPeerDescription peer : peers) {
             SpliceReplicationPeerDescription replicationPeerDescription =
-                    HBaseReplicationPlatformUtil.getReplicationPeerDescription(peer);
+                    SpliceReplicationPeerDescription.getReplicationPeerDescription(peer);
             replicationPeers.add(replicationPeerDescription);
         }
         return replicationPeers;

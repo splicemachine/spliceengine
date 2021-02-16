@@ -28,13 +28,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
             <version>${hbase.version}</version>
@@ -89,14 +82,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-            <classifier>${envClassifier}-tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
             <version>${hbase.version}</version>
@@ -113,6 +98,85 @@
             </exclusions>
        </dependency>
     </dependencies>
+    <profiles>
+
+        <profile>
+            <id>dbaas3.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>dbaas3.0</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <classifier>dbaas3.0-tests</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hdp3.1.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>hdp3.1.0</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <classifier>hdp3.1.0-tests</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hdp3.1.5</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>hdp3.1.5</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <classifier>hdp3.1.5-tests</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>cdh6.3.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>cdh6.3.0</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <classifier>cdh6.3.0-tests</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
     <build>
         <plugins>
             <plugin>
@@ -132,37 +196,6 @@
                         <id>default-jar</id>
                         <configuration>
                             <classifier>${envClassifier}</classifier>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.9.1</version>
-                <executions>
-                    <execution>
-                        <id>add-platform-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${envHbase}/src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>add-platform-test-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${envHbase}/src/test/java</source>
-                            </sources>
                         </configuration>
                     </execution>
                 </executions>

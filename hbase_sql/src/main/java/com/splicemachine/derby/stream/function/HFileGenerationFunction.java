@@ -430,10 +430,10 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         if (operationContext != null && operationContext.isPermissive()) {
 
             operationContext.recordBadRecord("Unique constraint violation, row: "
-                    + execRow.toString(), null);
+                    + execRow.toSimpleString(), null);
         }
         else {
-            SpliceLogUtils.error(LOG, "Unique constraint violation, row: %s", execRow.toString());
+            SpliceLogUtils.error(LOG, "Unique constraint violation, row: %s", execRow.toSimpleString());
             DataDictionary dd = operationContext.getActivation().getLanguageConnectionContext().getDataDictionary();
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
             com.splicemachine.db.catalog.UUID tableID = cd.getTableID();
