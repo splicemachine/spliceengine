@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
 /**
@@ -43,6 +44,7 @@ import org.apache.commons.lang3.ArrayUtils;
  * Wrapper that updates statistics as data is put in the row format.
  *
  */
+@SuppressFBWarnings(value={"EQ_DOESNT_OVERRIDE_EQUALS", "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION"}, justification="super implementation is sufficient, no need to be externalized")
 public class StatisticsRow extends ValueRow {
     private ItemStatistics[] statistics;
 

@@ -112,6 +112,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
             initialized = true;
         }
 
+        assert value != null : "Column statistics to be merged should not be null";
         if (!value.getType().equals(columnStatsType))
             throw new RuntimeException("Multiple column stats type co-exists!");
 
@@ -123,7 +124,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
                 cardinality = fakeColumnStatistics.cardinality();
         }
 
-        assert value.quantilesSketch !=null && value.frequenciesSketch !=null && value.thetaSketch !=null && value!=null:"Sketches should not be null";
+        assert value.quantilesSketch !=null && value.frequenciesSketch !=null && value.thetaSketch !=null:"Sketches should not be null";
         quantilesSketchUnion.update(value.quantilesSketch);
         frequenciesSketch.merge(value.frequenciesSketch);
         thetaSketchUnion.update(value.thetaSketch);
