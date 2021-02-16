@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Created by msirek on 11/5/19.
@@ -23,6 +24,7 @@ public class UpgradeScriptForTriggerWhenClause extends UpgradeScriptBase {
     }
 
     @Override
+    @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="Intentional")
     protected void upgradeSystemTables() throws StandardException {
         try {
             TabInfoImpl tII = sdd.getNonCoreTIByNumber(DataDictionary.SYSTRIGGERS_CATALOG_NUM);

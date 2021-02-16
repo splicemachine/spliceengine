@@ -35,8 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import com.splicemachine.db.catalog.UUID;
-
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -62,18 +60,13 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
  */
 abstract class DDLSingleTableConstantAction extends DDLConstantAction 
 {
-    protected UUID                    tableId;
-
-
     /**
      * constructor
      *
-     * @param tableId the target table
      */
-    DDLSingleTableConstantAction(UUID tableId)
+    DDLSingleTableConstantAction()
     {
         super();
-        this.tableId = tableId;
     }
 
     /**
@@ -316,7 +309,7 @@ abstract class DDLSingleTableConstantAction extends DDLConstantAction
                         true,           // create as unique when not null index
                         cd.getIndexDescriptor().indexType(), 
                         td.getSchemaName(), 
-                        cd.getConglomerateName(), td.getName(), td.getUUID(),
+                        cd.getConglomerateName(), td.getName(),
                         cols, cd.getIndexDescriptor().isAscending(),
                         true, cd.getUUID(), prop);
 

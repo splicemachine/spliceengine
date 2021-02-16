@@ -31,66 +31,62 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
- *	This class is the superclass for the classes that describe actions 
+ *    This class is the superclass for the classes that describe actions
  *  that are ALWAYS performed for a CREATE/DROP INDEX Statement at Execution time.
  *
  */
 
 public abstract class IndexConstantAction extends DDLSingleTableConstantAction {
 
-	public String				indexName;
-	public String				tableName;
-	public String				schemaName;
+    public String                indexName;
+    public String                tableName;
+    public String                schemaName;
 
-	// CONSTRUCTORS
+    // CONSTRUCTORS
 
-	/**
-	 *	Make the ConstantAction for a CREATE/DROP INDEX statement.
-	 *
-	 *	@param	tableId				The table uuid
-	 *	@param	indexName			Index name.
-	 *	@param	tableName			The table name
-	 *	@param	schemaName					Schema that index lives in.
-	 *
-	 */
-	protected	IndexConstantAction(
-								UUID				tableId,
-								String				indexName,
-								String				tableName,
-								String schemaName)
-	{
-		super(tableId);
-		this.indexName = indexName;
-		this.tableName = tableName;
-		this.schemaName = schemaName;
+    /**
+     *    Make the ConstantAction for a CREATE/DROP INDEX statement.
+     *     @param    indexName            Index name.
+     *    @param    tableName            The table name
+     * @param    schemaName                    Schema that index lives in.
+     *
+     */
+    protected    IndexConstantAction(
+            String indexName,
+            String tableName,
+            String schemaName)
+    {
+        super();
+        this.indexName = indexName;
+        this.tableName = tableName;
+        this.schemaName = schemaName;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(schemaName != null, "Schema name is null");
-		}
-	}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(schemaName != null, "Schema name is null");
+        }
+    }
 
     // CLASS METHODS
 
-	/**
-	  *	Get the index name.
-	  *
-	  *	@return	the name of the index
-	  */
-    public	String	getIndexName() { return indexName; }
+    /**
+      *    Get the index name.
+      *
+      *    @return    the name of the index
+      */
+    public    String    getIndexName() { return indexName; }
 
-	/**
-	 * Set the index name at execution time.
-	 * Useful for unnamed constraints which have a backing index.
-	 *
-	 * @param indexName		The (generated) index name.
-	 */
-	public void setIndexName(String indexName)
-	{
-		this.indexName = indexName;
-	}
+    /**
+     * Set the index name at execution time.
+     * Useful for unnamed constraints which have a backing index.
+     *
+     * @param indexName        The (generated) index name.
+     */
+    public void setIndexName(String indexName)
+    {
+        this.indexName = indexName;
+    }
 }
