@@ -213,6 +213,32 @@ public class StatisticsAdminIT extends SpliceUnitTest {
                         row(9,9,9),
                         row(10,10,10)))
                 .create();
+
+        new TableCreator(conn4)
+                .withCreate("create table t7 (a7 int primary key, b7 int, c7 int, constraint fk71 foreign key (c7) references t2(a2))")
+                .withInsert("insert into t7 values (?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .create();
+
+        // insert 640 rows
+        // A7: 640 distinct values, frequency sketch map size 256 (PK)
+        // B7: 10 distinct values, frequency sketch map size 256 (exact)
+        // C7: 640 distinct values, frequency sketch map size 4096 (FK, exact)
+        factor = 10;
+        for (int i = 1; i <= 6; i++) {
+            spliceClassWatcher4.executeUpdate(format("insert into t7 select a7+%d,b7,c7+%d from t7", factor, factor));
+            factor = factor * 2;
+        }
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -1240,6 +1266,30 @@ public class StatisticsAdminIT extends SpliceUnitTest {
 
         /* step 3: clean up */
         methodWatcher4.execute("drop table TAB_WITH_MORE_SPLITS");
+    }
+
+    @Test
+    public void testBigFrequencySketchOnForeignKeys() throws Exception {
+        methodWatcher4.executeQuery(String.format("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T7',false)", SCHEMA4));
+
+        String query = "select quantiles from sysvw.syscolumnstatistics where schemaname='%s' and tablename='%s' and columnname='%s'";
+        try(ResultSet rs = methodWatcher4.executeQuery(format(query, SCHEMA4, "T7", "C7"))) {
+            String resultStr = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(resultStr.contains("Max Error Offset : 0"));  // exact
+            Assert.assertTrue(resultStr.chars().filter(x -> x == '\n').count() > (256 + 5));  // more than 256 occupied counters
+        }
+
+        try(ResultSet rs = methodWatcher4.executeQuery(format(query, SCHEMA4, "T7", "B7"))) {
+            String resultStr = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(resultStr.contains("Max Error Offset : 0"));  // exact
+            Assert.assertTrue(resultStr.chars().filter(x -> x == '\n').count() <= (256 + 5)); // less than 256 occupied counters
+        }
+
+        try(ResultSet rs = methodWatcher4.executeQuery(format(query, SCHEMA4, "T7", "A7"))) {
+            String resultStr = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(resultStr.contains("Max Error Offset : 3"));  // estimation
+            Assert.assertTrue(resultStr.chars().filter(x -> x == '\n').count() <= (256 + 5)); // less than 256 occupied counters
+        }
     }
 
     /* ****************************************************************************************************************/
