@@ -2083,7 +2083,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             rs.next();
             count2 = rs.getInt(1);
         }
-        Assert.assertEquals(count1, count2);
+        Assert.assertEquals(count1, count2); // doesn't work
         Assert.assertEquals(1999, count1);
     }
 

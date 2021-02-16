@@ -59,6 +59,10 @@ public class WriteNode implements WriteContext {
         }
     }
 
+    public boolean hasNext() {
+        return next != null;
+    }
+
     @Override
     public void flush() throws IOException {
         handler.flush(this);

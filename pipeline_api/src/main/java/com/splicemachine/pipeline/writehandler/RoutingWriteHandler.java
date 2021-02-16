@@ -15,6 +15,10 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
@@ -22,6 +26,7 @@ import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
@@ -38,7 +43,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *         Created on: 5/1/13
  */
-public abstract class RoutingWriteHandler implements WriteHandler {
+public abstract class RoutingWriteHandler implements WriteHandler { // only used by IndexWriteHandler, maybe merge?
     private static final Logger LOG = Logger.getLogger(RoutingWriteHandler.class);
     private final byte[] destination;
     private boolean failed = false;
@@ -46,8 +51,9 @@ public abstract class RoutingWriteHandler implements WriteHandler {
      * A Map from the routed KVPair (i.e. the one that is going from this partition to somewhere else) to the
      * original (i.e. the base partition) KVPair. This allows us to backtrack and identify the source for a given
      * destination write.
-     */
+     */ // who uses .key of this?!?
     protected final ObjectObjectHashMap<KVPair, KVPair> routedToBaseMutationMap= new ObjectObjectHashMap();
+    protected final List<KVPair> mutationList = new ArrayList<>();
     protected final boolean keepState;
 
     protected RoutingWriteHandler(byte[] destination,boolean keepState) {
@@ -95,9 +101,15 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             doClose(ctx);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
-                fail(pair.value,ctx,e);
+            if( e.getCause() instanceof BulkWriteAction.FailedRowsException) {
+                IntObjectHashMap<WriteResult> res = ((BulkWriteAction.FailedRowsException) (e.getCause())).res;
+                for (int i = 0; i < mutationList.size(); i++) {
+                    WriteResult wr = res.get(i);
+                    if (wr != null)
+                        ctx.result(mutationList.get(i), wr);
+                }
             }
+
         }
     }
 
@@ -110,7 +122,8 @@ public abstract class RoutingWriteHandler implements WriteHandler {
     protected abstract void doClose(WriteContext ctx) throws Exception;
 
     protected final CallBuffer<KVPair> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
-        return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn(), ctx.getToken()); //make sure we don't flush before we can
+        return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true,
+                ctx.getTxn(), ctx.getToken()); //make sure we don't flush before we can
     }
 
     protected final void fail(KVPair mutation,WriteContext ctx,Exception e){

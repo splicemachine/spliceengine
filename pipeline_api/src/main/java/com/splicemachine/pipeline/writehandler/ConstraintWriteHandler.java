@@ -75,7 +75,10 @@ public class ConstraintWriteHandler implements WriteHandler {
                     ctx.result(mutation, additiveWriteConflict);
                     break;
                 default:
-                    ctx.sendUpstream(mutation);
+//                    if(ctx.hasNext())
+                        ctx.sendUpstream(mutation);
+//                    else
+//                        ctx.success(mutation);
             }
             // We don't need deletes in this set. delete -> insert/upsert to same rowkey is inefficient but valid
             if (mutation.getType() != KVPair.Type.DELETE) {

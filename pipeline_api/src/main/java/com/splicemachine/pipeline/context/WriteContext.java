@@ -46,6 +46,8 @@ public interface WriteContext {
      */
     void sendUpstream(KVPair mutation);
 
+    boolean hasNext();
+
     /**
      * Fail the following KVPair and put them into the WriteResult
      */

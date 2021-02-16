@@ -134,7 +134,7 @@ public class PartitionWriteHandlerTest{
 
         Collection<KVPair> data = addData(100,2);
         for(KVPair d:data){
-            pwh.next(d,writeContext);
+            pwh.next(d, writeContext);
         }
         boolean threwError = false;
         try{

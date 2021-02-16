@@ -44,7 +44,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
     private static final AtomicInteger idGen = new AtomicInteger(0);
 
-    private final Map<KVPair, WriteResult> resultsMap;
+    private final Map<KVPair, WriteResult> resultsMap; //private final List<WriteResult> resultsList;
     private final TransactionalRegion rce;
     private final CachedPartitionFactory partitionFactory;
     private final TxnView txn;
@@ -106,6 +106,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
+    public boolean hasNext() {
+        return head.hasNext();
+    }
+
+    @Override
     public void failed(KVPair put, WriteResult mutationResult) {
         resultsMap.put(put, mutationResult);
     }
@@ -162,8 +167,6 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
             env.ensureNetworkOpen();
 
         try {
-            WriteNode next = head.getNext();
-
             boolean reversed = true;
             List<WriteNode> list = new ArrayList<WriteNode>();
             addChildren(list);

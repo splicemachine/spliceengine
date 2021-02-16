@@ -144,6 +144,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 add=false;
             }
             if(keepState) {
+                this.mutationList.add(mutation);
                 this.routedToBaseMutationMap.put(newIndex, mutation);
             }
             if (deleteMutation != null) {
@@ -179,8 +180,9 @@ public class IndexWriteHandler extends RoutingWriteHandler{
 //                ctx.success(mutation);
                 return null;
             }
-            if(keepState)
-                this.routedToBaseMutationMap.put(indexDelete,mutation);
+            if(keepState) {
+                this.routedToBaseMutationMap.put(indexDelete, mutation);
+            }
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
             if (add) {

@@ -454,8 +454,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
         return true;
     }
 
-    class FailedRowsException extends Exception {
-        IntObjectHashMap<WriteResult> res;
+    public class FailedRowsException extends Exception {
+        public IntObjectHashMap<WriteResult> res;
         FailedRowsException(IntObjectHashMap<WriteResult> res) {
             this.res = res;
         }

@@ -17,6 +17,7 @@ package com.splicemachine.pipeline.callbuffer;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.MergingWriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
