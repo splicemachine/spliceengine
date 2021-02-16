@@ -1028,11 +1028,19 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("TRANSLATE('ABCDEFG', '', 'ACE')", " B D FG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
 
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
             assertFailed(conn, "select translate('ABCDEFG', 'ac', 'ACE', 'UU')", "22022");
 
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', x'00')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
+
+            checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
+
         }
 
         methodWatcher.execute("drop table testTranslate if exists");

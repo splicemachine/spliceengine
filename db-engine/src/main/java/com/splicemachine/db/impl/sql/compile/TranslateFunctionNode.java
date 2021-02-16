@@ -34,6 +34,30 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * TRANSLATE NODE
+ * usage:
+ * TRANSLATE(string_expression, outputTranslationTable, inputTranslationTable [, pad])
+ * This function returns a new string, of type TYPEOF(string_expression)
+ * If any operand is null, we return null
+ * This new string is constructed the following way:
+ * for each character c in string_expression:
+ *      if c is present in inputTranslationTable (position n), use outputTranslationTable[n]
+ *      else use c
+ *
+ * For example:
+ * translate('ABC', 'b', 'B') = 'AbC'
+ * translate('ABC', 'ba', 'BA') = 'abC'
+ *
+ * If outputTranslationTable is longer than inputTranslationTable, we ignore the excess characters
+ * If inputTranslationTable is longer than outputTranslationTable, we pad outputTranslationTable with pad (or with ' ' if pad isn't specified)
+ *
+ * string_expression must be a char / varchar
+ * inputTranslationTable and outputTranslationTable must be char / varchar, or char / varchar for bit data. If 'for bit data', then we reinterpret it as varchar
+ * Pad must be a char / varchar of size 1
+ *
+ * This implementation is inspired from the db2 implementation of TRANSLATE:
+ * https://www.ibm.com/support/knowledgecenter/SSEPEK_10.0.0/sqlref/src/tpc/db2z_bif_translate.html
+ *
  */
 public class TranslateFunctionNode extends OperatorNode {
     public TranslateFunctionNode(ValueNode expression, ValueNode outputTranslationTable, ValueNode inputTranslationTable, ValueNode pad, ContextManager cm) {
@@ -63,6 +87,14 @@ public class TranslateFunctionNode extends OperatorNode {
             if (operands.get(i).requiresTypeFromContext()) {
                 castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
             }
+        }
+        for (int i = 1; i < 3; ++i) {
+            if (operands.get(i).getTypeId().isBitTypeId()) {
+                castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, operands.get(i).getTypeServices().getMaximumWidth()));
+                ((CastNode) operands.get(i)).setForSbcsData(true);
+            }
+        }
+        for (int i = 1; i < 3; ++i) {
             if (!operands.get(i).getTypeId().isStringTypeId()) {
                 throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                         "TRANSLATE", operands.get(i).getTypeId().getSQLTypeName());
