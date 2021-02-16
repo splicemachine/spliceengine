@@ -2942,14 +2942,19 @@ explainStatement() throws StandardException :
     StatementNode   statementNode;
     StatementNode   explainStatement;
     Token           excludeToken = null;
+    Token           markerToken = null;
+    Token           endToken = null;
 }
 {
-    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] ({markerToken = getToken(0); statementNode = preparableSQLDataStatement();})
     {
+        endToken = getToken(0);
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
                                    (excludeToken == null),
+                                   markerToken.endOffset,
+                                   endToken.endOffset,
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()

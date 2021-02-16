@@ -65,6 +65,8 @@ public class ExplainNode extends DMLStatementNode {
     private final List<SQLVarchar> noStatsTables  = new ArrayList<>();
     private final List<SQLVarchar> noStatsColumns = new ArrayList<>();
     private boolean rootOptimized = false;
+    private int explainedStatementStart = -1;
+    private int explainedStatementEnd = -1;
 
     public enum SparkExplainKind {
         NONE("none"),
@@ -100,9 +102,23 @@ public class ExplainNode extends DMLStatementNode {
     public void init(Object statementNode,
                      Object sparkExplainKind,
                      Object showNoStatsObjects) {
+        init(statementNode, sparkExplainKind, showNoStatsObjects, null, null);
+    }
+
+    public void init(Object statementNode,
+                     Object sparkExplainKind,
+                     Object showNoStatsObjects,
+                     Object start,
+                     Object end) {
         node = (StatementNode)statementNode;
         this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
         this.showNoStatsObjects = (Boolean)showNoStatsObjects;
+        if(start != null) {
+            explainedStatementStart = (int)start;
+        }
+        if(end != null) {
+            explainedStatementEnd = (int)end;
+        }
     }
 
     /**
@@ -247,5 +263,13 @@ public class ExplainNode extends DMLStatementNode {
         for (String columnName : noStatsColumnSet) {
             noStatsColumns.add(new SQLVarchar(columnName));
         }
+    }
+
+    public int getExplainedStatementStart() {
+        return explainedStatementStart;
+    }
+
+    public int getExplainedStatementEnd() {
+        return explainedStatementEnd;
     }
 }

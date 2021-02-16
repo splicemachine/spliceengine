@@ -51,10 +51,7 @@ import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
-import com.splicemachine.db.impl.sql.compile.ExplainNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
-import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
@@ -250,47 +247,6 @@ public class GenericStatement implements Statement{
 
     private static long getCurrentTimeMillis(LanguageConnectionContext lcc){
         return 0;
-    }
-
-    private static boolean isExplainStatement(String statementText){
-
-        if(statementText == null) {
-            return false;
-        }
-
-        String s=statementText.trim();
-        if(!s.toUpperCase().contains("EXPLAIN")){
-            // If the statement does not contain keyword explain, this is not an explain statement
-            return false;
-        }
-
-        // Strip off all comments before keyword explain
-        s = stripComments(s);
-
-        return s.toUpperCase().startsWith("EXPLAIN");
-    }
-
-    private static String getExplainedStatement(String statementText) {
-
-        assert isExplainStatement(statementText);
-
-        String result = stripComments(statementText);
-        return result.substring("EXPLAIN".length()).trim();
-    }
-
-    private static String stripComments(String statementText) {
-        if (statementText == null) {
-            return null;
-        }
-        String result = statementText;
-        while (!result.isEmpty() && result.startsWith("--")) {
-            int index = result.indexOf('\n');
-            if (index == -1) {
-                index = result.length();
-            }
-            result = result.substring(index + 1).trim();
-        }
-        return result;
     }
 
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
@@ -884,7 +840,7 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            if(forExplain == false) {
+            if(!forExplain) {
                 generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
             }
 
@@ -914,7 +870,11 @@ public class GenericStatement implements Statement{
 
         ExplainNode explainNode = (ExplainNode)statementNode;
 
-        String explained = getExplainedStatement(statementText);
+        if(explainNode.getExplainedStatementStart() == -1) {
+            return;
+        }
+
+        String explained = statementText.substring(explainNode.getExplainedStatementStart() + 1).trim();
 
         GenericStatement queryNode = new GenericStatement(compilationSchema,explained, isForReadOnly /*this could be incorrect with updatableCursors*/, lcc);
         queryNode.sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();

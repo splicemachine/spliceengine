@@ -866,8 +866,10 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     @Test
     public void testCachingExplainStatementDifferentExplainPrefix() throws Exception {
         Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
-        testCachingExplainStatementInternal("select * from t7", "explain ");
-        testCachingExplainStatementInternal("select * from t7", "ExpLain ");
-        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain ");
+        testCachingExplainStatementInternal("select * from t7", "explain \n\n\t ");
+        testCachingExplainStatementInternal("select * from t7", "ExpLain \t   \n");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain \n\n\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain   \n\n\n\nexclude  no \t\t\t   statistics   \n\t\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain exclude no statistics\t\t\t\t\t");
     }
 }
