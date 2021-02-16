@@ -50,25 +50,9 @@ import java.util.Properties;
 
 class CreateIndexConstantAction extends IndexConstantAction
 {
-    /**
-     * Is this for a CREATE TABLE, i.e. it is
-     * for a constraint declared in a CREATE TABLE
-     * statement that requires a backing index.
-     */
-    private final boolean forCreateTable;
 
-    private boolean            unique;
-    private boolean            uniqueWithDuplicateNulls;
-    private String            indexType;
     private String[]        columnNames;
-    private boolean[]        isAscending;
-    private boolean            isConstraint;
     private UUID            conglomerateUUID;
-    private Properties        properties;
-
-    private IndexRowGenerator irg;
-
-    private ExecRow indexTemplateRow;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -133,15 +117,8 @@ class CreateIndexConstantAction extends IndexConstantAction
     {
         super(indexName, tableName, schemaName);
 
-        this.forCreateTable             = forCreateTable;
-        this.unique                     = unique;
-        this.uniqueWithDuplicateNulls   = uniqueWithDuplicateNulls;
-        this.indexType                  = indexType;
         this.columnNames                = columnNames;
-        this.isAscending                = isAscending;
-        this.isConstraint               = isConstraint;
         this.conglomerateUUID           = conglomerateUUID;
-        this.properties                 = properties;
         this.conglomId                  = -1L;
         this.droppedConglomNum          = -1L;
     }
@@ -170,8 +147,6 @@ class CreateIndexConstantAction extends IndexConstantAction
         super(
                 srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
 
-        this.forCreateTable = false;
-
         /* We get here when a conglomerate has been dropped and we
          * need to create (or find) another one to fill its place.
          * At this point the received conglomerate descriptor still
@@ -184,14 +159,8 @@ class CreateIndexConstantAction extends IndexConstantAction
          * descriptors.
          */
         IndexRowGenerator irg = srcCD.getIndexDescriptor();
-        this.unique = irg.isUnique();
-        this.uniqueWithDuplicateNulls = irg.isUniqueWithDuplicateNulls();
-        this.indexType = irg.indexType();
         this.columnNames = srcCD.getColumnNames();
-        this.isAscending = irg.isAscending();
-        this.isConstraint = srcCD.isConstraint();
         this.conglomerateUUID = srcCD.getUUID();
-        this.properties = properties;
         this.conglomId = -1L;
 
         /* The ConglomerateDescriptor may not know the names of
@@ -292,10 +261,6 @@ class CreateIndexConstantAction extends IndexConstantAction
     //    GETTERs called by CreateConstraint
     //
     ///////////////////////////////////////////////////////////////////////
-    ExecRow getIndexTemplateRow()
-    {
-        return indexTemplateRow;
-    }
 
     /**
      * Get the conglomerate number for the conglomerate that was
@@ -331,15 +296,6 @@ class CreateIndexConstantAction extends IndexConstantAction
     long getReplacedConglomNumber()
     {
         return droppedConglomNum;
-    }
-
-    /**
-     * Get the UUID for the conglomerate descriptor that was created
-     * (or re-used) by this constant action.
-     */
-    UUID getCreatedUUID()
-    {
-        return conglomerateUUID;
     }
 
 }
