@@ -42,8 +42,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 public abstract class IndexConstantAction extends DDLSingleTableConstantAction {
 
     public String                indexName;
-    public String                tableName;
-    public String                schemaName;
 
     // CONSTRUCTORS
 
@@ -61,8 +59,6 @@ public abstract class IndexConstantAction extends DDLSingleTableConstantAction {
     {
         super();
         this.indexName = indexName;
-        this.tableName = tableName;
-        this.schemaName = schemaName;
 
         if (SanityManager.DEBUG)
         {
