@@ -225,16 +225,14 @@ public class TriggerEventActivator {
             if (td.isRowTrigger()) {
                 // Now both control and Spark can use concurrent row triggers.
                 boolean runConcurrently = true;
-                if (runConcurrently) {
-                    for (String sql : td.getTriggerDefinitionList()) {
-                        sql = sql.toUpperCase();
-                        Matcher matcher = pattern.matcher(sql);
-                        if ((sql.contains("INSERT") && sql.contains("INTO")) ||
-                                (sql.contains("UPDATE") && sql.contains("SET")) ||
-                                (sql.contains("DELETE") && sql.contains("FROM")) ||
-                                matcher.find()) {
-                            runConcurrently = false;
-                        }
+                for (String sql : td.getTriggerDefinitionList()) {
+                    sql = sql.toUpperCase();
+                    Matcher matcher = pattern.matcher(sql);
+                    if ((sql.contains("INSERT") && sql.contains("INTO")) ||
+                            (sql.contains("UPDATE") && sql.contains("SET")) ||
+                            (sql.contains("DELETE") && sql.contains("FROM")) ||
+                            matcher.find()) {
+                        runConcurrently = false;
                     }
                 }
                 if (runConcurrently) {

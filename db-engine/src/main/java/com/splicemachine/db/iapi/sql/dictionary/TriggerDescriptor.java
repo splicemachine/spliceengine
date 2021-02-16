@@ -299,8 +299,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         return getSPS(lcc, activation, index);
     }
 
-    private boolean
-    olapStatementIntializingOnRegionServer(Activation activation) {
+    private boolean olapStatementIntializingOnRegionServer(Activation activation) {
         return activation.datasetProcessorType().isOlap() &&
                isDRDAConnThread();
     }

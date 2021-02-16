@@ -33,9 +33,7 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 /**
  * This is the superclass of all Descriptors. Users of DataDictionary should use
@@ -73,12 +71,6 @@ public class TupleDescriptor
 	}
 
 	public DataDictionary getDataDictionary() {
-		if (dataDictionary == null) {
-			LanguageConnectionContext lcc =
-				(LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
-			if (lcc != null)
-                dataDictionary = lcc.getDataDictionary();
-		}
 		return dataDictionary;
 	}
 

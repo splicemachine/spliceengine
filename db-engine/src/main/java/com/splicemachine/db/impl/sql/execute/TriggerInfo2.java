@@ -47,6 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TriggerInfo2 extends TriggerInfo {
 
     private String tableName;
+    private static int versionNumber = 2;
 
     /**
      * Default constructor for Formattable
@@ -79,6 +80,7 @@ public class TriggerInfo2 extends TriggerInfo {
     public void writeExternal(ObjectOutput out) throws IOException {
         // DO NOT CHANGE THIS SERIALIZATION
         super.writeExternal(out);
+        out.writeInt(versionNumber);
         writeNullableUTF(out, tableName);
     }
 
@@ -91,6 +93,7 @@ public class TriggerInfo2 extends TriggerInfo {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         // DO NOT CHANGE THIS SERIALIZATION
         super.readExternal(in);
+        in.readInt();
         tableName = readNullableUTF(in);
     }
 
