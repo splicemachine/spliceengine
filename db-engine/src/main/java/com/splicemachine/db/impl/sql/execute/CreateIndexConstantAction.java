@@ -52,7 +52,6 @@ class CreateIndexConstantAction extends IndexConstantAction
 {
 
     private String[]        columnNames;
-    private UUID            conglomerateUUID;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -118,7 +117,6 @@ class CreateIndexConstantAction extends IndexConstantAction
         super(indexName, tableName, schemaName);
 
         this.columnNames                = columnNames;
-        this.conglomerateUUID           = conglomerateUUID;
         this.conglomId                  = -1L;
         this.droppedConglomNum          = -1L;
     }
@@ -160,7 +158,6 @@ class CreateIndexConstantAction extends IndexConstantAction
          */
         IndexRowGenerator irg = srcCD.getIndexDescriptor();
         this.columnNames = srcCD.getColumnNames();
-        this.conglomerateUUID = srcCD.getUUID();
         this.conglomId = -1L;
 
         /* The ConglomerateDescriptor may not know the names of
