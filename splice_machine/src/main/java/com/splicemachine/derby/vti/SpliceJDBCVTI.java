@@ -89,15 +89,10 @@ public class SpliceJDBCVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionUrl);
-        PreparedStatement ps;
-        try {
-            ps = connection.prepareStatement(sql != null ? sql : "select * from " + schemaName + "." + tableName);
+    public ResultSetMetaData getRuntimeMetaData() throws SQLException {
+        try(Connection connection = DriverManager.getConnection(connectionUrl);
+            PreparedStatement ps = connection.prepareStatement(sql != null ? sql : "select * from " + schemaName + "." + tableName)) {
             return ps.getMetaData();
-        } finally {
-            if (connection!=null)
-                connection.close();
         }
     }
 
