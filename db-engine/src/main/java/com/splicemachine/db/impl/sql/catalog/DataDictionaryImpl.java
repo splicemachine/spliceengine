@@ -267,13 +267,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //yet. We will know the right collation for user schema little later
         //in this boot method.
 
-        try {
-            Thread.sleep(10 * 1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-
         collationTypeOfSystemSchemas=StringDataValue.COLLATION_TYPE_UCS_BASIC;
         getBuiltinSystemSchemas();
 
