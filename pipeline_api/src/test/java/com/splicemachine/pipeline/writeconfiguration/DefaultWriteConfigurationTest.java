@@ -26,6 +26,7 @@ import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.pipeline.api.WriteResponse;
@@ -35,6 +36,7 @@ import org.junit.experimental.categories.Category;
  * @author David Winters
  * Created on: 5/10/15
  */
+@Ignore // doesn't work (No PipelineTestDataEnv found)
 @Category(ArchitectureSpecific.class)
 public class DefaultWriteConfigurationTest {
     private PipelineExceptionFactory exceptionFactory;

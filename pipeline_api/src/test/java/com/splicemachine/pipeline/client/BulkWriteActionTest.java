@@ -20,12 +20,11 @@ import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.PipelineExceptionFactoryForTest;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.config.DefaultWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
-import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -61,9 +60,7 @@ public class BulkWriteActionTest{
 
     @Before
     public void setUp() throws Exception{
-        PipelineTestDataEnv pipelineTestDataEnv =PipelineTestEnvironment.loadTestDataEnvironment();
-
-        this.pef = pipelineTestDataEnv.pipelineExceptionFactory();
+        this.pef = new PipelineExceptionFactoryForTest();
     }
 
     @Test
