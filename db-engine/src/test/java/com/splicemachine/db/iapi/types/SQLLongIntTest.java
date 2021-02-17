@@ -96,8 +96,8 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLLongint(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLLongint()));
-                Assert.assertEquals(55,stats.selectivity(new SQLLongint(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLLongint(9000)));
+                Assert.assertEquals(50,stats.selectivity(new SQLLongint(1010)));
+                Assert.assertEquals(2,stats.selectivity(new SQLLongint(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLLongint(1000),new SQLLongint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLLongint(),new SQLLongint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLLongint(5000),new SQLLongint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
