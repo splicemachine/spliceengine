@@ -136,9 +136,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
         TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
-        ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
+        ConglomerateDescriptorList conglomerateDescriptorList = td.getConglomerateDescriptorList();
         List<Long> allCongloms = Lists.newArrayList();
         allCongloms.add(td.getHeapConglomerateId());
+
         ArrayList<DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
         DDLDriver ddlDriver=DDLDriver.driver();
         for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
@@ -155,37 +156,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         }
 
         if (outputKeysOnly) {
-            // This option is for calculating split row keys in HBase format, provided that split row keys are
-            // stored in a csv file
-            long indexConglom = -1;
-            boolean isUnique = false;
-            for (ConglomerateDescriptor searchCD :list) {
-                if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
-                        searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
-                    indexConglom = searchCD.getConglomerateNumber();
-                    DataValueDescriptor dvd =
-                            td.getColumnDescriptor(
-                                    searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
-                    DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
-                            activation.getLanguageConnectionContext(),
-                            td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
-                    isUnique = searchCD.getIndexDescriptor().isUnique();
-                    tentativeIndexList.add(ddlChange.getTentativeIndex());
-                    allCongloms.add(searchCD.getConglomerateNumber());
-                    break;
-                }
-            }
-            RowAndIndexGenerator rowAndIndexGenerator =
-                    new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
-                            spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
-            DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-            DataSet keys = rowAndIndexes.mapPartitions(
-                    new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom, isUnique));
-            List<String> files = keys.collect();
+            doOutputKeysOnly(activation, td, conglomerateDescriptorList, allCongloms, tentativeIndexList);
         }
         else {
-            for (ConglomerateDescriptor searchCD :list) {
+            for (ConglomerateDescriptor searchCD :conglomerateDescriptorList) {
                 if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
@@ -197,72 +171,92 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
-                if (sampleFraction == 0) {
-                    LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                    sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
-                }
-                DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
-
-                // encode key/vale pairs for table and indexes
-                RowAndIndexGenerator rowAndIndexGenerator =
-                        new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
-                                spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
-                DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
-
-                // collect statistics for encoded key/value, include size and histgram
-                RowKeyStatisticsFunction statisticsFunction =
-                        new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
-                DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
-
-                List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
-
-                // Calculate cut points for main table and index tables
-                cutPoints = BulkLoadUtils.getCutPoints(sampleFraction, result);
-
-                // dump cut points to file system for reference
-                ImportUtils.dumpCutPoints(cutPoints, bulkImportDirectory);
-                operationContext.reset();
+                cutPoints = doSampling(activation, td, tentativeIndexList);
             }
             if (!samplingOnly && !outputKeysOnly) {
-
-                // split table and indexes using the calculated cutpoints
-                if (cutPoints != null && !cutPoints.isEmpty()) {
-                    BulkLoadUtils.splitTables(cutPoints);
-                }
-
-                // get the actual start/end key for each partition after split
-                final List<BulkImportPartition> bulkImportPartitions =
-                        getBulkImportPartitions(allCongloms, bulkImportDirectory);
-
-                RowAndIndexGenerator rowAndIndexGenerator = new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow,
-                        autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
-                        operationContext, tentativeIndexList);
-
-                String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
-
-                // Write to HFile
-                HFileGenerationFunction hfileGenerationFunction =
-                        new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                                heapConglom, compressionAlgorithm, bulkImportPartitions, pkCols, tableVersion, tentativeIndexList);
-
-                DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-                assert rowAndIndexes instanceof SparkDataSet;
-
-                partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexes, hfileGenerationFunction);
-                Map<Long, Boolean> granted = new HashMap<>();
-                try {
-                    if (token != null && token.length > 0) {
-                        granted = grantCreatePrivilege(allCongloms);
-                    }
-                    bulkLoad(bulkImportPartitions, bulkImportDirectory, "Insert:");
-                } finally {
-
-                    if (granted.size() > 0) {
-                        revokeCreatePrivilege(granted);
-                    }
-                }
+                doNormalWrite(allCongloms, tentativeIndexList, cutPoints);
             }
         }
+        return getResultSet();
+    }
+
+
+    /**
+     * This option is for calculating split row keys in HBase format, provided that split row keys are
+     * stored in a csv file
+     */
+    private void doOutputKeysOnly(Activation activation, TableDescriptor td,
+                                  ConglomerateDescriptorList conglomerateDescriptorList, List<Long> allCongloms,
+                                  ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)
+    {
+        long indexConglom = -1;
+        boolean isUnique = false;
+        for (ConglomerateDescriptor searchCD : conglomerateDescriptorList) {
+            if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
+                    searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
+                indexConglom = searchCD.getConglomerateNumber();
+                DataValueDescriptor dvd =
+                        td.getColumnDescriptor(
+                                searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
+                DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
+                        activation.getLanguageConnectionContext(),
+                        td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
+                        td, searchCD.getIndexDescriptor(), td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                isUnique = searchCD.getIndexDescriptor().isUnique();
+                tentativeIndexList.add(ddlChange.getTentativeIndex());
+                allCongloms.add(searchCD.getConglomerateNumber());
+                break;
+            }
+        }
+        RowAndIndexGenerator rowAndIndexGenerator =
+                new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                        spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
+        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+        DataSet keys = rowAndIndexes.mapPartitions(
+                new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom, isUnique));
+        List<String> files = keys.collect();
+    }
+
+    private List<Tuple2<Long, byte[][]>> doSampling(Activation activation, TableDescriptor td,
+                                                    ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)
+    {
+        List<Tuple2<Long, byte[][]>> cutPoints;
+        if (sampleFraction == 0) {
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
+        }
+        DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
+
+        // encode key/vale pairs for table and indexes
+        RowAndIndexGenerator rowAndIndexGenerator =
+                new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                        spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
+        DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
+
+        // collect statistics for encoded key/value, include size and histgram
+        RowKeyStatisticsFunction statisticsFunction =
+                new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
+        DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
+
+        List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
+
+        // Calculate cut points for main table and index tables
+        cutPoints = BulkLoadUtils.getCutPoints(sampleFraction, result);
+
+        // dump cut points to file system for reference
+        ImportUtils.dumpCutPoints(cutPoints, bulkImportDirectory);
+        operationContext.reset();
+        return cutPoints;
+    }
+
+
+    /**
+     * result structure is
+     * col 1 = records Written
+     * col 2 = numBadRecords
+     * col 3 = fileName
+     */
+    private DataSet<ExecRow> getResultSet() {
         ValueRow valueRow = new ValueRow(3);
         valueRow.setColumn(1, new SQLLongint(operationContext.getRecordsWritten()));
         valueRow.setColumn(2, new SQLLongint());
@@ -281,6 +275,46 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         }
 
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+    }
+
+    private void doNormalWrite(List<Long> allCongloms, ArrayList<DDLMessage.TentativeIndex> tentativeIndexList,
+                               List<Tuple2<Long, byte[][]>> cutPoints) throws StandardException {
+        // split table and indexes using the calculated cutpoints
+        if (cutPoints != null && !cutPoints.isEmpty()) {
+            BulkLoadUtils.splitTables(cutPoints);
+        }
+
+        // get the actual start/end key for each partition after split
+        final List<BulkImportPartition> bulkImportPartitions =
+                getBulkImportPartitions(allCongloms, bulkImportDirectory);
+
+        RowAndIndexGenerator rowAndIndexGenerator = new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow,
+                autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
+                operationContext, tentativeIndexList);
+
+        String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
+
+        // Write to HFile
+        HFileGenerationFunction hfileGenerationFunction =
+                new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
+                        heapConglom, compressionAlgorithm, bulkImportPartitions, pkCols, tableVersion, tentativeIndexList);
+
+        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+        assert rowAndIndexes instanceof SparkDataSet;
+
+        partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexes, hfileGenerationFunction);
+        Map<Long, Boolean> granted = new HashMap<>();
+        try {
+            if (token != null && token.length > 0) {
+                granted = grantCreatePrivilege(allCongloms);
+            }
+            bulkLoad(bulkImportPartitions, bulkImportDirectory, "Insert:");
+        } finally {
+
+            if (granted.size() > 0) {
+                revokeCreatePrivilege(granted);
+            }
+        }
     }
 
     private Map<Long, Boolean> grantCreatePrivilege(List<Long> congloms) throws StandardException {
