@@ -297,9 +297,10 @@ public interface C_NodeTypes
     int SECOND_FUNCTION_NODE = 283;
     int MULTIPLY_ALT_FUNCTION_NODE = 284;
     int BLOB_FUNCTION_NODE = 285;
+    int TRANSLATE_FUNCTION_NODE = 286;
 
     // Final value in set, keep up to date!
-    int FINAL_VALUE = BLOB_FUNCTION_NODE;
+    int FINAL_VALUE = TRANSLATE_FUNCTION_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
