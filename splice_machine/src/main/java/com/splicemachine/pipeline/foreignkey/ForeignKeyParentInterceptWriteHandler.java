@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -131,5 +132,12 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         for(Action action : actions.values()) {
             action.close(ctx);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ForeignKeyParentInterceptWriteHandler { parentTableName = " + parentTableName
+                + " referencingIndexConglomerateIds = " + Utils.listToString(referencingIndexConglomerateIds)
+                + " constraintInfos = " + Utils.listToString(constraintInfos)  + "}";
     }
 }
