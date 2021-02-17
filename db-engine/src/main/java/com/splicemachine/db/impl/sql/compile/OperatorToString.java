@@ -495,11 +495,10 @@ public class OperatorToString {
                                                      rightOperandString);
                 }
                 else if (operand instanceof PosStrOperatorNode) {
-                    throwNotImplementedError();
-                    // TODO: Position does not seem to work in
-                    //       native spark. Try to enable this later.
-                    return format("position(%s, %s) ", leftOperandString,
-                                                     rightOperandString);
+                    if (vars.buildExpressionTree)
+                        throwNotImplementedError();
+                    return format("position(%s, %s) ", rightOperandString,
+                                                     leftOperandString);
                 }
                 else if (operand instanceof TruncateOperatorNode) {
                     if (vars.buildExpressionTree)
