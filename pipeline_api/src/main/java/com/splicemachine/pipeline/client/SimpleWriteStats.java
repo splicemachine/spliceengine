@@ -35,7 +35,25 @@ public class SimpleWriteStats implements WriteStats {
     private final long catchRetriedRows;
     private final long regionTooBusy;
 
-    public SimpleWriteStats(long writtenCounter, long retryCounter, long thrownErrorsRows, long retriedRows, long partialRows, long partialThrownErrorRows, long partialRetriedRows, long partialIgnoredRows, long partialWrite, long ignoredRows, long catchThrownRows, long catchRetriedRows, long regionTooBusy) {
+    public SimpleWriteStats(WriteStats stats) {
+        this(stats.getWrittenCounter(),
+                stats.getRetryCounter(),
+                stats.getThrownErrorsRows(),
+                stats.getRetriedRows(),
+                stats.getPartialRows(),
+                stats.getPartialThrownErrorRows(),
+                stats.getPartialRetriedRows(),
+                stats.getPartialIgnoredRows(),
+                stats.getPartialWrite(),
+                stats.getIgnoredRows(),
+                stats.getCatchThrownRows(),
+                stats.getCatchRetriedRows(),
+                stats.getRegionTooBusy());
+    }
+    public SimpleWriteStats(long writtenCounter, long retryCounter, long thrownErrorsRows,
+                            long retriedRows, long partialRows, long partialThrownErrorRows,
+                            long partialRetriedRows, long partialIgnoredRows, long partialWrite,
+                            long ignoredRows, long catchThrownRows, long catchRetriedRows, long regionTooBusy) {
         this.writtenCounter = writtenCounter;
         this.retryCounter = retryCounter;
         this.thrownErrorsRows = thrownErrorsRows;
