@@ -130,10 +130,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         assert entry!=null;
         PartitionBuffer regionCB = entry.getValue();
         if (LOG.isTraceEnabled())
-        	SpliceLogUtils.trace(LOG, "Adding KVPair object (Splice mutation) %s to the call buffer for the region %s",
-        			element, regionCB.partition().getName());
+            SpliceLogUtils.trace(LOG, "Adding KVPair object (Splice mutation) %s to the call buffer for the region %s",
+                    element, regionCB.partition().getName());
         regionCB.add(element);
-		long size = element.getSize();
+        long size = element.getSize();
         currentHeapSize+=size;
         currentKVPairSize++;
         if (record) {
@@ -158,8 +158,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         assert bufferToFlush!=null;
         currentHeapSize-=maxSize;
         currentKVPairSize-=bufferToFlush.getKVPairSize();
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "flushLargestBuffer {table=%s, size=%d, rows=%d}",table.getTableName(),bufferToFlush.getHeapSize(),bufferToFlush.getKVPairSize());
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "flushLargestBuffer {table=%s, size=%d, rows=%d}", table.getTableName(),
+                    bufferToFlush.getHeapSize(), bufferToFlush.getKVPairSize());
+        }
         bufferToFlush.flushBuffer();
         totalFlushes++;
     }
@@ -191,7 +193,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                 buffer.clear();
             }
             for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
-                assert buffer.getBulkWrites()==null || (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
+                // This asserts that there are not any outstanding RegionCallBuffers for the region server
+                // that need to be flushed still.
+                assert buffer.getBulkWrites()==null || (buffer.getBulkWrites().numEntries() == 0);
                 buffer.close();
             }
         }
@@ -237,7 +241,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                 String oldHostAndPort = buffer.partition().owningServer().getHostAndPort();
                 String newHostAndPort = server.getHostAndPort();
                 if (!oldHostAndPort.equals(newHostAndPort)) {
-                    SpliceLogUtils.warn(LOG, "different locations for the same key: region %s at location %s (ignored), region %s at location %s (used)",
+                    SpliceLogUtils.warn(LOG, "different locations for the same key: region %s " +
+                                    "at location %s (ignored), region %s at location %s (used)",
                             region.getName(), newHostAndPort, buffer.partition().getName(), oldHostAndPort);
                 }
             }
@@ -245,7 +250,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 
         rebuildBuffer=false;
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "Adding %s KVPair objects ('Splice mutations') back into the appropriate region call buffers", items.size());
+            SpliceLogUtils.debug(LOG, "Adding %s KVPair objects ('Splice mutations') back into " +
+                                        "the appropriate region call buffers", items.size());
         record = false;
 
         // Add all of the KVPairs (Splice mutations) to the correct region call buffers.
@@ -339,19 +345,20 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public List<BulkWrites> getBulkWrites() throws Exception {
         rebuildIfNecessary();
         List<BulkWrites> writes = new ArrayList<>(serverNameToRegionServerCBMap.size());
-        for(ServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
+        for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
             BulkWrites addedWrite = buffer.getBulkWrites();
-            if (addedWrite!=null)
+            if (addedWrite != null)
                 writes.add(addedWrite);
         }
         return writes;
     }
 
-	/**
-	 * Return the KVPairs ("Splice mutations") which are buffered for all regions on all servers for the specific table associated with this PipingCallBuffer.
-	 * @return list of all "Splice mutations" that are buffered for the table
-	 * @throws Exception
-	 */
+    /**
+     * Return the KVPairs ("Splice mutations") which are buffered for all regions on all servers for the specific
+     * table associated with this PipingCallBuffer.
+     * @return list of all "Splice mutations" that are buffered for the table
+     * @throws Exception
+     */
     public Collection<KVPair> getKVPairs() throws Exception {
         SpliceLogUtils.trace(LOG, "getKVPairs");
         Collection<KVPair> kvPairs = new ArrayList<>();
@@ -361,10 +368,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         return kvPairs;
     }
 
-	/**
-	 * Mark the buffer to be rebuilt.
-	 * <em>Please Note:</em> This method does not actually rebuild the buffer.  It only marks it to be rebuilt later.
-	 */
+    /**
+     * Mark the buffer to be rebuilt.
+     * <em>Please Note:</em> This method does not actually rebuild the buffer.  It only marks it to be rebuilt later.
+     */
     @Override
     public void rebuild() {
         rebuildBuffer = true;
