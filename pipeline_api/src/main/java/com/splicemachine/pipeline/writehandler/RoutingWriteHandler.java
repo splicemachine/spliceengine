@@ -135,4 +135,9 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
         }
     }
+
+    @Override
+    public String toString() {
+        return "RoutingWriteHandler { destination = " + destination + " keepState = " + keepState + "}";
+    }
 }

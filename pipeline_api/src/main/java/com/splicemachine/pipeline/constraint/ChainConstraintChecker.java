@@ -22,6 +22,8 @@ import com.splicemachine.storage.MutationStatus;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Scott Fines
@@ -66,8 +68,9 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
 
     @Override
     public String toString() {
+        String s = delegates == null ? "none" :
+                delegates.stream().map(Objects::toString).collect(Collectors.joining(","));
         return "ChainConstraintChecker{" +
-                "delegates=" + (delegates == null ? 0 : delegates.size()) +
-                '}';
+                "delegates = " + s + '}';
     }
 }

@@ -41,6 +41,6 @@ public class PrimaryKeyConstraint extends UniqueConstraint {
 
     @Override
     public String toString() {
-        return "PrimaryKey";
+        return "PrimaryKeyConstraint";
     }
 }
