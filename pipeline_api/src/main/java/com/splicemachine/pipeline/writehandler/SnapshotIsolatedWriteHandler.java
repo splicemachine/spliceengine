@@ -61,4 +61,9 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
         }
     }
 
+    @Override
+    public String toString() {
+        return "SnapshotIsolatedWriteHandler { delegate = " + delegate.toString() + " ddlFilter = " +
+                (ddlFilter == null ? "null" : ddlFilter.toString()) + "}";
+    }
 }
