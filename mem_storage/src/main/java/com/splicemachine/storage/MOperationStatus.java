@@ -28,7 +28,7 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override public boolean hasException() { return false; }
         @Override public IOException getException() { return null; }
         @Override public String toString() {
-            return "MOperationStatus NOT_RUN";
+            return "MOperationStatus SUCCESS";
         }
     };
 

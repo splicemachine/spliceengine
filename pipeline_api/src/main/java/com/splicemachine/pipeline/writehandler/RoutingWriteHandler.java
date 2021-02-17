@@ -15,6 +15,10 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
@@ -22,6 +26,7 @@ import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
@@ -48,6 +53,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
      * destination write.
      */
     protected final ObjectObjectHashMap<KVPair, KVPair> routedToBaseMutationMap= new ObjectObjectHashMap();
+    protected final List<KVPair> mutationList = new ArrayList<>();
     protected final boolean keepState;
 
     protected RoutingWriteHandler(byte[] destination,boolean keepState) {
@@ -73,6 +79,24 @@ public abstract class RoutingWriteHandler implements WriteHandler {
         }
     }
 
+    void processException(WriteContext ctx, Exception e) throws IOException {
+        SpliceLogUtils.error(LOG, e);
+        if( e.getCause() instanceof BulkWriteAction.FailedRowsException) {
+            IntObjectHashMap<WriteResult> res = ((BulkWriteAction.FailedRowsException) (e.getCause())).res;
+            for (int i = 0; i < mutationList.size(); i++) {
+                WriteResult wr = res.get(i);
+                if (wr != null)
+                    ctx.result(mutationList.get(i), wr);
+            }
+        }
+        else {
+            SpliceLogUtils.error(LOG, e);
+            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
+                fail(pair.value, ctx, e);
+            }
+        }
+    }
+
     @Override
     public void flush(WriteContext ctx) throws IOException {
         if (LOG.isDebugEnabled())
@@ -80,10 +104,11 @@ public abstract class RoutingWriteHandler implements WriteHandler {
         try {
             doFlush(ctx);
         } catch (Exception e) {
-            SpliceLogUtils.error(LOG, e);
-            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
-                fail(pair.value,ctx,e);
-            }
+//            SpliceLogUtils.error(LOG, e);
+//            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
+//                fail(pair.value,ctx,e);
+//            }
+            processException(ctx, e);
         }
     }
 
@@ -94,10 +119,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
         try {
             doClose(ctx);
         } catch (Exception e) {
-            SpliceLogUtils.error(LOG, e);
-            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
-                fail(pair.value,ctx,e);
-            }
+            processException(ctx, e);
         }
     }
 

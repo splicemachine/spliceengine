@@ -68,6 +68,7 @@ public class HOperationStatusFactory implements OperationStatusFactory{
             case SANITY_CHECK_FAILURE:
             case FAILURE:
                 return oldStatus;
+                /// other cases?
         }
         return null;
     }

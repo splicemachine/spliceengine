@@ -105,6 +105,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         super();
     }
 
+    /**
+     * todo: document other parameters
+     * @param statusDirectory directory where to write bad records to (more like badRecordsDirectory)
+     *                        note: if we have a badRecordDirectory, we're an import and so permissive
+     * @throws StandardException
+     */
     public InsertOperation(SpliceOperation source,
                            GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,
@@ -133,7 +139,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,
               optimizerEstimatedCost,tableVersion, fromTableDmlSpsDescriptorAsString);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
-        this.statusDirectory=statusDirectory;
+        this.statusDirectory = statusDirectory;
         this.skipConflictDetection=skipConflictDetection;
         this.skipWAL=skipWAL;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
@@ -274,14 +280,19 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         }
     }
 
+    private boolean isFileImport() {
+        // if we have a statusDirectory, we're an import
+        return statusDirectory != null;
+    }
+
     @SuppressWarnings({ "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        if(statusDirectory != null) {
-            // if we have a status directory, we're an import and so permissive
+        if(isFileImport() ) {
+            // if we're an import, we're permissive
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
         }
         if (outputKeysOnly) {
@@ -320,7 +331,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
             }
 
-            if(statusDirectory!=null)
+            if (isFileImport())
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
                 ImportUtils.validateWritable(location,false);

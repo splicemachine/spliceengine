@@ -17,6 +17,7 @@ package com.splicemachine.pipeline.callbuffer;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.MergingWriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
@@ -132,8 +133,21 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         while (futureIterator.hasNext()) {
             Future<WriteStats> future = futureIterator.next();
             futureIterator.remove();
-            WriteStats retStats = future.get();//check for errors
-            writeStats.merge(retStats);
+            WriteStats retStats;
+            try {
+                retStats = future.get();//check for errors
+            } catch(Exception e) {
+                // intentional for being able to set breakpoints here
+                throw e;
+            }
+            Exception e = retStats.getException();
+            if(e != null) {
+                if( e.getCause() instanceof BulkWriteAction.FailedRowsException) {
+                        throw e;
+                    }
+                else
+                    throw e;
+            }
         }
     }
 

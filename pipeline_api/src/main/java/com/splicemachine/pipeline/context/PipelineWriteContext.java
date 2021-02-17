@@ -156,15 +156,21 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
             env.ensureNetworkOpen();
 
         try {
-            WriteNode next = head.getNext();
-            while (next != null) {
-                next.flush();
-                next = next.getNext();
+            boolean reversed = true;
+            List<WriteNode> list = new ArrayList<WriteNode>();
+            addChildren(list);
+            if(reversed) {
+                for(int i=list.size()-1; i>=0; i--) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
             }
-            next = head.getNext();
-            while (next != null) {
-                next.close();
-                next = next.getNext();
+            else
+            {
+                for(int i=0; i<list.size(); i++) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
             }
 
         } finally {

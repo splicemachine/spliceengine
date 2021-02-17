@@ -34,8 +34,9 @@ public class SimpleWriteStats implements WriteStats {
     private final long catchThrownRows;
     private final long catchRetriedRows;
     private final long regionTooBusy;
+    private final Exception e;
 
-    public SimpleWriteStats(WriteStats stats) {
+    public SimpleWriteStats(WriteStats stats, Exception e) {
         this(stats.getWrittenCounter(),
                 stats.getRetryCounter(),
                 stats.getThrownErrorsRows(),
@@ -48,12 +49,14 @@ public class SimpleWriteStats implements WriteStats {
                 stats.getIgnoredRows(),
                 stats.getCatchThrownRows(),
                 stats.getCatchRetriedRows(),
-                stats.getRegionTooBusy());
+                stats.getRegionTooBusy(),
+                e);
     }
     public SimpleWriteStats(long writtenCounter, long retryCounter, long thrownErrorsRows,
                             long retriedRows, long partialRows, long partialThrownErrorRows,
                             long partialRetriedRows, long partialIgnoredRows, long partialWrite,
-                            long ignoredRows, long catchThrownRows, long catchRetriedRows, long regionTooBusy) {
+                            long ignoredRows, long catchThrownRows, long catchRetriedRows, long regionTooBusy,
+                            Exception e) {
         this.writtenCounter = writtenCounter;
         this.retryCounter = retryCounter;
         this.thrownErrorsRows = thrownErrorsRows;
@@ -67,6 +70,7 @@ public class SimpleWriteStats implements WriteStats {
         this.catchThrownRows = catchThrownRows;
         this.catchRetriedRows = catchRetriedRows;
         this.regionTooBusy = regionTooBusy;
+        this.e = e;
     }
 
     @Override
@@ -134,4 +138,6 @@ public class SimpleWriteStats implements WriteStats {
         return regionTooBusy;
     }
 
+    @Override
+    public Exception getException() { return e; }
 }

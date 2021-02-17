@@ -42,27 +42,25 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     private static Logger LOG = Logger.getLogger(ControlOperationContext.class);
 
     long rowsRead;
-        long rowsFiltered;
-        long rowsWritten;
-        long rowsRetried;
-        long tooBusy;
-        long rowsJoinedLeft;
-        long rowsJoinedRight;
-        long rowsProduced;
-        List<String> badRecords;
-        public ActivationHolder activationHolder;
-        public SpliceTransactionResourceImpl impl;
-        public Activation activation;
-        public SpliceOperationContext context;
-        public Op op;
-        public TxnView txn;
-        private int failBadRecordCount = -1;
-        private boolean permissive;
-        private BadRecordsRecorder badRecordsRecorder;
-        private boolean failed;
-        private int numberBadRecords = 0;
-        private long badRecordThreshold;
-        private String importFileName;
+    long rowsFiltered;
+    long rowsWritten;
+    long rowsRetried;
+    long tooBusy;
+    long rowsJoinedLeft;
+    long rowsJoinedRight;
+    long rowsProduced;
+    List<String> badRecords;
+    public ActivationHolder activationHolder;
+    public SpliceTransactionResourceImpl impl;
+    public Activation activation;
+    public SpliceOperationContext context;
+    public Op op;
+    public TxnView txn;
+    private boolean permissive;
+    private BadRecordsRecorder badRecordsRecorder;
+    private boolean failed;
+    private long badRecordThreshold;
+    private String importFileName;
 
     public ControlOperationContext() {
         }

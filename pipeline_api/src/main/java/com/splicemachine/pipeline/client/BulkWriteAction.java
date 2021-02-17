@@ -113,9 +113,11 @@ public class BulkWriteAction implements Callable<WriteStats>{
             execute(bulkWrites);
             totalTimer.stopTiming();
             if (metricFactory.isActive())
-                return new SimpleWriteStats(stats);
+                return new SimpleWriteStats(stats, null);
             else
                 return WriteStats.NOOP_WRITE_STATS;
+        } catch(Exception e) {
+            return new SimpleWriteStats(stats, e);
         } finally {
             long timeTakenMs = System.currentTimeMillis() - start;
             long numRecords = bulkWrites.numEntries();
@@ -213,13 +215,13 @@ public class BulkWriteAction implements Callable<WriteStats>{
             writeTimer.startTiming();
             BulkWritesResult bulkWritesResult = writer.write(nextWrite, ctx.refreshCache, writeConfiguration.loadReplaceMode());
             writeTimer.stopTiming();
-            processWriteResult(nextWrite.getBulkWrites(), bulkWritesResult.getBulkWriteResults(), ctx);
+            processWriteResult(nextWrite, bulkWritesResult.getBulkWriteResults(), ctx);
         } catch (Throwable e) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "Caught throwable: id=%d", id);
             globalErrorCounter.increment();
-            if (e instanceof ResultException)
-                throw new ExecutionException(((ResultException) e).exception);
+            if (e instanceof FailedRowsException)
+                throw new ExecutionException(e);
 
             //noinspection ThrowableResultOfMethodCallIgnored
             if (pipelineExceptionFactory.processPipelineException(e) instanceof PipelineTooBusy) {
@@ -243,7 +245,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
     }
 
-    private void processGlobalError(BulkWrites nextWrite, WriteAttemptContext ctx, Throwable e) throws ExecutionException
+    private void processGlobalError(BulkWrites bulkWrites, WriteAttemptContext ctx, Throwable e) throws ExecutionException
     {
         WriteResponse writeResponse = writeConfiguration.globalError(e);
         String summary = String.format("id=%d, class=%s, message=%s", id, e.getClass(), e.getMessage());
@@ -251,7 +253,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             case THROW_ERROR:
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "Throwing error after receiving global error: " + summary);
-                stats.catchThrownRows.add(nextWrite.numEntries());
+                stats.catchThrownRows.add(bulkWrites.numEntries());
                 throw new ExecutionException(e);
             case RETRY:
                 errors.add(e);
@@ -266,8 +268,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 }
                 ctx.sleep = true;
                 ctx.refreshCache = true;
-                for (BulkWrite bw : nextWrite.getBulkWrites()) {
-                    ctx.addBulkWrites(bw.getMutations());
+                for (BulkWrite bw : bulkWrites.getBulkWrites()) {
+                    ctx.addBulkWritesToRetry(bw.getMutations());
                     stats.catchRetriedRows.add(bw.getSize());
                 }
                 break;
@@ -277,10 +279,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
     }
 
-    void processWriteResult(Collection<BulkWrite> bulkWrites,Collection<BulkWriteResult> results,
+    void processWriteResult(BulkWrites bulkWrites,Collection<BulkWriteResult> results,
                             WriteAttemptContext ctx) throws Throwable
     {
-        Iterator<BulkWrite> bws = bulkWrites.iterator();
+        Iterator<BulkWrite> bws = bulkWrites.getBulkWrites().iterator();
         for (BulkWriteResult bulkWriteResult : results) {
             WriteResponse globalResponse = writeConfiguration.processGlobalResult(bulkWriteResult);
             BulkWrite currentBulkWrite = bws.next();
@@ -301,7 +303,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
 
                     logRetry(ctx, bulkWriteResult, currentBulkWrite);
 
-                    ctx.addBulkWrites(currentBulkWrite.getMutations());
+                    ctx.addBulkWritesToRetry(currentBulkWrite.getMutations());
                     ctx.refreshCache = ctx.refreshCache || bulkWriteResult.getGlobalResult().refreshCache();
                     ctx.sleep = true; //always sleep due to rejection, even if we don't need to refresh the cache
                     break;
@@ -329,19 +331,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 stats.partialThrownErrorRows.add(currentBulkWrite.getSize());
                 throwExceptionFromFailedRows(bulkWriteResult);
             case RETRY:
-                logPartialRetry(ctx, bulkWriteResult, currentBulkWrite, writeResponse);
-
-                Collection<KVPair> writes = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult, id);
-                if (!writes.isEmpty()) {
-                    ctx.addBulkWrites(writes);
-                    // only redo cache if you have a failure not a lock contention issue
-                    boolean isFailure = bulkWriteResult.getFailedRows() != null && !bulkWriteResult.getFailedRows().isEmpty();
-                    ctx.refreshCache = ctx.refreshCache || isFailure;
-                    ctx.sleep = true; //always sleep
-                }
-                stats.writtenCounter.add(currentBulkWrite.getSize() - bulkWriteResult.getNotRunRows().size() -
-                        bulkWriteResult.getFailedRows().size());
-                stats.partialRetriedRows.add(writes.size());
+                processPartialWriteRetry(currentBulkWrite, bulkWriteResult, ctx, writeResponse);
                 break;
             case IGNORE:
                 stats.partialIgnoredRows.add(currentBulkWrite.getSize());
@@ -352,6 +342,23 @@ public class BulkWriteAction implements Callable<WriteStats>{
             default:
                 throw new IllegalStateException("Programmer error: Unknown partial response: " + writeResponse);
         }
+    }
+
+    private void processPartialWriteRetry(BulkWrite currentBulkWrite, BulkWriteResult bulkWriteResult,
+                                          WriteAttemptContext ctx, WriteResponse writeResponse) throws Exception {
+        logPartialRetry(ctx, bulkWriteResult, currentBulkWrite, writeResponse);
+
+        Collection<KVPair> toRetry = PipelineUtils.getMutationsToRetry(currentBulkWrite, bulkWriteResult, id);
+        if (!toRetry.isEmpty()) {
+            ctx.addBulkWritesToRetry(toRetry);
+            // only redo cache if you have a failure not a lock contention issue
+            boolean isFailure = bulkWriteResult.getFailedRows() != null && !bulkWriteResult.getFailedRows().isEmpty();
+            ctx.refreshCache = ctx.refreshCache || isFailure;
+            ctx.sleep = true; //always sleep
+        }
+        stats.writtenCounter.add(currentBulkWrite.getSize() - bulkWriteResult.getNotRunRows().size() -
+                bulkWriteResult.getFailedRows().size());
+        stats.partialRetriedRows.add(toRetry.size());
     }
 
     /**
@@ -406,24 +413,25 @@ public class BulkWriteAction implements Callable<WriteStats>{
     /** this is used to mark exceptions that are from failed rows (throwExceptionFromFailedRows)
      * (in contast to pipeline exceptions)
      */
-    class ResultException extends Exception {
-        Exception exception;
-        ResultException(Exception exception) {
-            this.exception = exception;
+    public class FailedRowsException extends Exception {
+        public IntObjectHashMap<WriteResult> res;
+        FailedRowsException(IntObjectHashMap<WriteResult> res) {
+            this.res = res;
         }
     }
 
-    private void throwExceptionFromFailedRows(BulkWriteResult response) throws ResultException {
+    private void throwExceptionFromFailedRows(BulkWriteResult response) throws FailedRowsException {
         IntObjectHashMap<WriteResult> failedRows = response.getFailedRows();
         Exception first = null;
+        FailedRowsException err = new FailedRowsException(failedRows);
         for (IntObjectCursor<WriteResult> cursor : failedRows) {
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable e = pipelineExceptionFactory.processErrorResult(cursor.value);
             if (e instanceof WriteConflict) { //TODO -sf- find a way to add in StandardExceptions here
-                throw new ResultException((Exception) e);
+                throw err;
             } else if (first == null)
-                first = (Exception) e;
+                first = err;
         }
-        throw new ResultException(first);
+        throw err;
     }
 
     private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,byte[] token,boolean refreshCache) throws Exception{
@@ -468,7 +476,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             directRetry = false;
         }
 
-        void addBulkWrites(Collection<KVPair> writes){
+        void addBulkWritesToRetry(Collection<KVPair> writes){
             assert !directRetry: "Cannot add a partial failure and a global retry at the same time";
             if(nextWriteSet==null)
                 nextWriteSet = writes;
