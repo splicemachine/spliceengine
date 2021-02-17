@@ -67,6 +67,14 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         return super.processGlobalResult(bulkWriteResult);
     }
 
+    /*public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
+        IntObjectHashMap<WriteResult> failedRows = result.getFailedRows();
+        for (IntObjectCursor<WriteResult> cursor : failedRows) {
+            if (!cursor.value.canRetry())
+                return WriteResponse.THROW_ERROR;
+        }
+        return WriteResponse.RETRY;
+    }*/
     @Override
     public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
         if (LOG.isDebugEnabled())

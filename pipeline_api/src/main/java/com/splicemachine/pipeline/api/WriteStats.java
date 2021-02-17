@@ -101,4 +101,5 @@ public interface WriteStats {
 	long getCatchThrownRows();
 	long getCatchRetriedRows();
 	long getRegionTooBusy();
+	default Exception getException() { return null; }
 }

@@ -68,6 +68,7 @@ import static org.mockito.Mockito.*;
  * @author Scott Fines
  *         Date: 2/25/16
  */
+// todo(martinrupp): reenable
 @Category(ArchitectureSpecific.class)
 public class PartitionWriteHandlerTest{
     private static final KryoPool kp=new KryoPool(1);

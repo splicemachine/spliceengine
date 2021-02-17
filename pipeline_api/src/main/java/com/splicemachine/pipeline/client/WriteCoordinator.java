@@ -91,7 +91,10 @@ public class WriteCoordinator {
                              PartitionFactory partitionFactory,
                              PipelineExceptionFactory pipelineExceptionFactory,
                             MonitoredThreadPool writerPool) {
-        this.asynchronousWriter = asynchronousWriter;
+
+        // ONLY FOR DEBUGGING
+        this.asynchronousWriter = synchronousWriter;
+        //this.asynchronousWriter = asynchronousWriter;
         this.synchronousWriter = synchronousWriter;
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.monitor = monitor;

@@ -175,7 +175,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){
-            if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
+            if (importFileName == null)
+                importFileName = BAD_FILENAME + System.currentTimeMillis();
             operationContext.setPermissive(statusDirectory, importFileName, badRecordThreshold);
         }
         return operationContext;

@@ -17,6 +17,7 @@ package com.splicemachine.pipeline.utils;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.client.BulkWrite;
@@ -45,32 +46,44 @@ public class PipelineUtils{
         }
     };
 
-    public static Collection<KVPair> doPartialRetry(BulkWrite bulkWrite,BulkWriteResult response,long id) throws Exception{
-        IntHashSet notRunRows=response.getNotRunRows();
-        IntObjectHashMap<WriteResult> failedRows=response.getFailedRows();
-        Collection<KVPair> toRetry=new ArrayList<>(failedRows.size()+notRunRows.size());
-        List<String> errorMsgs= Lists.newArrayListWithCapacity(failedRows.size());
-        int i=0;
-        Collection<KVPair> allWrites=bulkWrite.getMutations();
-        for(KVPair kvPair : allWrites){
-            if(notRunRows.contains(i))
+    /**
+     * this function
+     * 1. get the notRunRows and the failedRows from the response.
+     * 2. for all mutations (we get those from the bulkWrite) we check {}
+     *      if row (marked as not run) OR (marked as failed AND result is "canRetry")
+     *              -> add to toRetry
+     * @return toRetry - collection of mutations to retry
+     *
+     * Note that e.g. rows that are marked as failed but not as "canRetry" will not be returned in toRety
+     */
+    public static Collection<KVPair> getMutationsToRetry(BulkWrite bulkWrite, BulkWriteResult response, long id) throws Exception {
+        IntHashSet notRunRows = response.getNotRunRows();
+        IntObjectHashMap<WriteResult> failedRows = response.getFailedRows();
+        Collection<KVPair> toRetry = new ArrayList<>(failedRows.size() + notRunRows.size());
+        List<String> errorMsgs = Lists.newArrayListWithCapacity(failedRows.size());
+        int i = 0;
+        Collection<KVPair> allWrites = bulkWrite.getMutations();
+        for (KVPair kvPair : allWrites) {
+            if (notRunRows.contains(i))
                 toRetry.add(kvPair);
-            else{
-                WriteResult writeResult=failedRows.get(i);
-                if(writeResult!=null){
+            else {
+                WriteResult writeResult = failedRows.get(i);
+                if (writeResult != null) {
                     errorMsgs.add(writeResult.getErrorMessage());
-                    if(writeResult.canRetry())
+                    if (writeResult.canRetry())
                         toRetry.add(kvPair);
                 }
             }
             i++;
         }
-        if(LOG.isTraceEnabled()){
-            int[] errorCounts=new int[11];
-            for(IntObjectCursor<WriteResult> failedCursor : failedRows){
+        if (LOG.isTraceEnabled()) {
+            int N = 11;
+            assert N == Arrays.stream(SpliceMessage.WriteResult.Code.values()).map(Enum::ordinal).max(Integer::compareTo).get();
+            int[] errorCounts = new int[N+1];
+            for (IntObjectCursor<WriteResult> failedCursor : failedRows) {
                 errorCounts[failedCursor.value.getCode().ordinal()]++;
             }
-            SpliceLogUtils.trace(LOG,"[%d] %d failures with types: %s",id,failedRows.size(),Arrays.toString(errorCounts));
+            SpliceLogUtils.trace(LOG, "[%d] %d failures with types: %s", id, failedRows.size(), Arrays.toString(errorCounts));
         }
 
         return toRetry;
