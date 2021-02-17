@@ -41,6 +41,8 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
@@ -659,16 +661,22 @@ public class BackupSystemProcedures {
 
     public static void SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION(long transactionId,
                                                               ResultSet[] resultSets) throws StandardException, SQLException {
-        IteratorNoPutResultSet inprs = null;
-
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
+            IgnoreTxnSupplier ignoreTxn = SIDriver.driver() == null ? null : SIDriver.driver().getIgnoreTxnSupplier();
+            if( ignoreTxn != null && ignoreTxn.shouldIgnore(transactionId) ) {
+                throw new Exception("Already rolled back past "+transactionId+". Cannot roll back to it.");
+            }
+
+            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
+            if( transactionId >= currentTxId ) {
+                throw new Exception(""+transactionId+" is not a past transaction. Cannot roll back to it.");
+            }
+
             TransactionController tc=lcc.getTransactionExecute();
             tc.elevate("rollback");
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-
-            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
 
             // Set Restore Mode to prevent other workloads from running
             DDLMessage.DDLChange change = ProtoUtil.createRestoreMode(currentTxId);
