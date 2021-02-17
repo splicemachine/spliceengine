@@ -44,4 +44,9 @@ public class NoOpConstraintChecker implements BatchConstraintChecker {
     public boolean matches(MutationStatus status) {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "NoOpConstraintChecker";
+    }
 }

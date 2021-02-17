@@ -27,6 +27,9 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override public boolean isNotRun(){ return false; }
         @Override public boolean hasException() { return false; }
         @Override public IOException getException() { return null; }
+        @Override public String toString() {
+            return "MOperationStatus NOT_RUN";
+        }
     };
 
     private static final MOperationStatus NOT_RUN = new MOperationStatus(){
@@ -35,6 +38,9 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override public boolean isNotRun(){ return true; }
         @Override public boolean hasException() { return false; }
         @Override public IOException getException() { return null; }
+        @Override public String toString() {
+            return "MOperationStatus NOT_RUN";
+        }
     };
 
     @Override
@@ -87,6 +93,13 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override
         public IOException getException() {
             return ex;
+        }
+
+        @Override
+        public String toString() {
+            return "MOperationStatus Failure errorMessage = " +
+                    (errorMsg == null ? "null" : errorMsg)
+                    + " exception = " + (ex == null ? "null" : ex);
         }
     }
 }
