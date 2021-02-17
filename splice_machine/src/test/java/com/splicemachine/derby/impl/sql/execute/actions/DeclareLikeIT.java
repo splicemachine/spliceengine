@@ -160,6 +160,11 @@ public class DeclareLikeIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testMultipleColumns() throws Exception {
+        testIdentical("MULTIPLE_COLUMNS", "(a int, b int not null, c int not null with default 4, d int with default 5)");
+    }
+
+    @Test
     public void testPrimaryKey() throws Exception {
         // The new table does not have a primary key
         testConstraintsRemoved("PRIMARY_KEY", "(a int not null primary key)");
