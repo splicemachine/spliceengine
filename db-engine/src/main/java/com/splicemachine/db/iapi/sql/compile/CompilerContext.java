@@ -186,6 +186,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
+    String DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice";
     int DEFAULT_FLOATING_POINT_NOTATION = FloatingPointDataType.PLAIN;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
@@ -734,9 +735,13 @@ public interface CompilerContext extends Context
 
     void setTimestampFormat(String timestampFormat);
 
+    void setSecondFunctionCompatibilityMode(String mode);
+
     void setFloatingPointNotation(int floatingPointNotation);
 
     String getTimestampFormat();
+
+    String getSecondFunctionCompatibilityMode();
 
     int getFloatingPointNotation();
 

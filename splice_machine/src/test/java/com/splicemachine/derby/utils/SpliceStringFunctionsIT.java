@@ -562,6 +562,17 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testLTrimNegative() throws Exception{
+        try {
+            String sqlText = "values LTRIM('XXXXKATEXXXXXX', 'X')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+    }
+
+    @Test
     public void testRepeatNegative() throws Exception {
         try {
             String sqlText = "select repeat(a, 3) from A order by 1";
@@ -1003,6 +1014,73 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("dash || substr(e, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
             checkStringExpression("dash || substr(f, 2) || dash from testSubstr", "2d6263202020202020202020202020202020202020202020202020202020202020202020202020202d", conn);
             checkStringExpression("dash || substr(f, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+        }
+    }
+
+    @Test
+    public void testTranslate() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE')", "aBcD FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', '', 'ACE')", " B D FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+            assertFailed(conn, "select translate('ABCDEFG', 'ac', 'ACE', 'UU')", "22022");
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', x'00')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
+
+            checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
+
+        }
+
+        methodWatcher.execute("drop table testTranslate if exists");
+        methodWatcher.execute("create table testTranslate(a char(7), b char(3), c char(3))");
+        methodWatcher.execute("insert into testTranslate values ('ABCDEFG', 'ace', 'ACE')");
+        TestConnection[] conns = {
+                methodWatcher.connectionBuilder().useOLAP(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
+        };
+        for (TestConnection conn: conns) {
+            checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
+            checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
+            try (PreparedStatement ps = conn.prepareStatement("select translate(?, b, c) from testTranslate")) {
+                ps.setString(1, "ABCDEFG");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, ?, c) from testTranslate")) {
+                ps.setString(1, "ace");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, b, ?) from testTranslate")) {
+                ps.setString(1, "ACE");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
         }
     }
 }

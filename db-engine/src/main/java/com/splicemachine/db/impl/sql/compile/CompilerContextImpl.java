@@ -306,6 +306,10 @@ public class CompilerContextImpl extends ContextImpl
         timestampFormat = value;
     }
 
+    public void setSecondFunctionCompatibilityMode(String value) {
+        secondFunctionCompatibilityMode = value;
+    }
+
     public void setFloatingPointNotation(int value)
     {
         floatingPointNotation = value;
@@ -317,6 +321,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public String getTimestampFormat() {
         return timestampFormat;
+    }
+
+    public String getSecondFunctionCompatibilityMode() {
+        return secondFunctionCompatibilityMode;
     }
 
     public int getFloatingPointNotation() {
@@ -1197,6 +1205,7 @@ public class CompilerContextImpl extends ContextImpl
 
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
+    private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;

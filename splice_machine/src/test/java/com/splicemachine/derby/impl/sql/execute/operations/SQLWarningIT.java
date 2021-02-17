@@ -11,10 +11,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -56,7 +53,28 @@ public class SQLWarningIT extends SpliceUnitTest {
             s.execute("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', false)");
         }
     }
+    @Test
+    public void testNoRowsAffectedDB2WarningForPrepareStatement() throws Exception {
+        try(Connection connection = spliceClassWatcher.getOrCreateConnection()){
+            try (PreparedStatement ps = connection.prepareStatement
+                    ("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', true)")) {
+                ps.execute();
+            }
 
+            try (PreparedStatement ps = connection.prepareStatement("delete from a where c1 = 0")) {
+                ps.execute();
+                SQLWarning warning = ps.getWarnings();
+                Assert.assertTrue(warning != null);
+                Assert.assertEquals("02000", warning.getSQLState());
+                Assert.assertEquals(100, warning.getErrorCode());
+            }
+
+            try (PreparedStatement ps = connection.prepareStatement
+                    ("call syscs_util.syscs_set_global_database_property('splice.db2.error.compatible', false)")) {
+                ps.execute();
+            }
+        }
+    }
     @Test
     public void testNoRowsAffectedWarning() throws Exception {
         try(Connection connection = spliceClassWatcher.getOrCreateConnection();
