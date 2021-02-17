@@ -208,7 +208,9 @@ public interface StringDataValue extends ConcatableDataValue
 	 * Find the position of the searchString in an expressionString
 	 * @param expressionString The string to search
 	 * @param searchString  The substring to search for
-	 * @return 0 if not found, otherwise the 1-based position of the first character in the match
+	 * @return 0 if not found,
+	 *         null if either operand is null,
+	 *         otherwise the 1-based position of the first character in the match
 	 * @throws StandardException Thrown on error
 	 */
     NumberDataValue positionOfString(StringDataValue expressionString, StringDataValue searchString,
