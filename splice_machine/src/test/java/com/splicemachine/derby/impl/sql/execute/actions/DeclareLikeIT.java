@@ -100,14 +100,22 @@ public class DeclareLikeIT extends SpliceUnitTest {
         return sb.toString();
     }
 
+    private String baseTableName(String name) {
+        return name + "_base";
+    }
+
+    private String likeTableName(String name) {
+        return name + "_like" + (temporary ? "_temp" : "");
+    }
+
     private void createBaseAndDeclareLikeLikeBase(String name, String definition) throws Exception {
-        methodWatcher.executeUpdate(format("drop table %s.%s_base if exists", schema, name));
-        methodWatcher.executeUpdate(format("create table %s.%s_base %s", schema, name, definition));
-        methodWatcher.executeUpdate(format("drop table %s.%s_like if exists", schema, name));
+        methodWatcher.executeUpdate(format("drop table %s.%s if exists", schema, baseTableName(name)));
+        methodWatcher.executeUpdate(format("create table %s.%s %s", schema, baseTableName(name), definition));
+        methodWatcher.executeUpdate(format("drop table %s.%s if exists", schema, likeTableName(name)));
         if (temporary)
-            methodWatcher.executeUpdate(format("DECLARE GLOBAL TEMPORARY TABLE %s.%s_like LIKE %s.%s_base", schema, name, schema, name));
+            methodWatcher.executeUpdate(format("DECLARE GLOBAL TEMPORARY TABLE %s.%s LIKE %s.%s", schema, likeTableName(name), schema, baseTableName(name)));
         else
-            methodWatcher.executeUpdate(format("CREATE TABLE %s.%s_like LIKE %s.%s_base", schema, name, schema, name));
+            methodWatcher.executeUpdate(format("CREATE TABLE %s.%s LIKE %s.%s", schema, likeTableName(name), schema, baseTableName(name)));
     }
 
     private String show(String name) throws Exception {
@@ -117,11 +125,11 @@ public class DeclareLikeIT extends SpliceUnitTest {
     }
 
     private String showBase(String name) throws Exception {
-        return show(name + "_base");
+        return show(baseTableName(name));
     }
 
     private String showLike(String name) throws Exception {
-        return show(name + "_like");
+        return show(likeTableName(name));
     }
 
     private void testIdentical(String name, String definition) throws Exception {
