@@ -105,6 +105,7 @@ import com.splicemachine.db.impl.sql.compile.TableElementNode;
 import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
 import com.splicemachine.db.impl.sql.compile.BasicPrivilegesNode;
 import com.splicemachine.db.impl.sql.compile.TransactionStatementNode;
+import com.splicemachine.db.impl.sql.compile.TranslateFunctionNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.compile.UnionNode;
 import com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode;
@@ -6601,6 +6602,26 @@ escapedValueFunction() throws StandardException :
 
 }
 
+ValueNode translateFunctionNode() throws StandardException:
+{
+    ValueNode stringExpression;
+    ValueNode toString;
+    ValueNode fromString;
+    ValueNode pad = null;
+}
+{
+    <LEFT_PAREN>
+        stringExpression = additiveExpression(null, 0)
+    <COMMA> toString = additiveExpression(null, 0)
+    <COMMA> fromString = additiveExpression(null, 0)
+    [ <COMMA> pad = additiveExpression(null, 0) ]
+
+    <RIGHT_PAREN>
+    {
+        return new TranslateFunctionNode(stringExpression, toString, fromString, pad, getContextManager());
+    }
+}
+
 /*
  * <A NAME="escapedSYSFUNFunctions">escapedSYSFUNFunctions</A>
  */
@@ -7061,6 +7082,11 @@ characterValueFunction() throws StandardException :
     <REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return getReplaceNode( value, str1, str2 );
+    }
+|
+    <TRANSLATE>
+    {
+        return translateFunctionNode();
     }
 |
     ( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
@@ -7581,6 +7607,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TINYINT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
                 getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TRANSLATE ||
                 getToken(1).kind == TRIM ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
