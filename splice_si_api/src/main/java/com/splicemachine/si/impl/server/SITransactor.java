@@ -14,9 +14,7 @@
 
 package com.splicemachine.si.impl.server;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.LongHashSet;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
@@ -66,6 +64,12 @@ public class SITransactor implements Transactor{
     private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
 
+    class MutationToRun {
+        int index;
+        LongHashSet conflictingChildren;
+        DataPut data;
+    }
+
     public SITransactor(TxnSupplier txnSupplier,
                         TxnOperationFactory txnOperationFactory,
                         OperationFactory opFactory,
@@ -92,14 +96,19 @@ public class SITransactor implements Transactor{
     }
 
     @Override
-    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException{
+    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,
+                                            DataPut[] mutations) throws IOException{
         if(mutations.length==0){
             //short-circuit special case of empty batch
             //noinspection unchecked
             return new MutationStatus[0];
         }
 
-        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
+        // todo: this somehow looks improvable. do we need all these maps?
+
+        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap =
+                SITransactorUtil.putToKvPairMap(mutations, txnOperationFactory);
+
         final Map<byte[], MutationStatus> statusMap= Maps.newTreeMap(Bytes.BASE_COMPARATOR);
         for(Map.Entry<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
             TxnView txnId=entry.getKey();
@@ -113,15 +122,17 @@ public class SITransactor implements Transactor{
                         assert input != null;
                         return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                     }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,defaultConstraintChecker);
-                    for(int i=0;i<statuses.length;i++){
-                        byte[] row=kvPairs.get(i).getRowKey();
-                        MutationStatus status=statuses[i];
-                        if(statusMap.containsKey(row)){
-                            MutationStatus oldStatus=statusMap.get(row);
-                            status=getCorrectStatus(status,oldStatus);
+                    MutationStatus[] statuses = processKvBatch(table, null, family, qualifier, kvPairs,
+                            txnId, defaultConstraintChecker);
+                    for (int i = 0; i < statuses.length; i++) {
+                        byte[] row = kvPairs.get(i).getRowKey();
+                        MutationStatus status = statuses[i];
+                        if (statusMap.containsKey(row)) {
+                            MutationStatus oldStatus = statusMap.get(row);
+                            // if status == SUCCESS, use status, otherwise oldStatus. or sometimes null.
+                            status = getCorrectStatus(status, oldStatus);
                         }
-                        statusMap.put(row,status);
+                        statusMap.put(row, status);
                     }
                 }
             }
@@ -138,12 +149,12 @@ public class SITransactor implements Transactor{
 
     @Override
     public MutationStatus[] processKvBatch(Partition table,
-                                            RollForward rollForward,
-                                            byte[] defaultFamilyBytes,
-                                            byte[] packedColumnBytes,
-                                            Collection<KVPair> toProcess,
-                                            TxnView txn,
-                                            ConstraintChecker constraintChecker) throws IOException{
+                                           RollForward rollForward,
+                                           byte[] defaultFamilyBytes,
+                                           byte[] packedColumnBytes,
+                                           Collection<KVPair> toProcess,
+                                           TxnView txn,
+                                           ConstraintChecker constraintChecker) throws IOException{
         return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false, false);
     }
 
@@ -197,7 +208,11 @@ public class SITransactor implements Transactor{
                     SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE;
             supplier = new ActiveTxnCacheSupplier(txnSupplier, initialSize, maxSize);
         }
-        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[size];
+        // todo: maybe checkConflictsForKvBatch should return a ArrayList of objects with
+        // int index
+        // LongHashSet conflictingChildren
+        // DataPut data
+        //@SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[size];
 
 
         ConflictRollForward conflictRollForward = new ConflictRollForward(opFactory, supplier);
@@ -209,36 +224,33 @@ public class SITransactor implements Transactor{
              * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally ensure that
              * the region can't close until after this method is complete, we don't need the calls.
              */
-            IntObjectHashMap<DataPut> writes=checkConflictsForKvBatch(table,conflictRollForward,lockPairs,
-                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,
-                    skipConflictDetection,skipWAL,supplier,rollforward);
+            //IntObjectHashMap<DataPut> writes
+            ArrayList<MutationToRun> mutationsToRun = checkConflictsForKvBatch(table, conflictRollForward, lockPairs,
+                    txn, family, qualifier, constraintChecker, constraintState, finalStatus,
+                    skipConflictDetection, skipWAL, supplier, rollforward);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
-            DataPut[] toWrite=new DataPut[writes.size()];
-            int i=0;
-            for(IntObjectCursor<DataPut> write : writes){
-                toWrite[i]=write.value;
-                i++;
-            }
+
+            //puts.toArray(new DataPut[puts.size()]));
+            DataPut[] toWrite = mutationsToRun.stream().map( c -> c.data ).toArray(DataPut[]::new);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Writing " + Arrays.toString(toWrite));
             }
             Iterator<MutationStatus> status=table.writeBatch(toWrite);
 
             //convert the status back into the larger array
-            i=0;
-            for(IntObjectCursor<DataPut> write : writes){
+            //for(IntObjectCursor<DataPut> write : writes){
+            for(MutationToRun mutationToRun : mutationsToRun) {
                 if(!status.hasNext())
                     throw new IllegalStateException("Programmer Error: incorrect length for returned status");
-                finalStatus[write.key]=status.next().getClone(); //TODO -sf- is clone needed here?
+                finalStatus[mutationToRun.index] = status.next().getClone(); //TODO -sf- is clone needed here? //todo
                 //resolve child conflicts
                 try{
-                    resolveChildConflicts(table,write.value,conflictingChildren[i]);
+                    resolveChildConflicts(table, mutationToRun.data, mutationToRun.conflictingChildren);
                 }catch(Exception e){
-                    finalStatus[i] = operationStatusLib.failure(e);
+                    finalStatus[mutationToRun.index] = operationStatusLib.failure(e);
                 }
-                i++;
             }
             return finalStatus;
         }finally{
@@ -261,17 +273,18 @@ public class SITransactor implements Transactor{
         }
     }
 
-    private IntObjectHashMap<DataPut> checkConflictsForKvBatch(Partition table,
-                                                               ConflictRollForward rollForwardQueue,
-                                                               Pair<KVPair, Lock>[] dataAndLocks,
-                                                               LongHashSet[] conflictingChildren,
-                                                               TxnView transaction,
-                                                               byte[] family, byte[] qualifier,
-                                                               ConstraintChecker constraintChecker,
-                                                               TxnFilter constraintStateFilter,
-                                                               MutationStatus[] finalStatus, boolean skipConflictDetection,
-                                                               boolean skipWAL, TxnSupplier supplier, boolean rollforward) throws IOException {
-        IntObjectHashMap<DataPut> finalMutationsToWrite = new IntObjectHashMap(dataAndLocks.length, 0.9f);
+    // todo: maybe just return an ArrayList<DataPut> with null values where we don't need stuff.
+    private ArrayList<MutationToRun> checkConflictsForKvBatch(Partition table,
+                                                              ConflictRollForward rollForwardQueue,
+                                                              Pair<KVPair, Lock>[] dataAndLocks,
+                                                              TxnView transaction,
+                                                              byte[] family, byte[] qualifier,
+                                                              ConstraintChecker constraintChecker,
+                                                              TxnFilter constraintStateFilter,
+                                                              MutationStatus[] finalStatus, boolean skipConflictDetection,
+                                                              boolean skipWAL, TxnSupplier supplier, boolean rollforward) throws IOException {
+
+        ArrayList<MutationToRun> mutationsToRun = new ArrayList<>(dataAndLocks.length);
         DataResult possibleConflicts = null;
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
         List<ByteSlice> toRollforward = null;
@@ -282,11 +295,11 @@ public class SITransactor implements Transactor{
             Pair<KVPair, Lock> baseDataAndLock = dataAndLocks[i];
             if(baseDataAndLock==null) continue;
 
-            ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
-            KVPair kvPair=baseDataAndLock.getFirst();
-            KVPair.Type writeType=kvPair.getType();
+            ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
+            KVPair kvPair = baseDataAndLock.getFirst();
+            KVPair.Type writeType = kvPair.getType();
             boolean checkedConflicts = false;
-            if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
+            if (!skipConflictDetection && (constraintChecker != null || !KVPair.Type.INSERT.equals(writeType))) {
                 /*
                  *
                  * If the table has no keys, then the hbase row key is a randomly generated UUID, so it's not
@@ -298,8 +311,11 @@ public class SITransactor implements Transactor{
                  */
                 //todo -sf remove the Row key copy here
                 checkedConflicts = true;
-                possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
+                if( bloomInMemoryCheck != null && bloomInMemoryCheck.get(i) == false )
+                    possibleConflicts = null; // we had a bloom check and it says we don't have a conflict
+                else
+                    possibleConflicts = table.getLatest(kvPair.getRowKey(), possibleConflicts);
+                if (possibleConflicts != null && !possibleConflicts.isEmpty()) {
                     //we need to check for write conflicts
                     try {
                         conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier);
@@ -309,7 +325,8 @@ public class SITransactor implements Transactor{
                             continue;
                         } else throw ioe;
                     }
-                    if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
+                    if (applyConstraint(constraintChecker, constraintStateFilter, i, kvPair, possibleConflicts,
+                            finalStatus, conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
                         continue;
                 }
                 //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
@@ -319,13 +336,12 @@ public class SITransactor implements Transactor{
                      * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
                      * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
                      */
-                    if(conflictResults.hasAdditiveConflicts()){
-                        finalStatus[i]=operationStatusLib.failure(exceptionLib.additiveWriteConflict());
+                    if (conflictResults.hasAdditiveConflicts()) {
+                        finalStatus[i] = operationStatusLib.failure(exceptionLib.additiveWriteConflict());
                     }
                 }
             }
 
-            conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
 
             // todo DB-10761: improve this solution for the cases where we know that there's no conflicts and we don't need to check
@@ -333,8 +349,7 @@ public class SITransactor implements Transactor{
                 if (possibleConflicts == null || possibleConflicts.isEmpty())
                 {
                     // First write
-                    if (KVPair.Type.INSERT.equals(writeType) ||
-                            KVPair.Type.UPSERT.equals(writeType))
+                    if (KVPair.Type.INSERT.equals(writeType) || KVPair.Type.UPSERT.equals(writeType))
                         addFirstOccurrenceToken = true;
                 } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
                     // Delete following first write
@@ -343,15 +358,19 @@ public class SITransactor implements Transactor{
                 }
             }
 
-            DataPut mutationToRun = getMutationToRun(
-                    table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
-            finalMutationsToWrite.put(i,mutationToRun);
+            MutationToRun mutationToRun = new MutationToRun();
+            mutationToRun.data = getMutationToRun( table, kvPair, family, qualifier, transaction, conflictResults,
+                    addFirstOccurrenceToken, skipWAL, toRollforward);;
+            mutationToRun.index = i;
+            mutationToRun.conflictingChildren = conflictResults.getChildConflicts();
+
+            mutationsToRun.add( mutationToRun );
         }
         if (toRollforward != null && toRollforward.size() > 0) {
             SIDriver.driver().getRollForward().submitForResolution(table,transaction.getTxnId(),toRollforward);
         }
 
-        return finalMutationsToWrite;
+        return mutationsToRun; //finalMutationsToWrite;
     }
 
     private boolean applyConstraint(ConstraintChecker constraintChecker,
