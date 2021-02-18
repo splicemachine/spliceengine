@@ -156,58 +156,10 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             long badRecords = 0;
             if(operation instanceof InsertOperation){
-                InsertOperation insertOperation = (InsertOperation)operation;
-                BadRecordsRecorder brr = operationContext.getBadRecordsRecorder();
-                /*
-                 * In Control-side execution, we have different operation contexts for each operation,
-                 * and all operations are held in this JVM. this means that parse errors could be present
-                 * at the context for the lower operation (i.e. in an import), so we need to collect those errors
-                 * directly.
-                 */
-                List<SpliceOperation> ops =insertOperation.getOperationStack();
-                for(SpliceOperation op:ops){
-                    if(op==null || op==insertOperation || op.getOperationContext()==null) continue;
-                    if (brr != null) {
-                        brr = brr.merge(op.getOperationContext().getBadRecordsRecorder());
-                    } else {
-                        brr = op.getOperationContext().getBadRecordsRecorder();
-                    }
-                }
-                badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
-                operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
-                if(badRecords > 0){
-                    String fileName = operationContext.getStatusDirectory();
-                    operationContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
-                    if (insertOperation.isAboveFailThreshold(badRecords)) {
-                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
-                    }
-                }
+                badRecords = getNumBadRecords((InsertOperation) operation);
             }
-            if (updateCounts != null) {
-                long total = 0;
-                List<ExecRow> rows = new ArrayList<>();
-                for (int count : updateCounts) {
-                    total += count;
-                    ValueRow valueRow = new ValueRow(1);
-                    valueRow.setColumn(1, new SQLLongint(count));
-                    rows.add(valueRow);
-                }
-                assert total == recordsWritten;
-                return new ControlDataSet<>(rows.iterator());
-            }
-            ValueRow valueRow=null;
-            if (badRecords > 0) {
-                valueRow = new ValueRow(3);
-                valueRow.setColumn(2, new SQLLongint(badRecords));
-                valueRow.setColumn(3, new SQLVarchar(operationContext.getStatusDirectory()));
-            }
-            else {
-                valueRow = new ValueRow(1);
-            }
-            valueRow.setColumn(1,new SQLLongint(recordsWritten));
-
-            return new ControlDataSet<>(new SingletonIterator(valueRow));
-       }catch(Exception e){
+            return getResultSet(recordsWritten, badRecords);
+        }catch(Exception e){
             if(txn!=null){
                 try{
                     txn.rollback();
@@ -223,6 +175,64 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
              if (internalTransaction != null)
                  internalTransaction.popInternalTransaction();
         }
+    }
+
+    private DataSet<ExecRow> getResultSet(long recordsWritten, long badRecords) {
+        if (updateCounts != null) {
+            long total = 0;
+            List<ExecRow> rows = new ArrayList<>();
+            for (int count : updateCounts) {
+                total += count;
+                ValueRow valueRow = new ValueRow(1);
+                valueRow.setColumn(1, new SQLLongint(count));
+                rows.add(valueRow);
+            }
+            assert total == recordsWritten;
+            return new ControlDataSet<>(rows.iterator());
+        }
+        ValueRow valueRow=null;
+        if (badRecords > 0) {
+            valueRow = new ValueRow(3);
+            valueRow.setColumn(2, new SQLLongint(badRecords));
+            valueRow.setColumn(3, new SQLVarchar(operationContext.getStatusDirectory()));
+        }
+        else {
+            valueRow = new ValueRow(1);
+        }
+        valueRow.setColumn(1,new SQLLongint(recordsWritten));
+
+        return new ControlDataSet<>(new SingletonIterator(valueRow));
+    }
+
+    private long getNumBadRecords(InsertOperation operation) throws StandardException {
+        long badRecords;
+        InsertOperation insertOperation = operation;
+        BadRecordsRecorder brr = operationContext.getBadRecordsRecorder();
+        /*
+         * In Control-side execution, we have different operation contexts for each operation,
+         * and all operations are held in this JVM. this means that parse errors could be present
+         * at the context for the lower operation (i.e. in an import), so we need to collect those errors
+         * directly.
+         */
+        List<SpliceOperation> ops =insertOperation.getOperationStack();
+        for(SpliceOperation op:ops){
+            if(op==null || op==insertOperation || op.getOperationContext()==null) continue;
+            if (brr != null) {
+                brr = brr.merge(op.getOperationContext().getBadRecordsRecorder());
+            } else {
+                brr = op.getOperationContext().getBadRecordsRecorder();
+            }
+        }
+        badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
+        operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
+        if(badRecords > 0){
+            String fileName = operationContext.getStatusDirectory();
+            operationContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
+            if (insertOperation.isAboveFailThreshold(badRecords)) {
+                throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
+            }
+        }
+        return badRecords;
     }
 
     @Override
