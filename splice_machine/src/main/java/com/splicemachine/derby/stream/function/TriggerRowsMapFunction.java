@@ -64,7 +64,7 @@ public class TriggerRowsMapFunction<Op extends SpliceOperation> extends SpliceFu
         ExecRow row = null;
         if (triggerRowsKind == OLD)
             row = tec.buildOldRow(from, true);
-        else if (triggerRowsKind == NEW)
+        else 
             row = tec.buildNewRow(from, true);
 
         if (row.nColumns() > nCols) {
