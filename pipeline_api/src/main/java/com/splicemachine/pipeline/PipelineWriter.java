@@ -109,7 +109,7 @@ public class PipelineWriter{
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
         // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
 
-        status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
+        status = writeControl.registerWrite(numKVPairs, dependent);
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             if(LOG.isTraceEnabled())
                 LOG.trace("Rejecting "+numBulkWrites+" rows in "+ bws.size()+"writes because the pipeline is too busy");
@@ -131,10 +131,10 @@ public class PipelineWriter{
                 case REJECTED:
                     break;
                 case DEPENDENT:
-                    writeControl.finishDependentWrite(numKVPairs);
+                    writeControl.registerDependentWriteFinish(numKVPairs);
                     break;
                 case INDEPENDENT:
-                    writeControl.finishIndependentWrite(numKVPairs);
+                    writeControl.registerIndependentWriteFinish(numKVPairs);
                     break;
             }
         }

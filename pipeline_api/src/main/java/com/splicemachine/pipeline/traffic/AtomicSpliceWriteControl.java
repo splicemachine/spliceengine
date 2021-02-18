@@ -16,15 +16,6 @@ package com.splicemachine.pipeline.traffic;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * WriteControl limits (or controls) the rate of writes per region server.  It restricts writes based on the number of writes that are currently "in flight"
- * and the number of writer threads that are currently in use.  WriteControl is essentially a multi-variable counting semaphore where the counting variables
- * are the number of current writes and the number of current writer threads.  The limiting variables (or buckets) or further subdivided into independent and 
- * dependent writes.  Independent writes being writes to a single table and dependent writes being writes that require multiple tables to written to such as
- * a base table and its indexes.  WriteControl does not actually perform writes.  It just controls whether or not the write is allowed to proceed.
- * It essentially gives out "permits" when the write request fits within the control limits and rejects write requests when they don't.
- */
-
 public class AtomicSpliceWriteControl implements SpliceWriteControl{
 
     protected int maxDependentWriteThreads;
@@ -60,7 +51,7 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public Status performDependentWrite(int writes) {
+    public Status registerDependentWrite(int writes) {
         for (;;) {
             long val = dependentWrites.get();
             int threads = toThreads(val) + 1;
@@ -75,19 +66,18 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public boolean finishDependentWrite(int writes) {
+    public void registerDependentWriteFinish(int writes) {
         dependentWrites.addAndGet(-toValue(1, writes));
-        return true;
     }
 
     @Override
-    public Status performIndependentWrite(int writes) {
+    public Status registerIndependentWrite(int writes) {
         for (;;) {
             long val = independentWrites.get();
             int threads = toThreads(val) + 1;
             int count = toWrites(val) + writes;
             if (threads > maxIndependentWriteThreads || count > maxIndependentWriteCount) {
-                return performDependentWrite(writes);
+                return registerDependentWrite(writes);
             }
             if (independentWrites.compareAndSet(val, toValue(threads, count))) {
                 return Status.INDEPENDENT;
@@ -96,9 +86,8 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public boolean finishIndependentWrite(int writes) {
+    public void registerIndependentWriteFinish(int writes) {
         independentWrites.addAndGet(-toValue(1, writes));
-        return true;
     }
 
     @Override

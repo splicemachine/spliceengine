@@ -31,13 +31,13 @@ public class SpliceWriteControlTest {
     public void performIndependentWrite() {
         SpliceWriteControl writeControl = new AtomicSpliceWriteControl(3, 3, 200, 200);
 
-        writeControl.performIndependentWrite(25);
+        writeControl.registerIndependentWrite(25);
         assertEquals("{ dependentWriteThreads=0, independentWriteThreads=1, dependentWriteCount=0, independentWriteCount=25 }", writeControl.getWriteStatus().toString());
 
-        writeControl.performIndependentWrite(25);
+        writeControl.registerIndependentWrite(25);
         assertEquals("{ dependentWriteThreads=0, independentWriteThreads=2, dependentWriteCount=0, independentWriteCount=50 }", writeControl.getWriteStatus().toString());
 
-        writeControl.finishIndependentWrite(25);
+        writeControl.registerIndependentWriteFinish(25);
         assertEquals("{ dependentWriteThreads=0, independentWriteThreads=1, dependentWriteCount=0, independentWriteCount=25 }", writeControl.getWriteStatus().toString());
     }
 
@@ -74,8 +74,8 @@ public class SpliceWriteControlTest {
                 int origin = dependent ? avgDependent/2 : avgIndependent/2;
                 int numWrites = ThreadLocalRandom.current().nextInt(origin, 3 * origin);
 
-                SpliceWriteControl.Status status = dependent ? writeControl.performDependentWrite(numWrites)
-                        : writeControl.performIndependentWrite(numWrites);
+                SpliceWriteControl.Status status = dependent ? writeControl.registerDependentWrite(numWrites)
+                        : writeControl.registerIndependentWrite(numWrites);
 
                 switch (status) {
                     case REJECTED:
@@ -88,7 +88,7 @@ public class SpliceWriteControlTest {
                         maxDependentCount.accumulateAndGet(c, (a, b) -> Math.max(a, b));
                         curDependentThreads.decrementAndGet();
                         curDependentCount.addAndGet(-numWrites);
-                        writeControl.finishIndependentWrite(numWrites);
+                        writeControl.registerIndependentWriteFinish(numWrites);
                         break;
                     }
                     case DEPENDENT: {
@@ -98,7 +98,7 @@ public class SpliceWriteControlTest {
                         maxIndependentCount.accumulateAndGet(c, (a, b) -> Math.max(a, b));
                         curIndependentThreads.decrementAndGet();
                         curIndependentCount.addAndGet(-numWrites);
-                        writeControl.finishDependentWrite(numWrites);
+                        writeControl.registerDependentWriteFinish(numWrites);
                         break;
                     }
                     default:

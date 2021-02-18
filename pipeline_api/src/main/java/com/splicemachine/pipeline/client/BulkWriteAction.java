@@ -126,44 +126,33 @@ public class BulkWriteAction implements Callable<WriteStats>{
     }
 
     private void reportSize(){
-        boolean success;
         long bufferEntries=bulkWrites.numEntries();
         int numRegions=bulkWrites.numRegions();
         statusReporter.totalFlushEntries.addAndGet(bufferEntries);
         statusReporter.totalFlushRegions.addAndGet(numRegions);
 
-        do{
-            long currentMax=statusReporter.maxFlushRegions.get();
-            success=currentMax>=bufferEntries || statusReporter.maxFlushRegions.compareAndSet(currentMax,bufferEntries);
-        }while(!success);
+        reportSize(numRegions, statusReporter.maxFlushRegions, Long.MAX_VALUE);
+        reportSize(numRegions, statusReporter.minFlushRegions, Long.MIN_VALUE);
 
-        do{
-            long currentMin=statusReporter.minFlushRegions.get();
-            success=currentMin<=bufferEntries || statusReporter.minFlushRegions.compareAndSet(currentMin,bufferEntries);
-        }while(!success);
-
-        do{
-            long currentMax=statusReporter.maxFlushEntries.get();
-            success=currentMax>=bufferEntries || statusReporter.maxFlushEntries.compareAndSet(currentMax,bufferEntries);
-        }while(!success);
-
-        do{
-            long currentMin=statusReporter.minFlushEntries.get();
-            success=currentMin<=bufferEntries || statusReporter.minFlushEntries.compareAndSet(currentMin,bufferEntries);
-        }while(!success);
+        reportSize(bufferEntries, statusReporter.maxFlushEntries, Long.MAX_VALUE);
+        reportSize(bufferEntries, statusReporter.minFlushEntries, Long.MIN_VALUE);
 
         long bufferSizeBytes=bulkWrites.getBufferHeapSize();
         statusReporter.totalFlushSizeBytes.addAndGet(bufferSizeBytes);
-        do{
-            long currentMax=statusReporter.maxFlushSizeBytes.get();
-            success=currentMax>=bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMax,bufferSizeBytes);
-        }while(!success);
 
-        do{
-            long currentMin=statusReporter.minFlushSizeBytes.get();
-            success=currentMin<=bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMin,bufferSizeBytes);
-        }while(!success);
+        reportSize(bufferSizeBytes, statusReporter.maxFlushSizeBytes, Long.MAX_VALUE);
+        reportSize(bufferSizeBytes, statusReporter.minFlushSizeBytes, Long.MIN_VALUE);
+    }
 
+    private void reportSize(long bufferEntries, AtomicLong atomicValue,
+                               long minOrMax) {
+        boolean success;
+        do {
+            long currentValue = atomicValue.get();
+            boolean alreadySetOrMore = minOrMax == Long.MIN_VALUE
+                    ? (currentValue <= bufferEntries) : (currentValue >= bufferEntries);
+            success = alreadySetOrMore || atomicValue.compareAndSet(currentValue, bufferEntries);
+        } while (!success);
     }
 
     private void execute(BulkWrites bulkWrites) throws Exception {
