@@ -67,6 +67,8 @@ import java.util.*;
 public class ScanCostFunction{
     public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
 
+    private static final int OLTP_INDEXLOOKUP_LATENCY_FACTOR = 10;
+
     private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
 
@@ -533,7 +535,7 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            double lookupCostPerRow = isOlap ? (openLatency+closeLatency) : ((openLatency+closeLatency) / 10);
+            double lookupCostPerRow = isOlap ? (openLatency+closeLatency) : ((openLatency+closeLatency) / OLTP_INDEXLOOKUP_LATENCY_FACTOR);
             lookupCost = totalRowCount*filterBaseTableSelectivity*lookupCostPerRow;
             scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
