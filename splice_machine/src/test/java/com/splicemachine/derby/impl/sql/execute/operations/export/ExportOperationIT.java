@@ -145,22 +145,24 @@ public class ExportOperationIT {
     public void export_defaultDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_local_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into export_local_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table export_local_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into export_local_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from export_local_%s order by a asc", getSuffix()), "None");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,3.14159,14:31:20,varchar1\n" +
-                        "26,3.14159,14:31:20,varchar1\n" +
-                        "27,3.14159,14:31:20,varchar1 space\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159,14:31:20,varchar1\n",
+        assertEquals(
+                "0,0.0,00:00:00,,\n" +
+                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
+                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        ",,,,\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -168,22 +170,24 @@ public class ExportOperationIT {
     public void export_withAlternateRecordDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table pipe_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into pipe_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table pipe_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into pipe_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from pipe_%s order by a asc", getSuffix()), "NONE", "|");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25|3.14159|14:31:20|varchar1\n" +
-                        "26|3.14159|14:31:20|varchar1\n" +
-                        "27|3.14159|14:31:20|varchar1 space\n" +
-                        "28|3.14159|14:31:20|varchar1 , comma\n" +
-                        "29|3.14159|14:31:20|\"varchar1 \"\" quote\"\n" +
-                        "30|3.14159|14:31:20|varchar1\n",
+        assertEquals(
+                "0|0.0|00:00:00||\n" +
+                        "25|3.14159|14:31:20|varchar1|6269746461746131\n" +
+                        "26|3.14159|14:31:20|varchar1|6269746461746131\n" +
+                        "27|3.14159|14:31:20|varchar1 space|626974206461746131\n" +
+                        "28|3.14159|14:31:20|varchar1 , comma|62697464617461202c2031\n" +
+                        "29|3.14159|14:31:20|\"varchar1 \"\" quote\"|6269746461746120222c2031\n" +
+                        "30|3.14159|14:31:20|varchar1|6269746461746131\n" +
+                        "||||\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -191,22 +195,26 @@ public class ExportOperationIT {
     public void export_withTabs() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table tabs_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into tabs_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table tabs_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into tabs_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from tabs_%s order by a asc", getSuffix()), " none ", "\\t");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25\t3.14159\t14:31:20\tvarchar1\n" +
-                        "26\t3.14159\t14:31:20\tvarchar1\n" +
-                        "27\t3.14159\t14:31:20\tvarchar1 space\n" +
-                        "28\t3.14159\t14:31:20\tvarchar1 , comma\n" +
-                        "29\t3.14159\t14:31:20\t\"varchar1 \"\" quote\"\n" +
-                        "30\t3.14159\t14:31:20\tvarchar1\n",
+        assertEquals(
+                "0\t0.0\t00:00:00\t\t\n" +
+                        "25\t3.14159\t14:31:20\tvarchar1\t6269746461746131\n" +
+                        "26\t3.14159\t14:31:20\tvarchar1\t6269746461746131\n" +
+                        "27\t3.14159\t14:31:20\tvarchar1 space\t626974206461746131\n" +
+                        "28\t3.14159\t14:31:20\tvarchar1 , comma\t62697464617461202c2031\n" +
+                        "29\t3.14159\t14:31:20\t\"varchar1 \"\" quote\"\t6269746461746120222c2031\n" +
+                        "30\t3.14159\t14:31:20\tvarchar1\t6269746461746131\n" +
+                        "\t\t\t\t\n",
+
+
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
@@ -264,22 +272,24 @@ public class ExportOperationIT {
     public void export_compressed_bz2() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_bz2_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_bz2_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table export_compressed_bz2_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_bz2_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from export_compressed_bz2_%s order by a asc", getSuffix()), "BZ2");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.bz2"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,3.14159,14:31:20,varchar1\n" +
-                        "26,3.14159,14:31:20,varchar1\n" +
-                        "27,3.14159,14:31:20,varchar1 space\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159,14:31:20,varchar1\n",
+        assertEquals(
+                "0,0.0,00:00:00,,\n" +
+                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
+                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        ",,,,\n",
                 IOUtils.toString(new BZip2CompressorInputStream(new FileInputStream(files[0]))));
     }
 
@@ -287,22 +297,24 @@ public class ExportOperationIT {
     public void export_compressed_gz() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_gz_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table export_compressed_gz_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_gz_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz_%s order by a asc", getSuffix()), "GZIP");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,3.14159,14:31:20,varchar1\n" +
-                        "26,3.14159,14:31:20,varchar1\n" +
-                        "27,3.14159,14:31:20,varchar1 space\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159,14:31:20,varchar1\n",
+        assertEquals(
+                "0,0.0,00:00:00,,\n" +
+                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
+                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        ",,,,\n",
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
 
@@ -310,22 +322,23 @@ public class ExportOperationIT {
     public void export_compressed_gz2() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz2_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_gz2_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table export_compressed_gz2_%s(a smallint,b double, c time,d varchar(20),e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_gz2_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz2_%s order by a asc", getSuffix()), true);
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,3.14159,14:31:20,varchar1\n" +
-                        "26,3.14159,14:31:20,varchar1\n" +
-                        "27,3.14159,14:31:20,varchar1 space\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159,14:31:20,varchar1\n",
+        assertEquals("0,0.0,00:00:00,,\n" +
+                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
+                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
+                        ",,,,\n",
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
 
@@ -642,12 +655,15 @@ public class ExportOperationIT {
 
     private Iterable<Iterable<Object>> getTestRows() {
         return rows(
-                row(25, 3.14159, "14:31:20", "varchar1"),
-                row(26, 3.14159, "14:31:20", "varchar1"),
-                row(27, 3.14159, "14:31:20", "varchar1 space"),
-                row(28, 3.14159, "14:31:20", "varchar1 , comma"),
-                row(29, 3.14159, "14:31:20", "varchar1 \" quote"),
-                row(30, 3.14159, "14:31:20", "varchar1")
+                row(25, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                row(26, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                row(27, 3.14159, "14:31:20", "varchar1 space", "bit data1"),
+                row(28, 3.14159, "14:31:20", "varchar1 , comma", "bitdata , 1"),
+                row(29, 3.14159, "14:31:20", "varchar1 \" quote", "bitdata \", 1"),
+                row(30, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                row(null, null, null, null, null),
+                row(0, 0.0, "00:00:00", "", "")
+
         );
     }
 
@@ -677,24 +693,25 @@ public class ExportOperationIT {
             return;
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_quote_always_%s (a smallint,b double, c time,d varchar(20))", getSuffix()))
-                .withInsert(String.format("insert into export_quote_always_%s values(?,?,?,?)", getSuffix()))
+                .withCreate(String.format("create table export_quote_always_%s (a smallint, b double, c time, d varchar(20), e varchar(20) for bit data)", getSuffix()))
+                .withInsert(String.format("insert into export_quote_always_%s values(?,?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportPath = temporaryFolder.getAbsolutePath();
         String exportSQL = buildExportSQL(String.format("select * from export_quote_always_%s order by a asc", getSuffix()),
                 exportPath, null, null, null, null, null, "always");
 
-        exportAndAssertExportResults(exportSQL, 6);
+        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,3.14159,14:31:20,\"varchar1\"\n" +
-                        "26,3.14159,14:31:20,\"varchar1\"\n" +
-                        "27,3.14159,14:31:20,\"varchar1 space\"\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
-                        "30,3.14159,14:31:20,\"varchar1\"\n",
+        assertEquals("0,0.0,00:00:00,\"\",\"\"\n" +
+                        "25,3.14159,14:31:20,\"varchar1\",\"6269746461746131\"\n" +
+                        "26,3.14159,14:31:20,\"varchar1\",\"6269746461746131\"\n" +
+                        "27,3.14159,14:31:20,\"varchar1 space\",\"626974206461746131\"\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\",\"62697464617461202c2031\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",\"6269746461746120222c2031\"\n" +
+                        "30,3.14159,14:31:20,\"varchar1\",\"6269746461746131\"\n" +
+                        ",,,,\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
