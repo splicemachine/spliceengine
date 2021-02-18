@@ -176,23 +176,5 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class Finished implements Serializable, Externalizable {
-        public int partition;
-
-        public Finished() {}
-
-        public Finished(int partition) {
-            this.partition = partition;
-        }
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeInt(partition);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            partition = in.readInt();
-        }
-    }
-
 }
 

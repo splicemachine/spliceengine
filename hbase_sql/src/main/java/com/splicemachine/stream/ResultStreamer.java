@@ -61,7 +61,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private transient CountDownLatch active;
     private int batches;
     private volatile TaskContext taskContext;
-    private volatile boolean runningOnClient;
+    private transient CountDownLatch runningOnClient;
 
     // Serialization
     public ResultStreamer() {
@@ -180,9 +180,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             permits.release();
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
-            this.runningOnClient = false;
+            this.runningOnClient.countDown();
         } else if (msg instanceof StreamProtocol.RequestClose) {
-            this.runningOnClient = false;
+            this.runningOnClient.countDown();
             limit = 0; // If they want to close they don't need more data
             permits.release();
             // wait for the writing thread to finish
@@ -198,13 +198,24 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         }
     }
 
+    /**
+     * Throttling mechanism explanation: The throttling mechanism we have currently, see StreamableRDD.submit(), is to
+     * run 2 concurrent jobs at a time on the spark side, each sending rows from 2 partitions to the region server.
+     * If the buffer for a particular partition is full, it would cause back-pressure,
+     * and prevent Spark from sending more rows for that partition.
+     * However, if the number of rows in the partition is smaller than the buffer size, then there is another mechanism
+     * to hold Spark from sending all the rows for that partition to the region server is implemented via CountDownLatch
+     * runningOnClient: ResultStreamer keeps the connection to StreamListener opened until
+     * StreamProtocol.ConfirmClose/RequestClose messages come (runningOnClient awaits) and does not return from
+     * the method call until the partition will be processed on StreamListener.
+     */
     @Override
     public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
-        this.runningOnClient = true;
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
         this.active = new CountDownLatch(1);
+        this.runningOnClient = new CountDownLatch(1);
         taskContext = TaskContext.get();
         Bootstrap bootstrap;
         ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ResultStreamer-"+host+":"+port+"["+partition+"]").build();
@@ -234,9 +245,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     }
                 }
             }
-            while (runningOnClient) {
-                Thread.sleep(1000);
-            }
+            this.runningOnClient.await();
             futureConnect.channel().closeFuture().sync();
 
             String result;
