@@ -111,6 +111,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
         addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }

@@ -443,6 +443,27 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View " + viewName + " in SYSIBM is created!");
     }
 
+    // SYSCAT.COLUMNS view must be created after SYSIBM.SYSCOLUMNS because it's defined on top of SYSCOLUMNS view
+    public void createColumnsViewInSysCat(TransactionController tc) throws StandardException {
+        String viewName = "COLUMNS";
+        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysCatSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, viewName, 2, sysCatSchemaDesc, SYSCOLUMNSRowFactory.COLUMNS_VIEW_IN_SYSCAT);
+
+        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -723,6 +744,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReferencesViewInSysCat(tc);
 
         createSysIndexesViewInSysIBM(tc);
+
+        // don't pull this call before createTableColumnViewInSysIBM()
+        createColumnsViewInSysCat(tc);
     }
 
     @Override
