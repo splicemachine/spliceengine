@@ -84,7 +84,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
                        String    schemaName,
                        ConstantAction indexAction)
     {
-        super(tableId);
+        super();
         this.constraintName = constraintName;
         this.constraintType = constraintType;
         this.indexAction = indexAction;
