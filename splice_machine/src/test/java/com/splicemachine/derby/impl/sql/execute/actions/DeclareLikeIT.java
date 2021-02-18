@@ -14,23 +14,27 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.commons.lang.StringUtils;
-import org.junit.*;
+import com.splicemachine.test.SerialTest;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
-import java.sql.*;
+import java.sql.ResultSet;
 import java.util.Collection;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 @RunWith(Parameterized.class)
+@Category(SerialTest.class)
 public class DeclareLikeIT extends SpliceUnitTest {
     public static final String CLASS_NAME = DeclareLikeIT.class.getSimpleName().toUpperCase();
     private static final String schema = CLASS_NAME;
