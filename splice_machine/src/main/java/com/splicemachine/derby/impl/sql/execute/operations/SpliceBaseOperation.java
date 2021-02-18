@@ -536,7 +536,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
         activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient()) {
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !(isOlapServer() && activation.isSubStatement()) && !SpliceClient.isClient()) {
             openDistributed();
         } else {
             openCore(dsp);
