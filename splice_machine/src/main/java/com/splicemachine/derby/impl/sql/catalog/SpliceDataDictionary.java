@@ -326,23 +326,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void createReferencesViewInSysCat(TransactionController tc) throws StandardException {
-        String viewName = "REFERENCES";
-        TableDescriptor td = getTableDescriptor(viewName, sysCatSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysCatSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSFOREIGNKEYS_CATALOG_NUM, viewName, 0, sysCatSchemaDesc, SYSFOREIGNKEYSRowFactory.SYSCAT_REFERENCES_VIEW_SQL);
-
-        SpliceLogUtils.info(LOG, "View " + viewName + " in SYSCAT is created!");
+        createOrUpdateSystemView(tc, "SYSCAT", "REFERENCES");
     }
 
     public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
