@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -52,7 +53,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
@@ -1525,5 +1528,16 @@ public interface LanguageConnectionContext extends Context {
     boolean compilingStoredPreparedStatement();
 
     void setCompilingStoredPreparedStatement(boolean newValue);
+
+    void setupLocalSPSCache(boolean fromSparkExecution,
+                            SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;
+
+    ManagedCache<UUID, SPSDescriptor> getLocalSpsCache();
+
+    List<String> getDefaultRoles();
+
+    SchemaDescriptor getInitialDefaultSchemaDescriptor();
+
+    long getActiveStateTxId();
 
 }

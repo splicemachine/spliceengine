@@ -628,12 +628,15 @@ public class FromBaseTable extends FromTable {
         skipStats = skipStatsObj != null && skipStatsObj;
         Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d: defaultSelectivityFactorObj;
-        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+        boolean isCompilingTrigger = getCompilerContext().compilingTrigger();
+        Boolean useSparkObj = isCompilingTrigger ? null :
+            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
         if (useSparkObj != null)
             dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
                     DataSetProcessorType.SESSION_HINTED_OLAP :
                     DataSetProcessorType.SESSION_HINTED_OLTP);
-        Boolean useNativeSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK);
+        Boolean useNativeSparkObj = isCompilingTrigger ? null :
+            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK);
         if (useNativeSparkObj != null)
             sparkExecutionType = sparkExecutionType.combine(useNativeSparkObj ?
                     SparkExecutionType.SESSION_HINTED_NATIVE :
