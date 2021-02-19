@@ -596,7 +596,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
-            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
+            "case when CON.keydesc is null then NULL ELSE \n" +
+            "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber) END \n" +
             "     end as KEYSEQ,\n" +
             "     COL.COLUMNDEFAULT as \"DEFAULT\"\n" +
             "from \n" +
