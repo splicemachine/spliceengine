@@ -599,6 +599,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     when COL.COLUMNDATATYPE.getMaximumWidth() > 32767 then -1\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LENGTH,\n" +
             "case when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getScale()\n" +
@@ -615,6 +616,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
             "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
             "     end as KEYSEQ,\n" +

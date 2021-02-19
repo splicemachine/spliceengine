@@ -32,6 +32,7 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
             "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n" +
             "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
+            "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTableColumnViewInSYSIBM\n" +
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddColumnsViewInSYSCAT\n";
 
     // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts

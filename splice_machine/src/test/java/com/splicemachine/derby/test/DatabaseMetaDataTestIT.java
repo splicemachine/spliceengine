@@ -15,9 +15,12 @@
 package com.splicemachine.derby.test;
 
 import com.splicemachine.derby.test.framework.*;
-import org.apache.commons.dbutils.DbUtils;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -66,6 +69,7 @@ public class DatabaseMetaDataTestIT {
     private static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("aZb", spliceSchemaWatcher.schemaName, "(incorrect int)");
     private static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("\"A%B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
     private static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("\"A\\B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
+    private static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("coltest", spliceSchemaWatcher.schemaName, "(c1 decimal(10,2) default 3.14, c2 char(10), c3 decfloat not null, c4 varchar(4), primary key(c2, c4))");
     private static SpliceProcedureWatcher spliceProcedureWatcher1 = new SpliceProcedureWatcherWithCustomDrop("a_b", spliceSchemaWatcher.schemaName, "(correct varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
     private static SpliceProcedureWatcher spliceProcedureWatcher2 = new SpliceProcedureWatcherWithCustomDrop("aXb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
     private static SpliceProcedureWatcher spliceProcedureWatcher3 = new SpliceProcedureWatcherWithCustomDrop("aYb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
@@ -83,6 +87,7 @@ public class DatabaseMetaDataTestIT {
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
             .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
             .around(spliceProcedureWatcher1)
             .around(spliceProcedureWatcher2)
             .around(spliceProcedureWatcher3)
@@ -129,6 +134,19 @@ public class DatabaseMetaDataTestIT {
     public void testNullDecimalInUserTypeInDictionaryMeta() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select * from sys.syscolumns where columnname = 'T1N'");
         Assert.assertTrue("Query Did not return, decimal serde issue",rs.next());
+    }
+
+    @Test
+    public void testSysCatColumnsView() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("select * from syscat.columns where tabname = 'COLTEST'")) {
+            String expected = "TABSCHEMA       | TABNAME | COLNAME | COLNO |TYPENAME  |LENGTH | SCALE | DEFAULT | NULLS |CODEPAGE |KEYSEQ |\n" +
+                    "-------------------------------------------------------------------------------------------------------------------\n" +
+                    "DATABASEMETADATATESTIT | COLTEST |   C1    |   0   | DECIMAL  |  10   |   2   |  3.14   |   Y   |    0    | NULL  |\n" +
+                    "DATABASEMETADATATESTIT | COLTEST |   C2    |   1   |CHARACTER |  10   |   0   |  NULL   |   N   |  1208   |   1   |\n" +
+                    "DATABASEMETADATATESTIT | COLTEST |   C3    |   2   |DECFLOAT  |  16   |   0   |  NULL   |   N   |    0    | NULL  |\n" +
+                    "DATABASEMETADATATESTIT | COLTEST |   C4    |   3   | VARCHAR  |   4   |   0   |  NULL   |   N   |  1208   |   2   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test
