@@ -93,6 +93,8 @@ public class TriggerNewTransitionRows
 	private DataSet<ExecRow> sourceSet;
 	private TriggerExecutionContext tec;
 	protected TriggerRowHolderImpl rowHolder = null;
+	private DataSet<ExecRow> oldRowsSourceSet;
+	private DataSet<ExecRow> newRowsSourceSet;
 
 
 	public TriggerNewTransitionRows()
@@ -171,18 +173,28 @@ public class TriggerNewTransitionRows
             }
 
             // Can the Dataset be reused?
-            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null &&
+            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
-                                          !tec.hasGeneratedColumn();
+                                          !sourceSet.isNativeSpark()             &&
+                                          !tec.hasGeneratedColumn()              &&
+                                          !tec.hasSpecialFromTableTrigger();
             boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
+            boolean isOldRows = this instanceof TriggerOldTransitionRows;
+            DataSet<ExecRow> commonSourceSet = isOldRows ? oldRowsSourceSet : newRowsSourceSet;
 
             if (useCommonDataSet) {
-                triggerRows = sourceSet;
-                // The first time seen, the DataSet is upgraded to native spark.
-                // On subsequent uses no more modification is needed.
-                if (!sourceSet.isNativeSpark()) {
-                    sourceSet = applyTriggerRowsMapFunction(sourceSet, op, tec);
-                    triggerRows = sourceSet = sourceSet.upgradeToSparkNativeDataSet(op.getOperationContext());
+                if (commonSourceSet != null)
+                    triggerRows = commonSourceSet;
+                else {
+                    triggerRows = sourceSet;
+                    if (!sourceSet.isNativeSpark()) {
+                        triggerRows = applyTriggerRowsMapFunction(sourceSet, op, tec);
+                        triggerRows = triggerRows.upgradeToSparkNativeDataSet(op.getOperationContext());
+                        if (isOldRows)
+                            oldRowsSourceSet = triggerRows;
+                        else
+                            newRowsSourceSet = triggerRows;
+                    }
                 }
             }
             else {
@@ -357,6 +369,7 @@ public class TriggerNewTransitionRows
            sourceSet = null;
        }
        tec = null;
+       oldRowsSourceSet = newRowsSourceSet = null;
    }
 
     @Override

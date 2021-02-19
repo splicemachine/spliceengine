@@ -370,8 +370,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         finally {
             // Statement triggers may use a persisted Dataset.
             // Clean it up after the triggers no longer need it.
-            if (sourceSet != null)
+            if (sourceSet != null) {
                 sourceSet.unpersistIt();
+                sourceSet = null;
+            }
         }
     }
 
@@ -432,8 +434,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         if (triggerHandler!=null) {
             triggerHandler.cleanup();
         }
-        if (sourceSet != null)
+        if (sourceSet != null) {
             sourceSet.unpersistIt();
+            sourceSet = null;
+        }
         super.close();
     }
 
@@ -520,7 +524,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
     private boolean needsPersistedDataset() {
         return triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause() &&
-               !triggerHandler.hasGeneratedColumn();
+               !triggerHandler.hasGeneratedColumn() &&
+               !triggerHandler.hasSpecialFromTableTrigger();
     }
 
     public boolean hasTriggers() { return triggerHandler != null; }
