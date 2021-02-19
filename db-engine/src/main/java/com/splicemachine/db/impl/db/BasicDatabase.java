@@ -305,7 +305,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         // push a database shutdown context
         // we also need to push a language connection context.
         LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type,skipStats,defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                rdbIntTkn, type, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema,
+                null, null, null, -1, sessionProperties);
 
         // push the context that defines our class factory
         pushClassFactoryContext(cm, lcf.getClassFactory());

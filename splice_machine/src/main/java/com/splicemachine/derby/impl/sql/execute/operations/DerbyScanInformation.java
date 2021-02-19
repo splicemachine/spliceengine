@@ -42,6 +42,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +60,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private String resultRowAllocatorMethodName;
     private String startKeyGetterMethodName;
     private String stopKeyGetterMethodName;
-    private String scanQualifiersField;
+    private String scanQualifiersFieldName;
+    private Field  qualifiersField;
     protected boolean sameStartStopPosition;
     private long conglomId;
     protected int startSearchOperator;
@@ -90,7 +92,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     public DerbyScanInformation(String resultRowAllocatorMethodName,
                                 String startKeyGetterMethodName,
                                 String stopKeyGetterMethodName,
-                                String scanQualifiersField,
+                                String scanQualifiersFieldName,
                                 long conglomId,
                                 int colRefItem,
                                 int indexColItem,
@@ -109,7 +111,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.conglomId = conglomId;
         this.sameStartStopPosition = sameStartStopPosition;
         this.startSearchOperator = startSearchOperator;
-        this.scanQualifiersField = scanQualifiersField;
+        this.scanQualifiersFieldName = scanQualifiersFieldName;
         this.stopSearchOperator = stopSearchOperator;
         this.rowIdKey = rowIdKey;
         this.tableVersion = tableVersion;
@@ -253,7 +255,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         out.writeInt(stopSearchOperator);
         out.writeInt(colRefItem);
         out.writeInt(indexColItem);
-        SerializationUtils.writeNullableString(scanQualifiersField, out);
+        SerializationUtils.writeNullableString(scanQualifiersFieldName, out);
         SerializationUtils.writeNullableString(startKeyGetterMethodName, out);
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
         out.writeUTF(tableVersion);
@@ -271,7 +273,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         stopSearchOperator = in.readInt();
         colRefItem = in.readInt();
         indexColItem = in.readInt();
-        scanQualifiersField = SerializationUtils.readNullableString(in);
+        scanQualifiersFieldName = SerializationUtils.readNullableString(in);
         startKeyGetterMethodName = SerializationUtils.readNullableString(in);
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
         this.tableVersion = in.readUTF();
@@ -403,9 +405,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     protected Qualifier[][] populateQualifiers() throws StandardException {
 
         Qualifier[][] scanQualifiers = null;
-        if (scanQualifiersField != null) {
+        if (scanQualifiersFieldName != null) {
             try {
-                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
+                if (qualifiersField == null)
+                    qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
+                scanQualifiers = (Qualifier[][]) qualifiersField.get(activation);
             } catch (Exception e) {
                 throw StandardException.unexpectedUserException(e);
             }

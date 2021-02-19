@@ -421,7 +421,7 @@ public class GenericStatement implements Statement{
                 preparedStmt.setActivationClass(null);
             }
         }
-
+        CompilerContext cc = null;
         try{
             /*
             ** For stored prepared statements, we want all
@@ -443,7 +443,6 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            CompilerContext cc = null;
             if (BoundAndOptimizedStatement != null)
                 cc = BoundAndOptimizedStatement.getCompilerContext();
             else {
@@ -676,6 +675,8 @@ public class GenericStatement implements Statement{
                 }
                 cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
             }
+            if (internalSQL)
+                cc.setCompilingTrigger(true);
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,BoundAndOptimizedStatement);
         }catch(StandardException se){
             if(foundInCache)
@@ -687,8 +688,13 @@ public class GenericStatement implements Statement{
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
             }
+
             DataDictionaryCache.fromTableTriggerDescriptor.remove();
             DataDictionaryCache.fromTableTriggerSPSDescriptor.remove();
+
+            if (cc != null)
+                cc.setCompilingTrigger(false);
+
         }
 
         lcc.commitNestedTransaction();

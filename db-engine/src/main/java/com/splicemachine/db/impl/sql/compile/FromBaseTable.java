@@ -628,7 +628,11 @@ public class FromBaseTable extends FromTable {
         skipStats = skipStatsObj==null?false:skipStatsObj.booleanValue();
         Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d:defaultSelectivityFactorObj.doubleValue();
-        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d: defaultSelectivityFactorObj;
+        boolean isCompilingTrigger = getCompilerContext().compilingTrigger();
+        Boolean useSparkObj = isCompilingTrigger ? null :
+            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+
         if (useSparkObj != null)
             dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
                     DataSetProcessorType.SESSION_HINTED_SPARK:

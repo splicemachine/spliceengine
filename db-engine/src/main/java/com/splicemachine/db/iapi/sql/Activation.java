@@ -650,4 +650,8 @@ public interface Activation extends Dependent
     boolean isSubStatement();
 
     void setSubStatement(boolean newValue);
+
+    boolean isRowTrigger();
+
+    void setIsRowTrigger(boolean newValue);
 }

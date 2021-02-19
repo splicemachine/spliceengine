@@ -15,6 +15,7 @@
 package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -24,7 +25,10 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -36,6 +40,7 @@ import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
@@ -80,15 +85,29 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, null);
+        return this.marshallTransaction(txn, null, null, null, null, -1);
     }
 
     public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, propertyCache, null, null, null);
+            return this.marshallTransaction(txn, propertyCache, null, null, null, -1);
     }
 
     public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
-                                       TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
+                                    long driverTxnId) throws StandardException, SQLException {
+        return this.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null, null, null);
+    }
+
+
+    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
+                                    long driverTxnId,
+                                    TransactionController reuseTC,
+                                    String localUserName, Integer sessionNumber) throws StandardException, SQLException{
         boolean updated = false;
         try {
             if (LOG.isDebugEnabled()) {
@@ -106,10 +125,16 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
             }
 
-            lcc=database.generateLanguageConnectionContext(txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
-                                                           DataSetProcessorType.DEFAULT_CONTROL,
-                                                           false, -1, ipAddress,
-                                                            reuseTC);
+            lcc=database.generateLanguageConnectionContext(
+                    txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
+                    DataSetProcessorType.DEFAULT_CONTROL,
+                    false, -1,
+                    ipAddress,
+                    storedPreparedStatementCache,
+                    defaultRoles,
+                    initialDefaultSchemaDescriptor,
+                    driverTxnId,
+                    reuseTC);
 
             return true;
         } catch (Throwable t) {

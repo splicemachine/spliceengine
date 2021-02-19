@@ -60,6 +60,8 @@ import com.splicemachine.utils.Pair;
 import java.sql.SQLWarning;
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.DataSetProcessorType.*;
+
 /**
  *
  * CompilerContextImpl, implementation of CompilerContext.
@@ -1216,6 +1218,8 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap referencedSequences;
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
+    private boolean compilingTrigger = false;
+
     @Override
     public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {
         dataSetProcessorType = dataSetProcessorType.combine(type);
@@ -1223,6 +1227,14 @@ public class CompilerContextImpl extends ContextImpl
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
+        if (compilingTrigger) {
+            // Session hints should not affect how stored trigger
+            // code is executed, because we do not recompile triggers
+            // when a query with a different session hint is issued.
+            if (dataSetProcessorType == SESSION_HINTED_SPARK ||
+                dataSetProcessorType == SESSION_HINTED_CONTROL)
+                return DEFAULT_CONTROL;
+        }
         return dataSetProcessorType;
     }
 
@@ -1235,4 +1247,15 @@ public class CompilerContextImpl extends ContextImpl
     public Vector<Integer> getSkipStatsTableList() {
         return skipStatsTableList;
     }
+
+    @Override
+    public boolean compilingTrigger() {
+        return compilingTrigger;
+    }
+
+    @Override
+    public void setCompilingTrigger(boolean newVal) {
+        compilingTrigger = newVal;
+    }
+
 } // end of class CompilerContextImpl
