@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test;
 
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
@@ -25,6 +26,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DatabaseMetaDataTestIT {
 
@@ -69,7 +72,13 @@ public class DatabaseMetaDataTestIT {
     private static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("aZb", spliceSchemaWatcher.schemaName, "(incorrect int)");
     private static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("\"A%B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
     private static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("\"A\\B\"", spliceSchemaWatcher.schemaName, "(incorrect int)");
-    private static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("coltest", spliceSchemaWatcher.schemaName, "(c1 decimal(10,2) default 3.14, c2 char(10), c3 decfloat not null, c4 varchar(4), primary key(c2, c4))");
+    private static SpliceTableWatcher spliceTableWatcher8  = new SpliceTableWatcher("\"TEMP  _TABLE\"", spliceSchemaWatcher.schemaName, "(R8 int)");
+    private static SpliceTableWatcher spliceTableWatcher9  = new SpliceTableWatcher("\"TEMP ESCAPE '\\\\' TABLE\"", spliceSchemaWatcher.schemaName, "(R9 int)");
+    private static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("\"\\'TEMPTABLE\\'\"", spliceSchemaWatcher.schemaName, "(R10 int)");
+    private static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("\"TEMP\\TABLE\"", spliceSchemaWatcher.schemaName, "(R11 int)");
+    private static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("\"TEE%SSS\"", spliceSchemaWatcher.schemaName, "(R13 int)");
+    private static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("\"TEE%SSSS\"", spliceSchemaWatcher.schemaName, "(R14 int)");
+    private static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher("coltest", spliceSchemaWatcher.schemaName, "(c1 decimal(10,2) default 3.14, c2 char(10), c3 decfloat not null, c4 varchar(4), primary key(c2, c4))");
     private static SpliceProcedureWatcher spliceProcedureWatcher1 = new SpliceProcedureWatcherWithCustomDrop("a_b", spliceSchemaWatcher.schemaName, "(correct varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
     private static SpliceProcedureWatcher spliceProcedureWatcher2 = new SpliceProcedureWatcherWithCustomDrop("aXb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
     private static SpliceProcedureWatcher spliceProcedureWatcher3 = new SpliceProcedureWatcherWithCustomDrop("aYb", spliceSchemaWatcher.schemaName, "(incorrect varchar(2)) EXTERNAL NAME 'bla.returnsNothing' LANGUAGE JAVA PARAMETER STYLE JAVA");
@@ -88,6 +97,12 @@ public class DatabaseMetaDataTestIT {
             .around(spliceTableWatcher6)
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9)
+            .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11)
+            .around(spliceTableWatcher12)
+            .around(spliceTableWatcher13)
+            .around(spliceTableWatcher14)
             .around(spliceProcedureWatcher1)
             .around(spliceProcedureWatcher2)
             .around(spliceProcedureWatcher3)
@@ -156,6 +171,31 @@ public class DatabaseMetaDataTestIT {
         try(ResultSet rs = dmd.getColumns(null, spliceSchemaWatcher.schemaName, "A\\_B" /* simulating what ij.jj would do */, null)) {
             Assert.assertTrue(rs.next());
             Assert.assertEquals("CORRECT", rs.getString(4));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testDescribeTableWithQuoting() throws Exception {
+        Map<String, String> columns  = new HashMap();
+        columns.put("TEMP  _TABLE", "R8");
+        columns.put("TEMP ESCAPE '\\\\' TABLE", "R9");
+        columns.put("\\'TEMPTABLE\\'", "R10");
+        columns.put("TEMP\\TABLE", "R11");
+        columns.put("TEE%SSS", "R13");
+        columns.put("TEE%SSSS", "R14");
+
+        for(Map.Entry<String, String> entry : columns.entrySet()) {
+            verifyColumn(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void verifyColumn(String tableName, String columnName) throws SQLException {
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        DatabaseMetaData dmd=conn.getMetaData();
+        try(ResultSet rs = dmd.getColumns(null, spliceSchemaWatcher.schemaName, Utils.escape(tableName) /* simulating what ij.jj would do */, null)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(columnName, rs.getString(4));
             Assert.assertFalse(rs.next());
         }
     }

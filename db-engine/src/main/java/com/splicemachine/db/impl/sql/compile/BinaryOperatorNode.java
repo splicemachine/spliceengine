@@ -119,6 +119,7 @@ public class BinaryOperatorNode extends OperatorNode
     public final static int REPEAT = 2;
     public final static int SIMPLE_LOCALE_STRING = 3;
     public final static int MULTIPLY_ALT = 3;
+    public final static int POSSTR = 4;
 
     // NOTE: in the following 4 arrays, order
     // IS important.
@@ -540,7 +541,7 @@ public class BinaryOperatorNode extends OperatorNode
     public boolean leftIsReceiver() throws StandardException {
         return (getLeftOperand().getTypeId().typePrecedence() >
                 getRightOperand().getTypeId().typePrecedence() ||
-                operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING);
+                operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING || operatorType == POSSTR);
     }
 
     /**
