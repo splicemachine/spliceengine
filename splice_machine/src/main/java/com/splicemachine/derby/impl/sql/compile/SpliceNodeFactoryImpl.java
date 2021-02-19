@@ -304,6 +304,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.USERTYPE_CONSTANT_NODE:
                 return C_NodeNames.USERTYPE_CONSTANT_NODE_NAME;
 
+            case C_NodeTypes.POSSTR_OPERATOR_NODE:
+                return C_NodeNames.POSSTR_STRING_OPERATOR_NODE_NAME;
+
             case C_NodeTypes.PREDICATE:
                 return C_NodeNames.PREDICATE_NAME;
 

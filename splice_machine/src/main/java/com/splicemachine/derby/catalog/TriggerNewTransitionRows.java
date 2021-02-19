@@ -323,7 +323,6 @@ public class TriggerNewTransitionRows
                         rowHolder.setActivation(activation.getParentActivation());
                     else if (rowHolder.getActivation() == null)
                         rowHolder.setActivation(activation);
-
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     try {
                         resultSet = tec.getNewRowSet();
@@ -351,8 +350,9 @@ public class TriggerNewTransitionRows
 
 		return resultSet;
 	}
-    
-    public ResultSetMetaData getMetaData() throws SQLException
+
+	@Override
+    public ResultSetMetaData getRuntimeMetaData() throws SQLException
     {
         if (resultSet != null)
             return resultSet.getMetaData();

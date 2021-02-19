@@ -37,11 +37,11 @@ import static org.junit.Assert.assertTrue;
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Performance_IT extends SpliceUnitTest {
-    
+
     private Boolean useSpark;
     private static int numTables = 0;
     private static boolean isMemPlatform = false;
-    
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
@@ -58,7 +58,7 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
             .around(spliceSchemaWatcher);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-    
+
     public Trigger_Performance_IT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
