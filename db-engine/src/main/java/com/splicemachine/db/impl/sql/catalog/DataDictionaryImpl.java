@@ -3241,8 +3241,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
-        if(sps!=null)
-                return sps;
+        if (sps!=null)
+            return sps;
         sps=getSPSDescriptorIndex2Scan(uuid.toString());
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
@@ -3613,7 +3613,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException{
         for(Object o : getAllSPSDescriptors()){
             SPSDescriptor spsd=(SPSDescriptor)o;
-            spsd.getPreparedStatement(true);
+            spsd.getPreparedStatement(true, lcc);
         }
     }
 

@@ -61,6 +61,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.SQLWarning;
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.DataSetProcessorType.*;
+
 /**
  *
  * CompilerContextImpl, implementation of CompilerContext.
@@ -134,7 +136,7 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
         defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+        dataSetProcessorType = DEFAULT_OLTP;
         sparkExecutionType = SparkExecutionType.UNSPECIFIED;
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
@@ -1236,7 +1238,8 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap requiredUsagePrivileges;
     private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+    private DataSetProcessorType dataSetProcessorType = DEFAULT_OLTP;
+    private boolean compilingTrigger = false;
 
     public SparkExecutionType getSparkExecutionType() {
         return sparkExecutionType;
@@ -1255,6 +1258,14 @@ public class CompilerContextImpl extends ContextImpl
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
+        if (compilingTrigger) {
+            // Session hints should not affect how stored trigger
+            // code is executed, because we do not recompile triggers
+            // when a query with a different session hint is issued.
+            if (dataSetProcessorType == SESSION_HINTED_OLAP ||
+                dataSetProcessorType == SESSION_HINTED_OLTP)
+                return DEFAULT_OLTP;
+        }
         return dataSetProcessorType;
     }
 
@@ -1267,4 +1278,15 @@ public class CompilerContextImpl extends ContextImpl
     public Vector<Integer> getSkipStatsTableList() {
         return skipStatsTableList;
     }
+
+    @Override
+    public boolean compilingTrigger() {
+        return compilingTrigger;
+    }
+
+    @Override
+    public void setCompilingTrigger(boolean newVal) {
+        compilingTrigger = newVal;
+    }
+
 } // end of class CompilerContextImpl
