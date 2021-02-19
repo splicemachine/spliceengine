@@ -1492,7 +1492,7 @@ public class FromBaseTable extends FromTable {
      *
      * @throws StandardException Thrown on error
      */
-    private TableDescriptor bindTableDescriptor()
+    TableDescriptor bindTableDescriptor()
             throws StandardException{
         String schemaName=tableName.getSchemaName();
         SchemaDescriptor sd=getSchemaDescriptor(schemaName);
