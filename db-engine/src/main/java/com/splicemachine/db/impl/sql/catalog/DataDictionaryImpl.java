@@ -923,23 +923,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             tc=getTransactionCompile();
         }
 
-        if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
-            return getSystemSchemaDescriptor();
-        }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded
-            // from pre 52, I may have 2 versions for you, one on disk
-            // (user SYSIBM), one imaginary (builtin). The
-            // one on disk (real one, if it exists), should always be used.
-            if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                return getSysIBMSchemaDescriptor();
-            }
-        }
+        SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
+        if (sd != null)
+            return sd;
 
-        /*
-        ** Manual lookup
-        */
-
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        sd = dataDictionaryCache.schemaCacheFind(schemaName);
         if (sd!=null)
             return sd;
 
