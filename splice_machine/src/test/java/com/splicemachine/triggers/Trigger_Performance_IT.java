@@ -152,7 +152,7 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
                               "\n select * from sourceTable");
         long endTime = System.currentTimeMillis();
         long runTime = endTime - startTime;
-        assertTrue("Expected runtime to be less than 10 seconds.  Actual time: " + runTime + " milliseconds", runTime < 10000);
+        assertTrue("Expected runtime to be less than 15 seconds.  Actual time: " + runTime + " milliseconds", runTime < 15000);
 
     }
 
