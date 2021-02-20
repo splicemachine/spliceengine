@@ -1260,7 +1260,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
              * Really need yet another node type that does its own code generation.
              */
             if(rc.getExpression() instanceof CurrentRowLocationNode){
-                ConglomerateController cc;
                 int savedItem;
                 RowLocation rl;
 
@@ -1269,14 +1268,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
-                cc=lcc.getTransactionCompile().openConglomerate(conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel);
-
-                try{
+                try (ConglomerateController cc = lcc.getTransactionCompile().openConglomerate(
+                        conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel)) {
                     rl=cc.newRowLocationTemplate();
-                }finally{
-                    if(cc!=null){
-                        cc.close();
-                    }
                 }
 
                 savedItem=acb.addItem(rl);

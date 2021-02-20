@@ -62,7 +62,7 @@ class SystemViewDefinitions {
 
         views.put(new Pair<>("SYSCAT", "INDEXCOLUSE"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 1, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL));
         views.put(new Pair<>("SYSCAT", "REFERENCES"), new ViewInfo(DataDictionary.SYSFOREIGNKEYS_CATALOG_NUM, 0, SYSFOREIGNKEYSRowFactory.SYSCAT_REFERENCES_VIEW_SQL));
-        //views.put(new Pair<>("SYSCAT", "COLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 2, SYSCOLUMNSRowFactory.COLUMNS_VIEW_IN_SYSCAT));
+        views.put(new Pair<>("SYSCAT", "COLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 2, SYSCOLUMNSRowFactory.COLUMNS_VIEW_IN_SYSCAT));
 
         views.put(new Pair<>("SYSIBMADM", "SNAPAPPL"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 0, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL));
         views.put(new Pair<>("SYSIBMADM", "SNAPAPPL_INFO"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 1, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL));

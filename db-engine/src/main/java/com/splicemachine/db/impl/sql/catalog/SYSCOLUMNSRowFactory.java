@@ -503,7 +503,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         });
 
         // add columnlist for the syscolumns view in sysibm schema
-        Collection<Object[]> colList = Lists.newArrayListWithCapacity(50);
+        Collection<Object[]> colList = Lists.newArrayListWithCapacity(16);
         colList.add(new Object[]{"NAME", Types.VARCHAR, false, 128});
         colList.add(new Object[]{"TBNAME", Types.VARCHAR, false, 128});
         colList.add(new Object[]{"TBCREATOR", Types.VARCHAR, false, 128});
@@ -518,8 +518,29 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         colList.add(new Object[]{"KEYSEQ", Types.SMALLINT, true, null});
         colList.add(new Object[]{"DEFAULT", Types.CLOB, true, 65536});
 
+        cdsl.add(getViewColumnDescriptors(colList, view, viewId));
 
-        Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(50);
+        // add columnlist for the columns view in syscat schema
+        colList.clear();
+        colList.add(new Object[]{"TABSCHEMA", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"TABNAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"COLNAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"COLNO", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"TYPENAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"LENGTH", Types.INTEGER, false, null});
+        colList.add(new Object[]{"SCALE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"DEFAULT", Types.CLOB, true, 65536});
+        colList.add(new Object[]{"NULLS", Types.CHAR, false, 1});
+        colList.add(new Object[]{"CODEPAGE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"KEYSEQ", Types.SMALLINT, true, null});
+
+        cdsl.add(getViewColumnDescriptors(colList, view, viewId));
+
+        return cdsl;
+    }
+
+    private ColumnDescriptor[] getViewColumnDescriptors(Collection<Object[]> colList, TableDescriptor view, UUID viewId) {
+        Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(colList.size());
         int colPos = 0;
         for (Object[] entry: colList) {
             colPos ++;
@@ -534,10 +555,9 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
         ColumnDescriptor[] arr = new ColumnDescriptor[columnDescriptors.size()];
         arr = columnDescriptors.toArray(arr);
-        cdsl.add(arr);
-
-        return cdsl;
+        return arr;
     }
+
     public static String SYSCOLUMNS_VIEW_SQL = "create view SYSCOLUMNSVIEW as \n" +
             "SELECT C.REFERENCEID, " +
             "C.COLUMNNAME, " +
@@ -579,6 +599,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     when COL.COLUMNDATATYPE.getMaximumWidth() > 32767 then -1\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LENGTH,\n" +
             "case when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getScale()\n" +
@@ -595,6 +616,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
             "case when CON.keydesc is null then NULL ELSE \n" +
             "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber) END \n" +
@@ -626,4 +648,18 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "      cons.tableid = congloms.tableid and\n" +
             "      keys.conglomerateid = congloms.conglomerateid\n" +
             ") con on col.tableid = con.tableid";
+
+    public static String COLUMNS_VIEW_IN_SYSCAT = "create view COLUMNS as \n" +
+            "select TBCREATOR AS TABSCHEMA,\n" +
+            "       TBNAME AS TABNAME,\n" +
+            "       NAME AS COLNAME,\n" +
+            "       COLNO,\n" +
+            "       TYPENAME,\n" +
+            "       LONGLENGTH AS LENGTH,\n" +
+            "       SCALE,\n" +
+            "       \"DEFAULT\",\n" +
+            "       NULLS,\n" +
+            "       CODEPAGE,\n" +
+            "       KEYSEQ\n" +
+            "from SYSIBM.SYSCOLUMNS";
 }

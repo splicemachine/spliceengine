@@ -333,6 +333,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
     }
 
+    // SYSCAT.COLUMNS view must be created after SYSIBM.SYSCOLUMNS because it's defined on top of SYSCOLUMNS view
+    public void createColumnsViewInSysCat(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSCAT", "COLUMNS");
+    }
+
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
         if(naturalNumbersTable==null){
             naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
@@ -540,6 +545,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReferencesViewInSysCat(tc);
 
         createSysIndexesViewInSysIBM(tc);
+
+        // don't pull this call before createTableColumnViewInSysIBM()
+        createColumnsViewInSysCat(tc);
     }
 
     @Override
