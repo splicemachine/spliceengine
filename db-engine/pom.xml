@@ -260,6 +260,36 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- http://stackoverflow.com/questions/270445 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.12</version>
+                <executions>
+                    <execution>
+                        <id>1</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/main/${spark.major.version}</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <!--execution>
+                        <id>2</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>add-test-source</goal></goals>
+                        <configuration>
+                            <sources>
+                                <source>src/test/${spark.major.version}</source>
+                            </sources>
+                        </configuration>
+                    </execution-->
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
