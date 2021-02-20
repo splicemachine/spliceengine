@@ -816,7 +816,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException {
+    public SchemaDescriptor getSystemSchemaDescriptor() {
         return systemSchemaDesc;
     }
 
@@ -832,7 +832,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSystemUtilSchemaDescriptor() {
         return (systemUtilSchemaDesc);
     }
 
@@ -847,7 +847,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysIBMSchemaDescriptor() {
         return sysIBMSchemaDesc;
     }
 
@@ -862,7 +862,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysFunSchemaDescriptor() {
         return sysFunSchemaDesc;
     }
 
@@ -874,7 +874,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() {
         return declaredGlobalTemporaryTablesSchemaDesc;
     }
 
@@ -886,7 +886,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public boolean isSystemSchemaName(String name) throws StandardException{
+    public boolean isSystemSchemaName(String name) {
         boolean ret_val=false;
 
         for(int i=systemSchemaNames.length-1;i>=0;){
@@ -923,23 +923,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             tc=getTransactionCompile();
         }
 
-        if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
-            return getSystemSchemaDescriptor();
-        }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded
-            // from pre 52, I may have 2 versions for you, one on disk
-            // (user SYSIBM), one imaginary (builtin). The
-            // one on disk (real one, if it exists), should always be used.
-            if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                return getSysIBMSchemaDescriptor();
-            }
-        }
+        SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
+        if (sd != null)
+            return sd;
 
-        /*
-        ** Manual lookup
-        */
-
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        sd = dataDictionaryCache.schemaCacheFind(schemaName);
         if (sd!=null)
             return sd;
 
@@ -959,6 +947,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return sd;
         }
     }
+
+    public SchemaDescriptor getSystemWideSchemaDescriptor(String schemaName) {
+        switch (schemaName) {
+            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
+                return getSystemSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
+                // oh you are really asking SYSIBM, if this db is soft upgraded
+                // from pre 52, I may have 2 versions for you, one on disk
+                // (user SYSIBM), one imaginary (builtin). The
+                // one on disk (real one, if it exists), should always be used.
+                if(dictionaryVersion == null || dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2)){
+                    return getSysIBMSchemaDescriptor();
+                }
+                break;
+            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
+                return sysIBMADMSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
+                return getSysFunSchemaDescriptor();
+            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
+                return sysViewSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME:
+                return sysCatSchemaDesc;
+            default:
+                break;
+        }
+        return null;
+    }
+
 
     /**
      * Get the target schema by searching for a matching row
