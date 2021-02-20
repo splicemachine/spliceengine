@@ -38,8 +38,6 @@ import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 /**
  *
  * Test Class for SQLDouble
@@ -98,8 +96,8 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLReal(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLReal()));
-                Assert.assertEquals(55,stats.selectivity(new SQLReal(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLReal(9000)));
+                Assert.assertEquals(50,stats.selectivity(new SQLReal(1010)));
+                Assert.assertEquals(2,stats.selectivity(new SQLReal(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLReal(1000),new SQLReal(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLReal(),new SQLReal(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLReal(5000),new SQLReal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);

@@ -458,8 +458,8 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]))) {
                 Assert.assertTrue(rs.next());
-            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine2[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
-            if (i < 2) {
+                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine2[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
+                if (i < 2) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     //skip the next step to get to the TableScan step
                     Assert.assertTrue(rs.next());
@@ -506,7 +506,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine3[i]), rs.getString(1).contains(format("engine=%s", engine3[i])));
                 // skip ScrollInsensitive step
                 Assert.assertTrue(rs.next());
-            if (i < 2) {
+                if (i < 2) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     // with large input table rows, broadcast join should win
                     Assert.assertTrue(rs.next());

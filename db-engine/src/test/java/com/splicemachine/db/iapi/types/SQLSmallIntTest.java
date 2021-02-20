@@ -96,8 +96,8 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLSmallint(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLSmallint()));
-                Assert.assertEquals(55,stats.selectivity(new SQLSmallint(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLSmallint(9000)));
+                Assert.assertEquals(50,stats.selectivity(new SQLSmallint(1010)));
+                Assert.assertEquals(2,stats.selectivity(new SQLSmallint(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLSmallint(1000),new SQLSmallint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLSmallint(),new SQLSmallint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLSmallint(5000),new SQLSmallint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
