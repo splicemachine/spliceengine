@@ -39,8 +39,6 @@ import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 /**
  *
  * Test Class for SQLInteger
@@ -110,8 +108,8 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLInteger(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLInteger()));
-                Assert.assertEquals(55,stats.selectivity(new SQLInteger(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLInteger(9000)));
+                Assert.assertEquals(50,stats.selectivity(new SQLInteger(1010)));
+                Assert.assertEquals(2,stats.selectivity(new SQLInteger(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLInteger(1000),new SQLInteger(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLInteger(),new SQLInteger(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLInteger(5000),new SQLInteger(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);

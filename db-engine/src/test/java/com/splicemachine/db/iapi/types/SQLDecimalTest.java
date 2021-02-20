@@ -43,7 +43,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
-import java.util.Arrays;
 
 /**
  *
@@ -89,8 +88,8 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLDecimal("" + 1), stats.minValue());
                 Assert.assertEquals(1000, stats.selectivity(null));
                 Assert.assertEquals(1000, stats.selectivity(new SQLDecimal()));
-                Assert.assertEquals(55, stats.selectivity(new SQLDecimal("" + 1010)));
-                Assert.assertEquals(1, stats.selectivity(new SQLDecimal("" + 9000)));
+                Assert.assertEquals(50, stats.selectivity(new SQLDecimal("" + 1010)));
+                Assert.assertEquals(2, stats.selectivity(new SQLDecimal("" + 9000)));
                 Assert.assertEquals(1000.0d, (double) stats.rangeSelectivity(new SQLDecimal("" + 1000), new SQLDecimal("" + 2000), true, false), RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d, (double) stats.rangeSelectivity(new SQLDecimal(), new SQLDecimal("" + 500), true, false), RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4008.0d, (double) stats.rangeSelectivity(new SQLDecimal("" + 5000), new SQLDecimal(), true, false), RANGE_SELECTIVITY_ERRROR_BOUNDS);

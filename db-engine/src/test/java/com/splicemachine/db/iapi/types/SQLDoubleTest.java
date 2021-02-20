@@ -39,8 +39,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 /**
  *
  * Test Class for SQLDouble
@@ -99,8 +97,8 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLDouble(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLDouble()));
-                Assert.assertEquals(55,stats.selectivity(new SQLDouble(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLDouble(9000)));
+                Assert.assertEquals(50,stats.selectivity(new SQLDouble(1010)));
+                Assert.assertEquals(2,stats.selectivity(new SQLDouble(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLDouble(1000),new SQLDouble(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLDouble(),new SQLDouble(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4008.0d,(double) stats.rangeSelectivity(new SQLDouble(5000),new SQLDouble(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
