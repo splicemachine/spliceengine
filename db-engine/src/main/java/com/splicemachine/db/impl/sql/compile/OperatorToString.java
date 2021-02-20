@@ -327,11 +327,8 @@ public class OperatorToString {
                     // Spark by default counts weeks starting on Sunday.
                     if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    } else if (functionName.equals("WEEKDAY")) {
-                        if( getSparkVersion().getMajorVersionNumber() >= 3 )
-                            return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
-                        else
-                            return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                    } else if (functionName.equals("WEEKDAY") || functionName.equals("DAYOFWEEK_ISO")) {
+                        return format(SparkVersionSpecificItems.WEEKDAY_FORMAT, opToString2(uop.getOperand(), vars));
                     } else if (functionName.equals("WEEKDAYNAME")) {
                         return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
                     } else {
