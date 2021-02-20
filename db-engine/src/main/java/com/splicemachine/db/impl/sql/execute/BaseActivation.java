@@ -219,6 +219,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     private boolean isSubStatement = false;
 
+    private boolean isRowTrigger = false;
+
     public boolean ignoreSequence() {
         return ignoreSequence;
     }
@@ -1786,6 +1788,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	@Override
         public void setSubStatement(boolean newValue) {
 	    isSubStatement = newValue;
+	}
+
+	@Override
+	public boolean isRowTrigger() { return isRowTrigger; }
+
+	@Override
+        public void setIsRowTrigger(boolean newValue) {
+	    isRowTrigger = newValue;
 	}
 
 }

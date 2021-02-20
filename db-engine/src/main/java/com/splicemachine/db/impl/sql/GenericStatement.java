@@ -418,7 +418,7 @@ public class GenericStatement implements Statement{
                 preparedStmt.setActivationClass(null);
             }
         }
-
+        CompilerContext cc = null;
         try{
             /*
             ** For stored prepared statements, we want all
@@ -440,7 +440,6 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            CompilerContext cc = null;
             if (boundAndOptimizedStatement != null)
                 cc = boundAndOptimizedStatement.getCompilerContext();
             else {
@@ -470,6 +469,7 @@ public class GenericStatement implements Statement{
                 setDisableParallelTaskJoinCosting(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
                 setTimestampFormat(lcc, cc);
+                setSecondFunctionCompatibilityMode(lcc, cc);
                 setFloatingPointNotation(lcc, cc);
                 setOuterJoinFlatteningDisabled(lcc, cc);
 
@@ -480,6 +480,8 @@ public class GenericStatement implements Statement{
                 setSSQFlatteningForUpdateDisabled(lcc, cc);
                 setVarcharDB2CompatibilityMode(lcc, cc);
             }
+            if (internalSQL)
+                cc.setCompilingTrigger(true);
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement);
         }catch(StandardException se){
             if(foundInCache)
@@ -499,6 +501,8 @@ public class GenericStatement implements Statement{
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
             else
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
+            if (cc != null)
+                cc.setCompilingTrigger(false);
         }
 
         lcc.commitNestedTransaction();
@@ -774,6 +778,25 @@ public class GenericStatement implements Statement{
             }
             cc.setTimestampFormat(timestampFormatString);
         }
+    }
+
+    private void setSecondFunctionCompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String mode =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE);
+        if (mode == null) {
+            cc.setSecondFunctionCompatibilityMode(CompilerContext.DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE);
+        } else {
+            switch (mode.toLowerCase()) {
+                case "db2":
+                    cc.setSecondFunctionCompatibilityMode(mode);
+                    break;
+                case "splice":
+                default:
+                    cc.setSecondFunctionCompatibilityMode(CompilerContext.DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE);
+                    break;
+            }
+        }
+
     }
 
     private void setFloatingPointNotation(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

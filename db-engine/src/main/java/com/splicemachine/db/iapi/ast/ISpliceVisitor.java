@@ -87,6 +87,7 @@ public interface ISpliceVisitor {
     Visitable visit(BinaryOperatorNode node) throws StandardException;
     Visitable visit(BinaryRelationalOperatorNode node) throws StandardException;
     Visitable visit(BitConstantNode node) throws StandardException;
+    Visitable visit(BlobFunctionNode node) throws StandardException;
     Visitable visit(BooleanConstantNode node) throws StandardException;
     Visitable visit(CallStatementNode node) throws StandardException;
     Visitable visit(CastNode node) throws StandardException;
@@ -108,6 +109,7 @@ public interface ISpliceVisitor {
     Visitable visit(CurrentDatetimeOperatorNode node) throws StandardException;
     Visitable visit(CurrentRowLocationNode node) throws StandardException;
     Visitable visit(CursorNode node) throws StandardException;
+    Visitable visit(DaysFunctionNode node) throws StandardException;
     Visitable visit(DB2LengthOperatorNode node) throws StandardException;
     Visitable visit(DefaultNode node) throws StandardException;
     Visitable visit(DeleteNode node) throws StandardException;
@@ -154,6 +156,7 @@ public interface ISpliceVisitor {
     Visitable visit(OrderedColumnList node) throws StandardException;
     Visitable visit(OrNode node) throws StandardException;
     Visitable visit(ParameterNode node) throws StandardException;
+    Visitable visit(PosStrOperatorNode node) throws StandardException;
     Visitable visit(Predicate node) throws StandardException;
     Visitable visit(PredicateList node) throws StandardException;
     Visitable visit(PrivilegeNode node) throws StandardException;
@@ -169,6 +172,7 @@ public interface ISpliceVisitor {
     Visitable visit(SavepointNode node) throws StandardException;
     Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException;
     Visitable visit(DecimalFunctionNode node) throws StandardException;
+    Visitable visit(SecondFunctionNode node) throws StandardException;
     Visitable visit(SetRoleNode node) throws StandardException;
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;
@@ -189,6 +193,7 @@ public interface ISpliceVisitor {
     Visitable visit(TernaryOperatorNode node) throws StandardException;
     Visitable visit(TestConstraintNode node) throws StandardException;
     Visitable visit(TimestampOperatorNode node) throws StandardException;
+    Visitable visit(TranslateFunctionNode node) throws StandardException;
     Visitable visit(TruncateOperatorNode node) throws StandardException;
     Visitable visit(TypeofOperatorNode node) throws StandardException;
     Visitable visit(UnaryArithmeticOperatorNode node) throws StandardException;

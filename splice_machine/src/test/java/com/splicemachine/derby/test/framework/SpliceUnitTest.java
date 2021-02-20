@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1241,5 +1243,24 @@ public class SpliceUnitTest {
             rs.next();
             return ((Boolean)rs.getObject(1));
         }
+    }
+
+    public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
+        @Override
+        default void accept(final T t, final U u) {
+            try {
+                acceptThrows(t, u);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        void acceptThrows(T t, U u) throws Exception;
+    }
+
+    protected void runOltpOlapOlapNativeSpark(ThrowingBiConsumer<Boolean, Boolean> consumer) {
+        consumer.accept(false, false);
+        consumer.accept(true, false);
+        consumer.accept(true, true);
     }
 }

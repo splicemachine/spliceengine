@@ -1586,7 +1586,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             if (op == null)
                 return;
 
-            andNode.leftOperand = op.replaceIndexExpression(childRCL);
+            andNode.setLeftOperand(op.replaceIndexExpression(childRCL));
         }
     }
 

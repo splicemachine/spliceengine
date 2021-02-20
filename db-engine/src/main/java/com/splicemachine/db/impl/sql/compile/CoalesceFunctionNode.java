@@ -66,8 +66,7 @@ public class CoalesceFunctionNode extends MultiaryFunctionNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }
@@ -81,8 +80,7 @@ public class CoalesceFunctionNode extends MultiaryFunctionNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }

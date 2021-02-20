@@ -494,6 +494,12 @@ public class OperatorToString {
                     return format("concat(%s, %s) ", leftOperandString,
                                                      rightOperandString);
                 }
+                else if (operand instanceof PosStrOperatorNode) {
+                    if (vars.buildExpressionTree)
+                        throwNotImplementedError();
+                    return format("position(%s, %s) ", rightOperandString,
+                                                     leftOperandString);
+                }
                 else if (operand instanceof TruncateOperatorNode) {
                     if (vars.buildExpressionTree)
                         throwNotImplementedError();
@@ -674,7 +680,7 @@ public class OperatorToString {
                     if (rightOp != null)
                         throwNotImplementedError();
                     else {
-                        String likeString =  format("(%s %s %s) ", opToString2(top.getReceiver(), vars), top.getOperator(),
+                        String likeString =  format("(%s %s %s) ", opToString2(top.getReceiver(), vars), top.getOperatorString(),
                         opToString2(top.getLeftOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return likeString;
@@ -682,16 +688,16 @@ public class OperatorToString {
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
                     vars.relationalOpDepth.increment();
-                    if (top.getOperator().equals("LOCATE") || top.getOperator().equals("replace")) {
+                    if (top.getOperatorString().equals("LOCATE") || top.getOperatorString().equals("replace")) {
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+                        String retval = format("%s(%s, %s, %s) ", top.getOperatorString(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
-                    } else if (top.getOperator().equals("substring")) {
+                    } else if (top.getOperatorString().equals("substring")) {
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s %s)",
-                                top.getOperator(),
+                                top.getOperatorString(),
                                 opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars),
                                 top.getRightOperand() == null ? "" : ", " + opToString2(top.getRightOperand(), vars));
@@ -702,19 +708,19 @@ public class OperatorToString {
                         }
                         vars.relationalOpDepth.decrement();
                         return retval;
-                    } else if (top.getOperator().equals("trim")) {
+                    } else if (top.getOperatorString().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();
                         String retval;
                         if (top.isLeading())
-                            retval = format("%s(LEADING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(LEADING %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else if (top.isTrailing())
-                            retval = format("%s(TRAILING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(TRAILING %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else
-                            retval = format("%s(BOTH %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(BOTH %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
 
                         vars.relationalOpDepth.decrement();
@@ -726,7 +732,7 @@ public class OperatorToString {
                 else
                     throwNotImplementedError();
             }
-            return format("%s(%s, %s%s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+            return format("%s(%s, %s%s) ", top.getOperatorString(), opToString2(top.getReceiver(), vars),
                           opToString2(top.getLeftOperand(), vars), rightOp == null ? "" : ", " + opToString2(rightOp, vars));
         }
         else if (operand instanceof ArrayConstantNode) {

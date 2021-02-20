@@ -737,6 +737,7 @@ public interface SQLState {
     String LANG_INVALID_ESCAPE_CHARACTER              = "22019";
     String LANG_INVALID_TRIM_CHARACTER                = "22020";
     String LANG_INVALID_CHARACTER_ENCODING            = "22021";
+    String LANG_INVALID_TRANSLATE_PADDING             = "22022";
     String LANG_INVALID_ESCAPE_SEQUENCE               = "22025";
     String LANG_INVALID_TRIM_SET                      = "22027";
     String LANG_STRING_TOO_LONG                       = "22028";
@@ -1148,7 +1149,7 @@ public interface SQLState {
     String LANG_SHARE_ROW           = "42Z88.U";
 
     // MORE GENERIC LANGUAGE STUFF
-    // String LANG_UPDATABLE_VTI_BAD_GETRESULTSETCONCURRENCY          = "42Z89";
+    String LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA           = "42Z89";
     String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS            = "42Z90";
     String LANG_SUBQUERY                                  = "42Z91";
     String LANG_REPEATABLE_READ                           = "42Z92";
