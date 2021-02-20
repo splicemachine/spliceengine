@@ -80,14 +80,10 @@ class ResultHelper {
     }
 
     public int numColumns() {
-        return columns.size();
+        return columnDescriptors.size();
     }
 
     public ResultColumnDescriptor[] getColumnDescriptorsArray() {
-        List<GenericColumnDescriptor> columnDescriptors = new ArrayList<>();
-        for( Column column : columns ) {
-            columnDescriptors.add(column.getGenericColumnDescriptor());
-        }
         return columnDescriptors.toArray(new ResultColumnDescriptor[columnDescriptors.size()]);
     }
 
@@ -121,44 +117,33 @@ class ResultHelper {
     class Column {
         public int index;
         boolean set = false;
-        String name;
-        int length;
 
         public void finishRow() {
             if( !set ) init();
             set = false;
         }
 
-        GenericColumnDescriptor getGenericColumnDescriptor() {
-            return new GenericColumnDescriptor(name, getDataTypeDescriptor());
-        }
-        DataTypeDescriptor getDataTypeDescriptor() { throw new RuntimeException("not implemented"); }
-
         void add(String name, int length)
         {
-            this.name = name;
-            this.length = length;
+            columnDescriptors.add( new GenericColumnDescriptor(name, create(length)) );
+            index = columnDescriptors.size();
             columns.add(this);
-            index = columns.size();
         }
 
         void init() { throw new RuntimeException("not implemented"); }
+
+        public DataTypeDescriptor create(int length) { throw new RuntimeException("not implemented"); }
     }
 
     class VarcharColumn extends Column {
-        int maxLength = 0;
-
         @Override
-        DataTypeDescriptor getDataTypeDescriptor() {
-            maxLength = Math.max(maxLength, name.length());
-            return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,
-                    length < 0 ? maxLength : length );
+        public DataTypeDescriptor create(int length)
+        {
+            return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, length);
         }
-
         public void set(String value) {
             assert row != null;
             row.setColumn(index, new SQLVarchar(value));
-            maxLength = Math.max(maxLength, value == null ? 4 : value.length());
             set = true;
         }
         @Override
@@ -168,7 +153,8 @@ class ResultHelper {
     }
     class BigintColumn extends Column {
         @Override
-        DataTypeDescriptor getDataTypeDescriptor() {
+        public DataTypeDescriptor create(int length)
+        {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, length);
         }
         public void set(long value) {
@@ -183,7 +169,9 @@ class ResultHelper {
     }
 
     class TimestampColumn extends Column {
-        DataTypeDescriptor getDataTypeDescriptor() {
+        @Override
+        public DataTypeDescriptor create(int length)
+        {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP, length);
         }
         public void set(org.joda.time.DateTime value) throws StandardException {
@@ -201,5 +189,6 @@ class ResultHelper {
     }
     private List<ExecRow> rows = new ArrayList<>();
     private List<Column> columns = new ArrayList<>();
+    private List<GenericColumnDescriptor> columnDescriptors = new ArrayList<>();
     private ExecRow row;
 }

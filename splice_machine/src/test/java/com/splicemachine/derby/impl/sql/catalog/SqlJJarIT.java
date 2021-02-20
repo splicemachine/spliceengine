@@ -129,7 +129,8 @@ public class SqlJJarIT extends SpliceUnitTest {
         }
 
         // Add the jar file into the local DB class path.
-        methodWatcher.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+        rc = methodWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Select from the user defined VTI
         rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
@@ -162,7 +163,8 @@ public class SqlJJarIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Remove the jar file from the DB class path.
-        methodWatcher.execute(CALL_SET_CLASSPATH_TO_DEFAULT);
+        rc = methodWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Remove the jar file from the DB.
         rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
@@ -192,7 +194,8 @@ public class SqlJJarIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Add the jar file into the global DB class path.
-        methodWatcher.execute(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+        rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Select from the user defined VTI
         rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
@@ -242,7 +245,8 @@ public class SqlJJarIT extends SpliceUnitTest {
         Assert.assertEquals("Global database CLASSPATH is incorrect!", JAR_FILE_SQL_NAME, dbClassPath);
 
         // Remove the jar file from the global DB class path.
-        methodWatcher.execute(CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT);
+        rc = methodWatcher.executeUpdate(CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
         // Remove the jar file from the DB.
         rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));

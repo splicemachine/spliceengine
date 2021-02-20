@@ -34,7 +34,6 @@ package com.splicemachine.db.impl.sql.conn;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -256,11 +255,11 @@ public class GenericAuthorizer implements Authorizer {
                                     Property.DEFAULT_CONNECTION_MODE_PROPERTY);
         if (modeS == null)
             return FULL_ACCESS;
-        else if(StringUtil.SQLEqualsIgnoreCase(modeS, PropertyHelper.NO_ACCESS))
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.NO_ACCESS))
             return NO_ACCESS;
-        else if(StringUtil.SQLEqualsIgnoreCase(modeS, PropertyHelper.READ_ONLY_ACCESS))
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.READ_ONLY_ACCESS))
             return READ_ACCESS;
-        else if(StringUtil.SQLEqualsIgnoreCase(modeS, PropertyHelper.FULL_ACCESS))
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.FULL_ACCESS))
             return FULL_ACCESS;
         else
         {
