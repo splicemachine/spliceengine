@@ -409,11 +409,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 //is either UCS_BASIC or TERRITORY_BASED. If none provided, 
                 //then we will take it to be the default which is UCS_BASIC.
                 userDefinedCollation=startParams.getProperty(
-                        Attribute.COLLATION, PropertyHelper.UCS_BASIC_COLLATION);
+                        Attribute.COLLATION,Property.UCS_BASIC_COLLATION);
                 bootingTC.setProperty(Property.COLLATION,userDefinedCollation,true);
             }else{
                 userDefinedCollation=startParams.getProperty(
-                        Property.COLLATION, PropertyHelper.UCS_BASIC_COLLATION);
+                        Property.COLLATION,Property.UCS_BASIC_COLLATION);
             }
 
             //Initialize the collation type of user schemas by looking at
@@ -492,7 +492,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // Set default hash algorithm used to protect passwords stored
                 // in the database for BUILTIN and NATIVE authentication.
                 bootingTC.setProperty(
-                        PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM,
+                        Property.AUTHENTICATION_BUILTIN_ALGORITHM,
                         findDefaultBuiltinAlgorithm(),
                         false);
             }else{
@@ -579,11 +579,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private String findDefaultBuiltinAlgorithm(){
         try{
             // First check for the preferred default, and return it if present
-            MessageDigest.getInstance(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
-            return PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT;
+            MessageDigest.getInstance(Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
+            return Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT;
         }catch(NoSuchAlgorithmException nsae){
             // Couldn't find the preferred algorithm, so use the fallback
-            return PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK;
+            return Property.AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK;
         }
     }
 
@@ -728,7 +728,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(!supportConfigurableHash){
             return null;
         }else{
-            String algorithm=(String)PropertyUtil.getPropertyFromSet(props, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM);
+            String algorithm=(String)PropertyUtil.getPropertyFromSet(props,Property.AUTHENTICATION_BUILTIN_ALGORITHM);
 
             if(algorithm==null){
                 return null;
@@ -743,8 +743,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     salt=generateRandomSalt(props);
                     iterations=getIntProperty(
                             props,
-                            PropertyHelper.AUTHENTICATION_BUILTIN_ITERATIONS,
-                            PropertyHelper.AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT,
+                            Property.AUTHENTICATION_BUILTIN_ITERATIONS,
+                            Property.AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT,
                             1,Integer.MAX_VALUE);
                 }
             }
@@ -763,8 +763,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     private byte[] generateRandomSalt(Dictionary props){
         int saltLength=getIntProperty(props,
-                PropertyHelper.AUTHENTICATION_BUILTIN_SALT_LENGTH,
-                PropertyHelper.AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT,
+                Property.AUTHENTICATION_BUILTIN_SALT_LENGTH,
+                Property.AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT,
                 0,Integer.MAX_VALUE);
 
         SecureRandom random=new SecureRandom();

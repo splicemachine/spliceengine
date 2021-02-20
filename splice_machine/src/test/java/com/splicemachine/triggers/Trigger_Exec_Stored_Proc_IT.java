@@ -108,7 +108,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
         classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
-        classWatcher.execute(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
+        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
         classWatcher.executeUpdate(CREATE_PROC);
         classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
         classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);

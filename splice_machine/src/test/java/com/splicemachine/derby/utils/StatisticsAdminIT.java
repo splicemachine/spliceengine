@@ -895,7 +895,7 @@ public class StatisticsAdminIT extends SpliceUnitTest {
         /* 1. t3 has an index ind_t3_1 on (a3, e3) */
 
         /* 2. set the database property splice.database.collectIndexStatsOnly to true */
-        methodWatcher4.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'true')");
+        methodWatcher4.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'true')");
 
         /* 3. confirm the setting */
         String expected = "1  |\n" +
@@ -925,7 +925,7 @@ public class StatisticsAdminIT extends SpliceUnitTest {
         rs.close();
 
         /* 6. change the property to default */
-        methodWatcher4.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'false')");
+        methodWatcher4.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'false')");
 
         /* 7. confirm the setting */
         expected = "1   |\n" +
