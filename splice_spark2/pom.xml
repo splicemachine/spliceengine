@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.2.2001</version>
+        <version>3.0.2.2002-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark2</artifactId>
     <name>External Native Spark Data Source</name>
