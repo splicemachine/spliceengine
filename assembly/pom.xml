@@ -643,7 +643,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                     </requires>
@@ -693,7 +693,7 @@
                                     <name>splicemachine_ambari_service</name>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                         <require>ambari-server > 2.2</require>
@@ -720,6 +720,166 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>hdp_deb</id>
+            <activation>
+                <property>
+                    <name>hdp_deb</name>
+                    <value>hdp_deb</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>false</skip>
+                                    <includeArtifactIds>
+                                        ${commonArtifacts},
+                                        splice_ranger_admin,
+                                        splice_ranger_service,
+                                        splice_atlas
+                                    </includeArtifactIds>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>net.sourceforge.javadpkg</groupId>
+                        <artifactId>dpkg-maven-plugin</artifactId>
+                        <version>1.0.5</version>
+                        <executions>
+                            <execution>
+                                <id>generate-deb</id>
+                                <goals>
+                                    <goal>dpkg</goal>
+                                </goals>
+                                <configuration>
+                                        <control>
+                                            <name>splicemachine-${envClassifier}</name>
+                                            <version>${project.version}</version>
+                                            <architecture>all</architecture>
+                                            <section>devel</section>
+                                            <priority>standard</priority>
+                                            <maintainer>Splice Machine &lt;info@splicemachine.com&gt; </maintainer>
+                                            <homepage>https://splicemachine.com/</homepage>
+                                            <description>Splice Machine brings together OLTP, OLAP, ML in one platform to deliver the capabilities applications need to be intelligent and scale.</description>
+                                    </control>
+                                    <copyright>
+                                        <upstreamName>splicemachine</upstreamName>
+                                        <upstreamContact>https://splicemachine.com</upstreamContact>
+                                        <license>
+                                                <name>Apache 2.0</name>
+                                        </license>
+                                        <copyright>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</copyright>
+                                    </copyright>
+                                    <changeLog>
+                                    </changeLog>
+                                    <scripts>
+                                        <script>
+                                            <type>POSTINST</type>
+                                            <content>
+                                                    sed -i 's/##SPLICELIBDIR##/\/var\/lib\/splicemachine/g' /var/lib/splicemachine/spliceck.sh /var/lib/splicemachine/sqlshell.sh
+                                            </content>
+                                        </script>
+                                    </scripts>
+                                    <data>
+                                        <entries>
+                                            <entry>
+                                                <sourcePath>${project.build.directory}/dependency</sourcePath>
+                                                <targetPath>/var/lib/splicemachine/</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <recursive>true</recursive>
+                                                <mode>755</mode>
+                                            </entry>
+                                            <entry>
+                                                <sourcePath>${project.basedir}/common/src/main/resources/bin/sqlshell.sh</sourcePath>
+                                                <targetPath>/var/lib/splicemachine/sqlshell.sh</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <mode>755</mode>
+                                            </entry>
+                                            <entry>
+                                                <sourcePath>${project.basedir}/common/src/main/resources/scripts/install-test.sql</sourcePath>
+                                                <targetPath>/var/lib/splicemachine/install-test.sql</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <mode>755</mode>
+                                            </entry>
+                                            <entry>
+                                                <sourcePath>${project.basedir}/common/src/main/resources/bin/spliceck.sh</sourcePath>
+                                                <targetPath>/var/lib/splicemachine/spliceck.sh</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <mode>755</mode>
+                                            </entry>
+                                        </entries>
+                                    </data>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>generate-ambari-service-deb</id>
+                                <goals>
+                                    <goal>dpkg</goal>
+                                </goals>
+                                <configuration>
+                                        <control>
+                                            <name>splicemachine-ambari-service-${envClassifier}</name>
+                                            <version>${project.version}</version>
+                                            <architecture>all</architecture>
+                                            <section>devel</section>
+                                            <priority>standard</priority>
+                                            <maintainer>Splice Machine &lt;info@splicemachine.com&gt; </maintainer>
+                                            <homepage>https://splicemachine.com/</homepage>
+                                            <description>Splice Machine brings together OLTP, OLAP, ML in one platform to deliver the capabilities applications need to be intelligent and scale.</description>
+                                    </control>
+                                    <copyright>
+                                        <upstreamName>splicemachine</upstreamName>
+                                        <upstreamContact>https://splicemachine.com</upstreamContact>
+                                        <license>
+                                                <name>Apache 2.0</name>
+                                        </license>
+                                        <copyright>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</copyright>
+                                    </copyright>
+                                    <changeLog>
+                                    </changeLog>
+                                    <data>
+                                        <entries>
+                                            <entry>
+                                                <sourcePath>${project.build.directory}/classes/common-services/SPLICEMACHINE</sourcePath>
+                                                <targetPath>/var/lib/ambari-server/resources/common-services/SPLICEMACHINE</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <recursive>true</recursive>
+                                                <mode>755</mode>
+                                            </entry>
+                                            <entry>
+                                                <sourcePath>${project.build.directory}/classes/stacks/HDP/3.1/services/SPLICEMACHINE</sourcePath>
+                                                <targetPath>/var/lib/ambari-server/resources/stacks/HDP/3.1/services/SPLICEMACHINE</targetPath>
+                                                <userName>root</userName>
+                                                <groupName>root</groupName>
+                                                <recursive>true</recursive>
+                                                <mode>755</mode>
+                                            </entry>
+                                        </entries>
+                                    </data>
+                                </configuration>
+                            </execution>
+                        </executions>
+                      </plugin>
                 </plugins>
             </build>
         </profile>
@@ -978,7 +1138,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
                                             <directory>/etc/rc.d/init.d</directory>
@@ -1017,7 +1177,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
                                             <directory>/etc/rc.d/init.d</directory>
@@ -1056,7 +1216,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
                                             <directory>/opt/mapr/conf</directory>
@@ -1128,7 +1288,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
                                             <directory>/opt/mapr/conf</directory>
@@ -1192,7 +1352,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
+                                    <license>Copyright © 2021 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>=
                                         <mapping>
                                             <directory>/opt/splice/default/bin/</directory>
