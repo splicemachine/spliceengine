@@ -830,13 +830,6 @@
                                     </data>
                                 </configuration>
                             </execution>
-                        </executions>
-                      </plugin>
-                      <plugin>
-                        <groupId>net.sourceforge.javadpkg</groupId>
-                        <artifactId>dpkg-maven-plugin</artifactId>
-                        <version>1.0.5</version>
-                        <executions>
                             <execution>
                                 <id>generate-ambari-service-deb</id>
                                 <goals>
