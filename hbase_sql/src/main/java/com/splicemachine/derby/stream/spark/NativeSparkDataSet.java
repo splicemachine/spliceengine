@@ -223,20 +223,28 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
+            // Do not replace string columns using rtrimmed columns but add them as extra columns.
+            // After distinct, for each group, we need to return a row originally in that group, not
+            // a row with rtrimmed values.
+            List<String> compColNames = new ArrayList<>();
             if (varcharDB2CompatibilityMode) {
-                List<String> stringColNames = new ArrayList<>();
+                List<String> strColNames = new ArrayList<>();
                 Tuple2<String, String>[] colTypes = dataset.dtypes();
                 for (Tuple2<String, String> colType : colTypes) {
                     if (colType._2().equals("StringType")) {
-                        stringColNames.add(colType._1());
+                        strColNames.add(colType._1());
+                    } else {
+                        compColNames.add(colType._1());
                     }
                 }
-                for (String colName : stringColNames) {
-                    dataset = dataset.withColumn(colName, rtrim(col(colName)));
+                for (String colName : strColNames) {
+                    String newColName = colName+"_rtrimmed";
+                    dataset = dataset.withColumn(newColName, rtrim(col(colName)));
+                    compColNames.add(newColName);
                 }
             }
-            Dataset<Row> result = dataset.distinct();
 
+            Dataset<Row> result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
             return new NativeSparkDataSet<>(result, context);
         } finally {
             if (pushScope) context.popScope();
