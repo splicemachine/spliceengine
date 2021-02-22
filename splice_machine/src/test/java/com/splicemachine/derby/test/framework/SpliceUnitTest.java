@@ -1071,14 +1071,12 @@ public class SpliceUnitTest {
         return count;
     }
 
-    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
-    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
-    {
-        try {
+    public static void sqlExpectException(Connection conn, String sqlText, String expectedState, boolean update) {
+        try ( Statement s = conn.createStatement() ){
             if( update )
-                methodWatcher.executeUpdate(sqlText);
+                s.executeUpdate(sqlText);
             else {
-                ResultSet rs = methodWatcher.executeQuery(sqlText);
+                ResultSet rs = s.executeQuery(sqlText);
                 rs.close();
             }
             Assert.fail("Exception not thrown for " + sqlText);
@@ -1088,6 +1086,12 @@ public class SpliceUnitTest {
         } catch (Exception e) {
             Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
         }
+    }
+
+    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
+    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
+    {
+        sqlExpectException( methodWatcher.getOrCreateConnection(), sqlText, expectedState, update );
     }
 
     public static void assertThrows(Runnable r, String expectedExceptionStr) {

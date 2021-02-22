@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -1355,7 +1356,7 @@ public class TableElementList extends QueryTreeNodeVector {
         {
             result.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
         }
         return result;
     }

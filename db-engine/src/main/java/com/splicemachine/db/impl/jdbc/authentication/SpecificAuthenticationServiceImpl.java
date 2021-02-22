@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.jdbc.authentication;
 
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -90,9 +91,9 @@ public class SpecificAuthenticationServiceImpl
 			  (!specificAuthenticationScheme.isEmpty()) &&
 
 			  (!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
-					  Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
-			  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP))     ||
-					  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_KERBEROS))
+					  PropertyHelper.AUTHENTICATION_PROVIDER_BUILTIN)) ||
+			  (specificAuthenticationScheme.equalsIgnoreCase(PropertyHelper.AUTHENTICATION_PROVIDER_LDAP))     ||
+					  (specificAuthenticationScheme.equalsIgnoreCase(PropertyHelper.AUTHENTICATION_PROVIDER_KERBEROS))
 
 			  )));
 	}
