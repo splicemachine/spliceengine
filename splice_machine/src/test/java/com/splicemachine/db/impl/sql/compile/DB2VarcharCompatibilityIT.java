@@ -106,16 +106,16 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 .withCreate("create table z (v1 varchar(10), v2 varchar(10))")
                 .withInsert("insert into z values(?,?)")
                 .withRows(rows(
-                        row("1", ""),
-                        row("1", "     ")))
+                        row("1", "a    "),
+                        row("1", "a        ")))
                 .create();
 
         new TableCreator(conn)
                 .withCreate("create table y (v3 varchar(10), v4 varchar(10))")
                 .withInsert("insert into y values(?,?)")
                 .withRows(rows(
-                        row("1", ""),
-                        row("1", "   ")))
+                        row("1", "a    "),
+                        row("1", "a      ")))
                 .create();
     }
 
@@ -503,7 +503,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
             String expected = "V1 |V2 |\n" +
                     "--------\n" +
-                    " 1 |   |";
+                    " 1 | a |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
 
@@ -517,7 +517,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
             String expected = "V1 |V2 |V3 |V4 |\n" +
                     "----------------\n" +
-                    " 1 |   | 1 |   |";
+                    " 1 | a | 1 | a |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
