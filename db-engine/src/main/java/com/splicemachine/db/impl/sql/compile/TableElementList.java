@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -56,6 +57,8 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.TABLE_ELEMENT_LIST;
+
 /**
  * A TableElementList represents the list of columns and other table elements
  * such as constraints in a CREATE TABLE or ALTER TABLE statement.
@@ -63,56 +66,61 @@ import java.util.*;
  */
 
 public class TableElementList extends QueryTreeNodeVector {
-	private int				numColumns;
-	private TableDescriptor td;
+    private int                numColumns;
+    private TableDescriptor td;
 
-	/**
-	 * Add a TableElementNode to this TableElementList
-	 *
-	 * @param tableElement	The TableElementNode to add to this list
-	 */
+    public TableElementList(ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(TABLE_ELEMENT_LIST);
+    }
 
-	public void addTableElement(TableElementNode tableElement)
-	{
-		addElement(tableElement);
-		if ((tableElement instanceof ColumnDefinitionNode) ||
-			tableElement.getElementType() == TableElementNode.AT_DROP_COLUMN)
-		{
-			numColumns++;
-		}
-	} 
+    /**
+     * Add a TableElementNode to this TableElementList
+     *
+     * @param tableElement    The TableElementNode to add to this list
+     */
 
-	/**
-	 * Use the passed schema descriptor's collation type to set the collation
-	 * of the character string types in create table node
-	 * @param sd
-	 */
-	void setCollationTypesOnCharacterStringColumns(SchemaDescriptor sd)
+    public void addTableElement(TableElementNode tableElement)
+    {
+        addElement(tableElement);
+        if ((tableElement instanceof ColumnDefinitionNode) ||
+            tableElement.getElementType() == TableElementNode.AT_DROP_COLUMN)
+        {
+            numColumns++;
+        }
+    }
+
+    /**
+     * Use the passed schema descriptor's collation type to set the collation
+     * of the character string types in create table node
+     * @param sd
+     */
+    void setCollationTypesOnCharacterStringColumns(SchemaDescriptor sd)
         throws StandardException
     {
-		int			size = size();
-		for (int index = 0; index < size; index++)
-		{
-			TableElementNode tableElement = (TableElementNode) elementAt(index);
+        int            size = size();
+        for (int index = 0; index < size; index++)
+        {
+            TableElementNode tableElement = (TableElementNode) elementAt(index);
 
-			if (tableElement instanceof ColumnDefinitionNode)
-			{
-				ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
+            if (tableElement instanceof ColumnDefinitionNode)
+            {
+                ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
 
                 setCollationTypeOnCharacterStringColumn( sd, cdn );
-			}
-		}
-	}
+            }
+        }
+    }
 
-	/**
-	 * Use the passed schema descriptor's collation type to set the collation
-	 * of a character string column.
-	 * @param sd
-	 */
-	void setCollationTypeOnCharacterStringColumn(SchemaDescriptor sd, ColumnDefinitionNode cdn )
+    /**
+     * Use the passed schema descriptor's collation type to set the collation
+     * of a character string column.
+     * @param sd
+     */
+    void setCollationTypeOnCharacterStringColumn(SchemaDescriptor sd, ColumnDefinitionNode cdn )
         throws StandardException
     {
-		int collationType = sd.getCollationType();
+        int collationType = sd.getCollationType();
 
         //
         // Only generated columns can omit the datatype specification during the
@@ -137,188 +145,188 @@ public class TableElementList extends QueryTreeNodeVector {
         }
     }
     
-	/**
-	 * Validate this TableElementList.  This includes checking for
-	 * duplicate columns names, and checking that user types really exist.
-	 *
-	 * @param ddlStmt	DDLStatementNode which contains this list
-	 * @param dd		DataDictionary to use
-	 * @param td		TableDescriptor for table, if existing table.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void validate(DDLStatementNode ddlStmt,
-					     DataDictionary dd,
-						 TableDescriptor td)
-					throws StandardException
-	{
- 		this.td = td;
-		int numAutoCols = 0;
+    /**
+     * Validate this TableElementList.  This includes checking for
+     * duplicate columns names, and checking that user types really exist.
+     *
+     * @param ddlStmt    DDLStatementNode which contains this list
+     * @param dd        DataDictionary to use
+     * @param td        TableDescriptor for table, if existing table.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void validate(DDLStatementNode ddlStmt,
+                         DataDictionary dd,
+                         TableDescriptor td)
+                    throws StandardException
+    {
+         this.td = td;
+        int numAutoCols = 0;
 
-		int			size = size();
-		Hashtable	columnHT = new Hashtable(size + 2, (float) .999);
-		Hashtable	constraintHT = new Hashtable(size + 2, (float) .999);
-		//all the primary key/unique key constraints for this table
-		Vector constraintsVector = new Vector();
+        int            size = size();
+        Hashtable    columnHT = new Hashtable(size + 2, (float) .999);
+        Hashtable    constraintHT = new Hashtable(size + 2, (float) .999);
+        //all the primary key/unique key constraints for this table
+        Vector constraintsVector = new Vector();
 
-		//special case for alter table (td is not null in case of alter table)
-		if (td != null)
-		{
-			//In case of alter table, get the already existing primary key and unique
-			//key constraints for this table. And then we will compare them with  new
-			//primary key/unique key constraint column lists.
-			ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
-			if (cdl != null) //table does have some pre-existing constraints defined on it
-			{
-				ConstraintDescriptor cd;
-				for (int i=0; i<cdl.size();i++)
-				{
-					cd = cdl.elementAt(i);
-					//if the constraint type is not primary key or unique key, ignore it.
-					if (cd.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT ||
-					cd.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT)
-						constraintsVector.addElement(cd);
-				}
-			}
-		}
+        //special case for alter table (td is not null in case of alter table)
+        if (td != null)
+        {
+            //In case of alter table, get the already existing primary key and unique
+            //key constraints for this table. And then we will compare them with  new
+            //primary key/unique key constraint column lists.
+            ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+            if (cdl != null) //table does have some pre-existing constraints defined on it
+            {
+                ConstraintDescriptor cd;
+                for (int i=0; i<cdl.size();i++)
+                {
+                    cd = cdl.elementAt(i);
+                    //if the constraint type is not primary key or unique key, ignore it.
+                    if (cd.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT ||
+                    cd.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT)
+                        constraintsVector.addElement(cd);
+                }
+            }
+        }
 
-		int tableType = TableDescriptor.BASE_TABLE_TYPE;
-		if (ddlStmt instanceof CreateTableNode)
-			tableType = ((CreateTableNode)ddlStmt).tableType;
+        int tableType = TableDescriptor.BASE_TABLE_TYPE;
+        if (ddlStmt instanceof CreateTableNode)
+            tableType = ((CreateTableNode)ddlStmt).tableType;
 
-		for (int index = 0; index < size; index++)
-		{
-			TableElementNode tableElement = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++)
+        {
+            TableElementNode tableElement = (TableElementNode) elementAt(index);
 
-			if (tableElement instanceof ColumnDefinitionNode)
-			{
-				ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
-				if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE &&
-					(cdn.getType().getTypeId().isLongConcatableTypeId() ||
-					cdn.getType().getTypeId().isUserDefinedTypeId()))
-				{
-					throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED, cdn.getColumnName());
-				}
-				checkForDuplicateColumns(ddlStmt, columnHT, cdn.getColumnName());
-				cdn.checkUserType(td);
-				cdn.bindAndValidateDefault(dd, td);
+            if (tableElement instanceof ColumnDefinitionNode)
+            {
+                ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
+                if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE &&
+                    (cdn.getType().getTypeId().isLongConcatableTypeId() ||
+                    cdn.getType().getTypeId().isUserDefinedTypeId()))
+                {
+                    throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED, cdn.getColumnName());
+                }
+                checkForDuplicateColumns(ddlStmt, columnHT, cdn.getColumnName());
+                cdn.checkUserType(td);
+                cdn.bindAndValidateDefault(dd, td);
 
-				cdn.validateAutoincrement(dd, td, tableType);
+                cdn.validateAutoincrement(dd, td, tableType);
 
-				if (tableElement instanceof ModifyColumnNode)
-				{
-					ModifyColumnNode mcdn = (ModifyColumnNode)cdn;
-					mcdn.checkExistingConstraints(td);
-					mcdn.useExistingCollation(td);
+                if (tableElement instanceof ModifyColumnNode)
+                {
+                    ModifyColumnNode mcdn = (ModifyColumnNode)cdn;
+                    mcdn.checkExistingConstraints(td);
+                    mcdn.useExistingCollation(td);
 
-				} else if (cdn.isAutoincrementColumn())
+                } else if (cdn.isAutoincrementColumn())
                 { numAutoCols ++; }
-			}
-			else if (tableElement.getElementType() == TableElementNode.AT_DROP_COLUMN)
-			{
-				String colName = tableElement.getName();
-				if (td.getColumnDescriptor(colName) == null)
-				{
-					throw StandardException.newException(
-												SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
-												colName,
-												td.getQualifiedName());
-				}
-				break;
-			}
+            }
+            else if (tableElement.getElementType() == TableElementNode.AT_DROP_COLUMN)
+            {
+                String colName = tableElement.getName();
+                if (td.getColumnDescriptor(colName) == null)
+                {
+                    throw StandardException.newException(
+                                                SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
+                                                colName,
+                                                td.getQualifiedName());
+                }
+                break;
+            }
 
-			/* The rest of this method deals with validating constraints */
-			if (! (tableElement.hasConstraint()))
-			{
-				continue;
-			}
+            /* The rest of this method deals with validating constraints */
+            if (! (tableElement.hasConstraint()))
+            {
+                continue;
+            }
 
-			ConstraintDefinitionNode cdn = (ConstraintDefinitionNode) tableElement;
+            ConstraintDefinitionNode cdn = (ConstraintDefinitionNode) tableElement;
 
-			cdn.bind(ddlStmt, dd);
+            cdn.bind(ddlStmt, dd);
 
-			//if constraint is primary key or unique key, add it to the vector
-			if (cdn.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT ||
-			cdn.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT)
-			{
-				/* In case of create table, the vector can have only ConstraintDefinitionNode
-				* elements. In case of alter table, it can have both ConstraintDefinitionNode
-				* (for new constraints) and ConstraintDescriptor(for pre-existing constraints).
-				*/
+            //if constraint is primary key or unique key, add it to the vector
+            if (cdn.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT ||
+            cdn.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT)
+            {
+                /* In case of create table, the vector can have only ConstraintDefinitionNode
+                * elements. In case of alter table, it can have both ConstraintDefinitionNode
+                * (for new constraints) and ConstraintDescriptor(for pre-existing constraints).
+                */
 
-				Object destConstraint;
-				String destName = null;
-				String[] destColumnNames = null;
+                Object destConstraint;
+                String destName = null;
+                String[] destColumnNames = null;
 
-				for (int i=0; i<constraintsVector.size();i++)
-				{
-					destConstraint = constraintsVector.elementAt(i);
-					if (destConstraint instanceof ConstraintDefinitionNode) // match against newly added constraint (create table)
-					{
-						ConstraintDefinitionNode destCDN = (ConstraintDefinitionNode)destConstraint;
-						destName = destCDN.getConstraintMoniker();
-						destColumnNames = destCDN.getColumnList().getColumnNames();
-						//check if there are multiple constraints with same set of columns
+                for (int i=0; i<constraintsVector.size();i++)
+                {
+                    destConstraint = constraintsVector.elementAt(i);
+                    if (destConstraint instanceof ConstraintDefinitionNode) // match against newly added constraint (create table)
+                    {
+                        ConstraintDefinitionNode destCDN = (ConstraintDefinitionNode)destConstraint;
+                        destName = destCDN.getConstraintMoniker();
+                        destColumnNames = destCDN.getColumnList().getColumnNames();
+                        //check if there are multiple constraints with same set of columns
 
-						if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
-						{
-							if(cdn.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
-								cdn.setCanBeIgnored(true);
-							} else if (destCDN.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
-								cdn.setCanBeIgnored(true);
-							}
-						}
+                        if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
+                        {
+                            if(cdn.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+                                cdn.setCanBeIgnored(true);
+                            } else if (destCDN.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+                                cdn.setCanBeIgnored(true);
+                            }
+                        }
 
-					}
-					else if (destConstraint instanceof ConstraintDescriptor) // match against existing constraint (alter table)
-					{
-						//will come here only for pre-existing constraints in case of alter table
-						ConstraintDescriptor destCD = (ConstraintDescriptor)destConstraint;
-						destName = destCD.getConstraintName();
-						destColumnNames = destCD.getColumnDescriptors().getColumnNames();
-						//check if there are multiple constraints with same set of columns
-						if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
-							throw StandardException.newException(SQLState.LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS,
-									cdn.getConstraintMoniker(), destName);
-					}
-				}
-				constraintsVector.addElement(cdn);
-			}
+                    }
+                    else if (destConstraint instanceof ConstraintDescriptor) // match against existing constraint (alter table)
+                    {
+                        //will come here only for pre-existing constraints in case of alter table
+                        ConstraintDescriptor destCD = (ConstraintDescriptor)destConstraint;
+                        destName = destCD.getConstraintName();
+                        destColumnNames = destCD.getColumnDescriptors().getColumnNames();
+                        //check if there are multiple constraints with same set of columns
+                        if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
+                            throw StandardException.newException(SQLState.LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS,
+                                    cdn.getConstraintMoniker(), destName);
+                    }
+                }
+                constraintsVector.addElement(cdn);
+            }
 
-			/* Make sure that there are no duplicate constraint names in the list */
+            /* Make sure that there are no duplicate constraint names in the list */
             checkForDuplicateConstraintNames(ddlStmt, constraintHT, cdn.getConstraintMoniker());
 
-			/* Make sure that the constraint we are trying to drop exists */
-			if (cdn.getConstraintType() == DataDictionary.DROP_CONSTRAINT)
-			{
-				/*
-				** If no schema descriptor, then must be an invalid
-				** schema name.
-				*/
+            /* Make sure that the constraint we are trying to drop exists */
+            if (cdn.getConstraintType() == DataDictionary.DROP_CONSTRAINT)
+            {
+                /*
+                ** If no schema descriptor, then must be an invalid
+                ** schema name.
+                */
 
-				String dropConstraintName = cdn.getConstraintMoniker();
+                String dropConstraintName = cdn.getConstraintMoniker();
 
-				if (dropConstraintName != null) {
+                if (dropConstraintName != null) {
 
-					String dropSchemaName = cdn.getDropSchemaName();
+                    String dropSchemaName = cdn.getDropSchemaName();
 
-					SchemaDescriptor sd = dropSchemaName == null ? td.getSchemaDescriptor() :
-											getSchemaDescriptor(dropSchemaName);
+                    SchemaDescriptor sd = dropSchemaName == null ? td.getSchemaDescriptor() :
+                                            getSchemaDescriptor(dropSchemaName);
 
-					ConstraintDescriptor cd =
-								dd.getConstraintDescriptorByName(
-										td, sd, dropConstraintName,
-										false);
-					if (cd == null)
-					{
-						throw StandardException.newException(SQLState.LANG_DROP_NON_EXISTENT_CONSTRAINT,
-								(sd.getSchemaName() + "."+ dropConstraintName),
-								td.getQualifiedName());
-					}
-					/* Statement is dependendent on the ConstraintDescriptor */
-					getCompilerContext().createDependency(cd);
-				}
-			}
+                    ConstraintDescriptor cd =
+                                dd.getConstraintDescriptorByName(
+                                        td, sd, dropConstraintName,
+                                        false);
+                    if (cd == null)
+                    {
+                        throw StandardException.newException(SQLState.LANG_DROP_NON_EXISTENT_CONSTRAINT,
+                                (sd.getSchemaName() + "."+ dropConstraintName),
+                                td.getQualifiedName());
+                    }
+                    /* Statement is dependendent on the ConstraintDescriptor */
+                    getCompilerContext().createDependency(cd);
+                }
+            }
 
             // validation of primary key nullability moved to validatePrimaryKeyNullability().
             if (cdn.hasPrimaryKeyConstraint())
@@ -336,35 +344,35 @@ public class TableElementList extends QueryTreeNodeVector {
                 // for FOREIGN KEY, check that columns are unique
                 verifyUniqueColumnList(ddlStmt, cdn);
             }
-		}
+        }
 
-		/* Can have only one autoincrement column in DB2 mode */
-		if (numAutoCols > 1)
-			throw StandardException.newException(SQLState.LANG_MULTIPLE_AUTOINCREMENT_COLUMNS);
+        /* Can have only one autoincrement column in DB2 mode */
+        if (numAutoCols > 1)
+            throw StandardException.newException(SQLState.LANG_MULTIPLE_AUTOINCREMENT_COLUMNS);
 
-	}
+    }
 
     /**
-	 * Validate nullability of primary keys. This logic was moved out of the main validate
-	 * method so that it can be called after binding generation clauses. We need
-	 * to perform the nullability checks later on because the datatype may be
-	 * omitted on the generation clause--we can't set/vet the nullability of the
-	 * datatype until we determine what the datatype is.
-	 */
+     * Validate nullability of primary keys. This logic was moved out of the main validate
+     * method so that it can be called after binding generation clauses. We need
+     * to perform the nullability checks later on because the datatype may be
+     * omitted on the generation clause--we can't set/vet the nullability of the
+     * datatype until we determine what the datatype is.
+     */
     public  void    validatePrimaryKeyNullability()
         throws StandardException
     {
-		int			size = size();
-		for (int index = 0; index < size; index++)
-		{
-			TableElementNode tableElement = (TableElementNode) elementAt(index);
+        int            size = size();
+        for (int index = 0; index < size; index++)
+        {
+            TableElementNode tableElement = (TableElementNode) elementAt(index);
 
-			if (! (tableElement.hasConstraint()))
-			{
-				continue;
-			}
+            if (! (tableElement.hasConstraint()))
+            {
+                continue;
+            }
             
-			ConstraintDefinitionNode cdn = (ConstraintDefinitionNode) tableElement;
+            ConstraintDefinitionNode cdn = (ConstraintDefinitionNode) tableElement;
 
             if (cdn.hasPrimaryKeyConstraint())
             {
@@ -376,413 +384,413 @@ public class TableElementList extends QueryTreeNodeVector {
                 else
                 {
                     // in ALTER TABLE so raise error if any columns are nullable
-					// delay the check to exeuction time, so that we can allow PK to be added to empty table
-					// and change the PK columns to not null even if it is originally defined as nullable
+                    // delay the check to exeuction time, so that we can allow PK to be added to empty table
+                    // and change the PK columns to not null even if it is originally defined as nullable
                     // checkForNullColumns(cdn, td);
                 }
-				// Arrays look ok as primary keys.
-				// Add Array Check During Nullability check.
-				//validateNoArrays(cdn);
+                // Arrays look ok as primary keys.
+                // Add Array Check During Nullability check.
+                //validateNoArrays(cdn);
             }
         }
     }
     
     /**
-	 * Count the number of constraints of the specified type.
-	 *
-	 * @param constraintType	The constraint type to search for.
-	 *
-	 * @return int	The number of constraints of the specified type.
-	 */
-	public int countConstraints(int constraintType)
-	{
-		int	numConstraints = 0;
-		int size = size();
+     * Count the number of constraints of the specified type.
+     *
+     * @param constraintType    The constraint type to search for.
+     *
+     * @return int    The number of constraints of the specified type.
+     */
+    public int countConstraints(int constraintType)
+    {
+        int    numConstraints = 0;
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			ConstraintDefinitionNode cdn;
-			TableElementNode element = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++)
+        {
+            ConstraintDefinitionNode cdn;
+            TableElementNode element = (TableElementNode) elementAt(index);
 
-			if (! (element instanceof ConstraintDefinitionNode))
-			{
-				continue;
-			}
+            if (! (element instanceof ConstraintDefinitionNode))
+            {
+                continue;
+            }
 
-			cdn = (ConstraintDefinitionNode) element;
+            cdn = (ConstraintDefinitionNode) element;
 
-			if (constraintType == cdn.getConstraintType())
-			{
-				numConstraints++;
-			}
-		}
+            if (constraintType == cdn.getConstraintType())
+            {
+                numConstraints++;
+            }
+        }
 
-		return numConstraints;
-	}
+        return numConstraints;
+    }
 
     /**
-	 * Count the number of generation clauses.
-	 */
-	public int countGenerationClauses()
-	{
-		int	numGenerationClauses = 0;
-		int size = size();
+     * Count the number of generation clauses.
+     */
+    public int countGenerationClauses()
+    {
+        int    numGenerationClauses = 0;
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			ColumnDefinitionNode cdn;
-			TableElementNode element = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++)
+        {
+            ColumnDefinitionNode cdn;
+            TableElementNode element = (TableElementNode) elementAt(index);
 
-			if (! (element instanceof ColumnDefinitionNode))
-			{
-				continue;
-			}
+            if (! (element instanceof ColumnDefinitionNode))
+            {
+                continue;
+            }
 
-			cdn = (ColumnDefinitionNode) element;
+            cdn = (ColumnDefinitionNode) element;
 
-			if ( cdn.hasGenerationClause() )
-			{
-				numGenerationClauses++;
-			}
-		}
+            if ( cdn.hasGenerationClause() )
+            {
+                numGenerationClauses++;
+            }
+        }
 
-		return numGenerationClauses;
-	}
+        return numGenerationClauses;
+    }
 
-	/**
-	 * Count the number of columns.
-	 *
-	 * @return int	The number of columns.
-	 */
-	public int countNumberOfColumns()
-	{
-		return numColumns;
-	}
+    /**
+     * Count the number of columns.
+     *
+     * @return int    The number of columns.
+     */
+    public int countNumberOfColumns()
+    {
+        return numColumns;
+    }
 
-	/**
-	 * Fill in the ColumnInfo[] for this table element list.
-	 * 
-	 * @param colInfos	The ColumnInfo[] to be filled in.
-	 *
-	 * @return int		The number of constraints in the create table.
-	 */
-	public int genColumnInfos( ColumnInfo[] colInfos, ResultColumnList partitionedColumnList)
+    /**
+     * Fill in the ColumnInfo[] for this table element list.
+     *
+     * @param colInfos    The ColumnInfo[] to be filled in.
+     *
+     * @return int        The number of constraints in the create table.
+     */
+    public int genColumnInfos( ColumnInfo[] colInfos, ResultColumnList partitionedColumnList)
         throws StandardException {
-		int	numConstraints = 0;
-		int size = size();
-		List<String> columnNames = Lists.newArrayList(partitionedColumnList==null?new String[0]:partitionedColumnList.getColumnNames());
-		for (int index = 0; index < size; index++)
-		{
-			if (((TableElementNode) elementAt(index)).getElementType() == TableElementNode.AT_DROP_COLUMN)
-			{
+        int    numConstraints = 0;
+        int size = size();
+        List<String> columnNames = Lists.newArrayList(partitionedColumnList==null?new String[0]:partitionedColumnList.getColumnNames());
+        for (int index = 0; index < size; index++)
+        {
+            if (((TableElementNode) elementAt(index)).getElementType() == TableElementNode.AT_DROP_COLUMN)
+            {
                 String columnName = ((TableElementNode) elementAt(index)).getName();
 
-				colInfos[index] = new ColumnInfo(
-								columnName,
-								td.getColumnDescriptor( columnName ).getType(),
+                colInfos[index] = new ColumnInfo(
+                                columnName,
+                                td.getColumnDescriptor( columnName ).getType(),
                                 null, null, null, null, null,
-								ColumnInfo.DROP, 0, 0, 0,
-							-1
-						);
-				break;
-			}
+                                ColumnInfo.DROP, 0, 0, 0,
+                            -1
+                        );
+                break;
+            }
 
-			if (! (elementAt(index) instanceof ColumnDefinitionNode))
-			{
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.ASSERT( elementAt(index) instanceof ConstraintDefinitionNode,
-						"elementAt(index) expected to be instanceof " +
-						"ConstraintDefinitionNode");
-				}
+            if (! (elementAt(index) instanceof ColumnDefinitionNode))
+            {
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.ASSERT( elementAt(index) instanceof ConstraintDefinitionNode,
+                        "elementAt(index) expected to be instanceof " +
+                        "ConstraintDefinitionNode");
+                }
 
-				/* Remember how many constraints we've seen */
-				numConstraints++;
-				continue;
-			}
+                /* Remember how many constraints we've seen */
+                numConstraints++;
+                continue;
+            }
 
-			ColumnDefinitionNode coldef = (ColumnDefinitionNode) elementAt(index);
+            ColumnDefinitionNode coldef = (ColumnDefinitionNode) elementAt(index);
 
             //
             // Generated columns may depend on functions mentioned in their
             // generation clauses.
             //
             ProviderList apl = null;
-            ProviderInfo[]	providerInfos = null;
-			if ( coldef.hasGenerationClause() )
-			{
-				apl = coldef.getGenerationClauseNode().getAuxiliaryProviderList();
-			}
+            ProviderInfo[]    providerInfos = null;
+            if ( coldef.hasGenerationClause() )
+            {
+                apl = coldef.getGenerationClauseNode().getAuxiliaryProviderList();
+            }
             if (apl != null && !apl.isEmpty())
             {
                 DependencyManager dm = getDataDictionary().getDependencyManager();
                 providerInfos = dm.getPersistentProviderInfos(apl);
             }
 
-			colInfos[index - numConstraints] = 
-				new ColumnInfo(coldef.getColumnName(),
-							   coldef.getType(),
-							   coldef.getDefaultValue(),
-							   coldef.getDefaultInfo(),
-							   providerInfos,
-							   (UUID) null,
-							   coldef.getOldDefaultUUID(),
-							   coldef.getAction(),
-							   (coldef.isAutoincrementColumn() ? 
-								coldef.getAutoincrementStart() : 0),
-							   (coldef.isAutoincrementColumn() ? 
-								coldef.getAutoincrementIncrement() : 0),
-							   (coldef.isAutoincrementColumn() ? 
-								coldef.getAutoinc_create_or_modify_Start_Increment() : -1),
-						columnNames.indexOf(coldef.getColumnName()));
+            colInfos[index - numConstraints] =
+                new ColumnInfo(coldef.getColumnName(),
+                               coldef.getType(),
+                               coldef.getDefaultValue(),
+                               coldef.getDefaultInfo(),
+                               providerInfos,
+                               (UUID) null,
+                               coldef.getOldDefaultUUID(),
+                               coldef.getAction(),
+                               (coldef.isAutoincrementColumn() ?
+                                coldef.getAutoincrementStart() : 0),
+                               (coldef.isAutoincrementColumn() ?
+                                coldef.getAutoincrementIncrement() : 0),
+                               (coldef.isAutoincrementColumn() ?
+                                coldef.getAutoinc_create_or_modify_Start_Increment() : -1),
+                        columnNames.indexOf(coldef.getColumnName()));
 
-			/* Remember how many constraints that we've seen */
-			if (coldef.hasConstraint())
-			{
-				numConstraints++;
-			}
-		}
+            /* Remember how many constraints that we've seen */
+            if (coldef.hasConstraint())
+            {
+                numConstraints++;
+            }
+        }
 
-		return numConstraints;
-	}
-	/**
-	 * Append goobered up ResultColumns to the table's RCL.
-	 * This is useful for binding check constraints for CREATE and ALTER TABLE.
-	 *
-	 * @param table		The table in question.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void appendNewColumnsToRCL(FromBaseTable table)
-		throws StandardException
-	{
-		int				 size = size();
-		ResultColumnList rcl = table.getResultColumns();
-		TableName		 exposedName = table.getTableName();
+        return numConstraints;
+    }
+    /**
+     * Append goobered up ResultColumns to the table's RCL.
+     * This is useful for binding check constraints for CREATE and ALTER TABLE.
+     *
+     * @param table        The table in question.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void appendNewColumnsToRCL(FromBaseTable table)
+        throws StandardException
+    {
+        int                 size = size();
+        ResultColumnList rcl = table.getResultColumns();
+        TableName         exposedName = table.getTableName();
 
-		for (int index = 0; index < size; index++)
-		{
-			if (elementAt(index) instanceof ColumnDefinitionNode)
-			{
-				ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
-				ResultColumn	resultColumn;
-				ValueNode		valueNode;
+        for (int index = 0; index < size; index++)
+        {
+            if (elementAt(index) instanceof ColumnDefinitionNode)
+            {
+                ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
+                ResultColumn    resultColumn;
+                ValueNode        valueNode;
 
-				/* Build a ResultColumn/BaseColumnNode pair for the column */
-				valueNode = (ValueNode) getNodeFactory().getNode(
-											C_NodeTypes.BASE_COLUMN_NODE,
-											cdn.getColumnName(),
-									  		exposedName,
-											cdn.getType(),
-											getContextManager());
+                /* Build a ResultColumn/BaseColumnNode pair for the column */
+                valueNode = (ValueNode) getNodeFactory().getNode(
+                                            C_NodeTypes.BASE_COLUMN_NODE,
+                                            cdn.getColumnName(),
+                                              exposedName,
+                                            cdn.getType(),
+                                            getContextManager());
 
-				resultColumn = (ResultColumn) getNodeFactory().getNode(
-												C_NodeTypes.RESULT_COLUMN,
-												cdn.getType(), 
-												valueNode,
-												getContextManager());
-				resultColumn.setName(cdn.getColumnName());
-				rcl.addElement(resultColumn);
-			}
-		}
-	}
+                resultColumn = (ResultColumn) getNodeFactory().getNode(
+                                                C_NodeTypes.RESULT_COLUMN,
+                                                cdn.getType(),
+                                                valueNode,
+                                                getContextManager());
+                resultColumn.setName(cdn.getColumnName());
+                rcl.addElement(resultColumn);
+            }
+        }
+    }
 
-	/**
-	 * Bind and validate all of the check constraints in this list against
-	 * the specified FromList.  
-	 *
-	 * @param fromList		The FromList in question.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void bindAndValidateCheckConstraints(FromList fromList)
-		throws StandardException
-	{
-		CompilerContext cc;
-		FromBaseTable				table = (FromBaseTable) fromList.elementAt(0);
-		int						  size = size();
+    /**
+     * Bind and validate all of the check constraints in this list against
+     * the specified FromList.
+     *
+     * @param fromList        The FromList in question.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void bindAndValidateCheckConstraints(FromList fromList)
+        throws StandardException
+    {
+        CompilerContext cc;
+        FromBaseTable                table = (FromBaseTable) fromList.elementAt(0);
+        int                          size = size();
 
-		cc = getCompilerContext();
+        cc = getCompilerContext();
 
-		Vector aggregateVector = new Vector();
+        Vector aggregateVector = new Vector();
 
-		for (int index = 0; index < size; index++)
-		{
-			ConstraintDefinitionNode cdn;
-			TableElementNode element = (TableElementNode) elementAt(index);
-			ValueNode	checkTree;
+        for (int index = 0; index < size; index++)
+        {
+            ConstraintDefinitionNode cdn;
+            TableElementNode element = (TableElementNode) elementAt(index);
+            ValueNode    checkTree;
 
-			if (! (element instanceof ConstraintDefinitionNode))
-			{
-				continue;
-			}
+            if (! (element instanceof ConstraintDefinitionNode))
+            {
+                continue;
+            }
 
-			cdn = (ConstraintDefinitionNode) element;
+            cdn = (ConstraintDefinitionNode) element;
 
-			if (cdn.getConstraintType() != DataDictionary.CHECK_CONSTRAINT)
-			{
-				continue;
-			}
+            if (cdn.getConstraintType() != DataDictionary.CHECK_CONSTRAINT)
+            {
+                continue;
+            }
 
-			checkTree = cdn.getCheckCondition();
+            checkTree = cdn.getCheckCondition();
 
-			// bind the check condition
-			// verify that it evaluates to a boolean
-			final int previousReliability = cc.getReliability();
-			try
-			{
-				/* Each check constraint can have its own set of dependencies.
-				 * These dependencies need to be shared with the prepared
-				 * statement as well.  We create a new auxiliary provider list
-				 * for the check constraint, "push" it on the compiler context
-				 * by swapping it with the current auxiliary provider list
-				 * and the "pop" it when we're done by restoring the old 
-				 * auxiliary provider list.
-				 */
-				ProviderList apl = new ProviderList();
+            // bind the check condition
+            // verify that it evaluates to a boolean
+            final int previousReliability = cc.getReliability();
+            try
+            {
+                /* Each check constraint can have its own set of dependencies.
+                 * These dependencies need to be shared with the prepared
+                 * statement as well.  We create a new auxiliary provider list
+                 * for the check constraint, "push" it on the compiler context
+                 * by swapping it with the current auxiliary provider list
+                 * and the "pop" it when we're done by restoring the old
+                 * auxiliary provider list.
+                 */
+                ProviderList apl = new ProviderList();
 
-				ProviderList prevAPL = cc.getCurrentAuxiliaryProviderList();
-				cc.setCurrentAuxiliaryProviderList(apl);
+                ProviderList prevAPL = cc.getCurrentAuxiliaryProviderList();
+                cc.setCurrentAuxiliaryProviderList(apl);
 
-				// Tell the compiler context to only allow deterministic nodes
-				cc.setReliability( CompilerContext.CHECK_CONSTRAINT );
-				checkTree = checkTree.bindExpression(fromList, (SubqueryList) null,
-										 aggregateVector);
+                // Tell the compiler context to only allow deterministic nodes
+                cc.setReliability( CompilerContext.CHECK_CONSTRAINT );
+                checkTree = checkTree.bindExpression(fromList, (SubqueryList) null,
+                                         aggregateVector);
 
-				// no aggregates, please
-				if (!aggregateVector.isEmpty())
-				{
-					throw StandardException.newException(SQLState.LANG_INVALID_CHECK_CONSTRAINT, cdn.getConstraintText());
-				}
-				
-				checkTree = checkTree.checkIsBoolean();
-				cdn.setCheckCondition(checkTree);
+                // no aggregates, please
+                if (!aggregateVector.isEmpty())
+                {
+                    throw StandardException.newException(SQLState.LANG_INVALID_CHECK_CONSTRAINT, cdn.getConstraintText());
+                }
 
-				/* Save the APL off in the constraint node */
-				if (!apl.isEmpty())
-				{
-					cdn.setAuxiliaryProviderList(apl);
-				}
+                checkTree = checkTree.checkIsBoolean();
+                cdn.setCheckCondition(checkTree);
 
-				// Restore the previous AuxiliaryProviderList
-				cc.setCurrentAuxiliaryProviderList(prevAPL);
-			}
-			finally
-			{
-				cc.setReliability(previousReliability);
-			}
-	
-			/* We have a valid check constraint, now build an array of
-			 * 1-based columnIds that the constraint references.
-			 */
-			ResultColumnList rcl = table.getResultColumns();
-			int		numReferenced = rcl.countReferencedColumns();
-			int[]	checkColumnReferences = new int[numReferenced];
+                /* Save the APL off in the constraint node */
+                if (!apl.isEmpty())
+                {
+                    cdn.setAuxiliaryProviderList(apl);
+                }
 
-			rcl.recordColumnReferences(checkColumnReferences, 1);
-			cdn.setCheckColumnReferences(checkColumnReferences);
+                // Restore the previous AuxiliaryProviderList
+                cc.setCurrentAuxiliaryProviderList(prevAPL);
+            }
+            finally
+            {
+                cc.setReliability(previousReliability);
+            }
 
-			/* Now we build a list with only the referenced columns and
-			 * copy it to the cdn.  Thus we can build the array of
-			 * column names for the referenced columns during generate().
-			 */
-			ResultColumnList refRCL =
-						(ResultColumnList) getNodeFactory().getNode(
-												C_NodeTypes.RESULT_COLUMN_LIST,
-												getContextManager());
-			rcl.copyReferencedColumnsToNewList(refRCL);
+            /* We have a valid check constraint, now build an array of
+             * 1-based columnIds that the constraint references.
+             */
+            ResultColumnList rcl = table.getResultColumns();
+            int        numReferenced = rcl.countReferencedColumns();
+            int[]    checkColumnReferences = new int[numReferenced];
 
-			/* A column check constraint can only refer to that column. If this is a
-			 * column constraint, we should have an RCL with that column
-			 */
-			if (cdn.getColumnList() != null)
-			{
-				String colName = ((ResultColumn)(cdn.getColumnList().elementAt(0))).getName();
-				if (numReferenced > 1 ||
-					!colName.equals(((ResultColumn)(refRCL.elementAt(0))).getName()))
-					throw StandardException.newException(SQLState.LANG_DB2_INVALID_CHECK_CONSTRAINT, colName);
-				
-			}
-			cdn.setColumnList(refRCL);
+            rcl.recordColumnReferences(checkColumnReferences, 1);
+            cdn.setCheckColumnReferences(checkColumnReferences);
 
-			/* Clear the column references in the RCL so each check constraint
-			 * starts with a clean list.
-			 */
-			rcl.clearColumnReferences();
-		}
-	}
+            /* Now we build a list with only the referenced columns and
+             * copy it to the cdn.  Thus we can build the array of
+             * column names for the referenced columns during generate().
+             */
+            ResultColumnList refRCL =
+                        (ResultColumnList) getNodeFactory().getNode(
+                                                C_NodeTypes.RESULT_COLUMN_LIST,
+                                                getContextManager());
+            rcl.copyReferencedColumnsToNewList(refRCL);
 
-	/**
-	 * Bind and validate all of the generation clauses in this list against
-	 * the specified FromList.  
-	 *
-	 * @param sd			Schema where the table lives.
-	 * @param fromList		The FromList in question.
-	 * @param generatedColumns Bitmap of generated columns in the table. Vacuous for CREATE TABLE, but may be non-trivial for ALTER TABLE. This routine may set bits for new generated columns.
-	 * @param baseTable  Table descriptor if this is an ALTER TABLE statement.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void bindAndValidateGenerationClauses( SchemaDescriptor sd, FromList fromList, FormatableBitSet generatedColumns, TableDescriptor baseTable )
-		throws StandardException
-	{
-		CompilerContext cc;
-		FromBaseTable				table = (FromBaseTable) fromList.elementAt(0);
+            /* A column check constraint can only refer to that column. If this is a
+             * column constraint, we should have an RCL with that column
+             */
+            if (cdn.getColumnList() != null)
+            {
+                String colName = ((ResultColumn)(cdn.getColumnList().elementAt(0))).getName();
+                if (numReferenced > 1 ||
+                    !colName.equals(((ResultColumn)(refRCL.elementAt(0))).getName()))
+                    throw StandardException.newException(SQLState.LANG_DB2_INVALID_CHECK_CONSTRAINT, colName);
+
+            }
+            cdn.setColumnList(refRCL);
+
+            /* Clear the column references in the RCL so each check constraint
+             * starts with a clean list.
+             */
+            rcl.clearColumnReferences();
+        }
+    }
+
+    /**
+     * Bind and validate all of the generation clauses in this list against
+     * the specified FromList.
+     *
+     * @param sd            Schema where the table lives.
+     * @param fromList        The FromList in question.
+     * @param generatedColumns Bitmap of generated columns in the table. Vacuous for CREATE TABLE, but may be non-trivial for ALTER TABLE. This routine may set bits for new generated columns.
+     * @param baseTable  Table descriptor if this is an ALTER TABLE statement.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void bindAndValidateGenerationClauses( SchemaDescriptor sd, FromList fromList, FormatableBitSet generatedColumns, TableDescriptor baseTable )
+        throws StandardException
+    {
+        CompilerContext cc;
+        FromBaseTable                table = (FromBaseTable) fromList.elementAt(0);
         ResultColumnList            tableColumns = table.getResultColumns();
         int                                 columnCount = table.getResultColumns().size();
-		int						  size = size();
+        int                          size = size();
 
         // complain if a generation clause references another generated column
         findIllegalGenerationReferences( fromList, baseTable );
 
         generatedColumns.grow( columnCount + 1 );
         
-		cc = getCompilerContext();
+        cc = getCompilerContext();
 
-		List<AggregateNode> aggregateVector = new ArrayList<>();
+        List<AggregateNode> aggregateVector = new ArrayList<>();
 
-		for (int index = 0; index < size; index++) {
-			ColumnDefinitionNode cdn;
-			TableElementNode element = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++) {
+            ColumnDefinitionNode cdn;
+            TableElementNode element = (TableElementNode) elementAt(index);
             GenerationClauseNode    generationClauseNode;
-			ValueNode	generationTree;
+            ValueNode    generationTree;
 
-			if (! (element instanceof ColumnDefinitionNode))
-			{
-				continue;
-			}
+            if (! (element instanceof ColumnDefinitionNode))
+            {
+                continue;
+            }
 
-			cdn = (ColumnDefinitionNode) element;
+            cdn = (ColumnDefinitionNode) element;
 
-			if (!cdn.hasGenerationClause())
-			{
-				continue;
-			}
+            if (!cdn.hasGenerationClause())
+            {
+                continue;
+            }
 
             generationClauseNode = cdn.getGenerationClauseNode();
 
-			// bind the generation clause
-			final int previousReliability = cc.getReliability();
+            // bind the generation clause
+            final int previousReliability = cc.getReliability();
             ProviderList prevAPL = cc.getCurrentAuxiliaryProviderList();
-			try
-			{
-				/* Each generation clause can have its own set of dependencies.
-				 * These dependencies need to be shared with the prepared
-				 * statement as well.  We create a new auxiliary provider list
-				 * for the generation clause, "push" it on the compiler context
-				 * by swapping it with the current auxiliary provider list
-				 * and the "pop" it when we're done by restoring the old 
-				 * auxiliary provider list.
-				 */
-				ProviderList apl = new ProviderList();
+            try
+            {
+                /* Each generation clause can have its own set of dependencies.
+                 * These dependencies need to be shared with the prepared
+                 * statement as well.  We create a new auxiliary provider list
+                 * for the generation clause, "push" it on the compiler context
+                 * by swapping it with the current auxiliary provider list
+                 * and the "pop" it when we're done by restoring the old
+                 * auxiliary provider list.
+                 */
+                ProviderList apl = new ProviderList();
 
-				cc.setCurrentAuxiliaryProviderList(apl);
+                cc.setCurrentAuxiliaryProviderList(apl);
 
-				// Tell the compiler context to forbid subqueries and
-				// non-deterministic functions.
-				cc.setReliability( CompilerContext.GENERATION_CLAUSE_RESTRICTION );
-				generationTree = generationClauseNode.bindExpression(fromList, (SubqueryList) null,
-										 aggregateVector);
+                // Tell the compiler context to forbid subqueries and
+                // non-deterministic functions.
+                cc.setReliability( CompilerContext.GENERATION_CLAUSE_RESTRICTION );
+                generationTree = generationClauseNode.bindExpression(fromList, (SubqueryList) null,
+                                         aggregateVector);
 
                 //
                 // If the user did not declare a type for this column, then the column type defaults
@@ -823,37 +831,37 @@ public class TableElementList extends QueryTreeNodeVector {
                     }
                 }
 
-				// no aggregates, please
-				if (!aggregateVector.isEmpty())
-				{
-					throw StandardException.newException( SQLState.LANG_AGGREGATE_IN_GENERATION_CLAUSE, cdn.getName());
-				}
-				
-				/* Save the APL off in the constraint node */
-				if (!apl.isEmpty())
-				{
-					generationClauseNode.setAuxiliaryProviderList(apl);
-				}
+                // no aggregates, please
+                if (!aggregateVector.isEmpty())
+                {
+                    throw StandardException.newException( SQLState.LANG_AGGREGATE_IN_GENERATION_CLAUSE, cdn.getName());
+                }
 
-			}
-			finally
-			{
-				// Restore previous compiler state
-				cc.setCurrentAuxiliaryProviderList(prevAPL);
-				cc.setReliability(previousReliability);
-			}
+                /* Save the APL off in the constraint node */
+                if (!apl.isEmpty())
+                {
+                    generationClauseNode.setAuxiliaryProviderList(apl);
+                }
 
-			/* We have a valid generation clause, now build an array of
-			 * 1-based columnIds that the clause references.
-			 */
-			ResultColumnList rcl = table.getResultColumns();
-			int		numReferenced = rcl.countReferencedColumns();
-			int[]	generationClauseColumnReferences = new int[numReferenced];
+            }
+            finally
+            {
+                // Restore previous compiler state
+                cc.setCurrentAuxiliaryProviderList(prevAPL);
+                cc.setReliability(previousReliability);
+            }
+
+            /* We have a valid generation clause, now build an array of
+             * 1-based columnIds that the clause references.
+             */
+            ResultColumnList rcl = table.getResultColumns();
+            int        numReferenced = rcl.countReferencedColumns();
+            int[]    generationClauseColumnReferences = new int[numReferenced];
             int     position = rcl.getPosition( cdn.getColumnName(), 1 );
 
             generatedColumns.set( position );
         
-			rcl.recordColumnReferences(generationClauseColumnReferences, 1);
+            rcl.recordColumnReferences(generationClauseColumnReferences, 1);
 
             String[]    referencedColumnNames = new String[ numReferenced ];
 
@@ -867,29 +875,29 @@ public class TableElementList extends QueryTreeNodeVector {
                 ( generationClauseNode.getExpressionText(), referencedColumnNames, currentSchemaName );
             cdn.setDefaultInfo( dii );
 
-			/* Clear the column references in the RCL so each generation clause
-			 * starts with a clean list.
-			 */
-			rcl.clearColumnReferences();
-		}
+            /* Clear the column references in the RCL so each generation clause
+             * starts with a clean list.
+             */
+            rcl.clearColumnReferences();
+        }
 
         
-	}
+    }
 
-	/**
-	 * Complain if a generation clause references other generated columns. This
-	 * is required by the SQL Standard, part 2, section 4.14.8.
-	 *
-	 * @param fromList		The FromList in question.
-	 * @param baseTable  Table descriptor if this is an ALTER TABLE statement.
-	 * @exception StandardException		Thrown on error
-	 */
-	void findIllegalGenerationReferences( FromList fromList, TableDescriptor baseTable )
-		throws StandardException
-	{
+    /**
+     * Complain if a generation clause references other generated columns. This
+     * is required by the SQL Standard, part 2, section 4.14.8.
+     *
+     * @param fromList        The FromList in question.
+     * @param baseTable  Table descriptor if this is an ALTER TABLE statement.
+     * @exception StandardException        Thrown on error
+     */
+    void findIllegalGenerationReferences( FromList fromList, TableDescriptor baseTable )
+        throws StandardException
+    {
         ArrayList   generatedColumns = new ArrayList();
         HashSet     names = new HashSet();
-		int         size = size();
+        int         size = size();
 
         // add in existing generated columns if this is an ALTER TABLE statement
         if ( baseTable != null )
@@ -903,16 +911,16 @@ public class TableElementList extends QueryTreeNodeVector {
         }
         
         // find all of the generated columns
-		for (int index = 0; index < size; index++)
-		{
-			ColumnDefinitionNode cdn;
-			TableElementNode     element = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++)
+        {
+            ColumnDefinitionNode cdn;
+            TableElementNode     element = (TableElementNode) elementAt(index);
 
-			if (! (element instanceof ColumnDefinitionNode)) { continue; }
+            if (! (element instanceof ColumnDefinitionNode)) { continue; }
 
-			cdn = (ColumnDefinitionNode) element;
+            cdn = (ColumnDefinitionNode) element;
 
-			if (!cdn.hasGenerationClause()) { continue; }
+            if (!cdn.hasGenerationClause()) { continue; }
 
             generatedColumns.add( cdn );
             names.add( cdn.getColumnName() );
@@ -939,39 +947,39 @@ public class TableElementList extends QueryTreeNodeVector {
 
     }
     
-	/**
-	 * Prevent foreign keys on generated columns from violating the SQL spec,
-	 * part 2, section 11.8 (<column definition>), syntax rule 12: the
-	 * referential action may not specify SET NULL or SET DEFAULT and the update
-	 * rule may not specify ON UPDATE CASCADE.  
-	 *
-	 * @param fromList		The FromList in question.
-	 * @param generatedColumns Bitmap of generated columns in the table.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void validateForeignKeysOnGenerationClauses(FromList fromList, FormatableBitSet generatedColumns )
-		throws StandardException
-	{
+    /**
+     * Prevent foreign keys on generated columns from violating the SQL spec,
+     * part 2, section 11.8 (<column definition>), syntax rule 12: the
+     * referential action may not specify SET NULL or SET DEFAULT and the update
+     * rule may not specify ON UPDATE CASCADE.
+     *
+     * @param fromList        The FromList in question.
+     * @param generatedColumns Bitmap of generated columns in the table.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void validateForeignKeysOnGenerationClauses(FromList fromList, FormatableBitSet generatedColumns )
+        throws StandardException
+    {
         // nothing to do if there are no generated columns
         if ( generatedColumns.getNumBitsSet() <= 0 ) { return; }
         
-		FromBaseTable				table = (FromBaseTable) fromList.elementAt(0);
+        FromBaseTable                table = (FromBaseTable) fromList.elementAt(0);
         ResultColumnList        tableColumns = table.getResultColumns();
-		int						  size = size();
+        int                          size = size();
 
         // loop through the foreign keys, looking for keys which violate the
         // rulse we're enforcing
-		for (int index = 0; index < size; index++)
-		{
-			TableElementNode element = (TableElementNode) elementAt(index);
+        for (int index = 0; index < size; index++)
+        {
+            TableElementNode element = (TableElementNode) elementAt(index);
 
-			if (! (element instanceof FKConstraintDefinitionNode))
-			{
-				continue;
-			}
+            if (! (element instanceof FKConstraintDefinitionNode))
+            {
+                continue;
+            }
 
-			FKConstraintDefinitionNode fk = (FKConstraintDefinitionNode) element;
+            FKConstraintDefinitionNode fk = (FKConstraintDefinitionNode) element;
             ConstraintInfo                      ci = fk.getReferencedConstraintInfo();
             int                                     deleteRule = ci.getReferentialActionDeleteRule();
             int                                     updateRule = ci.getReferentialActionUpdateRule();
@@ -1018,73 +1026,73 @@ public class TableElementList extends QueryTreeNodeVector {
         }   // end of loop through table elements
     }
     
-	/**
-	 * Fill in the ConstraintConstantAction[] for this create/alter table.
-	 * 
+    /**
+     * Fill in the ConstraintConstantAction[] for this create/alter table.
+     *
      * @param forCreateTable ConstantAction is for a create table.
-	 * @param conActions	The ConstantAction[] to be filled in.
-	 * @param tableName		The name of the Table being created.
-	 * @param tableSd		The schema for that table.
-	 * @param dd	    	The DataDictionary
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	void genConstraintActions(boolean forCreateTable,
-				ConstantAction[] conActions,
-				String tableName,
-				SchemaDescriptor tableSd,
-				DataDictionary dd)
-		throws StandardException
-	{
-		int size = size();
-		int conActionIndex = 0;
-		for (int index = 0; index < size; index++)
-		{
-			String[]	columnNames = null;
-			TableElementNode ten = (TableElementNode) elementAt(index);
-			ConstantAction indexAction = null;
+     * @param conActions    The ConstantAction[] to be filled in.
+     * @param tableName        The name of the Table being created.
+     * @param tableSd        The schema for that table.
+     * @param dd            The DataDictionary
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    void genConstraintActions(boolean forCreateTable,
+                ConstantAction[] conActions,
+                String tableName,
+                SchemaDescriptor tableSd,
+                DataDictionary dd)
+        throws StandardException
+    {
+        int size = size();
+        int conActionIndex = 0;
+        for (int index = 0; index < size; index++)
+        {
+            String[]    columnNames = null;
+            TableElementNode ten = (TableElementNode) elementAt(index);
+            ConstantAction indexAction = null;
 
-			if (! ten.hasConstraint())
-			{
-				continue;
-			}
+            if (! ten.hasConstraint())
+            {
+                continue;
+            }
 
-			if (ten instanceof ColumnDefinitionNode)
-			{
-				continue;
-			}
+            if (ten instanceof ColumnDefinitionNode)
+            {
+                continue;
+            }
 
-			ConstraintDefinitionNode constraintDN = (ConstraintDefinitionNode) ten;
+            ConstraintDefinitionNode constraintDN = (ConstraintDefinitionNode) ten;
 
-			if (constraintDN.getColumnList() != null)
-			{
-				columnNames = new String[constraintDN.getColumnList().size()];
-				constraintDN.getColumnList().exportNames(columnNames);
-			}
+            if (constraintDN.getColumnList() != null)
+            {
+                columnNames = new String[constraintDN.getColumnList().size()];
+                constraintDN.getColumnList().exportNames(columnNames);
+            }
 
-			int constraintType = constraintDN.getConstraintType();
-			String constraintText = constraintDN.getConstraintText();
+            int constraintType = constraintDN.getConstraintType();
+            String constraintText = constraintDN.getConstraintText();
 
-			/*
-			** If the constraint is not named (e.g.
-			** create table x (x int primary key)), then
-			** the constraintSd is the same as the table.
-			*/
-			String constraintName = constraintDN.getConstraintMoniker();
+            /*
+            ** If the constraint is not named (e.g.
+            ** create table x (x int primary key)), then
+            ** the constraintSd is the same as the table.
+            */
+            String constraintName = constraintDN.getConstraintMoniker();
 
-			/* At execution time, we will generate a unique name for the backing
-			 * index (for CREATE CONSTRAINT) and we will look up the conglomerate
-			 * name (for DROP CONSTRAINT).
-			 */
-			if (constraintDN.requiresBackingIndex())
-			{
+            /* At execution time, we will generate a unique name for the backing
+             * index (for CREATE CONSTRAINT) and we will look up the conglomerate
+             * name (for DROP CONSTRAINT).
+             */
+            if (constraintDN.requiresBackingIndex())
+            {
                 // implement unique constraints using a unique backing index 
                 // unless it is soft upgrade in version before 10.4, or if 
                 // constraint contains no nullable columns.  In 10.4 use 
                 // "unique with duplicate null" backing index for constraints 
                 // that contain at least one nullable column.
 
-				if (constraintDN.constraintType == DataDictionary.UNIQUE_CONSTRAINT) {
+                if (constraintDN.constraintType == DataDictionary.UNIQUE_CONSTRAINT) {
                     boolean contains_nullable_columns = 
                         areColumnsNullable(constraintDN, td);
 
@@ -1095,116 +1103,116 @@ public class TableElementList extends QueryTreeNodeVector {
                     // Only use a "unique with duplicate nulls" backing index
                     // for constraints with nullable columns.
 
-					indexAction = genIndexAction(
-						forCreateTable,
-						unique,
-							contains_nullable_columns,
-						null, constraintDN,
-						columnNames, true, tableSd, tableName,
-						constraintType, false,false,dd);
-				} 
+                    indexAction = genIndexAction(
+                        forCreateTable,
+                        unique,
+                            contains_nullable_columns,
+                        null, constraintDN,
+                        columnNames, true, tableSd, tableName,
+                        constraintType, false,false,dd);
+                }
                 else 
                 {
-					indexAction = genIndexAction(
-						forCreateTable,
-						constraintDN.requiresUniqueIndex(), false,
-						null, constraintDN,
-						columnNames, true, tableSd, tableName,
-						constraintType, false,false, dd);
-				}
-			}
+                    indexAction = genIndexAction(
+                        forCreateTable,
+                        constraintDN.requiresUniqueIndex(), false,
+                        null, constraintDN,
+                        columnNames, true, tableSd, tableName,
+                        constraintType, false,false, dd);
+                }
+            }
 
-			if (constraintType == DataDictionary.DROP_CONSTRAINT)
-			{
+            if (constraintType == DataDictionary.DROP_CONSTRAINT)
+            {
                 if (SanityManager.DEBUG)
                 {
                     // Can't drop constraints on a create table.
                     SanityManager.ASSERT(!forCreateTable);
                 }
-				conActions[conActionIndex] = 
-					getGenericConstantActionFactory().
-						getDropConstraintConstantAction(
-												 constraintName, 
-												 constraintDN.getDropSchemaName(), /// FiX
-												 tableName,
-												 td.getUUID(),
-												 tableSd.getSchemaName(),
-												 indexAction,
-												 constraintDN.getDropBehavior(),
+                conActions[conActionIndex] =
+                    getGenericConstantActionFactory().
+                        getDropConstraintConstantAction(
+                                                 constraintName,
+                                                 constraintDN.getDropSchemaName(), /// FiX
+                                                 tableName,
+                                                 td.getUUID(),
+                                                 tableSd.getSchemaName(),
+                                                 indexAction,
+                                                 constraintDN.getDropBehavior(),
                                                  constraintDN.getVerifyType());
-			}
-			else
-			{
-				ProviderList apl = constraintDN.getAuxiliaryProviderList();
-				ConstraintInfo refInfo = null;
-				ProviderInfo[]	providerInfos = null;
+            }
+            else
+            {
+                ProviderList apl = constraintDN.getAuxiliaryProviderList();
+                ConstraintInfo refInfo = null;
+                ProviderInfo[]    providerInfos = null;
 
-				if (constraintDN instanceof FKConstraintDefinitionNode)
-				{
-					refInfo = ((FKConstraintDefinitionNode)constraintDN).getReferencedConstraintInfo();
-				}				
+                if (constraintDN instanceof FKConstraintDefinitionNode)
+                {
+                    refInfo = ((FKConstraintDefinitionNode)constraintDN).getReferencedConstraintInfo();
+                }
 
-				/* Create the ProviderInfos, if the constraint is dependent on any Providers */
-				if (apl != null && !apl.isEmpty())
-				{
-					/* Get all the dependencies for the current statement and transfer
-					 * them to this view.
-					 */
-					DependencyManager dm = dd.getDependencyManager();
-					providerInfos = dm.getPersistentProviderInfos(apl);
-				}
-				else
-				{
-					providerInfos = new ProviderInfo[0];
-					// System.out.println("TABLE ELEMENT LIST EMPTY");
-				}
+                /* Create the ProviderInfos, if the constraint is dependent on any Providers */
+                if (apl != null && !apl.isEmpty())
+                {
+                    /* Get all the dependencies for the current statement and transfer
+                     * them to this view.
+                     */
+                    DependencyManager dm = dd.getDependencyManager();
+                    providerInfos = dm.getPersistentProviderInfos(apl);
+                }
+                else
+                {
+                    providerInfos = new ProviderInfo[0];
+                    // System.out.println("TABLE ELEMENT LIST EMPTY");
+                }
 
-				conActions[conActionIndex++] = 
-					getGenericConstantActionFactory().
-						getCreateConstraintConstantAction(
-												 constraintName, 
-											     constraintType,
+                conActions[conActionIndex++] =
+                    getGenericConstantActionFactory().
+                        getCreateConstraintConstantAction(
+                                                 constraintName,
+                                                 constraintType,
                                                  forCreateTable,
-												 tableName, 
-												 ((td != null) ? td.getUUID() : (UUID) null),
-												 tableSd.getSchemaName(),
-												 columnNames,
-												 indexAction,
-												 constraintText,
-												 true, 		// enabled
-												 refInfo,
-												 providerInfos);
-			}
-		}
-	}
+                                                 tableName,
+                                                 ((td != null) ? td.getUUID() : (UUID) null),
+                                                 tableSd.getSchemaName(),
+                                                 columnNames,
+                                                 indexAction,
+                                                 constraintText,
+                                                 true,         // enabled
+                                                 refInfo,
+                                                 providerInfos);
+            }
+        }
+    }
 
       //check if one array is same as another 
-	private boolean columnsMatch(String[] columnNames1, String[] columnNames2)
-	{
-		int srcCount, srcSize, destCount,destSize;
-		boolean match = true;
+    private boolean columnsMatch(String[] columnNames1, String[] columnNames2)
+    {
+        int srcCount, srcSize, destCount,destSize;
+        boolean match = true;
 
-		if (columnNames1.length != columnNames2.length)
-			return false;
+        if (columnNames1.length != columnNames2.length)
+            return false;
 
-		srcSize = columnNames1.length;
-		destSize = columnNames2.length;
+        srcSize = columnNames1.length;
+        destSize = columnNames2.length;
 
-		for (srcCount = 0; srcCount < srcSize; srcCount++)
-		{
-			match = false;
-			for (destCount = 0; destCount < destSize; destCount++) {
-				if (columnNames1[srcCount].equals(columnNames2[destCount])) {
-					match = true;
-					break;
-				}
-			}
-			if (!match)
-				return false;
-		}
+        for (srcCount = 0; srcCount < srcSize; srcCount++)
+        {
+            match = false;
+            for (destCount = 0; destCount < destSize; destCount++) {
+                if (columnNames1[srcCount].equals(columnNames2[destCount])) {
+                    match = true;
+                    break;
+                }
+            }
+            if (!match)
+                return false;
+        }
 
-		return true;
-	}
+        return true;
+    }
 
     /**
      * utility to generated the call to create the index.
@@ -1212,26 +1220,26 @@ public class TableElementList extends QueryTreeNodeVector {
      *
      *
      * @param forCreateTable                Executed as part of a CREATE TABLE
-     * @param isUnique		                True means it will be a unique index
+     * @param isUnique                        True means it will be a unique index
      * @param isUniqueWithDuplicateNulls    True means index check and disallow
      *                                      any duplicate key if key has no 
      *                                      column with a null value.  If any 
      *                                      column in the key has a null value,
      *                                      no checking is done and insert will
      *                                      always succeed.
-     * @param indexName	                    The type of index (BTREE, for 
+     * @param indexName                        The type of index (BTREE, for
      *                                      example)
      * @param cdn
-     * @param columnNames	                Names of the columns in the index,
+     * @param columnNames                    Names of the columns in the index,
      *                                      in order.
-     * @param isConstraint	                TRUE if index is backing up a 
+     * @param isConstraint                    TRUE if index is backing up a
      *                                      constraint, else FALSE.
      * @param sd
-     * @param tableName	                    Name of table the index will be on
+     * @param tableName                        Name of table the index will be on
      * @param constraintType
      * @param dd
      **/
-	private ConstantAction genIndexAction(
+    private ConstantAction genIndexAction(
     boolean                     forCreateTable,
     boolean                     isUnique,
     boolean                     isUniqueWithDuplicateNulls,
@@ -1242,18 +1250,18 @@ public class TableElementList extends QueryTreeNodeVector {
     SchemaDescriptor            sd,
     String                      tableName,
     int                         constraintType,
-	boolean						excludeNulls,
-	boolean 					excludeDefaults,
+    boolean                        excludeNulls,
+    boolean                     excludeDefaults,
     DataDictionary              dd)
-		throws StandardException
-	{
-		if (indexName == null) 
+        throws StandardException
+    {
+        if (indexName == null)
         { 
             indexName = cdn.getBackingIndexName(dd); 
         }
 
-		if (constraintType == DataDictionary.DROP_CONSTRAINT)
-		{
+        if (constraintType == DataDictionary.DROP_CONSTRAINT)
+        {
             if (SanityManager.DEBUG)
             {
                 if (forCreateTable)
@@ -1261,22 +1269,22 @@ public class TableElementList extends QueryTreeNodeVector {
                         "DROP INDEX with forCreateTable true");
             }
 
-			return getGenericConstantActionFactory().getDropIndexConstantAction(
+            return getGenericConstantActionFactory().getDropIndexConstantAction(
                       null,
                       indexName,
                       tableName,
                       sd.getSchemaName(),
                       td.getUUID(),
                       td.getHeapConglomerateId());
-		}
-		else
-		{
-			boolean[]	isAscending = new boolean[columnNames.length];
+        }
+        else
+        {
+            boolean[]    isAscending = new boolean[columnNames.length];
 
-			for (int i = 0; i < isAscending.length; i++)
-				isAscending[i] = true;
+            for (int i = 0; i < isAscending.length; i++)
+                isAscending[i] = true;
 
-			return	getGenericConstantActionFactory().getCreateIndexConstantAction(
+            return    getGenericConstantActionFactory().getCreateIndexConstantAction(
                     forCreateTable, 
                     isUnique, 
                     isUniqueWithDuplicateNulls,
@@ -1290,13 +1298,13 @@ public class TableElementList extends QueryTreeNodeVector {
                     isAscending,
                     isConstraint,
                     cdn.getBackingIndexUUID(),
-					excludeNulls,
-					excludeDefaults,
-					false,false,false,0,null,null,null,null,null,null,null,
-					new String[]{}, new ByteArray[]{}, new String[]{},
+                    excludeNulls,
+                    excludeDefaults,
+                    false,false,false,0,null,null,null,null,null,null,null,
+                    new String[]{}, new ByteArray[]{}, new String[]{},
                     checkIndexPageSizeProperty(cdn));
-		}
-	}
+        }
+    }
     /**
      * Checks if the index should use a larger page size.
      *
@@ -1353,138 +1361,138 @@ public class TableElementList extends QueryTreeNodeVector {
     }
 
 
-	/**
-	 * Check to make sure that there are no duplicate column names
-	 * in the list.  (The comparison here is case sensitive.
-	 * The work of converting column names that are not quoted
-	 * identifiers to upper case is handled by the parser.)
-	 * RESOLVE: This check will also be performed by alter table.
-	 *
-	 * @param ddlStmt	DDLStatementNode which contains this list
-	 * @param ht		Hashtable for enforcing uniqueness.
-	 * @param colName	Column name to check for.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	private void checkForDuplicateColumns(DDLStatementNode ddlStmt,
-									Hashtable ht,
-									String colName)
-			throws StandardException
-	{
-		Object object = ht.put(colName, colName);
-		if (object != null)
-		{
-			/* RESOLVE - different error messages for create and alter table */
-			if (ddlStmt instanceof CreateTableNode)
-			{
-				throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE, colName);
-			}
-		}
-	}
-
-	/**
-	 * Check to make sure that there are no duplicate constraint names
-	 * in the list.  (The comparison here is case sensitive.
-	 * The work of converting column names that are not quoted
-	 * identifiers to upper case is handled by the parser.)
-	 * RESOLVE: This check will also be performed by alter table.
-	 *
-	 * @param ddlStmt	DDLStatementNode which contains this list
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	private void checkForDuplicateConstraintNames(DDLStatementNode ddlStmt,
-									Hashtable ht,
-									String constraintName)
-			throws StandardException
-	{
-		if (constraintName == null)
-			return;
-
-		Object object = ht.put(constraintName, constraintName);
-		if (object != null) {
-
-			/* RESOLVE - different error messages for create and alter table */
-			if (ddlStmt instanceof CreateTableNode)
-			{
-				/* RESOLVE - new error message */
-				throw StandardException.newException(SQLState.LANG_DUPLICATE_CONSTRAINT_NAME_CREATE, 
-						constraintName);
-			}
-		}
-	}
-
-	/**
-	 * Verify that a primary/unique table constraint has a valid column list.
-	 * (All columns in table and no duplicates.)
-	 *
-	 * @param ddlStmt	The outer DDLStatementNode
-	 * @param cdn		The ConstraintDefinitionNode
-	 *
-	 * @exception	StandardException	Thrown if the column list is invalid
-	 */
-	private void verifyUniqueColumnList(DDLStatementNode ddlStmt,
-								ConstraintDefinitionNode cdn)
-		throws StandardException
-	{
-		String invalidColName;
-
-		/* Verify that every column in the list appears in the table's list of columns */
-		if (ddlStmt instanceof CreateTableNode)
-		{
-			invalidColName = cdn.getColumnList().verifyCreateConstraintColumnList(this);
-			if (invalidColName != null)
-			{
-				throw StandardException.newException(SQLState.LANG_INVALID_CREATE_CONSTRAINT_COLUMN_LIST, 
-								ddlStmt.getRelativeName(),
-								invalidColName);
-			}
-		}
-		else
-		{
-			/* RESOLVE - alter table will need to get table descriptor */
-		}
-
-		/* Check the uniqueness of the column names within the list */
-		invalidColName = cdn.getColumnList().verifyUniqueNames(false);
-		if (invalidColName != null)
-		{
-			throw StandardException.newException(SQLState.LANG_DUPLICATE_CONSTRAINT_COLUMN_NAME, invalidColName);
-		}
-	}
-
-	/**
-	 * Set all columns in that appear in a PRIMARY KEY constraint in a CREATE TABLE statement to NOT NULL.
-	 *
-	 * @param cdn		The ConstraintDefinitionNode for a PRIMARY KEY constraint
-	 */
-	private void setColumnListToNotNull(ConstraintDefinitionNode cdn)
-	{
-		ResultColumnList rcl = cdn.getColumnList();
-		int rclSize = rcl.size();
-		for (int index = 0; index < rclSize; index++)
-		{
-			String colName = ((ResultColumn) rcl.elementAt(index)).getName();
-            ColumnDefinitionNode colDef = findColumnDefinition(colName);
-			colDef.setNullability(false);
+    /**
+     * Check to make sure that there are no duplicate column names
+     * in the list.  (The comparison here is case sensitive.
+     * The work of converting column names that are not quoted
+     * identifiers to upper case is handled by the parser.)
+     * RESOLVE: This check will also be performed by alter table.
+     *
+     * @param ddlStmt    DDLStatementNode which contains this list
+     * @param ht        Hashtable for enforcing uniqueness.
+     * @param colName    Column name to check for.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    private void checkForDuplicateColumns(DDLStatementNode ddlStmt,
+                                    Hashtable ht,
+                                    String colName)
+            throws StandardException
+    {
+        Object object = ht.put(colName, colName);
+        if (object != null)
+        {
+            /* RESOLVE - different error messages for create and alter table */
+            if (ddlStmt instanceof CreateTableNode)
+            {
+                throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE, colName);
+            }
         }
-	}
+    }
 
-	public void validateNoArrays(ConstraintDefinitionNode cdn) throws StandardException {
-		ResultColumnList rcl = cdn.getColumnList();
-		int rclSize = rcl.size();
-		for (int index = 0; index < rclSize; index++)
-		{
-			String colName = ((ResultColumn) rcl.elementAt(index)).getName();
-			ColumnDefinitionNode colDef = findColumnDefinition(colName);
-			if (colDef.getType().getTypeId().isArray()) {
-				throw StandardException.newException(SQLState.NO_ARRAY_IN_PRIMARY_KEY, colName);
-			}
-		}
-	}
+    /**
+     * Check to make sure that there are no duplicate constraint names
+     * in the list.  (The comparison here is case sensitive.
+     * The work of converting column names that are not quoted
+     * identifiers to upper case is handled by the parser.)
+     * RESOLVE: This check will also be performed by alter table.
+     *
+     * @param ddlStmt    DDLStatementNode which contains this list
+     *
+     * @exception StandardException        Thrown on error
+     */
+    private void checkForDuplicateConstraintNames(DDLStatementNode ddlStmt,
+                                    Hashtable ht,
+                                    String constraintName)
+            throws StandardException
+    {
+        if (constraintName == null)
+            return;
+
+        Object object = ht.put(constraintName, constraintName);
+        if (object != null) {
+
+            /* RESOLVE - different error messages for create and alter table */
+            if (ddlStmt instanceof CreateTableNode)
+            {
+                /* RESOLVE - new error message */
+                throw StandardException.newException(SQLState.LANG_DUPLICATE_CONSTRAINT_NAME_CREATE,
+                        constraintName);
+            }
+        }
+    }
+
+    /**
+     * Verify that a primary/unique table constraint has a valid column list.
+     * (All columns in table and no duplicates.)
+     *
+     * @param ddlStmt    The outer DDLStatementNode
+     * @param cdn        The ConstraintDefinitionNode
+     *
+     * @exception    StandardException    Thrown if the column list is invalid
+     */
+    private void verifyUniqueColumnList(DDLStatementNode ddlStmt,
+                                ConstraintDefinitionNode cdn)
+        throws StandardException
+    {
+        String invalidColName;
+
+        /* Verify that every column in the list appears in the table's list of columns */
+        if (ddlStmt instanceof CreateTableNode)
+        {
+            invalidColName = cdn.getColumnList().verifyCreateConstraintColumnList(this);
+            if (invalidColName != null)
+            {
+                throw StandardException.newException(SQLState.LANG_INVALID_CREATE_CONSTRAINT_COLUMN_LIST,
+                                ddlStmt.getRelativeName(),
+                                invalidColName);
+            }
+        }
+        else
+        {
+            /* RESOLVE - alter table will need to get table descriptor */
+        }
+
+        /* Check the uniqueness of the column names within the list */
+        invalidColName = cdn.getColumnList().verifyUniqueNames(false);
+        if (invalidColName != null)
+        {
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_CONSTRAINT_COLUMN_NAME, invalidColName);
+        }
+    }
+
+    /**
+     * Set all columns in that appear in a PRIMARY KEY constraint in a CREATE TABLE statement to NOT NULL.
+     *
+     * @param cdn        The ConstraintDefinitionNode for a PRIMARY KEY constraint
+     */
+    private void setColumnListToNotNull(ConstraintDefinitionNode cdn)
+    {
+        ResultColumnList rcl = cdn.getColumnList();
+        int rclSize = rcl.size();
+        for (int index = 0; index < rclSize; index++)
+        {
+            String colName = ((ResultColumn) rcl.elementAt(index)).getName();
+            ColumnDefinitionNode colDef = findColumnDefinition(colName);
+            colDef.setNullability(false);
+        }
+    }
+
+    public void validateNoArrays(ConstraintDefinitionNode cdn) throws StandardException {
+        ResultColumnList rcl = cdn.getColumnList();
+        int rclSize = rcl.size();
+        for (int index = 0; index < rclSize; index++)
+        {
+            String colName = ((ResultColumn) rcl.elementAt(index)).getName();
+            ColumnDefinitionNode colDef = findColumnDefinition(colName);
+            if (colDef.getType().getTypeId().isArray()) {
+                throw StandardException.newException(SQLState.NO_ARRAY_IN_PRIMARY_KEY, colName);
+            }
+        }
+    }
 
 
-	/**
+    /**
      * Checks if any of the columns in the constraint can be null.
      *
      * @param cdn Constraint node
@@ -1586,7 +1594,7 @@ public class TableElementList extends QueryTreeNodeVector {
     }
     
 
-	/**
+    /**
      * Determine whether or not the parameter matches a column name in this
      * list.
      * 
@@ -1595,10 +1603,10 @@ public class TableElementList extends QueryTreeNodeVector {
      * 
      * @return boolean Whether or not a match is found.
      */
-	public boolean containsColumnName(String colName)
-	{
+    public boolean containsColumnName(String colName)
+    {
         return findColumnDefinition(colName) != null;
-	}
+    }
 
 
 }

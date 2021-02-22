@@ -461,4 +461,25 @@ public abstract class OperatorNode extends ValueNode
                         getContextManager()));
         ((CastNode) operands.get(operandIndex)).bindCastNodeOnly();
     }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException
+    {
+        /* Allocate an object for re-use to hold the result of the operator */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null)
+            {
+                operands.get(i).generateExpression(acb, mb);
+                mb.upCast(interfaceTypes.get(i));
+            }
+            else
+            {
+                mb.pushNull(interfaceTypes.get(i));
+            }
+        }
+        mb.getField(field);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
+    }
 }
