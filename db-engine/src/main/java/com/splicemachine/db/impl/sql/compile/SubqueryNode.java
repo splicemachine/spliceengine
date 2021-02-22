@@ -2975,27 +2975,19 @@ public class SubqueryNode extends ValueNode{
 
         // prepare join condition
         ValueNode rightOperand;
-        ValueTupleNode items = (ValueTupleNode) getNodeFactory().getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
-        for (ResultColumn rc : resultColumns) {
-            if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
-                ColumnReference col = (ColumnReference) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rc.getName(),
-                        null,
-                        ContextService.getService().getCurrentContextManager());
-                col.setSource(rc);
-                col.setTableNumber(tableNumber);
-                col.setColumnNumber(rc.getVirtualColumnId());
-                col.setNestingLevel(((SelectNode) resultSet).getNestingLevel());
-                col.setSourceLevel(col.getNestingLevel());
-                items.addValueNode(col);
-            }
-        }
-        if (items.size() == 1) {
-            rightOperand = items.get(0);
+        if(resultColumns.size() == 1 || !(leftOperand instanceof ValueTupleNode)) {
+            ResultColumn rc = resultColumns.elementAt(0);
+            rightOperand = toColRef(rc, tableNumber);
         } else {
+            ValueTupleNode items = (ValueTupleNode) getNodeFactory().getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            for (ResultColumn rc : resultColumns) {
+                if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
+                    items.addValueNode(toColRef(rc, tableNumber));
+                }
+            }
             rightOperand = items;
         }
+
         ValueNode bcoNode;
         if (isEXISTS()) {
             bcoNode = getTrueNode();
@@ -3003,6 +2995,20 @@ public class SubqueryNode extends ValueNode{
             bcoNode = getNewJoinCondition(leftOperand, rightOperand);
 
         return bcoNode;
+    }
+
+    private ColumnReference toColRef(ResultColumn rc, int tableNumber) throws StandardException {
+        ColumnReference result = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                rc.getName(),
+                null,
+                ContextService.getService().getCurrentContextManager());
+        result.setSource(rc);
+        result.setTableNumber(tableNumber);
+        result.setColumnNumber(rc.getVirtualColumnId());
+        result.setNestingLevel(((SelectNode) resultSet).getNestingLevel());
+        result.setSourceLevel(result.getNestingLevel());
+        return result;
     }
 
     public boolean isHintNotFlatten() {
