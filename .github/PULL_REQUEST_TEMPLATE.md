@@ -1,4 +1,4 @@
-<!--- Provide a general summary of your changes in the Title above. Be sure to add the Jira # into the title and commit -->
+<!--- Provide a general summary of your changes in the Title above. -->
 
 ## Short Description
 (e.g. short description of the PR)
