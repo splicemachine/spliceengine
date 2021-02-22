@@ -155,7 +155,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Whether we should purge old updates during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
-    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = false;
+    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = true;
 
     // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
     // when deployed on premise if we want it to survive the HMaster failover.

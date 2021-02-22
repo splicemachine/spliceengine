@@ -43,7 +43,7 @@ public class BroadcastedActivation implements Externalizable {
     private boolean DB2VarcharCompatibilityMode = false;
     protected long conglomID = 0;
 
-    public BroadcastedActivation() {
+        public BroadcastedActivation() {
 
     }
 

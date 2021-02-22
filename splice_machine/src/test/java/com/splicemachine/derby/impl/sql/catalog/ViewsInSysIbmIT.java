@@ -246,4 +246,21 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
 
         methodWatcher.executeUpdate(format("drop table %s.orc_part_2nd", CLASS_NAME));
     }
+
+    @Test
+    public void testDB11500() throws Exception {
+        String tableName = "DB11500";
+        String index1Name = tableName + "_IDX1";
+        String index2Name = tableName + "_IDX2";
+        methodWatcher.execute(format("create table %s.%s (a int primary key, b int, c int)", CLASS_NAME, tableName));
+        methodWatcher.execute(format("create index %s.%s on %s.%s(b + c)", CLASS_NAME, index1Name, CLASS_NAME, tableName));
+        methodWatcher.execute(format("create index %s.%s on %s.%s(a + 1)", CLASS_NAME, index2Name, CLASS_NAME, tableName));
+
+        String sqlText = format("select * from sysibm.systables where CREATOR='%s' and name = '%s'", CLASS_NAME, tableName);
+        String expected = "NAME   |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE | BASE_NAME | BASE_SCHEMA |\n" +
+                "------------------------------------------------------------------------------------------------------\n" +
+                "DB11500 |VIEWSINSYSIBMIT |  T  |    3    |     1     |     0     |  1208   |   NULL    |    NULL     |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
 }
