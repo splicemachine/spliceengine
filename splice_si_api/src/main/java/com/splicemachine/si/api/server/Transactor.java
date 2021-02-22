@@ -23,6 +23,7 @@ import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * The primary interface to the transaction module. This interface has the most burdensome generic signature so it is
@@ -30,6 +31,10 @@ import java.util.Collection;
  */
 public interface Transactor{
 
+    interface MutationsToRun {
+        int getOriginalIndex();
+        DataPut getData();
+    }
     boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException;
 
     MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException;
@@ -51,6 +56,21 @@ public interface Transactor{
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
                                     boolean skipWAL, boolean rollforward) throws IOException;
+
+    TemporaryWriteState getTemporaryWriteState();
+
+    interface TemporaryWriteState {
+        MutationStatus[] prepare(Partition table,
+                                 RollForward rollForwardQueue,
+                                 TxnView txn,
+                                 byte[] family, byte[] qualifier,
+                                 Collection<KVPair> mutations,
+                                 ConstraintChecker constraintChecker,
+                                 boolean skipConflictDetection,
+                                 boolean skipWAL, boolean rollforward) throws IOException;
+        MutationStatus[] finishWrite(Set<KVPair> cantRunSet) throws IOException;
+        void cleanup();
+    }
 
     void setDefaultConstraintChecker(ConstraintChecker constraintChecker);
 }

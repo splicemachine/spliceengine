@@ -159,19 +159,23 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
             boolean reversed = true;
             List<WriteNode> list = new ArrayList<WriteNode>();
             addChildren(list);
-            if(reversed) {
-                for(int i=list.size()-1; i>=0; i--) {
+            if (reversed) {
+
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    list.get(i).prepare();
+                }
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
+            } else {
+                for (int i = 0; i < list.size(); i++) {
                     list.get(i).flush();
                     list.get(i).close();
                 }
             }
-            else
-            {
-                for(int i=0; i<list.size(); i++) {
-                    list.get(i).flush();
-                    list.get(i).close();
-                }
-            }
+        } catch (Exception e) {
+            throw e;
 
         } finally {
             //clean up any outstanding table resources

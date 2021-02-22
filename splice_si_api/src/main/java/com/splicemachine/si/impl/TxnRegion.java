@@ -127,6 +127,23 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     }
 
     @Override
+    public Transactor.TemporaryWriteState getTemporaryWriteState() {
+        return transactor.getTemporaryWriteState();
+    }
+
+    @Override
+    public MutationStatus[] prepareWrite(Transactor.TemporaryWriteState state,
+                                         TxnView txn,
+                                         byte[] family, byte[] qualifier,
+                                         ConstraintChecker constraintChecker,
+                                         Collection<KVPair> data, boolean skipConflictDetection,
+                                         boolean skipWAL, boolean rollforward) throws IOException {
+        return state.prepare(region, rollForward, txn, family, qualifier, data,
+                constraintChecker, skipConflictDetection, skipWAL, rollforward);
+
+    }
+
+    @Override
     public String getRegionName(){
         return region.getName();
     }

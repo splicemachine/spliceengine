@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.writehandler;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.context.WriteNode;
 
 import java.io.IOException;
 
@@ -43,4 +44,5 @@ public interface WriteHandler {
      */
     void close(WriteContext ctx) throws IOException;
 
+    default void prepare(WriteContext ctx) throws IOException {}
 }

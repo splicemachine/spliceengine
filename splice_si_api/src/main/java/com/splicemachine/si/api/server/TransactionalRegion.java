@@ -26,6 +26,7 @@ import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Represents a "Transactional Region", that is, a region in Hbase which is transactionally aware.
@@ -33,11 +34,11 @@ import java.util.Collection;
  * @author Scott Fines
  *         Date: 7/1/14
  */
-public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
+public interface TransactionalRegion<InternalScanner> extends AutoCloseable {
 
     /**
      * Create a new Transactional Filter for the region.
-     *
+     * <p>
      * This filter is "Unpacked", in the sense that it will not attempt to deal with packed
      * data.
      *
@@ -81,4 +82,13 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     InternalScanner compactionScanner(InternalScanner scanner);
 
     Partition unwrap();
+
+    Transactor.TemporaryWriteState getTemporaryWriteState();
+
+    MutationStatus[] prepareWrite(Transactor.TemporaryWriteState state,
+                                  TxnView txn,
+                                  byte[] family, byte[] qualifier,
+                                  ConstraintChecker constraintChecker,
+                                  Collection<KVPair> data, boolean skipConflictDetection,
+                                  boolean skipWAL, boolean rollforward) throws IOException;
 }

@@ -186,4 +186,8 @@ public class WriteNode implements WriteContext {
         if(next != null)
             next.addChildren(nodes);
     }
+
+    public void prepare() throws IOException {
+        handler.prepare(this);
+    }
 }

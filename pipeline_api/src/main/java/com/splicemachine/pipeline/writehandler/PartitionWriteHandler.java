@@ -23,19 +23,21 @@ import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.context.WriteNode;
 import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.Lists;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -83,35 +85,8 @@ public class PartitionWriteHandler implements WriteHandler {
 
     @Override
     public void flush(final WriteContext ctx) throws IOException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "flush");
-        //make sure that the write aborts if the caller disconnects
-        ctx.getCoprocessorEnvironment().ensureNetworkOpen();
-        /*
-         * We have to block here in case someone did a table manipulation under us.
-         * If they didn't, then the writeLatch will be exhausted, and I'll be able to
-         * go through without problems. Otherwise, I'll have to block until the metadata
-         * manipulation is over before proceeding with my writes.
-         */
         try {
-            writeLatch.await();
-        } catch (InterruptedException e) {
-            //we've been interrupted! That's a problem, but what to do?
-            //we'll have to fail everything, and rely on the system to retry appropriately
-            //we can do that easily by just blowing up here
-            throw new IOException(e);
-        }
-        //write all the puts first, since they are more likely
-        Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
-            @Override
-            public boolean apply(KVPair input) {
-                return ctx.canRun(input);
-            }
-        });
-        try {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "Flush Writing rows=%d, table=%s", filteredMutations.size(), region.getTableName());
-            doWrite(ctx, filteredMutations);
+            doFinish(ctx, filteredMutations);
         } catch (IOException wce) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("flush, ", wce);
@@ -157,21 +132,108 @@ public class PartitionWriteHandler implements WriteHandler {
         }
     }
 
-    private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
-        assert toProcess!=null; //won't ever happen, but it's a nice safety check
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(),toProcess.size());
+    @Override
+    public void prepare(WriteContext ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "flush");
+        //make sure that the write aborts if the caller disconnects
+        ctx.getCoprocessorEnvironment().ensureNetworkOpen();
+        /*
+         * We have to block here in case someone did a table manipulation under us.
+         * If they didn't, then the writeLatch will be exhausted, and I'll be able to
+         * go through without problems. Otherwise, I'll have to block until the metadata
+         * manipulation is over before proceeding with my writes.
+         */
+        try {
+            writeLatch.await();
+        } catch (InterruptedException e) {
+            //we've been interrupted! That's a problem, but what to do?
+            //we'll have to fail everything, and rely on the system to retry appropriately
+            //we can do that easily by just blowing up here
+            throw new IOException(e);
+        }
+        //write all the puts first, since they are more likely
+        filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
+            @Override
+            public boolean apply(KVPair input) {
+                return ctx.canRun(input);
+            }
+        });
+        try {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Flush Writing rows=%d, table=%s", filteredMutations.size(), region.getTableName());
+            doPrepare(ctx, filteredMutations);
+        }
+        finally {
+            // todo
+        }
+    }
 
-        Iterable<MutationStatus> status = region.bulkWrite(
-                ctx.getTxn(),
-                SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.PACKED_COLUMN_BYTES,
-                constraintChecker,
-                toProcess,
-                ctx.skipConflictDetection(),
-                ctx.skipWAL(),
-                ctx.rollforward()
-        );
+
+    Transactor.TemporaryWriteState state = null;
+    Collection<KVPair> filteredMutations;
+    MutationStatus status[] = null;
+    private void doPrepare(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
+        assert toProcess != null; //won't ever happen, but it's a nice safety check
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(), toProcess.size());
+
+        state = region.getTemporaryWriteState();
+
+
+
+        try {
+            status = region.prepareWrite(state, ctx.getTxn(), SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,
+                    constraintChecker, toProcess, ctx.skipConflictDetection(), ctx.skipWAL(), ctx.rollforward());
+        } catch(Exception e) {
+            state.cleanup();
+            assert false;
+            // todo: this shouldn't happen
+            return;
+        }
+
+        int i=0;
+        for(KVPair mutation : toProcess) {
+            MutationStatus stat = status[i++];
+            if(stat == null) continue; // no information about this one -> no problems
+            if(stat.isNotRun() )
+                ctx.notRun(mutation);
+            else if(stat.isSuccess()){
+                ; // pass, processed in doFinish
+            } else{
+                //assume it's a failure
+                //see if it's due to constraints, otherwise just pass it through
+                if (constraintChecker != null && constraintChecker.matches(stat)) {
+                    ctx.result(mutation, constraintChecker.asWriteResult(stat));
+                }else if (stat.errorMessage().contains("Write conflict")) {
+                    WriteResult conflict = new WriteResult(Code.WRITE_CONFLICT,stat.errorMessage());
+                    ctx.result(mutation, conflict);
+                }else {
+                    ctx.failed(mutation, WriteResult.failed(stat.errorMessage()));
+                }
+            }
+        }
+    }
+
+    public void doFinish(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
+
+        Set<KVPair> cantRunSet = new HashSet<>();
+        for( KVPair mutation : filteredMutations ) {
+            if(!ctx.canRun(mutation)) {
+                cantRunSet.add(mutation);
+            }
+        }
+        MutationStatus arr[];
+        try {
+            arr = state.finishWrite(cantRunSet);
+        }
+        finally {
+            state.cleanup();
+        }
+
+        Iterable<MutationStatus> status = new Iterable<MutationStatus>(){
+            @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(arr); }
+        };
 
         int i = 0;
         int failed = 0;
@@ -204,6 +266,11 @@ public class PartitionWriteHandler implements WriteHandler {
         }
 
         region.updateWriteRequests(count - failed);
+    }
+
+    private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
+        doPrepare(ctx, toProcess);
+        doFinish(ctx, toProcess);
     }
 
 
