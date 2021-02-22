@@ -33,7 +33,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Collection;
 
-import static com.splicemachine.derby.utils.SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -101,6 +100,22 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                         row("SBVGCCC ", "B "),
                         row("SBVGCCC C", "  "),
                         row("SBVGCCC", "A ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table z (v1 varchar(10), v2 varchar(10))")
+                .withInsert("insert into z values(?,?)")
+                .withRows(rows(
+                        row("1", ""),
+                        row("1", "     ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table y (v3 varchar(10), v4 varchar(10))")
+                .withInsert("insert into y values(?,?)")
+                .withRows(rows(
+                        row("1", ""),
+                        row("1", "   ")))
                 .create();
     }
 
@@ -479,5 +494,31 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         testPreparedQuery1(sqlTemplate, expected, false, true);
 
+    }
+
+    @Test
+    public void testSparkDistinct() throws Exception {
+        String query = format("select distinct v1, v2 from z --splice-properties useSpark=true", useSpark);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |\n" +
+                    "--------\n" +
+                    " 1 |   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        query = format("select v1,v2,v3,v4\n" +
+                "from z --splice-properties useSpark=%s\n" +
+                ",y where v1=v3\n" +
+                "union\n" +
+                "select v1,v2,v3,v4 from z,y where v1=v3", useSpark);
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |V3 |V4 |\n" +
+                    "----------------\n" +
+                    " 1 |   | 1 |   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 }

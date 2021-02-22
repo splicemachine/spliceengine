@@ -15,9 +15,9 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import splice.com.google.common.base.Function;
-import splice.com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
@@ -41,12 +41,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.scheduler.*;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerJobStart;
+import org.apache.spark.scheduler.SparkListenerTaskEnd;
+import org.apache.spark.scheduler.StageInfo;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
 import scala.collection.JavaConverters;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -205,15 +211,30 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(OperationContext context) {
+    public DataSet<V> distinct(OperationContext context) throws StandardException {
         return distinct("Remove Duplicates", false, context, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
+        String varcharDB2CompatibilityModeString =
+        PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
+            if (varcharDB2CompatibilityMode) {
+                List<String> stringColNames = new ArrayList<>();
+                Tuple2<String, String>[] colTypes = dataset.dtypes();
+                for (Tuple2<String, String> colType : colTypes) {
+                    if (colType._2().equals("StringType")) {
+                        stringColNames.add(colType._1());
+                    }
+                }
+                for (String colName : stringColNames) {
+                    dataset = dataset.withColumn(colName, rtrim(col(colName)));
+                }
+            }
             Dataset<Row> result = dataset.distinct();
 
             return new NativeSparkDataSet<>(result, context);
