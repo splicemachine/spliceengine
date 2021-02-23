@@ -190,7 +190,6 @@ public class SubqueryNode extends ValueNode{
     protected int resultSetNumber=-1;
 
     private boolean hintNotFlatten=false;
-    private boolean thisSubqueryAddedToSubqueryList = false;
 
     /**
      * Initializer.
@@ -689,10 +688,7 @@ public class SubqueryNode extends ValueNode{
         setDataTypeServices(resultColumns);
 
         /* Add this subquery to the subquery list */
-        if (!thisSubqueryAddedToSubqueryList) {
-            subqueryList.addSubqueryNode(this);
-            thisSubqueryAddedToSubqueryList = true;
-        }
+        subqueryList.addSubqueryNode(this);
 
         cc.popCurrentPrivType();
         return this;

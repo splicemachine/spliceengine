@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.conn;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
@@ -38,6 +39,8 @@ import com.splicemachine.db.iapi.services.property.PropertyFactory;
 
 import com.splicemachine.db.iapi.sql.compile.*;
 
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.Statement;
@@ -50,6 +53,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 
 import java.util.List;
@@ -123,6 +127,10 @@ public interface LanguageConnectionFactory {
 								 double defaultSelectivityFactor,
 								 String ipAddress,
 								 String defaultSchema,
+                                 ManagedCache<UUID, SPSDescriptor> spsCache,
+                                 List<String> defaultRoles,
+                                 SchemaDescriptor initialDefaultSchemaDescriptor,
+								 long driverTxnId,
 								 Properties sessionProperties)
 
 		throws StandardException;

@@ -142,6 +142,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         setValue(val);
         if ((value != null) && (scale >= 0)) {
             setValue(value.setScale(scale, BigDecimal.ROUND_HALF_UP));
+            if (getPrecision() < precision)
+                setPrecision(precision);
         }
         if (value ==null) {
             this.precision = precision;
@@ -1069,6 +1071,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         }
         rawData = null;
         setValue(value.setScale(desiredScale, BigDecimal.ROUND_HALF_UP));
+        if (getPrecision() < desiredPrecision)
+            setPrecision(desiredPrecision);
     }
 
     /**

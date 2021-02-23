@@ -40,7 +40,7 @@ import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
 /**
- *	
+ *
  * This interface describes an index.
  * 
  * It is used in the column SYS.SYSCONGLOMERATES.DESCRIPTOR
@@ -51,148 +51,150 @@ import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
  */
 public interface IndexDescriptor
 {
-	/**
-	 * Returns true if the index is unique.
-	 */
-	boolean			isUnique();
-	/**
-	 * Returns true if the index is duplicate keys only for null key parts. 
+    /**
+     * Returns true if the index is unique.
+     */
+    boolean            isUnique();
+    /**
+     * Returns true if the index is duplicate keys only for null key parts.
      * This is effective only if isUnique is false.
-	 */
-	boolean			isUniqueWithDuplicateNulls();
+     */
+    boolean            isUniqueWithDuplicateNulls();
 
-	/**
-	 * Returns an array of column positions in the base table.  Each index
-	 * column corresponds to a column position in the base table, except
-	 * the column representing the location of the row in the base table.
-	 * The returned array holds the column positions in the
-	 * base table, so, if entry 2 is the number 4, the second
-	 * column in the index is the fourth column in the table.
-	 */
-	int[]	baseColumnPositions();
+    /**
+     * Returns an array of column positions in the base table.  Each index
+     * column corresponds to a column position in the base table, except
+     * the column representing the location of the row in the base table.
+     * The returned array holds the column positions in the
+     * base table, so, if entry 2 is the number 4, the second
+     * column in the index is the fourth column in the table.
+     */
+    int[]    baseColumnPositions();
 
-	/**
+    /**
      * Returns the postion of a column.
      * <p>
-	 * Returns the position of a column within the key (1-based).
-	 * 0 means that the column is not in the key.  Same as the above
-	 * method, but it uses int instead of Integer.
-	 */
-	int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
+     * Returns the position of a column within the key (1-based).
+     * 0 means that the column is not in the key.
+     * - 1 means that isOnExpression() == true, in which case calling this method does not make sense because
+     *  we cannot retrieve the ordinal position of a base table column in an index defined on expressions as
+     *  it may appear in multiple expressions.
+     */
+    int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
 
-	/**
-	 * Returns the number of ordered columns.  
+    /**
+     * Returns the number of ordered columns.
      * <p>
-	 * In the future, it will be
-	 * possible to store non-ordered columns in an index.  These will be
-	 * useful for covered queries.  The ordered columns will be at the
-	 * beginning of the index row, and they will be followed by the
-	 * non-ordered columns.
-	 *
-	 * For now, all columns in an index must be ordered.
-	 */
-	int				numberOfOrderedColumns();
+     * In the future, it will be
+     * possible to store non-ordered columns in an index.  These will be
+     * useful for covered queries.  The ordered columns will be at the
+     * beginning of the index row, and they will be followed by the
+     * non-ordered columns.
+     *
+     * For now, all columns in an index must be ordered.
+     */
+    int                numberOfOrderedColumns();
 
-	/**
-	 * Returns the type of the index.  For now, we only support B-Trees,
-	 * so the value "BTREE" is returned.
-	 */
-	String			indexType();
+    /**
+     * Returns the type of the index.  For now, we only support B-Trees,
+     * so the value "BTREE" is returned.
+     */
+    String            indexType();
 
-	/**
-	 * Returns the index column types.
-	 */
-	DataTypeDescriptor[] getIndexColumnTypes();
+    /**
+     * Returns the index column types.
+     */
+    DataTypeDescriptor[] getIndexColumnTypes();
 
-	/**
-	 * Returns array of boolean telling asc/desc info for each index
-	 * key column for convenience of using together with baseColumnPositions
-	 * method.  Both methods return an array with subscript starting from 0.
-	 */
-	boolean[]	isAscending();
+    /**
+     * Returns array of boolean telling asc/desc info for each index
+     * key column for convenience of using together with baseColumnPositions
+     * method.  Both methods return an array with subscript starting from 0.
+     */
+    boolean[]    isAscending();
 
-	/**
-	 * Returns true if the specified column is ascending in the index
-	 * (1-based).
-	 */
-	boolean			isAscending(Integer keyColumnPosition);
+    /**
+     * Returns true if the specified column is ascending in the index
+     * (1-based).
+     */
+    boolean            isAscending(Integer keyColumnPosition);
 
-	/**
-	 * Returns true if the specified column is descending in the index
-	 * (1-based).  In the current release, only ascending columns are
-	 * supported.
-	 */
-	boolean			isDescending(Integer keyColumnPosition);
+    /**
+     * Returns true if the specified column is descending in the index
+     * (1-based).  In the current release, only ascending columns are
+     * supported.
+     */
+    boolean            isDescending(Integer keyColumnPosition);
 
-	/**
-	 * set the baseColumnPositions field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where baseColumnPositions is changed.
-	 */
-	void     setBaseColumnPositions(int[] baseColumnPositions);
+    /**
+     * set the baseColumnPositions field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where baseColumnPositions is changed.
+     */
+    void     setBaseColumnPositions(int[] baseColumnPositions);
 
-	/**
-	 * set the isAscending field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where isAscending is changed.
-	 */
-	void     setIsAscending(boolean[] isAscending);
+    /**
+     * set the isAscending field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where isAscending is changed.
+     */
+    void     setIsAscending(boolean[] isAscending);
 
-	/**
-	 * set the numberOfOrderedColumns field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where numberOfOrderedColumns is changed.
-	 */
-	void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
+    /**
+     * set the numberOfOrderedColumns field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where numberOfOrderedColumns is changed.
+     */
+    void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
 
     /**
      * Checks whether the index descriptor is a primary key.
      * @return
      */
-	boolean isPrimaryKey();
+    boolean isPrimaryKey();
 
-	boolean excludeNulls();
+    boolean excludeNulls();
 
-	boolean excludeDefaults();
+    boolean excludeDefaults();
 
-	/**
-	 * Get the original index expression texts in SQL statement.
-	 */
-	String[] getExprTexts();
+    /**
+     * Get the original index expression texts in SQL statement.
+     */
+    String[] getExprTexts();
 
-	/**
-	 * Get the original index expression text in SQL statement at position.
-	 * @param keyColumnPosition 1-based index column position
-	 */
-	String getExprText(Integer keyColumnPosition);
+    /**
+     * Get the original index expression text in SQL statement at position.
+     * @param keyColumnPosition 1-based index column position
+     */
+    String getExprText(Integer keyColumnPosition);
 
-	/**
-	 * Get the generated byte code of index expressions.
-	 */
-	ByteArray[] getExprBytecode();
+    /**
+     * Get the generated byte code of index expressions.
+     */
+    ByteArray[] getExprBytecode();
 
-	/**
-	 * Get the class name of the generated byte code.
-	 */
-	String[] getGeneratedClassNames();
+    /**
+     * Get the class name of the generated byte code.
+     */
+    String[] getGeneratedClassNames();
 
-	/**
-	 * Checks whether this index is created on expressions.
-	 */
-	boolean isOnExpression();
+    /**
+     * Checks whether this index is created on expressions.
+     */
+    boolean isOnExpression();
 
-	/**
-	 * Returns an instance of the generated class of index expressions.
-	 * @param indexColumnPosition 0-based index column position number
-	 */
-	BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
-			throws StandardException;
+    /**
+     * Returns an instance of the generated class of index expressions.
+     * @param indexColumnPosition 0-based index column position number
+     */
+    BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
+            throws StandardException;
 
-	/**
-	 * Returns the ASTs of index expressions. Note that the returned
-	 * trees are not fully bound. Only table number of optTable is set
-	 * on every column reference and certain nodes are bound. Other
-	 * semantic information must be set by caller explicitly if needed.
-	 */
-	ValueNode[] getParsedIndexExpressions(LanguageConnectionContext context, Optimizable optTable) throws StandardException;
+    /**
+     * Returns the ASTs of index expressions. Note that the returned
+     * trees are not fully bound. Only table number of optTable is set
+     * on every column reference and certain nodes are bound. Other
+     * semantic information must be set by caller explicitly if needed.
+     */
+    ValueNode[] getParsedIndexExpressions(LanguageConnectionContext context, Optimizable optTable) throws StandardException;
 }

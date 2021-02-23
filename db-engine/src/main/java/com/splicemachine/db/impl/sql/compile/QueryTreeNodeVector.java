@@ -69,6 +69,11 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.add(qt);
     }
 
+    public final void addElementIfNotPresent(T qt){
+        if (!v.contains(qt))
+            v.add(qt);
+    }
+
     public final void removeElementAt(int index){
         v.remove(index);
     }

@@ -61,12 +61,14 @@ import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
+import com.splicemachine.db.impl.sql.compile.BlobFunctionNode;
 import com.splicemachine.db.impl.sql.compile.CallStatementNode;
 import com.splicemachine.db.impl.sql.compile.CharConstantNode;
 import com.splicemachine.db.impl.sql.compile.CastNode;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
+import com.splicemachine.db.impl.sql.compile.CreateTableNode;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.DaysFunctionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
@@ -104,6 +106,7 @@ import com.splicemachine.db.impl.sql.compile.TableElementNode;
 import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
 import com.splicemachine.db.impl.sql.compile.BasicPrivilegesNode;
 import com.splicemachine.db.impl.sql.compile.TransactionStatementNode;
+import com.splicemachine.db.impl.sql.compile.TranslateFunctionNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.compile.UnionNode;
 import com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode;
@@ -1899,6 +1902,7 @@ TOKEN [IGNORE_CASE] :
 |   <PHYSICAL: "physical">
 |    <PLAIN: "plain">
 |    <PLI: "pli">
+|   <POSSTR: "posstr">
 |    <PRECISION: "precision">
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
@@ -3917,19 +3921,21 @@ StatementNode
 declareTemporaryTableDeclaration() throws StandardException :
 {
     TableName            tableName;
-    TableElementList tableElementList;
+    TableElementList tableElementList = null;
+    FromTable likeTable = null;
     Object[] declareTableClauses = new Object[3];
     Token ifTok = null;
     Token ifTok2 = null;
 }
 {
     <DECLARE> <GLOBAL> <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
-        tableElementList = tableElementList()
+
+        (tableElementList = tableElementList() | <LIKE> likeTable = tableReference(false))
         ( declareTableClause(declareTableClauses) ) *
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList, likeTable,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -3962,7 +3968,7 @@ createTemporaryTableDeclaration() throws StandardException :
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList, null,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -4024,10 +4030,7 @@ onCommitRollback() :
 TableElementList
 tableElementList() throws StandardException :
 {
-    TableElementList    tableElementList =
-                    (TableElementList) nodeFactory.getNode(
-                                    C_NodeTypes.TABLE_ELEMENT_LIST,
-                                    getContextManager());
+    TableElementList    tableElementList = new TableElementList(getContextManager());
 }
 {
     <LEFT_PAREN> tableElement(tableElementList)
@@ -6599,6 +6602,26 @@ escapedValueFunction() throws StandardException :
 
 }
 
+ValueNode translateFunctionNode() throws StandardException:
+{
+    ValueNode stringExpression;
+    ValueNode toString;
+    ValueNode fromString;
+    ValueNode pad = null;
+}
+{
+    <LEFT_PAREN>
+        stringExpression = additiveExpression(null, 0)
+    <COMMA> toString = additiveExpression(null, 0)
+    <COMMA> fromString = additiveExpression(null, 0)
+    [ <COMMA> pad = additiveExpression(null, 0) ]
+
+    <RIGHT_PAREN>
+    {
+        return new TranslateFunctionNode(stringExpression, toString, fromString, pad, getContextManager());
+    }
+}
+
 /*
  * <A NAME="escapedSYSFUNFunctions">escapedSYSFUNFunctions</A>
  */
@@ -7061,6 +7084,11 @@ characterValueFunction() throws StandardException :
         return getReplaceNode( value, str1, str2 );
     }
 |
+    <TRANSLATE>
+    {
+        return translateFunctionNode();
+    }
+|
     ( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
     {
         if (locale == null)
@@ -7102,6 +7130,17 @@ characterValueFunction() throws StandardException :
                     (upperTok != null) ? "upperWithLocale" : "lowerWithLocale",
                     getContextManager());
         }
+    }
+|
+    /* POSSTR(stringExpression, searchString) */
+    <POSSTR> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
+            str2 = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.POSSTR_OPERATOR_NODE,
+                            str1,
+                            str2,
+                            getContextManager());
     }
 |
     /* REPEAT(string, num) */
@@ -7165,9 +7204,16 @@ trimFunction() throws StandardException :
     ValueNode    trimString = null;
 }
 {
-    trimType = trimType() <LEFT_PAREN> source = additiveExpression(null,0) [<COMMA> trimString = additiveExpression(null,0) ] <RIGHT_PAREN>
+    <RTRIM> <LEFT_PAREN> source = additiveExpression(null,0) [<COMMA> trimString = additiveExpression(null,0) ] <RIGHT_PAREN>
     {
+        trimType = ReuseFactory.getInteger(StringDataValue.TRAILING);
         return getTrimOperatorNode(trimType, trimString, source, trimString != null, null);
+    }
+|
+    <LTRIM> <LEFT_PAREN> source = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        trimType = ReuseFactory.getInteger(StringDataValue.LEADING);
+        return getTrimOperatorNode(trimType, null, source, null);
     }
 |
     <TRIM> ansiTrimNode = ansiTrim()
@@ -7505,6 +7551,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
                 getToken(1).kind == ARRAY ||
+                getToken(1).kind == BLOB ||
                 getToken(1).kind == CHAR ||
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == CONCAT ||
@@ -7542,6 +7589,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MONTHNAME ||
                 getToken(1).kind == MULTIPLY_ALT ||
                 getToken(1).kind == NVL ||
+                getToken(1).kind == POSSTR ||
                 getToken(1).kind == QUARTER ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
@@ -7559,6 +7607,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TINYINT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
                 getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TRANSLATE ||
                 getToken(1).kind == TRIM ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
@@ -7778,7 +7827,7 @@ ValueNode
     {
         return value;
     }
-    |
+|
      dts = numericFunctionType() <LEFT_PAREN> operand = additiveExpression(null,0) <RIGHT_PAREN>
       {
             value = (ValueNode) nodeFactory.getNode(
@@ -7791,7 +7840,7 @@ ValueNode
 
             return value;
       }
-     |
+ |
      charType = charOrVarchar()
      <LEFT_PAREN>
      operand = additiveExpression(null,0)
@@ -7816,6 +7865,27 @@ ValueNode
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         return value;
+    }
+|
+    <BLOB> value = blobFunction()
+    {
+       return value;
+    }
+}
+
+ValueNode
+blobFunction() throws StandardException :
+{
+    ValueNode operand;
+    ValueNode length = null;
+}
+{
+    <LEFT_PAREN>
+    operand = additiveExpression(null, 0)
+    [ <COMMA> length = additiveExpression(null, 0) ]
+    <RIGHT_PAREN>
+    {
+        return new BlobFunctionNode(operand, length, getContextManager());
     }
 }
 
@@ -12107,6 +12177,7 @@ tableDefinition() throws StandardException :
     Properties            properties = null;
     TableName            tableName;
     TableElementList    tableElementList = null;
+    FromTable           likeTable = null;
     ResultColumnList    resultColumns = null;
     QueryTreeNode        queryExpression;
     boolean                withData = true;
@@ -12140,10 +12211,11 @@ tableDefinition() throws StandardException :
     <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
             // Lookahead needed to choose between
             // tableElementList and tableColumnList
-    (        LOOKAHEAD({getToken(1).kind == LEFT_PAREN &&
+    (        LOOKAHEAD({(getToken(1).kind == LEFT_PAREN &&
                        getToken(3).kind != COMMA &&
-                       getToken(3).kind != RIGHT_PAREN})
-            tableElementList = tableElementList()
+                       getToken(3).kind != RIGHT_PAREN)
+                       || getToken(1).kind == LIKE })
+            (tableElementList = tableElementList() | <LIKE> likeTable = tableReference(false))
             [ properties = propertyList(false)<CHECK_PROPERTIES>]
             ([<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
               <SPLITKEYS> {presplit = Boolean.TRUE;}
@@ -12158,24 +12230,23 @@ tableDefinition() throws StandardException :
                                 linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
 
                       boolean ifNotExists = ifTok != null || ifTok2 != null;
-
-                          return (StatementNode) nodeFactory.getNode(
-                                              C_NodeTypes.CREATE_TABLE_NODE,
-                                              tableName,
-                                              (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
-                                                             new Integer(StatementType.CREATE_DEFAULT)),
-                                              tableElementList,
-                                              properties,
-                                              new Character(lockGranularity),
-                                              presplit,
-                                              isLogicalKey,
-                                              splitKeysPath,
-                                              columnDelimiter,
-                                              characterDelimiter,
-                                              timestampFormat,
-                                              dateFormat,
-                                              timeFormat,
-                                              getContextManager());
+                          return new CreateTableNode(
+                              tableName,
+                              (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                             new Integer(StatementType.CREATE_DEFAULT)),
+                              tableElementList,
+                              likeTable,
+                              properties,
+                              new Character(lockGranularity),
+                              presplit,
+                              isLogicalKey,
+                              (CharConstantNode) splitKeysPath,
+                              (CharConstantNode) columnDelimiter,
+                              (CharConstantNode) characterDelimiter,
+                              (CharConstantNode) timestampFormat,
+                              (CharConstantNode) dateFormat,
+                              (CharConstantNode) timeFormat,
+                              getContextManager());
                           }
             |[<COMMA>]
              [ <COMPRESSED> <WITH> compression =compressedAs() ]
@@ -12200,24 +12271,24 @@ tableDefinition() throws StandardException :
 
             ifNotExists = ifTok != null || ifTok2 != null;
 
-                return (StatementNode) nodeFactory.getNode(
-                                        C_NodeTypes.CREATE_TABLE_NODE,
-                                        tableName,
-                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
-                                                       new Integer(StatementType.CREATE_DEFAULT)),
-                                        tableElementList,
-                                        properties,
-                                        new Character(lockGranularity),
-                                        isExternal,
-                                        partitionedResultColumns,
-                                        terminationChar,
-                                        escapedByChar,
-                                        linesTerminatedByChar,
-                                        storageFormat,
-                                        location,
-                                        compression,
-                                        mergeSchema,
-                                        getContextManager());
+                return new CreateTableNode(
+                    tableName,
+                    (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                   new Integer(StatementType.CREATE_DEFAULT)),
+                    tableElementList,
+                    likeTable,
+                    properties,
+                    new Character(lockGranularity),
+                    isExternal,
+                    partitionedResultColumns,
+                    (CharConstantNode) terminationChar,
+                    (CharConstantNode) escapedByChar,
+                    (CharConstantNode) linesTerminatedByChar,
+                    storageFormat,
+                    (CharConstantNode) location,
+                    compression,
+                    mergeSchema,
+                    getContextManager());
             })
         |
             [ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
@@ -12264,21 +12335,20 @@ tableDefinition() throws StandardException :
 
                 boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-                StatementNode node = (StatementNode)nodeFactory.getNode(
-                                        C_NodeTypes.CREATE_TABLE_NODE,
-                                        tableName,
-                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
-                                                       new Integer(StatementType.CREATE_DEFAULT)),
-                                        resultColumns,
-                                        queryExpression,
-                                        isExternal,
-                                        partitionedResultColumns,
-                                        terminationChar,
-                                        escapedByChar,
-                                        linesTerminatedByChar,
-                                        storageFormat,
-                                        location,
-                                        getContextManager());
+                StatementNode node = new CreateTableNode(
+                    tableName,
+                    (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                   new Integer(StatementType.CREATE_DEFAULT)),
+                    resultColumns,
+                    (ResultSetNode) queryExpression,
+                    isExternal,
+                    partitionedResultColumns,
+                    (CharConstantNode) terminationChar,
+                    (CharConstantNode) escapedByChar,
+                    (CharConstantNode) linesTerminatedByChar,
+                    storageFormat,
+                    (CharConstantNode) location,
+                    getContextManager());
                 if (node instanceof CreateTableNode) {
                     ((CreateTableNode)node).setQueryString(queryString);
                 }
@@ -15635,10 +15705,7 @@ alterTableBody(TableName tableName) throws StandardException :
     StatementNode sn;
     char                lockGranularity = '\0';
     String               newTableName;
-    TableElementList    tableElementList =
-                                    (TableElementList) nodeFactory.getNode(
-                                                C_NodeTypes.TABLE_ELEMENT_LIST,
-                                                getContextManager());
+    TableElementList    tableElementList = new TableElementList(getContextManager());
     int[]                changeType = new int[1];
     int[]                behavior = new int[1];
         String indexName = null;
@@ -17527,6 +17594,7 @@ nonReservedKeyword()  :
     |   tok = <PERCENTWORD>
     |    tok = <PLAIN>
     |    tok = <PLI>
+    |    tok = <POSSTR>
     |    tok = <PRECISION>
     |    tok = <PROPERTIES>
     |    tok = <PURGE>
