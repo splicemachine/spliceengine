@@ -28,8 +28,6 @@ import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
-
 /**
  * Created by jyuan on 10/10/16.
  */
@@ -39,7 +37,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     protected Supplier<OperationContext> operationContext;
     protected boolean initialized;
     protected ContextManager cm;
-    protected boolean newContextManager, lccPushed;
+    protected boolean newContextManager;
     private   OperationContext ctx;
 
     public GetNLJoinIterator() {}
@@ -73,7 +71,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
         return false;
     }
 
-    // Push the LanguageConnectionContext to the current Context Manager
+    // Make sure we always have a Context Manager
     // if we're executing a trigger with a referencing clause.
     protected void init() throws Exception {
         initialized = true;
@@ -85,24 +83,15 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
             cm = ContextService.getFactory().newContextManager();
             ContextService.getFactory().setCurrentContextManager(cm);
         }
-        if (cm != null) {
-            OperationContext ctx = getCtx();
-            if (ctx != null) {
-                lccPushed = pushTriggerExecutionContextFromActivation(ctx.getActivation(), cm);
-            }
-        }
     }
 
     protected void cleanup() {
         if (cm != null) {
-            if (lccPushed)
-                cm.popContext();
             if (newContextManager)
                 ContextService.getFactory().resetCurrentContextManager(cm);
             cm = null;
         }
         newContextManager = false;
-        lccPushed = false;
         initialized = false;
     }
 
