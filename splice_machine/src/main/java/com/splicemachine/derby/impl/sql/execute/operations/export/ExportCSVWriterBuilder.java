@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import org.supercsv.io.CsvListWriter;
 import org.supercsv.prefs.CsvPreference;
 import org.supercsv.quote.ColumnQuoteMode;
@@ -42,7 +43,10 @@ public class ExportCSVWriterBuilder {
         switch (exportParams.getQuoteMode()) {
             case ALWAYS:
                 boolean[] toQuote = new boolean[exportColumns.length];
-                IntStream.range(0, exportColumns.length).forEach(i -> toQuote[i] = exportColumns[i].getType().getTypeId().isCharOrVarChar());
+                for (int i = 0; i < exportColumns.length; ++i) {
+                    TypeId typeId = exportColumns[i].getType().getTypeId();
+                    toQuote[i] = typeId.isCharOrVarChar() || typeId.isBitTypeId();
+                }
                 preference.useQuoteMode(new ColumnQuoteMode(toQuote));
                 break;
             case DEFAULT:

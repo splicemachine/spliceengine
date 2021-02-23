@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -28,9 +29,8 @@ public class UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM extends
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.addBaseTableSchemaColumnToTableViewInSysibm(tc);
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "Catalog upgraded: added column (base_name, base_schema) to systables in SYSIBM schema");
-
     }
 }

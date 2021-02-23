@@ -18,22 +18,16 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
-/**
- * Created by Igor Praznik on 06/24/2020.
- */
-public class UpgradeScriptForAddDefaultToColumnViewInSYSVW extends UpgradeScriptBase {
-    public UpgradeScriptForAddDefaultToColumnViewInSYSVW(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptToAddColumnsViewInSYSCAT extends UpgradeScriptBase {
+    public UpgradeScriptToAddColumnsViewInSYSCAT(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
+        sdd.createColumnsViewInSysCat(tc);
 
-        // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in SysVW
-        sdd.updateMetadataSPSes(tc);
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added columns view in SYSCAT schema");
 
-        SpliceLogUtils.info(LOG, "Catalog upgraded: updated syscolumns view in SYSVW schema");
     }
 }
-

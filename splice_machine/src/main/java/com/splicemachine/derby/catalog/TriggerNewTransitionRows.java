@@ -289,6 +289,7 @@ public class TriggerNewTransitionRows
                         lcc.pushTriggerExecutionContext(tec);
 
                     tec.setConnectionContext(cc);
+                    tec.setLanguageConnectionContext(lcc);
                     rowHolder.setActivation(activation);
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     try {
