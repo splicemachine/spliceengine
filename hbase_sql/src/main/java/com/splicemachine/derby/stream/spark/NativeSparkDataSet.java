@@ -227,6 +227,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             // After distinct, for each group, we need to return a row originally in that group, not
             // a row with rtrimmed values.
             List<String> compColNames = new ArrayList<>();
+            List<String> extraColNames = new ArrayList<>();
             if (varcharDB2CompatibilityMode) {
                 List<String> strColNames = new ArrayList<>();
                 Tuple2<String, String>[] colTypes = dataset.dtypes();
@@ -241,10 +242,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     String newColName = colName+"_rtrimmed";
                     dataset = dataset.withColumn(newColName, rtrim(col(colName)));
                     compColNames.add(newColName);
+                    extraColNames.add(newColName);
                 }
             }
 
-            Dataset<Row> result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
+            Dataset<Row> result;
+            if (compColNames.isEmpty()) {
+                result = dataset.distinct();
+            } else {
+                result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
+            }
+            for (String extraColName : extraColNames) {
+                result = result.drop(extraColName);
+            }
             return new NativeSparkDataSet<>(result, context);
         } finally {
             if (pushScope) context.popScope();
