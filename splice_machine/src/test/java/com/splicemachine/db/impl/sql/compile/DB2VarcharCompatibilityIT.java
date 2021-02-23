@@ -103,19 +103,19 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 .create();
 
         new TableCreator(conn)
-                .withCreate("create table z (v1 varchar(10), v2 varchar(10))")
+                .withCreate("create table z (v1 int, v2 varchar(10))")
                 .withInsert("insert into z values(?,?)")
                 .withRows(rows(
-                        row("1", "a    "),
-                        row("1", "a        ")))
+                        row(1, "a    "),
+                        row(1, "a        ")))
                 .create();
 
         new TableCreator(conn)
-                .withCreate("create table y (v3 varchar(10), v4 varchar(10))")
+                .withCreate("create table y (v3 int, v4 varchar(10))")
                 .withInsert("insert into y values(?,?)")
                 .withRows(rows(
-                        row("1", "a    "),
-                        row("1", "a      ")))
+                        row(1, "a    "),
+                        row(1, "a      ")))
                 .create();
     }
 
@@ -498,7 +498,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testSparkDistinct() throws Exception {
-        String query = format("select distinct v1, v2 from z --splice-properties useSpark=true", useSpark);
+        String query = format("select distinct v1, v2 from z --splice-properties useSpark=%s", useSpark);
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
             String expected = "V1 |V2 |\n" +
@@ -507,11 +507,34 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
 
+        query = format("select distinct v1 from z --splice-properties useSpark=%s", useSpark);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            // test distinct fix on non-StringType column, should work
+            String expected = "V1 |\n" +
+                    "----\n" +
+                    " 1 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
         query = format("select v1,v2,v3,v4\n" +
                 "from z --splice-properties useSpark=%s\n" +
                 ",y where v1=v3\n" +
                 "union\n" +
                 "select v1,v2,v3,v4 from z,y where v1=v3", useSpark);
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |V3 |V4 |\n" +
+                    "----------------\n" +
+                    " 1 | a | 1 | a |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        query = format("select v1,v2,v3,v4\n" +
+                "from z --splice-properties useSpark=%s\n" +
+                ",y where v2=v4\n" +
+                "union\n" +
+                "select v1,v2,v3,v4 from z,y where v2=v4", useSpark);
 
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
