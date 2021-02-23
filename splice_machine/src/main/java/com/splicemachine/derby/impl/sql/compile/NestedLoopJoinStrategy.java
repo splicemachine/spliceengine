@@ -310,7 +310,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                                         CostEstimate outerCost,
                                         Optimizer optimizer) {
         double retval = 0.0d;
-        if (!optimizer.isForSpark())
+        if (!optimizer.isForSpark() || optimizer.isMemPlatform())
             return retval;
         if (table.getCurrentAccessPath().isHintedJoinStrategy())
             return retval;
