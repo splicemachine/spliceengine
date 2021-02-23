@@ -1399,6 +1399,8 @@ public class OptimizerImpl implements Optimizer{
      */
     @Override public void setJoinType(int joinType){ outermostCostEstimate.setJoinType(joinType); }
 
+    @Override public int getJoinType(){ return outermostCostEstimate.getJoinType(); }
+
     @Override
     public int tableLockThreshold(){ return tableLockThreshold; }
 
@@ -2676,4 +2678,7 @@ public class OptimizerImpl implements Optimizer{
         return currentRowOrdering;
     }
 
+    public int getJoinPosition() {
+        return joinPosition;
+    }
 }
