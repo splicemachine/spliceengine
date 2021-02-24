@@ -219,6 +219,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     private boolean isSubStatement = false;
 
+    private boolean isRowTrigger = false;
+
     public boolean ignoreSequence() {
         return ignoreSequence;
     }
@@ -375,12 +377,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return (RowLocation)rlClone;
     }
 
-    /*
-     */
     public ResultDescription getResultDescription() {
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(resultDescription != null, "Must have a result description");
-               return resultDescription;
+        return resultDescription;
     }
 
     /**
@@ -1790,6 +1788,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	@Override
         public void setSubStatement(boolean newValue) {
 	    isSubStatement = newValue;
+	}
+
+	@Override
+	public boolean isRowTrigger() { return isRowTrigger; }
+
+	@Override
+        public void setIsRowTrigger(boolean newValue) {
+	    isRowTrigger = newValue;
 	}
 
 }

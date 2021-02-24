@@ -111,7 +111,7 @@ public class DataDictionaryCache {
          */
         int tdCacheSize = getCacheSize(startParams, Property.LANG_TD_CACHE_SIZE,
                 Property.LANG_TD_CACHE_SIZE_DEFAULT);
-        int stmtCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
+        int spsCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
                 Property.LANG_SPS_CACHE_SIZE_DEFAULT);
         int seqgenCacheSize = getCacheSize(startParams, Property.LANG_SEQGEN_CACHE_SIZE,
                 Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
@@ -163,9 +163,9 @@ public class DataDictionaryCache {
         };
         oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build(), tdCacheSize);
         nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build(), tdCacheSize);
-        if(stmtCacheSize>0){
-            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
-            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
+        if(spsCacheSize>0){
+            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
+            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
         }
         sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build(), seqgenCacheSize);
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
@@ -362,19 +362,35 @@ public class DataDictionaryCache {
         storedPreparedStatementCache.invalidateAll();
     }
 
+    private long getDriverTaskTxnId() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext)ContextService.getCurrentContextManager().
+                                getContext(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return -1;
+        return lcc.getActiveStateTxId();
+    }
+
+    private Conglomerate txnAwareConglomerateCacheFind(Long conglomId) throws StandardException {
+        if (dd.useTxnAwareCache()) {
+            long txnId = getDriverTaskTxnId();
+            if (txnId == -1)
+                return null;
+            return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
+        }
+        return null;
+    }
+
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
         if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER) {
             // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
-            if (dd.useTxnAwareCache()) {
-                long txnId = xactMgr.getActiveStateTxId();
-                if (txnId == -1)
-                    return null;
-                return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
-            }
-            return null;
+            Conglomerate conglomerate = txnAwareConglomerateCacheFind(conglomId);
+            if (conglomerate != null)
+                return conglomerate;
         }
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
+
         return conglomerateCache.getIfPresent(conglomId);
     }
 
@@ -385,7 +401,7 @@ public class DataDictionaryCache {
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
         if (!dd.canWriteCache(xactMgr)) {
             if (dd.useTxnAwareCache()) {
-                long txnId = xactMgr.getActiveStateTxId();
+                long txnId = getDriverTaskTxnId();
                 if (txnId == -1)
                     return;
                 txnAwareConglomerateCacheAdd(new Pair(txnId, conglomId), conglomerate);

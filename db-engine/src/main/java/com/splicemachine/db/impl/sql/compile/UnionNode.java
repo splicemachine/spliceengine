@@ -60,7 +60,7 @@ public class UnionNode extends SetOperatorNode{
     boolean tableConstructor;
 
     /* True if this is the top node of a table constructor */
-    boolean topTableConstructor;
+    boolean topUnionNode;
 
     /* below variables are for recursive queries */
     boolean isRecursive;
@@ -95,8 +95,8 @@ public class UnionNode extends SetOperatorNode{
     /**
      * Mark this as the top node of a table constructor.
      */
-    public void markTopTableConstructor(){
-        topTableConstructor=true;
+    public void markTopUnionNode(){
+        topUnionNode = true;
     }
 
     /**
@@ -119,8 +119,6 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void rejectParameters() throws StandardException{
-        if(!tableConstructor())
-            super.rejectParameters();
     }
 
     /**
@@ -531,7 +529,7 @@ public class UnionNode extends SetOperatorNode{
         ** the types of the ? parameters come from the columns being inserted
         ** into in that case.
         */
-        if(topTableConstructor && (!insertSource)){
+        if(topUnionNode && (!insertSource)){
             /*
             ** Step through all the rows in the table constructor to
             ** get the type of the first non-? in each column.
@@ -545,27 +543,12 @@ public class UnionNode extends SetOperatorNode{
             for(rsn=this;rsn instanceof SetOperatorNode;){
                 SetOperatorNode setOperator=(SetOperatorNode)rsn;
 
-                /*
-                ** Assume that table constructors are left-deep trees of
-                ** SetOperatorNodes with RowResultSet nodes on the right.
-                */
-                if(SanityManager.DEBUG)
-                    SanityManager.ASSERT(
-                            setOperator.rightResultSet instanceof RowResultSetNode,
-                            "A "+setOperator.rightResultSet.getClass().getName()+
-                                    " is on the right side of a setOperator in a table constructor");
-
-                RowResultSetNode rrsn= (RowResultSetNode)setOperator.rightResultSet;
-
-                numTypes+=getParamColumnTypes(types,rrsn);
+                numTypes+=getParamColumnTypes(types,setOperator.rightResultSet.getResultColumns());
 
                 rsn=setOperator.leftResultSet;
             }
 
-            /* The last node on the left should be a result set node */
-            assert rsn instanceof RowResultSetNode;
-
-            numTypes+=getParamColumnTypes(types,(RowResultSetNode)rsn);
+            numTypes+=getParamColumnTypes(types, rsn.getResultColumns());
 
             /* Are there any columns that are all ? parameters? */
             if(numTypes<types.length){
@@ -579,14 +562,13 @@ public class UnionNode extends SetOperatorNode{
             */
             for(rsn=this;rsn instanceof SetOperatorNode;){
                 SetOperatorNode setOperator=(SetOperatorNode)rsn;
-                RowResultSetNode rrsn=(RowResultSetNode)setOperator.rightResultSet;
 
-                setParamColumnTypes(types,rrsn);
+                setParamColumnTypes(types, setOperator.rightResultSet.getResultColumns());
 
                 rsn=setOperator.leftResultSet;
             }
 
-            setParamColumnTypes(types,(RowResultSetNode)rsn);
+            setParamColumnTypes(types, rsn.getResultColumns());
         }
     }
 
@@ -740,7 +722,7 @@ public class UnionNode extends SetOperatorNode{
         sb = sb.append(spaceToLevel())
                 .append(isRecursive?"RecursiveUnion":"Union").append("(")
                 .append("n=").append(getResultSetNumber());
-        sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

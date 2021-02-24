@@ -62,7 +62,6 @@ class Session {
 	Hashtable asyncStmts = new Hashtable();
 	boolean isJCC= false;      // Is this the IBM UNIVERSAL DRIVER.
 	boolean isDNC = false;     // Is this the Derby Network Client JDBC Driver
-	boolean isEmbeddedDerby = false; // Is this the Derby Embedded JDBC Driver
 
 	Session(Connection newConn, String newTag, String newName) {
 		conn = newConn;
@@ -73,8 +72,6 @@ class Session {
 		{
 			isJCC = conn.getMetaData().getDriverName().startsWith("IBM DB2 JDBC Universal Driver");
 			isDNC = conn.getMetaData().getDriverName().startsWith("Apache Derby Network Client");
-			isEmbeddedDerby = conn.getMetaData().getDriverName().
-				startsWith("Apache Derby Embedded JDBC Driver");
 		}
 		catch (SQLException se)
 		{
@@ -96,11 +93,6 @@ class Session {
 	boolean getIsDNC()
 	{
 		return isDNC;
-	}
-
-	boolean getIsEmbeddedDerby()
-	{
-		return isEmbeddedDerby;
 	}
 
 	String getName() {

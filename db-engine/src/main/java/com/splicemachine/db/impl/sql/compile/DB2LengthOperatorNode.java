@@ -57,36 +57,36 @@ import java.util.List;
 public final class DB2LengthOperatorNode extends UnaryOperatorNode
 {
     
-	/**
-	 * Initializer for a DB2LengthOperatorNode
-	 *
-	 * @param operand	The operand of the node
-	 */
-	public void init(Object	operand)
-	{
-		super.init( operand, "length", "getDB2Length");
+    /**
+     * Initializer for a DB2LengthOperatorNode
+     *
+     * @param operand    The operand of the node
+     */
+    public void init(Object    operand)
+    {
+        super.init( operand, "length", "getDB2Length");
     }
 
  
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public ValueNode bindExpression(FromList fromList,
+    public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
         bindOperand( fromList, subqueryList, aggregateVector);
 
         // This operator is not allowed on XML types.
-        TypeId operandType = operand.getTypeId();
+        TypeId operandType = getOperand().getTypeId();
         if (operandType.isXMLTypeId()) {
             throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                                     getOperatorString(),
@@ -94,42 +94,42 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         }
 
         setType( new DataTypeDescriptor( TypeId.getBuiltInTypeId( Types.INTEGER),
-                                         operand.getTypeServices().isNullable()));
+                                         getOperand().getTypeServices().isNullable()));
         return this;
     }
 
-	/**
-	 * This is a length operator node.  Overrides this method
-	 * in UnaryOperatorNode for code generation purposes.
-	 */
-	public String getReceiverInterfaceName() {
-	    return ClassName.ConcatableDataValue;
-	}
+    /**
+     * This is a length operator node.  Overrides this method
+     * in UnaryOperatorNode for code generation purposes.
+     */
+    public String getReceiverInterfaceName() {
+        return ClassName.ConcatableDataValue;
+    }
 
     /**
-	 * Do code generation for this unary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the expression will go into
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * Do code generation for this unary operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the expression will go into
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	{
-		if (operand == null)
-			return;
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                                    throws StandardException
+    {
+        if (getOperand() == null)
+            return;
 
         int constantLength = getConstantLength();
         // -1 if the length of a non-null operand depends on the data
             
-		String resultTypeName = getTypeCompiler().interfaceName();
+        String resultTypeName = getTypeCompiler().interfaceName();
 
         mb.pushThis();
-		operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.upCast( ClassName.DataValueDescriptor);
         mb.push( constantLength);
 
@@ -147,13 +147,13 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
 
     private int getConstantLength( ) throws StandardException
     {
-        DataTypeDescriptor typeDescriptor = operand.getTypeServices();
+        DataTypeDescriptor typeDescriptor = getOperand().getTypeServices();
         
         switch( typeDescriptor.getJDBCTypeId())
         {
         case Types.BIGINT:
             return 8;
-		case Types.BOOLEAN:
+        case Types.BOOLEAN:
         case Types.BIT:
             return 1;
         case Types.BINARY:
@@ -187,23 +187,23 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         case Types.BLOB:
             return getConstantNodeLength();
         default:
-			return -1;
+            return -1;
         }
     } // end of getConstantLength
 
     private int getConstantNodeLength() throws StandardException
     {
-        if( operand instanceof ConstantNode)
-            return ((ConstantNode) operand).getValue().getLength();
+        if( getOperand() instanceof ConstantNode)
+            return ((ConstantNode) getOperand()).getValue().getLength();
         return -1;
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
         double cost = 0.0;
-        if (operand != null) {
+        if (getOperand() != null) {
             if (getConstantLength() == -1) {
-                cost += SIMPLE_OP_COST * Math.min(operand.getTypeServices().getNull().getLength(), 16);
+                cost += SIMPLE_OP_COST * Math.min(getOperand().getTypeServices().getNull().getLength(), 16);
             }
             cost += SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         }

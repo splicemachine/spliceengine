@@ -244,9 +244,7 @@ public abstract class DDLConstantAction implements ConstantAction
                          long heapConglomerateNumber, boolean exclusiveMode)
         throws StandardException
     {
-        ConglomerateController cc;
-
-        cc = tc.openConglomerate(
+        try (ConglomerateController ignored = tc.openConglomerate(
                     heapConglomerateNumber,
                     false,
                     (exclusiveMode) ?
@@ -254,8 +252,8 @@ public abstract class DDLConstantAction implements ConstantAction
                             TransactionController.OPENMODE_FOR_LOCK_ONLY) :
                         TransactionController.OPENMODE_FOR_LOCK_ONLY,
                     TransactionController.MODE_TABLE,
-                    TransactionController.ISOLATION_SERIALIZABLE);
-        cc.close();
+                    TransactionController.ISOLATION_SERIALIZABLE)) {
+        }
     }
 
     protected String constructToString(

@@ -300,6 +300,15 @@ public interface Optimizer{
     void setJoinType(int joinType);
 
     /**
+     *
+     * Retrieve the join type of the outer optimizable, if any.
+     * A value of zero means there is no outer optimizable.
+     *
+     */
+
+    int getJoinType();
+
+    /**
      * Get the number of join strategies supported by this optimizer.
      */
     int getNumberOfJoinStrategies();
@@ -407,4 +416,8 @@ public interface Optimizer{
     public void setForSpark(boolean forSpark);
 
     public boolean isForSpark();
+
+    int getJoinPosition();
+
+    default boolean isMemPlatform() { return false; };
 }

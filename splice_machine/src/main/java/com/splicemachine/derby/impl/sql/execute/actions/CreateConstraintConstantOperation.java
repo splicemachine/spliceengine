@@ -300,11 +300,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                 if ( (! forCreateTable) &&
                      dd.activeConstraint( conDesc ) )
                 {
-                    validateFKConstraint(tc,
-                                         dd,
+					validateFKConstraint(
                                          (ForeignKeyConstraintDescriptor)conDesc,
                                          referencedConstraint,
-                                         ((CreateIndexConstantOperation)indexAction).getIndexTemplateRow(), lcc);
+                            lcc);
                 }
 
                 /* Create stored dependency on the referenced constraint */

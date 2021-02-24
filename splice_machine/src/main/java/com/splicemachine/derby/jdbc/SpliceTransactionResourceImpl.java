@@ -15,6 +15,7 @@
 package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -26,7 +27,10 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -38,6 +42,7 @@ import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -90,15 +95,24 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
-        this.marshallTransaction(txn, null);
-    }
-
-    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        this.marshallTransaction(txn, propertyCache, null, null, null);
+        this.marshallTransaction(txn, null, null, null, null, -1);
     }
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
-                                       TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
+                                    long driverTxnId) throws StandardException, SQLException {
+        this.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null, null, null);
+    }
+
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+                                    ManagedCache<UUID, SPSDescriptor>  storedPreparedStatementCache,
+                                    List<String> defaultRoles,
+                                    SchemaDescriptor initialDefaultSchemaDescriptor,
+                                    long driverTxnId,
+                                    TransactionController reuseTC,
+                                    String localUserName, Integer sessionNumber) throws StandardException, SQLException{
         if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
@@ -122,7 +136,12 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                     txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
                     DataSetProcessorType.DEFAULT_OLTP, SparkExecutionType.UNSPECIFIED,
                     false, -1,
-                    ipAddress, reuseTC);
+                    ipAddress,
+                    storedPreparedStatementCache,
+                    defaultRoles,
+                    initialDefaultSchemaDescriptor,
+                    driverTxnId,
+                    reuseTC);
 
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);

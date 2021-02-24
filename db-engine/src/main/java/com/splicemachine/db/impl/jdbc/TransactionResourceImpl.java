@@ -140,6 +140,7 @@ public final class TransactionResourceImpl
     private SparkExecutionType useNativeSpark;
     private boolean skipStats;
     private double defaultSelectivityFactor;
+    private long minPlanTimeout = -1;
     private String ipAddress;
     private String defaultSchema;
     // set these up after constructor, called by EmbedConnection
@@ -203,6 +204,18 @@ public final class TransactionResourceImpl
                         SQLState.LANG_INVALID_SELECTIVITY);
         } else
             defaultSelectivityFactor = -1d;
+
+        String minPlanTimeoutString = info.getProperty(Property.CONNECTION_MIN_PLAN_TIMEOUT, null);
+        if (minPlanTimeoutString != null) {
+            try {
+                minPlanTimeout = Long.parseLong(minPlanTimeoutString);
+            } catch (Exception parseLongE) {
+                throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_MIN_PLAN_TIMEOUT, minPlanTimeoutString).getMessage(), SQLState.LANG_INVALID_SELECTIVITY);
+            }
+            if (minPlanTimeout < 0l)
+                throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_MIN_PLAN_TIMEOUT, minPlanTimeoutString).getMessage(),
+                        SQLState.LANG_INVALID_SELECTIVITY);
+        }
 
         // make a new context manager for this TransactionResource
 
@@ -566,6 +579,9 @@ public final class TransactionResourceImpl
         }
         else if (sqlState.equals(SQLState.LANG_FK_VIOLATION)) {
             se.setSeverity(-530);
+        }
+        else if (sqlState.equals(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL)) {
+            se.setSeverity(-629);
         }
         else if (sqlState.equals(SQLState.DRDA_CURSOR_NOT_OPEN)) {
             se.setSeverity(-501);

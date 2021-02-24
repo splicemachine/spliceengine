@@ -34,7 +34,6 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -52,10 +51,8 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -101,6 +98,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
     private String text;
     private String usingText;
     private UUID uuid;
+    private UUID suuid;
 
     private boolean valid;
     private ExecPreparedStatement preparedStatement;
@@ -183,6 +181,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         }
         this.name = name;
         this.uuid = uuid;
+        this.suuid = suuid;
         this.type = type;
         this.text = text;
         this.usingText = usingText;
@@ -193,6 +192,31 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         this.compSchemaId = compSchemaUUID;
         this.initiallyCompilable = initiallyCompilable;
     }
+
+    public final synchronized SPSDescriptor shallowClone() throws StandardException {
+        SPSDescriptor copy =
+            new SPSDescriptor(dataDictionary,
+                name,
+                uuid,
+                suuid,
+                compSchemaId,
+                type,
+                valid,
+                text,
+                usingText,
+                compileTime,
+                preparedStatement,
+                initiallyCompilable);
+
+        copy.setParams(getParams());
+        copy.setParameterDefaults(getParameterDefaults());
+        copy.setLookedUpParams(getLookedUpParams());
+        copy.setFinalTableConglomID(getFinalTableConglomID());
+        return copy;
+    }
+
+    public void setLookedUpParams(boolean lookedUpParams) { this.lookedUpParams = lookedUpParams; }
+    public boolean getLookedUpParams() { return lookedUpParams; }
 
     /**
      * FOR TRIGGERS ONLY
@@ -287,6 +311,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         Statement stmt = lcf.getStatement(dd.getSchemaDescriptor(compSchemaId, null), text, true, lcc);
 
         try {
+            lcc.setCompilingStoredPreparedStatement(true);
             preparedStatement = (ExecPreparedStatement) stmt.prepareStorable(
                     lcc,
                     preparedStatement,
@@ -294,6 +319,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                     getSchemaDescriptor(),
                     type == SPS_TYPE_TRIGGER);
         } finally {
+            lcc.setCompilingStoredPreparedStatement(false);
             if (triggerTable != null) {
                 lcc.popTriggerTable(triggerTable);
             }
@@ -516,7 +542,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
      * @return the preparedStatement
      */
     public final ExecPreparedStatement getPreparedStatement() throws StandardException {
-        return getPreparedStatement(true);
+        return getPreparedStatement(true, null);
     }
 
     /**
@@ -528,16 +554,22 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
      * @param recompIfInvalid if false, never recompile even
      *                        if statement is invalid
      */
-    public final synchronized ExecPreparedStatement getPreparedStatement(boolean recompIfInvalid) throws StandardException {
+    public final synchronized ExecPreparedStatement getPreparedStatement(boolean recompIfInvalid,
+                                                                         LanguageConnectionContext activationLCC) throws StandardException {
 
         /*  Recompile if we are invalid, we don't have a prepared statement, or the statements activation
          *  has been cleared and cannot be reconstituted.*/
         if (recompIfInvalid && (!valid || (preparedStatement == null))) {
-            ContextManager cm = ContextService.getFactory().getCurrentContextManager();
 
-            /* Find the language connection context.  Get it each time in case a connection is dropped. */
-            LanguageConnectionContext lcc = (LanguageConnectionContext)
-                    cm.getContext(LanguageConnectionContext.CONTEXT_ID);
+            /*  Find the language connection context from the ContextService
+             *  only if the one to use was not specified by the caller.
+             *  For concurrent triggers we want to use the lcc created
+             *  for the proper thread.
+             **/
+            LanguageConnectionContext lcc = activationLCC != null ? activationLCC :
+                (LanguageConnectionContext)
+                    ContextService.getFactory().getCurrentContextManager().
+                           getContext(LanguageConnectionContext.CONTEXT_ID);
 
             if (!lcc.getDataDictionary().isReadOnlyUpgrade()) {
 
@@ -1010,6 +1042,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         writeNullableString(text, out);
         writeNullableString(usingText, out);
         out.writeObject(uuid);
+        out.writeObject(suuid);
         out.writeBoolean(valid);
         boolean writePreparedStatement = (preparedStatement instanceof GenericStorablePreparedStatement);
         out.writeBoolean(writePreparedStatement);
@@ -1047,6 +1080,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         text = readNullableString(in);
         usingText = readNullableString(in);
         uuid = (UUID) in.readObject();
+        suuid = (UUID) in.readObject();
         valid = in.readBoolean();
         boolean readPreparedStatement = in.readBoolean();
         if (readPreparedStatement)

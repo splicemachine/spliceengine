@@ -15,15 +15,14 @@
 package com.splicemachine.derby.utils;
 
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -34,7 +33,8 @@ import java.util.Date;
 
 import static org.junit.Assert.*;
 
-public class SpliceDateFunctionsIT {
+@Category(SerialTest.class) // Not run in parallel because we change global database properties
+public class SpliceDateFunctionsIT extends SpliceUnitTest {
 
     private static final String CLASS_NAME = SpliceDateFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
@@ -213,7 +213,13 @@ public class SpliceDateFunctionsIT {
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('05:22:33'), " +
                             "Date('2013-12-31'), Timestamp('2013-12-31 05:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2013-12-31 05:22:33.04')").execute();
-                    // FIXME JC: See @Ingored test testToTimestampFunction below...
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('05:22:33'), " +
+                                    "Date('2021-01-31'), Timestamp('2021-01-31 05:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2021-01-31 05:22:33.04')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('05:22:33'), " +
+                                    "Date('2021-01-30'), Timestamp('2021-01-30 05:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2021-01-30 05:22:33.04')").execute();
+                    // FIXME JC: See @Ignored test testToTimestampFunction below...
 //                        classWatcher.prepareStatement(
 //                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2011-09-17 " +
 //                                "23:40:53'), 'yyyy-MM-dd''T''HH:mm:ssz', '2011-09-17T23:40:53GMT')").execute();
@@ -227,6 +233,10 @@ public class SpliceDateFunctionsIT {
    
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
+    private void withSecondCompatibilityMode(String mode) throws Exception {
+        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.secondCompatibilityMode', '%s' )", mode));
+    }
 
     @Test
     public void testDBMetadataGetFunctions() throws Exception {
@@ -586,16 +596,95 @@ public class SpliceDateFunctionsIT {
 
     @Test
     public void testSecondWithTimeStamp() throws Exception {
-        String sqlText = "select second(col1), col1 from " + tableWatcherH + " order by col1";
-        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            String expected =
-                "1  |        COL1          |\n" +
-                    "-----------------------------\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |\n" +
-                    "40.0 |2012-12-31 20:38:40.0 |";
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        try {
+            withSecondCompatibilityMode("splice");
+            String sqlText = "select second(col1), typeof(second(col1)), col1 from " + tableWatcherH + " order by col1";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1  |   2   |        COL1          |\n" +
+                                "-------------------------------------\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |\n" +
+                                "40.0 |DOUBLE |2012-12-31 20:38:40.0 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current timestamp)", "DOUBLE NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 2)", "42X01");
+
+            withSecondCompatibilityMode("db2");
+            sqlText = "select second(ts), second(ts, 1), second(ts, 12), second(ts, 5)," +
+                    "typeof(second(ts)), typeof(second(ts, 1)), typeof(second(ts, 12)), typeof(second(ts, 5)), ts from " + tableWatcherI + " order by ts";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |  2  |       3        |    4    |   5    |      6      |       7       |      8      |          TS           |\n" +
+                                "------------------------------------------------------------------------------------------------------------------\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-01-02 11:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-07-02 11:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2009-09-02 11:22:33.04 |\n" +
+                                " 0 | 0.0 |0.030000000000  | 0.03000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2012-12-31 00:00:00.03 |\n" +
+                                "40 |40.0 |40.000000000000 |40.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) | 2012-12-31 20:38:40.0 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2013-12-31 05:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2021-01-30 05:22:33.04 |\n" +
+                                "33 |33.0 |33.040000000000 |33.04000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |2021-01-31 05:22:33.04 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current timestamp)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            checkExpressionType("second(current timestamp, 5)", "DECIMAL(7,5) NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 'abc')", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, days(current timestamp))", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current timestamp, 45)", "22008");
+        } finally {
+            withSecondCompatibilityMode("db2");
+        }
+    }
+
+    @Test
+    public void testSecondWithTime() throws Exception {
+        try {
+            withSecondCompatibilityMode("splice");
+            String sqlText = "select second(t), typeof(second(t)), t from " + tableWatcherI + " order by t";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |   2    |    T    |\n" +
+                                "-----------------------\n" +
+                                " 1 |INTEGER |00:00:01 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "33 |INTEGER |05:22:33 |\n" +
+                                "29 |INTEGER |10:30:29 |\n" +
+                                "28 |INTEGER |18:44:28 |\n" +
+                                "40 |INTEGER |20:38:40 |\n" +
+                                "59 |INTEGER |23:59:59 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current time)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 2)", "42X01");
+
+            withSecondCompatibilityMode("db2");
+            sqlText = "select second(t), second(t, 1), second(t, 12), second(t, 5)," +
+                    "typeof(second(t)), typeof(second(t, 1)), typeof(second(t, 12)), typeof(second(t, 5)), t from " + tableWatcherI + " order by t";
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                String expected =
+                        "1 |  2  |       3        |    4    |   5    |      6      |       7       |      8      |    T    |\n" +
+                                "----------------------------------------------------------------------------------------------------\n" +
+                                " 1 | 1.0 |1.000000000000  | 1.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |00:00:01 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "33 |33.0 |33.000000000000 |33.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |05:22:33 |\n" +
+                                "29 |29.0 |29.000000000000 |29.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |10:30:29 |\n" +
+                                "28 |28.0 |28.000000000000 |28.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |18:44:28 |\n" +
+                                "40 |40.0 |40.000000000000 |40.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |20:38:40 |\n" +
+                                "59 |59.0 |59.000000000000 |59.00000 |INTEGER |DECIMAL(3,1) |DECIMAL(14,12) |DECIMAL(7,5) |23:59:59 |";
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+            checkExpressionType("second(current time)", "INTEGER NOT NULL", methodWatcher.getOrCreateConnection());
+            checkExpressionType("second(current time, 5)", "DECIMAL(7,5) NOT NULL", methodWatcher.getOrCreateConnection());
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 'abc')", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, days(current timestamp))", "42X45");
+            assertFailed(methodWatcher.getOrCreateConnection(), "select second(current time, 45)", "22008");
+        } finally {
+            withSecondCompatibilityMode("db2");
         }
     }
 
@@ -674,14 +763,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(YEAR FROM ts) as \"YEAR\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           |YEAR |\n" +
+            "TS           |YEAR |\n" +
                     "------------------------------\n" +
                     "2009-01-02 11:22:33.04 |2009 |\n" +
                     "2009-07-02 11:22:33.04 |2009 |\n" +
                     "2009-09-02 11:22:33.04 |2009 |\n" +
                     "2012-12-31 00:00:00.03 |2012 |\n" +
                     " 2012-12-31 20:38:40.0 |2012 |\n" +
-                    "2013-12-31 05:22:33.04 |2013 |";
+                    "2013-12-31 05:22:33.04 |2013 |\n" +
+                    "2021-01-30 05:22:33.04 |2021 |\n" +
+                    "2021-01-31 05:22:33.04 |2021 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -691,14 +782,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(QUARTER FROM ts) as \"QUARTER\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | QUARTER |\n" +
-                    "----------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |    1    |\n" +
-                    "2009-07-02 11:22:33.04 |    3    |\n" +
-                    "2009-09-02 11:22:33.04 |    3    |\n" +
-                    "2012-12-31 00:00:00.03 |    4    |\n" +
-                    " 2012-12-31 20:38:40.0 |    4    |\n" +
-                    "2013-12-31 05:22:33.04 |    4    |";
+                    "TS           | QUARTER |\n" +
+                            "----------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |    1    |\n" +
+                            "2009-07-02 11:22:33.04 |    3    |\n" +
+                            "2009-09-02 11:22:33.04 |    3    |\n" +
+                            "2012-12-31 00:00:00.03 |    4    |\n" +
+                            " 2012-12-31 20:38:40.0 |    4    |\n" +
+                            "2013-12-31 05:22:33.04 |    4    |\n" +
+                            "2021-01-30 05:22:33.04 |    1    |\n" +
+                            "2021-01-31 05:22:33.04 |    1    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -715,7 +808,9 @@ public class SpliceDateFunctionsIT {
                     "2009-09-02 11:22:33.04 |    3    |\n" +
                     "2012-12-31 00:00:00.03 |    4    |\n" +
                     " 2012-12-31 20:38:40.0 |    4    |\n" +
-                    "2013-12-31 05:22:33.04 |    4    |";
+                    "2013-12-31 05:22:33.04 |    4    |\n" +
+                    "2021-01-30 05:22:33.04 |    1    |\n" +
+                    "2021-01-31 05:22:33.04 |    1    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -725,14 +820,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(MONTH FROM ts) as \"MONTH\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | MONTH |\n" +
+            "TS           | MONTH |\n" +
                     "--------------------------------\n" +
                     "2009-01-02 11:22:33.04 |   1   |\n" +
                     "2009-07-02 11:22:33.04 |   7   |\n" +
                     "2009-09-02 11:22:33.04 |   9   |\n" +
                     "2012-12-31 00:00:00.03 |  12   |\n" +
                     " 2012-12-31 20:38:40.0 |  12   |\n" +
-                    "2013-12-31 05:22:33.04 |  12   |";
+                    "2013-12-31 05:22:33.04 |  12   |\n" +
+                    "2021-01-30 05:22:33.04 |   1   |\n" +
+                    "2021-01-31 05:22:33.04 |   1   |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -742,14 +839,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(MONTHNAME FROM ts) as \"MONTHNAME\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | MONTHNAME |\n" +
-                    "------------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |  January  |\n" +
-                    "2009-07-02 11:22:33.04 |   July    |\n" +
-                    "2009-09-02 11:22:33.04 | September |\n" +
-                    "2012-12-31 00:00:00.03 | December  |\n" +
-                    " 2012-12-31 20:38:40.0 | December  |\n" +
-                    "2013-12-31 05:22:33.04 | December  |";
+                    "TS           | MONTHNAME |\n" +
+                            "------------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |  January  |\n" +
+                            "2009-07-02 11:22:33.04 |   July    |\n" +
+                            "2009-09-02 11:22:33.04 | September |\n" +
+                            "2012-12-31 00:00:00.03 | December  |\n" +
+                            " 2012-12-31 20:38:40.0 | December  |\n" +
+                            "2013-12-31 05:22:33.04 | December  |\n" +
+                            "2021-01-30 05:22:33.04 |  January  |\n" +
+                            "2021-01-31 05:22:33.04 |  January  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -759,14 +858,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, MONTHNAME(ts) as \"MONTHNAME\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | MONTHNAME |\n" +
+                    "TS           | MONTHNAME |\n" +
                     "------------------------------------\n" +
                     "2009-01-02 11:22:33.04 |  January  |\n" +
                     "2009-07-02 11:22:33.04 |   July    |\n" +
                     "2009-09-02 11:22:33.04 | September |\n" +
                     "2012-12-31 00:00:00.03 | December  |\n" +
                     " 2012-12-31 20:38:40.0 | December  |\n" +
-                    "2013-12-31 05:22:33.04 | December  |";
+                    "2013-12-31 05:22:33.04 | December  |\n" +
+                    "2021-01-30 05:22:33.04 |  January  |\n" +
+                    "2021-01-31 05:22:33.04 |  January  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -776,14 +877,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(WEEK FROM ts) as \"WEEK\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           |WEEK |\n" +
-                    "------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |  1  |\n" +
-                    "2009-07-02 11:22:33.04 | 27  |\n" +
-                    "2009-09-02 11:22:33.04 | 36  |\n" +
-                    "2012-12-31 00:00:00.03 |  1  |\n" +
-                    " 2012-12-31 20:38:40.0 |  1  |\n" +
-                    "2013-12-31 05:22:33.04 |  1  |";
+                    "TS           |WEEK |\n" +
+                            "------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |  1  |\n" +
+                            "2009-07-02 11:22:33.04 | 27  |\n" +
+                            "2009-09-02 11:22:33.04 | 36  |\n" +
+                            "2012-12-31 00:00:00.03 |  1  |\n" +
+                            " 2012-12-31 20:38:40.0 |  1  |\n" +
+                            "2013-12-31 05:22:33.04 |  1  |\n" +
+                            "2021-01-30 05:22:33.04 |  4  |\n" +
+                            "2021-01-31 05:22:33.04 |  4  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -801,7 +904,9 @@ public class SpliceDateFunctionsIT {
                     "2009-09-02 11:22:33.04 | 36  |\n" +
                     "2012-12-31 00:00:00.03 |  1  |\n" +
                     " 2012-12-31 20:38:40.0 |  1  |\n" +
-                    "2013-12-31 05:22:33.04 |  1  |";
+                    "2013-12-31 05:22:33.04 |  1  |\n" +
+                    "2021-01-30 05:22:33.04 |  4  |\n" +
+                    "2021-01-31 05:22:33.04 |  4  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -809,16 +914,24 @@ public class SpliceDateFunctionsIT {
     @Test
     public void testExtractWeekDayTimestamp() throws Exception {
         // Note: Jodatime and Postgres get the same answer but SQL Sever gets n+1
-        String sqlText = "select ts, EXTRACT(WEEKDAY FROM ts) as \"WEEKDAY\", dayofweek_iso(ts) as dayofweek_iso from " + tableWatcherI + " order by ts";
-        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            String expected = "TS           | WEEKDAY | DAYOFWEEK_ISO |\n" +
-                    "--------------------------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |    5    |       5       |\n" +
-                    "2009-07-02 11:22:33.04 |    4    |       4       |\n" +
-                    "2009-09-02 11:22:33.04 |    3    |       3       |\n" +
-                    "2012-12-31 00:00:00.03 |    1    |       1       |\n" +
-                    " 2012-12-31 20:38:40.0 |    1    |       1       |\n" +
-                    "2013-12-31 05:22:33.04 |    2    |       2       |";
+        String sqlText = "select ts, EXTRACT(WEEKDAY FROM ts), dayofweek_iso(ts), dayofweek(ts), weekday(d), dayofweek_iso(d), dayofweek(d) from " + tableWatcherI + " order by ts";
+        String expected = "TS           | 2 | 3 | 4 | 5 | 6 | 7 |\n" +
+                "------------------------------------------------\n" +
+                "2009-01-02 11:22:33.04 | 5 | 5 | 6 | 5 | 5 | 6 |\n" +
+                "2009-07-02 11:22:33.04 | 4 | 4 | 5 | 4 | 4 | 5 |\n" +
+                "2009-09-02 11:22:33.04 | 3 | 3 | 4 | 3 | 3 | 4 |\n" +
+                "2012-12-31 00:00:00.03 | 1 | 1 | 2 | 1 | 1 | 2 |\n" +
+                " 2012-12-31 20:38:40.0 | 1 | 1 | 2 | 1 | 1 | 2 |\n" +
+                "2013-12-31 05:22:33.04 | 2 | 2 | 3 | 2 | 2 | 3 |\n" +
+                "2021-01-30 05:22:33.04 | 6 | 6 | 7 | 6 | 6 | 7 |\n" +
+                "2021-01-31 05:22:33.04 | 7 | 7 | 1 | 7 | 7 | 1 |";
+        try (ResultSet rs = methodWatcher.connectionBuilder().useOLAP(false).build().query(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        try (ResultSet rs = methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build().query(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        try (ResultSet rs = methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build().query(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -828,14 +941,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(WEEKDAYNAME FROM ts) as \"WEEKDAYNAME\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | WEEKDAYNAME |\n" +
-                    "--------------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |   Friday    |\n" +
-                    "2009-07-02 11:22:33.04 |  Thursday   |\n" +
-                    "2009-09-02 11:22:33.04 |  Wednesday  |\n" +
-                    "2012-12-31 00:00:00.03 |   Monday    |\n" +
-                    " 2012-12-31 20:38:40.0 |   Monday    |\n" +
-                    "2013-12-31 05:22:33.04 |   Tuesday   |";
+                    "TS           | WEEKDAYNAME |\n" +
+                            "--------------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |   Friday    |\n" +
+                            "2009-07-02 11:22:33.04 |  Thursday   |\n" +
+                            "2009-09-02 11:22:33.04 |  Wednesday  |\n" +
+                            "2012-12-31 00:00:00.03 |   Monday    |\n" +
+                            " 2012-12-31 20:38:40.0 |   Monday    |\n" +
+                            "2013-12-31 05:22:33.04 |   Tuesday   |\n" +
+                            "2021-01-30 05:22:33.04 |  Saturday   |\n" +
+                            "2021-01-31 05:22:33.04 |   Sunday    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -845,14 +960,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(DAYOFYEAR FROM ts) as \"DAYOFYEAR\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | DAYOFYEAR |\n" +
-                    "------------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |     2     |\n" +
-                    "2009-07-02 11:22:33.04 |    183    |\n" +
-                    "2009-09-02 11:22:33.04 |    245    |\n" +
-                    "2012-12-31 00:00:00.03 |    366    |\n" +
-                    " 2012-12-31 20:38:40.0 |    366    |\n" +
-                    "2013-12-31 05:22:33.04 |    365    |";
+                    "TS           | DAYOFYEAR |\n" +
+                            "------------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |     2     |\n" +
+                            "2009-07-02 11:22:33.04 |    183    |\n" +
+                            "2009-09-02 11:22:33.04 |    245    |\n" +
+                            "2012-12-31 00:00:00.03 |    366    |\n" +
+                            " 2012-12-31 20:38:40.0 |    366    |\n" +
+                            "2013-12-31 05:22:33.04 |    365    |\n" +
+                            "2021-01-30 05:22:33.04 |    30     |\n" +
+                            "2021-01-31 05:22:33.04 |    31     |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -862,16 +979,38 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(DAY FROM ts) as \"DAY\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           | DAY |\n" +
-                    "------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |  2  |\n" +
-                    "2009-07-02 11:22:33.04 |  2  |\n" +
-                    "2009-09-02 11:22:33.04 |  2  |\n" +
-                    "2012-12-31 00:00:00.03 | 31  |\n" +
-                    " 2012-12-31 20:38:40.0 | 31  |\n" +
-                    "2013-12-31 05:22:33.04 | 31  |";
+                    "TS           | DAY |\n" +
+                            "------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |  2  |\n" +
+                            "2009-07-02 11:22:33.04 |  2  |\n" +
+                            "2009-09-02 11:22:33.04 |  2  |\n" +
+                            "2012-12-31 00:00:00.03 | 31  |\n" +
+                            " 2012-12-31 20:38:40.0 | 31  |\n" +
+                            "2013-12-31 05:22:33.04 | 31  |\n" +
+                            "2021-01-30 05:22:33.04 | 30  |\n" +
+                            "2021-01-31 05:22:33.04 | 31  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+    }
+
+    @Test
+    public void testDaysOnTimestamp() throws Exception {
+        String sqlText = "select ts, DAYS(ts), typeof(DAYS(ts)) from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                    "TS           |   2   |   3   |\n" +
+                    "----------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |733409 |BIGINT |\n" +
+                    "2009-07-02 11:22:33.04 |733590 |BIGINT |\n" +
+                    "2009-09-02 11:22:33.04 |733652 |BIGINT |\n" +
+                    "2012-12-31 00:00:00.03 |734868 |BIGINT |\n" +
+                    " 2012-12-31 20:38:40.0 |734868 |BIGINT |\n" +
+                    "2013-12-31 05:22:33.04 |735233 |BIGINT |\n" +
+                    "2021-01-30 05:22:33.04 |737820 |BIGINT |\n" +
+                    "2021-01-31 05:22:33.04 |737821 |BIGINT |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        checkExpressionType("DAYS(CURRENT TIMESTAMP)", "BIGINT NOT NULL", methodWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -886,7 +1025,9 @@ public class SpliceDateFunctionsIT {
                     "2009-09-02 11:22:33.04 | 11  |\n" +
                     "2012-12-31 00:00:00.03 |  0  |\n" +
                     " 2012-12-31 20:38:40.0 | 20  |\n" +
-                    "2013-12-31 05:22:33.04 |  5  |";
+                    "2013-12-31 05:22:33.04 |  5  |\n" +
+                    "2021-01-30 05:22:33.04 |  5  |\n" +
+                    "2021-01-31 05:22:33.04 |  5  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -896,14 +1037,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(MINUTE FROM ts) as \"MINUTE\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           |MINUTE |\n" +
-                    "--------------------------------\n" +
-                    "2009-01-02 11:22:33.04 |  22   |\n" +
-                    "2009-07-02 11:22:33.04 |  22   |\n" +
-                    "2009-09-02 11:22:33.04 |  22   |\n" +
-                    "2012-12-31 00:00:00.03 |   0   |\n" +
-                    " 2012-12-31 20:38:40.0 |  38   |\n" +
-                    "2013-12-31 05:22:33.04 |  22   |";
+                    "TS           |MINUTE |\n" +
+                            "--------------------------------\n" +
+                            "2009-01-02 11:22:33.04 |  22   |\n" +
+                            "2009-07-02 11:22:33.04 |  22   |\n" +
+                            "2009-09-02 11:22:33.04 |  22   |\n" +
+                            "2012-12-31 00:00:00.03 |   0   |\n" +
+                            " 2012-12-31 20:38:40.0 |  38   |\n" +
+                            "2013-12-31 05:22:33.04 |  22   |\n" +
+                            "2021-01-30 05:22:33.04 |  22   |\n" +
+                            "2021-01-31 05:22:33.04 |  22   |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -914,14 +1057,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select ts, EXTRACT(SECOND FROM ts) as \"SECOND\" from " + tableWatcherI + " order by ts";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "TS           |SECOND |\n" +
-                    "--------------------------------\n" +
-                    "2009-01-02 11:22:33.04 | 33.04 |\n" +
-                    "2009-07-02 11:22:33.04 | 33.04 |\n" +
-                    "2009-09-02 11:22:33.04 | 33.04 |\n" +
-                    "2012-12-31 00:00:00.03 | 0.03  |\n" +
-                    " 2012-12-31 20:38:40.0 | 40.0  |\n" +
-                    "2013-12-31 05:22:33.04 | 33.04 |";
+                    "TS           |SECOND |\n" +
+                            "--------------------------------\n" +
+                            "2009-01-02 11:22:33.04 | 33.04 |\n" +
+                            "2009-07-02 11:22:33.04 | 33.04 |\n" +
+                            "2009-09-02 11:22:33.04 | 33.04 |\n" +
+                            "2012-12-31 00:00:00.03 | 0.03  |\n" +
+                            " 2012-12-31 20:38:40.0 | 40.0  |\n" +
+                            "2013-12-31 05:22:33.04 | 33.04 |\n" +
+                            "2021-01-30 05:22:33.04 | 33.04 |\n" +
+                            "2021-01-31 05:22:33.04 | 33.04 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -936,13 +1081,15 @@ public class SpliceDateFunctionsIT {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
                 "D     |YEAR |\n" +
-                    "------------------\n" +
-                    "2009-01-02 |2009 |\n" +
-                    "2009-07-02 |2009 |\n" +
-                    "2009-09-02 |2009 |\n" +
-                    "2012-12-31 |2012 |\n" +
-                    "2012-12-31 |2012 |\n" +
-                    "2013-12-31 |2013 |";
+                "------------------\n" +
+                "2009-01-02 |2009 |\n" +
+                "2009-07-02 |2009 |\n" +
+                "2009-09-02 |2009 |\n" +
+                "2012-12-31 |2012 |\n" +
+                "2012-12-31 |2012 |\n" +
+                "2013-12-31 |2013 |\n" +
+                "2021-01-30 |2021 |\n" +
+                "2021-01-31 |2021 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -952,14 +1099,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(QUARTER FROM d) as \"QUARTER\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | QUARTER |\n" +
-                    "----------------------\n" +
-                    "2009-01-02 |    1    |\n" +
-                    "2009-07-02 |    3    |\n" +
-                    "2009-09-02 |    3    |\n" +
-                    "2012-12-31 |    4    |\n" +
-                    "2012-12-31 |    4    |\n" +
-                    "2013-12-31 |    4    |";
+                    "D     | QUARTER |\n" +
+                            "----------------------\n" +
+                            "2009-01-02 |    1    |\n" +
+                            "2009-07-02 |    3    |\n" +
+                            "2009-09-02 |    3    |\n" +
+                            "2012-12-31 |    4    |\n" +
+                            "2012-12-31 |    4    |\n" +
+                            "2013-12-31 |    4    |\n" +
+                            "2021-01-30 |    1    |\n" +
+                            "2021-01-31 |    1    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -969,14 +1118,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, QUARTER(d) as \"QUARTER\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | QUARTER |\n" +
-                    "----------------------\n" +
-                    "2009-01-02 |    1    |\n" +
-                    "2009-07-02 |    3    |\n" +
-                    "2009-09-02 |    3    |\n" +
-                    "2012-12-31 |    4    |\n" +
-                    "2012-12-31 |    4    |\n" +
-                    "2013-12-31 |    4    |";
+                    "D     | QUARTER |\n" +
+                            "----------------------\n" +
+                            "2009-01-02 |    1    |\n" +
+                            "2009-07-02 |    3    |\n" +
+                            "2009-09-02 |    3    |\n" +
+                            "2012-12-31 |    4    |\n" +
+                            "2012-12-31 |    4    |\n" +
+                            "2013-12-31 |    4    |\n" +
+                            "2021-01-30 |    1    |\n" +
+                            "2021-01-31 |    1    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -986,14 +1137,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(MONTH FROM d) as \"MONTH\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | MONTH |\n" +
-                    "--------------------\n" +
-                    "2009-01-02 |   1   |\n" +
-                    "2009-07-02 |   7   |\n" +
-                    "2009-09-02 |   9   |\n" +
-                    "2012-12-31 |  12   |\n" +
-                    "2012-12-31 |  12   |\n" +
-                    "2013-12-31 |  12   |";
+                    "D     | MONTH |\n" +
+                            "--------------------\n" +
+                            "2009-01-02 |   1   |\n" +
+                            "2009-07-02 |   7   |\n" +
+                            "2009-09-02 |   9   |\n" +
+                            "2012-12-31 |  12   |\n" +
+                            "2012-12-31 |  12   |\n" +
+                            "2013-12-31 |  12   |\n" +
+                            "2021-01-30 |   1   |\n" +
+                            "2021-01-31 |   1   |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1003,14 +1156,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(MONTHNAME FROM d) as \"MONTHNAME\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | MONTHNAME |\n" +
-                    "------------------------\n" +
-                    "2009-01-02 |  January  |\n" +
-                    "2009-07-02 |   July    |\n" +
-                    "2009-09-02 | September |\n" +
-                    "2012-12-31 | December  |\n" +
-                    "2012-12-31 | December  |\n" +
-                    "2013-12-31 | December  |";
+                    "D     | MONTHNAME |\n" +
+                            "------------------------\n" +
+                            "2009-01-02 |  January  |\n" +
+                            "2009-07-02 |   July    |\n" +
+                            "2009-09-02 | September |\n" +
+                            "2012-12-31 | December  |\n" +
+                            "2012-12-31 | December  |\n" +
+                            "2013-12-31 | December  |\n" +
+                            "2021-01-30 |  January  |\n" +
+                            "2021-01-31 |  January  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1027,7 +1182,9 @@ public class SpliceDateFunctionsIT {
                     "2009-09-02 | September |\n" +
                     "2012-12-31 | December  |\n" +
                     "2012-12-31 | December  |\n" +
-                    "2013-12-31 | December  |";
+                    "2013-12-31 | December  |\n" +
+                    "2021-01-30 |  January  |\n" +
+                    "2021-01-31 |  January  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1037,14 +1194,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(WEEK FROM d) as \"WEEK\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     |WEEK |\n" +
-                    "------------------\n" +
-                    "2009-01-02 |  1  |\n" +
-                    "2009-07-02 | 27  |\n" +
-                    "2009-09-02 | 36  |\n" +
-                    "2012-12-31 |  1  |\n" +
-                    "2012-12-31 |  1  |\n" +
-                    "2013-12-31 |  1  |";
+                    "D     |WEEK |\n" +
+                            "------------------\n" +
+                            "2009-01-02 |  1  |\n" +
+                            "2009-07-02 | 27  |\n" +
+                            "2009-09-02 | 36  |\n" +
+                            "2012-12-31 |  1  |\n" +
+                            "2012-12-31 |  1  |\n" +
+                            "2013-12-31 |  1  |\n" +
+                            "2021-01-30 |  4  |\n" +
+                            "2021-01-31 |  4  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1055,14 +1214,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, WEEK(d) as \"WEEK\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     |WEEK |\n" +
-                    "------------------\n" +
-                    "2009-01-02 |  1  |\n" +
-                    "2009-07-02 | 27  |\n" +
-                    "2009-09-02 | 36  |\n" +
-                    "2012-12-31 |  1  |\n" +
-                    "2012-12-31 |  1  |\n" +
-                    "2013-12-31 |  1  |";
+                    "D     |WEEK |\n" +
+                            "------------------\n" +
+                            "2009-01-02 |  1  |\n" +
+                            "2009-07-02 | 27  |\n" +
+                            "2009-09-02 | 36  |\n" +
+                            "2012-12-31 |  1  |\n" +
+                            "2012-12-31 |  1  |\n" +
+                            "2013-12-31 |  1  |\n" +
+                            "2021-01-30 |  4  |\n" +
+                            "2021-01-31 |  4  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1072,15 +1233,16 @@ public class SpliceDateFunctionsIT {
         // Note: Jodatime and Postgres get the same answer but SQL Sever gets n+1
         String sqlText = "select d, EXTRACT(WEEKDAY FROM d) as \"WEEKDAY\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            String expected =
-                "D     | WEEKDAY |\n" +
+            String expected = "D     | WEEKDAY |\n" +
                     "----------------------\n" +
                     "2009-01-02 |    5    |\n" +
                     "2009-07-02 |    4    |\n" +
                     "2009-09-02 |    3    |\n" +
                     "2012-12-31 |    1    |\n" +
                     "2012-12-31 |    1    |\n" +
-                    "2013-12-31 |    2    |";
+                    "2013-12-31 |    2    |\n" +
+                    "2021-01-30 |    6    |\n" +
+                    "2021-01-31 |    7    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1091,14 +1253,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(WEEKDAYNAME FROM d) as \"WEEKDAYNAME\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | WEEKDAYNAME |\n" +
-                    "--------------------------\n" +
-                    "2009-01-02 |   Friday    |\n" +
-                    "2009-07-02 |  Thursday   |\n" +
-                    "2009-09-02 |  Wednesday  |\n" +
-                    "2012-12-31 |   Monday    |\n" +
-                    "2012-12-31 |   Monday    |\n" +
-                    "2013-12-31 |   Tuesday   |";
+                    "D     | WEEKDAYNAME |\n" +
+                            "--------------------------\n" +
+                            "2009-01-02 |   Friday    |\n" +
+                            "2009-07-02 |  Thursday   |\n" +
+                            "2009-09-02 |  Wednesday  |\n" +
+                            "2012-12-31 |   Monday    |\n" +
+                            "2012-12-31 |   Monday    |\n" +
+                            "2013-12-31 |   Tuesday   |\n" +
+                            "2021-01-30 |  Saturday   |\n" +
+                            "2021-01-31 |   Sunday    |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1108,14 +1272,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(DAYOFYEAR FROM d) as \"DAYOFYEAR\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | DAYOFYEAR |\n" +
-                    "------------------------\n" +
-                    "2009-01-02 |     2     |\n" +
-                    "2009-07-02 |    183    |\n" +
-                    "2009-09-02 |    245    |\n" +
-                    "2012-12-31 |    366    |\n" +
-                    "2012-12-31 |    366    |\n" +
-                    "2013-12-31 |    365    |";
+                    "D     | DAYOFYEAR |\n" +
+                            "------------------------\n" +
+                            "2009-01-02 |     2     |\n" +
+                            "2009-07-02 |    183    |\n" +
+                            "2009-09-02 |    245    |\n" +
+                            "2012-12-31 |    366    |\n" +
+                            "2012-12-31 |    366    |\n" +
+                            "2013-12-31 |    365    |\n" +
+                            "2021-01-30 |    30     |\n" +
+                            "2021-01-31 |    31     |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1125,14 +1291,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select d, EXTRACT(DAY FROM d) as \"DAY\" from " + tableWatcherI + " order by d";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "D     | DAY |\n" +
-                    "------------------\n" +
-                    "2009-01-02 |  2  |\n" +
-                    "2009-07-02 |  2  |\n" +
-                    "2009-09-02 |  2  |\n" +
-                    "2012-12-31 | 31  |\n" +
-                    "2012-12-31 | 31  |\n" +
-                    "2013-12-31 | 31  |";
+                    "D     | DAY |\n" +
+                            "------------------\n" +
+                            "2009-01-02 |  2  |\n" +
+                            "2009-07-02 |  2  |\n" +
+                            "2009-09-02 |  2  |\n" +
+                            "2012-12-31 | 31  |\n" +
+                            "2012-12-31 | 31  |\n" +
+                            "2013-12-31 | 31  |\n" +
+                            "2021-01-30 | 30  |\n" +
+                            "2021-01-31 | 31  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1296,14 +1464,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select t, EXTRACT(HOUR FROM t) as \"HOUR\" from " + tableWatcherI + " order by t";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "T    |HOUR |\n" +
-                    "----------------\n" +
-                    "00:00:01 |  0  |\n" +
-                    "05:22:33 |  5  |\n" +
-                    "10:30:29 | 10  |\n" +
-                    "18:44:28 | 18  |\n" +
-                    "20:38:40 | 20  |\n" +
-                    "23:59:59 | 23  |";
+                    "T    |HOUR |\n" +
+                            "----------------\n" +
+                            "00:00:01 |  0  |\n" +
+                            "05:22:33 |  5  |\n" +
+                            "05:22:33 |  5  |\n" +
+                            "05:22:33 |  5  |\n" +
+                            "10:30:29 | 10  |\n" +
+                            "18:44:28 | 18  |\n" +
+                            "20:38:40 | 20  |\n" +
+                            "23:59:59 | 23  |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1313,14 +1483,16 @@ public class SpliceDateFunctionsIT {
         String sqlText = "select t, EXTRACT(MINUTE FROM t) as \"MINUTE\" from " + tableWatcherI + " order by t";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
-                "T    |MINUTE |\n" +
-                    "------------------\n" +
-                    "00:00:01 |   0   |\n" +
-                    "05:22:33 |  22   |\n" +
-                    "10:30:29 |  30   |\n" +
-                    "18:44:28 |  44   |\n" +
-                    "20:38:40 |  38   |\n" +
-                    "23:59:59 |  59   |";
+                    "T    |MINUTE |\n" +
+                            "------------------\n" +
+                            "00:00:01 |   0   |\n" +
+                            "05:22:33 |  22   |\n" +
+                            "05:22:33 |  22   |\n" +
+                            "05:22:33 |  22   |\n" +
+                            "10:30:29 |  30   |\n" +
+                            "18:44:28 |  44   |\n" +
+                            "20:38:40 |  38   |\n" +
+                            "23:59:59 |  59   |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1333,6 +1505,8 @@ public class SpliceDateFunctionsIT {
                 "T    |SECOND |\n" +
                     "------------------\n" +
                     "00:00:01 |   1   |\n" +
+                    "05:22:33 |  33   |\n" +
+                    "05:22:33 |  33   |\n" +
                     "05:22:33 |  33   |\n" +
                     "10:30:29 |  29   |\n" +
                     "18:44:28 |  28   |\n" +
