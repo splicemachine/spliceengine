@@ -155,6 +155,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
 
     private final long minTimeout;
     private final long maxTimeout;
+    private final boolean isMemPlatform;
+
     public SpliceLevel2OptimizerImpl(OptimizableList optimizableList,
                                      OptimizablePredicateList predicateList,
                                      DataDictionary dDictionary,
@@ -182,6 +184,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
         this.minTimeout=configuration.getOptimizerPlanMinimumTimeout();
         this.maxTimeout=configuration.getOptimizerPlanMaximumTimeout();
+        isMemPlatform = EngineDriver.isMemPlatform();
         tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 
@@ -238,4 +241,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     protected long getMaxTimeout() {
         return maxTimeout;
     }
+
+    @Override
+    public boolean isMemPlatform() { return isMemPlatform; };
 }

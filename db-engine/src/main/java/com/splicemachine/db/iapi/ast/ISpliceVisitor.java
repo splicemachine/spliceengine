@@ -156,6 +156,7 @@ public interface ISpliceVisitor {
     Visitable visit(OrderedColumnList node) throws StandardException;
     Visitable visit(OrNode node) throws StandardException;
     Visitable visit(ParameterNode node) throws StandardException;
+    Visitable visit(PosStrOperatorNode node) throws StandardException;
     Visitable visit(Predicate node) throws StandardException;
     Visitable visit(PredicateList node) throws StandardException;
     Visitable visit(PrivilegeNode node) throws StandardException;
@@ -192,6 +193,7 @@ public interface ISpliceVisitor {
     Visitable visit(TernaryOperatorNode node) throws StandardException;
     Visitable visit(TestConstraintNode node) throws StandardException;
     Visitable visit(TimestampOperatorNode node) throws StandardException;
+    Visitable visit(TranslateFunctionNode node) throws StandardException;
     Visitable visit(TruncateOperatorNode node) throws StandardException;
     Visitable visit(TypeofOperatorNode node) throws StandardException;
     Visitable visit(UnaryArithmeticOperatorNode node) throws StandardException;

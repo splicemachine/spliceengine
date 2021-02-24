@@ -465,6 +465,87 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testPosStrFunction() throws Exception  {
+        String[] joins = {"nestedloop", "sortmerge", "broadcast"};
+        for (String join:joins) {
+            testPosStrFunctionHelper(false, join);
+            testPosStrFunctionHelper(true, join);
+        }
+
+	    String query = "Values(POSSTR(cast(null as char(3)), ''))";
+	    String expected = "1  |\n" +
+                            "------\n" +
+                            "NULL |";
+        testQuery(query, expected, methodWatcher);
+	    query = "Values(POSSTR(cast(null as char(3)), cast(null as char(3))))";
+        testQuery(query, expected, methodWatcher);
+	    query = "Values(POSSTR('', cast(null as char(3))))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 2 |";
+	    query = "Values(POSSTR('123', 2))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 0 |";
+	    query = "Values(POSSTR('123', 1234))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 3 |";
+	    query = "Values(POSSTR('  \t', '\t'))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 6 |";
+	    query = "Values(POSSTR('bcabCabc', 'abc'))";
+        testQuery(query, expected, methodWatcher);
+    }
+
+    private void testPosStrFunctionHelper(boolean useSpark, String strategy) throws Exception {
+	    String expected = "B        |     C      |  3  |\n" +
+                        "------------------------------------\n" +
+                        "    Bam Bam     |Bam Bam Bam |  0  |\n" +
+                        " Barney Rubble  |   Wilma    |  0  |\n" +
+                        "     Betty      |            |  1  |\n" +
+                        "Fred Flintstone |     F      |  5  |\n" +
+                        "Fred Flintstone |   Flint    |  6  |\n" +
+                        "Fred Flintstone |Flintstone  |  6  |\n" +
+                        "Fred Flintstone |   Fred     |  1  |\n" +
+                        "Fred Flintstone |  stoner    |  0  |\n" +
+                        "     NULL       |   NULL     |NULL |";
+
+	    String query = "SELECT a.b, a.c, POSSTR(a.b, a.c) from " + tableWatcherB + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+                    "\n, " + tableWatcherB + " b where a.a = b.a";
+	    testQuery(query, expected, methodWatcher);
+
+        expected = "A   |  C   | 3 |\n" +
+                    "-------------------\n" +
+                    "       |      | 1 |\n" +
+                    "       |      | 1 |\n" +
+                    "  CVS  | CVS  | 1 |\n" +
+                    " Zicam | Zi   | 1 |\n" +
+                    "  aaa  |      | 1 |\n" +
+                    "  aaa  | aaa  | 1 |\n" +
+                    " ab c  |      | 1 |\n" +
+                    "  abc  |      | 1 |\n" +
+                    "  abc  | ab   | 1 |\n" +
+                    "  abc  | abc  | 1 |\n" +
+                    "  abc  | abc  | 1 |\n" +
+                    " abc g |abc g | 1 |\n" +
+                    "abcabc |      | 1 |";
+
+	    query = "SELECT a.a, a.c, POSSTR(a.a, a.c) from " + tableWatcherK + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+                    "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b";
+	    testQuery(query, expected, methodWatcher);
+    }
+
+    @Test
     public void testConcatFunction() throws Exception {
 	    String sCell1 = null;
 	    String sCell2 = null;
@@ -1014,6 +1095,73 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("dash || substr(e, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
             checkStringExpression("dash || substr(f, 2) || dash from testSubstr", "2d6263202020202020202020202020202020202020202020202020202020202020202020202020202d", conn);
             checkStringExpression("dash || substr(f, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+        }
+    }
+
+    @Test
+    public void testTranslate() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE')", "aBcD FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', '', 'ACE')", " B D FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+            assertFailed(conn, "select translate('ABCDEFG', 'ac', 'ACE', 'UU')", "22022");
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', x'00')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
+
+            checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
+
+        }
+
+        methodWatcher.execute("drop table testTranslate if exists");
+        methodWatcher.execute("create table testTranslate(a char(7), b char(3), c char(3))");
+        methodWatcher.execute("insert into testTranslate values ('ABCDEFG', 'ace', 'ACE')");
+        TestConnection[] conns = {
+                methodWatcher.connectionBuilder().useOLAP(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
+        };
+        for (TestConnection conn: conns) {
+            checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
+            checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
+            try (PreparedStatement ps = conn.prepareStatement("select translate(?, b, c) from testTranslate")) {
+                ps.setString(1, "ABCDEFG");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, ?, c) from testTranslate")) {
+                ps.setString(1, "ace");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, b, ?) from testTranslate")) {
+                ps.setString(1, "ACE");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
         }
     }
 }

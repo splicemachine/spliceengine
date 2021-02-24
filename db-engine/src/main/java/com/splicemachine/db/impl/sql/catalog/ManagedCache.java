@@ -48,8 +48,10 @@ public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCach
     @Override public long getRequestCount(){ return managedCache.stats().requestCount(); }
     @Override public void invalidateAll(){ managedCache.invalidateAll(); }
     @Override public void put(K var1, V var2){ managedCache.put(var1, var2); }
+    @Override public void putAll(ManagedCache<? extends K, ? extends V> var1) { managedCache.putAll(var1.getManagedCache().asMap()); }
     @Override public V getIfPresent(K k) { return managedCache.getIfPresent(k);}
     @Override public void invalidate(K k) { managedCache.invalidate(k);}
+    @Override public Cache<K, V> getManagedCache() { return managedCache; }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {

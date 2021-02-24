@@ -51,13 +51,17 @@ import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -395,7 +399,7 @@ public class GenericStatement implements Statement{
                 preparedStmt.setActivationClass(null);
             }
         }
-
+        CompilerContext cc = null;
         try{
             /*
             ** For stored prepared statements, we want all
@@ -417,13 +421,14 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            CompilerContext cc = null;
             if (boundAndOptimizedStatement != null) {
                 cc = boundAndOptimizedStatement.getCompilerContext();
             } else {
                 cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement,cacheMe, false);
+            if (internalSQL)
+                cc.setCompilingTrigger(true);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -442,6 +447,8 @@ public class GenericStatement implements Statement{
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
             else
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
+            if (cc != null)
+                cc.setCompilingTrigger(false);
         }
 
         lcc.commitNestedTransaction();
@@ -854,7 +861,6 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
-
             return qt;
         } catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
@@ -951,7 +957,9 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary, CompilerContext cc, boolean cacheMe) throws StandardException{
+                                 DataDictionary dataDictionary,
+                                 CompilerContext cc,
+                                 boolean cacheMe) throws StandardException{
         // start a nested transaction -- all locks acquired by bind
         // and optimize will be released when we end the nested
         // transaction.
@@ -973,7 +981,6 @@ public class GenericStatement implements Statement{
             maintainCacheEntry(lcc, qt, foundInCache);
 
             qt.optimizeStatement();
-
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
 
@@ -1020,16 +1027,16 @@ public class GenericStatement implements Statement{
         //view gets replaced with the actual view definition. Right after
         // binding, we still have the information on the view and that is why
         // we do the check here.
-        if(preparedStmt.referencesSessionSchema(statementNode) || statementNode.referencesTemporaryTable()){
-            if(foundInCache)
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+        if (preparedStmt.referencesSessionSchema(statementNode) || statementNode.referencesTemporaryTable()) {
+            if (foundInCache)
+                lcc.removeStatement(this);
         }
         /*
-         * If we have an explain statement, then we should remove it from the
+         * If we have EXPLAIN statement, then we should remove it from the
          * cache to prevent future readers from fetching it
          */
-        if(foundInCache && statementNode instanceof ExplainNode){
-            ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+        if (foundInCache && statementNode instanceof ExplainNode) {
+            lcc.removeStatement(this);
         }
     }
 
