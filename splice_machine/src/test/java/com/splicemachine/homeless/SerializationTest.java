@@ -320,10 +320,10 @@ public class SerializationTest {
         testSerDe(gcd1, 1000);
 
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
-        Assert.assertEquals(1354337419, Arrays.hashCode(kryo));
-        Assert.assertEquals(479938529, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(1639413971, Arrays.hashCode(kryo));
+        Assert.assertEquals(788098010, Arrays.hashCode(stream.toByteArray()));
         Assert.assertEquals( -7718734896813275598l, gcd1.serialVersionUID);
-        Assert.assertEquals(-115757262, writeObjHash(gcd1));
+        Assert.assertEquals(1379428931, writeObjHash(gcd1));
 
         GenericColumnDescriptor gcd2 = new GenericColumnDescriptor();
         deserialize(stream, gcd2);
@@ -343,10 +343,10 @@ public class SerializationTest {
         testSerDe(grd, 1000);
 
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
-        Assert.assertEquals(-831967788, Arrays.hashCode(kryo));
-        Assert.assertEquals(-975576838, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(1870011431, Arrays.hashCode(kryo));
+        Assert.assertEquals(862712877, Arrays.hashCode(stream.toByteArray()));
         Assert.assertEquals(1, grd.serialVersionUID);
-        Assert.assertEquals(-489472844, writeObjHash(grd));
+        Assert.assertEquals(-748419743, writeObjHash(grd));
 
         GenericResultDescription grd2 = new GenericResultDescription();
         deserialize(stream, grd2);
