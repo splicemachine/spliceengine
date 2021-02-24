@@ -194,7 +194,7 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
     public void testResetJumpModeForNextRound() throws Exception {
         String sqlText = "explain SELECT GA.LOGDAT,GA.USERID,ST.SKB \n" +
                 "FROM\n" +
-                "     TABLE_1 GA\n" +
+                "     TABLE_1 GA --splice-properties useSpark=false\n" +
                 "   , TABLE_2 MD\n" +
                 "   , TABLE_3 MP\n" +
                 "   , TABLE_4 SL\n" +
