@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
 import com.splicemachine.db.impl.sql.catalog.SYSMONGETCONNECTIONViewInfoProvider;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.vti.CompileTimeSchema;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.MaterializedControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -33,7 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MonGetConnectionVTI implements DatasetProvider {
+public class MonGetConnectionVTI implements DatasetProvider, CompileTimeSchema {
     private OperationContext<SpliceOperation> operationContext;
 
     private final Long applicationHandle; // null -> all connections.
@@ -72,10 +73,6 @@ public class MonGetConnectionVTI implements DatasetProvider {
 
     public static ResultSetMetaData getMetaData() throws SQLException {
         return metadata;
-    }
-
-    public static boolean schemaKnownAtCompileTime() {
-        return true;
     }
 
     @Override
