@@ -251,8 +251,7 @@ public class SpecialFunctionNode extends ValueNode
      *
      * @return    The variant type for the underlying expression.
      */
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         return Qualifier.QUERY_INVARIANT;
     }
 
@@ -314,8 +313,7 @@ public class SpecialFunctionNode extends ValueNode
         }
     }
         
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             SpecialFunctionNode other = (SpecialFunctionNode)o;

@@ -76,27 +76,6 @@ public abstract class GenericConstantActionFactory {
     //
     ///////////////////////////////////////////////////////////////////////
 
-    /**
-     * Get ConstantAction for SET CONSTRAINTS statement.
-     *
-     *  @param cdl            the constraints to set, if null,
-     *                        we'll go ahead and set them all
-     *  @param enable        if true, turn them on, if false
-     *                        disable them
-     *  @param unconditionallyEnforce    Replication sets this to true at
-     *                                    the end of REFRESH. This forces us
-     *                                    to run the included foreign key constraints even
-     *                                    if they're already marked ENABLED.
-     *    @param ddlList        Replication list of actions to propagate,
-     *                        null unless a replication source
-     */
-    public abstract ConstantAction getSetConstraintsConstantAction(
-        ConstraintDescriptorList    cdl,
-        boolean                        enable,
-        boolean                        unconditionallyEnforce,
-        Object[]                    ddlList
-    );
-
 
     /**
      *    Make the AlterAction for an ALTER TABLE statement.
@@ -107,7 +86,7 @@ public abstract class GenericConstantActionFactory {
      *    @param tableConglomerateId    heap conglomerate id of table
      *  @param tableType    Type of table (e.g., BASE).
      *  @param columnInfo    Information on all the columns in the table.
-     *  @param constraintActions    ConstraintConstantAction[] for constraints
+     *  @param constraintActions    ConstantAction[] for constraints
      * @param lockGranularity    The lock granularity.
      *    @param compressTable    Whether or not this is a compress table
      *    @param behavior            drop behavior of dropping column
@@ -907,9 +886,4 @@ public abstract class GenericConstantActionFactory {
     public abstract ConstantAction getRevokeRoleConstantAction(List roleNames, List grantees);
 
     public abstract ConstantAction[] createConstraintConstantActionArray(int size);
-    
-    public boolean primaryKeyConstantActionCheck(ConstantAction constantAction) {
-        return (constantAction instanceof ConstraintConstantAction) && ((ConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;
-    }
-    
 }

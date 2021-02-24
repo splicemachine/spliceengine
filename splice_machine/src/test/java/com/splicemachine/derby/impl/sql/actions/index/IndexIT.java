@@ -918,7 +918,7 @@ public class IndexIT extends SpliceUnitTest{
     // ===============================================================================
 
     @Test
-    public void testGetKeyColumnPositionThrowForIndexOnExpressions() throws Exception {
+    public void testGetKeyColumnPositionReturnsMinusOneForIndexOnExpressions() throws Exception {
         String tableName = "TEST_IDX_GKCP";
         methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 10, 1.1), ('def', 20, 2.2)", tableName));
@@ -945,12 +945,12 @@ public class IndexIT extends SpliceUnitTest{
                 "  AND T.TABLENAME='%s' \n" +
                 "  AND CONGLOMS.CONGLOMERATENAME='%s'", tableName, tableName + "_IDX");
 
-        try {
-            methodWatcher.executeQuery(query);
-            Assert.fail("expect IllegalArgumentException thrown in getKeyColumnPosition()");
-        } catch (SQLException e) {
-            Assert.assertEquals("SE001", e.getSQLState());
-            Assert.assertTrue(e.getCause().getCause().getMessage().contains("Cannot retrieve ordinal position"));
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals("ORD |COLUMNNUMBER |COLUMNNAME |\n" +
+                    "--------------------------------\n" +
+                    " -1  |      1      |     C     |\n" +
+                    " -1  |      2      |     I     |\n" +
+                    " -1  |      3      |     D     |", TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 

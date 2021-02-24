@@ -14,6 +14,7 @@ public class UpgradeScriptForTriggerWhenClause extends UpgradeScriptBase {
     }
 
     @Override
+    @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="Intentional")
     protected void upgradeSystemTables() throws StandardException {
         sdd.upgradeAddColumnToSystemTable(tc, DataDictionary.SYSTRIGGERS_CATALOG_NUM, new int[]{18}, null);
     }

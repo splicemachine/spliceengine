@@ -89,15 +89,15 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     private long                CID;
     private boolean             conglomCreated;
     private boolean             pipelineBufferCreated;
-    private ConglomerateController	cc;
-    private Properties				properties;
+    private ConglomerateController    cc;
+    private Properties                properties;
 
-    private	ResultDescription		resultDescription;
+    private    ResultDescription        resultDescription;
     /** Activation object with local state information. */
-    public Activation						activation;
+    public Activation                        activation;
 
-    int 			overflowToConglomThreshold;
-    int 			switchToSparkThreshold;
+    int             overflowToConglomThreshold;
+    int             switchToSparkThreshold;
     boolean                     isSpark;  // Is the query executing on spark?
     private ExecRow execRowDefinition;
     private String  tableVersion;
@@ -119,12 +119,12 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
      *
      * @param activation the activation
      * @param properties the properties of the original table.  Used
-     *		to help the store use optimal page size, etc.
+     *        to help the store use optimal page size, etc.
      * @param resultDescription the result description.  Relevant for the getResultDescription
-     * 		call on the result set returned by getResultSet.  May be null
+     *         call on the result set returned by getResultSet.  May be null
      * @param overflowToConglomThreshold on an attempt to insert
-     * 		this number of rows, the rows will be put
-     *		into a temporary conglomerate.
+     *         this number of rows, the rows will be put
+     *        into a temporary conglomerate.
      */
     public TriggerRowHolderImpl
     (

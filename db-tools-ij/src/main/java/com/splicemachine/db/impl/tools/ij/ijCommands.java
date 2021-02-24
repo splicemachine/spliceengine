@@ -152,7 +152,7 @@ public class ijCommands {
                     new ColumnParameters( rs, "ORDINAL_POSITION", 8).maxWidth(16),
                     new ColumnParameters( rs, "NON_UNIQUE", 10).maxWidth(10),
                     new ColumnParameters( rs, "TYPE", 5).maxWidth(15),
-                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth( 11),
+                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth(11),
                     new ColumnParameters( rs, "CONGLOM_NO", 10).maxWidth(10)
             };
             if(schema!=null) {
@@ -406,21 +406,15 @@ public class ijCommands {
         try {
             haveConnection();
 
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery
-                        ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
-                                "ORDER BY ROLEID ASC");
+            rs = theConnection.createStatement().executeQuery
+                    ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
+                            "ORDER BY ROLEID ASC");
 
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "ROLEID", 30)
+            };
 
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
+            return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
             try {
                 if(rs!=null)
@@ -430,44 +424,6 @@ public class ijCommands {
             throw e;
         }
     }
-
-    /**
-     * Return a resultset of enabled roles, sorted on ROLEID. No information
-     * schema is available, we select from VTI SYSCS_DIAG.CONTAINED_ROLES
-     * instead.
-     */
-    public ijResult showEnabledRoles() throws SQLException {
-        ResultSet rs = null;
-        try {
-            haveConnection();
-
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery
-                        ("SELECT * FROM" +
-                                "	 TABLE(" +
-                                "	   SYSCS_DIAG.CONTAINED_ROLES(CURRENT_ROLE)) T " +
-                                "ORDER BY ROLEID");
-
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
-
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
-        } catch (SQLException e) {
-            try {
-                if(rs!=null)
-                    rs.close();
-            } catch (SQLException se) {
-            }
-            throw e;
-        }
-    }
-
 
     /**
      * Return a resultset of settable roles, sorted on ROLEID.  This has the
@@ -492,19 +448,13 @@ public class ijCommands {
         try {
             haveConnection();
 
-            if (currentConnEnv.getSession().getIsDNC() ||
-                    currentConnEnv.getSession().getIsEmbeddedDerby()) {
-                rs = theConnection.createStatement().executeQuery(query);
+            rs = theConnection.createStatement().executeQuery(query);
 
-                ColumnParameters[] columnParameters = new ColumnParameters[] {
-                        new ColumnParameters( rs, "ROLEID", 30)
-                };
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "ROLEID", 30)
+            };
 
-                return new ijResultSetResult(rs, columnParameters);
-            } else {
-                throw ijException.notAvailableForDriver(
-                        theConnection.getMetaData().getDriverName());
-            }
+            return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
             try {
                 if(rs!=null)
@@ -565,8 +515,8 @@ public class ijCommands {
      * Verify that a table exists within a schema. Throws an exception
      * if table does not exist.
      *
-     * @param schema Schema for the table
-     * @param table  Name of table to check for existence of
+     * @param schema Schema name pattern for the table (properly escaped)
+     * @param table  Table name pattern to check for existence of (properly escaped)
      */
     public void verifyTableExists(String schema, String table)
             throws SQLException {
@@ -601,8 +551,9 @@ public class ijCommands {
         ResultSet rs = null;
         try {
             haveConnection();
-            verifyTableExists(schema,table);
-
+            String escapedSchema = Utils.escape(schema);
+            String escapedTable = Utils.escape(table);
+            verifyTableExists(escapedSchema, escapedTable);
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
@@ -611,8 +562,10 @@ public class ijCommands {
                     Utils.defaultEscapeCharacter, Utils.defaultEscapeCharacter);
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
-            s.setString(1, Utils.escape(schema));
-            s.setString(2, Utils.escape(table));
+
+            s.setString(1, escapedSchema);
+
+            s.setString(2, escapedTable);
             rs = s.executeQuery();
 
             if (rs.next()){
@@ -624,7 +577,7 @@ public class ijCommands {
             }
 
             if(hasServerLikeFix())
-                rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+                rs = dbmd.getColumns(null, escapedSchema, escapedTable, null);
             else
                 rs = dbmd.getColumns(null,schema,table,null);
 

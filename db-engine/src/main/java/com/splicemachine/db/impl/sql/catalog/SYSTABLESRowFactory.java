@@ -714,7 +714,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             " where  cols.referenceid = congloms.tableid and\n" +
             "        cons.tableid = cols.referenceid and cons.type = 'P' and\n" +
             "        cons.constraintid = keys.constraintid and\n" +
-            "        (case when congloms.descriptor is not null then congloms.descriptor.getKeyColumnPosition(cols.columnnumber) else 0 end) <> 0 and\n" +
+            "        case when congloms.descriptor is null then false else (congloms.descriptor.getKeyColumnPosition(cols.columnnumber) > 0) end and\n" +
             "        keys.conglomerateid = congloms.conglomerateid\n" +
             " group by 1) PKCOLS on T.tableid = PKCOLS.tableid\n" +
             "left join -- compute unique constraint\n" +

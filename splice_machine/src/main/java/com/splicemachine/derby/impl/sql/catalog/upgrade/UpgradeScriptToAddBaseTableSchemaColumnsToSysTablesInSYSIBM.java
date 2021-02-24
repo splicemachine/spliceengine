@@ -32,6 +32,5 @@ public class UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM extends
         sdd.createOrUpdateSystemView(tc, "SYSIBM", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "Catalog upgraded: added column (base_name, base_schema) to systables in SYSIBM schema");
-
     }
 }

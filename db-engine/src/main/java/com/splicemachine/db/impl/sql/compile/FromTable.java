@@ -49,6 +49,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 /**
  * A FromTable represents a table in the FROM clause of a DML statement.
  * It can be either a base table, a subquery or a project restrict.
@@ -201,6 +203,14 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return getCostEstimate();
     }
 
+    // To be used only in the midst of join planning,
+    // to indicate if this optimizable is being costed
+    // as a single-table scan.
+    private boolean isSingleTableScan(Optimizer optimizer) {
+        return optimizer.getJoinPosition() == 0   &&
+               optimizer.getJoinType() < INNERJOIN;
+    }
+
     @Override
     public boolean nextAccessPath(Optimizer optimizer,
                                   OptimizablePredicateList predList,
@@ -237,15 +247,29 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             }
         }else if(joinStrategyNumber<numStrat){
             ap.setHintedJoinStrategy(false);
-            /* Step through the join strategies. */
-            ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
 
-            joinStrategyNumber++;
+            // Do not waste time by planning single-table queries, or the
+            // first table of a join alone, with anything other than nested
+            // loop join.
+            // When outermostCostEstimate.joinType is not set,
+            // A join always consists of:
+            //     innerTable = joinPosition
+            //     outerTable = joinPosition - 1
+            // When joinPosition is zero, and outermostCostEstimate has no set
+            // join type, we are not planning a join,
+            // but a single-table scan, so only consider nested loop
+            // join in that case (which is what ends up getting
+            // picked for single-table scan anyways).
+            if (joinStrategyNumber == 0 || !isSingleTableScan(optimizer)) {
 
-            found=true;
+                /* Step through the join strategies. */
+                ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
+                joinStrategyNumber++;
+                found = true;
 
-            optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy(),
-                                     correlationName);
+                optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY, tableNumber, 0, 0.0, ap.getJoinStrategy(),
+                    correlationName);
+            }
         }
         ap.setMissingHashKeyOK(false);
 

@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.impl.tools.ij.Main;
 import com.splicemachine.db.impl.tools.ij.ijCommands;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
@@ -30,7 +31,7 @@ public class SqlshellIT {
         me = createMain();
 
         execute("elapsedtime off;\n"); // ignore output, can be 0ms or 1ms
-        execute("connect 'jdbc:splice://localhost:1527/splicedb;user=splice;password=admin';\n", "");
+        execute("connect '" + SpliceNetConnection.getDefaultLocalURL() + "';\n", "");
         try {
             execute("DROP SCHEMA SQLSHELLIT CASCADE;\n");
         } catch(Exception e) {
@@ -50,11 +51,17 @@ public class SqlshellIT {
         execute("CREATE SYNONYM SV_1 FOR V_1;\n", zeroRowsUpdated);
         execute("CREATE SYNONYM STX2 FOR TX2;\n", zeroRowsUpdated);
         execute("CREATE SYNONYM ST_2 FOR T_2;\n", zeroRowsUpdated);
+
+        execute("CREATE ROLE FRED;\n", zeroRowsUpdated);
+
+        execute("CREATE INDEX idx1 ON TX2(ABC);\n", zeroRowsUpdated);
+        execute("CREATE INDEX id_1 ON T_2(COL_1);\n", zeroRowsUpdated);
     }
 
     @AfterClass
     public static void shutdown() throws Exception {
-        execute("DROP SCHEMA SQLSHELLIT CASCADE;\n", zeroRowsUpdated);
+        execute("DROP SCHEMA SQLSHELLIT CASCADE;\n");
+        execute("DROP ROLE FRED;\n");
         SpliceUnitTest.deleteTempDirectory(tempDir);
     }
 
@@ -74,28 +81,27 @@ public class SqlshellIT {
         Assert.assertEquals("splice> " + in + expectedOut + "splice> ", execute(in));
     }
 
-    public static String getJavaRegexpFilterFromAsterixFilter(String asterixFilter)
+    public static String escapeRegexp(String asterixFilter)
     {
         String filter = asterixFilter;
-        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "-", "=", "$", "!", "|", "]", "}", ")", "+", ".", ">"};
+        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
         for(String s : toEscape) {
             filter = filter.replaceAll("\\" + s, "\\\\" + s);
         }
-
-        filter = filter.replaceAll("\\*", ".*");
-        return filter.replaceAll("\\?", ".");
+        filter = filter.replace("§", ".*");
+        return filter;
     }
 
     // execute, expect output to match regular expression
     static void executeR(String in, String expectedOutRegex) {
-        expectedOutRegex = "splice\\> " + getJavaRegexpFilterFromAsterixFilter(in)
+        expectedOutRegex = "splice\\> " + escapeRegexp(in)
                 + expectedOutRegex + "splice\\> \n";
         String o = execute(in);
         String[] o2 = o.split("\n");
         String[] ex2 = expectedOutRegex.split("\n");
         Assert.assertEquals(o + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
         for(int i =0; i<o2.length; i++) {
-            Assert.assertTrue(o2[i] + "doesn't match " + ex2[i], o2[i].matches(ex2[i]));
+            Assert.assertTrue(o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
         }
     }
 
@@ -156,35 +162,35 @@ public class SqlshellIT {
                         "\n" +
                         "4 rows selected\n");
 
-        executeR( "show primarykeys from T_2;\n",
-                "TABLE_NAME                    \\|COLUMN_NAME                   \\|KEY_SEQ   \\|PK_NAME                       \n" +
+        executeR( "show primarykeys from T_2;\n", escapeRegexp(
+                        "TABLE_NAME                    |COLUMN_NAME                   |KEY_SEQ   |PK_NAME                       \n" +
                         "-------------------------------------------------------------------------------------------------------\n" +
-                        "T_2                           \\|COL_1                         \\|1         \\|.*\n" +
+                        "T_2                           |COL_1                         |1         |§\n" +
                         "\n" +
-                        "1 row selected\n");
+                        "1 row selected\n") );
     }
 
     @Test
     public void testShowTables() {
-        executeR("show tables in SQLSHELLIT;\n",
-                "TABLE_SCHEM[ ]*\\|TABLE_NAME[ ]*\\|CONGLOM_ID[ ]*\\|REMARKS[ ]*\n" +
-                        "[-]*\n" +
-                        "SQLSHELLIT [ ]*\\|ABC [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                        "SQLSHELLIT [ ]*\\|TX2 [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                        "SQLSHELLIT [ ]*\\|T_2 [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                        "\n" +
-                        "3 rows selected\n");
+        executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
+            "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
+            "-------------------------------------------------------------------------------------------------------\n" +
+            "SQLSHELLIT          |ABC                                               |§|                    \n" +
+            "SQLSHELLIT          |TX2                                               |§|                    \n" +
+            "SQLSHELLIT          |T_2                                               |§|                    \n" +
+            "\n" +
+            "3 rows selected\n") );
     }
 
     @Test
     public void testShowViews() {
-        executeR("show views in SQLSHELLIT;\n",
-                "TABLE_SCHEM[ ]*\\|TABLE_NAME[ ]*\\|CONGLOM_ID[ ]*\\|REMARKS[ ]*\n" +
-                        "[-]*\n" +
-                        "SQLSHELLIT [ ]*\\|VX1 [ ]*\\|NULL [ ]*\\|[ ]+\n" +
-                        "SQLSHELLIT [ ]*\\|V_1 [ ]*\\|NULL [ ]*\\|[ ]+\n" +
-                        "\n" +
-                        "2 rows selected\n");
+        execute("show views in SQLSHELLIT;\n",
+            "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
+            "-------------------------------------------------------------------------------------------------------\n" +
+            "SQLSHELLIT          |VX1                                               |NULL      |                    \n" +
+            "SQLSHELLIT          |V_1                                               |NULL      |                    \n" +
+            "\n" +
+            "2 rows selected\n");
     }
 
 
@@ -202,14 +208,18 @@ public class SqlshellIT {
 
     @Test
     public void testDescribeProcedure() {
-        execute("describe procedure SQLJ.INSTALL_JAR;\n",
-                        "COLUMN_NAME                     |TYPE_NAME                       |ORDINAL_POSITION\n" +
-                        "----------------------------------------------------------------------------------\n" +
-                        "URL                             |VARCHAR                         |1               \n" +
-                        "JAR                             |VARCHAR                         |2               \n" +
-                        "DEPLOY                          |INTEGER                         |3               \n" +
-                        "\n" +
-                        "3 rows selected\n");
+        String res =
+                "COLUMN_NAME                     |TYPE_NAME                       |ORDINAL_POSITION\n" +
+                "----------------------------------------------------------------------------------\n" +
+                "URL                             |VARCHAR                         |1               \n" +
+                "JAR                             |VARCHAR                         |2               \n" +
+                "DEPLOY                          |INTEGER                         |3               \n" +
+                "\n" +
+                "3 rows selected\n";
+
+        execute("show procedurecols in SQLJ FROM INSTALL_JAR;\n", res);
+        execute("show procedurecols FROM SQLJ.INSTALL_JAR;\n", res);
+        execute("describe procedure SQLJ.INSTALL_JAR;\n", res);
     }
 
     @Test
@@ -243,10 +253,10 @@ public class SqlshellIT {
 
             execute("values 1#\n",
                     "1          \n" +
-                            "-----------\n" +
-                            "1          \n" +
-                            "\n" +
-                            "1 row selected\n");
+                    "-----------\n" +
+                    "1          \n" +
+                    "\n" +
+                    "1 row selected\n");
         }
         finally {
             // reset option for other tests
@@ -258,12 +268,12 @@ public class SqlshellIT {
     public void testWithHeader() {
         try {
             execute("WITH HEADER;\n", "");
-            String v = "1          \n" +
-                    "\n" +
-                    "1 row selected\n";
+            String v =  "1          \n" +
+                        "\n" +
+                        "1 row selected\n";
             execute("values 1;\n",
                     "1          \n" +
-                            "-----------\n" + v);
+                    "-----------\n" + v);
 
             execute("WITHOUT HEADER;\n", "");
             execute("values 1;\n", v);
@@ -331,42 +341,98 @@ public class SqlshellIT {
         try {
             execute("CREATE TABLE TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME (COLUMN_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME INTEGER );\n", zeroRowsUpdated);
 
-            executeR("show tables in SQLSHELLIT;\n",
-                    "TABLE_SCHEM[ ]*\\|TABLE_NAME[ ]*\\|CONGLOM_ID[ ]*\\|REMARKS[ ]*\n" +
-                            "[-]*\n" +
-                            "SQLSHELLIT [ ]*\\|ABC [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                            "SQLSHELLIT [ ]*\\|TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_&\\|\\d* [ ]*\\|[ ]+\n" +
-                            "SQLSHELLIT [ ]*\\|TX2 [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                            "SQLSHELLIT [ ]*\\|T_2 [ ]*\\|\\d* [ ]*\\|[ ]+\n" +
-                            "\n" +
-                            "4 rows selected\n");
+            executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
+                    "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
+                    "-------------------------------------------------------------------------------------------------------\n" +
+                    "SQLSHELLIT          |ABC                                               |§|                    \n" +
+                    "SQLSHELLIT          |TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_&|§|                    \n" +
+                    "SQLSHELLIT          |TX2                                               |§|                    \n" +
+                    "SQLSHELLIT          |T_2                                               |§|                    \n" +
+                    "\n" +
+                    "4 rows selected\n") );
 
             execute("maximumdisplaywidth 0;\n", "");
-            executeR( "show tables in SQLSHELLIT;\n",
-                    "TABLE_SCHEM[ ]*\\|TABLE_NAME[ ]*\\|CONGLOM_ID[ ]*\\|REMARKS[ ]*\n" +
-                            "[-]*\n" +
-                            "SQLSHELLIT\\|ABC\\|\\d*\\|\n" +
-                            "SQLSHELLIT\\|TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME\\|\\d*\\|\n" +
-                            "SQLSHELLIT\\|TX2\\|\\d*\\|\n" +
-                            "SQLSHELLIT\\|T_2\\|\\d*\\|\n" +
-                            "\n" +
-                            "4 rows selected\n");
+            executeR( "show tables in SQLSHELLIT;\n", escapeRegexp(
+                    "TABLE_SCHEM|TABLE_NAME|CONGLOM_ID|REMARKS\n" +
+                    "-----------------------------------------\n" +
+                    "SQLSHELLIT|ABC|§|\n" +
+                    "SQLSHELLIT|TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME|§|\n" +
+                    "SQLSHELLIT|TX2|§|\n" +
+                    "SQLSHELLIT|T_2|§|\n" +
+                    "\n" +
+                    "4 rows selected\n") );
 
             execute("maximumdisplaywidth 8;\n", "");
-            executeR( "show tables in SQLSHELLIT;\n",
-                    "TABLE_S&\\|TABLE_N&\\|CONGLOM&\\|REMARKS \n" +
-                            "-----------------------------------\n" +
-                            "SQLSHEL&\\|ABC     \\|\\d*[ ]*\\|        \n" +
-                            "SQLSHEL&\\|TABLE_W&\\|\\d*[ ]*\\|        \n" +
-                            "SQLSHEL&\\|TX2     \\|\\d*[ ]*\\|        \n" +
-                            "SQLSHEL&\\|T_2     \\|\\d*[ ]*\\|        \n" +
-                            "\n" +
-                            "4 rows selected\n");
+            executeR( "show tables in SQLSHELLIT;\n", escapeRegexp(
+                    "TABLE_S&|TABLE_N&|CONGLOM&|REMARKS \n" +
+                    "-----------------------------------\n" +
+                    "SQLSHEL&|ABC     |§|        \n" +
+                    "SQLSHEL&|TABLE_W&|§|        \n" +
+                    "SQLSHEL&|TX2     |§|        \n" +
+                    "SQLSHEL&|T_2     |§|        \n" +
+                    "\n" +
+                    "4 rows selected\n") );
         }
         finally {
             execute("maximumdisplaywidth 256;\n", "");
             execute("DROP TABLE TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME IF EXISTS");
         }
+    }
+
+    @Test
+    public void testShowIndices()
+    {
+        try {
+            executeR("show indexes from SQLSHELLIT.TX2;\n", escapeRegexp(
+                "TABLE_NAME                                        |INDEX_NAME                                        |COLUMN_NAME         |ORDINAL&|NON_UNIQUE|TYPE |ASC&|CONGLOM_NO\n" +
+                "--------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "TX2                                               |IDX1                                              |ABC                 |1       |true      |BTREE|A   |§\n" +
+                "\n" +
+                "1 row selected\n" ) );
+
+            execute("maximumdisplaywidth 10;\n");
+
+            executeR("show indexes from SQLSHELLIT.T_2;\n",
+                    escapeRegexp(   "TABLE_NAME|INDEX_NAME|COLUMN_NA&|ORDINAL_P&|NON_UNIQUE|TYPE      |ASC_OR_DE&|CONGLOM_NO\n" +
+                                    "---------------------------------------------------------------------------------------\n" +
+                                    "T_2       |ID_1      |COL_1     |1         |true      |BTREE     |A         |§\n" +
+                                    "\n" +
+                                    "1 row selected\n") );
+
+            execute("maximumdisplaywidth 0;\n", "");
+            executeR("show indexes in SQLSHELLIT;\n", escapeRegexp(
+                    "TABLE_NAME|INDEX_NAME|COLUMN_NAME|ORDINAL_POSITION|NON_UNIQUE|TYPE|ASC_OR_DESC|CONGLOM_NO\n" +
+                    "-----------------------------------------------------------------------------------------\n" +
+                    "TX2|IDX1|ABC|1|true|BTREE|A|§\n" +
+                    "T_2|ID_1|COL_1|1|true|BTREE|A|§\n" +
+                    "\n" +
+                    "2 rows selected\n" ) );
+        }
+        finally {
+            execute("maximumdisplaywidth 256;\n", "");
+        }
+    }
+
+    @Test // DB-11155
+    public void testShowRoles() {
+        String result = execute("show roles;\n");
+        // some other tests might have added users, so the output might differ a bit
+        Assert.assertTrue( result.contains("ROLEID") );
+        Assert.assertTrue( result.contains("------") );
+        Assert.assertTrue( result.contains("FRED") );
+        // show settable_roles should print the same as show roles
+        String result2 = execute("show settable_roles;\n");
+        // ignore first line (differs because different SQL command is printed there)
+        String[] res = result.split("\n");
+        String[] res2 = result2.split("\n");
+        res = Arrays.copyOfRange( res, 1, res.length);
+        res2 = Arrays.copyOfRange( res2, 1, res2.length);
+        Assert.assertArrayEquals( res, res2 );
+    }
+
+    @Test
+    public void testShowVersion() {
+        Assert.assertTrue(execute("show version local;\n").contains("http://www.splicemachine.com"));
     }
 
     @Test

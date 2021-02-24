@@ -831,6 +831,12 @@ Guide.
             <text>Unknown character encoding '{0}'.</text>
             <arg>typeName</arg>
           </msg>
+
+            <msg>
+                <name>22022</name>
+                <text>Invalid pad parameter to TRANSLATE: '{0}' is not of length 1.</text>
+                <arg>pad</arg>
+            </msg>
             <msg>
                 <name>22025</name>
                 <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.</text>
@@ -2467,6 +2473,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y06</name>
+                <text>Session parameter CurrentFunctionPath is set with following schemas '{0}', the schema '{1}' does not exist</text>
+                <arg>schemas</arg>
+                <arg>schemaName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y07</name>
                 <text>Schema '{0}' does not exist</text>
                 <arg>schemaNamet</arg>
@@ -2688,7 +2701,11 @@ Guide.
                 <text>Properties list for table '{0}' may contain values for index or for constraint but not both.</text>
                 <arg>tableName</arg>
             </msg>
-
+            <msg>
+                <name>42Y51</name>
+                <text>The hint minPlanTimeout should be non-negative long and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42Y52</name>
                 <text>The hint skipStats needs (true/false) and does not support '{0}'.</text>
@@ -3087,6 +3104,12 @@ Guide.
             <msg>
                 <name>42Z79</name>
                 <text>Unable to determine the parameter type for XMLPARSE; try using a CAST.</text>
+            </msg>
+
+            <msg>
+                <name>42Z89</name>
+                <text>VTI '{0}' does not does not implement compile-time schema</text>
+                <arg>vti</arg>
             </msg>
 
             <msg>

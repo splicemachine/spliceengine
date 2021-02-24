@@ -168,7 +168,7 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 			time = spsDescriptor.getCompileTime();
 			typeStr = spsDescriptor.getTypeAsString();
 			initiallyCompilable = spsDescriptor.initiallyCompilable();
-			preparedStatement = spsDescriptor.getPreparedStatement(compileMe);
+			preparedStatement = spsDescriptor.getPreparedStatement(compileMe, null);
 			compUuidStr = (spsDescriptor.getCompSchemaId() != null)?
 					spsDescriptor.getCompSchemaId().toString():null;
 			usingText = spsDescriptor.getUsingText();

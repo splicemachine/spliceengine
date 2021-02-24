@@ -328,7 +328,36 @@ Check the location of your hdp version if not 3.1.0.0-78, update the locations t
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-7. Restart all the services affected to start Splice Machine!
+### Restart the cluster
+
+1. Restart ZooKeeper
+
+   Select `Start` from the `Actions` menu in the upper right corner of
+   the ZooKeeper service to restart ZooKeeper.
+
+2. Restart HDFS
+
+   Select `Start` from the `Actions` menu in the upper right corner of
+   the HDFS service to restart HDFS.
+
+   Use your terminal window to create these directories (if they are
+   not already available in HDFS):
+
+   ````
+   sudo -iu hdfs hadoop fs -mkdir -p hdfs:///user/hbase hdfs:///user/splice/history
+   sudo -iu hdfs hadoop fs -chown -R hbase:hbase hdfs:///user/hbase hdfs:///user/splice
+   sudo -iu hdfs hadoop fs -chmod 1777 hdfs:///user/splice hdfs:///user/splice/history
+   ````
+
+3.  Restart YARN
+
+   Select `Start` from the `Actions` menu in the upper right corner of
+   the YARN service to restart YARN.
+
+4.  Restart HBase
+
+   Select `Start` from the `Actions` menu in the upper right corner of
+   the Hbase service to restart Hbase.
 
 ### Kafka Maintenance Installation
 

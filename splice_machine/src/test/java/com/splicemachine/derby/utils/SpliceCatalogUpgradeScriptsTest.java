@@ -31,7 +31,14 @@ public class SpliceCatalogUpgradeScriptsTest {
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
-            "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n";
+            "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
+            "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTableColumnViewInSYSIBM\n" +
+            "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddColumnsViewInSYSCAT\n" +
+            "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForChangingGetKeyColumnPosition\n";
+
+    // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
+    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
     // add more scripts here
 
     private String replaceVersions(String s) {
@@ -48,7 +55,7 @@ public class SpliceCatalogUpgradeScriptsTest {
         Splice_DD_Version version = new Splice_DD_Version(null, 3,1,0, 1933);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
-        Assert.assertEquals(replaceVersions(s1 + s2), getUpgradeScriptsToStr(list));
+        Assert.assertEquals(replaceVersions(s3 + s1 + s2), getUpgradeScriptsToStr(list));
     }
 
     @Test
@@ -58,7 +65,7 @@ public class SpliceCatalogUpgradeScriptsTest {
         Splice_DD_Version version = new Splice_DD_Version(null, 3,2,0, 1987);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
-        Assert.assertEquals(replaceVersions(s2), getUpgradeScriptsToStr(list));
+        Assert.assertEquals(replaceVersions(s3 + s2), getUpgradeScriptsToStr(list));
     }
 
     @Test

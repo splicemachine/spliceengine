@@ -25,6 +25,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -35,7 +36,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     private AtomicLong counter;
     protected LongHashSet rolledback = new LongHashSet();
-    protected Set<Txn> children = new HashSet<>();
+    protected Set<Txn> children = ConcurrentHashMap.newKeySet();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
 

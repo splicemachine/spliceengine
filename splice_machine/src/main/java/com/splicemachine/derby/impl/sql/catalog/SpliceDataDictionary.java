@@ -268,9 +268,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, spliceDbDesc, tc);
         }
 
-        //create AllRoles view
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
         createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
         createOrUpdateSystemView(tc, "SYSVW", "SYSALLROLES");
         createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
@@ -327,8 +324,17 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void createReferencesViewInSysCat(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSCAT", "REFERENCES");
+    }
+
     public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
         createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
+    }
+
+    // SYSCAT.COLUMNS view must be created after SYSIBM.SYSCOLUMNS because it's defined on top of SYSCOLUMNS view
+    public void createColumnsViewInSysCat(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSCAT", "COLUMNS");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -612,7 +618,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         createIndexColumnUseViewInSysCat(tc);
 
+        createReferencesViewInSysCat(tc);
+
         createSysIndexesViewInSysIBM(tc);
+
+        // don't pull this call before createTableColumnViewInSysIBM()
+        createColumnsViewInSysCat(tc);
     }
 
     @Override
@@ -822,6 +833,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.commit();
         }
     }
+
 
     private boolean needToUpgrade(Splice_DD_Version catalogVersion){
 
@@ -1330,6 +1342,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             // now upgrade the views if necessary
             createOrUpdateSystemView(tc, "SYSVW", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME);
+
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 

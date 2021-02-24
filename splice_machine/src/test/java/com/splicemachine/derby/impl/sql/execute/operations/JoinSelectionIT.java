@@ -182,7 +182,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testLeftOuterJoinWithSubqueryFilterExactCriteria() throws Exception {
         fourthRowContainsQuery(
             format("explain select a2.pid from %s a2 left outer join " +
-            		  "(select person.pid from %s) as a3 " +
+            		  "(select person.pid from %s) as a3 --splice-properties useSpark=false\n" +
             		  " on a2.pid = a3.pid " +
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
                 LO_NESTED_LOOP_JOIN, methodWatcher);
@@ -211,7 +211,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
         fourthRowContainsQuery(
-            format("explain SELECT a2.pid FROM %s a2 " + 
+            format("explain SELECT a2.pid FROM %s a2 --splice-properties useSpark=false\n" +
             		  "LEFT OUTER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +

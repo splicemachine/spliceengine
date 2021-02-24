@@ -499,6 +499,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
                 case "ApplicationName":
                 case "ClientUser":
                 case "ClientHostname":
+                case "CurrentFunctionPath":
                     break;
                 default:
                     badProperties.addProperty(key, properties.getProperty(key),
