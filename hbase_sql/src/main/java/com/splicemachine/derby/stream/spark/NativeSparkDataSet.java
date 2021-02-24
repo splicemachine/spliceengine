@@ -219,7 +219,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
         String varcharDB2CompatibilityModeString =
-        PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
         boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
@@ -228,6 +228,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             // a row with rtrimmed values.
             List<String> compColNames = new ArrayList<>();
             List<String> extraColNames = new ArrayList<>();
+            List<Column> extraColumns = new ArrayList<>();
             if (varcharDB2CompatibilityMode) {
                 List<String> strColNames = new ArrayList<>();
                 Tuple2<String, String>[] colTypes = dataset.dtypes();
@@ -240,10 +241,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 }
                 for (String colName : strColNames) {
                     String newColName = colName+"_rtrimmed";
-                    dataset = dataset.withColumn(newColName, rtrim(col(colName)));
                     compColNames.add(newColName);
                     extraColNames.add(newColName);
+                    extraColumns.add(rtrim(col(colName)));
                 }
+                dataset = NativeSparkUtils.withColumns(extraColNames, extraColumns, dataset);
             }
 
             Dataset<Row> result;
@@ -252,8 +254,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             } else {
                 result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
             }
-            for (String extraColName : extraColNames) {
-                result = result.drop(extraColName);
+            if (!extraColNames.isEmpty()) {
+                result = result.drop(extraColNames.toArray(new String[0]));
             }
             return new NativeSparkDataSet<>(result, context);
         } finally {
