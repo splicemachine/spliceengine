@@ -28,8 +28,11 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
+    private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
 
     public NestedLoopJoinStrategy(){
     }
@@ -276,17 +279,76 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
 
+        double nljOnSparkPenalty = getNljOnSparkPenalty(innerTable, predList, innerCost, outerCost, optimizer);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        remoteCostPerPartition += nljOnSparkPenalty;
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
+        joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+    }
+
+    // Nested loop join is most useful if it can be used to
+    // derive an index point-lookup predicate, otherwise it can be
+    // very slow on Spark.
+    // NOTE: The following description of the behavior will
+    //       only be enabled once DB-11521 is fixed:
+    // Detect when no join predicates are present that have
+    // both a start key and a stop key.  If none are present,
+    // or we're reading more than 10 rows from the outer table,
+    // return a large cost penalty so we'll avoid such joins.
+    private double getNljOnSparkPenalty(Optimizable table,
+                                        OptimizablePredicateList predList,
+                                        CostEstimate innerCost,
+                                        CostEstimate outerCost,
+                                        Optimizer optimizer) {
+        double retval = 0.0d;
+        if (!optimizer.isForSpark() || optimizer.isMemPlatform())
+            return retval;
+        if (table.getCurrentAccessPath().isHintedJoinStrategy())
+            return retval;
+        if (isSingleTableScan(optimizer))
+            return retval;
+        double multiplier = innerCost.getFromBaseTableRows();
+        if (multiplier < 1d)
+            multiplier = 1d;
+        // TODO:  Enable this code when DB-11521 is fixed.
+        //        Currently join cardinality is grossly underestimated,
+        //        so what we think is a safe nested loop join may in fact
+        //        be joining hundreds or thousands of rows from the left table.
+//        if (!isBaseTable(table))
+//            return NLJ_ON_SPARK_PENALTY * multiplier;
+//        if (hasJoinPredicateWithIndexKeyLookup(predList) && outerCost.rowCount() <= 10)
+//            return retval;
+        return NLJ_ON_SPARK_PENALTY * multiplier;
+    }
+
+    private boolean isSingleTableScan(Optimizer optimizer) {
+        return optimizer.getJoinPosition() == 0   &&
+               optimizer.getJoinType() < INNERJOIN;
+    }
+
+    private boolean isBaseTable(Optimizable table) {
+        return table instanceof FromBaseTable;
+    }
+
+    private boolean hasJoinPredicateWithIndexKeyLookup(OptimizablePredicateList predList) {
+        if (predList != null) {
+            for (int i = 0; i < predList.size(); i++) {
+                Predicate p = (Predicate) predList.getOptPredicate(i);
+                if (p.getReferencedSet().cardinality() > 1 &&
+                    p.isStartKey() && p.isStopKey())
+                    return true;
+            }
+        }
+        return false;
     }
 
     /**
