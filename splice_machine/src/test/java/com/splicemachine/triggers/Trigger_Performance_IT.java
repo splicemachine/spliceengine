@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Test Trigger Performance
  */
-@Category(value = {SerialTest.class})
+@Category({SerialTest.class, HBaseTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Performance_IT extends SpliceUnitTest {
     
@@ -176,12 +177,14 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
                 "--splice-properties useSpark=" + useSpark + "\n")) {
             }
         }
+        else  // Only test Spark, the target of the performance fix.
+            return;
         long startTime = System.currentTimeMillis();
         methodWatcher.execute("insert into targetTable --splice-properties useSpark=" + useSpark +
                               "\n select * from sourceTable");
         long endTime = System.currentTimeMillis();
         long runTime = endTime - startTime;
-        assertTrue("Expected runtime to be less than 10 seconds.  Actual time: " + runTime + " milliseconds", runTime < 10000);
+        assertTrue("Expected runtime to be less than 20 seconds.  Actual time: " + runTime + " milliseconds", runTime < 20000);
 
     }
 
