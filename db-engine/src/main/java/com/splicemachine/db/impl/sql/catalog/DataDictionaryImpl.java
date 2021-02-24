@@ -816,7 +816,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException {
+    public SchemaDescriptor getSystemSchemaDescriptor() {
         return systemSchemaDesc;
     }
 
@@ -832,7 +832,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSystemUtilSchemaDescriptor() {
         return (systemUtilSchemaDesc);
     }
 
@@ -847,7 +847,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysIBMSchemaDescriptor() {
         return sysIBMSchemaDesc;
     }
 
@@ -862,7 +862,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysFunSchemaDescriptor() {
         return sysFunSchemaDesc;
     }
 
@@ -874,7 +874,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() {
         return declaredGlobalTemporaryTablesSchemaDesc;
     }
 
@@ -886,7 +886,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public boolean isSystemSchemaName(String name) throws StandardException{
+    public boolean isSystemSchemaName(String name) {
         boolean ret_val=false;
 
         for(int i=systemSchemaNames.length-1;i>=0;){
@@ -923,23 +923,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             tc=getTransactionCompile();
         }
 
-        if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
-            return getSystemSchemaDescriptor();
-        }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded
-            // from pre 52, I may have 2 versions for you, one on disk
-            // (user SYSIBM), one imaginary (builtin). The
-            // one on disk (real one, if it exists), should always be used.
-            if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                return getSysIBMSchemaDescriptor();
-            }
-        }
+        SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
+        if (sd != null)
+            return sd;
 
-        /*
-        ** Manual lookup
-        */
-
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        sd = dataDictionaryCache.schemaCacheFind(schemaName);
         if (sd!=null)
             return sd;
 
@@ -959,6 +947,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return sd;
         }
     }
+
+    public SchemaDescriptor getSystemWideSchemaDescriptor(String schemaName) {
+        switch (schemaName) {
+            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
+                return getSystemSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
+                // oh you are really asking SYSIBM, if this db is soft upgraded
+                // from pre 52, I may have 2 versions for you, one on disk
+                // (user SYSIBM), one imaginary (builtin). The
+                // one on disk (real one, if it exists), should always be used.
+                if(dictionaryVersion == null || dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2)){
+                    return getSysIBMSchemaDescriptor();
+                }
+                break;
+            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
+                return sysIBMADMSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
+                return getSysFunSchemaDescriptor();
+            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
+                return sysViewSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME:
+                return sysCatSchemaDesc;
+            default:
+                break;
+        }
+        return null;
+    }
+
 
     /**
      * Get the target schema by searching for a matching row
@@ -1140,48 +1156,45 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public boolean existsSchemaOwnedBy(String authid,TransactionController tc) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
         SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
-        ConglomerateController heapCC=tc.openConglomerate(
+        try (ConglomerateController ignored =tc.openConglomerate(
                 ti.getHeapConglomerate(),false,0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        DataValueDescriptor authIdOrderable=new SQLVarchar(authid);
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+            DataValueDescriptor authIdOrderable = new SQLVarchar(authid);
+            ScanQualifier[][] scanQualifier = exFactory.getScanQualifier(1);
 
-        scanQualifier[0][0].setQualifier(
-                SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID-1,    /* to zero-based */
-                authIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
-                false);
+            scanQualifier[0][0].setQualifier(
+                    SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID - 1,    /* to zero-based */
+                    authIdOrderable,
+                    Orderable.ORDER_OP_EQUALS,
+                    false,
+                    false,
+                    false);
 
 
-        boolean result=false;
+            boolean result = false;
 
-        try(ScanController sc=tc.openScan(ti.getHeapConglomerate(),
-                false,
-                0,
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,
-                null,
-                0,
-                scanQualifier,
-                null,
-                0)){
-            ExecRow outRow=rf.makeEmptyRow();
+            try (ScanController sc = tc.openScan(ti.getHeapConglomerate(),
+                    false,
+                    0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,
+                    null,
+                    0,
+                    scanQualifier,
+                    null,
+                    0)) {
+                ExecRow outRow = rf.makeEmptyRow();
 
-            if(sc.fetchNext(outRow.getRowArray())){
-                result=true;
+                if (sc.fetchNext(outRow.getRowArray())) {
+                    result = true;
+                }
             }
-        }finally{
-            if(heapCC!=null){
-                heapCC.close();
-            }
+
+            return result;
         }
-
-        return result;
     }
 
     @Override
@@ -3241,8 +3254,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
-        if(sps!=null)
-                return sps;
+        if (sps!=null)
+            return sps;
         sps=getSPSDescriptorIndex2Scan(uuid.toString());
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
@@ -3613,7 +3626,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException{
         for(Object o : getAllSPSDescriptors()){
             SPSDescriptor spsd=(SPSDescriptor)o;
-            spsd.getPreparedStatement(true);
+            spsd.getPreparedStatement(true, lcc);
         }
     }
 
@@ -7127,7 +7140,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                     boolean wait) throws StandardException{
         int columnNum=SYSCOLUMNSRowFactory.SYSCOLUMNS_AUTOINCREMENTVALUE;
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
-        ConglomerateController heapCC=null;
         SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
@@ -7138,15 +7150,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         columnToRead.set(columnNum);     // start value.
         columnToRead.set(columnNum+1); // increment value.
 
-        try{
-            /* if wait is true then we need to do a wait while trying to
-               open/fetch from the conglomerate. note we use wait both to
-               open as well as fetch from the conglomerate.
-            */
-            heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,
+        /* if wait is true then we need to do a wait while trying to
+           open/fetch from the conglomerate. note we use wait both to
+           open as well as fetch from the conglomerate.
+        */
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,
                     (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
                     TransactionController.MODE_RECORD,
-                    TransactionController.ISOLATION_REPEATABLE_READ);
+                    TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             // fetch the current value
             boolean baseRowExists=heapCC.fetch(rl,row,columnToRead,wait);
@@ -7181,9 +7192,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 currentAI.setValue(currentAIValue);
                 return currentAI;
             }
-        }finally{
-            if(heapCC!=null)
-                heapCC.close();
         }
     }
 
@@ -7194,7 +7202,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                      int indexNumber,
                                                      long heapConglomerateNumber) throws StandardException{
         boolean isUnique;
-        ConglomerateController cc;
         ExecRow baseRow;
         ExecIndexRow indexableRow;
         int numColumns;
@@ -7219,10 +7226,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         baseRow=rf.makeEmptyRowForLatestVersion();
 
         // Get a RowLocation template
-        cc=tc.openConglomerate(heapConglomerateNumber,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_REPEATABLE_READ);
+        try (ConglomerateController cc = tc.openConglomerate(
+                heapConglomerateNumber,false,0,TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        rl=cc.newRowLocationTemplate();
-        cc.close();
+            rl = cc.newRowLocationTemplate();
+        }
 
         // Get an index row based on the base row
         irg.getIndexRow(baseRow,rl,indexableRow,null);
@@ -7734,23 +7743,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
 
                 // consistency checking etc.
-                ConglomerateController btreeCC=tc.openConglomerate(ti.getIndexConglomerate(indexId),
+                try (ConglomerateController btreeCC=tc.openConglomerate(ti.getIndexConglomerate(indexId),
                         false,
                         0,TransactionController.MODE_RECORD,
-                        TransactionController.ISOLATION_REPEATABLE_READ);
+                        TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-                btreeCC.debugConglomerate();
+                    btreeCC.debugConglomerate();
+                }
                 heapCC.debugConglomerate();
                 heapCC.checkConsistency();
                 strbuf.append("\nheapCC.checkConsistency() = true");
-                ConglomerateController indexCC=tc.openConglomerate(
+                try (ConglomerateController indexCC=tc.openConglomerate(
                         ti.getIndexConglomerate(indexId),
                         false,
                         0,
                         TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_REPEATABLE_READ);
-                indexCC.checkConsistency();
-                strbuf.append("\nindexCC.checkConsistency() = true");
+                        TransactionController.ISOLATION_REPEATABLE_READ)) {
+                    indexCC.checkConsistency();
+                    strbuf.append("\nindexCC.checkConsistency() = true");
+                }
 
                 System.err.println("ASSERT FAILURE: "+strbuf.toString());
                 System.out.println("ASSERT FAILURE: "+strbuf.toString());
@@ -8373,23 +8384,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         int columnNum=SYSSEQUENCESRowFactory.SYSSEQUENCES_CURRENT_VALUE;
         FormatableBitSet columnToUpdate=new FormatableBitSet(SYSSEQUENCESRowFactory.SYSSEQUENCES_COLUMN_COUNT);
         TabInfoImpl ti=getNonCoreTI(SYSSEQUENCES_CATALOG_NUM);
-        ConglomerateController heapCC=null;
         SYSSEQUENCESRowFactory rf=(SYSSEQUENCESRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
         // FormatableBitSet is 0 based.
         columnToUpdate.set(columnNum-1); // current value.
 
-        try{
-            /* if wait is true then we need to do a wait while trying to
-               open/fetch from the conglomerate. note we use wait both to
-               open as well as fetch from the conglomerate.
-            */
-            heapCC=tc.openConglomerate(ti.getHeapConglomerate(),
-                    false,
-                    (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
-                    TransactionController.MODE_RECORD,
-                    TransactionController.ISOLATION_REPEATABLE_READ);
+        /* if wait is true then we need to do a wait while trying to
+           open/fetch from the conglomerate. note we use wait both to
+           open as well as fetch from the conglomerate.
+        */
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),
+                false,
+                (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             boolean baseRowExists=heapCC.fetch(rowLocation,row,columnToUpdate,wait);
             // We're not prepared for a non-existing base row.
@@ -8420,10 +8429,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }else{
                 return false;
             }
-        }finally{
-            if(heapCC!=null){
-                heapCC.close();
-            }
         }
     }
 
@@ -8436,16 +8441,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public RowLocation getRowLocationTemplate(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{
         RowLocation rl;
-        ConglomerateController heapCC;
 
         TransactionController tc=lcc.getTransactionCompile();
 
         long tableId=td.getHeapConglomerateId();
-        heapCC=tc.openConglomerate(tableId,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_READ_COMMITTED);
-        try{
+        try (ConglomerateController heapCC=tc.openConglomerate(tableId,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_READ_COMMITTED)) {
             rl=heapCC.newRowLocationTemplate();
-        }finally{
-            heapCC.close();
         }
 
         return rl;

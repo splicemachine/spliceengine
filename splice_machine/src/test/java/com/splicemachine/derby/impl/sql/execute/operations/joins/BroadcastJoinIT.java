@@ -67,6 +67,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher date_dim= new SpliceTableWatcher("date_dim",schemaWatcher.schemaName,"(d_year int, d_qoy int)");
     public static final SpliceTableWatcher t1= new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(a1 int, b1 int, c1 int)");
     public static final SpliceTableWatcher t2= new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a2 int, b2 int)");
+    public static final SpliceTableWatcher t11= new SpliceTableWatcher("t11",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher t22= new SpliceTableWatcher("t22",schemaWatcher.schemaName,"(a int, b int, primary key(a))");
+    public static final SpliceTableWatcher t33= new SpliceTableWatcher("t33",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher s1= new SpliceTableWatcher("s1",schemaWatcher.schemaName,"(a1 int, b1 char(2), c1 char(10), d1 char(10), e1 char(20))");
     public static final SpliceTableWatcher s2= new SpliceTableWatcher("s2",schemaWatcher.schemaName,"(a2 int, b2 boolean, c2 date, d2 time, e2 timestamp)");
     public static final SpliceTableWatcher s3 = new SpliceTableWatcher("s3", schemaWatcher.schemaName, "(num1 dec(31,1), num2 double, num3 float, num4 real, num5 int)");
@@ -76,6 +79,8 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher x3 = new SpliceTableWatcher("X3", schemaWatcher.schemaName, "(domwliste varchar(1900), loganwber char(8), domb# char(36))");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
+    private static boolean isMemPlatform = false;
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -84,6 +89,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             .around(date_dim)
             .around(t1)
             .around(t2)
+            .around(t11)
+            .around(t22)
+            .around(t33)
             .around(s1)
             .around(s2)
             .around(s3)
@@ -244,6 +252,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     @BeforeClass
     public static void setUpClass() throws Exception{
         conn = classWatcher.getOrCreateConnection();
+        isMemPlatform = isMemPlatform(classWatcher);
     }
 
     public static void createData(Connection conn, String schemaName) throws Exception {
@@ -351,6 +360,40 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         row(3, "c"),
         row(3, "ce")
         )).create();
+
+        classWatcher.executeUpdate("insert into t11 values (2,2)");
+        classWatcher.executeUpdate("insert into t11 values (3,3)");
+        classWatcher.executeUpdate("insert into t11 values (4,4)");
+        classWatcher.executeUpdate("insert into t11 values (5,5)");
+        classWatcher.executeUpdate("insert into t11 values (6,6)");
+        classWatcher.executeUpdate("insert into t11 values (7,7)");
+        classWatcher.executeUpdate("insert into t11 values (8,8)");
+        classWatcher.executeUpdate("insert into t11 values (9,9)");
+        classWatcher.executeUpdate("insert into t11 values (10,10)");
+
+        classWatcher.executeUpdate("insert into t11 select a+10,b+10 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+20,b+20 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+40,b+40 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+80,b+80 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+160,b+160 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+320,b+320 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+640,b+640 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+1280,b+1280 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+2560,b+1280 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+5120,b+1280 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+10240,b+1280 from t11");
+        classWatcher.executeUpdate("insert into t11 select a+20480,b+1280 from t11");
+
+        classWatcher.executeUpdate("insert into t11 values (1,1)");
+        classWatcher.executeUpdate("insert into t33 values (1,1)");
+        classWatcher.executeUpdate("insert into t22 select * from t11");
+
+        classWatcher.executeUpdate(format("call syscs_util.syscs_flush_table('%s', 'T11')", schemaName));
+        classWatcher.executeUpdate(format("call syscs_util.syscs_flush_table('%s', 'T22')", schemaName));
+
+        classWatcher.executeQuery(format("analyze table T11", schemaName));
+        classWatcher.executeQuery(format("analyze table T22", schemaName));
+        classWatcher.executeQuery(format("analyze table T33", schemaName));
 
         conn.commit();
     }
@@ -941,5 +984,67 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         testQuery(sqlText, expected, classWatcher);
         explainQuery = "explain " + sqlText;
         rowContainsQuery(3, explainQuery, "BroadcastLeftOuterJoin", methodWatcher);
+    }
+
+    @Test
+    public void testDisableNestedLoopJoinOnSpark() throws Exception {
+        if (isMemPlatform && useSpark)
+            return;
+        String sqlText = "select max(t11.a+1) from\n" +
+                            "(select max(a.a) from t11 a\n" +
+                            "inner join t22 b --splice-properties useSpark=" + useSpark + "\n" +
+                            "on a.a=b.a inner join t11 c\n" +
+                            "on b.a=c.a inner join t22 d\n" +
+                            "on c.a=d.a inner join t22 e\n" +
+                            "on d.a=e.a inner join t22 f\n" +
+                            "on e.a=f.a inner join t22 g\n" +
+                            "on f.a=g.a inner join t22 h\n" +
+                            "on g.a=h.a inner join t22 i\n" +
+                            "on h.a=i.a inner join t22 j\n" +
+                            "on i.a=j.a inner join t22 k\n" +
+                            "on j.a=k.a inner join t22 l\n" +
+                            "on k.a=l.a\n" +
+                            "and\n" +
+                            "l.b >= (select a from t33)\n" +
+                            "where a.a between 1 and 900\n" +
+                            "group by a.b) myTab(a) \n" +
+                            ",t11 \n" +
+                            "where t11.a between 1 and 90 and t11.b = myTab.a";
+        String expected = "1 |\n" +
+                          "----\n" +
+                          "91 |";
+        // The query runs too long on control.
+        if (useSpark)
+            testQuery(sqlText, expected, methodWatcher);
+        String explainQuery = "explain " + sqlText;
+        if (useSpark)
+            testQueryDoesNotContain(explainQuery, "NestedLoopJoin", methodWatcher, true);
+        else
+            testQueryContains(explainQuery, "NestedLoopJoin", methodWatcher, true);
+
+        // Make sure we can still hint nested loop join.
+        if (useSpark) {
+            explainQuery = "explain select max(t11.a+1) from\n" +
+                            "(select max(a.a) from t11 a\n" +
+                            "inner join t22 b --splice-properties joinStrategy=nestedloop, useSpark=" + useSpark + "\n" +
+                            "on a.a=b.a inner join t11 c\n" +
+                            "on b.a=c.a inner join t22 d\n" +
+                            "on c.a=d.a inner join t22 e\n" +
+                            "on d.a=e.a inner join t22 f\n" +
+                            "on e.a=f.a inner join t22 g\n" +
+                            "on f.a=g.a inner join t22 h\n" +
+                            "on g.a=h.a inner join t22 i\n" +
+                            "on h.a=i.a inner join t22 j\n" +
+                            "on i.a=j.a inner join t22 k\n" +
+                            "on j.a=k.a inner join t22 l\n" +
+                            "on k.a=l.a\n" +
+                            "and\n" +
+                            "l.b >= (select a from t33)\n" +
+                            "where a.a between 1 and 900\n" +
+                            "group by a.b) myTab(a) \n" +
+                            ",t11\n" +
+                            "where t11.a between 1 and 90 and t11.b = myTab.a";
+            testQueryContains(explainQuery, "NestedLoopJoin", methodWatcher, true);
+        }
     }
 }

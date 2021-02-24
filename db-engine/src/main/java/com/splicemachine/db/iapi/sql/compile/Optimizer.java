@@ -418,4 +418,6 @@ public interface Optimizer{
     public boolean isForSpark();
 
     int getJoinPosition();
+
+    default boolean isMemPlatform() { return false; };
 }

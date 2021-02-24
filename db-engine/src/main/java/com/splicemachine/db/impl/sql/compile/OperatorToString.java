@@ -494,6 +494,12 @@ public class OperatorToString {
                     return format("concat(%s, %s) ", leftOperandString,
                                                      rightOperandString);
                 }
+                else if (operand instanceof PosStrOperatorNode) {
+                    if (vars.buildExpressionTree)
+                        throwNotImplementedError();
+                    return format("position(%s, %s) ", rightOperandString,
+                                                     leftOperandString);
+                }
                 else if (operand instanceof TruncateOperatorNode) {
                     if (vars.buildExpressionTree)
                         throwNotImplementedError();

@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.2.0.2001-SNAPSHOT</version>
+    <version>3.2.0.2002-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -626,18 +626,6 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.1.0</version>
                     <configuration>
-                        <archive>
-                            <manifestEntries>
-                                <!-- TODO: buildnumber plugin must point to open splice repo (SCM) -->
-                                <Implementation-Version>${buildNumber}</Implementation-Version>
-                                <!--<Implementation-Version>13</Implementation-Version>-->
-                                <Release>${project.version}</Release>
-                                <Build-Time>${maven.build.timestamp}</Build-Time>
-                                <URL>http://www.splicemachine.com</URL>
-                                <Spark-Major-Version>${spark.major.version}</Spark-Major-Version>
-                                <Spark-Version>${spark.version}</Spark-Version>
-                            </manifestEntries>
-                        </archive>
                         <excludes>
                             <exclude>**/*log4j.properties</exclude>
                             <exclude>**/splice-site.xml</exclude>
