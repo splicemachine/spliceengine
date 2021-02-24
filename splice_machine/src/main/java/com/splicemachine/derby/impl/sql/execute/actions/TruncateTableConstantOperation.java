@@ -114,6 +114,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
+
         ExecRow emptyHeapRow;
         long newHeapConglom;
         Properties properties = new Properties();

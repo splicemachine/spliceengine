@@ -1508,6 +1508,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         for (int i = 0; i < NUM_NONCORE; ++i) {
             // noncoreInfo[x] will be null otherwise
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
             addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
         }
 
@@ -1829,7 +1833,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
-            long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
+            long conglomerateId = tabInfo.getHeapConglomerate();
             if (conglomerateId > 0) {
                 tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
             }
@@ -1939,7 +1947,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
-        faultInTabInfo(ti);
 
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);

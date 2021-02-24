@@ -266,7 +266,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //just yet because we do not know the collation type for user schemas
         //yet. We will know the right collation for user schema little later
         //in this boot method.
-
         collationTypeOfSystemSchemas=StringDataValue.COLLATION_TYPE_UCS_BASIC;
         getBuiltinSystemSchemas();
 
@@ -7831,10 +7830,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * (We fault in information about non-core tables as needed.)
      *
      * @param catalogNumber The index into noncoreTable[].
+     * @return the TableInfoImpl that corresponds to the catalogNumber, or null if the catalogNumber
+     *         is invalid.
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
+
+        if(ti == null) { // catalog number is invalid.
+            return null;
+        }
 
         faultInTabInfo(ti);
 
@@ -7851,7 +7856,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     /**
      * returns the tabinfo for a non core system catalog. Input is a
-     * catalogNumber (defined in DataDictionary).
+     * catalogNumber (defined in DataDictionary), or null if the catalogNumber is invalid.
      */
     public TabInfoImpl getNonCoreTIByNumber(int catalogNumber) throws StandardException{
         int nonCoreNum=catalogNumber-NUM_CORE;

@@ -240,7 +240,7 @@ public interface DataDictionary{
     int SYSSNAPSHOT_NUM=30;
     int SYSTOKENS_NUM=31;
     int SYSREPLICATION_CATALOG_NUM=32;
-    int INVALID_CATALOG_NUM=33;
+    int INVALID_CATALOG_NUM=33; // was previously owned by MON_GET_CONNECTION which is now a table-valued function.
     int SYSNATURALNUMBERS_CATALOG_NUM=34;
 
     /**
