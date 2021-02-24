@@ -11,29 +11,26 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * Created by Igor Praznik on 06/24/2020.
  */
-public class UpgradeScriptForAddDefaultToColumnViewInSYSVW extends UpgradeScriptBase {
-    public UpgradeScriptForAddDefaultToColumnViewInSYSVW(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptForChangingGetKeyColumnPosition extends UpgradeScriptBase {
+    public UpgradeScriptForChangingGetKeyColumnPosition(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
-
-        // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in SysVW
-        sdd.updateMetadataSPSes(tc);
-
-        SpliceLogUtils.info(LOG, "Catalog upgraded: updated syscolumns view in SYSVW schema");
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
+        sdd.createOrUpdateSystemView(tc, "SYSCAT", "INDEXCOLUSE");
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSKEYCOLUSE");
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
     }
 }
-

@@ -50,25 +50,8 @@ import java.util.Properties;
 
 class CreateIndexConstantAction extends IndexConstantAction
 {
-    /**
-     * Is this for a CREATE TABLE, i.e. it is
-     * for a constraint declared in a CREATE TABLE
-     * statement that requires a backing index.
-     */
-    private final boolean forCreateTable;
 
-    private boolean			unique;
-    private boolean			uniqueWithDuplicateNulls;
-    private String			indexType;
-    private String[]		columnNames;
-    private boolean[]		isAscending;
-    private boolean			isConstraint;
-    private UUID			conglomerateUUID;
-    private Properties		properties;
-
-    private IndexRowGenerator irg;
-
-    private ExecRow indexTemplateRow;
+    private String[]        columnNames;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -93,59 +76,47 @@ class CreateIndexConstantAction extends IndexConstantAction
 
     // CONSTRUCTORS
     /**
-     * 	Make the ConstantAction to create an index.
-     * 
-     * @param forCreateTable                Being executed within a CREATE TABLE
+     *     Make the ConstantAction to create an index.
+     *  @param forCreateTable                Being executed within a CREATE TABLE
      *                                      statement
-     * @param unique		                True means it will be a unique index
+     * @param unique                        True means it will be a unique index
      * @param uniqueWithDuplicateNulls      True means index check and disallow
-     *                                      any duplicate key if key has no 
-     *                                      column with a null value.  If any 
-     *                                      column in the key has a null value,
-     *                                      no checking is done and insert will
-     *                                      always succeed.
-     * @param indexType	                    type of index (BTREE, for example)
-     * @param schemaName	                schema that table (and index) 
-     *                                      lives in.
-     * @param indexName	                    Name of the index
-     * @param tableName	                    Name of table the index will be on
-     * @param tableId		                UUID of table
-     * @param columnNames	                Names of the columns in the index, 
-     *                                      in order
-     * @param isAscending	                Array of booleans telling asc/desc 
-     *                                      on each column
-     * @param isConstraint	                TRUE if index is backing up a 
-     *                                      constraint, else FALSE
-     * @param conglomerateUUID	            ID of conglomerate
-     * @param properties	                The optional properties list 
-     *                                      associated with the index.
+ *                                      any duplicate key if key has no
+ *                                      column with a null value.  If any
+ *                                      column in the key has a null value,
+ *                                      no checking is done and insert will
+ *                                      always succeed.
+     * @param indexType                        type of index (BTREE, for example)
+     * @param schemaName                    schema that table (and index)
+*                                      lives in.
+     * @param indexName                        Name of the index
+     * @param tableName                        Name of table the index will be on
+     * @param columnNames                    Names of the columns in the index,
+*                                      in order
+     * @param isAscending                    Array of booleans telling asc/desc
+*                                      on each column
+     * @param isConstraint                    TRUE if index is backing up a
+*                                      constraint, else FALSE
+     * @param conglomerateUUID                ID of conglomerate
+     * @param properties                    The optional properties list
      */
     CreateIndexConstantAction(
-            boolean         forCreateTable,
-            boolean			unique,
-            boolean			uniqueWithDuplicateNulls,
-            String			indexType,
-            String			schemaName,
-            String			indexName,
-            String			tableName,
-            UUID			tableId,
-            String[]		columnNames,
-            boolean[]		isAscending,
-            boolean			isConstraint,
-            UUID			conglomerateUUID,
-            Properties		properties)
+            boolean forCreateTable,
+            boolean unique,
+            boolean uniqueWithDuplicateNulls,
+            String indexType,
+            String schemaName,
+            String indexName,
+            String tableName,
+            String[] columnNames,
+            boolean[] isAscending,
+            boolean isConstraint,
+            UUID conglomerateUUID,
+            Properties properties)
     {
-        super(tableId, indexName, tableName, schemaName);
+        super(indexName, tableName, schemaName);
 
-        this.forCreateTable             = forCreateTable;
-        this.unique                     = unique;
-        this.uniqueWithDuplicateNulls   = uniqueWithDuplicateNulls;
-        this.indexType                  = indexType;
         this.columnNames                = columnNames;
-        this.isAscending                = isAscending;
-        this.isConstraint               = isConstraint;
-        this.conglomerateUUID           = conglomerateUUID;
-        this.properties                 = properties;
         this.conglomId                  = -1L;
         this.droppedConglomNum          = -1L;
     }
@@ -171,10 +142,8 @@ class CreateIndexConstantAction extends IndexConstantAction
     CreateIndexConstantAction(ConglomerateDescriptor srcCD,
         TableDescriptor td, Properties properties)
     {
-        super(td.getUUID(),
-            srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
-
-        this.forCreateTable = false;
+        super(
+                srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
 
         /* We get here when a conglomerate has been dropped and we
          * need to create (or find) another one to fill its place.
@@ -188,14 +157,7 @@ class CreateIndexConstantAction extends IndexConstantAction
          * descriptors.
          */
         IndexRowGenerator irg = srcCD.getIndexDescriptor();
-        this.unique = irg.isUnique();
-        this.uniqueWithDuplicateNulls = irg.isUniqueWithDuplicateNulls();
-        this.indexType = irg.indexType();
         this.columnNames = srcCD.getColumnNames();
-        this.isAscending = irg.isAscending();
-        this.isConstraint = srcCD.isConstraint();
-        this.conglomerateUUID = srcCD.getUUID();
-        this.properties = properties;
         this.conglomId = -1L;
 
         /* The ConglomerateDescriptor may not know the names of
@@ -222,7 +184,7 @@ class CreateIndexConstantAction extends IndexConstantAction
     //
     ///////////////////////////////////////////////
 
-    public	String	toString()
+    public    String    toString()
     {
         // Do not put this under SanityManager.DEBUG - it is needed for
         // error reporting.
@@ -233,7 +195,7 @@ class CreateIndexConstantAction extends IndexConstantAction
 
 
     /**
-     *	This is the guts of the Execution-time logic for
+     *    This is the guts of the Execution-time logic for
      *  creating an index.
      *
      *  <P>
@@ -245,11 +207,11 @@ class CreateIndexConstantAction extends IndexConstantAction
      *
      *  @see ConglomerateDescriptor
      *  @see SchemaDescriptor
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
-    public void	executeConstantAction( Activation activation )
+    public void    executeConstantAction( Activation activation )
                         throws StandardException
     {
 
@@ -272,10 +234,10 @@ class CreateIndexConstantAction extends IndexConstantAction
      * @throws StandardException if accessing the data dictionary fails
      */
     private boolean addStatistics(DataDictionary dd, IndexRowGenerator irg, long numRows) throws StandardException {
-		/*
-		 * -sf- In splice, we keep statistics up to date using a different mechanism
-		 */
-		return false;
+        /*
+         * -sf- In splice, we keep statistics up to date using a different mechanism
+         */
+        return false;
 //        boolean add = (numRows > 0);
 //        if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null) &&
 //                // This horrible piece of code will hopefully go away soon!
@@ -293,13 +255,9 @@ class CreateIndexConstantAction extends IndexConstantAction
 
     ///////////////////////////////////////////////////////////////////////
     //
-    //	GETTERs called by CreateConstraint
+    //    GETTERs called by CreateConstraint
     //
     ///////////////////////////////////////////////////////////////////////
-    ExecRow getIndexTemplateRow()
-    {
-        return indexTemplateRow;
-    }
 
     /**
      * Get the conglomerate number for the conglomerate that was
@@ -335,15 +293,6 @@ class CreateIndexConstantAction extends IndexConstantAction
     long getReplacedConglomNumber()
     {
         return droppedConglomNum;
-    }
-
-    /**
-     * Get the UUID for the conglomerate descriptor that was created
-     * (or re-used) by this constant action.
-     */
-    UUID getCreatedUUID()
-    {
-        return conglomerateUUID;
     }
 
 }
