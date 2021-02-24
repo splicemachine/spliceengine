@@ -43,4 +43,5 @@ public interface WriteHandler {
      */
     void close(WriteContext ctx) throws IOException;
 
+    default void delete(KVPair key) {}
 }

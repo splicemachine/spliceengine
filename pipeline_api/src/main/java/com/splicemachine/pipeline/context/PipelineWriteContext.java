@@ -35,6 +35,7 @@ import splice.com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * @author Scott Fines
@@ -97,7 +98,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public void notRun(KVPair mutation) {
-        resultsMap.put(mutation, WriteResult.notRun());
+        result(mutation, WriteResult.notRun());
     }
 
     @Override
@@ -107,17 +108,21 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public void failed(KVPair put, WriteResult mutationResult) {
-        resultsMap.put(put, mutationResult);
+        result(put, mutationResult);
     }
 
     @Override
     public void success(KVPair put) {
-        resultsMap.put(put, WriteResult.success());
+        result(put, WriteResult.success());
     }
 
+    Set<KVPair> failed = new HashSet<>();
     @Override
     public void result(KVPair put, WriteResult result) {
         resultsMap.put(put, result);
+        if(!result.isSuccess()) {
+            failed.add(put);
+        }
     }
 
     @Override
@@ -125,7 +130,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         for (KVPair kvPair : resultsMap.keySet()) {
             byte[] currentRowKey = kvPair.getRowKey();
             if (Arrays.equals(currentRowKey, resultRowKey)) {
-                resultsMap.put(kvPair, result);
+                result(kvPair, result);
                 return;
             }
         }
@@ -150,29 +155,50 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         return indexSharedCallBuffer.getWriteBuffer(conglomBytes, this, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
     }
 
+    int currentStage = 0;
+
     @Override
     public void flush() throws IOException {
         if (env != null)
             env.ensureNetworkOpen();
 
         try {
-            boolean reversed = true;
+            Set<KVPair> totalFailed = new HashSet<>();
+            boolean reversed = false;
             List<WriteNode> list = new ArrayList<WriteNode>();
             addChildren(list);
-            if(reversed) {
-                for(int i=list.size()-1; i>=0; i--) {
+            if (reversed) {
+                for (int i = list.size() - 1; i >= 0; i--) {
                     list.get(i).flush();
                     list.get(i).close();
                 }
-            }
-            else
-            {
-                for(int i=0; i<list.size(); i++) {
+            } else {
+                failed = new HashSet<>();
+
+                for (int i = 0; i < list.size(); i++) {
                     list.get(i).flush();
                     list.get(i).close();
+
+                    for (KVPair put : totalFailed)
+                        list.get(i).delete(put);
+
+                    for (KVPair put : failed) {
+                        for (int j = 0; j < i; j++) {
+                            list.get(j).delete(put);
+                        }
+                        totalFailed.add(put);
+                    }
+                    failed = new HashSet<>();
                 }
             }
 
+            if (totalFailed.size() > 0) {
+
+                for (int i = 0; i < list.size(); i++) {
+                    list.get(i).flush();
+                    list.get(i).close();
+                }
+            }
         } finally {
             //clean up any outstanding table resources
             Collection<Partition> collection=partitionFactory.cachedPartitions();

@@ -82,6 +82,13 @@ public class PartitionWriteHandler implements WriteHandler {
     }
 
     @Override
+    public void delete(KVPair kvPair) {
+        if( mutations == null)
+            mutations = Lists.newArrayList();
+        mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+    }
+
+    @Override
     public void flush(final WriteContext ctx) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "flush");
@@ -154,6 +161,7 @@ public class PartitionWriteHandler implements WriteHandler {
             }
         } finally {
             filteredMutations.clear();
+            mutations = Lists.newArrayList();
         }
     }
 

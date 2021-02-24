@@ -223,6 +223,12 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
                 futureIterator.remove();
                 WriteStats retStats = future.get();//check for errors
                 writeStats.merge(retStats);
+                Exception e = retStats.getException();
+                if(e != null) {
+                    if (e.getCause() instanceof BulkWriteAction.FailedRowsException) {
+                        throw e;
+                    }
+                }
             }
         }
     }
