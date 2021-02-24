@@ -524,22 +524,6 @@ public String statementToString()
 
             tableElementList.genConstraintActions(false, conActions, getRelativeName(), schemaDescriptor,
                                                   getDataDictionary());
-
-            for (ConstantAction cca : conActions) {
-                if (getGenericConstantActionFactory().primaryKeyConstantActionCheck(cca)) {
-                    DataDictionary dd = getDataDictionary();
-                    // Check to see if a constraint of the same type
-                    // already exists
-                    ConstraintDescriptorList cdl =
-                        dd.getConstraintDescriptors(baseTable);
-
-                    if (cdl.getPrimaryKey() != null) {
-                        throw StandardException.newException(
-                            SQLState.LANG_ADD_PRIMARY_KEY_FAILED1,
-                            baseTable.getQualifiedName());
-                    }
-                }
-            }
         }
 
 		return	getGenericConstantActionFactory().getAlterTableConstantAction(schemaDescriptor,

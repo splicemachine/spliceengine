@@ -222,6 +222,8 @@ public interface C_NodeNames
 
     String PARAMETER_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ParameterNode";
 
+    String POSSTR_STRING_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.PosStrOperatorNode";
+
     String PREDICATE_NAME = "com.splicemachine.db.impl.sql.compile.Predicate";
 
     String PREDICATE_LIST_NAME = "com.splicemachine.db.impl.sql.compile.PredicateList";

@@ -28,7 +28,7 @@ public class UpgradeScriptForAddDefaultToColumnViewInSYSVW extends UpgradeScript
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.updateColumnViewInSysVW(tc);
+        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
 
         // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in SysVW
         sdd.updateMetadataSPSes(tc);

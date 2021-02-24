@@ -137,7 +137,6 @@ public final class PropertyInfo
         TransactionController tc = lcc.getTransactionExecute();
 
         try {
-
         // find the DataDictionary
         DataDictionary dd = lcc.getDataDictionary();
 
@@ -165,18 +164,17 @@ public final class PropertyInfo
             conglomerateNumber = cd.getConglomerateNumber();
         }
 
-        ConglomerateController cc = tc.openConglomerate(
-                conglomerateNumber,
-                false,
-                0, 
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_SERIALIZABLE);
+            try (ConglomerateController cc = tc.openConglomerate(
+                    conglomerateNumber,
+                    false,
+                    0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_SERIALIZABLE)) {
 
         Properties properties = tc.getUserCreateConglomPropList();
         cc.getTableProperties( properties );
-
-        cc.close();
-        return properties;
+                return properties;
+            }
 
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);

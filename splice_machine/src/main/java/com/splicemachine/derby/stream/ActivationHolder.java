@@ -15,11 +15,14 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
@@ -31,6 +34,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.utils.StatisticsOperation;
@@ -76,6 +80,10 @@ public class ActivationHolder implements Externalizable {
     private DatabaseDescriptor databaseDescriptor;
     private List<String> groupUsers = null;
     private ManagedCache<String, Optional<String>> propertyCache = null;
+    private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache = null;
+    private List<String> defaultRoles;
+    private SchemaDescriptor initialDefaultSchemaDescriptor = null;
+    private long activeStateTxId = -1;
     private boolean serializeOperationList;
     public ActivationHolder() {
 
@@ -144,6 +152,10 @@ public class ActivationHolder implements Externalizable {
             LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             txnResource.marshallTransaction(txn,
                                             lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
+                                            lcc.getLocalSpsCache(),
+                                            lcc.getDefaultRoles(),
+                                            lcc.getInitialDefaultSchemaDescriptor(),
+                                            lcc.getActiveStateTxId(),
                                             lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
             if (needToSet)
                 impl.set(txnResource);
@@ -221,12 +233,34 @@ public class ActivationHolder implements Externalizable {
         } else {
             out.writeBoolean(false);
         }
-        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
+        LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        out.writeObject(dd.getDataDictionaryCache().getPropertyCache());
+        out.writeObject(lcc.getLocalSpsCache());
+        List<String> defaultRoles = lcc.getDefaultRoles();
+        int numDefaultRoles = defaultRoles == null ? -1 : defaultRoles.size();
+        out.writeInt(numDefaultRoles);
+        if (numDefaultRoles > 0) {
+            for (String role:defaultRoles)
+                out.writeUTF(role);
+        }
+
+        SchemaDescriptor sd = lcc.getInitialDefaultSchemaDescriptor();
+        boolean hasSchemaDescriptor = sd != null;
+        out.writeBoolean(hasSchemaDescriptor);
+        if (hasSchemaDescriptor)
+            out.writeObject(sd);
+
+        long activeStateTxId = lcc.getActiveStateTxId() != -1 ? lcc.getActiveStateTxId() :
+                               ((SpliceTransactionManager) activation.getTransactionController()).getActiveStateTxId();
+        out.writeLong(activeStateTxId);
     }
 
     public LanguageConnectionContext getLCC() {
         SpliceTransactionResourceImpl txnResource = impl.get();
-        return txnResource.getLcc();
+        if (txnResource != null)
+            return txnResource.getLcc();
+        return null;
     }
 
     private void init(TxnView txn, boolean reinit){
@@ -238,7 +272,8 @@ public class ActivationHolder implements Externalizable {
             }
 
             txnResource = new SpliceTransactionResourceImpl();
-            txnResource.marshallTransaction(txn, propertyCache);
+            txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles,
+                                            initialDefaultSchemaDescriptor, activeStateTxId);
             impl.set(txnResource);
             if (soi == null)
                 soi = SpliceObserverInstructions.create(this);
@@ -305,6 +340,18 @@ public class ActivationHolder implements Externalizable {
             databaseDescriptor = null;
         }
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
+        storedPreparedStatementCache = (ManagedCache<UUID, SPSDescriptor>) in.readObject();
+        int numDefaultRoles = in.readInt();
+        if (numDefaultRoles >= 0) {
+            defaultRoles = new ArrayList<>(numDefaultRoles);
+            for (int i = 0; i < numDefaultRoles; i++)
+                defaultRoles.add(in.readUTF());
+        }
+        boolean hasSchemaDescriptor = in.readBoolean();
+        if (hasSchemaDescriptor)
+            initialDefaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
+        activeStateTxId = in.readLong();
+
         if (!serializeOperationList) {
             init(txn, true);
             updateLimitOffset((SpliceOperation) activation.getResultSet());

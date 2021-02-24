@@ -53,102 +53,96 @@ import java.util.List;
 
 public class TestConstraintNode extends UnaryLogicalOperatorNode
 {
-	private String sqlState;
-	private String tableName;
-	private String constraintName;
+    private String sqlState;
+    private String tableName;
+    private String constraintName;
 
-	/**
-	 * Initializer for a TestConstraintNode
-	 *
-	 * @param booleanValue	The operand of the constraint test
-	 * @param sqlState	The SQLState of the exception to throw if the
-	 *					constraint has failed
-	 * @param tableName	The name of the table that the constraint is on
-	 * @param constraintName	The name of the constraint being checked
-	 */
+    /**
+     * Initializer for a TestConstraintNode
+     *
+     * @param booleanValue    The operand of the constraint test
+     * @param sqlState    The SQLState of the exception to throw if the
+     *                    constraint has failed
+     * @param tableName    The name of the table that the constraint is on
+     * @param constraintName    The name of the constraint being checked
+     */
 
-	public void init(Object booleanValue,
-					 Object sqlState,
-					 Object tableName,
-					 Object constraintName)
-	{
-		super.init(booleanValue, "throwExceptionIfFalse");
-		this.sqlState = (String) sqlState;
-		this.tableName = (String) tableName;
-		this.constraintName = (String) constraintName;
-	}
+    public void init(Object booleanValue,
+                     Object sqlState,
+                     Object tableName,
+                     Object constraintName)
+    {
+        super.init(booleanValue, "throwExceptionIfFalse");
+        this.sqlState = (String) sqlState;
+        this.tableName = (String) tableName;
+        this.constraintName = (String) constraintName;
+    }
 
-	/**
-	 * Bind this logical operator.  All that has to be done for binding
-	 * a logical operator is to bind the operand, check that the operand
-	 * is SQLBoolean, and set the result type to SQLBoolean.
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this logical operator.  All that has to be done for binding
+     * a logical operator is to bind the operand, check that the operand
+     * is SQLBoolean, and set the result type to SQLBoolean.
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		List<AggregateNode> aggregateVector)
-			throws StandardException
-	{
-		bindOperand(fromList, subqueryList, aggregateVector);
+    public ValueNode bindExpression(
+        FromList fromList, SubqueryList subqueryList,
+        List<AggregateNode> aggregateVector)
+            throws StandardException
+    {
+        bindOperand(fromList, subqueryList, aggregateVector);
 
-		/*
-		** If the operand is not boolean, cast it.
-		*/
+        /*
+        ** If the operand is not boolean, cast it.
+        */
 
-		if (!operand.getTypeServices().getTypeId().isBooleanTypeId())
-		{
-			operand = (ValueNode)
-				getNodeFactory().getNode(
-					C_NodeTypes.CAST_NODE,
-					operand,
-					new DataTypeDescriptor(TypeId.BOOLEAN_ID, true),
-					getContextManager());
-			((CastNode) operand).bindCastNodeOnly();
-		}
+        if (!getOperand().getTypeServices().getTypeId().isBooleanTypeId())
+        {
+            castOperandAndBindCast(new DataTypeDescriptor(TypeId.BOOLEAN_ID, true));
+        }
 
-		/* Set the type info */
-		setFullTypeInfo();
+        /* Set the type info */
+        setFullTypeInfo();
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Do code generation for the TestConstraint operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the expression will go into
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Do code generation for the TestConstraint operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the expression will go into
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	{
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                                    throws StandardException
+    {
 
-		/*
-		** This generates the following code:
-		**
-		** operand.testConstraint(sqlState, tableName, constraintName)
-		*/
+        /*
+        ** This generates the following code:
+        **
+        ** operand.testConstraint(sqlState, tableName, constraintName)
+        */
 
-		operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
 
-		mb.push(sqlState);
-		mb.push(tableName);
-		mb.push(constraintName);
+        mb.push(sqlState);
+        mb.push(tableName);
+        mb.push(constraintName);
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.BooleanDataValue,
-				"throwExceptionIfFalse", ClassName.BooleanDataValue, 3);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.BooleanDataValue,
+                "throwExceptionIfFalse", ClassName.BooleanDataValue, 3);
 
-	}
+    }
 }

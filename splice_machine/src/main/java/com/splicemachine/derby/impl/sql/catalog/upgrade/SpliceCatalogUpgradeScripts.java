@@ -76,6 +76,12 @@ public class SpliceCatalogUpgradeScripts{
         this.tc=tc;
 
         scripts = new ArrayList<>();
+        // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
+        // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
+        // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
+        // these upgrades would fail
+        addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
+
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
         addUpgradeScript(baseVersion1, 1917, new UpgradeScriptForMultiTenancy(sdd,tc));
@@ -104,6 +110,10 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
         addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForChangingGetKeyColumnPosition(sdd, tc));
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }

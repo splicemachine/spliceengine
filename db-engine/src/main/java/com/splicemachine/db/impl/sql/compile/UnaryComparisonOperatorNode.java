@@ -50,319 +50,319 @@ import java.util.List;
  */
 
 public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode implements RelationalOperator {
-	/**
-	 * Bind this comparison operator.  All that has to be done for binding
-	 * a comparison operator is to bind the operand and set the result type 
-	 * to SQLBoolean.
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException {
-		bindOperand(fromList, subqueryList,  aggregateVector);
+    /**
+     * Bind this comparison operator.  All that has to be done for binding
+     * a comparison operator is to bind the operand and set the result type
+     * to SQLBoolean.
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        bindOperand(fromList, subqueryList,  aggregateVector);
 
-		/* Set type info for this node */
-		bindComparisonOperator();
+        /* Set type info for this node */
+        bindComparisonOperator();
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Set the type info for this node.  This method is useful both during 
-	 * binding and when we generate nodes within the language module outside 
-	 * of the parser.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindComparisonOperator() throws StandardException {
-		/*
-		** Set the result type of this comparison operator based on the
-		** operand.  The result type is always SQLBoolean and always
-		** non-nullable.
-		*/
-		setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, false));
-	}
+    /**
+     * Set the type info for this node.  This method is useful both during
+     * binding and when we generate nodes within the language module outside
+     * of the parser.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void bindComparisonOperator() throws StandardException {
+        /*
+        ** Set the result type of this comparison operator based on the
+        ** operand.  The result type is always SQLBoolean and always
+        ** non-nullable.
+        */
+        setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, false));
+    }
 
-	/**
-	 * Eliminate NotNodes in the current query block.  We traverse the tree, 
-	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
-	 * ComparisonOperators and boolean expressions.  We invert 
-	 * ComparisonOperators and replace boolean expressions with 
-	 * boolean expression = false.
-	 * NOTE: Since we do not recurse under ComparisonOperators, there
-	 * still could be NotNodes left in the tree.
-	 *
-	 * @param	underNotNode		Whether or not we are under a NotNode.
-	 *							
-	 *
-	 * @return		The modified expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	ValueNode eliminateNots(boolean underNotNode)  throws StandardException {
-		if (! underNotNode) {
-			return this;
-		}
+    /**
+     * Eliminate NotNodes in the current query block.  We traverse the tree,
+     * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at
+     * ComparisonOperators and boolean expressions.  We invert
+     * ComparisonOperators and replace boolean expressions with
+     * boolean expression = false.
+     * NOTE: Since we do not recurse under ComparisonOperators, there
+     * still could be NotNodes left in the tree.
+     *
+     * @param    underNotNode        Whether or not we are under a NotNode.
+     *
+     *
+     * @return        The modified expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    ValueNode eliminateNots(boolean underNotNode)  throws StandardException {
+        if (! underNotNode) {
+            return this;
+        }
 
-		/* Convert the BinaryComparison operator to its negation */
-		return getNegation(operand);
-	}
+        /* Convert the BinaryComparison operator to its negation */
+        return getNegation(getOperand());
+    }
 
-	/**
-	 * Negate the comparison.
-	 *
-	 * @param operand	The operand of the comparison operator
-	 *
-	 * @return BinaryOperatorNode	The negated expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	abstract UnaryOperatorNode getNegation(ValueNode operand) throws StandardException;
+    /**
+     * Negate the comparison.
+     *
+     * @param operand    The operand of the comparison operator
+     *
+     * @return BinaryOperatorNode    The negated expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    abstract UnaryOperatorNode getNegation(ValueNode operand) throws StandardException;
 
-	/* RelationalOperator interface */
+    /* RelationalOperator interface */
 
-	@Override
-	public ColumnReference getColumnOperand( Optimizable optTable, int columnPosition) {
-		FromBaseTable	ft;
+    @Override
+    public ColumnReference getColumnOperand( Optimizable optTable, int columnPosition) {
+        FromBaseTable    ft;
 
-		assert optTable instanceof FromBaseTable;
+        assert optTable instanceof FromBaseTable;
 
-		ft = (FromBaseTable) optTable;
-		ColumnReference	cr;
-		if (operand instanceof ColumnReference) {
-			/*
-			** The operand is a column reference.
-			** Is it the correct column?
-			*/
-			cr = (ColumnReference) operand;
-			if (cr.getTableNumber() == ft.getTableNumber()) {
-				/* The table is correct, how about the column position? */
-				if (cr.getSource().getColumnPosition() == columnPosition) {
-					/* We've found the correct column - return it */
-					return cr;
-				}
-			}
-		}
+        ft = (FromBaseTable) optTable;
+        ColumnReference    cr;
+        if (getOperand() instanceof ColumnReference) {
+            /*
+            ** The operand is a column reference.
+            ** Is it the correct column?
+            */
+            cr = (ColumnReference) getOperand();
+            if (cr.getTableNumber() == ft.getTableNumber()) {
+                /* The table is correct, how about the column position? */
+                if (cr.getSource().getColumnPosition() == columnPosition) {
+                    /* We've found the correct column - return it */
+                    return cr;
+                }
+            }
+        }
 
-		/* Neither side is the column we're looking for */
-		return null;
-	}
+        /* Neither side is the column we're looking for */
+        return null;
+    }
 
-	@Override
-	public ColumnReference getColumnOperand(Optimizable optTable) {
-		ColumnReference	cr;
+    @Override
+    public ColumnReference getColumnOperand(Optimizable optTable) {
+        ColumnReference    cr;
 
-		if (operand instanceof ColumnReference) {
-			/*
-			** The operand is a column reference.
-			** Is it the correct column?
-			*/
-			cr = (ColumnReference) operand;
-			if (cr.getTableNumber() == optTable.getTableNumber()) {
-				/* We've found the correct column - return it */
-				return cr;
-			}
-		}
+        if (getOperand() instanceof ColumnReference) {
+            /*
+            ** The operand is a column reference.
+            ** Is it the correct column?
+            */
+            cr = (ColumnReference) getOperand();
+            if (cr.getTableNumber() == optTable.getTableNumber()) {
+                /* We've found the correct column - return it */
+                return cr;
+            }
+        }
 
-		/* Not the column we're looking for */
-		return null;
-	}
+        /* Not the column we're looking for */
+        return null;
+    }
 
-	public ValueNode getOperand( ColumnReference cRef, int refSetSize, boolean otherSide) {
-		return getOperand(cRef.getTableNumber(), cRef.getColumnNumber(), refSetSize, otherSide);
+    public ValueNode getOperand( ColumnReference cRef, int refSetSize, boolean otherSide) {
+        return getOperand(cRef.getTableNumber(), cRef.getColumnNumber(), refSetSize, otherSide);
 
-	}
+    }
 
-	public ValueNode getOperand(int tableNum, int colNum, int refSetSize, boolean otherSide) {
-		if (otherSide)
-		// there is no "other" side for Unary, so just return null.
-			return null;
+    public ValueNode getOperand(int tableNum, int colNum, int refSetSize, boolean otherSide) {
+        if (otherSide)
+        // there is no "other" side for Unary, so just return null.
+            return null;
 
-		ColumnReference	cr;
-		if (operand instanceof ColumnReference) {
-			/*
-			** The operand is a column reference.
-			** Is it the correct column?
-			*/
-			JBitSet cRefTables = new JBitSet(refSetSize);
-			JBitSet crTables = new JBitSet(refSetSize);
-			BaseTableNumbersVisitor btnVis =
-				new BaseTableNumbersVisitor(crTables);
+        ColumnReference    cr;
+        if (getOperand() instanceof ColumnReference) {
+            /*
+            ** The operand is a column reference.
+            ** Is it the correct column?
+            */
+            JBitSet cRefTables = new JBitSet(refSetSize);
+            JBitSet crTables = new JBitSet(refSetSize);
+            BaseTableNumbersVisitor btnVis =
+                new BaseTableNumbersVisitor(crTables);
 
-			cr = (ColumnReference) operand;
-			try {
-				cr.accept(btnVis);
-				cRefTables.set(tableNum);
-			} catch (StandardException se) {
-            	if (SanityManager.DEBUG) {
-            	    SanityManager.THROWASSERT("Failed when trying to " +
-            	        "find base table number for column reference check:",
-						se);
-            	}
-			}
-			crTables.and(cRefTables);
-			if (crTables.getFirstSetBit() != -1) {
-				/*
-				** The table is correct, how about the column position?
-				*/
-				if (cr.getSource().getColumnPosition() == colNum) {
-					/* We've found the correct column - return it. */
-					return operand;
-				}
-			}
-		}
+            cr = (ColumnReference) getOperand();
+            try {
+                cr.accept(btnVis);
+                cRefTables.set(tableNum);
+            } catch (StandardException se) {
+                if (SanityManager.DEBUG) {
+                    SanityManager.THROWASSERT("Failed when trying to " +
+                        "find base table number for column reference check:",
+                        se);
+                }
+            }
+            crTables.and(cRefTables);
+            if (crTables.getFirstSetBit() != -1) {
+                /*
+                ** The table is correct, how about the column position?
+                */
+                if (cr.getSource().getColumnPosition() == colNum) {
+                    /* We've found the correct column - return it. */
+                    return getOperand();
+                }
+            }
+        }
 
-		/* Not the column we're looking for */
-		return null;
-	}
+        /* Not the column we're looking for */
+        return null;
+    }
 
-	@Override
-	public boolean selfComparison(ColumnReference cr, boolean forIndexExpression) {
-		assert forIndexExpression || cr == operand : "ColumnReference not found in IsNullNode.";
+    @Override
+    public boolean selfComparison(ColumnReference cr, boolean forIndexExpression) {
+        assert forIndexExpression || cr == getOperand() : "ColumnReference not found in IsNullNode.";
 
-		/* An IsNullNode is not a comparison with any other column */
-		return false;
-	}
+        /* An IsNullNode is not a comparison with any other column */
+        return false;
+    }
 
-	@Override
-	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft, boolean forIndexExpression) {
-		return null;
-	}
+    @Override
+    public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft, boolean forIndexExpression) {
+        return null;
+    }
 
-	@Override
-	public void generateExpressionOperand(Optimizable optTable,
-										  int columnPosition,
-										  boolean forIndexExpression,
-										  ExpressionClassBuilder acb,
-										  MethodBuilder mb) throws StandardException {
-		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices());
-	}
+    @Override
+    public void generateExpressionOperand(Optimizable optTable,
+                                          int columnPosition,
+                                          boolean forIndexExpression,
+                                          ExpressionClassBuilder acb,
+                                          MethodBuilder mb) throws StandardException {
+        acb.generateNull(mb, getOperand().getTypeCompiler(),  getOperand().getTypeServices());
+    }
 
-	@Override
-	public int getMatchingExprIndexColumnPosition(int tableNumber) {
-		if (operandMatchIndexExpr >= 0 && operandMatchIndexExpr == tableNumber) {
-			assert operandMatchIndexExprColumnPosition >= 0;
-			return operandMatchIndexExprColumnPosition;
-		}
-		return -1;
-	}
+    @Override
+    public int getMatchingExprIndexColumnPosition(int tableNumber) {
+        if (operandMatchIndexExpr >= 0 && operandMatchIndexExpr == tableNumber) {
+            assert operandMatchIndexExprColumnPosition >= 0;
+            return operandMatchIndexExprColumnPosition;
+        }
+        return -1;
+    }
 
-	/** @see RelationalOperator#getStartOperator */
-	@Override
-	public int getStartOperator(Optimizable optTable) {
-		if (SanityManager.DEBUG) {
-			SanityManager.THROWASSERT( "getStartOperator not expected to be called for " + this.getClass().getName());
-		}
+    /** @see RelationalOperator#getStartOperator */
+    @Override
+    public int getStartOperator(Optimizable optTable) {
+        if (SanityManager.DEBUG) {
+            SanityManager.THROWASSERT( "getStartOperator not expected to be called for " + this.getClass().getName());
+        }
 
-		return ScanController.GE;
-	}
+        return ScanController.GE;
+    }
 
-	@Override
-	public int getStopOperator(Optimizable optTable) {
-		if (SanityManager.DEBUG) {
-			SanityManager.THROWASSERT( "getStopOperator not expected to be called for " + this.getClass().getName());
-		}
+    @Override
+    public int getStopOperator(Optimizable optTable) {
+        if (SanityManager.DEBUG) {
+            SanityManager.THROWASSERT( "getStopOperator not expected to be called for " + this.getClass().getName());
+        }
 
-		return ScanController.GT;
-	}
+        return ScanController.GT;
+    }
 
-	/** @see RelationalOperator#generateOrderedNulls */
-	public void generateOrderedNulls(MethodBuilder mb)
-	{
-		mb.push(true);
-	}
+    /** @see RelationalOperator#generateOrderedNulls */
+    public void generateOrderedNulls(MethodBuilder mb)
+    {
+        mb.push(true);
+    }
 
-	@Override
-	public void generateQualMethod(ExpressionClassBuilder acb,
-								   MethodBuilder mb,
-								   Optimizable optTable,
-								   boolean forIndexExpression) throws StandardException {
-		MethodBuilder qualMethod = acb.newUserExprFun();
+    @Override
+    public void generateQualMethod(ExpressionClassBuilder acb,
+                                   MethodBuilder mb,
+                                   Optimizable optTable,
+                                   boolean forIndexExpression) throws StandardException {
+        MethodBuilder qualMethod = acb.newUserExprFun();
 
-		/* Generate a method that returns that expression */
-		acb.generateNull(qualMethod, operand.getTypeCompiler(),
-				operand.getTypeServices());
-		qualMethod.methodReturn();
-		qualMethod.complete();
+        /* Generate a method that returns that expression */
+        acb.generateNull(qualMethod, getOperand().getTypeCompiler(),
+                getOperand().getTypeServices());
+        qualMethod.methodReturn();
+        qualMethod.complete();
 
-		/* Return an expression that evaluates to the GeneratedMethod */
-		acb.pushMethodReference(mb, qualMethod);
-	}
+        /* Return an expression that evaluates to the GeneratedMethod */
+        acb.pushMethodReference(mb, qualMethod);
+    }
 
-	@Override
-	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
-		// Get the absolute 0-based column position for the column
-		int columnPosition = getAbsoluteColumnPosition(optTable);
-		mb.push(columnPosition);
+    @Override
+    public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
+        // Get the absolute 0-based column position for the column
+        int columnPosition = getAbsoluteColumnPosition(optTable);
+        mb.push(columnPosition);
 
         int storagePosition=getAbsoluteStoragePosition(optTable);
         mb.push(storagePosition);
-	}
+    }
 
-	@Override
-	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
-		// Get the absolute 0-based column position for the column
-		int columnPosition = getAbsoluteColumnPosition(optTable);
-		// Convert the absolute to the relative 0-based column position
-		columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(columnPosition);
-		mb.push(columnPosition);
+    @Override
+    public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) throws StandardException {
+        // Get the absolute 0-based column position for the column
+        int columnPosition = getAbsoluteColumnPosition(optTable);
+        // Convert the absolute to the relative 0-based column position
+        columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(columnPosition);
+        mb.push(columnPosition);
 
         int storagePosition=getAbsoluteStoragePosition(optTable);
         storagePosition=optTable.convertAbsoluteToRelativeColumnPosition(storagePosition);
         mb.push(storagePosition);
     }
 
-	/**
-	 * Get the absolute 0-based column position of the ColumnReference from 
-	 * the conglomerate for this Optimizable.
-	 *
-	 * @param optTable	The Optimizable
-	 *
-	 * @return The absolute 0-based column position of the ColumnReference
-	 */
-	private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
-		ColumnReference	cr = (ColumnReference) operand;
-		int columnPosition;
-		ConglomerateDescriptor bestCD;
+    /**
+     * Get the absolute 0-based column position of the ColumnReference from
+     * the conglomerate for this Optimizable.
+     *
+     * @param optTable    The Optimizable
+     *
+     * @return The absolute 0-based column position of the ColumnReference
+     */
+    private int getAbsoluteColumnPosition(Optimizable optTable) throws StandardException {
+        ColumnReference    cr = (ColumnReference) getOperand();
+        int columnPosition;
+        ConglomerateDescriptor bestCD;
 
-		/* Column positions are one-based, store is zero-based */
-		columnPosition = cr.getSource().getColumnPosition();
+        /* Column positions are one-based, store is zero-based */
+        columnPosition = cr.getSource().getColumnPosition();
 
-		bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
+        bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
 
-		/*
-		** If it's an index, find the base column position in the index
-		** and translate it to an index column position.
-		*/
-		if (bestCD != null && bestCD.isIndex()) {
-			columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
+        /*
+        ** If it's an index, find the base column position in the index
+        ** and translate it to an index column position.
+        */
+        if (bestCD != null && bestCD.isIndex()) {
+            columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
             assert columnPosition>0: "Base column not found in index";
-		}
+        }
 
-		// return the 0-based column position
-		return columnPosition - 1;
-	}
+        // return the 0-based column position
+        return columnPosition - 1;
+    }
 
     private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
-        ColumnReference	cr = (ColumnReference) operand;
+        ColumnReference    cr = (ColumnReference) getOperand();
         int columnPosition;
         ConglomerateDescriptor bestCD;
 
         bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
 
-		/*
-		** If it's an index, find the base column position in the index
-		** and translate it to an index column position.
-		*/
+        /*
+        ** If it's an index, find the base column position in the index
+        ** and translate it to an index column position.
+        */
         if (bestCD != null && bestCD.isIndex()) {
             columnPosition = cr.getSource().getColumnPosition();
             columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
@@ -376,30 +376,30 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
     }
 
     @Override
-	public boolean orderedNulls() { return true; }
+    public boolean orderedNulls() { return true; }
 
-	@Override
-	public boolean isQualifier(Optimizable optTable, boolean forPush) {
-		/*
-		** It's a Qualifier if the operand is a ColumnReference referring
-		** to a column in the given Optimizable table.
-		*/
-		if ( ! (operand instanceof ColumnReference))
-			return false;
+    @Override
+    public boolean isQualifier(Optimizable optTable, boolean forPush) {
+        /*
+        ** It's a Qualifier if the operand is a ColumnReference referring
+        ** to a column in the given Optimizable table.
+        */
+        if ( ! (getOperand() instanceof ColumnReference))
+            return false;
 
-		ColumnReference cr = (ColumnReference) operand;
-		FromTable ft = (FromTable) optTable;
+        ColumnReference cr = (ColumnReference) getOperand();
+        FromTable ft = (FromTable) optTable;
 
-		return cr.getTableNumber()==ft.getTableNumber();
-	}
+        return cr.getTableNumber()==ft.getTableNumber();
+    }
 
-	@Override
-	public int getOrderableVariantType(Optimizable optTable)  throws StandardException {
-		return operand.getOrderableVariantType();
-	}
+    @Override
+    public int getOrderableVariantType(Optimizable optTable)  throws StandardException {
+        return getOperand().getOrderableVariantType();
+    }
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		return getOperandCost() + SIMPLE_OP_COST;
-	}
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return super.getBaseOperationCost() + SIMPLE_OP_COST;
+    }
 }

@@ -632,7 +632,7 @@ public interface Property {
      * Externally visible.
      */
     String	LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
-    int		LANG_SPS_CACHE_SIZE_DEFAULT =32;
+    int		LANG_SPS_CACHE_SIZE_DEFAULT =256;
 
     /**
      * The size of the sequence generator cache
@@ -1477,6 +1477,8 @@ public interface Property {
      */
     String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
 
+    String SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice.function.secondCompatibilityMode";
+
     String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
     String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
@@ -1491,6 +1493,11 @@ public interface Property {
      */
     String CONNECTION_SCHEMA = "schema";
     String CONNECTION_CURRENT_SCHEMA = "currentSchema";
+
+    /**
+     * Current Function Path property
+     */
+    String CURRENT_FUNCTION_PATH = "CurrentFunctionPath";
 
     /**
      * True force Spark execution for this session; false forces Control execution for this connection
@@ -1512,6 +1519,11 @@ public interface Property {
      * Default selectivity factor for this connection
      */
     String CONNECTION_DEFAULT_SELECTIVITY_FACTOR = "defaultSelectivityFactor";
+
+    /**
+     * minPlanTimeout for this connection
+     */
+    String CONNECTION_MIN_PLAN_TIMEOUT = "minPlanTimeout";
 
     /**
      * Default Olap queue name for this connection

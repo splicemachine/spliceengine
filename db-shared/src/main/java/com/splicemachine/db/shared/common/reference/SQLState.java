@@ -737,6 +737,7 @@ public interface SQLState {
     String LANG_INVALID_ESCAPE_CHARACTER                               = "22019";
     String LANG_INVALID_TRIM_CHARACTER                                 = "22020";
     String LANG_INVALID_CHARACTER_ENCODING                             = "22021";
+    String LANG_INVALID_TRANSLATE_PADDING             = "22022";
     String LANG_INVALID_ESCAPE_SEQUENCE                                = "22025";
     String LANG_INVALID_TRIM_SET                                       = "22027";
     String LANG_STRING_TOO_LONG                                        = "22028";
@@ -985,7 +986,7 @@ public interface SQLState {
     String LANG_NO_SUCH_FUNCTION                                       = "42Y03.S.2";
     String LANG_INVALID_FULL_STATIC_METHOD_NAME                        = "42Y04";
     String LANG_NO_SUCH_FOREIGN_KEY                                    = "42Y05";
-    //String LANG_METHOD_ALIAS_NOT_FOUND                                 = "42Y06";
+    String LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST                = "42Y06";
     String LANG_SCHEMA_DOES_NOT_EXIST                                  = "42Y07";
     String LANG_NO_FK_ON_SYSTEM_SCHEMA                                 = "42Y08";
     String LANG_VOID_METHOD_CALL                                       = "42Y09";
@@ -1032,7 +1033,7 @@ public interface SQLState {
     String LANG_INVALID_FORCED_INDEX2                                  = "42Y48";
     String LANG_DUPLICATE_PROPERTY                                     = "42Y49";
     String LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED              = "42Y50";
-//    String LANG_INVALID_FORCED_INDEX4                                  = "42Y51";
+    String LANG_INVALID_MIN_PLAN_TIMEOUT                                   = "42Y51";
     String LANG_INVALID_FORCED_SKIPSTATS                              = "42Y52";
     String LANG_INVALID_SPLITS                                         = "42Y53";
     String LANG_INVALID_SELECTIVITY                                    = "42Y54";
@@ -1150,7 +1151,7 @@ public interface SQLState {
     String LANG_SHARE_ROW                                               = "42Z88.U";
 
     // MORE GENERIC LANGUAGE STUFF
-    // String LANG_UPDATABLE_VTI_BAD_GETRESULTSETCONCURRENCY          = "42Z89";
+    String LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA           = "42Z89";
     String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS            = "42Z90";
     String LANG_SUBQUERY                                  = "42Z91";
     String LANG_REPEATABLE_READ                           = "42Z92";

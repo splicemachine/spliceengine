@@ -750,6 +750,13 @@ class SQLGrammarImpl {
     ValueNode getTrimOperatorNode(Integer trimSpec, ValueNode trimChar,
                                           ValueNode trimSource, ContextManager cm) throws StandardException
     {
+        return getTrimOperatorNode(trimSpec, trimChar, trimSource, false, cm);
+    }
+
+    ValueNode getTrimOperatorNode(Integer trimSpec, ValueNode trimChar,
+                                  ValueNode trimSource, boolean forDB2RTrim,
+                                  ContextManager cm) throws StandardException
+    {
         if (trimChar == null)
         {
             trimChar = (CharConstantNode) nodeFactory.getNode(
@@ -757,12 +764,13 @@ class SQLGrammarImpl {
                     " ",
                     getContextManager());
         }
+        final int trimType = forDB2RTrim ? TernaryOperatorNode.DB2RTRIM : TernaryOperatorNode.TRIM;
         return new TernaryOperatorNode(
                 C_NodeTypes.TRIM_OPERATOR_NODE,
                 trimSource, // receiver
                 trimChar,   // leftOperand.
                 null, // right
-                ReuseFactory.getInteger(TernaryOperatorNode.TRIM),
+                ReuseFactory.getInteger(trimType),
                 trimSpec,
                 cm == null ? getContextManager() : cm);
     }
@@ -1181,8 +1189,9 @@ class SQLGrammarImpl {
                                                 Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList,
+                                                FromTable likeTable,
                                                 Integer createBehavior) throws StandardException {
-        // NOT LOGGED is allways true
+        // NOT LOGGED is always true
         // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
         assert declareTableClauses.length == 3;
         if (declareTableClauses[1] == null) {
@@ -1196,15 +1205,16 @@ class SQLGrammarImpl {
             // ON ROLLBACK DELETE ROWS is not supported
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "ROLLBACK");
         } else {
-            // set it to TRUE anyway. too much expects is to be so dispite it never working
+            // set it to TRUE anyway. too much expects is to be so despite it never working
             declareTableClauses[2] = Boolean.TRUE;
         }
-        return (StatementNode) nodeFactory.getNode(
-                C_NodeTypes.CREATE_TABLE_NODE,
+
+        return new CreateTableNode(
                 tableName,
                 createBehavior,
                 tableElementList,
-                (Properties)null,
+                likeTable,
+                null,
                 (Boolean) declareTableClauses[1],
                 (Boolean) declareTableClauses[2],
                 getContextManager());

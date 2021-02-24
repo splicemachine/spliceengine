@@ -61,6 +61,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.SQLWarning;
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.DataSetProcessorType.*;
+
 /**
  *
  * CompilerContextImpl, implementation of CompilerContext.
@@ -134,7 +136,7 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
         defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+        dataSetProcessorType = DEFAULT_OLTP;
         sparkExecutionType = SparkExecutionType.UNSPECIFIED;
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
@@ -306,6 +308,10 @@ public class CompilerContextImpl extends ContextImpl
         timestampFormat = value;
     }
 
+    public void setSecondFunctionCompatibilityMode(String value) {
+        secondFunctionCompatibilityMode = value;
+    }
+
     public void setFloatingPointNotation(int value)
     {
         floatingPointNotation = value;
@@ -317,6 +323,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public String getTimestampFormat() {
         return timestampFormat;
+    }
+
+    public String getSecondFunctionCompatibilityMode() {
+        return secondFunctionCompatibilityMode;
     }
 
     public int getFloatingPointNotation() {
@@ -1197,6 +1207,7 @@ public class CompilerContextImpl extends ContextImpl
 
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
+    private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;
@@ -1236,7 +1247,8 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap requiredUsagePrivileges;
     private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+    private DataSetProcessorType dataSetProcessorType = DEFAULT_OLTP;
+    private boolean compilingTrigger = false;
 
     public SparkExecutionType getSparkExecutionType() {
         return sparkExecutionType;
@@ -1255,6 +1267,14 @@ public class CompilerContextImpl extends ContextImpl
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
+        if (compilingTrigger) {
+            // Session hints should not affect how stored trigger
+            // code is executed, because we do not recompile triggers
+            // when a query with a different session hint is issued.
+            if (dataSetProcessorType == SESSION_HINTED_OLAP ||
+                dataSetProcessorType == SESSION_HINTED_OLTP)
+                return DEFAULT_OLTP;
+        }
         return dataSetProcessorType;
     }
 
@@ -1267,4 +1287,15 @@ public class CompilerContextImpl extends ContextImpl
     public Vector<Integer> getSkipStatsTableList() {
         return skipStatsTableList;
     }
+
+    @Override
+    public boolean compilingTrigger() {
+        return compilingTrigger;
+    }
+
+    @Override
+    public void setCompilingTrigger(boolean newVal) {
+        compilingTrigger = newVal;
+    }
+
 } // end of class CompilerContextImpl

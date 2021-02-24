@@ -73,30 +73,30 @@ import java.util.GregorianCalendar;
  */
 
 public final class SQLDate extends DataType
-						implements DateTimeDataValue
+                        implements DateTimeDataValue
 {
 
-	/**
-	 +     * The JodaTime has problems with all the years before 1884
-	 +     */
+    /**
+     +     * The JodaTime has problems with all the years before 1884
+     +     */
 
-	public static final ThreadLocal<GregorianCalendar> GREGORIAN_CALENDAR =
-			new ThreadLocal<GregorianCalendar>() {
-				@Override
-				protected GregorianCalendar initialValue() {
-					return new GregorianCalendar();
-				}
-			};
+    public static final ThreadLocal<GregorianCalendar> GREGORIAN_CALENDAR =
+            new ThreadLocal<GregorianCalendar>() {
+                @Override
+                protected GregorianCalendar initialValue() {
+                    return new GregorianCalendar();
+                }
+            };
 
-	private int	encodedDate;	//year << 16 + month << 8 + day
+    private int    encodedDate;    //year << 16 + month << 8 + day
 
-	private int stringFormat = ISO;
+    private int stringFormat = ISO;
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDate.class);
 
-	private static boolean skipDBContext = false;
+    private static boolean skipDBContext = false;
 
-	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
+    public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
     public int estimateMemoryUsage()
     {
@@ -108,75 +108,75 @@ public final class SQLDate extends DataType
         return encodedDate;
     }
 
-	// Try to make modern dates close to the year 2020 take up less space.
-	// Subtracting this value from a disk-encoded date allows us to use
-	// 1 or 2 bytes for dates around year 2020 plus or minus 15 years,
-	// vs. 3 or 4 bytes.
-	public static final int DATE_ENCODING_OFFSET = 0xFC800;
+    // Try to make modern dates close to the year 2020 take up less space.
+    // Subtracting this value from a disk-encoded date allows us to use
+    // 1 or 2 bytes for dates around year 2020 plus or minus 15 years,
+    // vs. 3 or 4 bytes.
+    public static final int DATE_ENCODING_OFFSET = 0xFC800;
 
-	public int getDiskEncodedDate()
-	{
-		return (getYear(encodedDate)  << 9)  +
-		       (getMonth(encodedDate) << 5)  +
-		        getDay(encodedDate)          -
-		       DATE_ENCODING_OFFSET;
-	}
+    public int getDiskEncodedDate()
+    {
+        return (getYear(encodedDate)  << 9)  +
+               (getMonth(encodedDate) << 5)  +
+                getDay(encodedDate)          -
+               DATE_ENCODING_OFFSET;
+    }
 
-	@Override
-	public void setStringFormat(int format) {
-		stringFormat = format;
-	}
+    @Override
+    public void setStringFormat(int format) {
+        stringFormat = format;
+    }
 
-	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+    /*
+    ** DataValueDescriptor interface
+    ** (mostly implemented in DataType)
+    */
 
-	public String getString() throws StandardException
-	{
-		// default format is [yyy]y-mm-dd e.g. 1-01-01, 9999-99-99
-		if (!isNull()) {
-			return encodedDateToString(encodedDate, stringFormat);
-		} else {
-			return null;
-		}
-	}
+    public String getString() throws StandardException
+    {
+        // default format is [yyy]y-mm-dd e.g. 1-01-01, 9999-99-99
+        if (!isNull()) {
+            return encodedDateToString(encodedDate, stringFormat);
+        } else {
+            return null;
+        }
+    }
 
-	/**
-		getTimestamp returns a timestamp with the date value 
-		time is set to 00:00:00.0
-	*/
-	public Timestamp getTimestamp( Calendar cal) 
-	{
-		if (isNull())
-		{
-			return null;
-		}
+    /**
+        getTimestamp returns a timestamp with the date value
+        time is set to 00:00:00.0
+    */
+    public Timestamp getTimestamp( Calendar cal)
+    {
+        if (isNull())
+        {
+            return null;
+        }
         
         return new Timestamp(getTimeInMillis(cal));
     }
 
 
-	/**
-	 * The JodaTime has problems with all the years before 1884
-	 */
-	public static final long JODA_CRUSH_YEAR = 1884;
+    /**
+     * The JodaTime has problems with all the years before 1884
+     */
+    public static final long JODA_CRUSH_YEAR = 1884;
 
 
     /**
      * Convert the date into a milli-seconds since the epoch
      * with the time set to 00:00 based upon the passed in Calendar.
      */
-	private long getTimeInMillis(Calendar cal) {
-		if (cal == null){
-			cal = GREGORIAN_CALENDAR.get();
-		}
-		cal.clear();
-		SQLDate.setDateInCalendar(cal,encodedDate);
-		int year = getYear(encodedDate);
-		cal.set(year,getMonth(encodedDate)-1,getDay(encodedDate));
-		return cal.getTimeInMillis();
-	}
+    private long getTimeInMillis(Calendar cal) {
+        if (cal == null){
+            cal = GREGORIAN_CALENDAR.get();
+        }
+        cal.clear();
+        SQLDate.setDateInCalendar(cal,encodedDate);
+        int year = getYear(encodedDate);
+        cal.set(year,getMonth(encodedDate)-1,getDay(encodedDate));
+        return cal.getTimeInMillis();
+    }
     
     /**
      * Set the date portion of a date-time value into
@@ -192,234 +192,234 @@ public final class SQLDate extends DataType
                 getMonth(encodedDate)-1, getDay(encodedDate));     
     }
     
-	/**
-		getObject returns the date value
+    /**
+        getObject returns the date value
 
-	 */
-	public Object getObject()
-	{
-		return getDate( (Calendar) null);
-	}
-		
-	public int getLength()
-	{
-		return 4;
-	}
+     */
+    public Object getObject()
+    {
+        return getDate( (Calendar) null);
+    }
 
-	/* this is for DataType's error generator */
-	public String getTypeName()
-	{
-		return "DATE";
-	}
+    public int getLength()
+    {
+        return 4;
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /* this is for DataType's error generator */
+    public String getTypeName()
+    {
+        return "DATE";
+    }
 
-	/**
-		Return my format identifier.
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_DATE_ID;
-	}
+    /**
+        Return my format identifier.
 
-	/** 
-		@exception IOException error writing data
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_DATE_ID;
+    }
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeInt(encodedDate);
-	}
+    /**
+        @exception IOException error writing data
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException {
-		isNull = in.readBoolean();
-		setValue(in.readInt());
-	}
+    */
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+        out.writeInt(encodedDate);
+    }
 
-	public void readExternalFromArray(ArrayInputStream in) throws IOException
-	{
-		setValue(in.readInt());
-	}
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on error reading the object
+     */
+    public void readExternal(ObjectInput in) throws IOException {
+        isNull = in.readBoolean();
+        setValue(in.readInt());
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    public void readExternalFromArray(ArrayInputStream in) throws IOException
+    {
+        setValue(in.readInt());
+    }
 
-	/** @see DataValueDescriptor#cloneValue */
-	public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		// Call constructor with all of our info
-		SQLDate local = null;
-		try {
-			local = new SQLDate(encodedDate);
-		} catch (StandardException se) {
-			throw new RuntimeException(se);
-		}
-		return local;
-	}
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLDate();
-	}
-	/**
-	 * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
-	 *
-	 */
+    /** @see DataValueDescriptor#cloneValue */
+    public DataValueDescriptor cloneValue(boolean forceMaterialization)
+    {
+        // Call constructor with all of our info
+        SQLDate local = null;
+        try {
+            local = new SQLDate(encodedDate);
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
+        return local;
+    }
 
-	public void restoreToNull()
-	{
-		// clear encodedDate
-		encodedDate = 0;
-		isNull = true;
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLDate();
+    }
+    /**
+     * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
+     *
+     */
 
-	}
+    public void restoreToNull()
+    {
+        // clear encodedDate
+        encodedDate = 0;
+        isNull = true;
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    }
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 * @exception SQLException		Thrown on error
-	 */
-	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-		throws SQLException, StandardException
-	{
+    /*
+     * DataValueDescriptor interface
+     */
+
+    /**
+     * @see DataValueDescriptor#setValueFromResultSet
+     *
+     * @exception SQLException        Thrown on error
+     */
+    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+        throws SQLException, StandardException
+    {
         setValue(resultSet.getDate(colNumber), (Calendar) null);
-	}
+    }
 
-	/**
-	 * Orderable interface
-	 *
-	 *
-	 * @see com.splicemachine.db.iapi.types.Orderable
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	@SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
-	public int compare(DataValueDescriptor other)
-		throws StandardException
-	{
-		/* Use compare method from dominant type, negating result
-		 * to reflect flipping of sides.
-		 */
-		if (typePrecedence() < other.typePrecedence())
-		{
-			return - (other.compare(this));
-		}
+    /**
+     * Orderable interface
+     *
+     *
+     * @see com.splicemachine.db.iapi.types.Orderable
+     *
+     * @exception StandardException thrown on failure
+     */
+    @SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
+    public int compare(DataValueDescriptor other)
+        throws StandardException
+    {
+        /* Use compare method from dominant type, negating result
+         * to reflect flipping of sides.
+         */
+        if (typePrecedence() < other.typePrecedence())
+        {
+            return - (other.compare(this));
+        }
 
 
-		boolean thisNull, otherNull;
+        boolean thisNull, otherNull;
 
-		thisNull = this.isNull();
-		otherNull = other.isNull();
+        thisNull = this.isNull();
+        otherNull = other.isNull();
 
-		/*
-		 * thisNull otherNull	return
-		 *	T		T		 	0	(this == other)
-		 *	F		T		 	-1 	(this < other)
-		 *	T		F		 	1	(this > other)
-		 */
-		if (thisNull || otherNull)
-		{
-			if (!thisNull)		// otherNull must be true
-				return -1;
-			if (!otherNull)		// thisNull must be true
-				return 1;
-			return 0;
-		}
+        /*
+         * thisNull otherNull    return
+         *    T        T             0    (this == other)
+         *    F        T             -1     (this < other)
+         *    T        F             1    (this > other)
+         */
+        if (thisNull || otherNull)
+        {
+            if (!thisNull)        // otherNull must be true
+                return -1;
+            if (!otherNull)        // thisNull must be true
+                return 1;
+            return 0;
+        }
 
-		/*
-			Neither are null compare them 
-		 */
+        /*
+            Neither are null compare them
+         */
 
-		int comparison;
-		/* get the comparison date values */
-		int otherVal = 0;
+        int comparison;
+        /* get the comparison date values */
+        int otherVal = 0;
 
-		/* if the argument is another SQLDate
-		 * get the encodedDate
-		 */
-		if (other instanceof SQLDate)
-		{
-			otherVal = ((SQLDate)other).encodedDate; 
-		}
-		else 
-		{
-			/* O.K. have to do it the hard way and calculate the numeric value
-			 * from the value
-			 */
-			otherVal = SQLDate.computeEncodedDate(other.getDate(GREGORIAN_CALENDAR.get()));
-		}
-		if (encodedDate > otherVal)
-			comparison = 1;
-		else if (encodedDate < otherVal)
-			comparison = -1;
-		else 
-			comparison = 0;
+        /* if the argument is another SQLDate
+         * get the encodedDate
+         */
+        if (other instanceof SQLDate)
+        {
+            otherVal = ((SQLDate)other).encodedDate;
+        }
+        else
+        {
+            /* O.K. have to do it the hard way and calculate the numeric value
+             * from the value
+             */
+            otherVal = SQLDate.computeEncodedDate(other.getDate(GREGORIAN_CALENDAR.get()));
+        }
+        if (encodedDate > otherVal)
+            comparison = 1;
+        else if (encodedDate < otherVal)
+            comparison = -1;
+        else
+            comparison = 0;
 
-		return comparison;
-	}
+        return comparison;
+    }
 
-	/**
-		@exception StandardException thrown on error
-	 */
-	public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV)
-		throws StandardException
-	{
-		if (!orderedNulls)		// nulls are unordered
-		{
-			if (this.isNull() || other.isNull())
-				return unknownRV;
-		}
+    /**
+        @exception StandardException thrown on error
+     */
+    public boolean compare(int op,
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV)
+        throws StandardException
+    {
+        if (!orderedNulls)        // nulls are unordered
+        {
+            if (this.isNull() || other.isNull())
+                return unknownRV;
+        }
 
-		/* Do the comparison */
-		return super.compare(op, other, orderedNulls, unknownRV);
-	}
+        /* Do the comparison */
+        return super.compare(op, other, orderedNulls, unknownRV);
+    }
 
-	/*
-	** Class interface
-	*/
+    /*
+    ** Class interface
+    */
 
-	/*
-	** Constructors
-	*/
+    /*
+    ** Constructors
+    */
 
-	/** no-arg constructor required by Formattable */
-	public SQLDate() {
-	}
+    /** no-arg constructor required by Formattable */
+    public SQLDate() {
+    }
 
-	public SQLDate(Date value) throws StandardException
-	{
-		parseDate(value);
-	}
+    public SQLDate(Date value) throws StandardException
+    {
+        parseDate(value);
+    }
     
     private void parseDate( java.util.Date value) throws StandardException
-	{
-		setValue(computeEncodedDate(value));
-	}
+    {
+        setValue(computeEncodedDate(value));
+    }
 
-	public SQLDate(int encodedDate) throws StandardException
-	{
-		setValue(encodedDate);
-	}
+    public SQLDate(int encodedDate) throws StandardException
+    {
+        setValue(encodedDate);
+    }
 
     /**
      * Construct a date from a string. The allowed date formats are:
@@ -558,90 +558,90 @@ public final class SQLDate extends DataType
         }
     } // end of parseDate
 
-	/**
-	 * Set the value from a correctly typed Date object.
-	 * @throws StandardException 
-	 */
-	void setObject(Object theValue) throws StandardException
-	{
-		setValue((Date) theValue);
-	}
+    /**
+     * Set the value from a correctly typed Date object.
+     * @throws StandardException
+     */
+    void setObject(Object theValue) throws StandardException
+    {
+        setValue((Date) theValue);
+    }
 
-	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
-		// Same format means same type SQLDate
-		if (theValue instanceof SQLDate) {
-			restoreToNull();
-			setValue(((SQLDate) theValue).encodedDate);
-		}
+    protected void setFrom(DataValueDescriptor theValue) throws StandardException {
+        // Same format means same type SQLDate
+        if (theValue instanceof SQLDate) {
+            restoreToNull();
+            setValue(((SQLDate) theValue).encodedDate);
+        }
         else
         {
-			//setValue(theValue.getDateTime());  // uses JodaTime which cannot handle old age
-			setValue(theValue.getString());      // uses JodaTime for new age and Calendar for old age
+            //setValue(theValue.getDateTime());  // uses JodaTime which cannot handle old age
+            setValue(theValue.getString());      // uses JodaTime for new age and Calendar for old age
         }
-	}
+    }
 
-	/**
-		@see DateTimeDataValue#setValue
+    /**
+        @see DateTimeDataValue#setValue
 
-	 */
-	public void setValue(Date value, Calendar cal)
-		throws StandardException
-	{
-		restoreToNull();
-		encodedDate = computeEncodedDate((java.util.Date) value, cal);
-		isNull = evaluateNull();
-	}
+     */
+    public void setValue(Date value, Calendar cal)
+        throws StandardException
+    {
+        restoreToNull();
+        encodedDate = computeEncodedDate((java.util.Date) value, cal);
+        isNull = evaluateNull();
+    }
 
-	/**
-		@see DateTimeDataValue#setValue
+    /**
+        @see DateTimeDataValue#setValue
 
-	 */
-	public void setValue(Timestamp value, Calendar cal)
-		throws StandardException
-	{
-		restoreToNull();
-		encodedDate = computeEncodedDate((java.util.Date) value, cal);
-		isNull = evaluateNull();
-	}
-	
-	public void setValue(DateTime value)
-		throws StandardException
-	{
-		restoreToNull();		
-		encodedDate = computeEncodedDate(value.getYear(),
-						value.getMonthOfYear(),
-						value.getDayOfMonth());
-		isNull = evaluateNull();
-	}
+     */
+    public void setValue(Timestamp value, Calendar cal)
+        throws StandardException
+    {
+        restoreToNull();
+        encodedDate = computeEncodedDate((java.util.Date) value, cal);
+        isNull = evaluateNull();
+    }
 
-	public void setValue(int value)
-	{
-		encodedDate = value;
-		isNull = evaluateNull();
-	}
+    public void setValue(DateTime value)
+        throws StandardException
+    {
+        restoreToNull();
+        encodedDate = computeEncodedDate(value.getYear(),
+                        value.getMonthOfYear(),
+                        value.getDayOfMonth());
+        isNull = evaluateNull();
+    }
+
+    public void setValue(int value)
+    {
+        encodedDate = value;
+        isNull = evaluateNull();
+    }
 
 
-	public void setValue(String theValue) throws StandardException {
-		setValue(theValue, null);
-	}
+    public void setValue(String theValue) throws StandardException {
+        setValue(theValue, null);
+    }
 
-	/*
-	** SQL Operators
-	*/
+    /*
+    ** SQL Operators
+    */
 
     NumberDataValue nullValueInt() {
         return new SQLInteger();
     }
 
     
-	/**
-	 * @see DateTimeDataValue#getYear
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getYear(NumberDataValue result)
+    /**
+     * @see DateTimeDataValue#getYear
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getYear(NumberDataValue result)
         throws StandardException
-	{
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
@@ -649,54 +649,54 @@ public final class SQLDate extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getQuarter
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getQuarter(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getQuarter
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getQuarter(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {
             return SQLDate.setSource(getQuarter(encodedDate), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getMonth
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getMonth(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getMonth
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getMonth(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {
             return SQLDate.setSource(getMonth(encodedDate), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getMonthName
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public StringDataValue getMonthName(StringDataValue result)
-							throws StandardException {
+    /**
+     * @see DateTimeDataValue#getMonthName
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public StringDataValue getMonthName(StringDataValue result)
+                            throws StandardException {
         if (isNull()) {
             return new SQLVarchar();
         } else {
             return  SQLDate.setSource(getMonthName(encodedDate), result);
         }
-	}
+    }
 
     /**
      * @see DateTimeDataValue#getWeek
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getWeek(NumberDataValue result)
         throws StandardException {
@@ -710,7 +710,7 @@ public final class SQLDate extends DataType
     /**
      * @see DateTimeDataValue#getWeekDay
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getWeekDay(NumberDataValue result)
         throws StandardException {
@@ -721,24 +721,38 @@ public final class SQLDate extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getWeekDayName
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public StringDataValue getWeekDayName(StringDataValue result)
-							throws StandardException {
+    /**
+     * @see DateTimeDataValue#getWeekDay
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getUSWeekDay(NumberDataValue result)
+            throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getUSWeekDay(encodedDate), result);
+        }
+    }
+
+    /**
+     * @see DateTimeDataValue#getWeekDayName
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public StringDataValue getWeekDayName(StringDataValue result)
+                            throws StandardException {
         if (isNull()) {
             return new SQLVarchar();
         } else {
             return  SQLDate.setSource(getWeekDayName(encodedDate), result);
         }
-	}
+    }
 
     /**
      * @see DateTimeDataValue#getDayOfYear
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getDayOfYear(NumberDataValue result)
         throws StandardException {
@@ -749,120 +763,159 @@ public final class SQLDate extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getDate
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getDate(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getDate
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getDate(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {
             return SQLDate.setSource(getDay(encodedDate), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getHours
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getHours(NumberDataValue result)
-							throws StandardException
-	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getHours", "Date");
-	}
+    /**
+     * @see DateTimeDataValue#getDays
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getDays(NumberDataValue result)
+            throws StandardException
+    {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getDays(encodedDate), result);
+        }
+    }
 
-	/**
-	 * @see DateTimeDataValue#getMinutes
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getMinutes(NumberDataValue result)
-							throws StandardException
-	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getMinutes", "Date");
-	}
+    /**
+     * @see DateTimeDataValue#getHours
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getHours(NumberDataValue result)
+                            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "getHours", "Date");
+    }
 
-	/**
-	 * @see DateTimeDataValue#getSeconds
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getSeconds(NumberDataValue result)
-							throws StandardException
-	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getSeconds", "Date");
-	}
+    /**
+     * @see DateTimeDataValue#getMinutes
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getMinutes(NumberDataValue result)
+                            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "getMinutes", "Date");
+    }
 
-	/*
-	** String display of value
-	*/
+    /**
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
+                            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                        "getSecondsAndFractionOfSecondAsDouble", "Date");
+    }
 
-	public String toString()
-	{
-		if (isNull())
-		{
-			return "NULL";
-		}
-		else
-		{
-			return getDate( (Calendar) null).toString();
-		}
-	}
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAsInt", "Date");
+    }
 
-	/*
-	 * Hash code
-	 */
-	public int hashCode()
-	{
-		return encodedDate;
-	}
+    /**
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getSecondsAndFractionOfSecondAsDecimal", "Date");
+    }
 
-	/** @see DataValueDescriptor#typePrecedence */
-	public int	typePrecedence()
-	{
-		return TypeId.DATE_PRECEDENCE;
-	}
+    /*
+     ** String display of value
+    */
 
-	/**
-	 * Check if the value is null.  
-	 * encodedDate is 0 if the value is null
-	 *
-	 * @return Whether or not value is logically null.
-	 */
-	private boolean evaluateNull()
-	{
-		return (encodedDate == 0);
-	}
+    public String toString()
+    {
+        if (isNull())
+        {
+            return "NULL";
+        }
+        else
+        {
+            return getDate( (Calendar) null).toString();
+        }
+    }
 
-	/**
-	 * Get the value field.  We instantiate the field
-	 * on demand.
-	 *
-	 * @return	The value field.
-	 */
-	public Date getDate( Calendar cal)
-	{
+    /*
+     * Hash code
+     */
+    public int hashCode()
+    {
+        return encodedDate;
+    }
+
+    /** @see DataValueDescriptor#typePrecedence */
+    public int    typePrecedence()
+    {
+        return TypeId.DATE_PRECEDENCE;
+    }
+
+    /**
+     * Check if the value is null.
+     * encodedDate is 0 if the value is null
+     *
+     * @return Whether or not value is logically null.
+     */
+    private boolean evaluateNull()
+    {
+        return (encodedDate == 0);
+    }
+
+    /**
+     * Get the value field.  We instantiate the field
+     * on demand.
+     *
+     * @return    The value field.
+     */
+    public Date getDate( Calendar cal)
+    {
         if (isNull())
             return null;
-		if (cal == null) {
-			cal = GREGORIAN_CALENDAR.get();
-		}
-		cal.clear();
-		SQLDate.setDateInCalendar(cal, encodedDate);
-		return Date.valueOf(java.time.LocalDate.of(
-				cal.get(Calendar.YEAR),
-				cal.get(Calendar.MONTH)+1,
-				cal.get(Calendar.DAY_OF_MONTH)));
-	}
-	
-	
+        if (cal == null) {
+            cal = GREGORIAN_CALENDAR.get();
+        }
+        cal.clear();
+        SQLDate.setDateInCalendar(cal, encodedDate);
+        return Date.valueOf(java.time.LocalDate.of(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH)+1,
+                cal.get(Calendar.DAY_OF_MONTH)));
+    }
+
+
     /**
      * Get date from a SQLChar.
      *
@@ -871,88 +924,99 @@ public final class SQLDate extends DataType
      * @exception StandardException thrown on failure to convert
      **/
     public DateTime getDateTime() throws StandardException {
-    	return new DateTime(getTimeInMillis(null));
+        return new DateTime(getTimeInMillis(null));
     }    
 
-	/**
-	 * Get the year from the encodedDate.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			year value.
-	 */
-	static int getYear(int encodedDate)
-	{
-		return (encodedDate >>> 16);
-	}
+    /**
+     * Get the year from the encodedDate.
+     *
+     * @param encodedDate    the encoded date
+     * @return                 year value.
+     */
+    static int getYear(int encodedDate)
+    {
+        return (encodedDate >>> 16);
+    }
 
-	/**
-	 * Get the quarter from the encodedDate,
+    /**
+     * Get the quarter from the encodedDate,
      * January through March is one, April through June is two, etc.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			month value.
-	 */
-	static int getQuarter(int encodedDate)
-	{
-		return ((getMonth(encodedDate)-1)/3+1);
-	}
+     *
+     * @param encodedDate    the encoded date
+     * @return                 month value.
+     */
+    static int getQuarter(int encodedDate)
+    {
+        return ((getMonth(encodedDate)-1)/3+1);
+    }
 
-	/**
-	 * Get the month from the encodedDate,
+    /**
+     * Get the month from the encodedDate,
      * January is one.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			month value.
-	 */
-	static int getMonth(int encodedDate)
-	{
-		return ((encodedDate >>> 8) & 0x00ff);
-	}
+     *
+     * @param encodedDate    the encoded date
+     * @return                 month value.
+     */
+    static int getMonth(int encodedDate)
+    {
+        return ((encodedDate >>> 8) & 0x00ff);
+    }
 
-	/**
-	 * Get the month name from the encodedDate,
+    /**
+     * Get the month name from the encodedDate,
      * 'January' ,'February', etc.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			month name.
-	 */
-	static String getMonthName(int encodedDate) {
+     *
+     * @param encodedDate    the encoded date
+     * @return                 month name.
+     */
+    static String getMonthName(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.monthOfYear().getAsText();
     }
 
-	/**
-	 * Get the week of year from the encodedDate,
+    /**
+     * Get the week of year from the encodedDate,
      * 1-52.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			week day name.
-	 */
-	static int getWeek(int encodedDate) {
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static int getWeek(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.weekOfWeekyear().get();
     }
 
-	/**
-	 * Get the day of week from the encodedDate,
-     * 1-7.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			week day name.
-	 */
-	static int getWeekDay(int encodedDate) {
+    /**
+     * Get the day of week from the encodedDate,
+     * 1-7. Monday is the first day of the week
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static int getWeekDay(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.dayOfWeek().get();
     }
 
-	/**
-	 * Get the week day name from the encodedDate,
+    /**
+     * Get the day of week from the encodedDate,
+     * 1-7. Sunday is the first day of the week
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static int getUSWeekDay(int encodedDate) {
+        return getWeekDay(encodedDate) % 7 + 1;
+    }
+
+    /**
+     * Get the week day name from the encodedDate,
      * 'Monday' ,'Tuesday', etc.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			week day name.
-	 */
-	static String getWeekDayName(int encodedDate) {
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static String getWeekDayName(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.dayOfWeek().getAsText();
     }
@@ -961,44 +1025,57 @@ public final class SQLDate extends DataType
      * Get the day of year from the encodedDate,
      * 1-366.
      *
-     * @param encodedDate	the encoded date
-     * @return	 			week day name.
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
      */
     static int getDayOfYear(int encodedDate) {
         LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
         return date.dayOfYear().get();
     }
 
-	/**
-	 * Get the day from the encodedDate.
-	 *
-	 * @param encodedDate	the encoded date
-	 * @return	 			day value.
-	 */
-	static int getDay(int encodedDate)
-	{
-		return (encodedDate & 0x00ff);
-	}
-	/**
-	 *	computeEncodedDate extracts the year, month and date from
-	 *	a Calendar value and encodes them as
-	 *		year << 16 + month << 8 + date
-	 *	Use this function will help to remember to add 1 to month
-	 *  which is 0 based in the Calendar class
-	 *	@param cal	the Calendar 
-	 *	@return 		the encodedDate
+    /**
+     * Get the number of days since January 1, 0001 from the encodedDate,
+     *
+     *
+     * @param encodedDate    the encoded date
+     * @return                 week day name.
+     */
+    static long getDays(int encodedDate) {
+        LocalDate origin = new LocalDate(1, 1, 1);
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return Days.daysBetween(origin, date).getDays() + 1;
+    }
+
+    /**
+     * Get the day from the encodedDate.
+     *
+     * @param encodedDate    the encoded date
+     * @return                 day value.
+     */
+    static int getDay(int encodedDate)
+    {
+        return (encodedDate & 0x00ff);
+    }
+    /**
+     *    computeEncodedDate extracts the year, month and date from
+     *    a Calendar value and encodes them as
+     *        year << 16 + month << 8 + date
+     *    Use this function will help to remember to add 1 to month
+     *  which is 0 based in the Calendar class
+     *    @param cal    the Calendar
+     *    @return         the encodedDate
      *
      *  @exception StandardException if the value is out of the DB2 date range
-	 */
-	static int computeEncodedDate(Calendar cal) throws StandardException
-	{
-		if (cal.get(Calendar.ERA) == GregorianCalendar.BC)
-			throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+     */
+    static int computeEncodedDate(Calendar cal) throws StandardException
+    {
+        if (cal.get(Calendar.ERA) == GregorianCalendar.BC)
+            throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
 
-		return computeEncodedDate(cal.get(Calendar.YEAR),
+        return computeEncodedDate(cal.get(Calendar.YEAR),
                                   cal.get(Calendar.MONTH) + 1,
                                   cal.get(Calendar.DATE));
-	}
+    }
 
     static int computeEncodedDate( int y, int m, int d) throws StandardException
     {
@@ -1017,7 +1094,7 @@ public final class SQLDate extends DataType
             maxDay = ((y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0)) ? 29 : 28;
             break;
         default:
-        	break;
+            break;
         }
         if( y < 1 || y > 9999
             || m < 1 || m > 12
@@ -1028,20 +1105,20 @@ public final class SQLDate extends DataType
     }
 
     private static void yearToString(int year, StringBuffer sb) {
-		String yearStr = Integer.toString(year);
-		for(int i = yearStr.length(); i < 4; i++) {
-			sb.append('0');
-		}
-		sb.append(yearStr);
-	}
+        String yearStr = Integer.toString(year);
+        for(int i = yearStr.length(); i < 4; i++) {
+            sb.append('0');
+        }
+        sb.append(yearStr);
+    }
 
-	private static void monthOrDayToString(int monthOrDay, StringBuffer sb) {
-		String valStr = Integer.toString(monthOrDay);
-		if (valStr.length() == 1) {
-			sb.append('0');
-		}
-		sb.append(valStr);
-	}
+    private static void monthOrDayToString(int monthOrDay, StringBuffer sb) {
+        String valStr = Integer.toString(monthOrDay);
+        if (valStr.length() == 1) {
+            sb.append('0');
+        }
+        sb.append(valStr);
+    }
 
     /**
      * Convert a date to the JDBC representation and append it to a string buffer.
@@ -1053,123 +1130,142 @@ public final class SQLDate extends DataType
      */
     static void dateToString(int year, int month, int day, int format, StringBuffer sb) throws StandardException
     {
-    	switch (format) {
-			case ISO:
-			case JIS:
-				// yyyy-mm-dd
-				yearToString(year, sb);
-				sb.append(ISO_SEPARATOR);
-				monthOrDayToString(month, sb);
-				sb.append(ISO_SEPARATOR);
-				monthOrDayToString(day, sb);
-				break;
-			case USA:
-				// mm/dd/yyyy
-				monthOrDayToString(month, sb);
-				sb.append(IBM_USA_SEPARATOR);
-				monthOrDayToString(day, sb);
-				sb.append(IBM_USA_SEPARATOR);
-				yearToString(year, sb);
-				break;
-			case EUR:
-				// dd.mm.yyyy
-				monthOrDayToString(day, sb);
-				sb.append(IBM_EUR_SEPARATOR);
-				monthOrDayToString(month, sb);
-				sb.append(IBM_EUR_SEPARATOR);
-				yearToString(year, sb);
-				break;
-			case LOCAL:
-			default:
-				throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "date");
-		}
+        switch (format) {
+            case ISO:
+            case JIS:
+                // yyyy-mm-dd
+                yearToString(year, sb);
+                sb.append(ISO_SEPARATOR);
+                monthOrDayToString(month, sb);
+                sb.append(ISO_SEPARATOR);
+                monthOrDayToString(day, sb);
+                break;
+            case USA:
+                // mm/dd/yyyy
+                monthOrDayToString(month, sb);
+                sb.append(IBM_USA_SEPARATOR);
+                monthOrDayToString(day, sb);
+                sb.append(IBM_USA_SEPARATOR);
+                yearToString(year, sb);
+                break;
+            case EUR:
+                // dd.mm.yyyy
+                monthOrDayToString(day, sb);
+                sb.append(IBM_EUR_SEPARATOR);
+                monthOrDayToString(month, sb);
+                sb.append(IBM_EUR_SEPARATOR);
+                yearToString(year, sb);
+                break;
+            case LOCAL:
+            default:
+                throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "date");
+        }
     } // end of dateToString
     
-	/**
-	 * Get the String version from the encodedDate.
-	 *
-	 * @return	 string value.
-	 */
-	static String encodedDateToString(int encodedDate, int format) throws StandardException
-	{
-		StringBuffer vstr = new StringBuffer();
+    /**
+     * Get the String version from the encodedDate.
+     *
+     * @return     string value.
+     */
+    static String encodedDateToString(int encodedDate, int format) throws StandardException
+    {
+        StringBuffer vstr = new StringBuffer();
         dateToString(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), format, vstr);
-		return vstr.toString();
-	}
+        return vstr.toString();
+    }
 
-	/**
-		This helper routine tests the nullability of various parameters
-		and sets up the result appropriately.
+    /**
+        This helper routine tests the nullability of various parameters
+        and sets up the result appropriately.
 
-		If source is null, a new NumberDataValue is built. 
+        If source is null, a new NumberDataValue is built.
 
-		@exception StandardException	Thrown on error
-	 */
-	static NumberDataValue setSource(int value,
-										NumberDataValue source)
-									throws StandardException {
-		/*
-		** NOTE: Most extract operations return int, so the generation of
-		** a SQLInteger is here.  Those extract operations that return
-		** something other than int must allocate the source NumberDataValue
-		** themselves, so that we do not allocate a SQLInteger here.
-		*/
-		if (source == null)
-			source = new SQLInteger();
+        @exception StandardException    Thrown on error
+     */
+    static NumberDataValue setSource(int value,
+                                        NumberDataValue source)
+                                    throws StandardException {
+        /*
+        ** NOTE: Most extract operations return int, so the generation of
+        ** a SQLInteger is here.  Those extract operations that return
+        ** something other than int must allocate the source NumberDataValue
+        ** themselves, so that we do not allocate a SQLInteger here.
+        */
+        if (source == null)
+            source = new SQLInteger();
 
-		source.setValue(value);
+        source.setValue(value);
 
-		return source;
-	}
+        return source;
+    }
 
-	/**
-		This helper routine tests the nullability of various parameters
-		and sets up the result appropriately.
+    /**
+     This helper routine tests the nullability of various parameters
+     and sets up the result appropriately.
 
-		If source is null, a new SQLVarchar is built.
+     If source is null, a new NumberDataValue is built.
 
-		@exception StandardException	Thrown on error
-	 */
-	static StringDataValue setSource(String value,
+     @exception StandardException    Thrown on error
+     */
+    static NumberDataValue setSource(long value,
+                                     NumberDataValue source)
+            throws StandardException {
+        if (source == null)
+            source = new SQLLongint();
+
+        source.setValue(value);
+
+        return source;
+    }
+
+    /**
+     This helper routine tests the nullability of various parameters
+        and sets up the result appropriately.
+
+        If source is null, a new SQLVarchar is built.
+
+        @exception StandardException    Thrown on error
+     */
+    static StringDataValue setSource(String value,
                                 StringDataValue source)
-									throws StandardException {
-		if (source == null)
-			source = new SQLChar();
+                                    throws StandardException {
+        if (source == null)
+            source = new SQLChar();
 
-		source.setValue(value);
+        source.setValue(value);
 
-		return source;
-	}
+        return source;
+    }
 
-	/**
+    /**
      * Compute the encoded date given a date
-	 *
-	 */
-	public static int computeEncodedDate(java.util.Date value) throws StandardException
-	{
+     *
+     */
+    public static int computeEncodedDate(java.util.Date value) throws StandardException
+    {
         return computeEncodedDate( value, null);
     }
 
     static int computeEncodedDate(java.util.Date value, Calendar currentCal) throws StandardException
     {
-		if (value == null)
-			return 0;			//encoded dates have a 0 value for null
-		
-		int result;
-		
+        if (value == null)
+            return 0;            //encoded dates have a 0 value for null
+
+        int result;
+
         if( currentCal == null){
-			currentCal=GREGORIAN_CALENDAR.get();
-		}
-		currentCal.setTime(value);
-		result = SQLDate.computeEncodedDate(currentCal);
+            currentCal=GREGORIAN_CALENDAR.get();
+        }
+        currentCal.setTime(value);
+        result = SQLDate.computeEncodedDate(currentCal);
 
         return result;
-	}
+    }
     
     static int computeEncodedDate(DateTime dateTime) throws StandardException
     {
-    	return computeEncodedDate(dateTime.getYear(), dateTime.getMonthOfYear(), dateTime.getDayOfMonth());
-    	
+        return computeEncodedDate(dateTime.getYear(), dateTime.getMonthOfYear(), dateTime.getDayOfMonth());
+
     }
 
 
@@ -1204,7 +1300,7 @@ public final class SQLDate extends DataType
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
                                                           operand.getString(), "date");
                 Calendar cal = new GregorianCalendar( 1970, 0, 1, 12, 0, 0);
-				cal.add(Calendar.DATE, daysSinceEpoch - 1);
+                cal.add(Calendar.DATE, daysSinceEpoch - 1);
                 return new SQLDate( computeEncodedDate( cal.get( Calendar.YEAR),
                                                         cal.get( Calendar.MONTH) + 1,
                                                         cal.get( Calendar.DATE)));
@@ -1303,95 +1399,95 @@ public final class SQLDate extends DataType
 
     @Override
     public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
-		if( returnValue == null)
-			returnValue = new SQLDate();
-		if( isNull() || daysToAdd.isNull())
-		{
-			returnValue.restoreToNull();
-			return returnValue;
-		}
-		DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
-		returnValue.setValue(dateAdd);
-		return returnValue;
-	}
+        if( returnValue == null)
+            returnValue = new SQLDate();
+        if( isNull() || daysToAdd.isNull())
+        {
+            returnValue.restoreToNull();
+            return returnValue;
+        }
+        DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
+        returnValue.setValue(dateAdd);
+        return returnValue;
+    }
 
     @Override
     public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
-		if( returnValue == null)
-			returnValue = new SQLDate();
-		if(leftOperand.isNull() || daysToSubtract.isNull()) {
-			returnValue.restoreToNull();
-			return returnValue;
-		}
-		DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
-		returnValue.setValue(diff);
-		return returnValue;
-	}
+        if( returnValue == null)
+            returnValue = new SQLDate();
+        if(leftOperand.isNull() || daysToSubtract.isNull()) {
+            returnValue.restoreToNull();
+            return returnValue;
+        }
+        DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
+        returnValue.setValue(diff);
+        return returnValue;
+    }
 
     @Override
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
-		if( returnValue == null)
-			returnValue = new SQLInteger();
-		if(leftOperand.isNull() || rightOperand.isNull()) {
-			returnValue.restoreToNull();
-			return returnValue;
-		}
-		DateTime thatDate = rightOperand.getDateTime();
-		Days diff = Days.daysBetween(thatDate, leftOperand.getDateTime());
-		returnValue.setValue(diff.getDays());
-		return returnValue;
-	}
-
-	@Override
-	public void setValue(String theValue,Calendar cal) throws StandardException{
-		restoreToNull();
-
-		if (theValue != null)
-		{
-			DatabaseContext databaseContext = (skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID));
-			parseDate( theValue,
-					false,
-					(databaseContext == null) ? null : databaseContext.getDatabase(),
-					cal);
-		}
-		isNull = evaluateNull();
-	}
-
-	public Format getFormat() {
-    	return Format.DATE;
+        if( returnValue == null)
+            returnValue = new SQLInteger();
+        if(leftOperand.isNull() || rightOperand.isNull()) {
+            returnValue.restoreToNull();
+            return returnValue;
+        }
+        DateTime thatDate = rightOperand.getDateTime();
+        Days diff = Days.daysBetween(thatDate, leftOperand.getDateTime());
+        returnValue.setValue(diff.getDays());
+        return returnValue;
     }
 
-	@Override
-	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
-			setToNull();
-		else {
-			java.time.LocalDate localeDate = row.getDate(ordinal).toLocalDate();
-			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
-			isNull = false;
-		}
-	}
+    @Override
+    public void setValue(String theValue,Calendar cal) throws StandardException{
+        restoreToNull();
 
-	@Override
-	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.DateType, true);
-	}
+        if (theValue != null)
+        {
+            DatabaseContext databaseContext = (skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID));
+            parseDate( theValue,
+                    false,
+                    (databaseContext == null) ? null : databaseContext.getDatabase(),
+                    cal);
+        }
+        isNull = evaluateNull();
+    }
+
+    public Format getFormat() {
+        return Format.DATE;
+    }
+
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            java.time.LocalDate localeDate = row.getDate(ordinal).toLocalDate();
+            encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
+            isNull = false;
+        }
+    }
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.DateType, true);
+    }
 
 
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(encodedDate);
-	}
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        updateSketch.update(encodedDate);
+    }
 
-	@Override
-	public void setSparkObject(Object sparkObject) throws StandardException {
-		if (sparkObject == null)
-			setToNull();
-		else {
-			java.time.LocalDate localeDate = ((Date)sparkObject).toLocalDate();
-			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
-			setIsNull(false);
-		}
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            java.time.LocalDate localeDate = ((Date)sparkObject).toLocalDate();
+            encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
+            setIsNull(false);
+        }
 
-	}
+    }
 
 }

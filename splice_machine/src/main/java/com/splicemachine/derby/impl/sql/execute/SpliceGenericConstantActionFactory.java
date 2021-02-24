@@ -149,12 +149,6 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 timestampFormat, dateFormat,timeFormat,exprTexts,exprBytecode,generatedClassNames,properties);
     }
 
-    @Override
-    public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl,boolean enable,boolean unconditionallyEnforce,Object[] ddlList){
-        SpliceLogUtils.trace(LOG,"getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
-        return new SetConstraintsConstantOperation(cdl,enable,unconditionallyEnforce);
-    }
-
 
     @Override
     public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,

@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -56,6 +57,8 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.TABLE_ELEMENT_LIST;
+
 /**
  * A TableElementList represents the list of columns and other table elements
  * such as constraints in a CREATE TABLE or ALTER TABLE statement.
@@ -65,6 +68,11 @@ import java.util.*;
 public class TableElementList extends QueryTreeNodeVector {
     private int                numColumns;
     private TableDescriptor td;
+
+    public TableElementList(ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(TABLE_ELEMENT_LIST);
+    }
 
     /**
      * Add a TableElementNode to this TableElementList
@@ -1021,8 +1029,8 @@ public class TableElementList extends QueryTreeNodeVector {
     /**
      * Fill in the ConstraintConstantAction[] for this create/alter table.
      *
-     * @param forCreateTable ConstraintConstantAction is for a create table.
-     * @param conActions    The ConstraintConstantAction[] to be filled in.
+     * @param forCreateTable ConstantAction is for a create table.
+     * @param conActions    The ConstantAction[] to be filled in.
      * @param tableName        The name of the Table being created.
      * @param tableSd        The schema for that table.
      * @param dd            The DataDictionary
