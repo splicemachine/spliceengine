@@ -148,8 +148,6 @@ public class Trigger_Performance_IT extends SpliceUnitTest {
                 "--splice-properties useSpark=" + useSpark + "\n")) {
             }
         }
-        else  // Only test Spark, the target of the performance fix.
-            return;
         long startTime = System.currentTimeMillis();
         methodWatcher.execute("insert into targetTable --splice-properties useSpark=" + useSpark +
                               "\n select * from sourceTable");
