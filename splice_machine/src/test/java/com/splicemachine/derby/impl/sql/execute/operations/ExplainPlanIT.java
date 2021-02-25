@@ -16,7 +16,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -170,6 +169,10 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         new TableCreator(conn)
                 .withCreate("create table t6 (a6 int, b6 int, c6 int)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 int, b7 int, c7 int)")
                 .create();
     }
 
@@ -825,5 +828,48 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
             Assert.assertTrue(explainStr.contains("ScrollInsensitive"));
         }
+    }
+
+    private long cacheTime(String query) throws SQLException {
+        try(ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_CACHED_STATEMENTS()")) {
+            while(rs.next()) {
+                if(rs.getString(2).equals(query)) {
+                    return rs.getTimestamp(3).getTime();
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void testCachingExplainStatementInternal(String statement, String explainPrefix) throws Exception {
+        Assume.assumeFalse(isMemPlatform(methodWatcher));
+        methodWatcher.execute("call syscs_util.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+        String explainQuery = explainPrefix + statement;
+        methodWatcher.execute(explainQuery);
+        long cacheTime = cacheTime(statement);
+        Assert.assertTrue(cacheTime > 0);
+        methodWatcher.execute(statement);
+        long cacheTimeAfterExecution = cacheTime(statement);
+        Assert.assertEquals("statement cached by explain was recompiled!", cacheTime, cacheTimeAfterExecution);
+    }
+
+    @Test
+    public void testCachingExplainStatementDifferentStatements() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
+        testCachingExplainStatementInternal("select * from t7", "explain ");
+        testCachingExplainStatementInternal("select * from t7 where a7 > 1", "explain ");
+        testCachingExplainStatementInternal("update t7 set a7 = 40 where a7 = 42", "explain ");
+        testCachingExplainStatementInternal("select * from t7 --splice-properties useOlap=false", "explain ");
+        testCachingExplainStatementInternal("select * from t7 --splice-properties useOlap=true", "explain ");
+    }
+
+    @Test
+    public void testCachingExplainStatementDifferentExplainPrefix() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
+        testCachingExplainStatementInternal("select * from t7", "explain \n\n\t ");
+        testCachingExplainStatementInternal("select * from t7", "ExpLain \t   \n");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain \n\n\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain   \n\n\n\nexclude  no \t\t\t   statistics   \n\t\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain exclude no statistics\t\t\t\t\t");
     }
 }
