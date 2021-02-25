@@ -16,6 +16,7 @@ package com.splicemachine.authentication;
 
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 
 import com.splicemachine.db.authentication.UserAuthenticator;
@@ -77,9 +78,9 @@ public class JNDIAuthenticationService
 
 		return (authenticationProvider != null) &&
 				(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-						Property.AUTHENTICATION_PROVIDER_LDAP) ||
+						PropertyHelper.AUTHENTICATION_PROVIDER_LDAP) ||
 				StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-						Property.AUTHENTICATION_PROVIDER_KERBEROS));
+						PropertyHelper.AUTHENTICATION_PROVIDER_KERBEROS));
 
     }
 
@@ -111,10 +112,6 @@ public class JNDIAuthenticationService
 		// Set ourselves as being ready and loading the proper
 		// authentication scheme for this service
 		UserAuthenticator aJNDIAuthscheme;
-
-		String authenticationProvider = PropertyUtil.getPropertyFromSet(
-				properties,
-				Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
 		// we're dealing with LDAP
 		aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
