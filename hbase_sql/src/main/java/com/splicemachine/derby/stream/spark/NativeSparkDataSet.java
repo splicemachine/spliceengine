@@ -15,9 +15,9 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import splice.com.google.common.base.Function;
-import splice.com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
@@ -41,12 +41,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.scheduler.*;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerJobStart;
+import org.apache.spark.scheduler.SparkListenerTaskEnd;
+import org.apache.spark.scheduler.StageInfo;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
 import scala.collection.JavaConverters;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -205,7 +211,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(OperationContext context) {
+    public DataSet<V> distinct(OperationContext context) throws StandardException {
         return distinct("Remove Duplicates", false, context, false, null);
     }
 
@@ -218,11 +224,46 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
+        String varcharDB2CompatibilityModeString =
+                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            Dataset<Row> result = dataset.distinct();
+            // Do not replace string columns using rtrimmed columns but add them as extra columns.
+            // After distinct, for each group, we need to return a row originally in that group, not
+            // a row with rtrimmed values.
+            List<String> compColNames = new ArrayList<>();
+            List<String> extraColNames = new ArrayList<>();
+            List<Column> extraColumns = new ArrayList<>();
+            if (varcharDB2CompatibilityMode) {
+                List<String> strColNames = new ArrayList<>();
+                Tuple2<String, String>[] colTypes = dataset.dtypes();
+                for (Tuple2<String, String> colType : colTypes) {
+                    if (colType._2().equals("StringType")) {
+                        strColNames.add(colType._1());
+                    } else {
+                        compColNames.add(colType._1());
+                    }
+                }
+                for (String colName : strColNames) {
+                    String newColName = colName+"_rtrimmed";
+                    compColNames.add(newColName);
+                    extraColNames.add(newColName);
+                    extraColumns.add(rtrim(col(colName)));
+                }
+                dataset = NativeSparkUtils.withColumns(extraColNames, extraColumns, dataset);
+            }
 
+            Dataset<Row> result;
+            if (compColNames.isEmpty()) {
+                result = dataset.distinct();
+            } else {
+                result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
+            }
+            if (!extraColNames.isEmpty()) {
+                result = result.drop(extraColNames.toArray(new String[0]));
+            }
             return new NativeSparkDataSet<>(result, context);
         } finally {
             if (pushScope) context.popScope();
