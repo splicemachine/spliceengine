@@ -97,9 +97,10 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
 
         // Merge joins involving the target of an UPDATE or DELETE can be slow on Spark
         // because the input splits for a table which is getting frequently updated
-        // are currently not calculated accurately, leading to uneven splits.
+        // are currently not calculated accurately (DB-7642), leading to uneven splits.
         // It is safer to pick a join which will repartition the tables into multiple even
         // partitions such as MergeSortJoin.
+        // TODO: Remove this code once DB-7642 is fixed.
         if (optimizer.isForSpark() && !wasHinted && joinHasTargetTable(innerTable, optimizer))
             return false;
 
