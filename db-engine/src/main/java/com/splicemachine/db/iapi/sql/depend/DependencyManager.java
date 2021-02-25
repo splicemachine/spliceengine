@@ -352,6 +352,8 @@ public interface DependencyManager {
 
     int DROP_UDT = 50;
     int DROP_AGGREGATE = 51;
+
+    int SPSPROPERTY_CHANGE = 52;
     
     /**
      * Extensions to this interface may use action codes > MAX_ACTION_CODE without fear of

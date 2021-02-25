@@ -48,6 +48,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -75,7 +76,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -1290,15 +1290,28 @@ public class SpliceAdmin extends BaseAdminProcedures{
             PropertyInfo.setDatabaseProperty(key, value);
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            // we need to invalidate the statement caches since we could set parameters that affect query plans.
-            SYSCS_INVALIDATE_STORED_STATEMENTS();
-            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
+            invalidateSpsProperty(key);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
             throw new SQLException(e);
         }
+    }
 
+    private static void invalidateSpsProperty(final String key) throws SQLException {
+        try {
+            SPSProperty p = SPSProperty.getSPSPropertyFor(key);
+            if(p == null) {
+                return; // property is not an SPSProperty.
+            }
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            lcc.getDataDictionary().getDependencyManager().invalidateFor(p, DependencyManager.SPSPROPERTY_CHANGE, lcc);
+            // check invalidating remote as well.
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
     }
 
     public static void SYSCS_ENABLE_ENTERPRISE(final String value) throws SQLException{

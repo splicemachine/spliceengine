@@ -854,6 +854,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             case DependencyManager.UPDATE_STATISTICS:
             case DependencyManager.DROP_STATISTICS:
             case DependencyManager.TRUNCATE_TABLE:
+            case DependencyManager.SPSPROPERTY_CHANGE:
                 /*
                 ** If we are already invalid, don't write ourselves
                 ** out.  Just to be safe, we'll send out an invalidate
@@ -867,7 +868,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                 dm.invalidateFor(this, DependencyManager.USER_RECOMPILE_REQUEST, lcc);
                 break;
             case DependencyManager.DROP_SPS:
-                //System.out.println("SPSD " + preparedStatement);
                 dm.clearDependencies(lcc, this);
                 break;
 
