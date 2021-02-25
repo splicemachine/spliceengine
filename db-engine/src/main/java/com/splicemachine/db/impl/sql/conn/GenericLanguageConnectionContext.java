@@ -559,6 +559,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         referencedColumnMap = new WeakHashMap<>();
         if (defaultRoles == null)
             defaultRoles = initDefaultRoleSet();
+        setCurrentRoles(defaultRoles);
         SchemaDescriptor sd = initDefaultSchemaDescriptor();
         /*
          * It is possible for Splice's startup sequence to end up in this code on the same thread
@@ -3457,6 +3458,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setCurrentRole(Activation a, String role) {
         getCurrentSQLSessionContext(a).setRole(role);
+    }
+
+    @Override
+    public void setCurrentRoles(List<String> roles) {
+        getCurrentSQLSessionContext().setRoles(roles);
     }
 
     @Override
