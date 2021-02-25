@@ -16,7 +16,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.LongerThanTwoMinutes;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -42,7 +44,7 @@ import static org.junit.Assert.assertEquals;
 
 
 @RunWith(Parameterized.class)
-@Category(LongerThanTwoMinutes.class)
+@Category(value = {LongerThanTwoMinutes.class, HBaseTest.class})
 public class BroadcastJoinIT extends SpliceUnitTest {
 
     private Boolean useSpark;
@@ -78,7 +80,6 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher dr = new SpliceTableWatcher("DR", schemaWatcher.schemaName, "(domname varchar(18), domregel varchar(65), domb# char(36))");
     public static final SpliceTableWatcher x3 = new SpliceTableWatcher("X3", schemaWatcher.schemaName, "(domwliste varchar(1900), loganwber char(8), domb# char(36))");
     public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
-    private static boolean isMemPlatform = false;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
@@ -251,7 +252,6 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     @BeforeClass
     public static void setUpClass() throws Exception{
         conn = classWatcher.getOrCreateConnection();
-        isMemPlatform = isMemPlatform(classWatcher);
     }
 
     public static void createData(Connection conn, String schemaName) throws Exception {
@@ -987,8 +987,6 @@ public class BroadcastJoinIT extends SpliceUnitTest {
 
     @Test
     public void testDisableNestedLoopJoinOnSpark() throws Exception {
-        if (isMemPlatform && useSpark)
-            return;
         String sqlText = "select max(t11.a+1) from\n" +
                             "(select max(a.a) from t11 a\n" +
                             "inner join t22 b --splice-properties useSpark=" + useSpark + "\n" +
