@@ -430,8 +430,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
             //Recompile it to store the latest updates in sys.sysstatements.
-            if (isDRDAConnThread)
-                sps = sps.shallowClone();
             sps.getPreparedStatement(true, lcc);
         }
         // Force recompile before execution if Olap.
