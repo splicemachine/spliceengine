@@ -43,9 +43,12 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
         classWatcher.executeUpdate("create table A(a1 int, a2 int)");
         classWatcher.executeUpdate("create table B(b1 int, b2 int)");
         classWatcher.executeUpdate("create table C(name varchar(20), surname varchar(20))");
+        classWatcher.executeUpdate("create table D(a1 int, a2 varchar(3))");
+        classWatcher.executeUpdate(format("create view VT as select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') AS x(b1 int, b2 varchar(3))", getResourceDirectory() + "int_varchar.csv"));
         classWatcher.executeUpdate("insert into A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
         classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(NULL,NULL)");
         classWatcher.executeUpdate("insert into C values('Jon', 'Snow'),('Eddard', 'Stark'),('Robb', 'Stark'), ('Jon', 'Arryn')");
+        classWatcher.executeUpdate("insert into D values(1,'x11'),(1,'not'),(1,'x14'),(2,'x22'),(404,'x42'),(505,'not')");
     }
 
     @Test
@@ -456,4 +459,38 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testVTISubQFlatten() throws Exception {
+        // D(a1,a2)
+        // V(b1,b2)
+        // (1,'x11'),(1,'not'),(1,'x14'),(2,'x22'),(404,'x42'),(404,'not')
+        String expected =
+                "A1 |A2  |\n" +
+                        "---------\n" +
+                        " 1 |x11 |\n" +
+                        " 1 |x14 |\n" +
+                        " 2 |x22 |";
+        String sql = "select a1,a2 from D\n" +
+                "WHERE (a1,a2) in (select b1,b2 from VT) order by a1";
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                              sql, ZERO_SUBQUERY_NODES, expected);
+
+        sql = "select a1,a2 from D\n" +
+                "WHERE (a1,a2) in (select b1,b2 from VT union select b1, b2 from VT) order by a1";
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                              sql, ONE_SUBQUERY_NODE, expected);
+
+        expected =
+                "A1  |A2  |\n" +
+                        "----------\n" +
+                        " 1  |not |\n" +
+                        "404 |x42 |\n" +
+                        "505 |not |";
+        sql = "select a1,a2 from D\n" +
+                "WHERE (a1,a2) not in (select b1,b2 from VT where b1 < 4) order by a1";
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                              sql, ONE_SUBQUERY_NODE , expected);
+    }
 }
