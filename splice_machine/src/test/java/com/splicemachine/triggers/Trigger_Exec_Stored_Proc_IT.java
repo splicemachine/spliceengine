@@ -39,7 +39,7 @@ import splice.com.google.common.collect.Lists;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
-@Category({SerialTest.class, LongerThanTwoMinutes.class})
+@Category({SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
 
@@ -126,7 +126,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
         try {
-            classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
+            classWatcher.execute(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
         } catch (Exception e) {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
@@ -386,7 +386,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
         if (originalLevel.equals("INFO")) {
             newlevel = "WARN";
         }
-        tb.named("log_level_change").before().insert().on("S").statement().
+        tb.named("log_level_change").after().insert().on("S").statement().
             then("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder', '"+newlevel+"')");
         createTrigger(tb);
 
