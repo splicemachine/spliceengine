@@ -51,9 +51,12 @@ import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSProperty;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyManager;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -65,10 +68,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -839,7 +839,7 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-                setSPSProperties(qt, cc);
+                SPSPropertyManager.addDependency(qt, cc);
                 bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
@@ -952,16 +952,6 @@ public class GenericStatement implements Statement{
 
         dumpParseTree(lcc,qt,true);
         return qt;
-    }
-
-    private void setSPSProperties(StatementNode statementNode, CompilerContext cc) throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor(ValueNode.class);
-        statementNode.accept(v);
-        boolean dependsOnTimestampProperty = v.getList().stream().anyMatch(node -> ((ValueNode)node).getTypeServices() != null && ((ValueNode)node).getTypeServices().getJDBCTypeId() == Types.TIMESTAMP);
-        List<com.splicemachine.db.catalog.UUID> spsProperties = new ArrayList<>(SPSProperty.Property.values().length);
-        if(dependsOnTimestampProperty) {
-            cc.createDependency(SPSProperty.forName(SPSProperty.Property.TimestampFormat));
-        }
     }
 
     private void bindAndOptimize(LanguageConnectionContext lcc,

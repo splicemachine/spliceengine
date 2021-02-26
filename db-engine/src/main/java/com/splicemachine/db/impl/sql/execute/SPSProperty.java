@@ -15,17 +15,12 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static com.splicemachine.db.iapi.reference.Property.SPLICE_TIMESTAMP_FORMAT;
+import java.util.Objects;
 
 /**
  * This class represents a system property that is used internally in an SPS (Stored Procedure Statement), it is used
@@ -34,25 +29,15 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_TIMESTAMP_FORM
  * create an SPSProperty for the timestamp property and add the SPS as Dependent on it, later on, when the user modifies
  * the timestamp format, we use the DependencyManager to invalidate all SPS dependents on that property.
  */
-public class SPSProperty implements Provider {
-
-    public enum Property {
-        TimestampFormat(SPLICE_TIMESTAMP_FORMAT)
-        ;
-
-        private String userPropertyName;
-        Property(String name) {
-            userPropertyName = name;
-        }
-        public String getUserProperty() {
-            return userPropertyName;
-        }
-    }
+public abstract class SPSProperty implements Provider {
 
     final UUID uuid;
     final String name;
 
-    private SPSProperty(UUID uuid, String name) {
+    protected SPSProperty(UUID uuid, String name) {
+        assert name != null;
+        assert uuid != null;
+
         this.uuid = uuid;
         this.name = name;
     }
@@ -82,34 +67,18 @@ public class SPSProperty implements Provider {
         return SPS_PROPERTY;
     }
 
-    private static Map<Property, SPSProperty> propertyMap = new ConcurrentHashMap<>();
+    protected abstract void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException;
 
-    public static SPSProperty forName(Property property) {
-        if(propertyMap.containsKey(property)) {
-            return propertyMap.get(property);
-        }
-        ModuleFactory moduleFactory = Monitor.getMonitor();
-        SanityManager.ASSERT(moduleFactory != null);
-        assert moduleFactory != null; // make Intellij happy
-        UUIDFactory uuidFactory = moduleFactory.getUUIDFactory();
-        SanityManager.ASSERT(uuidFactory != null);
-        assert uuidFactory != null; // make Intellij happy
-        UUID uuid = uuidFactory.createUUID();
-        SPSProperty result = new SPSProperty(uuid, property.getUserProperty());
-        propertyMap.put(property, result);
-        return result;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SPSProperty property = (SPSProperty) o;
+        return name.equals(property.name);
     }
 
-    public static boolean isSpsProperty(String name) {
-        return Arrays.stream(Property.values()).anyMatch(p -> p.userPropertyName.equals(name));
-    }
-
-    public static SPSProperty forName(String propertyName) {
-        if(!isSpsProperty(propertyName)) {
-            return null;
-        }
-        Property p = Arrays.stream(Property.values()).filter(prp -> prp.userPropertyName.equals(propertyName)).findFirst().orElse(null);
-        assert p != null;
-        return forName(p);
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 }

@@ -115,7 +115,7 @@ public class BasicDependencyManager implements DependencyManager {
 		This will be considered to be the default type of
 		dependency, when dependency types show up.
 		<p>
-		Implementations of addDependency should be fast --
+		Implementations of checkAndAddDependency should be fast --
 		performing alot of extra actions to add a dependency would
 		be a detriment.
 
