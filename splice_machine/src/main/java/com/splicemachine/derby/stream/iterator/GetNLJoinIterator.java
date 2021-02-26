@@ -14,11 +14,8 @@
 
 package com.splicemachine.derby.stream.iterator;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
@@ -27,7 +24,6 @@ import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -40,7 +36,6 @@ public abstract class GetNLJoinIterator implements AutoCloseable, Callable<Pair<
     protected ExecRow locatedRow;
     protected Supplier<OperationContext> operationContext;
     protected boolean initialized;
-    protected ContextManager cm;
     private   OperationContext ctx;
     private   ActivationHolder ah;
 
