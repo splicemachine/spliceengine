@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -48,7 +47,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
-import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -63,13 +61,12 @@ import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -111,6 +108,10 @@ public class GenericStatement implements Statement{
         } else {
             this.statementTextTrimed = statementText;
         }
+    }
+
+    public String getStatementText() {
+        return statementTextTrimed;
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
@@ -250,26 +251,6 @@ public class GenericStatement implements Statement{
 
     private static long getCurrentTimeMillis(LanguageConnectionContext lcc){
         return 0;
-    }
-
-    private boolean isExplainStatement(){
-
-        String s=statementText.trim().toUpperCase();
-        if(!s.contains("EXPLAIN")){
-            // If the statement does not contain keyword explain, this is not an explain statement
-            return false;
-        }
-
-        // Strip off all comments before keyword explain
-        while(!s.isEmpty() && s.startsWith("--")){
-            int index=s.indexOf('\n');
-            if(index==-1){
-                index=s.length();
-            }
-            s=s.substring(index+1).trim();
-        }
-
-        return s.startsWith("EXPLAIN");
     }
 
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
@@ -440,49 +421,14 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            if (boundAndOptimizedStatement != null)
+            if (boundAndOptimizedStatement != null) {
                 cc = boundAndOptimizedStatement.getCompilerContext();
-            else {
-                cc = lcc.pushCompilerContext(compilationSchema);
-
-                if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
-                    cc.setScanIsolationLevel(prepareIsolationLevel);
-                }
-
-                // Look for stored statements that are in a system schema
-                // and with a match compilation schema. If so, allow them
-                // to compile using internal SQL constructs.
-                if (internalSQL ||
-                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
-                    cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
-                }
-
-                setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
-                setProjectionPruningEnabled(lcc, cc);
-                setMaxMulticolumnProbeValues(lcc, cc);
-                setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
-                setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
-                setDisablePredicateSimplification(lcc, cc);
-                setNativeSparkAggregationMode(lcc, cc);
-                setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
-                setNewMergeJoin(lcc, cc);
-                setDisableParallelTaskJoinCosting(lcc, cc);
-                setCurrentTimestampPrecision(lcc, cc);
-                setTimestampFormat(lcc, cc);
-                setSecondFunctionCompatibilityMode(lcc, cc);
-                setFloatingPointNotation(lcc, cc);
-                setOuterJoinFlatteningDisabled(lcc, cc);
-
-                if (!cc.isSparkVersionInitialized()) {
-                    setSparkVersion(cc);
-                }
-
-                setSSQFlatteningForUpdateDisabled(lcc, cc);
-                setVarcharDB2CompatibilityMode(lcc, cc);
+            } else {
+                cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
             if (internalSQL)
                 cc.setCompilingTrigger(true);
-            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -511,6 +457,48 @@ public class GenericStatement implements Statement{
             lcc.popStatementContext(statementContext,null);
 
         return preparedStmt;
+    }
+
+    private CompilerContext pushCompilerContext(LanguageConnectionContext lcc,
+                                                boolean internalSQL,
+                                                SchemaDescriptor spsSchema) throws StandardException {
+        CompilerContext cc = lcc.pushCompilerContext(compilationSchema);
+
+        if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
+            cc.setScanIsolationLevel(prepareIsolationLevel);
+        }
+
+        // Look for stored statements that are in a system schema
+        // and with a match compilation schema. If so, allow them
+        // to compile using internal SQL constructs.
+        if (internalSQL ||
+                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
+            cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
+        }
+
+        setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
+        setProjectionPruningEnabled(lcc, cc);
+        setMaxMulticolumnProbeValues(lcc, cc);
+        setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
+        setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
+        setDisablePredicateSimplification(lcc, cc);
+        setNativeSparkAggregationMode(lcc, cc);
+        setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
+        setNewMergeJoin(lcc, cc);
+        setDisableParallelTaskJoinCosting(lcc, cc);
+        setCurrentTimestampPrecision(lcc, cc);
+        setTimestampFormat(lcc, cc);
+        setSecondFunctionCompatibilityMode(lcc, cc);
+        setFloatingPointNotation(lcc, cc);
+        setOuterJoinFlatteningDisabled(lcc, cc);
+
+        if (!cc.isSparkVersionInitialized()) {
+            setSparkVersion(cc);
+        }
+
+        setSSQFlatteningForUpdateDisabled(lcc, cc);
+        setVarcharDB2CompatibilityMode(lcc, cc);
+        return cc;
     }
 
     private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -827,13 +815,15 @@ public class GenericStatement implements Statement{
      * 3. optimize: Perform cost-based optimization
      * 4. generate: Generate the actual byte code to be executed
      */
-    private void fourPhasePrepare(LanguageConnectionContext lcc,
-                                  Object[] paramDefaults,
-                                  long[] timestamps,
-                                  boolean foundInCache,
-                                  CompilerContext cc,
-                                  StatementNode boundAndOptimizedStatement) throws StandardException{
-        lcc.logStartCompiling(getSource());
+    private StatementNode fourPhasePrepare(LanguageConnectionContext lcc,
+                                           Object[] paramDefaults,
+                                           long[] timestamps,
+                                           boolean foundInCache,
+                                           CompilerContext cc,
+                                           StatementNode boundAndOptimizedStatement,
+                                           boolean cacheMe,
+                                           boolean forExplain) throws StandardException{
+       lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
@@ -849,7 +839,7 @@ public class GenericStatement implements Statement{
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
 
-                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
+                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
                 lcc.beginNestedTransaction(true);
@@ -864,11 +854,14 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            if(!forExplain) {
+                generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            }
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
+            return qt;
         } catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
@@ -880,11 +873,69 @@ public class GenericStatement implements Statement{
         }
     }
 
+    private void handleExplainNode(LanguageConnectionContext lcc,
+                                   CompilerContext cc,
+                                   StatementNode statementNode,
+                                   boolean cacheMe) throws StandardException {
+        if (!(statementNode instanceof ExplainNode) || ((ExplainNode)statementNode).isSparkExplain()) {
+            return;
+        }
+
+        ExplainNode explainNode = (ExplainNode)statementNode;
+
+        if(explainNode.getExplainedStatementStart() == -1) {
+            return;
+        }
+
+        String explained = statementText.substring(explainNode.getExplainedStatementStart() + 1).trim();
+
+        GenericStatement queryNode = new GenericStatement(compilationSchema,explained, isForReadOnly /*this could be incorrect with updatableCursors*/, lcc);
+        queryNode.sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
+
+        if(cacheMe) {
+            // similar to ANALYSE statement, EXPLAIN statement will
+            // force invalidate the currently cached statement if it exists
+            // the assumption here is when running EXPLAIN, the user expects
+            // the plan to correspond to what the system currently thinks is
+            // the best plan, retrieving it from the cache instead could be
+            // misleading to say the least.
+            lcc.removeStatement(queryNode);
+
+            // add the statement to the statement cache
+            lcc.lookupStatement(queryNode);
+        }
+
+        // proceed to optimize and generate code for it
+        StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
+
+        // plug back the statement in the EXPLAIN plan, so we can proceed
+        // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
+        // will bypass the underlying node since it is already optimized
+        // and the workflow continues as usual with code generation and
+        // execution returning the expected output of EXPLAIN.
+        // by doing this we achieve two goals:
+        // 1. we cache exactly the same execution plan that EXPLAIN
+        //    reports back to the user.
+        // 2. we only optimize the underlying plan once, guaranteeing
+        //    a what-you-see-is-what-you-get next time we attempt to
+        //    run the same statement (as long as we don't run something
+        //    that invalidates the cache inbetween such as ANALYSE or
+        //    SYSCS_EMPTY_STATEMENT_CACHE.
+        explainNode.setOptimizedPlanRoot(optimizedPlan);
+
+        // calling bind will create new nested transaction.
+        lcc.commitNestedTransaction();
+    }
+
     private StatementNode parse(LanguageConnectionContext lcc,
                                 Object[] paramDefaults,
                                 long[] timestamps,
                                 CompilerContext cc) throws StandardException{
         Parser p=cc.getParser();
+
+        if(preparedStmt == null) {
+            preparedStmt = (GenericStorablePreparedStatement)lcc.lookupStatement(this);
+        }
 
         cc.setCurrentDependent(preparedStmt);
 
@@ -906,14 +957,17 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary) throws StandardException{
-
+                                 DataDictionary dataDictionary,
+                                 CompilerContext cc,
+                                 boolean cacheMe) throws StandardException{
+        // start a nested transaction -- all locks acquired by bind
+        // and optimize will be released when we end the nested
+        // transaction.
+        lcc.beginNestedTransaction(true);
         try{
-            // start a nested transaction -- all locks acquired by bind
-            // and optimize will be released when we end the nested
-            // transaction.
-            lcc.beginNestedTransaction(true);
             dumpParseTree(lcc,qt,false);
+
+            handleExplainNode(lcc, cc, qt, cacheMe);
 
             qt.bindStatement();
             timestamps[2]=getCurrentTimeMillis(lcc);
@@ -924,48 +978,8 @@ public class GenericStatement implements Statement{
 
             dumpBoundTree(lcc,qt);
 
-            //Derby424 - In order to avoid caching select statements referencing
-            // any SESSION schema objects (including statements referencing views
-            // in SESSION schema), we need to do the SESSION schema object check
-            // here.
-            //a specific eg for statement referencing a view in SESSION schema
-            //CREATE TABLE t28A (c28 int)
-            //INSERT INTO t28A VALUES (280),(281)
-            //CREATE VIEW SESSION.t28v1 as select * from t28A
-            //SELECT * from SESSION.t28v1 should show contents of view and we
-            // should not cache this statement because a user can later define
-            // a global temporary table with the same name as the view name.
-            //Following demonstrates that
-            //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
-            //     logged
-            //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
-            //SELECT * from SESSION.t28v1 should show contents of global temporary
-            //table and not the view.  Since this select statement was not cached
-            // earlier, it will be compiled again and will go to global temporary
-            // table to fetch data. This plan will not be cached either because
-            // select statement is using SESSION schema object.
-            //
-            //Following if statement makes sure that if the statement is
-            // referencing SESSION schema objects, then we do not want to cache it.
-            // We will remove the entry that was made into the cache for
-            //this statement at the beginning of the compile phase.
-            //The reason we do this check here rather than later in the compile
-            // phase is because for a view, later on, we loose the information that
-            // it was referencing SESSION schema because the reference
-            //view gets replaced with the actual view definition. Right after
-            // binding, we still have the information on the view and that is why
-            // we do the check here.
-            if(preparedStmt.referencesSessionSchema(qt) || qt.referencesTemporaryTable()){
-                if(foundInCache)
-                    ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-            }
-            /*
-             * If we have an explain statement, then we should remove it from the
-             * cache to prevent future readers from fetching it
-             */
-            if(foundInCache && qt instanceof ExplainNode){
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-            }
+            maintainCacheEntry(lcc, qt, foundInCache);
+
             qt.optimizeStatement();
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
@@ -979,7 +993,58 @@ public class GenericStatement implements Statement{
         }
     }
 
-    public Timestamp generate(LanguageConnectionContext lcc,
+    public void maintainCacheEntry(LanguageConnectionContext lcc,
+                                   StatementNode statementNode,
+                                   boolean foundInCache) throws StandardException {
+        //Derby424 - In order to avoid caching select statements referencing
+        // any SESSION schema objects (including statements referencing views
+        // in SESSION schema), we need to do the SESSION schema object check
+        // here.
+        //a specific eg for statement referencing a view in SESSION schema
+        //CREATE TABLE t28A (c28 int)
+        //INSERT INTO t28A VALUES (280),(281)
+        //CREATE VIEW SESSION.t28v1 as select * from t28A
+        //SELECT * from SESSION.t28v1 should show contents of view and we
+        // should not cache this statement because a user can later define
+        // a global temporary table with the same name as the view name.
+        //Following demonstrates that
+        //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
+        //     logged
+        //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
+        //SELECT * from SESSION.t28v1 should show contents of global temporary
+        //table and not the view.  Since this select statement was not cached
+        // earlier, it will be compiled again and will go to global temporary
+        // table to fetch data. This plan will not be cached either because
+        // select statement is using SESSION schema object.
+        //
+        //Following if statement makes sure that if the statement is
+        // referencing SESSION schema objects, then we do not want to cache it.
+        // We will remove the entry that was made into the cache for
+        //this statement at the beginning of the compile phase.
+        //The reason we do this check here rather than later in the compile
+        // phase is because for a view, later on, we loose the information that
+        // it was referencing SESSION schema because the reference
+        //view gets replaced with the actual view definition. Right after
+        // binding, we still have the information on the view and that is why
+        // we do the check here.
+        if (preparedStmt.referencesSessionSchema(statementNode) || statementNode.referencesTemporaryTable()) {
+            if (foundInCache)
+                lcc.removeStatement(this);
+        }
+        /*
+         * If we have EXPLAIN statement, then we should remove it from the
+         * cache to prevent future readers from fetching it
+         */
+        if (foundInCache && statementNode instanceof ExplainNode) {
+            lcc.removeStatement(this);
+        }
+    }
+
+    /**
+     * Performs code generation for `qt`.
+     * @return the time code generation took in milliseconds.
+     */
+    private Timestamp generate(LanguageConnectionContext lcc,
                                long[] timestamps,
                                CompilerContext cc,
                                StatementNode qt,
@@ -1030,7 +1095,7 @@ public class GenericStatement implements Statement{
             preparedStmt.completeCompile(qt);
             preparedStmt.setCompileTimeWarnings(cc.getWarnings());
 
-        }catch(StandardException e){    // hold it, throw it
+        }catch(StandardException e){
             lcc.commitNestedTransaction();
             throw e;
         }

@@ -18,6 +18,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -108,7 +109,7 @@ public class PropertyConglomerate {
             serviceProperties.put(Property.LOCKS_ESCALATION_THRESHOLD, "500");
             serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
             serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
-            serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
+            serviceProperties.put(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
             serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
             for (Object key: serviceProperties.keySet()) {
                 propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));

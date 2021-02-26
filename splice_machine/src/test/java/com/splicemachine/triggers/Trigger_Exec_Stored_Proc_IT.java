@@ -108,7 +108,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
         classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
-        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
+        classWatcher.execute(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
         classWatcher.executeUpdate(CREATE_PROC);
         classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
         classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);
@@ -126,7 +126,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
         try {
-            classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
+            classWatcher.execute(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
         } catch (Exception e) {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
@@ -386,7 +386,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
         if (originalLevel.equals("INFO")) {
             newlevel = "WARN";
         }
-        tb.named("log_level_change").before().insert().on("S").statement().
+        tb.named("log_level_change").after().insert().on("S").statement().
             then("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder', '"+newlevel+"')");
         createTrigger(tb);
 
