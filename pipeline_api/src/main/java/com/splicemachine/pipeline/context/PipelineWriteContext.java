@@ -35,7 +35,6 @@ import splice.com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * @author Scott Fines
@@ -116,12 +115,12 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         result(put, WriteResult.success());
     }
 
-    Set<KVPair> failed = new HashSet<>();
+    Set<KVPair> failedInFlush = new HashSet<>();
     @Override
     public void result(KVPair put, WriteResult result) {
         resultsMap.put(put, result);
         if(!result.isSuccess()) {
-            failed.add(put);
+            failedInFlush.add(put);
         }
     }
 
@@ -157,43 +156,63 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     int currentStage = 0;
 
+    /**
+     * flush will do the following:
+     *
+     *
+     * totalFailedInFlush = set of all failed nodes so far
+     * for each writeNode in our write nodes: (main loop)
+     *      clear set failedInFlush
+     *      flush and close the writeNode -> failed kvpairs are stored in failedInFlush
+     *      instruct writeNode to do a new writing consisting of a "delete" for kvpairs
+     *          that failed in flush from previous writeNodes (totalFailedInFlush)
+     *      instruct all previous (*) nodes to do a new writing consisting of a "delete" for kvpairs
+     *          from failedInFlush (= mutations that failed in this node)
+     *      add failedInFlush to totalFailedFlush.
+     *
+     *      (*) previous in a sense of we already iterated over them in main loop
+     *
+     *
+     *
+     * maybe we can instruct the writenode to not even write the previously failed rows
+     * IndexWriteHandler/RoutingWriteHandler is not trivial here
+     *
+     * @throws IOException
+     */
     @Override
     public void flush() throws IOException {
         if (env != null)
             env.ensureNetworkOpen();
 
         try {
-            Set<KVPair> totalFailed = new HashSet<>();
-            boolean reversed = false;
+            Set<KVPair> totalFailedInFlush = new HashSet<>();
             List<WriteNode> list = new ArrayList<WriteNode>();
             addChildren(list);
-            if (reversed) {
-                for (int i = list.size() - 1; i >= 0; i--) {
-                    list.get(i).flush();
-                    list.get(i).close();
-                }
-            } else {
-                failed = new HashSet<>();
 
-                for (int i = 0; i < list.size(); i++) {
-                    list.get(i).flush();
-                    list.get(i).close();
 
-                    for (KVPair put : totalFailed)
-                        list.get(i).delete(put);
 
-                    for (KVPair put : failed) {
-                        for (int j = 0; j < i; j++) {
-                            list.get(j).delete(put);
-                        }
-                        totalFailed.add(put);
+            for (int currentIdx = 0; currentIdx < list.size(); currentIdx++) {
+                WriteNode writeNode = list.get(currentIdx);
+                // flush the node
+                failedInFlush.clear();
+                writeNode.flush();
+                writeNode.close();
+
+                // instruct that node to remove entries that have failed in
+                // writers before
+                for (KVPair put : totalFailedInFlush)
+                    writeNode.delete(put);
+
+                for (KVPair put : failedInFlush) {
+                    for (int prev = 0; prev < currentIdx; prev++) {
+                        list.get(prev).delete(put);
                     }
-                    failed = new HashSet<>();
                 }
+                totalFailedInFlush.addAll(failedInFlush);
             }
 
-            if (totalFailed.size() > 0) {
-
+            if (totalFailedInFlush.size() > 0) {
+                // write the deletes
                 for (int i = 0; i < list.size(); i++) {
                     list.get(i).flush();
                     list.get(i).close();
