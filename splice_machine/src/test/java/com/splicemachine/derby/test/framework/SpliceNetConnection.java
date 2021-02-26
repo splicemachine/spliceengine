@@ -137,6 +137,7 @@ public class SpliceNetConnection {
         private String useNativeSpark;
         private String minPlanTimeout;
         private String currentFunctionPath;
+        private String snapshot;
 
         @Override
         public ConnectionBuilder clone() throws CloneNotSupportedException {
@@ -196,6 +197,11 @@ public class SpliceNetConnection {
             return this;
         }
 
+        public ConnectionBuilder snapshot(long snapshot) {
+            this.snapshot = Long.toString(snapshot);
+            return this;
+        }
+
         public Connection build() throws SQLException {
             Properties info = new Properties();
             info.put("user", (user != null ? user : jdbcUser).toUpperCase());
@@ -216,6 +222,8 @@ public class SpliceNetConnection {
                 info.put("minPlanTimeout", minPlanTimeout);
             if (currentFunctionPath != null)
                 info.put("CurrentFunctionPath", currentFunctionPath);
+            if (snapshot != null)
+                info.put("snapshot", snapshot);
             StringBuilder url = new StringBuilder();
             if (host != null || port != null) {
                 url.append(URL_PREFIX);
