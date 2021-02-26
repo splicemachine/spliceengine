@@ -229,13 +229,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
-        if (catalogNum < NUM_CORE)
-            ti=coreInfo[catalogNum];
-        else
-            ti=getNonCoreTI(catalogNum);
-        CatalogRowFactory crf=ti.getCatalogRowFactory();
 
-        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view, viewId).get(viewIndex);
+
+        ColumnDescriptor[] tableViewCds=null;
+        ViewInfoProvider crf = null;
+        if (catalogNum < NUM_CORE) {
+            ti = coreInfo[catalogNum];
+            crf=ti.getCatalogRowFactory();
+        } else if(catalogNum < NUM_NONCORE) {
+            ti = getNonCoreTI(catalogNum);
+            crf=ti.getCatalogRowFactory();
+        } else {
+            crf = getTransientViewColumns(catalogNum);
+        }
+        tableViewCds = crf.getViewColumns(view, viewId).get(viewIndex);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -374,23 +381,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
-        if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
-        }
-        initSystemIndexVariables(ibmConnectionTable);
-        return ibmConnectionTable;
-    }
-
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSIBMADM schema if it does not exists
         if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
             sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, spliceDbDesc, tc);
         }
-
-        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
-        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
 
         createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL");
         createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL_INFO");
@@ -1043,6 +1039,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         for (int i = 0; i < NUM_NONCORE; ++i) {
             // noncoreInfo[x] will be null otherwise
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
             addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
         }
 
@@ -1298,7 +1298,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
-            long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
+            long conglomerateId = tabInfo.getHeapConglomerate();
             if (conglomerateId > 0) {
                 tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
             }
@@ -1401,7 +1405,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
-        faultInTabInfo(ti, tc);
 
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
