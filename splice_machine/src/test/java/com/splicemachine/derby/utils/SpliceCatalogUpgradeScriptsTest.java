@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class SpliceCatalogUpgradeScriptsTest {
     String s1 =
@@ -50,7 +51,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_1933()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 3,1,0, 1933);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
@@ -60,7 +61,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_1987()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 3,2,0, 1987);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
@@ -70,7 +71,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_2000_upgrade_empty()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 4,0,0, 2000);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);

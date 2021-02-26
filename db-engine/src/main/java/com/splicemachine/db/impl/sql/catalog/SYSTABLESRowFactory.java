@@ -381,18 +381,19 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      *                              ISOLATION_REPEATABLE_READ (normal usage)
      *                              or ISOLATION_READ_UNCOMMITTED (corner
      *                              cases) supported for now.
+     * @param tc
      * @throws StandardException thrown on failure
      */
     TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
             DataDictionary dd,
-            int isolationLevel)
+            int isolationLevel, TransactionController tc)
             throws StandardException {
         return buildDescriptorBody(row,
                 parentTupleDescriptor,
                 dd,
-                isolationLevel);
+                isolationLevel, tc);
     }
 
 
@@ -422,7 +423,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 row,
                 parentTupleDescriptor,
                 dd,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ, tc);
     }
 
 
@@ -430,7 +431,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
             DataDictionary dd,
-            int isolationLevel)
+            int isolationLevel, TransactionController tc)
             throws StandardException {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(row.nColumns() == SYSTABLES_COLUMN_COUNT, "Wrong number of columns for a SYSTABLES row");
@@ -494,7 +495,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         schemaUUIDString = col.getString();
         schemaUUID = getUUIDFactory().recreateUUID(schemaUUIDString);
 
-        schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
+        schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, tc);
 
         // If table is temp table, (SESSION) schema will be null
         if (schema == null && (tableTypeEnum == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)) {

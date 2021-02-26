@@ -64,7 +64,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     public static final int SYSSCHEMAS_DATABASEID = 4;
 
 
-    protected static final int SYSSCHEMAS_INDEX1_ID = 0;
+    public static final int SYSSCHEMAS_INDEX1_ID = 0;
     protected static final int SYSSCHEMAS_INDEX1_DATABASEID = 1;
     protected static final int SYSSCHEMAS_INDEX1_SCHEMANAME = 2;
 

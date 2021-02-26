@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
