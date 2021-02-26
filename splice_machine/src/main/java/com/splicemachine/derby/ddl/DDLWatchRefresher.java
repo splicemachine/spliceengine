@@ -56,7 +56,6 @@ public class DDLWatchRefresher{
     private final SqlExceptionFactory exceptionFactory;
     private final TxnSupplier txnSupplier;
 
-
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
                              SqlExceptionFactory exceptionFactory,
@@ -72,6 +71,19 @@ public class DDLWatchRefresher{
         ddlDemarcationPoint = new AtomicReference<>();
     }
 
+    public void initDemarcationPoint() {
+        try {
+            long demarcationPoint = watchChecker.initDemarcationPoint();
+            if (demarcationPoint > 0) {
+                TxnView txn = new LazyTxnView(demarcationPoint,txnSupplier,exceptionFactory);
+                DDLFilter ddlFilter = txController.newDDLFilter(txn);
+                ddlDemarcationPoint.set(ddlFilter);
+            }
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     public Collection<DDLChange> tentativeDDLChanges(){
         return tentativeDDLS.values();
     }
@@ -224,8 +236,9 @@ public class DDLWatchRefresher{
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
                 ddlDemarcationPoint.set(ddlFilter);
+                watchChecker.assignDDLDemarcationPoint(ddlChange.getTxnId());
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.error("Couldn't create ddlFilter", e);
         }
 
