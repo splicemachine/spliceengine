@@ -6532,13 +6532,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 SchemaDescriptor sd = systemSchemaDesc;
-                if (catalogNumber == SYSMONGETCONNECTION_CATALOG_NUM)
-                    sd = sysIBMADMSchemaDesc;
-                else if (isDummy)
+                if (isDummy)
                     sd = sysIBMSchemaDesc;
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                String version = catalogVersions.get(catalogNumber);
                 if (ti != null) {
+                    String version = catalogVersions.get(catalogNumber);
                     makeCatalog(ti, sd, tc, version);
                 }
                 if(isDummy)
@@ -7843,19 +7841,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * (We fault in information about non-core tables as needed.)
      *
      * @param catalogNumber The index into noncoreTable[].
+     * @return the TableInfoImpl that corresponds to the catalogNumber, or null if the catalogNumber
+     *         is invalid.
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
+
+        if(ti == null) { // catalog number is invalid.
+            return null;
+        }
 
         faultInTabInfo(ti);
 
         return ti;
     }
 
+    protected ViewInfoProvider getTransientViewColumns(int catalogNum) {
+        ViewInfoProvider retval = null;
+        if (catalogNum == SYSMONGETCONNECTION_CATALOG_NUM) {
+            retval = new SYSMONGETCONNECTIONViewInfoProvider();
+        }
+        return retval;
+    }
+
     /**
      * returns the tabinfo for a non core system catalog. Input is a
-     * catalogNumber (defined in DataDictionary).
+     * catalogNumber (defined in DataDictionary), or null if the catalogNumber is invalid.
      */
     public TabInfoImpl getNonCoreTIByNumber(int catalogNumber) throws StandardException{
         int nonCoreNum=catalogNumber-NUM_CORE;
@@ -7962,8 +7974,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSREPLICATION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
-                case SYSMONGETCONNECTION_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf, this));
+                case INVALID_CATALOG_NUM:
+                    retval=null;
                     break;
                 case SYSNATURALNUMBERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(luuidFactory,exFactory,dvf,this));
@@ -10171,18 +10183,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     {"ERROR_MESSAGES","com.splicemachine.db.diag.ErrorMessages"},
             };
 
-    private String[][] DIAG_VTI_TABLE_FUNCTION_CLASSES=
+    private String[][] DIAG_VTI_TABLE_FUNCTION_CLASSES         =
             {
                     {"SPACE_TABLE","com.splicemachine.db.diag.SpaceTable"},
                     {"ERROR_LOG_READER","com.splicemachine.db.diag.ErrorLogReader"},
                     {"STATEMENT_DURATION","com.splicemachine.db.diag.StatementDuration"},
                     {"CONTAINED_ROLES","com.splicemachine.db.diag.ContainedRoles"},
             };
+    private String[][] SYSIBM_ADMIN_VTI_TABLE_FUNCTION_CLASSES =
+            {
+                    {SYSMONGETCONNECTIONViewInfoProvider.TABLENAME_STRING,"com.splicemachine.derby.vti.MonGetConnectionVTI"},
+            };
 
     @Override
     public String getVTIClass(TableDescriptor td,boolean asTableFunction) throws StandardException{
-        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
-                td.getSchemaName())){
+        if(isInAdminSchema(td)){
             return getBuiltinVTIClass(td,asTableFunction);
         }else{// see if it's a user-defined table function
             String schemaName=td.getSchemaName();
@@ -10203,6 +10218,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return null;
     }
 
+    private static boolean isInAdminSchema(TableDescriptor td) {
+        return SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())
+               || SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME.equals(td.getSchemaName());
+    }
+
     @Override
     public String getBuiltinVTIClass(TableDescriptor td,boolean asTableFunction) throws StandardException{
         assert td.getTableType()==TableDescriptor.VTI_TYPE:"getVTIClass: invalid table type "+td;
@@ -10210,11 +10230,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* First check to see if this is a system VTI. Note that if no schema was specified then the
          * call to "td.getSchemaName()" will return the current schema.
          */
-        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())){
-            String[][] vtiMappings=asTableFunction?DIAG_VTI_TABLE_FUNCTION_CLASSES:DIAG_VTI_TABLE_CLASSES;
-
-            for(String[] entry : vtiMappings){
-                if(entry[0].equals(td.getDescriptorName()))
+        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())) {
+            String[][] vtiMappings = asTableFunction ? DIAG_VTI_TABLE_FUNCTION_CLASSES : DIAG_VTI_TABLE_CLASSES;
+            for (String[] entry : vtiMappings) {
+                if (entry[0].equals(td.getDescriptorName()))
+                    return entry[1];
+            }
+        }
+        if(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME.equals(td.getSchemaName())) {
+            String[][] vtiMappings = SYSIBM_ADMIN_VTI_TABLE_FUNCTION_CLASSES;
+            for (String[] entry : vtiMappings) {
+                if (entry[0].equals(td.getDescriptorName()))
                     return entry[1];
             }
         }
