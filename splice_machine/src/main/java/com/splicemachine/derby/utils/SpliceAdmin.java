@@ -1290,23 +1290,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
             PropertyInfo.setDatabaseProperty(key, value);
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            invalidateSpsProperty(key);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        }
-    }
-
-    private static void invalidateSpsProperty(final String key) throws SQLException {
-        try {
-            SPSProperty p = SPSProperty.getSPSPropertyFor(key);
-            if(p == null) {
-                return; // property is not an SPSProperty.
-            }
-            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-            lcc.getDataDictionary().getDependencyManager().invalidateFor(p, DependencyManager.SPSPROPERTY_CHANGE, lcc);
-            // check invalidating remote as well.
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {

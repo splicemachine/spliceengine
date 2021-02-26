@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_TIMESTAMP_FORMAT;
 
@@ -81,9 +82,9 @@ public class SPSProperty implements Provider {
         return SPS_PROPERTY;
     }
 
-    private static Map<Property, SPSProperty> propertyMap;
+    private static Map<Property, SPSProperty> propertyMap = new ConcurrentHashMap<>();
 
-    public static SPSProperty getSPSPropertyFor(Property property) {
+    public static SPSProperty forName(Property property) {
         if(propertyMap.containsKey(property)) {
             return propertyMap.get(property);
         }
@@ -103,12 +104,12 @@ public class SPSProperty implements Provider {
         return Arrays.stream(Property.values()).anyMatch(p -> p.userPropertyName.equals(name));
     }
 
-    public static SPSProperty getSPSPropertyFor(String propertyName) {
+    public static SPSProperty forName(String propertyName) {
         if(!isSpsProperty(propertyName)) {
             return null;
         }
-        Property p = Arrays.stream(Property.values()).filter(p -> p.userPropertyName.equals(propertyName)).findFirst().orElse(null);
+        Property p = Arrays.stream(Property.values()).filter(prp -> prp.userPropertyName.equals(propertyName)).findFirst().orElse(null);
         assert p != null;
-        return getSPSPropertyFor(p);
+        return forName(p);
     }
 }

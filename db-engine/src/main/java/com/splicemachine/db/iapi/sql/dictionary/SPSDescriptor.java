@@ -854,7 +854,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             case DependencyManager.UPDATE_STATISTICS:
             case DependencyManager.DROP_STATISTICS:
             case DependencyManager.TRUNCATE_TABLE:
-            case DependencyManager.SPSPROPERTY_CHANGE:
                 /*
                 ** If we are already invalid, don't write ourselves
                 ** out.  Just to be safe, we'll send out an invalidate

@@ -31,9 +31,7 @@
 
 package com.splicemachine.db.impl.sql;
 
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -49,7 +47,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
-import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -68,14 +65,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
@@ -910,10 +903,10 @@ public class GenericStatement implements Statement{
     private void setSPSProperties(StatementNode statementNode, CompilerContext cc) throws StandardException {
         CollectNodesVisitor v = new CollectNodesVisitor(ValueNode.class);
         statementNode.accept(v);
-        boolean dependsOnTimestampProperty = v.getList().stream().anyMatch(node -> ((ValueNode)node).getTypeServices().getJDBCTypeId() == Types.TIMESTAMP);
+        boolean dependsOnTimestampProperty = v.getList().stream().anyMatch(node -> ((ValueNode)node).getTypeServices() != null && ((ValueNode)node).getTypeServices().getJDBCTypeId() == Types.TIMESTAMP);
         List<com.splicemachine.db.catalog.UUID> spsProperties = new ArrayList<>(SPSProperty.Property.values().length);
         if(dependsOnTimestampProperty) {
-            cc.createDependency(SPSProperty.getSPSPropertyFor(SPSProperty.Property.TimestampFormat));
+            cc.createDependency(SPSProperty.forName(SPSProperty.Property.TimestampFormat));
         }
     }
 
