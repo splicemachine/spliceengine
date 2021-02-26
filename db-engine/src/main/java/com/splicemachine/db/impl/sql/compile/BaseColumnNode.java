@@ -173,16 +173,14 @@ public class BaseColumnNode extends ValueNode
      *
      * @return    The variant type for the underlying expression.
      */
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         return Qualifier.SCAN_INVARIANT;
     }
         
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             BaseColumnNode other = (BaseColumnNode)o;

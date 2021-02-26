@@ -32,16 +32,361 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
+import com.splicemachine.db.iapi.types.TypeId;
 
 /**
  * Abstract base-class for the various operator nodes: UnaryOperatorNode,
- * BinaryOperatorNode and TernarnyOperatorNode.
+ * BinaryOperatorNode and TernaryOperatorNode.
  */
-public abstract class OperatorNode extends ValueNode {
+public abstract class OperatorNode extends ValueNode
+{
+    String    operator;
+    String    methodName;
+
+    List<ValueNode> operands;
+    List<String> interfaceTypes;
+
+    String resultInterfaceType;
+
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
+
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "operator: " + operator + "\n" +
+                    "methodName: " + methodName + "\n" +
+                    super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    public String getOperatorString(){
+        return operator;
+    }
+
+    /**
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth        The depth of this node in the tree
+     */
+
+    public void printSubNodes(int depth)
+    {
+        if (SanityManager.DEBUG)
+        {
+            super.printSubNodes(depth);
+            SanityManager.ASSERT(operands != null);
+            for (int i = 0; i < operands.size(); ++i) {
+                ValueNode op = operands.get(i);
+                if (op != null) {
+                    printLabel(depth, "operand " + i + "");
+                    op.treePrint(depth + 1);
+                }
+            }
+        }
+    }
+
+    public void bindOperands(FromList fromList,
+                             SubqueryList subqueryList,
+                             List<AggregateNode>    aggregateVector) throws StandardException
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).bindExpression(fromList, subqueryList, aggregateVector));
+            }
+        }
+    }
+
+
+    /** generate a SQL->Java->SQL conversion tree above the
+     * operands of this Generic Operator Node if needed. Subclasses can override
+     * the default behavior.
+     */
+    public ValueNode genSQLJavaSQLTree() throws StandardException
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0; i < operands.size(); ++i) {
+            TypeId typeId = operands.get(i).getTypeId();
+            if (typeId.userType())
+                operands.set(i, operands.get(i).genSQLJavaSQLTree());
+        }
+
+        return this;
+    }
+
+    /**
+     * Preprocess an expression tree.  We do a number of transformations
+     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
+     * subquery flattening.
+     * NOTE: This is done before the outer ResultSetNode is preprocessed.
+     *
+     * @param    numTables            Number of tables in the DML Statement
+     * @param    outerFromList        FromList from outer query block
+     * @param    outerSubqueryList    SubqueryList from outer query block
+     * @param    outerPredicateList    PredicateList from outer query block
+     *
+     * @return        The modified expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public ValueNode preprocess(int numTables,
+                                FromList outerFromList,
+                                SubqueryList outerSubqueryList,
+                                PredicateList outerPredicateList)
+            throws StandardException
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).preprocess(
+                        numTables,
+                        outerFromList, outerSubqueryList,
+                        outerPredicateList));
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public boolean checkCRLevel(int level){
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream().anyMatch(op -> op != null && op.checkCRLevel(level));
+    }
+
+
+    /**
+     * Remap all ColumnReferences in this tree to be clones of the
+     * underlying expression.
+     *
+     * @return ValueNode            The remapped expression tree.
+     *
+     * @exception StandardException            Thrown on error
+     */
+    public ValueNode remapColumnReferencesToExpressions()
+            throws StandardException
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null) {
+                operands.set(i, operands.get(i).remapColumnReferencesToExpressions());
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Return whether or not this expression tree represents a constant expression.
+     *
+     * @return    Whether or not this expression tree represents a constant expression.
+     */
+    public boolean isConstantExpression()
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream().allMatch(op -> op == null || op.isConstantExpression());
+    }
+
+    /** @see ValueNode#constantExpression */
+    public boolean constantExpression(PredicateList whereClause)
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream().allMatch(op -> op == null || op.constantExpression(whereClause));
+    }
+
+
+    /**
+     * Return the variant type for the underlying expression.
+     * The variant type can be:
+     *        VARIANT                - variant within a scan
+     *                              (method calls and non-static field access)
+     *        SCAN_INVARIANT        - invariant within a scan
+     *                              (column references from outer tables)
+     *        QUERY_INVARIANT        - invariant within the life of a query
+     *        CONSTANT            - immutable
+     *
+     * @return    The variant type for the underlying expression.
+     * @exception StandardException    thrown on error
+     */
+    @Override
+    protected int getOrderableVariantType() throws StandardException {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        int min = Qualifier.CONSTANT;
+        for (ValueNode op : operands) {
+            if (op != null) {
+                min = Math.min(min, op.getOrderableVariantType());
+            }
+        }
+        return min;
+    }
+
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
+     * @param v the visitor
+     */
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null) {
+                operands.set(i, (ValueNode) operands.get(i).accept(v, this));
+            }
+        }
+    }
+
+    private boolean isSignatureEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o))
+            return false;
+        OperatorNode other = (OperatorNode)o;
+        if (methodName == null ^ other.methodName == null)
+            return false;
+        if (methodName != null && !methodName.equals(other.methodName))
+            return false;
+        if (operator == null ^ other.operator == null)
+            return false;
+        if (operator != null && !operator.equals(other.operator))
+            return false;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.size() == other.operands.size();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (!isSignatureEquivalent(o))
+            return false;
+        OperatorNode other = (OperatorNode)o;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0 ; i < operands.size(); ++i) {
+            if (operands.get(i) == null ^ other.operands.get(i) == null)
+                return false;
+            if (operands.get(i) != null && !operands.get(i).isEquivalent(other.operands.get(i)))
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSignatureEquivalent(o))
+            return false;
+        OperatorNode other = (OperatorNode)o;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (int i = 0 ; i < operands.size(); ++i) {
+            if (operands.get(i) == null ^ other.operands.get(i) == null)
+                return false;
+            if (operands.get(i) != null && !operands.get(i).isSemanticallyEquivalent(other.operands.get(i)))
+                return false;
+        }
+        return true;
+    }
+
+
+    public int hashCode() {
+        int hashCode = getBaseHashCode();
+        String op = methodName != null ? methodName : operator;
+        hashCode = 31 * hashCode + op.hashCode();
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (ValueNode operand: operands) {
+            hashCode = 31 * hashCode + (operand == null ? 0 : operand.hashCode());
+        }
+        return hashCode;
+    }
+
+    public List<? extends QueryTreeNode> getChildren() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream().filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.get(index);
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert newValue instanceof ValueNode;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        operands.set(index, (ValueNode) newValue);
+    }
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long cardinality = 0;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        for (ValueNode op : operands) {
+            if (op != null) {
+                cardinality = Math.max(cardinality, op.nonZeroCardinality(numberOfRows));
+            }
+        }
+        return cardinality;
+    }
+
+    @Override
+    public boolean isConstantOrParameterTreeNode() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream().allMatch(op -> op == null || op.isConstantOrParameterTreeNode());
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        double cost = 0.0;
+        for (ValueNode op : operands) {
+            cost += op == null ? 0.0 : op.getBaseOperationCost();
+        }
+        return cost;
+    }
+
 
     /**
      * <p>
@@ -94,5 +439,47 @@ public abstract class OperatorNode extends ValueNode {
         // Read the cached value and push it onto the stack in the method
         // generated for the operator.
         mb.getField(sqlXmlUtil);
+    }
+
+    @Override
+    public int getTableNumber() {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(operands != null);
+        return operands.stream()
+                .filter(op -> op != null && op.getTableNumber() != -1)
+                .findFirst()
+                .map(ValueNode::getTableNumber)
+                .orElse(-1);
+    }
+
+    public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type) throws StandardException {
+        operands.set(operandIndex,
+                (ValueNode) getNodeFactory().getNode(
+                        C_NodeTypes.CAST_NODE,
+                        operands.get(operandIndex),
+                        type,
+                        getContextManager()));
+        ((CastNode) operands.get(operandIndex)).bindCastNodeOnly();
+    }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException
+    {
+        /* Allocate an object for re-use to hold the result of the operator */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null)
+            {
+                operands.get(i).generateExpression(acb, mb);
+                mb.upCast(interfaceTypes.get(i));
+            }
+            else
+            {
+                mb.pushNull(interfaceTypes.get(i));
+            }
+        }
+        mb.getField(field);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
     }
 }

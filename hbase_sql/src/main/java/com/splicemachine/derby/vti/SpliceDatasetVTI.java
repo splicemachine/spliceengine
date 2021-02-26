@@ -67,11 +67,6 @@ public class SpliceDatasetVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
-throw new UnsupportedOperationException();
-    }
-
-    @Override
     public OperationContext getOperationContext() {
         return operationContext;
     }

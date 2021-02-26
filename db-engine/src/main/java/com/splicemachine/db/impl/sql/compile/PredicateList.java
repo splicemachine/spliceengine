@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -3567,6 +3566,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                         MethodBuilder mb,
                                         Optimizable optTable,
                                         boolean absolute) throws StandardException{
+        if (size() == 0) {
+            mb.pushNull("java.lang.String");
+            return;
+        }
         ExpressionClassBuilder acb=(ExpressionClassBuilder)acbi;
 
         String retvalType=ClassName.Qualifier+"[][]";

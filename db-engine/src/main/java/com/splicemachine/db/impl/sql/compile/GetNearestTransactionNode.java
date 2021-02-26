@@ -25,7 +25,7 @@ public class GetNearestTransactionNode extends UnaryOperatorNode {
 
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        TypeId operandType = operand.getTypeId();
+        TypeId operandType = getOperand().getTypeId();
         if (operandType.getJDBCTypeId() != Types.TIMESTAMP) {
             throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                     getOperatorString(),
@@ -43,7 +43,7 @@ public class GetNearestTransactionNode extends UnaryOperatorNode {
 
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.upCast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.TxnUtil, "getPastTxn", ClassName.NumberDataValue, 1);
     }

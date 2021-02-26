@@ -476,6 +476,11 @@ public class PreparedStatementIT extends SpliceUnitTest {
                 "----\n" +
                 " 3 |";
         testOneParamHelper("select second(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select days(?) from sysibm.sysdummy1", "0001-01-01", expected);
     }
 
     @Test
@@ -579,5 +584,24 @@ public class PreparedStatementIT extends SpliceUnitTest {
                         " 1 | a |\n" +
                         " 5 | b |");
 
+    }
+
+
+    @Test
+    public void testPreparedStatementStoreLongVarcharInTimestamp() throws Exception {
+        String tableName = "DB_11313";
+        methodWatcher.executeUpdate(String.format("drop table %s.%s if exists",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("create table %s.%s (t timestamp)",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values (current timestamp)",
+                tableSchema.schemaName, tableName));
+
+        try (PreparedStatement ps = methodWatcher.prepareStatement(format("update %s.%s set t = ? || '-00.00.00.654321'", tableSchema.schemaName, tableName))) {
+            ps.setString(1, "2222-01-01");
+            ps.execute();
+        }
+
+        testQueryContains(format("select * from %s.%s", tableSchema.schemaName, tableName), "2222-01-01 00:00:00.654321", methodWatcher, false);
     }
 }

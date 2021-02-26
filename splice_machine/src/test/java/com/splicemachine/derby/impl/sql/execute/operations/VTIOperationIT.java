@@ -343,4 +343,24 @@ public class VTIOperationIT extends SpliceUnitTest {
         testQuery(sqlText, expected, spliceClassWatcher);
     }
 
+    @Test
+    public void testQueryingVTIWithoutExplicitSchema() throws Exception {
+        ResultSet rs = spliceClassWatcher.executeQuery("select * From new com.splicemachine.derby.vti.SpliceAllRolesVTI() x");
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertTrue(count > 0);
+    }
+
+    @Test
+    public void testQueryingVTIWithExplicitSchema() throws Exception {
+        ResultSet rs = spliceClassWatcher.executeQuery("select * From new com.splicemachine.derby.vti.SpliceAllRolesVTI() x(y varchar(12))");
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertTrue(count > 0);
+    }
+
 }

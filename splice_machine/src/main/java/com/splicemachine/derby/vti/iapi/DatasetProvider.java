@@ -16,6 +16,7 @@ package com.splicemachine.derby.vti.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.vti.CompileTimeSchema;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -40,12 +41,11 @@ public interface DatasetProvider {
      DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp,ExecRow execRow) throws StandardException;
 
     /**
-     *
-     * Dynamic MetaData used to dynamically bind a function.
-     *
-     * @return
+     * @return dynamic MetaData used to dynamically bind a function.
      */
-    ResultSetMetaData getMetaData() throws SQLException;
+    default ResultSetMetaData getRuntimeMetaData() throws SQLException {
+        throw new SQLException("not supported");
+    }
 
     OperationContext getOperationContext();
 

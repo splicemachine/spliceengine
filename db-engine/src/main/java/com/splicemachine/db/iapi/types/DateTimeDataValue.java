@@ -194,6 +194,19 @@ public interface DateTimeDataValue extends DataValueDescriptor
                             throws StandardException;
 
     /**
+     * Get the number of days since January 1, 0001.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the number of days since January 1, 0001
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getDays(NumberDataValue result)
+            throws StandardException;
+
+    /**
      * Get the day of the year.
      *
      * @param result    The result of the previous call to this method, null
@@ -238,12 +251,38 @@ public interface DateTimeDataValue extends DataValueDescriptor
      * @param result    The result of the previous call to this method, null
      *                    if not called yet.
      *
-     * @return    A NumberDataValue containing the second of the minute.
+     * @return    A NumberDataValue containing the second and fractions of seconds of the minute as a double.
      *
      * @exception StandardException        Thrown on error
      */
-    NumberDataValue getSeconds(NumberDataValue result)
+    NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException;
+
+    /**
+     * Get the second of the minute out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the second of the minute as an integer.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException;
+
+    /**
+     * Get the second of the minute out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the second and fractions of seconds of the minute as a decimal(11, 9).
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
+            throws StandardException;
 
     /**
      * Add a number of intervals to a datetime value. Implements the JDBC escape TIMESTAMPADD function.

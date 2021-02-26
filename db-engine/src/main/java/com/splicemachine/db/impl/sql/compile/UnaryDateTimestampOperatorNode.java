@@ -102,7 +102,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         boolean operandIsNumber=false;
 
         bindOperand(fromList,subqueryList,aggregateVector);
-        DataTypeDescriptor operandType=operand.getTypeServices();
+        DataTypeDescriptor operandType=getOperand().getTypeServices();
         switch(operandType.getJDBCTypeId()){
             case Types.BIGINT:
             case Types.INTEGER:
@@ -140,9 +140,9 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
                 invalidOperandType();
         }
 
-        if(operand instanceof ConstantNode){
+        if(getOperand() instanceof ConstantNode){
             DataValueFactory dvf=getLanguageConnectionContext().getDataValueFactory();
-            DataValueDescriptor sourceValue=((ConstantNode)operand).getValue();
+            DataValueDescriptor sourceValue=((ConstantNode)getOperand()).getValue();
             DataValueDescriptor destValue=null;
             if(sourceValue.isNull()){
                 destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
@@ -157,7 +157,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         }
 
         if(isIdentity)
-            return operand;
+            return getOperand();
         return this;
     } // end of bindUnaryOperator
 
@@ -168,7 +168,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
 
     void bindParameter() throws StandardException
     {
-        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
     }
 
     /**
@@ -183,15 +183,15 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
                                    MethodBuilder mb)
             throws StandardException{
         acb.pushDataValueFactory(mb);
-        operand.generateExpression(acb,mb);
+        getOperand().generateExpression(acb,mb);
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,methodName,getTypeCompiler().interfaceName(),1);
     } // end of generateExpression
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        double lowerCost = getOperandCost();
-        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : 2.0);
         double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         return lowerCost + localCost + callCost;
     }

@@ -57,13 +57,12 @@ import org.joda.time.DateTime;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.sql.Date;
 import java.text.CollationKey;
 import java.text.RuleBasedCollator;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Locale;
-import java.util.MissingResourceException;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 
 
 /**
@@ -2781,6 +2780,59 @@ public class SQLChar
         return stringResult;
     }
 
+    public ConcatableDataValue translate(
+            StringDataValue outputTranslationTable,
+            StringDataValue inputTranslationTable,
+            StringDataValue pad,
+            ConcatableDataValue result)
+            throws StandardException
+    {
+        StringDataValue stringResult;
+        if (result == null) {
+            result = getNewVarchar();
+        }
+
+        stringResult = (StringDataValue) result;
+
+        if (this.isNull() ||
+                outputTranslationTable.isNull() || outputTranslationTable.getString() == null ||
+                inputTranslationTable.isNull() || inputTranslationTable.getString() == null) {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        String output = outputTranslationTable.getString();
+        String input = inputTranslationTable.getString();
+
+        char padChar;
+        if (pad == null || pad.isNull() || pad.getString() == null) {
+            padChar = ' ';
+        } else {
+            if (pad.getString().length() != 1) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_TRANSLATE_PADDING, pad.getString());
+            }
+            padChar = pad.getString().charAt(0);
+        }
+
+        HashMap<Character, Character> table = new HashMap<>();
+        for (int i = 0; i < input.length(); ++i) {
+            table.putIfAbsent(input.charAt(i), i < output.length() ? output.charAt(i) : padChar);
+        }
+
+        stringResult.setValue(getString()
+                .codePoints()
+                .map(c -> table.getOrDefault((char)c, (char)c))
+                .mapToObj(c -> (char) c)
+                .collect(Collector.of(
+                        StringBuilder::new,
+                        StringBuilder::append,
+                        StringBuilder::append,
+                        StringBuilder::toString))
+        );
+        return stringResult;
+    }
+
     /**
      * This function public for testing purposes.
      *
@@ -2944,6 +2996,33 @@ public class SQLChar
         upper = upper.toUpperCase(getLocale());
         result.setValue(upper);
         return result;
+    }
+
+    public NumberDataValue positionOfString(StringDataValue leftOperand, StringDataValue rightOperand,
+                                            NumberDataValue result)
+            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (NumberDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            result.setToNull();
+            return result;
+        }
+
+        String searchString = rightOperand.getString();
+        String expression = leftOperand.getString();
+        int position = expression.indexOf(searchString) + 1;
+
+        return new SQLInteger(position);
     }
 
     public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,

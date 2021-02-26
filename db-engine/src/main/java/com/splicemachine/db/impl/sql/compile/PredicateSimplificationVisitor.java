@@ -102,8 +102,8 @@ class PredicateSimplificationVisitor implements Visitor {
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if(node instanceof NotNode) {
             NotNode nn = (NotNode)node;
-            if(nn.operand instanceof UntypedNullConstantNode) {
-                return nn.operand;
+            if(nn.getOperand() instanceof UntypedNullConstantNode) {
+                return nn.getOperand();
             }
         } else if (node instanceof AndNode) {
             AndNode an = (AndNode)node;
@@ -177,7 +177,7 @@ class PredicateSimplificationVisitor implements Visitor {
             }
         } else if (node instanceof TernaryOperatorNode) {
             TernaryOperatorNode ton = (TernaryOperatorNode)node;
-            if (ton.getOperator().equals("like")) {
+            if (ton.getOperatorString().equals("like")) {
                 ValueNode receiver = ton.getReceiver();
                 if (isConstantNull(receiver)) {
                     bindExpressionsWithParametersBeforeEliminating(ton.getLeftOperand());

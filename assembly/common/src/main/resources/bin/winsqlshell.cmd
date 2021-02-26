@@ -22,6 +22,7 @@ SET "USERARG="
 SET "PASSARG="
 SET SCRIPT_DIR="%~dp0"
 SET SCRIPT_NAME=%~n0%~x0
+SET "ADDITIONAL_IJ_ARGS="
 
 REM read user arguments
 :loop
@@ -80,6 +81,10 @@ IF NOT [%1] == [] (
     GOTO :loop
   ) ELSE IF "%1" == "-q" (
     SET QUIET=1
+    SHIFT
+    GOTO :loop
+  ) ELSE IF "%1" == "-x" (
+    SET ADDITIONAL_IJ_ARGS=%ADDITIONAL_IJ_ARGS% -Dij.omitHeader^=true
     SHIFT
     GOTO :loop
   ) ELSE (
@@ -189,9 +194,11 @@ REM Setup IJ_SYS_ARGS based on input options
 SET GEN_SYS_ARGS=-Djava.awt.headless^=true
 SET IJ_SYS_ARGS=-Djdbc.drivers^=com.splicemachine.db.jdbc.ClientDriver
 
+SET IJ_SYS_ARGS=%IJ_SYS_ARGS% %ADDITIONAL_IJ_ARGS%
+
 REM add width via ij.maximumDisplayWidth
 IF %WIDTH% NEQ 128 (
-   SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.maximumDisplayWidth=%WIDTH%
+   SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.maximumDisplayWidth^=%WIDTH%
 )
 
 IF NOT [%OUTPUT%] == [] (
@@ -262,15 +269,16 @@ REM get directory path from file path
   ECHO  -h host      IP address or hostname of Splice Machine (HBase RegionServer)
   ECHO  -p port      Port which Splice Machine is listening on, defaults to 1527
   ECHO  -u user      username for Splice Machine database
-  ECHO  -Q       Quote the username, e.g. for users with . - or @ in the username. e.g. dept-first.last@@company.com
+  ECHO  -Q           Quote the username, e.g. for users with . - or @ in the username. e.g. dept-first.last@@company.com
   ECHO  -s pass      password for Splice Machine database
-  ECHO  -P       prompt for unseen password
-  ECHO  -S       use ssl=basic on connection
-  ECHO  -k principal     kerberos principal (for kerberos)
+  ECHO  -P           prompt for unseen password
+  ECHO  -S           use ssl=basic on connection
+  ECHO  -k principal kerberos principal (for kerberos)
   ECHO  -K keytab    kerberos keytab - requires principal
   ECHO  -w width     output row width. defaults to 128
   ECHO  -f script    sql file to be executed
   ECHO  -o output    file for output
+  ECHO  -x           WITHOUT HEADER mode
   EXIT /B
 :endhelp
 

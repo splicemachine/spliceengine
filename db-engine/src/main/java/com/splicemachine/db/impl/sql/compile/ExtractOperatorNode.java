@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -49,7 +47,7 @@ import java.sql.Types;
 
 import java.util.List;
 
-import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.*;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -63,10 +61,10 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         "YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "DAYOFWEEK", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
     };
     static private final String fieldMethod[] = {
-        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
+        "getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay", "getUSWeekDay", "getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSecondsAndFractionOfSecondAsDouble"
     };
 
-    static private final long fieldCardinality[] = {
+    static private final long fieldMaxCardinality[] = {
             5L, 4L, 12L, 12L, 52L, 7L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
@@ -105,7 +103,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        opTypeId = operand.getTypeId();
+        opTypeId = getOperand().getTypeId();
         operandType = opTypeId.getJDBCTypeId();
 
         /*
@@ -116,19 +114,13 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         */
         if (opTypeId.isStringTypeId())
         {
-            TypeCompiler tc = operand.getTypeCompiler();
-            int castType = (extractField < DateTimeDataValue.HOUR_FIELD) ? Types.DATE : Types.TIME;
-            operand =  (ValueNode)
-                getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    operand,
-                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(castType, true,
-                                        tc.getCastToCharWidth(
-                                                operand.getTypeServices(), getCompilerContext())),
-                    getContextManager());
-            ((CastNode) operand).bindCastNodeOnly();
+            TypeCompiler tc = getOperand().getTypeCompiler();
+            int castType = (extractField < HOUR_FIELD) ? Types.DATE : Types.TIME;
+            castOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                    castType, true,
+                    tc.getCastToCharWidth(getOperand().getTypeServices(), getCompilerContext())));
 
-            opTypeId = operand.getTypeId();
+            opTypeId = getOperand().getTypeId();
             operandType = opTypeId.getJDBCTypeId();
         }
 
@@ -171,21 +163,21 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
              && (extractField == DateTimeDataValue.SECOND_FIELD) ) {
             setType(new DataTypeDescriptor(
                             TypeId.getBuiltInTypeId(Types.DOUBLE),
-                            operand.getTypeServices().isNullable()
+                            getOperand().getTypeServices().isNullable()
                         )
                 );
         } else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
-                        TypeId.CHAR_ID,
-                        operand.getTypeServices().isNullable(),
-                        14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
+                    TypeId.CHAR_ID,
+                        getOperand().getTypeServices().isNullable(),
+                    14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
                     )
             );
         } else {
             setType(new DataTypeDescriptor(
                             TypeId.INTEGER_ID,
-                            operand.getTypeServices().isNullable()
+                            getOperand().getTypeServices().isNullable()
                         )
                 );
         }
@@ -193,9 +185,10 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
         return this;
     }
 
+    @Override
     void bindParameter() throws StandardException
     {
-        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
     }
 
     public String toString() {
@@ -218,13 +211,16 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 
     @Override
     public long nonZeroCardinality(long numberOfRows) {
-        return Math.min(fieldCardinality[extractField], numberOfRows);
+        if (extractField == SECOND_FIELD && getOperand().getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
+            return numberOfRows;
+        }
+        return Math.min(fieldMaxCardinality[extractField], numberOfRows);
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        double lowerCost = getOperandCost();
-        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : 2.0);
         double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         return lowerCost + localCost + callCost;
     }

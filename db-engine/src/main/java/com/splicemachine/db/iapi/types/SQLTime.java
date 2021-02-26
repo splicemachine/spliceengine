@@ -757,6 +757,18 @@ public final class SQLTime extends DataType
     }
 
     /**
+     * @see DateTimeDataValue#getDays
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getDays(NumberDataValue result)
+            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                "getDays", "Time");
+    }
+
+    /**
      * @see DateTimeDataValue#getHours
      *
      * @exception StandardException        Thrown on error
@@ -787,22 +799,44 @@ public final class SQLTime extends DataType
     }
 
     /**
-     * @see DateTimeDataValue#getSeconds
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
      *
      * @exception StandardException        Thrown on error
      */
-    public NumberDataValue getSeconds(NumberDataValue result)
+    public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
                             throws StandardException
+    {
+        return getSecondsAsInt(result);
+    }
+
+    /**
+     * @see DateTimeDataValue#getSecondsAsInt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAsInt(NumberDataValue result)
+            throws StandardException
     {
         if (isNull()) {
             return nullValueInt();
-        } else {    
+        } else {
             return SQLDate.setSource(getSecond(encodedTime), result);
         }
     }
 
+    /**
+     * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
+            throws StandardException
+    {
+        return getSecondsAsInt(result);
+    }
+
     /*
-    ** String display of value
+     ** String display of value
     */
 
     public String toString()

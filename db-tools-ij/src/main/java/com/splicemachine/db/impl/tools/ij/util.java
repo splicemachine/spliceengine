@@ -710,6 +710,14 @@ AppUI.out.println("SIZE="+l);
 		}
 	}
 
+	static boolean getSystemPropertyBoolean(String propertyName) {
+		String s = getSystemProperty(propertyName);
+		if( s == null || s.equalsIgnoreCase("false") || s.equalsIgnoreCase("0"))
+			return false;
+		else
+			return true;
+	}
+
 	private String key;
 
 	public final Object run() {

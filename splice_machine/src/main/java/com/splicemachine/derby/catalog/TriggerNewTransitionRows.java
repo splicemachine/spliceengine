@@ -289,6 +289,7 @@ public class TriggerNewTransitionRows
                         lcc.pushTriggerExecutionContext(tec);
 
                     tec.setConnectionContext(cc);
+                    tec.setLanguageConnectionContext(lcc);
                     rowHolder.setActivation(activation);
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     try {
@@ -317,8 +318,9 @@ public class TriggerNewTransitionRows
 
 		return resultSet;
 	}
-    
-    public ResultSetMetaData getMetaData() throws SQLException
+
+	@Override
+    public ResultSetMetaData getRuntimeMetaData() throws SQLException
     {
         if (resultSet != null)
             return resultSet.getMetaData();

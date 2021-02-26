@@ -49,151 +49,148 @@ import java.util.List;
 
 public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 {
-	/**
-	 * Initializer for a SimpleOperatorNode
-	 *
-	 * @param leftOperand		The operand
-	 * @param rightOperand		The locale
-	 * @param methodName	The method name
-	 */
+    /**
+     * Initializer for a SimpleOperatorNode
+     *
+     * @param leftOperand        The operand
+     * @param rightOperand        The locale
+     * @param methodName    The method name
+     */
 
-	public void init(Object leftOperand, Object rightOperand, Object methodName)
-	{
-		super.init(leftOperand, rightOperand, "upperWithLocale", methodName, ClassName.StringDataValue,
-				ClassName.StringDataValue, ClassName.StringDataValue, SIMPLE_LOCALE_STRING);
-	}
+    public void init(Object leftOperand, Object rightOperand, Object methodName)
+    {
+        super.init(leftOperand, rightOperand, "upperWithLocale", methodName, ClassName.StringDataValue,
+                ClassName.StringDataValue, ClassName.StringDataValue, SIMPLE_LOCALE_STRING);
+    }
 
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException {
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList,
-				aggregateVector);
-		rightOperand = rightOperand.bindExpression(fromList, subqueryList,
-				aggregateVector);
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        bindOperands(fromList, subqueryList, aggregateVector);
 
-		if( leftOperand.requiresTypeFromContext())
-		{
-			leftOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
-			leftOperand.setCollationUsingCompilationSchema();
-		}
+        if( getLeftOperand().requiresTypeFromContext())
+        {
+            getLeftOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+            getLeftOperand().setCollationUsingCompilationSchema();
+        }
 
-		if( rightOperand.requiresTypeFromContext())
-		{
-			rightOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), false));
-			rightOperand.setCollationUsingCompilationSchema();
-		}
+        if( getRightOperand().requiresTypeFromContext())
+        {
+            getRightOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), false));
+            getRightOperand().setCollationUsingCompilationSchema();
+        }
 
 
-		/*
-		** Check the type of the operand - this function is allowed only on
-		** string value (char and bit) types.
-		*/
-		TypeId operandType = leftOperand.getTypeId();
+        /*
+        ** Check the type of the operand - this function is allowed only on
+        ** string value (char and bit) types.
+        */
+        TypeId operandType = getLeftOperand().getTypeId();
 
-		int leftWidth = leftOperand.getTypeCompiler().getCastToCharWidth(
-		        leftOperand.getTypeServices(), getCompilerContext());
-		if (leftWidth > Limits.DB2_LOB_MAXWIDTH / 2) {
-		    throw StandardException.newException(SQLState.BLOB_LENGTH_TOO_LONG, methodName,
+        int leftWidth = getLeftOperand().getTypeCompiler().getCastToCharWidth(
+                getLeftOperand().getTypeServices(), getCompilerContext());
+        if (leftWidth > Limits.DB2_LOB_MAXWIDTH / 2) {
+            throw StandardException.newException(SQLState.BLOB_LENGTH_TOO_LONG, methodName,
                     leftWidth * 2);
         }
-		int width = leftWidth * 2;
+        int width = leftWidth * 2;
 
-		switch (operandType.getJDBCTypeId())
-		{
-				case Types.CHAR:
-				case Types.VARCHAR:
-				case Types.LONGVARCHAR:
-				case Types.CLOB:
-					operandType = getResultType(width, operandType);
-					break;
-				case Types.JAVA_OBJECT:
-				case Types.OTHER:	
-				{
-					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-										methodName,
-										operandType.getSQLTypeName());
-				}
+        switch (operandType.getJDBCTypeId())
+        {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    operandType = getResultType(width, operandType);
+                    break;
+                case Types.JAVA_OBJECT:
+                case Types.OTHER:
+                {
+                    throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                                        methodName,
+                                        operandType.getSQLTypeName());
+                }
 
-				default:
-					operandType = getResultType(width, TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME));
-					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-					        operandType.getJDBCTypeId(),
+                default:
+                    operandType = getResultType(width, TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME));
+                    DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                            operandType.getJDBCTypeId(),
                             true,
-							width);
-			
-					leftOperand =  (ValueNode)
-						getNodeFactory().getNode(
-							C_NodeTypes.CAST_NODE,
-							leftOperand,
-							dtd,
-							getContextManager());
-					
-					// DERBY-2910 - Match current schema collation for implicit cast as we do for
-					// explicit casts per SQL Spec 6.12 (10)
-			    	leftOperand.setCollationUsingCompilationSchema();
+                            width);
 
-					((CastNode) leftOperand).bindCastNodeOnly();
-		}
+                    setLeftOperand((ValueNode)
+                        getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            getLeftOperand(),
+                            dtd,
+                            getContextManager()));
 
-		/*
-		** The result type of upper()/lower() is the type of the operand, or CBLOB
-		*/
+                    // DERBY-2910 - Match current schema collation for implicit cast as we do for
+                    // explicit casts per SQL Spec 6.12 (10)
+                    getLeftOperand().setCollationUsingCompilationSchema();
 
-		setType(new DataTypeDescriptor(
-		        operandType,
-				leftOperand.getTypeServices().isNullable(),
+                    ((CastNode) getLeftOperand()).bindCastNodeOnly();
+        }
+
+        /*
+        ** The result type of upper()/lower() is the type of the operand, or CBLOB
+        */
+
+        setType(new DataTypeDescriptor(
+                operandType,
+                getLeftOperand().getTypeServices().isNullable(),
                 width));
-		//Result of upper()/lower() will have the same collation as the   
-		//argument to upper()/lower(). 
-        setCollationInfo(leftOperand.getTypeServices());
+        //Result of upper()/lower() will have the same collation as the
+        //argument to upper()/lower().
+        setCollationInfo(getLeftOperand().getTypeServices());
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Get the result type give the width. It will cast the value to a new type if the width exceed current type's
-	 * width limit.
-	 * @param width The width
-	 * @param defaultType The original type. Must be one of CLOB, LONGVARCHAR, VARCHAR, CHAR
-	 * @return The casted type.
-	 */
-	private TypeId getResultType(int width, TypeId defaultType) {
-	    int type = defaultType.getJDBCTypeId();
-		if (type == Types.CLOB || width > Limits.DB2_LONGVARCHAR_MAXWIDTH) {
-			return TypeId.getBuiltInTypeId(TypeId.CLOB_NAME);
-		}
-		if (type == Types.LONGVARCHAR || width > Limits.DB2_VARCHAR_MAXWIDTH) {
-			return TypeId.getBuiltInTypeId(TypeId.LONGVARCHAR_NAME);
-		}
-		if (type == Types.VARCHAR || width > Limits.DB2_CHAR_MAXWIDTH) {
-			return TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME);
-		}
-	    return defaultType;
-	}
+    /**
+     * Get the result type give the width. It will cast the value to a new type if the width exceed current type's
+     * width limit.
+     * @param width The width
+     * @param defaultType The original type. Must be one of CLOB, LONGVARCHAR, VARCHAR, CHAR
+     * @return The casted type.
+     */
+    private TypeId getResultType(int width, TypeId defaultType) {
+        int type = defaultType.getJDBCTypeId();
+        if (type == Types.CLOB || width > Limits.DB2_LONGVARCHAR_MAXWIDTH) {
+            return TypeId.getBuiltInTypeId(TypeId.CLOB_NAME);
+        }
+        if (type == Types.LONGVARCHAR || width > Limits.DB2_VARCHAR_MAXWIDTH) {
+            return TypeId.getBuiltInTypeId(TypeId.LONGVARCHAR_NAME);
+        }
+        if (type == Types.VARCHAR || width > Limits.DB2_CHAR_MAXWIDTH) {
+            return TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME);
+        }
+        return defaultType;
+    }
 
-	/**
-	 * This is a length operator node.  Overrides this method
-	 * in UnaryOperatorNode for code generation purposes.
-	 */
-	public String getReceiverInterfaceName() {
-	    return ClassName.StringDataValue;
-	}
+    /**
+     * This is a length operator node.  Overrides this method
+     * in UnaryOperatorNode for code generation purposes.
+     */
+    public String getReceiverInterfaceName() {
+        return ClassName.StringDataValue;
+    }
 
-	@Override
-	public double getBaseOperationCost() throws StandardException {
-		double localCost = SIMPLE_OP_COST * Math.min(leftOperand.getTypeServices().getNull().getLength(), 64);
-		return localCost + SIMPLE_OP_COST * FN_CALL_COST_FACTOR + getChildrenCost();
-	}
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost = SIMPLE_OP_COST * Math.min(getLeftOperand().getTypeServices().getNull().getLength(), 64);
+        return localCost + SIMPLE_OP_COST * FN_CALL_COST_FACTOR + super.getBaseOperationCost();
+    }
 }

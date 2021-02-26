@@ -1027,7 +1027,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
     /**
      * Are you a double type for splice encoding
      *
-     * @return true if lazy
+     * @return true if double
      */    
     boolean isDoubleType();
 

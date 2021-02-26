@@ -85,14 +85,14 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
 
     @Override
     public List<ValueNode> getOperands() {
-        ValueNode wrappedOperand = aggregateFunction.operand;
+        ValueNode wrappedOperand = aggregateFunction.getOperand();
         return (wrappedOperand != null ? Lists.newArrayList(wrappedOperand) : Collections.EMPTY_LIST);
     }
 
     @Override
     public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
         // TODO: JC - what else? bind?
-        aggregateFunction.operand = newVal;
+        aggregateFunction.setOperand(newVal);
     }
 
     /**

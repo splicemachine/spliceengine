@@ -668,7 +668,5 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  C.TABLEID = T.TABLEID AND\n" +
             "  C.TABLEID = COLS.REFERENCEID AND\n" +
             "  C.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND\n" +
-            "  (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN\n" +
-            "    CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE\n" +
-            "    0 END) <> 0\n";
+            "  CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) > 0) END \n";
 }

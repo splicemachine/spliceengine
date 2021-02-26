@@ -127,9 +127,7 @@ public class GenerationClauseNode extends ValueNode
     }
 
     @Override
-    protected boolean isEquivalent(ValueNode other)
-        throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode other) throws StandardException {
         if ( !( other instanceof GenerationClauseNode) ) { return false; }
 
         GenerationClauseNode    that = (GenerationClauseNode) other;
@@ -138,9 +136,7 @@ public class GenerationClauseNode extends ValueNode
     }
 
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode other)
-            throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode other) throws StandardException {
         if (!(other instanceof GenerationClauseNode)) {
             return false;
         }
