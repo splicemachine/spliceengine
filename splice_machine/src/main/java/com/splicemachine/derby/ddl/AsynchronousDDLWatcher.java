@@ -76,6 +76,7 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
         if(!checker.initialize(this))
             return; //we aren't a server, so do nothing further
 
+        refresher.initDemarcationPoint();
         try {
             // run refresh() synchronously the first time
             if (!refresher.refreshDDL(ddlListeners)) return;
