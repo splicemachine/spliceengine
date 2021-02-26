@@ -845,9 +845,8 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-
-                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
                 setSPSProperties(qt, cc);
+                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
             }
             else {
                 lcc.beginNestedTransaction(true);
