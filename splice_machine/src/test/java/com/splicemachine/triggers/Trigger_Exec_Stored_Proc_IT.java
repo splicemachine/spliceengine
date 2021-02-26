@@ -39,7 +39,7 @@ import splice.com.google.common.collect.Lists;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
-@Category({SerialTest.class})
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 @RunWith(Parameterized.class)
 public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
 
