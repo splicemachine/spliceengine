@@ -22,7 +22,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -128,19 +127,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     @Override
     public boolean hasNext() {
         if (failure != null) {
-            // The remote job failed, raise exception to caller.
-            // An IOException might occur in conjunction with a SparkException
-            // as the operations get terminated.
-            // Give the SparkException some time to get filled in to
-            // the failure field.
-            if (failure instanceof IOException) {
-                if ("Connection reset by peer".equals(failure.getMessage())) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                    }
-                }
-            }
+            // The remote job failed, raise exception to caller
             Exceptions.throwAsRuntime(Exceptions.parseException(failure));
         }
 
