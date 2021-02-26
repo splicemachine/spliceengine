@@ -59,7 +59,7 @@ public class SpliceGroupUserVTI implements DatasetProvider, VTICosting, CompileT
         if (returnType == ADMINONLY) {
             if (lcc.currentUserIsDatabaseOwner(activation)) {
                 ValueRow valueRow = new ValueRow(1);
-                valueRow.setColumn(1, new SQLVarchar(currentUser));
+                valueRow.setColumn(1, new SQLVarchar(lcc.getCurrentDatabaseOwner(activation)));
                 items.add(valueRow);
             }
             return dsp.createDataSet(items.iterator());
