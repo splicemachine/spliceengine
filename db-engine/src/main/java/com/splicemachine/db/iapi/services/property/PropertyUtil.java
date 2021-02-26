@@ -31,15 +31,11 @@
 
 package com.splicemachine.db.iapi.services.property;
 
+import com.splicemachine.db.iapi.reference.*;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.EngineType;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -98,7 +94,7 @@ public class PropertyUtil {
             Property.LOCKS_ESCALATION_THRESHOLD,
             Property.DATABASE_PROPERTIES_ONLY,
             Property.DEFAULT_CONNECTION_MODE_PROPERTY,
-            Property.AUTHENTICATION_BUILTIN_ALGORITHM,
+            PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM,
             Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED
     };
 
@@ -653,7 +649,7 @@ public class PropertyUtil {
      * value of Property.AUTHENTICATION_PROVIDER_PARAMETER.
      */
     private static boolean nativeAuthenticationEnabled( String authenticationProvider ) {
-        return authenticationProvider != null && StringUtil.SQLToUpperCase(authenticationProvider).startsWith(Property.AUTHENTICATION_PROVIDER_NATIVE);
+        return authenticationProvider != null && StringUtil.SQLToUpperCase(authenticationProvider).startsWith(PropertyHelper.AUTHENTICATION_PROVIDER_NATIVE);
 
     }
     
@@ -671,7 +667,7 @@ public class PropertyUtil {
              );
 
         return StringUtil.SQLToUpperCase( authenticationProvider ).endsWith
-            ( Property.AUTHENTICATION_PROVIDER_LOCAL_SUFFIX );
+            ( PropertyHelper.AUTHENTICATION_PROVIDER_LOCAL_SUFFIX );
     }
 
     /**
@@ -679,7 +675,7 @@ public class PropertyUtil {
      */
     public static boolean createNativeAuthenticationCredentialsDatabaseEnabled(Properties properties)
     {
-        return "true".equals(getPropertyFromSet(properties, Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE));
+        return "true".equals(getPropertyFromSet(properties, PropertyHelper.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE));
     }
 
     /**
