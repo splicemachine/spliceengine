@@ -35,27 +35,34 @@ public class SpliceSchemaWatcher extends TestWatcher {
     private static CleanupMode mode = CleanupMode.UNDEF;
     private static Semaphore sync;
 
-    public String dbName;
     public String schemaName;
-    protected String userName;
+    protected String schemaAuthorizationUserName;
+
+    protected SpliceNetConnection.ConnectionBuilder connectionBuilder;
 
     public SpliceSchemaWatcher(String schemaName) {
         this.schemaName = schemaName.toUpperCase();
+        this.connectionBuilder = SpliceNetConnection.newBuilder();
     }
 
     public SpliceSchemaWatcher(String dbName, String schemaName) {
         this(schemaName);
-        this.dbName = dbName;
+        this.connectionBuilder = SpliceNetConnection.newBuilder().database(dbName);
     }
 
-    public SpliceSchemaWatcher(String dbName, String schemaName, String userName) {
+    public SpliceSchemaWatcher(String dbName, String schemaName, String schemaAuthorizationUserName) {
         this(dbName, schemaName);
-        this.userName = userName;
+        this.schemaAuthorizationUserName = schemaAuthorizationUserName;
+    }
+
+    public SpliceSchemaWatcher(SpliceNetConnection.ConnectionBuilder connectionBuilder, String schemaName) {
+        this(schemaName);
+        this.connectionBuilder = connectionBuilder;
     }
 
     @Override
     protected void starting(Description description) {
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).user(userName).build()){
+        try (Connection connection = connectionBuilder.build()){
 //            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);
@@ -69,8 +76,8 @@ public class SpliceSchemaWatcher extends TestWatcher {
                 throw e;
             }
             try(Statement statement = connection.createStatement()){
-                if(userName!=null)
-                    statement.execute(String.format("create schema %s AUTHORIZATION %S",schemaName,userName));
+                if(schemaAuthorizationUserName !=null)
+                    statement.execute(String.format("create schema %s AUTHORIZATION %S",schemaName, schemaAuthorizationUserName));
                 else
                     statement.execute(String.format("create schema %s",schemaName));
             }catch(Exception e){
@@ -91,8 +98,8 @@ public class SpliceSchemaWatcher extends TestWatcher {
         }
     }
 
-    private static void cleanup(String dbName) {
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
+    private static void cleanup(SpliceNetConnection.ConnectionBuilder connectionBuilder) {
+        try (Connection connection = connectionBuilder.build()) {
             connection.setAutoCommit(true);
             while (true) {
                 sync.acquire();
@@ -115,14 +122,14 @@ public class SpliceSchemaWatcher extends TestWatcher {
                 mode = CleanupMode.valueOf(System.getProperty(SPLICE_SCHEMA_CLEANUP, CleanupMode.NONE.toString()).toUpperCase());
                 if (mode == CleanupMode.ASYNC) {
                     sync = new Semaphore(0);
-                    Thread thread = new Thread(() -> cleanup(dbName));
+                    Thread thread = new Thread(() -> cleanup(connectionBuilder));
                     thread.setDaemon(true);
                     thread.start();
                 }
             }
         }
 
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).user(userName).build()) {
+        try (Connection connection = connectionBuilder.build()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
 
@@ -142,7 +149,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
     }
 
     public void cleanSchemaObjects() throws RuntimeException {
-        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
+        try (Connection connection = connectionBuilder.build()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.cleanSchemaObjects(schemaName, null, null);
 

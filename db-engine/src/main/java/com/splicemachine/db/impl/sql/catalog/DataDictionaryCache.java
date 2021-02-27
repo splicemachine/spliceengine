@@ -540,6 +540,7 @@ public class DataDictionaryCache {
         permissionsCache.invalidateAll();
         partitionStatisticsCache.invalidateAll();
         storedPreparedStatementCache.invalidateAll();
+        databaseCache.invalidateAll();
         schemaCache.invalidateAll();
         oidSchemaCache.invalidateAll();
         statementCache.invalidateAll();
@@ -824,7 +825,7 @@ public class DataDictionaryCache {
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
-                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache,
+                    conglomerateCache, statementCache, databaseCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache,
                     oidSchemaCache, catalogVersionCache, txnAwareConglomerateCache, constraintDescriptorListCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
