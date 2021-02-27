@@ -831,6 +831,12 @@ Guide.
             <text>Unknown character encoding '{0}'.</text>
             <arg>typeName</arg>
           </msg>
+
+            <msg>
+                <name>22022</name>
+                <text>Invalid pad parameter to TRANSLATE: '{0}' is not of length 1.</text>
+                <arg>pad</arg>
+            </msg>
             <msg>
                 <name>22025</name>
                 <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.</text>
@@ -3086,6 +3092,12 @@ Guide.
             <msg>
                 <name>42Z79</name>
                 <text>Unable to determine the parameter type for XMLPARSE; try using a CAST.</text>
+            </msg>
+
+            <msg>
+                <name>42Z89</name>
+                <text>VTI '{0}' does not does not implement compile-time schema</text>
+                <arg>vti</arg>
             </msg>
 
             <msg>

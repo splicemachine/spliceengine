@@ -19,6 +19,7 @@ import splice.com.google.common.cache.Cache;
 import java.beans.ConstructorProperties;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class TotalManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCacheIFace<K, V> {
 
@@ -67,6 +68,7 @@ public class TotalManagedCache<K, V> implements ManagedCacheMBean, GenericManage
             mc.invalidateAll();
         }
     }
+    @Override public void putAll(ManagedCache<? extends K, ? extends V> var1) { throw new UnsupportedOperationException(); }
     @Override public void put(K var1, V var2){
         throw new UnsupportedOperationException();
     }
@@ -76,5 +78,6 @@ public class TotalManagedCache<K, V> implements ManagedCacheMBean, GenericManage
     @Override public void invalidate(K k) {
         throw new UnsupportedOperationException();
     }
+    @Override public Cache<K, V> getManagedCache() { throw new UnsupportedOperationException(); }
 
 }

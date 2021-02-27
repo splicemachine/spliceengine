@@ -653,4 +653,8 @@ public interface Activation extends Dependent, AutoCloseable
     boolean isSubStatement();
 
     void setSubStatement(boolean newValue);
+
+    boolean isRowTrigger();
+
+    void setIsRowTrigger(boolean newValue);
 }

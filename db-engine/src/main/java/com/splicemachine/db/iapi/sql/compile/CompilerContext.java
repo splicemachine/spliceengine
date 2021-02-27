@@ -771,4 +771,8 @@ public interface CompilerContext extends Context
     void setVarcharDB2CompatibilityMode(boolean newValue);
 
     boolean getVarcharDB2CompatibilityMode();
+
+    boolean compilingTrigger();
+
+    void setCompilingTrigger(boolean newVal);
 }

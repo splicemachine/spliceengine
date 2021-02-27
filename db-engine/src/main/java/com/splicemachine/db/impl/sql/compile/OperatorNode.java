@@ -45,9 +45,6 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -328,7 +325,8 @@ public abstract class OperatorNode extends ValueNode
 
     public int hashCode() {
         int hashCode = getBaseHashCode();
-        hashCode = 31 * hashCode + methodName.hashCode();
+        String op = methodName != null ? methodName : operator;
+        hashCode = 31 * hashCode + op.hashCode();
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(operands != null);
         for (ValueNode operand: operands) {
@@ -456,11 +454,32 @@ public abstract class OperatorNode extends ValueNode
 
     public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type) throws StandardException {
         operands.set(operandIndex,
-            (ValueNode) getNodeFactory().getNode(
+                (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.CAST_NODE,
                         operands.get(operandIndex),
                         type,
                         getContextManager()));
         ((CastNode) operands.get(operandIndex)).bindCastNodeOnly();
+    }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException
+    {
+        /* Allocate an object for re-use to hold the result of the operator */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
+        for (int i = 0; i < operands.size(); ++i) {
+            if (operands.get(i) != null)
+            {
+                operands.get(i).generateExpression(acb, mb);
+                mb.upCast(interfaceTypes.get(i));
+            }
+            else
+            {
+                mb.pushNull(interfaceTypes.get(i));
+            }
+        }
+        mb.getField(field);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
     }
 }

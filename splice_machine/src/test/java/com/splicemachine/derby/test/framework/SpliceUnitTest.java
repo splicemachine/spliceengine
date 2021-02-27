@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1131,14 +1133,12 @@ public class SpliceUnitTest {
         return count;
     }
 
-    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
-    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
-    {
-        try {
+    public static void sqlExpectException(Connection conn, String sqlText, String expectedState, boolean update) {
+        try ( Statement s = conn.createStatement() ){
             if( update )
-                methodWatcher.executeUpdate(sqlText);
+                s.executeUpdate(sqlText);
             else {
-                ResultSet rs = methodWatcher.executeQuery(sqlText);
+                ResultSet rs = s.executeQuery(sqlText);
                 rs.close();
             }
             Assert.fail("Exception not thrown for " + sqlText);
@@ -1148,6 +1148,12 @@ public class SpliceUnitTest {
         } catch (Exception e) {
             Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
         }
+    }
+
+    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
+    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
+    {
+        sqlExpectException( methodWatcher.getOrCreateConnection(), sqlText, expectedState, update );
     }
 
     public static void assertThrows(Runnable r, String expectedExceptionStr) {
@@ -1303,5 +1309,24 @@ public class SpliceUnitTest {
             rs.next();
             return ((Boolean)rs.getObject(1));
         }
+    }
+
+    public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
+        @Override
+        default void accept(final T t, final U u) {
+            try {
+                acceptThrows(t, u);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        void acceptThrows(T t, U u) throws Exception;
+    }
+
+    protected void runOltpOlapOlapNativeSpark(ThrowingBiConsumer<Boolean, Boolean> consumer) {
+        consumer.accept(false, false);
+        consumer.accept(true, false);
+        consumer.accept(true, true);
     }
 }

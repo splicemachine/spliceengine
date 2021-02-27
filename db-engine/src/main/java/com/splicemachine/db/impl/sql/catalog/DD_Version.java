@@ -645,23 +645,23 @@ public    class DD_Version implements    Formatable
                 null,                           //stop position-through last row
                 ScanController.GT)) {           // stopSearchOperation
 
-            RowLocation heapLocation =
-                    heapScan.newRowLocationTemplate();
+        RowLocation                    heapLocation =
+            heapScan.newRowLocationTemplate();
 
             try (ConglomerateController indexController = tc.openConglomerate(
-                    indexConglomerateNumber,
-                    false,
-                    TransactionController.OPENMODE_FORUPDATE,
-                    TransactionController.MODE_TABLE,
+                indexConglomerateNumber,
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
                     TransactionController.ISOLATION_REPEATABLE_READ)) {
 
                 while (heapScan.fetchNext(heapRow.getRowArray())) {
-                    heapScan.fetchLocation(heapLocation);
+             heapScan.fetchLocation( heapLocation );
 
-                    indexRowGenerator.getIndexRow(heapRow, heapLocation, indexableRow, (FormatableBitSet) null);
+            indexRowGenerator.getIndexRow( heapRow, heapLocation, indexableRow, (FormatableBitSet) null );
 
-                    indexController.insert(indexableRow);
-                }
+            indexController.insert(indexableRow);
+        }
             }
         }
     }
@@ -824,18 +824,17 @@ public    class DD_Version implements    Formatable
         @return True if the database has been upgraded to the required level, false otherwise.
     */
     boolean checkVersion(int requiredMajorVersion, String feature) throws StandardException {
-
-        if (majorVersionNumber < requiredMajorVersion) {
-
-            if (feature != null)
-                throw StandardException.newException(SQLState.LANG_STATEMENT_UPGRADE_REQUIRED, feature,
+        boolean checkPassed = checkVersion(requiredMajorVersion);
+        if (feature != null && !checkPassed) {
+            throw StandardException.newException(SQLState.LANG_STATEMENT_UPGRADE_REQUIRED, feature,
                     DD_Version.majorToString(majorVersionNumber),
                     DD_Version.majorToString(requiredMajorVersion));
-
-            return false;
         }
+        return checkPassed;
+    }
 
-        return true;
+    boolean checkVersion(int requiredMajorVersion) {
+        return majorVersionNumber >= requiredMajorVersion;
     }
 
 }
