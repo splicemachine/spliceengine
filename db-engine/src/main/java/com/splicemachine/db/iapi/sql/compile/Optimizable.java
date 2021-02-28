@@ -469,5 +469,5 @@ public interface Optimizable {
      * a predicate on the 2nd index column with no useful predicate on
      * the first index column.
      */
-    default boolean indexPrefixIteratorAllowed(Optimizer optimizer) { return false; }
+    default boolean indexPrefixIteratorAllowed(AccessPath accessPath) { return false; }
 }

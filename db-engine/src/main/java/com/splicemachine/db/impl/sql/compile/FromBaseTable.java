@@ -130,6 +130,14 @@ public class FromBaseTable extends FromTable {
     // being considered as the access path of this table:
     private final FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
 
+    // The maximum number of estimated first index column values
+    // per parallel task to support for IndexPrefixIteratorMode.
+    private final long MAX_PER_PARALLEL_TASK_INDEX_PREFIX_VALUES = 200000;
+
+    // The absolute maximum number of index values for IndexPrefixIteratorMode.
+    // Iterating through these values will be divided by n tasks.
+    private final long MAX_ABSOLUTE_INDEX_PREFIX_VALUES = 50000000;
+
     /*
     ** The number of rows to bulkFetch.
     ** Initially it is unset.  If the user
@@ -4027,7 +4035,7 @@ public class FromBaseTable extends FromTable {
     public boolean hasIndexPrefixIterator() { return numUnusedLeadingIndexFields > 0; }
 
     @Override
-    public boolean indexPrefixIteratorAllowed(Optimizer optimizer) {
+    public boolean indexPrefixIteratorAllowed(AccessPath accessPath) {
         if (disableIndexPrefixIteration)
             return false;
         LanguageConnectionContext lcc = getLanguageConnectionContext();
@@ -4037,12 +4045,20 @@ public class FromBaseTable extends FromTable {
         if (getCompilerContext().getDisablePrefixIteratorMode())
             return false;
 
+        Optimizer optimizer = accessPath.getOptimizer();
+
+        long sparkRowThreshold = lcc.getOptimizerFactory().getDetermineSparkRowThreshold();
+        long parallelism = accessPath.getCostEstimate().getParallelism();
+
         // We must have statistics collected on the base table to pick IndexPrefixIteratorMode
         // because the operation may get expensive if the number of values is underestimated.
         // Also, building of the MultiRowRangeFilter to handle the iteration may get expensive
-        // for large numbers of values, so limit it to 20000 on control and 1000000 on Spark
-        // for now.
-        long maxPrefixIteratorValues = optimizer.isForSpark() ? 1000000 : 20000;
+        // for large numbers of values, so limit it to 20000 on control and 200000 per parallel
+        // task on Spark, for now.
+        long sparkMaxPrefixIteratorValues = Long.min(MAX_ABSOLUTE_INDEX_PREFIX_VALUES,
+                                                     parallelism * MAX_PER_PARALLEL_TASK_INDEX_PREFIX_VALUES);
+        long maxPrefixIteratorValues = optimizer.isForSpark() ? sparkMaxPrefixIteratorValues :
+                                       sparkRowThreshold;
         return !skipStats &&
                useRealTableStats &&
                currentIndexFirstColumnStats.getFirstIndexColumnRowsPerValue() <= maxPrefixIteratorValues;
