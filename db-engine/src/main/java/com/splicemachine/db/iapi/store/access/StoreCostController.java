@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 import java.util.BitSet;
 
@@ -304,4 +305,8 @@ public interface StoreCostController extends RowCountable{
      * into the ConglomerateDescriptor.
      */
     void computeFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException;
+
+    FirstColumnOfIndexStats getFirstColumnStats();
+
+	void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats);
 }

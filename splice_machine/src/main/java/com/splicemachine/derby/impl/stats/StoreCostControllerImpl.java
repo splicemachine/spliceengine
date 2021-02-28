@@ -18,15 +18,13 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import com.splicemachine.db.vti.VTICosting;
@@ -92,6 +90,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     private double sampleFraction;
     private boolean isMergedStats;
     private int requestedSplits;
+	private FirstColumnOfIndexStats firstColumnStats;
 
     // The number of parallel Spark tasks that would run concurrently
     // to access this table.
@@ -148,37 +147,45 @@ public class StoreCostControllerImpl implements StoreCostController {
      * into the ConglomerateDescriptor.
      */
     public void computeFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd) throws StandardException {
-        if (cd.getFirstColumnStats() != null)
+        if (firstColumnStats != null)
             return;
-        synchronized (cd) {
-            // Test again in case another thread got the lock on cd ahead of us.
-            if (cd.getFirstColumnStats() != null)
-                return;
-            FirstColumnOfIndexStats firstColumnStats = new FirstColumnOfIndexStats();
+        DataDictionaryCache ddCache = cd.getDataDictionary().getDataDictionaryCache();
+        firstColumnStats = ddCache.firstColumnStatsCacheFind(cd.getConglomerateNumber());
+        if (firstColumnStats != null)
+            return;
 
-            firstColumnStats.setRowCountFromStats(getEstimatedRowCount());
-            if (!cd.isIndex() && !cd.isPrimaryKey()) {
-                cd.setFirstColumnStats(firstColumnStats);
-                return;
-            }
+        firstColumnStats = new FirstColumnOfIndexStats();
 
-            boolean isIndexOnExpression = cd.getIndexDescriptor().isOnExpression();
-            int columnNumber = isIndexOnExpression ? 1 : cd.getIndexDescriptor().baseColumnPositions()[0];
-
-            firstColumnStats.
-                setFirstIndexColumnCardinality(cardinality(isIndexOnExpression, columnNumber));
-            if (firstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
-                cd.setFirstColumnStats(firstColumnStats);
-                return;
-            }
-            firstColumnStats.
-                setFirstIndexColumnRowsPerValue(Double.valueOf(firstColumnStats.getRowCountFromStats()) /
-                    firstColumnStats.getFirstIndexColumnCardinality());
-            // At the end of access path planning, FromBaseTable.currentIndexFirstColumnStats will get updated
-            // with the stats from the conglomerate picked to scan if IndexPrefixIteratorMode is chosen.
-            cd.setFirstColumnStats(firstColumnStats);
+        firstColumnStats.setRowCountFromStats(getEstimatedRowCount());
+        if (!cd.isIndex() && !cd.isPrimaryKey()) {
+            ddCache.firstColumnStatsCacheAdd(cd.getConglomerateNumber(), firstColumnStats);
+            return;
         }
+
+        boolean isIndexOnExpression = cd.getIndexDescriptor().isOnExpression();
+        int columnNumber = isIndexOnExpression ? 1 : cd.getIndexDescriptor().baseColumnPositions()[0];
+
+        firstColumnStats.
+            setFirstIndexColumnCardinality(cardinality(isIndexOnExpression, columnNumber));
+        if (firstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
+            ddCache.firstColumnStatsCacheAdd(cd.getConglomerateNumber(), firstColumnStats);
+            return;
+        }
+        firstColumnStats.
+            setFirstIndexColumnRowsPerValue(Double.valueOf(firstColumnStats.getRowCountFromStats()) /
+                firstColumnStats.getFirstIndexColumnCardinality());
+        ddCache.firstColumnStatsCacheAdd(cd.getConglomerateNumber(), firstColumnStats);
+        // At the end of access path planning, FromBaseTable.currentIndexFirstColumnStats will get updated
+        // with the stats from the AccessPath CostEstimate picked for the scan, if IndexPrefixIteratorMode is chosen.
     }
+
+    public FirstColumnOfIndexStats getFirstColumnStats() {
+		return firstColumnStats;
+	}
+
+	public void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats) {
+        this.firstColumnStats = new FirstColumnOfIndexStats(firstColumnStats);
+	}
 
     private List<PartitionStatistics> collectPartitionStatistics(boolean forExprIndex,
                                                                  boolean isExternalTable,
