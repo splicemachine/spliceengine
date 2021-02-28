@@ -1033,6 +1033,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         boolean[] isEquality =
             new boolean[baseColumnPositions != null ?
                         (size > baseColumnPositions.length ? size : baseColumnPositions.length) :size];
+        boolean[] hasUsefulPredicate = new boolean[isEquality.length];
         /*
         ** Create an array of useful predicates.  Also, count how many
         ** useful predicates there are.
@@ -1071,6 +1072,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     pred.setIndexPosition(position);
                     /* Remember the useful predicate */
                     usefulPredicates[usefulCount++] = pred;
+                    hasUsefulPredicate[position] = true;
                 }
             }else{
                 if(primaryKey && isQualifier(pred,optTable,cd,pushPreds) ||
@@ -1124,7 +1126,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     isEquality[pos] = false;
         
                 if (!isEquality[pos]) {
-                    if (indexPrefixIterationAllowed && pos == 0) {
+                    // SPLICE-2399
+                    // TODO: Remove the hasUsefulPredicate check and support IndexPrefixIteratorMode
+                    //       with a range predicate on the first column.
+                    if (indexPrefixIterationAllowed && pos == 0 &&
+                        !hasUsefulPredicate[pos]) {
                         firstColumnMissing = true;
                         firstColumnIdx++;
                     }

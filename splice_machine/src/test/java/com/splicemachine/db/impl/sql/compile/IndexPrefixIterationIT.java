@@ -240,6 +240,21 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("IndexScan", "T11_IX4", "IndexPrefixIteratorMode(129 values)", "scannedRows=1");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // The following query should not error out.
+        query = format("select count(*) from t11 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                                ", t11 b\n" +
+                                "where\n" +
+                                "a.a1 between 1 and 10 and\n" +
+                                "a.c1  = '1' and\n" +
+                                "a.b1 = 1 and\n" +
+                                "a.d1 in (1,-2,-3) and\n" +
+                                "a.d1 = b.d1", useSpark);
+        expected =
+            "1  |\n" +
+            "------\n" +
+            "5184 |";
+        testQuery(query, expected, methodWatcher);
     }
 
 
