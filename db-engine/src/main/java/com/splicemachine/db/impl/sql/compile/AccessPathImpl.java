@@ -178,4 +178,9 @@ class AccessPathImpl implements AccessPath{
     public void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields) {
         this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
     }
+
+    @Override
+    public FirstColumnOfIndexStats getFirstColumnStats() {
+        return getCostEstimate().getFirstColumnStats();
+    }
 }

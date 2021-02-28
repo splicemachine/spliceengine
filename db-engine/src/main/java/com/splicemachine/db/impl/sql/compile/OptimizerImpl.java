@@ -1640,6 +1640,7 @@ public class OptimizerImpl implements Optimizer{
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
+        destCost.setFirstColumnStats(addend.getFirstColumnStats());
         destCost.setNumPartitions(addend.partitionCount());
         destCost.setParallelism(addend.getParallelism());
         destCost.setOpenCost(addend.getOpenCost());

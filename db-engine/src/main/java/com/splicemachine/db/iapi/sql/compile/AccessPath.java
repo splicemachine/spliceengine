@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 /**
  * AccessPath represents a proposed access path for an Optimizable.
@@ -195,4 +196,6 @@ public interface AccessPath {
 	 * If non-zero, this access path represents an IndexPrefixIteratorMode scan.
 	 */
     void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields);
+
+    FirstColumnOfIndexStats getFirstColumnStats();
 }

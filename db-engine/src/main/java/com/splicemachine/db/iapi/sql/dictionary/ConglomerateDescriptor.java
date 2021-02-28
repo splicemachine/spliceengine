@@ -80,7 +80,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	private final UUID	uuid;
 	private final UUID	tableID;
 	private final UUID	schemaID;
-	private FirstColumnOfIndexStats firstColumnStats;
+
 
 	/**
 	 * Constructor for a conglomerate descriptor.
@@ -656,13 +656,5 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		}
 
 		return returnDesc;
-	}
-
-	public FirstColumnOfIndexStats getFirstColumnStats() {
-		return firstColumnStats;
-	}
-
-	public void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats) {
-        this.firstColumnStats = new FirstColumnOfIndexStats(firstColumnStats);
 	}
 }

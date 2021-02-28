@@ -938,9 +938,9 @@ public class FromBaseTable extends FromTable {
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         useRealTableStats=scc.useRealTableStatistics();
-        if (!currentIndexFirstColumnStats.setFrom(cd.getFirstColumnStats())) {
+        if (!currentIndexFirstColumnStats.setFrom(scc.getFirstColumnStats())) {
             scc.computeFirstIndexColumnRowsPerValue(cd);
-            currentIndexFirstColumnStats.setFrom(cd.getFirstColumnStats());
+            currentIndexFirstColumnStats.setFrom(scc.getFirstColumnStats());
         }
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
@@ -1043,7 +1043,7 @@ public class FromBaseTable extends FromTable {
                 }
             }
             long numFirstIndexColumnProbes =
-                numUnusedLeadingIndexFields > 0 ? cd.getFirstColumnStats().getFirstIndexColumnCardinality() : 0;
+                numUnusedLeadingIndexFields > 0 ? scc.getFirstColumnStats().getFirstIndexColumnCardinality() : 0;
             scf.generateCost(numFirstIndexColumnProbes);
             singleScanRowCount=costEstimate.singleScanRowCount();
         }
@@ -1910,7 +1910,7 @@ public class FromBaseTable extends FromTable {
                 if (numUnusedLeadingIndexFields == 0) {
                     numUnusedLeadingIndexFields = ap.getNumUnusedLeadingIndexFields();
                     if (numUnusedLeadingIndexFields >= 1) {
-                        currentIndexFirstColumnStats.setFrom(trulyTheBestConglomerateDescriptor.getFirstColumnStats());
+                        currentIndexFirstColumnStats.setFrom(ap.getFirstColumnStats());
                         if (numUnusedLeadingIndexFields > 1)
                             throw StandardException.newException(LANG_INTERNAL_ERROR,
                                "IndexPrefixIteratorMode currently allows at most one leading index column to be unspecified in predicates.");

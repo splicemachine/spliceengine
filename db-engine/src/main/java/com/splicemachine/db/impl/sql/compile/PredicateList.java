@@ -1182,8 +1182,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             boolean foundPred[] = new boolean[usefulCount];
             boolean indexPrefixMissing = accessPath.getNumUnusedLeadingIndexFields() > 0;
             int firstColumnIteratedValues = !indexPrefixMissing ? 1 :
-                          (int) accessPath.getConglomerateDescriptor().
-                                           getFirstColumnStats().
+                          (int) accessPath.getFirstColumnStats().
                                            getFirstIndexColumnCardinality();
             int numConstants = firstColumnIteratedValues;
             // Allow up to 30x the maximum number of probe values in IndexPrefixIteratorMode

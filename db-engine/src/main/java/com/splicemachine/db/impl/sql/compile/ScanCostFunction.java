@@ -417,6 +417,7 @@ public class ScanCostFunction{
         scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
         scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
         scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
         scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
@@ -559,6 +560,7 @@ public class ScanCostFunction{
         double localCost = baseCost+lookupCost+projectionCost;
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
         scanCost.setLocalCost(localCost);
+        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
         scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
         scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());

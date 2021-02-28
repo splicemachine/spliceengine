@@ -74,4 +74,11 @@ public class FirstColumnOfIndexStats {
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "{ firstIndexColumnRowsPerValue=" + firstIndexColumnRowsPerValue +
+               ", rowCountFromStats=" + rowCountFromStats +
+               ", firstIndexColumnCardinality=" + firstIndexColumnCardinality + " }";
+    }
 }
