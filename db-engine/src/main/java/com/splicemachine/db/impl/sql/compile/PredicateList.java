@@ -903,7 +903,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         // costing.  Repeat the same decision when pushing predicates.
         final boolean costingPhase = !pushPreds && !rewriteList;
         final boolean indexPrefixIterationAllowed =
-            (costingPhase && optTable.indexPrefixIteratorAllowed(accessPath.getOptimizer())) ||
+            (costingPhase && optTable.indexPrefixIteratorAllowed(accessPath)) ||
                 (!costingPhase && accessPath.getNumUnusedLeadingIndexFields() > 0);
         accessPath.setNumUnusedLeadingIndexFields(0);
 
@@ -1189,6 +1189,17 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // Allow up to 30x the maximum number of probe values in IndexPrefixIteratorMode
             // because the first column's values don't need to be compiled in the activation,
             // so won't contribute to parsing or serialization overhead.
+            // The idea is that, we are trying to limit both the size of the serialized operation
+            // and also the total number of values in the MultiRowRangeFilter. The index prefix values
+            // won't contribute to the serialization size, because they are found out during execution time,
+            // but they will make the number of items in the MultiRowRangeFilter greater.
+            // The current default limit in number of combined values is 5000.
+            // If we had 1000 values in the first column, with no change in the code,
+            // we may end of building a MultiRowRangeFilter with 5 million items, which testing has shown
+            // to not perform well.
+            // Performance starts to degrade with a MultiRowRange filter of around 150000 items,
+            // so, the value 30 for INDEX_PREFIX_MODE_MULTI_PROBE_LIMIT_MULTIPLIER comes from trying to
+            // cap the MultiRowRangeFilter at 150000 (maxMulticolumnProbeValues (5000) * 30).
             int multiplier = indexPrefixMissing ? Math.min(INDEX_PREFIX_MODE_MULTI_PROBE_LIMIT_MULTIPLIER, numConstants) : 1;
             int maxMulticolumnProbeValues = getCompilerContext().getMaxMulticolumnProbeValues();
             if (maxMulticolumnProbeValues > 0)

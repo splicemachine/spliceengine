@@ -14,7 +14,6 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.utils.Pair;
 
 import java.io.IOException;

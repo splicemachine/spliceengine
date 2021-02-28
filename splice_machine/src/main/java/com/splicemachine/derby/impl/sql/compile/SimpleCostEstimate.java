@@ -312,7 +312,7 @@ public class SimpleCostEstimate implements CostEstimate{
         return Math.round(numRows);
     }
     @Override public void setEstimatedCost(double cost){ this.localCost = cost; }
-    @Override public void setLocalCost(double remoteCost){ this.localCost = remoteCost; }
+    @Override public void setLocalCost(double localCost){ this.localCost = localCost; }
 
     @Override
     public void setEstimatedRowCount(long count){
@@ -356,6 +356,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
         clone.setDisablePerParallelTaskJoinCostingSet(disablePerParallelTaskJoinCostingSet);
         clone.setOptimizer(optimizer);
+        clone.setFirstColumnStats(firstColumnStats);
         return clone;
     }
 
