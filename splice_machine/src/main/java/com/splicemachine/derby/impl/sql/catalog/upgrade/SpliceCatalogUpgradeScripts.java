@@ -116,7 +116,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForChangingGetKeyColumnPosition(sdd, tc));
-        addUpgradeScript(baseVersion4, 2002, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX change version here
+        addUpgradeScript(baseVersion4, 2002, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX(arnaud, multidb) change version here
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
