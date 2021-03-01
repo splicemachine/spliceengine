@@ -134,11 +134,10 @@ public class SpliceTableAdmin {
         try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             Activation activation = lcc.getLastActivation();
-            Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
             String schema = EngineUtils.validateSchema(schemaName);
-            fs = FileSystem.get(URI.create(outputFile), conf);
-
+            fs = getFileSystem(outputFile);
             out = fs.create(new Path(outputFile));
+
             // check each table in the schema
             List<String> tables = getTables(schema);
             for (String table : tables) {
@@ -163,6 +162,19 @@ public class SpliceTableAdmin {
         }
     }
 
+    static FileSystem getFileSystem(String path) throws IOException {
+        FSDataOutputStream out = null;
+        FileSystem fs = null;
+        Configuration conf;
+        try {
+            // getConfigSource().unwrapDelegate doesn't work on mem platform
+            conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+        } catch( Exception e) {
+            conf = new Configuration();
+        }
+        return FileSystem.get(URI.create(path), conf);
+    }
+
     /**
      * This system procedure checks table consistency
      * @param schemaName
@@ -182,10 +194,9 @@ public class SpliceTableAdmin {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             Activation activation = lcc.getLastActivation();
 
-            Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
             String schema = EngineUtils.validateSchema(schemaName);
             String table = EngineUtils.validateTable(tableName);
-            fs = FileSystem.get(URI.create(outputFile), conf);
+            fs = getFileSystem(outputFile);
             out = fs.create(new Path(outputFile));
 
 
@@ -213,12 +224,11 @@ public class SpliceTableAdmin {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             Activation activation = lcc.getLastActivation();
 
-            Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
             String schema = EngineUtils.validateSchema(schemaName);
             String table = EngineUtils.validateTable(tableName);
             String index = EngineUtils.validateTable(indexName);
 
-            fs = FileSystem.get(URI.create(outputFile), conf);
+            fs = getFileSystem(outputFile);
             out = fs.create(new Path(outputFile));
 
             errors = checkTable(schema, table, index, level, fix);

@@ -2088,7 +2088,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
-        DistributedFileSystem  fs = null;
+        DistributedFileSystem fs = null;
         try {
             fs = SIDriver.driver().getFileSystem(location);
         } catch (IOException e) {
