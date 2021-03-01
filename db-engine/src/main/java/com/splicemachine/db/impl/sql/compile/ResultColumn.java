@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.spark.sql.types.StructField;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
@@ -1508,6 +1509,13 @@ public class ResultColumn extends ValueNode
     {
         if ((expression != null) && (expression.isParameterNode()))
             throw StandardException.newException(SQLState.LANG_PARAM_IN_SELECT_LIST);
+    }
+
+    void assumeVarcharForUnknownParameters() throws StandardException
+    {
+        if (expression != null && expression.isParameterNode()) {
+            expression.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 254));
+        }
     }
 
     /*

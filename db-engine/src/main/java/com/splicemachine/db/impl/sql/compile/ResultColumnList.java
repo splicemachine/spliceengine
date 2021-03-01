@@ -1846,6 +1846,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    void assumeVarcharForUnknownParameters() throws StandardException{
+        for (ResultColumn rc: this) {
+            rc.assumeVarcharForUnknownParameters();
+        }
+    }
+
     /**
      * Check for (and reject) XML values directly under the ResultColumns.
      * This is done for SELECT/VALUES statements.  We reject values

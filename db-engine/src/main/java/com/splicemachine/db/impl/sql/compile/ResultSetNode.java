@@ -725,6 +725,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
         }
     }
 
+    public void assumeVarcharForUnknownParameters() throws StandardException {
+        if (resultColumns!= null) {
+            resultColumns.assumeVarcharForUnknownParameters();
+        }
+    }
+
     /**
      * Check for (and reject) XML values directly under the ResultColumns.
      * This is done for SELECT/VALUES statements.  We reject values
