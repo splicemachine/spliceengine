@@ -528,6 +528,14 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     public void decrementLastArraySlot() { lastArraySlot--; }
     public int getState() { return state; }
     public void setState(int state) { this.state = state; }
+
+    public void setTriggerExecutionContext(TriggerExecutionContext tec) {
+        this.tec = tec;
+    }
+
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        return tec;
+    }
 }
 
 

@@ -19,7 +19,9 @@ import splice.com.google.common.io.Closeables;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -34,16 +36,16 @@ class ManifestFinder {
     private static final Logger LOG = Logger.getLogger(ManifestFinder.class);
 
     /* Find it in a path/file that contains this string. */
-    private final String spliceJarFilePattern;
+    private final List<String> spliceJarFilePatterns;
     private final String manifestResourcePath;
 
     ManifestFinder() {
-        this.spliceJarFilePattern = "/splice_machine";
+        this.spliceJarFilePatterns = Arrays.asList("/hbase_sql", "/mem_sql");
         this.manifestResourcePath = JarFile.MANIFEST_NAME;
     }
 
     ManifestFinder(String spliceJarFilePattern, String manifestResourcePath) {
-        this.spliceJarFilePattern = spliceJarFilePattern;
+        this.spliceJarFilePatterns = Arrays.asList(spliceJarFilePattern);
         this.manifestResourcePath = manifestResourcePath;
     }
 
@@ -57,13 +59,11 @@ class ManifestFinder {
             Enumeration resEnum = Thread.currentThread().getContextClassLoader().getResources(this.manifestResourcePath);
             while (resEnum.hasMoreElements()) {
                 URL url = (URL) resEnum.nextElement();
-                if (url.getFile().contains(this.spliceJarFilePattern)) {
-                    InputStream is = null;
-                    try {
-                        is = url.openStream();
-                        return is == null ? null : new Manifest(is);
-                    } finally {
-                        Closeables.closeQuietly(is);
+                for (String pattern : spliceJarFilePatterns) {
+                    if (url.getFile().contains(pattern)) {
+                        try (InputStream is = url.openStream()){
+                            return is == null ? null : new Manifest(is);
+                        }
                     }
                 }
             }

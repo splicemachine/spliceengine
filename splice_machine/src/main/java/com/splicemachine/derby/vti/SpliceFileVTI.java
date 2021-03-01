@@ -161,15 +161,20 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
                 quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
             }
 
-            boolean preserveLineEndings = getPreserveLineEndings(op);
-            if (oneLineRecords && !preserveLineEndings
-                    && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+            // if we have oneLineRecords, we don't read the line endings into the data
+            // for this, we would need multiline-line varchars). so in that cases, we set preserveLineEndings = false
+
+            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+                // full parallel execution
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                         columnIndex, timeFormat, dateTimeFormat, timestampFormat,
-                        true, operationContext, quotedEmptyIsNull, preserveLineEndings), true);
+                        true, operationContext, quotedEmptyIsNull, false /*preserveLineEndings*/ ), true);
             } else {
+                // note this code path is much slower since it's not splitting the file,
+                // effectively reducing parallelization
+                boolean preserveLineEndings = getPreserveLineEndings(op);
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
                 return streamSet.values(operationContext).flatMap(

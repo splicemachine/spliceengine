@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.jdbc.authentication;
 
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.sql.dictionary.PasswordHasher;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -95,7 +96,7 @@ public final class BasicAuthenticationServiceImpl
         return !((authenticationProvider != null) &&
                 (!authenticationProvider.isEmpty()) &&
                 (!(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-                        Property.AUTHENTICATION_PROVIDER_BUILTIN))));
+                        PropertyHelper.AUTHENTICATION_PROVIDER_BUILTIN))));
 	}
 
 	/**
