@@ -54,8 +54,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
-
 /**
  * Responsible for firing a trigger or set of triggers based on an event.
  */
@@ -363,18 +361,9 @@ public class TriggerEventActivator {
                 @Override
                 public Void apply(LanguageConnectionContext lcc) {
                     com.splicemachine.db.iapi.services.context.ContextManager cm = null;
-                    boolean newContextManager = false;
-                    boolean lccPushed = false;
                     boolean tecPushed = false;
 
                     try {
-                        cm = ContextService.getFactory().getCurrentContextManager();
-                        if (cm == null) {
-                            newContextManager = true;
-                            cm = ContextService.getFactory().newContextManager();
-                            ContextService.getFactory().setCurrentContextManager(cm);
-                        }
-                        lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
                         TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(lcc,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                                 tableId, tableName, null, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
@@ -397,13 +386,6 @@ public class TriggerEventActivator {
 
                             }
                             tec.clearTrigger(false);
-
-                            if (cm != null) {
-                                if (lccPushed)
-                                    cm.popContext();
-                                if (newContextManager)
-                                    ContextService.getFactory().resetCurrentContextManager(cm);
-                            }
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
