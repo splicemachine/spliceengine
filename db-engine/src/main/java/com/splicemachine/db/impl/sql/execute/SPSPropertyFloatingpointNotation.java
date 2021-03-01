@@ -20,6 +20,9 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 
 import java.sql.Types;
 
+/**
+ * An SPS property that governs floating-point fields in a query
+ */
 public class SPSPropertyFloatingpointNotation extends SPSProperty {
 
     protected SPSPropertyFloatingpointNotation(UUID uuid, String name) {

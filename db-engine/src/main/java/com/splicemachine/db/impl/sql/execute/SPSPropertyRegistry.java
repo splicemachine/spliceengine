@@ -22,7 +22,13 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SPSPropertyManager {
+/**
+ * A static registry that keeps track of all SPS properties and checks whether a dependency should be created
+ * from a statement plan to a specific SPS property.
+ *
+ * If you add a new SPS property, make sure to register it here so it is checked when analyzing a statement plan.
+ */
+public class SPSPropertyRegistry {
     private static Set<SPSProperty> propertySet = ConcurrentHashMap.newKeySet();
     static {
         propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("91916f24-fa35-493d-9048-e41ffbe004d7"), Property.SPLICE_TIMESTAMP_FORMAT));
@@ -35,7 +41,14 @@ public class SPSPropertyManager {
         return propertySet.stream().filter(p -> p.name.equals(propertyName)).findAny().orElse(null);
     }
 
+    /**
+     * Adds a dependency if necessary between a statement node and an SPS property using the compiler's context
+     * dependency manager.
+     */
     public static void addDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
+        assert statementNode != null;
+        assert cc != null;
+
         for (SPSProperty property : propertySet) {
             property.checkAndAddDependency(statementNode, cc);
         }

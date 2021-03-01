@@ -56,7 +56,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyManager;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -839,7 +839,7 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-                SPSPropertyManager.addDependency(qt, cc);
+                SPSPropertyRegistry.addDependency(qt, cc);
                 bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {

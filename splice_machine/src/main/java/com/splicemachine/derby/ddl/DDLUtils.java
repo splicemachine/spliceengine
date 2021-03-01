@@ -33,7 +33,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.SPSProperty;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyManager;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
@@ -1040,7 +1040,7 @@ public class DDLUtils {
      */
     public static void invalidateSpsProperty(final String key) throws SQLException {
         try {
-            SPSProperty p = SPSPropertyManager.forName(key);
+            SPSProperty p = SPSPropertyRegistry.forName(key);
             if(p == null) {
                 return; // property is not an SPSProperty.
             }

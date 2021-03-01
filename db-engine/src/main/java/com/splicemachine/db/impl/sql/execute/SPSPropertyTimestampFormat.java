@@ -20,6 +20,9 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 
 import java.sql.Types;
 
+/**
+ * An SPS property that governs timestamp field(s) in a query.
+ */
 final class SPSPropertyTimestampFormat extends SPSProperty {
 
     protected SPSPropertyTimestampFormat(final UUID uuid, final String name) {

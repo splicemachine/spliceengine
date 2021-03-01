@@ -20,6 +20,9 @@ import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
 import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 
+/**
+ * An SPS property that governs SECOND sql function in a query.
+ */
 public class SPSPropertySecondFunction extends SPSProperty{
 
     protected SPSPropertySecondFunction(UUID uuid, String name) {
