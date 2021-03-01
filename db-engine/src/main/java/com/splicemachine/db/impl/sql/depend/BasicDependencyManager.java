@@ -171,27 +171,13 @@ public class BasicDependencyManager implements DependencyManager {
         // If we find that the dependency we are trying to add in
         // one list is a duplicate, then it should be a duplicate in the
         // other list.
-        boolean addedToDeps;
-        boolean addedToProvs = false;
-
-        addedToDeps = addDependencyToTable(dependents, d.getObjectID(), dy);
+        boolean addedToDeps = addDependencyToTable(dependents, d.getObjectID(), dy);
         if (addedToDeps) {
-            addedToProvs = addDependencyToTable(providers, p.getObjectID(), dy);
+            addDependencyToTable(providers, p.getObjectID(), dy);
         } else if (SanityManager.DEBUG) {
-            addedToProvs = addDependencyToTable(providers, p.getObjectID(), dy);
+            addDependencyToTable(providers, p.getObjectID(), dy);
         }
 
-        // Dependency should have been added to both or neither.
-		// No Longer the case due to with clauses
-/*        if (SanityManager.DEBUG) {
-            if (addedToDeps != addedToProvs) {
-                SanityManager.THROWASSERT(
-                    "addedToDeps (" + addedToDeps +
-                    ") and addedToProvs (" +
-                    addedToProvs + ") are expected to agree");
-            }
-        }
-*/
         // Add the dependency to the StatementContext, so that
         // it can be cleared on a pre-execution error.
         StatementContext sc = (StatementContext) cm.getContext(
