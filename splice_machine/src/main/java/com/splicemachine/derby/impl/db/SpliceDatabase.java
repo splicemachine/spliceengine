@@ -444,14 +444,7 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_VIEW:
                         break;
                     case LEAVE_RESTORE_MODE:
-                        SIDriver.driver().getTxnSupplier().invalidate();
-                        SIDriver.driver().getIgnoreTxnSupplier().refresh();
-                        dataDictionary.getDataDictionaryCache().clearAll();
-                        SIDriver.driver().lifecycleManager().leaveRestoreMode();
-                        allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for (Context context : allContexts) {
-                            ((LanguageConnectionContext) context).leaveRestoreMode();
-                        }
+                        DDLUtils.preLeaveRestore(change, dataDictionary);
                         break;
                     case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
                     case DROP_FOREIGN_KEY:
