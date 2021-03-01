@@ -20,14 +20,15 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 
 import java.sql.Types;
 
-final class SPSPropertyTimestampFormat extends SPSProperty {
+public class SPSPropertyFloatingpointNotation extends SPSProperty {
 
-    protected SPSPropertyTimestampFormat(final UUID uuid, final String name) {
+    protected SPSPropertyFloatingpointNotation(UUID uuid, String name) {
         super(uuid, name);
     }
 
+    @Override
     protected void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
-        if(hasNodeType(statementNode, Types.TIMESTAMP)) {
+        if(hasNodeType(statementNode, Types.DOUBLE, Types.FLOAT, Types.REAL)) {
             cc.createDependency(this);
         }
     }

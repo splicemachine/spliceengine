@@ -16,18 +16,23 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
+import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 
-import java.sql.Types;
+public class SPSPropertySecondFunction extends SPSProperty{
 
-final class SPSPropertyTimestampFormat extends SPSProperty {
-
-    protected SPSPropertyTimestampFormat(final UUID uuid, final String name) {
+    protected SPSPropertySecondFunction(UUID uuid, String name) {
         super(uuid, name);
     }
 
+    @Override
     protected void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
-        if(hasNodeType(statementNode, Types.TIMESTAMP)) {
+        assert statementNode != null;
+        assert cc != null;
+        final CollectNodesVisitor v = new CollectNodesVisitor(SecondFunctionNode.class);
+        statementNode.accept(v);
+        if(!v.getList().isEmpty()) {
             cc.createDependency(this);
         }
     }

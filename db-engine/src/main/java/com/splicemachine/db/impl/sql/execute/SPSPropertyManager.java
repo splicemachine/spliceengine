@@ -14,6 +14,7 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
@@ -21,12 +22,13 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.splicemachine.db.iapi.reference.Property.SPLICE_TIMESTAMP_FORMAT;
-
 public class SPSPropertyManager {
     private static Set<SPSProperty> propertySet = ConcurrentHashMap.newKeySet();
     static {
-        propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("91916f24-fa35-493d-9048-e41ffbe004d7"), SPLICE_TIMESTAMP_FORMAT));
+        propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("91916f24-fa35-493d-9048-e41ffbe004d7"), Property.SPLICE_TIMESTAMP_FORMAT));
+        propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("b2decb1d-acc2-4402-9278-d4aab1fc6431"), Property.SPLICE_CURRENT_TIMESTAMP_PRECISION));
+        propertySet.add(new SPSPropertyFloatingpointNotation(new BasicUUID("e8027088-78d8-41aa-be8e-ede5c646ae0a"), Property.FLOATING_POINT_NOTATION));
+        propertySet.add(new SPSPropertySecondFunction(new BasicUUID("01fc4415-bc53-4ac1-b829-93e0e61b0c5f"), Property.SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE));
     };
 
     public static SPSProperty forName(String propertyName) {
