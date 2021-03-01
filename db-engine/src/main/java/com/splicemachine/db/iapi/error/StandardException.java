@@ -80,7 +80,7 @@ public class StandardException extends Exception
 	public StandardException() {
 		
 	}
-	
+
 	public void setIsSignal(boolean isSignal) { this.isSignal = isSignal; }
 	public boolean isSignal() { return isSignal; }
 	
@@ -818,5 +818,15 @@ public class StandardException extends Exception
 
         return(SQLState.LOCK_TIMEOUT.equals(getSQLState()) ||
                SQLState.DEADLOCK.equals(getSQLState()));
+    }
+    /**
+     * @return if input is already a StandardException, return as is.
+	 *         Otherwise, use plainWrapException so we always return a StandardException
+     */
+	public static StandardException getOrWrap(Throwable e) {
+        if(e instanceof StandardException)
+            return (StandardException)e;
+        else
+            return plainWrapException(e);
     }
 }

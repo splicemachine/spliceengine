@@ -7796,7 +7796,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 System.out.println("ASSERT FAILURE: "+strbuf.toString());
                 SanityManager.DEBUG_PRINT("ASSERT FAILURE",strbuf.toString());
             }catch(StandardException se){
-                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(se.toString());
+                strbuf.append("\ngot the following StandardException when doing extra consistency checks:\n").append(se.toString());
+            }
+            catch(Throwable t) {
+                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(t.toString());
             }
         }
     }

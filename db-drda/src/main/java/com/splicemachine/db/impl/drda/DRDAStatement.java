@@ -641,13 +641,23 @@ class DRDAStatement
 	}
 
 
-	protected PreparedStatement explicitPrepare(String sqlStmt) throws SQLException
-	{
-		explicitlyPrepared = true;
-		return prepare(sqlStmt);
-	}
+    protected PreparedStatement explicitPrepare(String sqlStmt) throws SQLException
+    {
+        explicitlyPrepared = true;
+        try {
+            return prepare(sqlStmt);
+        }
+        catch(Throwable t) {
+            throw toSqlException(t);
+        }
+    }
 
-	protected boolean wasExplicitlyPrepared()
+    public static SQLException toSqlException(Throwable t) {
+        return (t instanceof SQLException) ? (SQLException)t : new SQLException(t);
+    }
+
+
+    protected boolean wasExplicitlyPrepared()
 	{
 		return explicitlyPrepared;
 	}
@@ -661,45 +671,46 @@ class DRDAStatement
 	 */
 	protected PreparedStatement prepare(String sqlStmt)   throws SQLException
 	{
-		// save current prepare iso level
-		int saveIsolationLevel = -1;
-		boolean isolationSet = false;
-		if (pkgnamcsn !=null && 
-			isolationLevel != Connection.TRANSACTION_NONE)
-		{
-			saveIsolationLevel = database.getPrepareIsolation();
-			database.setPrepareIsolation(isolationLevel);
-			isolationSet = true;
-		}
-		
-		parsePkgidToFindHoldability();
+	    try {
+            // save current prepare iso level
+            int saveIsolationLevel = -1;
+            boolean isolationSet = false;
+            if (pkgnamcsn != null &&
+                    isolationLevel != Connection.TRANSACTION_NONE) {
+                saveIsolationLevel = database.getPrepareIsolation();
+                database.setPrepareIsolation(isolationLevel);
+                isolationSet = true;
+            }
 
-		if (isCallableSQL(sqlStmt))
-		{
-			isCall = true;
-			ps = database.getConnection().prepareCall(
-				sqlStmt, scrollType, concurType, withHoldCursor);
-			setupCallableStatementParams((CallableStatement)ps);
-		}
-		else
-		{
-			ps = database.getConnection().prepareStatement(
-				sqlStmt, scrollType, concurType, withHoldCursor);
-		}
+            parsePkgidToFindHoldability();
 
-		// beetle 3849  -  Need to change the cursor name to what
-		// JCC thinks it will be, since there is no way in the 
-		// protocol to communicate the actual cursor name.  JCC keeps 
-		// a mapping from the client cursor names to the DB2 style cursor names
-		if (cursorName != null)//cursorName not null means we are dealing with dynamic pacakges
-			ps.setCursorName(cursorName);
-		if (isolationSet)
-			database.setPrepareIsolation(saveIsolationLevel);
+            if (isCallableSQL(sqlStmt)) {
+                isCall = true;
+                ps = database.getConnection().prepareCall(
+                        sqlStmt, scrollType, concurType, withHoldCursor);
+                setupCallableStatementParams((CallableStatement) ps);
+            } else {
+                ps = database.getConnection().prepareStatement(
+                        sqlStmt, scrollType, concurType, withHoldCursor);
+            }
 
-        versionCounter = ((EnginePreparedStatement)ps).getVersionCounter();
+            // beetle 3849  -  Need to change the cursor name to what
+            // JCC thinks it will be, since there is no way in the
+            // protocol to communicate the actual cursor name.  JCC keeps
+            // a mapping from the client cursor names to the DB2 style cursor names
+            if (cursorName != null)//cursorName not null means we are dealing with dynamic pacakges
+                ps.setCursorName(cursorName);
+            if (isolationSet)
+                database.setPrepareIsolation(saveIsolationLevel);
 
-        return ps;
-	}
+            versionCounter = ((EnginePreparedStatement) ps).getVersionCounter();
+
+            return ps;
+        }
+        catch(Throwable t) {
+            throw toSqlException(t);
+        }
+    }
 
 	/**
 	 * Get prepared statement
@@ -739,47 +750,52 @@ class DRDAStatement
 	 */
 	protected boolean execute() throws SQLException
 	{
-		boolean hasResultSet = ps.execute();
-		// DERBY-3085 - We need to make sure we drain the streamed parameter
-		// if not used by the server, for example if an update statement does not 
-		// update any rows, the parameter won't be used.  Network Server will
-		// stream only the last parameter with an EXTDTA. This is stored when the
-		// parameter is set and drained now after statement execution if needed.
-		try {
-			drdaParamState_.drainStreamedParameter();
-		} catch (IOException e) { 
-			throw Util.javaException(e);
-		}
-		// java.sql.Statement says any result sets that are opened
-		// when the statement is re-executed must be closed; this
-		// is handled by the call to "ps.execute()" above--but we
-		// also have to reset our 'numResultSets' counter, since
-		// all previously opened result sets are now invalid.
-		numResultSets = 0;
+	    try {
+            boolean hasResultSet = ps.execute();
+            // DERBY-3085 - We need to make sure we drain the streamed parameter
+            // if not used by the server, for example if an update statement does not
+            // update any rows, the parameter won't be used.  Network Server will
+            // stream only the last parameter with an EXTDTA. This is stored when the
+            // parameter is set and drained now after statement execution if needed.
+            try {
+                drdaParamState_.drainStreamedParameter();
+            } catch (IOException e) {
+                throw Util.javaException(e);
+            }
+            // java.sql.Statement says any result sets that are opened
+            // when the statement is re-executed must be closed; this
+            // is handled by the call to "ps.execute()" above--but we
+            // also have to reset our 'numResultSets' counter, since
+            // all previously opened result sets are now invalid.
+            numResultSets = 0;
 
-		ResultSet rs = null;
-		boolean isCallable = (ps instanceof java.sql.CallableStatement);
-		if (isCallable)
-			needsToSendParamData = true;
+            ResultSet rs = null;
+            boolean isCallable = (ps instanceof java.sql.CallableStatement);
+            if (isCallable)
+                needsToSendParamData = true;
 
-		do {
-			rs = ps.getResultSet();
-			if (rs !=null)
-			{
-				//For callable statement, get holdability of statement generating the result set
-				if(isCallable)
-					addResultSet(rs, ((EngineResultSet) rs).getHoldability());
-				else
-					addResultSet(rs,withHoldCursor);
-				hasResultSet = true;
-			}
-			// For normal selects we are done, but procedures might
-			// have more resultSets
-		}while (isCallable && getMoreResults(Statement.KEEP_CURRENT_RESULT));
+            do {
+                rs = ps.getResultSet();
+                if (rs !=null)
+                {
+                    //For callable statement, get holdability of statement generating the result set
+                    if(isCallable)
+                        addResultSet(rs, ((EngineResultSet) rs).getHoldability());
+                    else
+                        addResultSet(rs,withHoldCursor);
+                    hasResultSet = true;
+                }
+                // For normal selects we are done, but procedures might
+                // have more resultSets
+            }while (isCallable && getMoreResults(Statement.KEEP_CURRENT_RESULT));
 
-		return hasResultSet;
+            return hasResultSet;
+        }
+        catch(Throwable t) {
+            throw toSqlException(t);
+        }
 
-	}
+    }
 	
 	/**
 	 * clear out type data for parameters.

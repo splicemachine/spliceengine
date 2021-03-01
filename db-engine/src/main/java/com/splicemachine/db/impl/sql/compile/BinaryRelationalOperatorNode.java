@@ -440,10 +440,10 @@ public class BinaryRelationalOperatorNode
                 }
             }
 
-        }catch(StandardException se){
+        }catch(Throwable t){
             if(SanityManager.DEBUG){
                 SanityManager.THROWASSERT("Failed when trying to "+
-                        "find base table number for column reference check:",se);
+                        "find base table number for column reference check:", t);
             }
         }
 
@@ -2046,10 +2046,10 @@ public class BinaryRelationalOperatorNode
             valNodeBaseTables.and(optBaseTables);
             found=(valNodeBaseTables.getFirstSetBit()!=-1);
 
-        }catch(StandardException se){
+        }catch(Throwable t){
             if(SanityManager.DEBUG){
                 SanityManager.THROWASSERT("Failed when trying to "+
-                        "find base table numbers for reference check:",se);
+                        "find base table numbers for reference check:", t);
             }
         }
 

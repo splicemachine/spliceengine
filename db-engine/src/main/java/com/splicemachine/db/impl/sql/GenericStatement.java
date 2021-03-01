@@ -150,7 +150,10 @@ public class GenericStatement implements Statement{
                 }
                 else
                     throw se;
-            }finally{
+            } catch (Throwable e) {
+                throw StandardException.getOrWrap(e);
+            }
+            finally{
                 // Check if the statement was invalidated while it was
                 // compiled. If so, the newly compiled plan may not be
                 // up to date anymore, so we recompile the statement
@@ -615,12 +618,12 @@ public class GenericStatement implements Statement{
             cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
-        }catch(StandardException se){
+        } catch (Throwable e) {
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-
-            throw se;
-        }finally{
+            throw StandardException.getOrWrap(e);
+        }
+        finally{
             synchronized(preparedStmt){
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
@@ -781,9 +784,9 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-        }catch(StandardException se){
+        }catch(Throwable t){
             lcc.commitNestedTransaction();
-            throw se;
+            throw StandardException.getOrWrap(t);
         }
     }
 
@@ -833,9 +836,9 @@ public class GenericStatement implements Statement{
             preparedStmt.completeCompile(qt);
             preparedStmt.setCompileTimeWarnings(cc.getWarnings());
 
-        }catch(StandardException e){    // hold it, throw it
+        } catch (Throwable e) {  // hold it, throw it
             lcc.commitNestedTransaction();
-            throw e;
+            throw StandardException.getOrWrap(e);
         }
         return endTimestamp;
     }
