@@ -2328,19 +2328,19 @@ public class HdfsImportIT extends SpliceUnitTest {
         try {
             String data =
                     "1|5\n" +
-                            "2|5\n" +
-                            "2|6\n" +
-                            "1|6\n" +
-                            "1|5\n";
+                    "2|5\n" +
+                    "2|6\n" +
+                    "1|6\n" +
+                    "1|5\n";
             Files.write(Paths.get(path), data.getBytes());
 
             String sql = "call SYSCS_UTIL.IMPORT_DATA('%s', 'TWO_INDICES', null, '%s', '|', null, null, null, null, 10, '/tmp', false, null)";
 
             methodWatcher.execute("drop table TWO_INDICES IF EXISTS");
-            methodWatcher.execute("CREATE TABLE TWO_INDICES (c1 INTEGER, c2 INTEGER)");
+            methodWatcher.execute("CREATE TABLE TWO_INDICES (c1 INTEGER UNIQUE, c2 INTEGER UNIQUE)");
 
-            methodWatcher.execute("create index ti_idx1 on HDFSIMPORTIT.TWO_INDICES(c1)");
-            methodWatcher.execute("create index ti_idx2 on HDFSIMPORTIT.TWO_INDICES(c2)");
+//            methodWatcher.execute("create index ti_idx1 on HDFSIMPORTIT.TWO_INDICES(c1)");
+//            methodWatcher.execute("create index ti_idx2 on HDFSIMPORTIT.TWO_INDICES(c2)");
 
             sql = String.format(sql, spliceSchemaWatcher.schemaName, path);
             methodWatcher.executeQuery(sql);
@@ -2361,4 +2361,41 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void test2Indices3() throws Exception {
+        File tempDir = createTempDirectory(spliceSchemaWatcher.schemaName);
+        String path = tempDir.toString() + "/test2indices.csv";
+        try {
+            String data =
+                    "1|1\n" +
+                    "2|1\n" + // unique violation in column 2
+                    "2|2\n";
+            Files.write(Paths.get(path), data.getBytes());
+
+            String sql = "call SYSCS_UTIL.IMPORT_DATA('%s', 'TWO_INDICES', null, '%s', '|', null, null, null, null, 10, '/tmp', false, null)";
+
+            methodWatcher.execute("drop table TWO_INDICES IF EXISTS");
+            methodWatcher.execute("CREATE TABLE TWO_INDICES (c1 INTEGER, c2 INTEGER UNIQUE)");
+
+            sql = String.format(sql, spliceSchemaWatcher.schemaName, path);
+            methodWatcher.executeQuery(sql);
+            String res ="C1 |C2 |\n" +
+                    "--------\n" +
+                    " 1 | 1 |\n" +
+                    " 2 | 2 |";
+            SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from HDFSIMPORTIT.TWO_INDICES order by c1",
+                    res, true);
+
+            SpliceUnitTest.sqlExpectToString(methodWatcher, "select * from HDFSIMPORTIT.TWO_INDICES order by c2",
+                    res, true);
+
+            SpliceUnitTest.sqlExpectToString(methodWatcher, String
+                    .format("call syscs_util.check_table('HDFSIMPORTIT', 'TWO_INDICES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()), "", true);
+        }
+        finally {
+            File f = new File(path);
+            if (f.exists()) f.delete();
+            deleteTempDirectory(tempDir);
+        }
+    }
 }
