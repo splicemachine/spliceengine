@@ -267,6 +267,7 @@ message ResultColumnDescriptor {
   optional DataTypeDescriptor type = 5;
   optional bool isAutoincrement = 6;
   optional bool updatableByCursor = 7;
+  optional bool hasGenerationClause = 8;
 }
 
 message UUID {

@@ -61,7 +61,6 @@ public final class GenericColumnDescriptor
 	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
 	public static final long serialVersionUID = -7718734896813275598l;
 
-    private static final int serializationMagicNumber = -314159265;
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it
@@ -134,6 +133,7 @@ public final class GenericColumnDescriptor
 		type = ProtobufUtils.fromProtobuf(resultColumnDescriptor.getType());
 		isAutoincrement = resultColumnDescriptor.getIsAutoincrement();
 		updatableByCursor = resultColumnDescriptor.getUpdatableByCursor();
+		hasGenerationClause = resultColumnDescriptor.getHasGenerationClause();
 	}
 	/**
 	 * Returns a DataTypeDescriptor for the column. This DataTypeDescriptor
@@ -281,7 +281,8 @@ public final class GenericColumnDescriptor
 		builder.setColumnPos(columnPos)
 				.setType(type.toProtobuf())
 				.setIsAutoincrement(isAutoincrement)
-				.setUpdatableByCursor(updatableByCursor);
+				.setUpdatableByCursor(updatableByCursor)
+		        .setHasGenerationClause(hasGenerationClause);
 		return builder.build();
 	}
 
