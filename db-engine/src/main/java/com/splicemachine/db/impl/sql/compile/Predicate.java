@@ -92,7 +92,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     private ReferencedColumnsMap referencedColumns;
 
-    private HashMap<Optimizable, Double> scanSelectivityCache;
+    // table number -> scan selectivity
+    private HashMap<Integer, Double> scanSelectivityCache;
 
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
@@ -313,11 +314,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if (scanSelectivityCache == null) {
             scanSelectivityCache = new HashMap<>(referencedSet.cardinality());
         }
-        if (scanSelectivityCache.containsKey(innerTable)) {
-            return scanSelectivityCache.get(innerTable);
+        int tableNumber = innerTable.getTableNumber();
+        if (scanSelectivityCache.containsKey(tableNumber)) {
+            return scanSelectivityCache.get(tableNumber);
         } else {
             double scanSelectivity = andNode.getLeftOperand().scanSelectivity(innerTable);
-            scanSelectivityCache.put(innerTable, scanSelectivity);
+            scanSelectivityCache.put(tableNumber, scanSelectivity);
             return scanSelectivity;
         }
     }
