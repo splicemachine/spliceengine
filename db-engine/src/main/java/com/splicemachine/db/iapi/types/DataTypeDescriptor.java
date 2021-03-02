@@ -1144,12 +1144,6 @@ public class DataTypeDescriptor implements Formatable{
         return new DataTypeDescriptor(this,isNullable);
     }
 
-    public DataTypeDescriptor getDB2CompatibleNullabilityType(boolean isNullable){
-        if(isNullable()==isNullable)
-            return this;
-
-        return new DataTypeDescriptor(this,isNullable);
-    }
 
     /**
      * Return a type description identical to this type
