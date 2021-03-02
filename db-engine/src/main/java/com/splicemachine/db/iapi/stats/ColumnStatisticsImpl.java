@@ -507,7 +507,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
          * it with the lower bound of rpv and upper bound of total not-null rows.
          */
 
-        long qualifiedRows = 0;
+        long qualifiedRows;
         /* 1. range selectivity returned by CDF */
         if (!includeStart && start != null && !start.isNull())
             start = new StatsExcludeStartDVD(start);
@@ -517,7 +517,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity - startSelectivity;
         double count = (double) quantilesSketch.getN();
-        if (totalSelectivity == Double.NaN || count == 0)
+        if (Double.isNaN(totalSelectivity) || count == 0)
             qualifiedRows = 0;
         else
             qualifiedRows = Math.round(totalSelectivity * count);
