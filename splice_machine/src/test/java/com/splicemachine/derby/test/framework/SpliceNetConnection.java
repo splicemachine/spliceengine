@@ -15,6 +15,8 @@
 package com.splicemachine.derby.test.framework;
 
 
+import com.splicemachine.db.shared.common.reference.Attribute;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -132,6 +134,7 @@ public class SpliceNetConnection {
         private String password;
         private String schema;
         private String currentSchema;
+        private String closeAction;
         private String ssl;
         private String useOLAP;
         private String useNativeSpark;
@@ -191,6 +194,10 @@ public class SpliceNetConnection {
             this.minPlanTimeout = Long.toString(minPlanTimeout);
             return this;
         }
+        public ConnectionBuilder closeAction(String closeAction) {
+            this.closeAction = closeAction;
+            return this;
+        }
         public ConnectionBuilder setCurrentFunctionPath(String currentFunctionPath) {
             this.currentFunctionPath = currentFunctionPath;
             return this;
@@ -214,6 +221,8 @@ public class SpliceNetConnection {
                 info.put("useNativeSpark", useNativeSpark);
             if (minPlanTimeout != null)
                 info.put("minPlanTimeout", minPlanTimeout);
+            if (closeAction != null)
+                info.put(Attribute.CLIENT_CLOSE_ACTION, closeAction);
             if (currentFunctionPath != null)
                 info.put("CurrentFunctionPath", currentFunctionPath);
             StringBuilder url = new StringBuilder();

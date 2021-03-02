@@ -261,6 +261,14 @@ public interface Attribute {
     String CLIENT_KERBEROS_KEYTAB = "keytab";
 
     /**
+     * closeAction sets how we deal with open transactions when closing a connection
+     * ROLLBACK -> rollback open transaction
+     * COMMIT -> commit open transaction
+     * THROW -> throw error (default)
+     */
+    String CLIENT_CLOSE_ACTION = "closeAction";
+
+    /**
      * traceFile sets the client side trace file. Client driver attribute.
      */
     String CLIENT_TRACE_FILE = "traceFile";

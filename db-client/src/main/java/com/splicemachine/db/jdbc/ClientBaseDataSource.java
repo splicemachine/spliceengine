@@ -916,6 +916,16 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
         return securityMechanism;
     }
 
+    private CloseAction closeAction = CloseAction.THROW;
+
+    public CloseAction getCloseAction() {
+        return closeAction;
+    }
+
+    public void setCloseAction(CloseAction closeAction) {
+        this.closeAction = closeAction;
+    }
+
     // ----------------------- ssl
 
     private int sslMode;
@@ -1158,6 +1168,9 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
         if (prop.containsKey(Attribute.SSL_ATTR)) {
             sslMode = getClientSSLMode(prop);
         }
+        if (prop.containsKey(Attribute.CLIENT_CLOSE_ACTION)) {
+            closeAction = getCloseAction(prop);
+        }
     }
 
     /**
@@ -1216,5 +1229,16 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
 
     public static String getClientKeytab(Properties properties) {
         return properties.getProperty(Attribute.CLIENT_KERBEROS_KEYTAB);
+    }
+
+    public static CloseAction getCloseAction(Properties properties) {
+        String value = properties.getProperty(Attribute.CLIENT_CLOSE_ACTION);
+        if (value == null)
+            return CloseAction.THROW;
+        try {
+            return CloseAction.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            return CloseAction.THROW; // default
+        }
     }
 }

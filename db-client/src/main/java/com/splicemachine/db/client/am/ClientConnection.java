@@ -28,6 +28,7 @@ package com.splicemachine.db.client.am;
 import com.splicemachine.db.client.net.NetConnection;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.CloseAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.SQLException;
@@ -178,6 +179,8 @@ public abstract class ClientConnection
     public String principal;
     public String keytab;
 
+    private CloseAction closeAction = CloseAction.THROW;
+
     java.util.Hashtable clientCursorNameCache_ = new java.util.Hashtable();
     public int commBufferSize_ = 32767;
 
@@ -282,6 +285,8 @@ public abstract class ClientConnection
         clientSSLMode_ = 
             ClientBaseDataSource.getSSLModeFromString(dataSource.getSsl());
 
+        closeAction = dataSource.getCloseAction();
+
         agent_ = newAgent_(logWriter,
                 loginTimeout_,
                 serverNameIP_,
@@ -334,6 +339,8 @@ public abstract class ClientConnection
 
         principal = ClientDataSource.getClientPrincipal(properties);
         keytab =  ClientDataSource.getClientKeytab(properties);
+
+        closeAction = ClientDataSource.getCloseAction(properties);
 
         agent_ = newAgent_(logWriter,
                 loginTimeout_,
@@ -735,8 +742,17 @@ public abstract class ClientConnection
     void checkForTransactionInProgress() throws SqlException {
         // The following precondition matches CLI semantics, see SQLDisconnect()
         if (transactionInProgress()) {
-            throw new SqlException(agent_.logWriter_,
-                    new ClientMessageId (SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION));                   
+            switch (closeAction) {
+                case THROW:
+                    throw new SqlException(agent_.logWriter_,
+                            new ClientMessageId (SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION));
+                case COMMIT:
+                    flowCommit();
+                    break;
+                case ROLLBACK:
+                    flowRollback();
+                    break;
+            }
         }
     }
 

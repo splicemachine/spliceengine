@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class JdbcApiIT {
 
@@ -55,6 +57,10 @@ public class JdbcApiIT {
                                 ps.execute();
                             }
                         }
+                        spliceClassWatcher.execute("drop table closecommit if exists");
+                        spliceClassWatcher.execute("drop table closerollback if exists");
+                        spliceClassWatcher.execute("drop table closethrow if exists");
+                        spliceClassWatcher.execute("drop table closenone if exists");
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -202,6 +208,66 @@ public class JdbcApiIT {
             conn.setClientInfo("ClientID", "1234");
         } catch (SQLException e) {
             assertEquals("XCY02", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCloseActionCommit() throws Exception {
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).closeAction("commit").build()) {
+            connection.setAutoCommit(false);
+            try (Statement st = connection.createStatement()) {
+                st.execute("create table closecommit(i int)");
+            }
+        }
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).build();
+            Statement st = connection.createStatement();
+            ResultSet rs = st.executeQuery("select * from closecommit")) {
+                assertFalse("table should be empty", rs.next());
+        }
+    }
+
+    @Test
+    public void testCloseActionRollback() throws Exception {
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).closeAction("rollback").build()) {
+            connection.setAutoCommit(false);
+            try (Statement st = connection.createStatement()) {
+                st.execute("create table closerollback(i int)");
+            }
+        }
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).build();
+             Statement st = connection.createStatement()) {
+            st.execute("create table closerollback(i int)");
+        }
+    }
+
+    @Test
+    public void testCloseActionThrow() throws Exception {
+        try {
+            try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).closeAction("throw").build()) {
+                connection.setAutoCommit(false);
+                try (Statement st = connection.createStatement()) {
+                    st.execute("create table closethrow(i int)");
+                }
+            }
+            fail("Should have thrown");
+        } catch (SQLException e) {
+            assertEquals("25001", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCloseActionNone() throws Exception {
+        try {
+            try (Connection connection = SpliceNetConnection.newBuilder().schema(schemaWatcher.schemaName).build()) {
+                connection.setAutoCommit(false);
+                try (Statement st = connection.createStatement()) {
+                    st.execute("create table closenone(i int)");
+                }
+            }
+            fail("Should have thrown");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            assertEquals("25001", e.getSQLState());
         }
     }
 }

@@ -989,7 +989,7 @@ Guide.
 
             <msg>
                 <name>25001</name>
-                <text>Cannot close a connection while a transaction is still active.</text>
+                <text>Cannot close a connection while a transaction is still active. Change behaviour with `closeAction' connection property.</text>
             </msg>
 
             <msg>
