@@ -55,7 +55,7 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
-import static com.splicemachine.db.iapi.types.TypeId.DECFLOAT_PRECISION;
+import static com.splicemachine.db.iapi.types.TypeId.VARCHAR_DB2_COMPATIBLE_ID;
 
 /**
  * DataTypeDescriptor describes a runtime SQL type.
@@ -458,14 +458,21 @@ public class DataTypeDescriptor implements Formatable{
                 typeId.getMaximumMaximumWidth());
     }
 
-    private DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable){
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable) {
+        this(source, isNullable, false);
+    }
+
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable, boolean DB2Compatible){
         //There might be other places, but one place this method gets called
         //from is ResultColumn.init. When the ResultColumn(RC) is for a
         //ColumnDescriptor(CD), the RC's TypeDescriptorImpl(TDI) should get
         //all the attributes of CD's TDI. So, if the CD is for a user table's
         //character type column, then this call by RC.init should have CD's
         //collation attributes copied into RC along with other attributes.
-        this.typeId=source.typeId;
+        if (DB2Compatible && source.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID)
+            this.typeId = VARCHAR_DB2_COMPATIBLE_ID;
+        else
+            this.typeId=source.typeId;
         typeDescriptor=new TypeDescriptorImpl(source.typeDescriptor,
                 source.getPrecision(),
                 source.getScale(),
@@ -1136,6 +1143,13 @@ public class DataTypeDescriptor implements Formatable{
         return new DataTypeDescriptor(this,isNullable);
     }
 
+    public DataTypeDescriptor getDB2CompatibleNullabilityType(boolean isNullable){
+        if(isNullable()==isNullable)
+            return this;
+
+        return new DataTypeDescriptor(this,isNullable);
+    }
+
     /**
      * Return a type description identical to this type
      * with the exception that its collation information is
@@ -1392,6 +1406,7 @@ public class DataTypeDescriptor implements Formatable{
 
             case StoredFormatIds.CHAR_TYPE_ID:
             case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
                 return 2.0*getMaximumWidth();
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
