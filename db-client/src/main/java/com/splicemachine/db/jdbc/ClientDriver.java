@@ -156,6 +156,11 @@ public class ClientDriver implements java.sql.Driver {
                             port,
                             database,
                             augmentedProperties);
+            String autoCommitStr = augmentedProperties.getProperty("autoCommit");
+            if (autoCommitStr != null) {
+                boolean autoCommit = autoCommitStr.equalsIgnoreCase("TRUE") ? true : false;
+                conn.setAutoCommit(autoCommit);
+            }
         } catch (SqlException se) {
             throw se.getSQLException();
         }
