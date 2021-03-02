@@ -147,6 +147,19 @@ public class MPartition implements Partition{
     }
 
     @Override
+    public DataResult getAll(byte[] key,DataResult previous) throws IOException {
+        DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
+        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
+
+        NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
+        List<DataCell> results=new ArrayList<>(dataCells.size());
+        for(DataCell dc : dataCells){
+            results.add(dc);
+        }
+        return new MResult(results);
+    }
+
+    @Override
     public DataScanner openScanner(DataScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }

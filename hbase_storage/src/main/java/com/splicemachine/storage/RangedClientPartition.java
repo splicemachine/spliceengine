@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
@@ -110,7 +111,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     public void compact(boolean isMajor) throws IOException {
         Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
         HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
-        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes(Charset.defaultCharset().name());
 
         try(Admin admin = connection.getAdmin()){
             if (isMajor)
@@ -150,7 +151,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     @Override
     public void flush() throws IOException {
         Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
-        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes(Charset.defaultCharset().name());
         try(Admin admin = connection.getAdmin()) {
             admin.flushRegion(encodedRegionName);
         }
@@ -306,6 +307,10 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
         return delegate.getLatest(rowKey, family, previous);
     }
 
+    @Override
+    public DataResult getAll(byte[] key,DataResult previous) throws IOException{
+        return delegate.getAll(key, previous);
+    }
     @Override
     public DataScanner openScanner(DataScan scan) throws IOException {
         return delegate.openScanner(scan);

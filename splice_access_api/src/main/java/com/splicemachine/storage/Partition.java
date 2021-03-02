@@ -105,6 +105,8 @@ public interface Partition extends AutoCloseable{
      */
     DataResult getLatest(byte[] key,DataResult previous) throws IOException;
 
+    DataResult getAll(byte[] key,DataResult previous) throws IOException;
+
     Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException;
 
     DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException;

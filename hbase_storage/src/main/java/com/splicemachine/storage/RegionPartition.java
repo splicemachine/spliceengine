@@ -178,29 +178,26 @@ public class RegionPartition implements Partition{
     @Override
     public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
         Get g=new Get(key);
-        g.setMaxVersions(1);
-
-        try{
-            Result result=region.get(g);
-            if(previous==null)
-                previous=new HResult(result);
-            else{
-                ((HResult)previous).set(result);
-            }
-            return previous;
-        }catch(NotServingRegionException | ConnectionClosingException | AssertionError | NullPointerException nsre){
-            throw new HNotServingRegion(nsre.getMessage());
-        }catch(WrongRegionException wre){
-            throw new HWrongRegion(wre.getMessage());
-        }
+        g.readVersions(1);
+        return getCore(g, previous);
     }
 
     @Override
-    public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
+    public DataResult getLatest(byte[] rowKey,byte[] family, DataResult previous) throws IOException{
         Get g=new Get(rowKey);
-        g.setMaxVersions(1);
+        g.readVersions(1);
         g.addFamily(family);
+        return getCore(g, previous);
+    }
 
+    @Override
+    public DataResult getAll(byte[] key,DataResult previous) throws IOException{
+        Get g=new Get(key);
+        g.readAllVersions();
+        return getCore(g, previous);
+    }
+
+    private DataResult getCore(Get g, DataResult previous) throws IOException {
         try{
             Result result=region.get(g);
             if(previous==null)

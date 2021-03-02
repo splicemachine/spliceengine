@@ -78,23 +78,26 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     @Override
     public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
         Get g = new Get(key);
-        g.setMaxVersions(1);
-
-        Result result=doGet(g);
-        if(previous==null)
-            previous = new HResult(result);
-        else{
-            ((HResult)previous).set(result);
-        }
-        return previous;
+        g.readVersions(1);
+        return getCore(g, previous);
     }
 
     @Override
     public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
         Get g = new Get(rowKey);
-        g.setMaxVersions(1);
+        g.readVersions(1);
         g.addFamily(family);
+        return getCore(g, previous);
+    }
 
+    @Override
+    public DataResult getAll(byte[] key,DataResult previous) throws IOException{
+        Get g = new Get(key);
+        g.readAllVersions();
+        return getCore(g, previous);
+    }
+
+    private DataResult getCore(Get g, DataResult previous) throws IOException {
         Result result=doGet(g);
         if(previous==null)
             previous = new HResult(result);
@@ -103,7 +106,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
         }
         return previous;
     }
-
     /*Scan methods*/
     @Override
     public DataScanner openScanner(DataScan scan) throws IOException{

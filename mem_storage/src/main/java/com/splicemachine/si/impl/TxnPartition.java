@@ -178,6 +178,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public DataResult getAll(byte[] key,DataResult previous) throws IOException{
+        return basePartition.getAll(key,previous);
+    }
+
+    @Override
     public Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException{
         return basePartition.getRowLock(key,keyOff,keyLen);
     }
