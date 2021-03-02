@@ -132,7 +132,7 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         // install jar file and set classpath
         STORED_PROCS_JAR_FILE = getSqlItJarFile();
         spliceClassWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)",STORED_PROCS_JAR_FILE,JAR_FILE_SQL_NAME));
-        spliceClassWatcher.executeUpdate(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
+        spliceClassWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
         spliceClassWatcher.executeUpdate(CREATE_JPROC);
 
     }
@@ -143,7 +143,7 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         spliceClassWatcher.executeUpdate(DROP_TEST_TABLE_IF_EXIST);
         spliceClassWatcher.executeUpdate(DROP_JPROC);
         spliceClassWatcher.executeUpdate(DROP_PYPROC);
-        spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)");
+        spliceClassWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)");
         spliceClassWatcher.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)", JAR_FILE_SQL_NAME));
     }
 

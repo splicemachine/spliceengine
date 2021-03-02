@@ -64,9 +64,9 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSCAT", "REFERENCES"), new ViewInfo(DataDictionary.SYSFOREIGNKEYS_CATALOG_NUM, 0, SYSFOREIGNKEYSRowFactory.SYSCAT_REFERENCES_VIEW_SQL));
         views.put(new Pair<>("SYSCAT", "COLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 2, SYSCOLUMNSRowFactory.COLUMNS_VIEW_IN_SYSCAT));
 
-        views.put(new Pair<>("SYSIBMADM", "SNAPAPPL"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 0, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL));
-        views.put(new Pair<>("SYSIBMADM", "SNAPAPPL_INFO"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 1, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL));
-        views.put(new Pair<>("SYSIBMADM", "APPLICATIONS"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 2, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL));
+        views.put(new Pair<>("SYSIBMADM", "SNAPAPPL"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 0, SYSMONGETCONNECTIONViewInfoProvider.SNAPAPPL_VIEW_SQL));
+        views.put(new Pair<>("SYSIBMADM", "SNAPAPPL_INFO"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 1, SYSMONGETCONNECTIONViewInfoProvider.SNAPAPPL_INFO_VIEW_SQL));
+        views.put(new Pair<>("SYSIBMADM", "APPLICATIONS"), new ViewInfo(DataDictionary.SYSMONGETCONNECTION_CATALOG_NUM, 2, SYSMONGETCONNECTIONViewInfoProvider.APPLICATIONS_VIEW_SQL));
     }
 
     void createOrUpdateView(TransactionController tc, SpliceDataDictionary dd, String schemaName, String viewName) throws StandardException {

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -30,9 +31,11 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -41,7 +44,6 @@ import org.apache.spark.sql.Row;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Properties;
 
 
@@ -64,7 +66,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     protected void create(
-            boolean isExternal,
             Transaction rawtran,
             long input_containerid,
             DataValueDescriptor[] template,
@@ -191,10 +192,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     public abstract int getBaseMemoryUsage();
 
-    public abstract void writeExternal(ObjectOutput out) throws IOException;
-
-    public abstract void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
-
     public abstract int getTypeFormatId();
 
     @Override
@@ -249,5 +246,38 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         }
     }
 
+    /**
+     * Restore the in-memory representation from the stream.
+     * <p/>
+     *
+     * @throws ClassNotFoundException Thrown if the stored representation
+     *                                is serialized and a class named in
+     *                                the stream could not be found.
+     * @see java.io.Externalizable#readExternal
+     **/
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
+
+        partitionFactory= SIDriver.driver().getTableFactory();
+        opFactory=SIDriver.driver().getOperationFactory();
+        super.readExternal(in);
+    }
+
+    public static SpliceConglomerate fromProtobuf(TypeMessage.SpliceConglomerate spliceConglomerate) {
+        TypeMessage.SpliceConglomerate.Type type = spliceConglomerate.getType();
+        if (type == TypeMessage.SpliceConglomerate.Type.HBaseConglomerate) {
+            TypeMessage.HBaseConglomerate hbaseConglomerate =
+                    spliceConglomerate.getExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate);
+            return new HBaseConglomerate(hbaseConglomerate);
+
+         }
+        else if (type == TypeMessage.SpliceConglomerate.Type.IndexConglomerate) {
+            TypeMessage.IndexConglomerate indexConglomerate =
+                    spliceConglomerate.getExtension(TypeMessage.IndexConglomerate.indexConglomerate);
+            return new IndexConglomerate(indexConglomerate);
+        }
+
+        throw new RuntimeException("Unexpected type " + type);
+    }
 
 }
