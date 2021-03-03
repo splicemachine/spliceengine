@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.CursorActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
@@ -114,7 +115,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		this.source = source;
 		this.scrollable = scrollable;
         if (isForUpdate()) {
-            target = ((CursorActivation)activation).getTargetResultSet();
+            target = ((BaseActivation)activation).getTargetResultSet();
         } else {
             target = null;
         }

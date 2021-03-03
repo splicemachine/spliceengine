@@ -29,7 +29,6 @@ import java.sql.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -85,6 +84,11 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     // Table for long string concatenate testing.
     private static final SpliceTableWatcher tableWatcherJ = new SpliceTableWatcher(
             "J", schemaWatcher.schemaName, "(a double)");
+
+    // Table for RTRIM testing.
+    private static final SpliceTableWatcher tableWatcherK = new SpliceTableWatcher(
+            "K", schemaWatcher.schemaName, "(a varchar(10), b varchar(20), c varchar(10))");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -98,207 +102,263 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             .around(tableWatcherH)
             .around(tableWatcherI)
             .around(tableWatcherJ)
+            .around(tableWatcherK)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try{
-                        PreparedStatement ps;
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherA + " (a, b, c) values (?, ?, ?)");
-                        ps.setInt   (1, 2); // row 1
-                        ps.setString(2, "aaa");
-                        ps.setString(3, "aaa");
-                        ps.execute();
-                        ps.setInt   (1, 3);
-                        ps.setObject(2, "bbb");
-                        ps.setString(3, "bbb");
-                        ps.execute();
-                        ps.setInt   (1, 4);
-                        ps.setObject(2, null);
-                        ps.setString(3, null);
-                        ps.execute();
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherA + " (a, b, c) values (?, ?, ?)")) {
+                            ps.setInt   (1, 2); // row 1
+                            ps.setString(2, "aaa");
+                            ps.setString(3, "aaa");
+                            ps.execute();
+                            ps.setInt   (1, 3);
+                            ps.setObject(2, "bbb");
+                            ps.setString(3, "bbb");
+                            ps.execute();
+                            ps.setInt   (1, 4);
+                            ps.setObject(2, null);
+                            ps.setString(3, null);
+                            ps.execute();
+                        }
 
                         // Each of the following inserted rows represents an individual test,
                         // including expected result (column 'd'), for less test code in the
                         // testInstr methods.
 
-                        ps = classWatcher.prepareStatement(
-                            "insert into " + tableWatcherB + " (a, b, c, d) values (?, ?, ?, ?)");
-                        ps.setInt   (1, 1); // row 1
-                        ps.setObject(2, "Fred Flintstone");
-                        ps.setString(3, "Flint");
-                        ps.setInt   (4, 6);
-                        ps.execute();
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherB + " (a, b, c, d) values (?, ?, ?, ?)")) {
+                            ps.setInt(1, 1); // row 1
+                            ps.setObject(2, "Fred Flintstone");
+                            ps.setString(3, "Flint");
+                            ps.setInt(4, 6);
+                            ps.execute();
 
-                        ps.setInt   (1, 2);
-                        ps.setObject(2, "Fred Flintstone");
-                        ps.setString(3, "Fred");
-                        ps.setInt   (4, 1);
-                        ps.execute();
+                            ps.setInt(1, 2);
+                            ps.setObject(2, "Fred Flintstone");
+                            ps.setString(3, "Fred");
+                            ps.setInt(4, 1);
+                            ps.execute();
 
-                        ps.setInt   (1, 3);
-                        ps.setObject(2, "Fred Flintstone");
-                        ps.setString(3, " F");
-                        ps.setInt   (4, 5);
-                        ps.execute();
+                            ps.setInt(1, 3);
+                            ps.setObject(2, "Fred Flintstone");
+                            ps.setString(3, " F");
+                            ps.setInt(4, 5);
+                            ps.execute();
 
-                        ps.setInt   (1, 4);
-                        ps.setObject(2, "Fred Flintstone");
-                        ps.setString(3, "Flintstone");
-                        ps.setInt   (4, 6);
-                        ps.execute();
+                            ps.setInt(1, 4);
+                            ps.setObject(2, "Fred Flintstone");
+                            ps.setString(3, "Flintstone");
+                            ps.setInt(4, 6);
+                            ps.execute();
 
-                        ps.setInt   (1, 5);
-                        ps.setObject(2, "Fred Flintstone");
-                        ps.setString(3, "stoner");
-                        ps.setInt   (4, 0);
-                        ps.execute();
+                            ps.setInt(1, 5);
+                            ps.setObject(2, "Fred Flintstone");
+                            ps.setString(3, "stoner");
+                            ps.setInt(4, 0);
+                            ps.execute();
 
-                        ps.setInt   (1, 6);
-                        ps.setObject(2, "Barney Rubble");
-                        ps.setString(3, "Wilma");
-                        ps.setInt   (4, 0);
-                        ps.execute();
+                            ps.setInt(1, 6);
+                            ps.setObject(2, "Barney Rubble");
+                            ps.setString(3, "Wilma");
+                            ps.setInt(4, 0);
+                            ps.execute();
 
-                        ps.setInt   (1, 7);
-                        ps.setObject(2, "Bam Bam");
-                        ps.setString(3, "Bam Bam Bam");
-                        ps.setInt   (4, 0);
-                        ps.execute();
+                            ps.setInt(1, 7);
+                            ps.setObject(2, "Bam Bam");
+                            ps.setString(3, "Bam Bam Bam");
+                            ps.setInt(4, 0);
+                            ps.execute();
 
-                        ps.setInt   (1, 8);
-                        ps.setObject(2, "Betty");
-                        ps.setString(3, "");
-                        ps.setInt   (4, 0);
-                        ps.execute();
+                            ps.setInt(1, 8);
+                            ps.setObject(2, "Betty");
+                            ps.setString(3, "");
+                            ps.setInt(4, 0);
+                            ps.execute();
 
-                        ps.setInt   (1, 9);
-                        ps.setObject(2, null);
-                        ps.setString(3, null);
-                        ps.setInt   (4, 0);
-                        ps.execute();
+                            ps.setInt(1, 9);
+                            ps.setObject(2, null);
+                            ps.setString(3, null);
+                            ps.setInt(4, 0);
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherC + " (a, b) values (?, ?)")) {
+                            ps.setObject(1, "freDdy kruGeR");
+                            ps.setString(2, "Freddy Kruger");
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherD + " (a, b, c) values (?, ?, ?)")) {
+                            ps.setString(1, "AAA");
+                            ps.setString(2, "BBB");
+                            ps.setString(3, "AAABBB");
+                            ps.execute();
 
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherC + " (a, b) values (?, ?)");
-                        ps.setObject(1, "freDdy kruGeR");
-                        ps.setString(2, "Freddy Kruger");
-                        ps.execute();
+                            ps.setString(1, "");
+                            ps.setString(2, "BBB");
+                            ps.setString(3, "BBB");
+                            ps.execute();
 
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherD + " (a, b, c) values (?, ?, ?)");
-                        ps.setString(1, "AAA");
-                        ps.setString(2, "BBB");
-                        ps.setString(3, "AAABBB");
-                        ps.execute();
+                            ps.setString(1, "AAA");
+                            ps.setString(2, "");
+                            ps.setString(3, "AAA");
+                            ps.execute();
 
-                        ps.setString(1, "");
-                        ps.setString(2, "BBB");
-                        ps.setString(3, "BBB");
-                        ps.execute();
+                            ps.setString(1, "");
+                            ps.setString(2, "");
+                            ps.setString(3, "");
+                            ps.execute();
 
-                        ps.setString(1, "AAA");
-                        ps.setString(2, "");
-                        ps.setString(3, "AAA");
-                        ps.execute();
+                            ps.setString(1, null);
+                            ps.setString(2, "BBB");
+                            ps.setString(3, null);
+                            ps.execute();
 
-                        ps.setString(1, "");
-                        ps.setString(2, "");
-                        ps.setString(3, "");
-                        ps.execute();
+                            ps.setString(1, "AAA");
+                            ps.setString(2, null);
+                            ps.setString(3, null);
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherE + " (a, b) values (?, ?)")) {
+                            ps.setInt(1, 0);
+                            ps.setString(2, "\u0000");
+                            ps.execute();
 
-                        ps.setString(1, null);
-                        ps.setString(2, "BBB");
-                        ps.setString(3, null);
-                        ps.execute();
+                            ps.setInt(1, 255);
+                            ps.setString(2, "ÿ");
+                            ps.execute();
 
-                        ps.setString(1, "AAA");
-                        ps.setString(2, null);
-                        ps.setString(3, null);
-                        ps.execute();
+                            ps.setInt(1, 256);
+                            ps.setString(2, "\u0000");
+                            ps.execute();
 
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherE + " (a, b) values (?, ?)");
-                        ps.setInt(1, 0);
-                        ps.setString(2, "\u0000");
-                        ps.execute();
+                            ps.setInt(1, 65);
+                            ps.setString(2, "A");
+                            ps.execute();
 
-                        ps.setInt(1, 255);
-                        ps.setString(2, "ÿ");
-                        ps.execute();
+                            ps.setInt(1, 97);
+                            ps.setString(2, "a");
+                            ps.execute();
 
-                        ps.setInt(1, 256);
-                        ps.setString(2, "\u0000");
-                        ps.execute();
+                            ps.setInt(1, 321);
+                            ps.setString(2, "A");
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherF+ " (a, b) values (?, ?)")) {
+                            ps.setInt(1, 1111567890);
+                            ps.setString(2, "1111");
+                            ps.execute();
 
-                        ps.setInt(1, 65);
-                        ps.setString(2, "A");
-                        ps.execute();
+                            ps.setInt(1, 1234567890);
+                            ps.setString(2, "1234");
+                            ps.execute();
 
-                        ps.setInt(1, 97);
-                        ps.setString(2, "a");
-                        ps.execute();
+                            ps.setNull(1, 4);
+                            ps.setNull(2, 1);
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherG+ " (a, b) values (?, ?)")) {
+                            ps.setString(1, "12345678901234567890");
+                            ps.setString(2, "12345678901234567890");
+                            ps.execute();
+                            ps.setString(1, "21345678901234567890");
+                            ps.setString(2, "21345678901234567890");
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherH+ " (a, b, c) values (?, ?, ?)")) {
+                            ps.setFloat(1, 0.123456789f);
+                            ps.setFloat(2, 0.123456789f);
+                            ps.setDouble(3, 1234567890.0123456789);
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherI+ " (a, b) values (?, ?)")) {
+                            ps.setInt(1, 1);
+                            ps.setString(2, "a");
+                            ps.execute();
+                            ps.setInt(1, 1);
+                            ps.setString(2, "b");
+                            ps.execute();
+                            ps.setInt(1, 2);
+                            ps.setString(2, "c");
+                            ps.execute();
+                            ps.setInt(1, 2);
+                            ps.setString(2, "d");
+                            ps.execute();
+                            ps.setInt(1, 2);
+                            ps.setString(2, "e");
+                            ps.execute();
+                            ps.setInt(1, 2);
+                            ps.setString(2, "c");
+                            ps.execute();
+                        }
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherJ+ " (a) values (?)")) {
+                            ps.setDouble(1, 12.3);
+                            ps.execute();
+                        }
 
-                        ps.setInt(1, 321);
-                        ps.setString(2, "A");
-                        ps.execute();
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherF+ " (a, b) values (?, ?)");
-                        ps.setInt(1, 1111567890);
-                        ps.setString(2, "1111");
-                        ps.execute();
-
-                        ps.setInt(1, 1234567890);
-                        ps.setString(2, "1234");
-                        ps.execute();
-
-                        ps.setNull(1, 4);
-                        ps.setNull(2, 1);
-                        ps.execute();
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherG+ " (a, b) values (?, ?)");
-                        ps.setString(1,"12345678901234567890");
-                        ps.setString(2,"12345678901234567890");
-                        ps.execute();
-                        ps.setString(1,"21345678901234567890");
-                        ps.setString(2,"21345678901234567890");
-                        ps.execute();
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherH+ " (a, b, c) values (?, ?, ?)");
-                        ps.setFloat(1,0.123456789f);
-                        ps.setFloat(2,0.123456789f);
-                        ps.setDouble(3,1234567890.0123456789);
-                        ps.execute();
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherI+ " (a, b) values (?, ?)");
-                        ps.setInt(1,1);
-                        ps.setString(2,"a");
-                        ps.execute();
-                        ps.setInt(1,1);
-                        ps.setString(2,"b");
-                        ps.execute();
-                        ps.setInt(1,2);
-                        ps.setString(2,"c");
-                        ps.execute();
-                        ps.setInt(1,2);
-                        ps.setString(2,"d");
-                        ps.execute();
-                        ps.setInt(1,2);
-                        ps.setString(2,"e");
-                        ps.execute();
-                        ps.setInt(1,2);
-                        ps.setString(2,"c");
-                        ps.execute();
-
-                        ps = classWatcher.prepareStatement(
-                                "insert into " + tableWatcherJ+ " (a) values (?)");
-                        ps.setDouble(1,12.3);
-                        ps.execute();
-
+                        try (PreparedStatement ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherK + " (a, b, c) values (?, ?, ?)")) {
+                            ps.setString(1, "aaa");
+                            ps.setString(2, "aaa");
+                            ps.setString(3, "");
+                            ps.execute();
+                            ps.setString(1, "Zicam");
+                            ps.setString(2, "Mycam");
+                            ps.setString(3, "Zi");
+                            ps.execute();
+                            ps.setString(1, "CVS");
+                            ps.setString(2, "s");
+                            ps.setString(3, "CVS");
+                            ps.execute();
+                            ps.setString(1, "aaa\t");
+                            ps.setString(2, "aaa");
+                            ps.setString(3, "aaa\t");
+                            ps.execute();
+                            ps.setString(1, "abc");
+                            ps.setString(2, "abcabcabc");
+                            ps.setString(3, "");
+                            ps.execute();
+                            ps.setString(1, "abc");
+                            ps.setString(2, "ac");
+                            ps.setString(3, "ab");
+                            ps.execute();
+                            ps.setString(1, "abc ");
+                            ps.setString(2, "abc");
+                            ps.setString(3, "abc ");
+                            ps.execute();
+                            ps.setString(1, " ab c");
+                            ps.setString(2, " ab cabcabc");
+                            ps.setString(3, "");
+                            ps.execute();
+                            ps.setString(1, "abcabc");
+                            ps.setString(2, "abc");
+                            ps.setString(3, "");
+                            ps.execute();
+                            ps.setString(1, "\t\t\t\t\t\t");
+                            ps.setString(2, "\t\t");
+                            ps.setString(3, "");
+                            ps.execute();
+                            ps.setString(1, "\t\t\t \t\t\t");
+                            ps.setString(2, "\t\t");
+                            ps.setString(3, "\t\t\t ");
+                            ps.execute();
+                            ps.setString(1, "abc\t\t\t  \t");
+                            ps.setString(2, " \t");
+                            ps.setString(3, "abc\t\t\t ");
+                            ps.execute();
+                            ps.setString(1, "abc g  ");
+                            ps.setString(2, " ");
+                            ps.setString(3, "abc g");
+                            ps.execute();
+                        }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -314,66 +374,221 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
         int count = 0;
 	    String sCell1 = null;
 	    String sCell2 = null;
-	    ResultSet rs;
 
-	    rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB);
-	    count = 0;
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
-            sCell2 = rs.getString(2);
-            Assert.assertEquals("Wrong result value", sCell1, sCell2);
-            count++;
-	    }
-	    Assert.assertEquals("Incorrect row count", 9, count);
+	    try (ResultSet rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB)) {
+            count = 0;
+            while (rs.next()) {
+                sCell1 = rs.getString(1);
+                sCell2 = rs.getString(2);
+                Assert.assertEquals("Wrong result value", sCell1, sCell2);
+                count++;
+            }
+            Assert.assertEquals("Incorrect row count", 9, count);
+        }
+    }
+
+    private void runRTrimTests(boolean useSpark) throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+        int count = 0;
+
+	    // Use a join so we can test native spark execution.
+	    try (ResultSet rs = methodWatcher.executeQuery(
+	            "SELECT RTRIM(a.a,a.b), a.c from " + tableWatcherK + " a --splice-properties joinStrategy=nestedloop,useSpark=" + useSpark +
+                    "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b")) {
+
+            while (rs.next()) {
+                sCell1 = rs.getString(1);
+                sCell2 = rs.getString(2);
+                Assert.assertEquals("Wrong result value", sCell2, sCell1);
+                count++;
+            }
+        }
+	    Assert.assertEquals("Incorrect row count", 13, count);
+    }
+
+    @Test
+    public void testRtrimFunction() throws Exception {
+        runRTrimTests(false);
+        runRTrimTests(true);
+    }
+
+    private void runRTrimSysFunTests(boolean useSpark, String expected) throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+        int count = 0;
+
+	    // Use a join so we can test native spark execution.
+	    String sqlText = "SELECT SYSFUN.RTRIM(a.a) from " + tableWatcherK + " a --splice-properties useSpark=" + useSpark +
+                    "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testRtrimSysFun() throws Exception {
+        String sqlText = "select '-'|| repeat(b, 3) || '-' from A order by 1";
+
+        String expected =
+                "1   |\n" +
+                "--------\n" +
+                "       |\n" +
+                "       |\n" +
+                "  CVS  |\n" +
+                " Zicam |\n" +
+                "  aaa  |\n" +
+                "  aaa  |\n" +
+                " ab c  |\n" +
+                "  abc  |\n" +
+                "  abc  |\n" +
+                "  abc  |\n" +
+                "  abc  |\n" +
+                " abc g |\n" +
+                "abcabc |";
+
+        runRTrimSysFunTests(false, expected);
+        runRTrimSysFunTests(true, expected);
     }
 
     @Test
     public void testInitcapFunction() throws Exception {
 	    String sCell1 = null;
 	    String sCell2 = null;
-	    ResultSet rs;
-	    
-	    rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC);
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
-            sCell2 = rs.getString(2);
-            Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+
+	    try (ResultSet rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC)) {
+            while (rs.next()) {
+                sCell1 = rs.getString(1);
+                sCell2 = rs.getString(2);
+                Assert.assertEquals("Wrong result value", sCell2, sCell1);
+            }
+        }
+    }
+
+    @Test
+    public void testPosStrFunction() throws Exception  {
+        String[] joins = {"nestedloop", "sortmerge", "broadcast"};
+        for (String join:joins) {
+            testPosStrFunctionHelper(false, join);
+            testPosStrFunctionHelper(true, join);
+        }
+
+	    String query = "Values(POSSTR(cast(null as char(3)), ''))";
+	    String expected = "1  |\n" +
+                            "------\n" +
+                            "NULL |";
+        testQuery(query, expected, methodWatcher);
+	    query = "Values(POSSTR(cast(null as char(3)), cast(null as char(3))))";
+        testQuery(query, expected, methodWatcher);
+	    query = "Values(POSSTR('', cast(null as char(3))))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 2 |";
+	    query = "Values(POSSTR('123', 2))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 0 |";
+	    query = "Values(POSSTR('123', 1234))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 3 |";
+	    query = "Values(POSSTR('  \t', '\t'))";
+        testQuery(query, expected, methodWatcher);
+
+        expected = "1 |\n" +
+                    "----\n" +
+                    " 6 |";
+	    query = "Values(POSSTR('bcabCabc', 'abc'))";
+        testQuery(query, expected, methodWatcher);
+    }
+
+    private void testPosStrFunctionHelper(boolean useSpark, String strategy) throws Exception {
+	    String expected = "B        |     C      |  3  |\n" +
+                        "------------------------------------\n" +
+                        "    Bam Bam     |Bam Bam Bam |  0  |\n" +
+                        " Barney Rubble  |   Wilma    |  0  |\n" +
+                        "     Betty      |            |  1  |\n" +
+                        "Fred Flintstone |     F      |  5  |\n" +
+                        "Fred Flintstone |   Flint    |  6  |\n" +
+                        "Fred Flintstone |Flintstone  |  6  |\n" +
+                        "Fred Flintstone |   Fred     |  1  |\n" +
+                        "Fred Flintstone |  stoner    |  0  |\n" +
+                        "     NULL       |   NULL     |NULL |";
+
+	    String query = "SELECT a.b, a.c, POSSTR(a.b, a.c) from " + tableWatcherB + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+                    "\n, " + tableWatcherB + " b where a.a = b.a";
+	    testQuery(query, expected, methodWatcher);
+
+        expected = "A   |  C   | 3 |\n" +
+                    "-------------------\n" +
+                    "       |      | 1 |\n" +
+                    "       |      | 1 |\n" +
+                    "  CVS  | CVS  | 1 |\n" +
+                    " Zicam | Zi   | 1 |\n" +
+                    "  aaa  |      | 1 |\n" +
+                    "  aaa  | aaa  | 1 |\n" +
+                    " ab c  |      | 1 |\n" +
+                    "  abc  |      | 1 |\n" +
+                    "  abc  | ab   | 1 |\n" +
+                    "  abc  | abc  | 1 |\n" +
+                    "  abc  | abc  | 1 |\n" +
+                    " abc g |abc g | 1 |\n" +
+                    "abcabc |      | 1 |";
+
+	    query = "SELECT a.a, a.c, POSSTR(a.a, a.c) from " + tableWatcherK + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+                    "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b";
+	    testQuery(query, expected, methodWatcher);
     }
 
     @Test
     public void testConcatFunction() throws Exception {
 	    String sCell1 = null;
 	    String sCell2 = null;
-	    ResultSet rs;
-	    
-	    rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD);
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
-            sCell2 = rs.getString(2);
-            Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+
+	    try (ResultSet rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD)) {
+            while (rs.next()) {
+                sCell1 = rs.getString(1);
+                sCell2 = rs.getString(2);
+                Assert.assertEquals("Wrong result value", sCell2, sCell1);
+            }
+        }
     }
 
     @Test
     public void testConcatAliasFunction() throws Exception {
 	    String sCell1 = null;
 	    String sCell2 = null;
-	    ResultSet rs;
 
-	    rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD);
-	    while (rs.next()) {
-            sCell1 = rs.getString(1);
-            sCell2 = rs.getString(2);
-            Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+	    try (ResultSet rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD)) {
+            while (rs.next()) {
+                sCell1 = rs.getString(1);
+                sCell2 = rs.getString(2);
+                Assert.assertEquals("Wrong result value", sCell2, sCell1);
+            }
+        }
+    }
+
+    @Test
+    public void testConcatFunctionCastOnArgs() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("select concat(year(date('2021-01-01')), '.') from sysibm.sysdummy1")) {
+            String expected = "1   |\n" +
+                    "-------\n" +
+                    "2021. |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
     public void testReges() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')");
-        rs.next();
-        Assert.assertEquals(3, rs.getInt(1));
+        try (ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')")) {
+            rs.next();
+            Assert.assertEquals(3, rs.getInt(1));
+        }
     }
 
     @Test
@@ -425,6 +640,17 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                         "NULL |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testLTrimNegative() throws Exception{
+        try {
+            String sqlText = "values LTRIM('XXXXKATEXXXXXX', 'X')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
     }
 
     @Test
@@ -869,6 +1095,73 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("dash || substr(e, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
             checkStringExpression("dash || substr(f, 2) || dash from testSubstr", "2d6263202020202020202020202020202020202020202020202020202020202020202020202020202d", conn);
             checkStringExpression("dash || substr(f, 2, 5) || dash from testSubstr", "2d62632020202d", conn);
+        }
+    }
+
+    @Test
+    public void testTranslate() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE')", "aBcD FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', '', 'ACE')", " B D FG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+            assertFailed(conn, "select translate('ABCDEFG', 'ac', 'ACE', 'UU')", "22022");
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
+
+            checkStringExpression("TRANSLATE('ABCDEFG', 'ac', x'00')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
+
+            checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
+
+        }
+
+        methodWatcher.execute("drop table testTranslate if exists");
+        methodWatcher.execute("create table testTranslate(a char(7), b char(3), c char(3))");
+        methodWatcher.execute("insert into testTranslate values ('ABCDEFG', 'ace', 'ACE')");
+        TestConnection[] conns = {
+                methodWatcher.connectionBuilder().useOLAP(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
+                methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
+        };
+        for (TestConnection conn: conns) {
+            checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
+            checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
+            try (PreparedStatement ps = conn.prepareStatement("select translate(?, b, c) from testTranslate")) {
+                ps.setString(1, "ABCDEFG");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, ?, c) from testTranslate")) {
+                ps.setString(1, "ace");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("select translate(a, b, ?) from testTranslate")) {
+                ps.setString(1, "ACE");
+                try (ResultSet rs = ps.executeQuery()) {
+                    Assert.assertEquals(
+                            "1    |\n" +
+                            "---------\n" +
+                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
         }
     }
 }

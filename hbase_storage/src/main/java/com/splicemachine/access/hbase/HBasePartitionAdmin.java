@@ -810,4 +810,14 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             throw e;
         }
     }
+
+    @Override
+    public void createSITable(String tableName) throws StandardException{
+        try {
+            HBaseConnectionFactory instance = HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
+            instance.createTable(tableName);
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
 }

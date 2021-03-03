@@ -17,10 +17,12 @@ package com.splicemachine.derby.impl.db;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -36,14 +38,17 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
@@ -169,13 +174,18 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        SparkExecutionType sparkExecutionType, boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress,
+                                                                       ManagedCache<UUID, SPSDescriptor> spsCache,
+                                                                       List<String> defaultRoles,
+                                                                       SchemaDescriptor initialDefaultSchemaDescriptor,
+                                                                       long driverTxnId,
                                                                        TransactionController reuseTC) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
                 groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
-                ipAddress, null, null);
+                ipAddress, null,
+                spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
@@ -203,7 +213,7 @@ public class SpliceDatabase extends BasicDatabase{
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();
         if(configuration.authenticationNativeCreateCredentialsDatabase()) {
-            System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
+            System.setProperty(PropertyHelper.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
 
         String authTypeString=configuration.getAuthentication();
@@ -246,7 +256,7 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
         SpliceLogUtils.info(LOG,"using Kerberos to authorize Splice Machine");
-        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_KERBEROS);
+        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_KERBEROS);
     }
 
     private void configureLDAPAuth(SConfiguration config){
@@ -263,7 +273,7 @@ public class SpliceDatabase extends BasicDatabase{
                 authenticationLDAPSearchAuthDN,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
-        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
+        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);

@@ -40,9 +40,14 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSFOREIGNKEYS row.
@@ -258,6 +263,43 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
             };
 	}
 
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+		List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+
+		// SYSCAT.REFERENCES
+		// https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001057.html
+		cdsl.add(
+			new ColumnDescriptor[]{
+				new ColumnDescriptor("CONSTNAME",1,1,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABSCHEMA",2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABNAME",3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFKEYNAME",4,4,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFTABSCHEMA",5,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFTABNAME",6,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLCOUNT",7,7,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("DELETERULE",8,8,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("UPDATERULE",9,9,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+			});
+		return cdsl;
+	}
 
 	int getRefActionAsInt(String raRuleString)
 	{
@@ -322,5 +364,38 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 		return raRuleString ;
 	}
 
-
+    public static String SYSCAT_REFERENCES_VIEW_SQL = "create view REFERENCES as \n" +
+			"SELECT CC.CONSTRAINTNAME AS CONSTNAME\n" +
+			"     , VC.SCHEMANAME AS TABSCHEMA\n" +
+			"     , TC.TABLENAME AS TABNAME\n" +
+			"     , CP.CONSTRAINTNAME AS REFKEYNAME\n" +
+			"     , VP.SCHEMANAME AS REFTABSCHEMA\n" +
+			"     , TP.TABLENAME AS REFTABNAME\n" +
+			"     , CAST(C.DESCRIPTOR.numberOfOrderedColumns() AS SMALLINT) AS COLCOUNT\n" +
+			"     , (CASE FK.DELETERULE \n" +
+			"          WHEN 'R' THEN 'A'\n" +
+			"          WHEN 'S' THEN 'R'\n" +
+			"          WHEN 'C' THEN 'C'\n" +
+			"          WHEN 'U' THEN 'N'\n" +
+			"        END) AS DELETERULE\n" +
+			"     , (CASE FK.UPDATERULE\n" +
+			"          WHEN 'R' THEN 'A'\n" +
+			"          WHEN 'S' THEN 'R'\n" +
+			"        END) AS UPDATERULE\n" +
+			"FROM --splice-properties joinOrder=fixed\n" +
+			"     SYS.SYSFOREIGNKEYS FK\n" +
+			"   , SYS.SYSCONSTRAINTS CC\n" +
+			"   , SYS.SYSCONSTRAINTS CP\n" +
+			"   , SYS.SYSTABLES TC\n" +
+			"   , SYS.SYSTABLES TP\n" +
+			"   , SYSVW.SYSSCHEMASVIEW VC\n" +
+			"   , SYSVW.SYSSCHEMASVIEW VP\n" +
+			"   , SYS.SYSCONGLOMERATES C\n" +
+			"WHERE FK.CONSTRAINTID = CC.CONSTRAINTID\n" +
+			"  AND CC.TABLEID = TC.TABLEID\n" +
+			"  AND CC.SCHEMAID = VC.SCHEMAID\n" +
+			"  AND FK.KEYCONSTRAINTID = CP.CONSTRAINTID\n" +
+			"  AND CP.TABLEID = TP.TABLEID\n" +
+			"  AND CP.SCHEMAID = VP.SCHEMAID\n" +
+			"  AND FK.CONGLOMERATEID = C.CONGLOMERATEID";
 }

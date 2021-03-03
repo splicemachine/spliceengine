@@ -733,12 +733,11 @@ abstract class SetOperatorNode extends TableOperatorNode
      * don't clobber it.
      *
      * @param types    The array of types to fill in
-     * @param rrsn    The RowResultSetNode from which to take the param types
+     * @param resultColumns    The RowResultSetNode from which to take the param types
      *
      * @return    The number of new types found in the RowResultSetNode
      */
-    int getParamColumnTypes(DataTypeDescriptor[] types, RowResultSetNode rrsn)
-     throws StandardException
+    int getParamColumnTypes(DataTypeDescriptor[] types, ResultColumnList resultColumns)
     {
         int    numTypes = 0;
 
@@ -747,8 +746,7 @@ abstract class SetOperatorNode extends TableOperatorNode
         {
             if (types[i] == null)
             {
-                ResultColumn rc =
-                    (ResultColumn) rrsn.getResultColumns().elementAt(i);
+                ResultColumn rc = resultColumns.elementAt(i);
                 if ( ! (rc.getExpression().requiresTypeFromContext()))
                 {
                     types[i] = rc.getExpression().getTypeServices();
@@ -766,23 +764,22 @@ abstract class SetOperatorNode extends TableOperatorNode
      *
      * @param types    An array of types containing the proper type for each
      *                ? parameter, by ordinal position.
-     * @param rrsn    A RowResultSetNode that could contain ? parameters whose
+     * @param resultColumns    A RowResultSetNode that could contain ? parameters whose
      *                types need to be set.
      *
      * @exception StandardException        Thrown on error
      */
-    void setParamColumnTypes(DataTypeDescriptor[] types, RowResultSetNode rrsn)
+    void setParamColumnTypes(DataTypeDescriptor[] types, ResultColumnList resultColumns)
                     throws StandardException
     {
         /*
         ** Look for ? parameters in the result column list
         ** of each RowResultSetNode
         */
-        ResultColumnList rrcl = rrsn.getResultColumns();
-        int rrclSize = rrcl.size();
+        int rrclSize = resultColumns.size();
         for (int index = 0; index < rrclSize; index++)
         {
-            ResultColumn    rc = (ResultColumn) rrcl.elementAt(index);
+            ResultColumn    rc = resultColumns.elementAt(index);
 
             if (rc.getExpression().requiresTypeFromContext())
             {

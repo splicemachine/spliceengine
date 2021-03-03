@@ -93,4 +93,8 @@ public interface PartitionAdmin extends AutoCloseable{
     int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception;
 
     int getTableCount() throws IOException;
+
+    default void createSITable(String tableName) throws StandardException{
+        throw new RuntimeException("Not implemented");
+    }
 }

@@ -346,8 +346,7 @@ public class JavaToSQLValueNode extends ValueNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         return javaNode.getOrderableVariantType();
     }
 
@@ -367,8 +366,7 @@ public class JavaToSQLValueNode extends ValueNode
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         // anything in the java domain is not equiavlent.
         return false;//this == o;
     }

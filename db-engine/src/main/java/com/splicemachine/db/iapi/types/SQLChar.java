@@ -57,13 +57,12 @@ import org.joda.time.DateTime;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.sql.Date;
 import java.text.CollationKey;
 import java.text.RuleBasedCollator;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Locale;
-import java.util.MissingResourceException;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 
 
 /**
@@ -2781,6 +2780,59 @@ public class SQLChar
         return stringResult;
     }
 
+    public ConcatableDataValue translate(
+            StringDataValue outputTranslationTable,
+            StringDataValue inputTranslationTable,
+            StringDataValue pad,
+            ConcatableDataValue result)
+            throws StandardException
+    {
+        StringDataValue stringResult;
+        if (result == null) {
+            result = getNewVarchar();
+        }
+
+        stringResult = (StringDataValue) result;
+
+        if (this.isNull() ||
+                outputTranslationTable.isNull() || outputTranslationTable.getString() == null ||
+                inputTranslationTable.isNull() || inputTranslationTable.getString() == null) {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        String output = outputTranslationTable.getString();
+        String input = inputTranslationTable.getString();
+
+        char padChar;
+        if (pad == null || pad.isNull() || pad.getString() == null) {
+            padChar = ' ';
+        } else {
+            if (pad.getString().length() != 1) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_TRANSLATE_PADDING, pad.getString());
+            }
+            padChar = pad.getString().charAt(0);
+        }
+
+        HashMap<Character, Character> table = new HashMap<>();
+        for (int i = 0; i < input.length(); ++i) {
+            table.putIfAbsent(input.charAt(i), i < output.length() ? output.charAt(i) : padChar);
+        }
+
+        stringResult.setValue(getString()
+                .codePoints()
+                .map(c -> table.getOrDefault((char)c, (char)c))
+                .mapToObj(c -> (char) c)
+                .collect(Collector.of(
+                        StringBuilder::new,
+                        StringBuilder::append,
+                        StringBuilder::append,
+                        StringBuilder::toString))
+        );
+        return stringResult;
+    }
+
     /**
      * This function public for testing purposes.
      *
@@ -2813,6 +2865,45 @@ public class SQLChar
         {
             for (; end >= 0; end--)
                 if (trimChar != source.charAt(end))
+                    break;
+        }
+        if (end == -1)
+            return "";
+
+        return source.substring(start, end + 1);
+    }
+
+    private String db2TrimInternal(int trimType, String trimString, String source)
+    {
+        if (source == null) {
+            return null;
+        }
+
+        int len = source.length();
+        int start = 0;
+        if (trimType == LEADING || trimType == BOTH)
+        {
+            for (; start < len; start++)
+                if (trimString.charAt(start) != source.charAt(start))
+                    break;
+        }
+
+        if (start == len)
+            return "";
+
+        int end = len - 1;
+        int trimEnd = trimString.length() - 1;
+        if (trimEnd > end) {
+            trimString = trimString.substring(0, len);
+            trimEnd = end;
+        }
+        int origTrimEnd = trimEnd;
+        if (trimType == TRAILING || trimType == BOTH)
+        {
+            for (; end >= 0 && trimEnd >= 0; end--,
+                                             trimEnd = trimEnd == 0 ?
+                                               origTrimEnd : trimEnd - 1)
+                if (trimString.charAt(trimEnd) != source.charAt(end))
                     break;
         }
         if (end == -1)
@@ -2860,6 +2951,29 @@ public class SQLChar
         return result;
     }
 
+    // The same as ansiTrim, but allow longer trim strings than one character.
+    public StringDataValue db2Trim(
+    int             trimType,
+    StringDataValue trimString,
+    StringDataValue result)
+            throws StandardException
+    {
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+
+        if (trimString == null || trimString.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        result.setValue(db2TrimInternal(trimType, trimString.getString(), getString()));
+        return result;
+    }
+
     /** @see StringDataValue#upper
      *
      * @exception StandardException     Thrown on error
@@ -2882,6 +2996,33 @@ public class SQLChar
         upper = upper.toUpperCase(getLocale());
         result.setValue(upper);
         return result;
+    }
+
+    public NumberDataValue positionOfString(StringDataValue leftOperand, StringDataValue rightOperand,
+                                            NumberDataValue result)
+            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (NumberDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            result.setToNull();
+            return result;
+        }
+
+        String searchString = rightOperand.getString();
+        String expression = leftOperand.getString();
+        int position = expression.indexOf(searchString) + 1;
+
+        return new SQLInteger(position);
     }
 
     public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,

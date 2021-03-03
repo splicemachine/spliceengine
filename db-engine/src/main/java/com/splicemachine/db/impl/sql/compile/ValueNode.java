@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -274,8 +273,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @return    The TypeId from this ValueNode.  This
      *        may be null if the node isn't bound yet.
      */
-    public TypeId getTypeId() throws StandardException
-    {
+    public TypeId getTypeId() {
         DataTypeDescriptor dtd = getTypeServices();
         if (dtd != null)
             return dtd.getTypeId();
@@ -907,8 +905,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException        Thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // The default is VARIANT
         return Qualifier.VARIANT;
     }
@@ -1455,8 +1452,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @throws StandardException
      */
-    protected abstract boolean isEquivalent(ValueNode other)
-        throws StandardException;
+    protected abstract boolean isEquivalent(ValueNode other) throws StandardException
+    ;
 
     @Override
     public boolean equals(Object o) {
@@ -1464,7 +1461,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         boolean result;
 
         if(o instanceof ValueNode){
-
             try{
                 result = isEquivalent((ValueNode) o);
             }catch (StandardException e){
@@ -1474,7 +1470,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         }else{
 
             result = super.equals(o);
-
         }
 
         return result;

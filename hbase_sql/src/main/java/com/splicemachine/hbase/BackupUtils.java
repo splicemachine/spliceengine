@@ -251,22 +251,10 @@ public class BackupUtils {
      * A table is managed by splice if its namespace is "splice", or it's
      * one of splice system tables
      * @param namespace
-     * @param tableName
      * @return
      */
-    public static boolean isSpliceTable(String namespace, String tableName) {
-        if (namespace == null) {
-            if (tableName.compareTo("SPLICE_CONGLOMERATE") == 0 ||
-                    tableName.compareTo("SPLICE_SEQUENCES") == 0 ||
-                    tableName.compareTo("SPLICE_TXN") == 0 ||
-                    tableName.compareTo("TENTATIVE_DDL") == 0) {
-                return true;
-            }
-        }
-        else if (namespace.compareTo("splice") == 0)
-            return true;
-
-        return false;
+    public static boolean isSpliceTable(String namespace) {
+        return namespace.equals("splice");
     }
 
     public static boolean backupCanceled(long backupId) throws KeeperException, InterruptedException {

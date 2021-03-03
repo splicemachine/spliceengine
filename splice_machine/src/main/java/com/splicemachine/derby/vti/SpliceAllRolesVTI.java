@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.vti.CompileTimeSchema;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -30,7 +31,7 @@ import java.util.Map;
 /**
  * Created by yxia on 4/25/19.
  */
-public class SpliceAllRolesVTI implements DatasetProvider, VTICosting {
+public class SpliceAllRolesVTI implements DatasetProvider, VTICosting, CompileTimeSchema {
     protected OperationContext operationContext;
 
     public SpliceAllRolesVTI () {
@@ -99,9 +100,12 @@ public class SpliceAllRolesVTI implements DatasetProvider, VTICosting {
         return false;
     }
 
-    @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
+    public static ResultSetMetaData getMetaData() throws SQLException {
         return metadata;
+    }
+
+    public static boolean schemaKnownAtCompileTime() {
+        return true;
     }
 
     @Override

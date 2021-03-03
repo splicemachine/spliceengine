@@ -174,6 +174,13 @@ public interface StringDataValue extends ConcatableDataValue
 			StringDataValue result)
 		throws StandardException;
 
+	// Same as ansiTrim, but allow a trimString longer than a single character.
+	StringDataValue db2Trim(
+			int trimType,
+			StringDataValue trimString,
+			StringDataValue result)
+		throws StandardException;
+
 	/**
 	 * Convert the string to upper case.
 	 *
@@ -197,6 +204,17 @@ public interface StringDataValue extends ConcatableDataValue
 	StringDataValue upperWithLocale(StringDataValue str, StringDataValue locale, StringDataValue result)
 							throws StandardException;
 
+	/**
+	 * Find the position of the searchString in an expressionString
+	 * @param expressionString The string to search
+	 * @param searchString  The substring to search for
+	 * @return 0 if not found,
+	 *         null if either operand is null,
+	 *         otherwise the 1-based position of the first character in the match
+	 * @throws StandardException Thrown on error
+	 */
+    NumberDataValue positionOfString(StringDataValue expressionString, StringDataValue searchString,
+                                     NumberDataValue result) throws StandardException;
 	/**
 	 * Covert the string to lower case with specified locale.
 	 * @param str The string

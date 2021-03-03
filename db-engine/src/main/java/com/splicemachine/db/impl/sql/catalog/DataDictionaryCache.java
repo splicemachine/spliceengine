@@ -58,6 +58,7 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
@@ -78,7 +79,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,Conglomerate> conglomerateCache;
     private ManagedCache<Pair<Long, Long>, Conglomerate> txnAwareConglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
-    private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
+    private ManagedCache<GenericStatement,StatementCacheValue> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
     private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
@@ -112,7 +113,7 @@ public class DataDictionaryCache {
          */
         int tdCacheSize = getCacheSize(startParams, Property.LANG_TD_CACHE_SIZE,
                 Property.LANG_TD_CACHE_SIZE_DEFAULT);
-        int stmtCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
+        int spsCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
                 Property.LANG_SPS_CACHE_SIZE_DEFAULT);
         int seqgenCacheSize = getCacheSize(startParams, Property.LANG_SEQGEN_CACHE_SIZE,
                 Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
@@ -162,9 +163,9 @@ public class DataDictionaryCache {
         };
         oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build(), tdCacheSize);
         nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build(), tdCacheSize);
-        if(stmtCacheSize>0){
-            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
-            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
+        if(spsCacheSize>0){
+            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
+            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(spsCacheSize).removalListener(dependentInvalidator).build(), spsCacheSize);
         }
         sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build(), seqgenCacheSize);
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
@@ -359,19 +360,35 @@ public class DataDictionaryCache {
         storedPreparedStatementCache.invalidateAll();
     }
 
+    private long getDriverTaskTxnId() {
+        LanguageConnectionContext lcc =
+            (LanguageConnectionContext)ContextService.getCurrentContextManager().
+                                getContext(LanguageConnectionContext.CONTEXT_ID);
+        if (lcc == null)
+            return -1;
+        return lcc.getActiveStateTxId();
+    }
+
+    private Conglomerate txnAwareConglomerateCacheFind(Long conglomId) throws StandardException {
+        if (dd.useTxnAwareCache()) {
+            long txnId = getDriverTaskTxnId();
+            if (txnId == -1)
+                return null;
+            return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
+        }
+        return null;
+    }
+
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
         if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER) {
             // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
-            if (dd.useTxnAwareCache()) {
-                long txnId = xactMgr.getActiveStateTxId();
-                if (txnId == -1)
-                    return null;
-                return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
-            }
-            return null;
+            Conglomerate conglomerate = txnAwareConglomerateCacheFind(conglomId);
+            if (conglomerate != null)
+                return conglomerate;
         }
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
+
         return conglomerateCache.getIfPresent(conglomId);
     }
 
@@ -382,7 +399,7 @@ public class DataDictionaryCache {
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
         if (!dd.canWriteCache(xactMgr)) {
             if (dd.useTxnAwareCache()) {
-                long txnId = xactMgr.getActiveStateTxId();
+                long txnId = getDriverTaskTxnId();
                 if (txnId == -1)
                     return;
                 txnAwareConglomerateCacheAdd(new Pair(txnId, conglomId), conglomerate);
@@ -416,7 +433,6 @@ public class DataDictionaryCache {
             LOG.debug("conglomerateCacheRemove " + conglomId);
         conglomerateCache.invalidate(conglomId);
     }
-
 
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
         if (!dd.canReadCache(null))
@@ -525,8 +541,8 @@ public class DataDictionaryCache {
 
     public void statementCacheRemove(GenericStatement gs) throws StandardException {
         if (LOG.isDebugEnabled()) {
-            GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
-            LOG.debug("statementCacheRemove " + gs.toString() +(gsps != null ? " found" : " null"));
+            StatementCacheValue value = statementCache.getIfPresent(gs);
+            LOG.debug("statementCacheRemove " + gs.toString() +(value != null ? " found" : " null"));
         }
         statementCache.invalidate(gs);
     }
@@ -542,16 +558,28 @@ public class DataDictionaryCache {
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs.toString());
-        statementCache.put(gs,gsp);
+        statementCache.put(gs,new StatementCacheValue(gsp));
+    }
+
+    public List<Pair<String, Timestamp>> cachedStatements() throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        List<Pair<String, Timestamp>> result = new ArrayList<>();
+        statementCache.asMap().forEach((key, value) -> result.add(new Pair<String, Timestamp>(key.getStatementText(), value.getTimestamp())));
+        return result;
     }
 
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
-        GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
+        StatementCacheValue value = statementCache.getIfPresent(gs);
         if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheFind " + gs.toString() +(gsps != null ? " found" : " null"));
-        return gsps;
+            LOG.debug("statementCacheFind " + gs.toString() +(value != null ? " found" : " null"));
+        if(value == null) {
+            return null;
+        } else {
+            return value.getStatement();
+        }
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {

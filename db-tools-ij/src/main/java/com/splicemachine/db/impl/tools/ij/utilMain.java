@@ -158,12 +158,16 @@ public class utilMain implements java.security.PrivilegedAction {
             commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
+        initOptions();
+    }
 
+    void initOptions() {
         /* Start with connection/user 0 */
         currCE = 0;
         fileInput = false;
         initialFileInput = false;
         firstRun = true;
+        omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
     /**

@@ -260,8 +260,7 @@ public class CastNode extends ValueNode
             }
         }
     }
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         return castOperand.getOrderableVariantType();
     }
 
@@ -1285,8 +1284,7 @@ public class CastNode extends ValueNode
      * {@inheritDoc}
      * @throws StandardException
      */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             CastNode other = (CastNode)o;

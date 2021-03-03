@@ -138,7 +138,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 		spliceClassWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 
 		// Add the jar file into the DB class path.
-		spliceClassWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+		spliceClassWatcher.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		// Recompile the stored statements since the SQLJ and CLASSPATH stored procedures invalidate all of the stored statements.
 		// Recompiling will avoid write-write conflicts between the concurrent IT execution threads.
 //		spliceClassWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()");

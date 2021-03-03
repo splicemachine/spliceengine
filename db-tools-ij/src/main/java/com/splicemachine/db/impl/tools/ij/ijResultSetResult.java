@@ -105,15 +105,20 @@ public class ijResultSetResult extends ijResultImpl {
 		{
 			displayColumns[i] = columnParameters[i].pos;
 			int colWidth = columnParameters[i].preferredWidth;
-			int maxColWidth  = columnParameters[i].maxWidth;
-			int max = JDBCDisplayUtil.getMaxDisplayWidth();
-			if( max != 256 )
+			// if != 0, this is the maximum width this column needs
+			int maximumWidthOfColumn  = columnParameters[i].maxWidth;
+			// maximumdisplaywidth defined for the sqlshell session
+			int maximumdisplaywidth = JDBCDisplayUtil.getMaxDisplayWidth();
+			if( maximumdisplaywidth != JDBCDisplayUtil.MAXWIDTH_DEFAULT )
 			{
-				if (maxColWidth != 0 && (max == 0 || max > maxColWidth))
-					colWidth = maxColWidth;
-				else
-					colWidth = max;
+				if(maximumdisplaywidth == JDBCDisplayUtil.MAXWIDTH_NO_ALIGN)
+					colWidth = 0; // width=0 -> no align mode
+				else if (maximumWidthOfColumn == 0 )
+					colWidth = maximumdisplaywidth; // this column didn't define a max width.
+				else // this columned defined a max width
+					colWidth = Math.min(maximumWidthOfColumn, maximumdisplaywidth);
 			}
+			// else (maximumdisplaywidth == JDBCDisplayUtil.MAXWIDTH_DEFAULT): no change to colWidth
 			columnWidths[i] = colWidth;
 		}
 	}

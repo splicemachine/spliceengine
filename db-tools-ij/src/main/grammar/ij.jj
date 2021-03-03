@@ -193,7 +193,6 @@ TOKEN [IGNORE_CASE] :
 | <DISCONNECT: "disconnect">
 | <DRIVER: "driver">
 | <ELAPSEDTIME: "elapsedtime">
-| <ENABLED_ROLES: "enabled_roles">
 | <END: "end">
 | <EQUALS_OPERATOR: "=">
 | <EXECUTE: "execute">
@@ -1191,12 +1190,6 @@ throws SQLException
 |   <ROLES>
     {
         return showRoles();
-    }
-|   <ENABLED_ROLES>
-    {
-        // TODO: remove this when ROLE is supported
-        return new ijUnsupportedCommandResult("SHOW ENABLED_ROLES");
-        return showEnabledRoles();
     }
 |   <SETTABLE_ROLES>
     {

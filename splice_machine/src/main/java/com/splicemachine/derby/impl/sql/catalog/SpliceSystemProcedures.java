@@ -246,7 +246,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .integer("mode")            // 0 = fetch all, 1 = fetch only props where value not same on all servers
                 .numOutputParams(0)
                 .numResultSets(1)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .modifiesSql() // restrict execution
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(getRegionServerConfig);
@@ -872,7 +872,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(0)
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .modifiesSql() // restriction execution
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevel);
@@ -882,7 +882,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(0)
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .modifiesSql() // restriction execution
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevelLocal);
@@ -1067,7 +1067,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
+                .modifiesSql()
+                .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .build());
 
@@ -1076,11 +1077,25 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
                 .numOutputParams(0)
-                .numResultSets(0)
+                .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                .modifiesSql() // restrict execution
+                .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build());
+
+        /*
+         * Procedure to get all database properties
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTIES")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .modifiesSql() // restrict execution
+                .returnType(null).isDeterministic(false)
+                .varchar("FILTER", Limits.DB2_VARCHAR_MAXWIDTH)
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                 .build());
 
         /*
@@ -1098,6 +1113,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          * Procedure to empty the statement caches on all region servers in the cluster.
          * Essentially a wrapper around the Derby version of SYSCS_EMPTY_STATEMENT_CACHE
          * which only operates on a single node.
+         *
+         * Also, a procedure to show a list of all cached statements across region servers
+         * in the cluster.
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
                 .numOutputParams(0)
@@ -1127,6 +1145,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .returnType(null).isDeterministic(false)
                 .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                 .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .returnType(null)
+                .isDeterministic(false)
+                .build()
+        );
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS_LOCAL")
+               .numOutputParams(0)
+               .numResultSets(1)
+               .ownerClass(SpliceAdmin.class.getCanonicalName())
+               .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+               .returnType(null)
+               .isDeterministic(false)
+               .build()
+        );
 
         // Stored procedure that updates the owner (authorization id) of an existing schema.
         procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")
@@ -1173,7 +1211,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                .modifiesSql() // restriction execution
+                .returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_TABLE")
@@ -1639,6 +1678,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
                 .build();
         procedures.add(loadRegions);
+
+        Procedure restartOlapServer = Procedure.newBuilder().name("RESTART_OLAP_SERVER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(restartOlapServer);
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)
@@ -1691,6 +1737,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
                             .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build(),
+                    Procedure.newBuilder().name("RTRIM")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
                             .build(),
                     Procedure.newBuilder().name("REGEXP_LIKE")
                             .numOutputParams(0)

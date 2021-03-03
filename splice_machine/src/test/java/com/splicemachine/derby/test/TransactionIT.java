@@ -56,6 +56,7 @@ public class TransactionIT extends SpliceUnitTest {
     private static final String TABLE_NAME_17 = "Q";
     private static final String TABLE_NAME_18 = "R";
     private static final String TABLE_NAME_19 = "S";
+    private static final String TABLE_NAME_20 = "T";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public String getTableReference(String tableName) {
@@ -590,4 +591,24 @@ public class TransactionIT extends SpliceUnitTest {
         Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
+    @Test
+    public void testAlterTableDropColumnRollback() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_20);
+        methodWatcher.setAutoCommit(false);
+        try(Statement s = methodWatcher.getStatement()) {
+            s.execute(String.format("create table %s(x int, y int, z int)", this.getTableReference(TABLE_NAME_20)));
+            methodWatcher.commit();
+
+            s.execute(String.format("alter table %s drop column x restrict", this.getTableReference(TABLE_NAME_20)));
+            methodWatcher.rollback();
+
+            s.execute(String.format("alter table %s drop column x restrict", this.getTableReference(TABLE_NAME_20)));
+            methodWatcher.rollback();
+
+            s.execute(String.format("alter table %s drop column x restrict", this.getTableReference(TABLE_NAME_20)));
+            methodWatcher.rollback();
+        }
+
+        methodWatcher.setAutoCommit(true);
+    }
 }

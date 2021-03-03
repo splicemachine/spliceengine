@@ -489,23 +489,23 @@ public class ReplicationSystemProcedure {
         }
     }
 
-    private static String[] spliceSystemTables = {"16", "SPLICE_TXN", "DROPPED_CONGLOMERATES",
-            "SPLICE_CONGLOMERATE", "SPLICE_SEQUENCES"};
+    private static String[] spliceReplicatedSystemTables = {"16", "SPLICE_TXN", "DROPPED_CONGLOMERATES",
+            "SPLICE_CONGLOMERATE", "SPLICE_SEQUENCES", "SPLICE_CONGLOMERATE_SI"};
 
-    private static void enableReplicationForSpliceSystemTables() throws StandardException, IOException {
+    public static void enableReplicationForSpliceSystemTables() throws StandardException, IOException {
 
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        for (String table : spliceSystemTables) {
+        for (String table : spliceReplicatedSystemTables) {
             if (!admin.replicationEnabled(table)) {
                 admin.enableTableReplication(table);
             }
         }
     }
 
-    private static void disableReplicationForSpliceSystemTables() throws StandardException, IOException {
+    public static void disableReplicationForSpliceSystemTables() throws StandardException, IOException {
 
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        for (String table : spliceSystemTables) {
+        for (String table : spliceReplicatedSystemTables) {
             if (admin.replicationEnabled(table)) {
                 admin.disableTableReplication(table);
             }
