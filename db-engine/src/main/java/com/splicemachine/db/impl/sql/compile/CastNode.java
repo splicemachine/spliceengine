@@ -300,8 +300,6 @@ public class CastNode extends ValueNode
             castOperand.setType(getTypeServices());
         }
 
-        addSPSPropertyDependency();
-
         bindCastNodeOnly();
 
         if (getTypeId().isCharOrVarChar() || getTypeId().isBitTypeId()) {
@@ -423,6 +421,9 @@ public class CastNode extends ValueNode
                 )
         { setNullability( true ); }
         else { setNullability(castOperand.getTypeServices().isNullable()); }
+
+        // after binding the cast node, check dependencies to SPS properties.
+        addSPSPropertyDependency();
     }
 
     /**

@@ -125,8 +125,6 @@ public class SimpleStringOperatorNode extends UnaryOperatorNode
 
                 ((CastNode) getOperand()).bindCastNodeOnly();
                     operandType = getOperand().getTypeId();
-
-                addSPSPropertyDependency(getOperand());
         }
 
         /*
