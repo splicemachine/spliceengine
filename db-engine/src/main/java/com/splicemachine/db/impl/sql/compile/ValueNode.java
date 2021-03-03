@@ -1620,6 +1620,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return collectSingleExpression(exprMap);
     }
 
+
+
     /*
      * Add a cast node to the rightOperand if it's of string type and need to be compared
      * to leftOperand

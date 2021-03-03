@@ -58,6 +58,7 @@ public class SecondFunctionNode extends OperatorNode {
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
+        addSPSPropertyDependency();
         bindOperands(fromList, subqueryList, aggregateVector);
 
         if (operands.get(0).requiresTypeFromContext() || operands.get(0).getTypeId().isStringTypeId()) {

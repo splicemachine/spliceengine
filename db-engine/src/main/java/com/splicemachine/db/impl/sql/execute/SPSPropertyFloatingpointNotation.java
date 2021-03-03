@@ -16,7 +16,9 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 
 import java.sql.Types;
 
@@ -30,9 +32,12 @@ public class SPSPropertyFloatingpointNotation extends SPSProperty {
     }
 
     @Override
-    protected void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
-        if(hasNodeType(statementNode, Types.DOUBLE, Types.FLOAT, Types.REAL)) {
-            cc.createDependency(this);
+    protected void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
+        if(node instanceof ValueNode && ((ValueNode)node).getTypeServices() != null) {
+            int nodeType = ((ValueNode)node).getTypeServices().getJDBCTypeId();
+            if(nodeType == Types.DOUBLE || nodeType == Types.FLOAT || nodeType == Types.REAL) {
+                cc.createDependency(this);
+            }
         }
     }
 }

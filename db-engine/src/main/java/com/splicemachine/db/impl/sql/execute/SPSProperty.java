@@ -18,8 +18,10 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
+import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
 
@@ -71,16 +73,7 @@ public abstract class SPSProperty implements Provider {
         return SPS_PROPERTY;
     }
 
-    protected abstract void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException;
-
-    protected static boolean hasNodeType(final StatementNode statementNode, Integer... types) throws StandardException {
-        assert types != null && types.length > 0;
-        assert statementNode != null;
-        final CollectNodesVisitor v = new CollectNodesVisitor(ValueNode.class);
-        statementNode.accept(v);
-        return v.getList().stream().anyMatch(node -> ((ValueNode)node).getTypeServices() != null
-                && Arrays.stream(types).anyMatch(t -> t == ((ValueNode)node).getTypeServices().getJDBCTypeId()));
-    }
+    protected abstract void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException;
 
     @Override
     public boolean equals(Object o) {

@@ -17,32 +17,20 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Node;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.impl.sql.compile.CastNode;
+import com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode;
+import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
 
-import java.sql.Types;
+public class SPSPropertyCurrentTimestampFormat extends SPSProperty {
 
-/**
- * An SPS property that governs timestamp field(s) in a query.
- */
-final class SPSPropertyTimestampFormat extends SPSProperty {
-
-    protected SPSPropertyTimestampFormat(final UUID uuid, final String name) {
+    protected SPSPropertyCurrentTimestampFormat(UUID uuid, String name) {
         super(uuid, name);
     }
 
+    @Override
     protected void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
-        if(node instanceof CastNode) {
-            CastNode castNode = (CastNode)node;
-            ValueNode castOperand = castNode.getCastOperand();
-            if(castOperand != null
-               && castOperand.getTypeServices() != null
-               && castOperand.getTypeServices().getJDBCTypeId() == Types.TIMESTAMP
-               && DataTypeDescriptor.isCharacterType(castNode.getTypeServices().getJDBCTypeId())) {
-                cc.createDependency(this);
-            }
+        if(node instanceof CurrentDatetimeOperatorNode) {
+            cc.createDependency(this);
         }
     }
 }

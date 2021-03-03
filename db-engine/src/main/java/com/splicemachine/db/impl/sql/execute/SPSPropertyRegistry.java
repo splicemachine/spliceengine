@@ -16,6 +16,7 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 
@@ -32,7 +33,7 @@ public class SPSPropertyRegistry {
     private static Set<SPSProperty> propertySet = ConcurrentHashMap.newKeySet();
     static {
         propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("91916f24-fa35-493d-9048-e41ffbe004d7"), Property.SPLICE_TIMESTAMP_FORMAT));
-        propertySet.add(new SPSPropertyTimestampFormat(new BasicUUID("b2decb1d-acc2-4402-9278-d4aab1fc6431"), Property.SPLICE_CURRENT_TIMESTAMP_PRECISION));
+        propertySet.add(new SPSPropertyCurrentTimestampFormat(new BasicUUID("b2decb1d-acc2-4402-9278-d4aab1fc6431"), Property.SPLICE_CURRENT_TIMESTAMP_PRECISION));
         propertySet.add(new SPSPropertyFloatingpointNotation(new BasicUUID("e8027088-78d8-41aa-be8e-ede5c646ae0a"), Property.FLOATING_POINT_NOTATION));
         propertySet.add(new SPSPropertySecondFunction(new BasicUUID("01fc4415-bc53-4ac1-b829-93e0e61b0c5f"), Property.SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE));
     };
@@ -45,12 +46,12 @@ public class SPSPropertyRegistry {
      * Adds a dependency if necessary between a statement node and an SPS property using the compiler's context
      * dependency manager.
      */
-    public static void addDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
-        assert statementNode != null;
+    public static void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
+        assert node != null;
         assert cc != null;
 
         for (SPSProperty property : propertySet) {
-            property.checkAndAddDependency(statementNode, cc);
+            property.checkAndAddDependency(node, cc);
         }
     }
 }

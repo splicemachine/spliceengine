@@ -300,6 +300,8 @@ public class CastNode extends ValueNode
             castOperand.setType(getTypeServices());
         }
 
+        addSPSPropertyDependency();
+
         bindCastNodeOnly();
 
         if (getTypeId().isCharOrVarChar() || getTypeId().isBitTypeId()) {

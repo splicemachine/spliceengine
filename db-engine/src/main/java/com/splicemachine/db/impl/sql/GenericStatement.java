@@ -839,7 +839,6 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-                SPSPropertyRegistry.addDependency(qt, cc);
                 bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {

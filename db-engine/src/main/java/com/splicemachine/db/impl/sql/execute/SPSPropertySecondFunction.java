@@ -16,7 +16,9 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
+import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
 import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 
@@ -30,12 +32,10 @@ public class SPSPropertySecondFunction extends SPSProperty{
     }
 
     @Override
-    protected void checkAndAddDependency(final StatementNode statementNode, CompilerContext cc) throws StandardException {
-        assert statementNode != null;
+    protected void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
+        assert node != null;
         assert cc != null;
-        final CollectNodesVisitor v = new CollectNodesVisitor(SecondFunctionNode.class);
-        statementNode.accept(v);
-        if(!v.getList().isEmpty()) {
+        if(node instanceof SecondFunctionNode) {
             cc.createDependency(this);
         }
     }
