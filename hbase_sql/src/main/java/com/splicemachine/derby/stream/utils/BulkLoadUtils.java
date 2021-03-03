@@ -28,7 +28,7 @@ import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.yahoo.sketches.quantiles.ItemsSketch;
+import org.apache.datasketches.quantiles.ItemsSketch;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 

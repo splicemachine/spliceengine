@@ -33,7 +33,7 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.yahoo.sketches.quantiles.ItemsSketch;
+import org.apache.datasketches.quantiles.ItemsSketch;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -98,8 +98,8 @@ public class UniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop, boolean useExtrapolation) {
-        double startSelectivity = start==null?0.0d:quantilesSketch.getCDF(new ExecRow[]{start})[0];
-        double stopSelectivity = stop==null?1.0d:quantilesSketch.getCDF(new ExecRow[]{stop})[0];
+        double startSelectivity = start==null || quantilesSketch.isEmpty() ? 0.0d : quantilesSketch.getCDF(new ExecRow[]{start})[0];
+        double stopSelectivity = stop==null || quantilesSketch.isEmpty() ? 1.0d : quantilesSketch.getCDF(new ExecRow[]{stop})[0];
         return (long) ((stopSelectivity-startSelectivity)*quantilesSketch.getN());
     }
 
