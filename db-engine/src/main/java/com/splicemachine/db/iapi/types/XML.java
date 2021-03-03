@@ -49,7 +49,7 @@ import java.text.RuleBasedCollator;
 import java.lang.reflect.Method;
 import java.util.List;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;

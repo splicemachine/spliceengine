@@ -33,8 +33,8 @@ package com.splicemachine.db.iapi.stats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.types.*;
-import com.yahoo.sketches.quantiles.ItemsSketch;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.quantiles.ItemsSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
@@ -455,7 +455,7 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
+    public org.apache.datasketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
         return dvd.getFrequenciesSketch();
     }
 

@@ -46,7 +46,7 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;

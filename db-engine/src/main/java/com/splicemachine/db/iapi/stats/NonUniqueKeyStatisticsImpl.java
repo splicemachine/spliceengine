@@ -33,9 +33,9 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.yahoo.sketches.quantiles.ItemsSketch;
-import com.yahoo.sketches.theta.Sketch;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.quantiles.ItemsSketch;
+import org.apache.datasketches.theta.Sketch;
+import org.apache.datasketches.theta.UpdateSketch;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -48,18 +48,18 @@ import java.io.ObjectOutput;
  */
 public class NonUniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     private ItemsSketch<ExecRow> quantilesSketch;
-    private com.yahoo.sketches.frequencies.ItemsSketch<ExecRow> frequenciesSketch;
+    private org.apache.datasketches.frequencies.ItemsSketch<ExecRow> frequenciesSketch;
     private Sketch thetaSketch;
     private ExecRow execRow;
 
     public NonUniqueKeyStatisticsImpl(ExecRow execRow) throws StandardException {
         this(execRow,ItemsSketch.getInstance(execRow),
-                new com.yahoo.sketches.frequencies.ItemsSketch(1024),
-                UpdateSketch.builder().build(4096));
+                new org.apache.datasketches.frequencies.ItemsSketch(1024),
+                UpdateSketch.builder().setNominalEntries(4096).build());
     }
 
     public NonUniqueKeyStatisticsImpl(ExecRow execRow, ItemsSketch quantilesSketch,
-                                      com.yahoo.sketches.frequencies.ItemsSketch<ExecRow> frequenciesSketch,
+                                      org.apache.datasketches.frequencies.ItemsSketch<ExecRow> frequenciesSketch,
                                       Sketch thetaSketch
                                          ) throws StandardException {
         this.execRow = execRow;
@@ -110,8 +110,8 @@ public class NonUniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop, boolean useExtrapolation) {
-        double startSelectivity = start==null?0.0d:quantilesSketch.getCDF(new ExecRow[]{start})[0];
-        double stopSelectivity = stop==null?1.0d:quantilesSketch.getCDF(new ExecRow[]{stop})[0];
+        double startSelectivity = start==null || quantilesSketch.isEmpty() ? 0.0d : quantilesSketch.getCDF(new ExecRow[]{start})[0];
+        double stopSelectivity = stop==null || quantilesSketch.isEmpty() ? 1.0d : quantilesSketch.getCDF(new ExecRow[]{stop})[0];
         return (long) ((stopSelectivity-startSelectivity)*quantilesSketch.getN());
     }
 

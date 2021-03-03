@@ -37,9 +37,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.yahoo.sketches.quantiles.ItemsUnion;
-import com.yahoo.sketches.theta.Sketches;
-import com.yahoo.sketches.theta.Union;
+import org.apache.datasketches.quantiles.ItemsUnion;
+import org.apache.datasketches.theta.Sketches;
+import org.apache.datasketches.theta.Union;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
@@ -59,7 +59,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     protected boolean initialized;
     protected Union thetaSketchUnion;
     protected ItemsUnion quantilesSketchUnion;
-    protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
+    protected org.apache.datasketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected long nullCount = 0L;
     protected DataValueDescriptor dvd;
     protected long totalCount = 0L;

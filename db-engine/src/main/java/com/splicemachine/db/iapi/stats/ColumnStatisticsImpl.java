@@ -40,11 +40,12 @@ import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.db.iapi.types.SQLTime;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.yahoo.memory.NativeMemory;
-import com.yahoo.sketches.frequencies.ErrorType;
-import com.yahoo.sketches.quantiles.ItemsSketch;
-import com.yahoo.sketches.theta.Sketch;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.memory.Memory;
+import org.apache.datasketches.frequencies.ErrorType;
+import org.apache.datasketches.quantiles.ItemsSketch;
+import org.apache.datasketches.theta.Sketch;
+import org.apache.datasketches.theta.Sketches;
+import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -63,14 +64,14 @@ import static com.splicemachine.db.iapi.types.Orderable.*;
  */
 public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>, Externalizable {
     private static Logger LOG=Logger.getLogger(ColumnStatisticsImpl.class);
-    protected com.yahoo.sketches.quantiles.ItemsSketch<DataValueDescriptor> quantilesSketch;
-    protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
+    protected org.apache.datasketches.quantiles.ItemsSketch<DataValueDescriptor> quantilesSketch;
+    protected org.apache.datasketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected Sketch thetaSketch;
     protected long nullCount;
     protected DataValueDescriptor dvd;
     private long rpv=-1; //rows per value excluding skewed values
 
-    private com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] freqSketchNoFpItems;
+    private org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] freqSketchNoFpItems;
 
     public ColumnStatisticsImpl() {
 
@@ -98,8 +99,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      * @param nullCount
      */
     public ColumnStatisticsImpl(DataValueDescriptor dvd,
-                                com.yahoo.sketches.quantiles.ItemsSketch quantilesSketch,
-                                com.yahoo.sketches.frequencies.ItemsSketch frequenciesSketch,
+                                org.apache.datasketches.quantiles.ItemsSketch quantilesSketch,
+                                org.apache.datasketches.frequencies.ItemsSketch frequenciesSketch,
                                 Sketch thetaSketch, long nullCount
                                          ) {
         this.dvd = dvd;
@@ -126,36 +127,20 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        NativeMemory quantMem = null;
-        NativeMemory freqMem = null;
-        NativeMemory thetaMem = null;
-        try {
-            nullCount = in.readLong();
-            dvd = (DataValueDescriptor) in.readObject();
-            byte[] quantiles = new byte[in.readInt()];
-            in.readFully(quantiles);
-            quantMem = new NativeMemory(quantiles);
-            quantilesSketch = com.yahoo.sketches.quantiles.ItemsSketch.getInstance(quantMem, dvd, new DVDArrayOfItemsSerDe(dvd));
-            byte[] frequencies = new byte[in.readInt()];
-            in.readFully(frequencies);
-            freqMem = new NativeMemory(frequencies);
-            frequenciesSketch = com.yahoo.sketches.frequencies.ItemsSketch.getInstance(freqMem, new DVDArrayOfItemsSerDe(dvd));
-            byte[] thetaSketchBytes = new byte[in.readInt()];
-            in.readFully(thetaSketchBytes);
-            thetaMem = new NativeMemory(thetaSketchBytes);
-            thetaSketch = Sketch.heapify(thetaMem);
-        } finally {
-            if (quantMem!=null)
-                quantMem.freeMemory();
-            if (freqMem!=null)
-                freqMem.freeMemory();
-            if (thetaMem!=null)
-                thetaMem.freeMemory();
-
-        }
+        nullCount = in.readLong();
+        dvd = (DataValueDescriptor) in.readObject();
+        byte[] quantiles = new byte[in.readInt()];
+        in.readFully(quantiles);
+        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(Memory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
+        byte[] frequencies = new byte[in.readInt()];
+        in.readFully(frequencies);
+        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(Memory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
+        byte[] thetaSketchBytes = new byte[in.readInt()];
+        in.readFully(thetaSketchBytes);
+        thetaSketch = Sketches.wrapSketch(Memory.wrap(thetaSketchBytes)); // Sketch.heapify(thetaMem);
     }
 
-    private com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] getFreqSketchNoFpItems() {
+    private org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] getFreqSketchNoFpItems() {
         if (freqSketchNoFpItems == null) {
             freqSketchNoFpItems = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
         }
@@ -316,9 +301,9 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         if (isSameType || isSameFamily || isConverted) {
             count = frequenciesSketch.getEstimate(lookUpElement);
         } else {
-        // Iterated comparing
-            com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
-            for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+            // Iterated comparing
+            org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
+            for (org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
                 DataValueDescriptor skewedValue = row.getItem();
                 try {
                     if (skewedValue != null && skewedValue.compare(ORDER_OP_EQUALS, lookUpElement, false, false)) {
@@ -342,8 +327,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     private long getAvgRowsPerValueExcludingSkews() {
         long skewCount = 0;
         long skewNum = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
-        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+        org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
+        for (org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             skewCount += row.getEstimate();
             skewNum ++;
         }
@@ -358,8 +343,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     private long getSkewedRowCountInRange(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
         long skewCount = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
-        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+        org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
+        for (org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             DataValueDescriptor skewedValue = row.getItem();
             try {
                 if (skewedValue != null &&
@@ -511,10 +496,10 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         /* 1. range selectivity returned by CDF */
         if (!includeStart && start != null && !start.isNull())
             start = new StatsExcludeStartDVD(start);
-        double startSelectivity = start == null || start.isNull() ? 0.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
+        double startSelectivity = start == null || start.isNull() || quantilesSketch.isEmpty() ? 0.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
         if (includeStop && stop != null && !stop.isNull())
             stop = new StatsIncludeEndDVD(stop);
-        double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
+        double stopSelectivity = stop == null || stop.isNull() || quantilesSketch.isEmpty() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity - startSelectivity;
         double count = (double) quantilesSketch.getN();
         if (Double.isNaN(totalSelectivity) || count == 0)
@@ -672,7 +657,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      *
      * @return
      */
-    public com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> getFrequenciesSketch() {
+    public org.apache.datasketches.frequencies.ItemsSketch<DataValueDescriptor> getFrequenciesSketch() {
         return frequenciesSketch;
     }
     /**
@@ -689,8 +674,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     public long selectivityExcludingValueIfSkewed(DataValueDescriptor value) {
         long skewCount = 0;
         long skewNum = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
-        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+        org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
+        for (org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             DataValueDescriptor skewedValue = row.getItem();
             try {
                 if (skewedValue != null && skewedValue.compare(ORDER_OP_EQUALS, value, false, false)) {

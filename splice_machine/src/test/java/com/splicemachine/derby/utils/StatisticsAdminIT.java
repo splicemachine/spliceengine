@@ -213,6 +213,31 @@ public class StatisticsAdminIT extends SpliceUnitTest {
                         row(9,9,9),
                         row(10,10,10)))
                 .create();
+
+        new TableCreator(conn4)
+                .withCreate("create table t7 (a int, b int)")
+                .withInsert("insert into t7 values (?,?)")
+                .withRows(rows(
+                        row(2,2),
+                        row(3,3),
+                        row(4,4),
+                        row(5,5),
+                        row(6,6),
+                        row(7,7),
+                        row(8,8),
+                        row(9,9),
+                        row(10,10)))
+                .create();
+
+        int factor1 = 10;
+        int factor2 = 10;
+        for (int i = 1; i <= 12; i++) {
+            spliceClassWatcher4.executeUpdate(format("insert into t7 select a+%d, b+%d from t7", factor1, factor2));
+            factor1 *= 2;
+            if (i < 8) {
+                factor2 *= 2;
+            }
+        }
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -1240,6 +1265,19 @@ public class StatisticsAdminIT extends SpliceUnitTest {
 
         /* step 3: clean up */
         methodWatcher4.execute("drop table TAB_WITH_MORE_SPLITS");
+    }
+
+    @Test
+    public void testNoAssertionFailureInSketch() throws Exception {
+        methodWatcher4.execute("insert into t7 values (1,1)");
+        methodWatcher4.execute(format("call syscs_util.syscs_flush_table('%s', 'T7')", SCHEMA4));
+        try(ResultSet rs = methodWatcher4.executeQuery("analyze table T7")) {
+            String expected =
+                    "schemaName     | tableName | partition | rowsCollected | partitionSize |partitionCount | statsType |sampleFraction |skippedColumnIds |\n" +
+                    "------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                    "STATISTICSADMINIT4 |    T7     |   -All-   |     36865     |    294920     |       1       |     2     |      0.0      |                 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     /* ****************************************************************************************************************/
