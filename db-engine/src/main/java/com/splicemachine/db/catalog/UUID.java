@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.catalog;
 
+
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 /**
 
  An interface for accessing Derby UUIDs, unique identifiers.
@@ -64,5 +67,7 @@ public interface UUID extends java.io.Externalizable
 	  @return	a copy of this UUID
 	  */
 	UUID cloneMe();
+
+	CatalogMessage.UUID toProtobuf();
 }
 

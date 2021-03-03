@@ -34,6 +34,8 @@ package com.splicemachine.db.catalog.types;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -58,6 +60,7 @@ import java.io.IOException;
  * statement basically binds a schema-qualified name to the name of a Java class.</li>
  * </ul>
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 {
 	/********************************************************
@@ -129,6 +132,9 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 		JDBCTypeId = java.sql.Types.JAVA_OBJECT;
 	}
 
+	public UserDefinedTypeIdImpl(CatalogMessage.BaseTypeIdImpl typeId) {
+		init(typeId);
+	}
 
 	/** Return the java class name for this type */
 	public String	getClassName()
@@ -145,20 +151,18 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 	/** Has this user type been bound? */
 	public boolean isBound() { return !(className == null); }
 
-	// Formatable interface.
+	@Override
+	protected void init(CatalogMessage.BaseTypeIdImpl typeId) {
+		super.init(typeId);
+		CatalogMessage.UserDefinedTypeIdImpl userDefinedTypeId
+				= typeId.getExtension(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		this.className = userDefinedTypeId.getClassName();
+		this.JDBCTypeId = java.sql.Types.JAVA_OBJECT;
+	}
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		super.readExternal( in );
+	@Override
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
+		super.readExternalOld( in );
 		className = in.readUTF();
 		JDBCTypeId = java.sql.Types.JAVA_OBJECT;
 	}
@@ -170,17 +174,30 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 	 *
 	 * @exception IOException		thrown on error
 	 */
+	@Override
 	public void writeExternal( ObjectOutput out )
-		 throws IOException
+			throws IOException
 	{
-		super.writeExternal( out );
+		// If the class name is null, then an internal error has occurred. We
+		// are trying to persist a UDT descriptor which has not been bound yet
+		if ( className == null )
+		{
+			throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
+		}
 
-        // If the class name is null, then an internal error has occurred. We
-        // are trying to persist a UDT descriptor which has not been bound yet
-        if ( className == null )
-        {
-            throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
-        }
+		super.writeExternal(out);
+	}
+
+	@Override
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
+		super.writeExternalOld( out );
+
+		// If the class name is null, then an internal error has occurred. We
+		// are trying to persist a UDT descriptor which has not been bound yet
+		if ( className == null )
+		{
+			throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
+		}
 		out.writeUTF( className );
 	}
 	/**
@@ -189,4 +206,17 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId()	{ return StoredFormatIds.USERDEFINED_TYPE_ID_IMPL_V3; }
+
+	@Override
+	public CatalogMessage.BaseTypeIdImpl toProtobuf() {
+		CatalogMessage.UserDefinedTypeIdImpl userDefinedTypeId = CatalogMessage.UserDefinedTypeIdImpl.newBuilder()
+				.setClassName(className)
+				.build();
+
+		CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+		CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.UserDefinedTypeIdImpl)
+				.setExtension(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl, userDefinedTypeId);
+		return builder.build();
+	}
 }
