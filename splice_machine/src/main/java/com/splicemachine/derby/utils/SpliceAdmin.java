@@ -504,8 +504,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[8].setValue(ex.getTotalCompletedTasks());
                         dvds[9].setValue(ex.getTotalRejectedTasks());
                         dvds[10].setValue(ex.getTotalScheduledTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -546,8 +546,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[4].setValue(ex.getMissRate());
                         dvds[5].setValue(ex.getHitCount());
                         dvds[6].setValue(ex.getHitRate());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -559,8 +559,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, MANAGED_CACHE_COLUMNS,lastActivation);
                 try {
                     resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
+                } catch(Throwable t) {
+                    throw PublicAPI.wrapThrowable(t);
                 }
                 EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
                 resultSet[0] = ers;
@@ -682,8 +682,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             configMap.clear();
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
