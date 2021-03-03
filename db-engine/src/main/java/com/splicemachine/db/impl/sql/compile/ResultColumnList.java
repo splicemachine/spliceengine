@@ -1846,9 +1846,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
-    void assumeVarcharForUnknownParameters() throws StandardException{
+    void setUnknownParameterType(DataTypeDescriptor type) throws StandardException{
         for (ResultColumn rc: this) {
-            rc.assumeVarcharForUnknownParameters();
+            rc.setUnknownParameterType(type);
         }
     }
 

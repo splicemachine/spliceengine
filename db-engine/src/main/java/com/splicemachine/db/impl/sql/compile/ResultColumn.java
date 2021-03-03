@@ -1511,10 +1511,10 @@ public class ResultColumn extends ValueNode
             throw StandardException.newException(SQLState.LANG_PARAM_IN_SELECT_LIST);
     }
 
-    void assumeVarcharForUnknownParameters() throws StandardException
+    void setUnknownParameterType(DataTypeDescriptor type) throws StandardException
     {
         if (expression != null && expression.isParameterNode()) {
-            expression.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 254));
+            expression.setType(type);
         }
     }
 

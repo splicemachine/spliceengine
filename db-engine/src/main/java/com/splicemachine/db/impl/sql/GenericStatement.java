@@ -46,8 +46,10 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -67,6 +69,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -491,6 +494,7 @@ public class GenericStatement implements Statement{
         setSecondFunctionCompatibilityMode(lcc, cc);
         setFloatingPointNotation(lcc, cc);
         setOuterJoinFlatteningDisabled(lcc, cc);
+        setCursorUntypedExpressionType(lcc, cc);
 
         if (!cc.isSparkVersionInitialized()) {
             setSparkVersion(cc);
@@ -765,6 +769,15 @@ public class GenericStatement implements Statement{
                 timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
             }
             cc.setTimestampFormat(timestampFormatString);
+        }
+    }
+
+    private void setCursorUntypedExpressionType(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String type = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CURSOR_UNTYPED_EXPRESSION_TYPE);
+        if(type != null && "varchar".equals(type.toLowerCase())) {
+            cc.setCursorUntypedExpressionType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 254));
+        } else {
+            cc.setCursorUntypedExpressionType(null);
         }
     }
 

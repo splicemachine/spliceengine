@@ -725,9 +725,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
         }
     }
 
-    public void assumeVarcharForUnknownParameters() throws StandardException {
+    public void setUnknownParameterType(DataTypeDescriptor type) throws StandardException {
         if (resultColumns!= null) {
-            resultColumns.assumeVarcharForUnknownParameters();
+            resultColumns.setUnknownParameterType(type);
         }
     }
 

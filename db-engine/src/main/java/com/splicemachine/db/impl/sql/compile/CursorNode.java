@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.CursorTableReference;
@@ -212,7 +213,12 @@ public class CursorNode extends DMLStatementNode{
                     getContextManager());
 
             /* Check for ? parameters directly under the ResultColums */
-            resultSet.assumeVarcharForUnknownParameters();
+            DataTypeDescriptor untypedExpressionType = getCompilerContext().getCursorUntypedExpressionType();
+            if (untypedExpressionType == null) {
+                resultSet.rejectParameters();
+            } else {
+                resultSet.setUnknownParameterType(untypedExpressionType);
+            }
 
             // Bind and Optimize Real Time Views (OK, That is a made up name).
             bindAndOptimizeRealTimeViews();
