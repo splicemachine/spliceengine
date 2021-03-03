@@ -78,6 +78,7 @@ public class DataTypeDescriptor implements Formatable{
     // DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
     // it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
     public static final long serialVersionUID = 804804029538241393l;
+    private boolean isDB2CompatibleVarchar;
 
     /********************************************************
      **
@@ -477,8 +478,10 @@ public class DataTypeDescriptor implements Formatable{
         //all the attributes of CD's TDI. So, if the CD is for a user table's
         //character type column, then this call by RC.init should have CD's
         //collation attributes copied into RC along with other attributes.
-        if (DB2Compatible && source.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID)
+        if (DB2Compatible && source.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID) {
             this.typeId = VARCHAR_DB2_COMPATIBLE_ID;
+            this.isDB2CompatibleVarchar = true;
+        }
         else
             this.typeId=source.typeId;
         typeDescriptor=new TypeDescriptorImpl(source.typeDescriptor,
@@ -1680,6 +1683,7 @@ public class DataTypeDescriptor implements Formatable{
         CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = dataTypeDescriptor.getTypeDescriptor();
         typeDescriptor = ProtobufUtils.fromProtobuf(typeDescriptorImpl);
         collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        isDB2CompatibleVarchar = dataTypeDescriptor.getIsDB2CompatibleVarchar();
         init();
     }
 
@@ -1693,7 +1697,10 @@ public class DataTypeDescriptor implements Formatable{
 
 
         String typeName=this.getTypeName();
-        typeId=TypeId.getBuiltInTypeId(typeName);
+        if (isDB2CompatibleVarchar)
+            typeId = VARCHAR_DB2_COMPATIBLE_ID;
+        else
+            typeId=TypeId.getBuiltInTypeId(typeName);
         if(typeId==null && typeName!=null){
             /*
              * This is a User-defined TypeId, which we serialize. For whatever reason,
@@ -1739,6 +1746,7 @@ public class DataTypeDescriptor implements Formatable{
         CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.newBuilder()
                 .setTypeDescriptor(typeDescriptorImpl)
                 .setCollationDerivation(getCollationDerivation())
+                .setIsDB2CompatibleVarchar(isDB2CompatibleVarchar)
                 .build();
         return dataTypeDescriptor;
     }
