@@ -81,6 +81,7 @@ message ReferencedColumnsDescriptorImpl {
 message DataTypeDescriptor {
   optional TypeDescriptorImpl typeDescriptor = 1;
   optional int32 collationDerivation = 2;
+  optional bool isDB2CompatibleVarchar = 3;
 }
 message DDdependableFinder {
   extensions 1000 to 1100;
