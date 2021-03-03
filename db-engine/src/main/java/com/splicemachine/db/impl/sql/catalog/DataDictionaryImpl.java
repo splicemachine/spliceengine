@@ -160,7 +160,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public DataDescriptorGenerator dataDescriptorGenerator;
     protected DataValueFactory dvf;
-    AccessFactory af;
+    protected AccessFactory af;
     //DataDictionaryContext                ddc;
 
     protected ExecutionFactory exFactory;
@@ -738,6 +738,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
         if (!tc.isElevated()) {
             throw StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+        }
+        if (!af.isMultiDatabaseEnabled()) {
+            throw StandardException.newException(SQLState.LANG_MULTIDATABASE_NOT_ENABLED, name);
         }
 
         UUID uuid = getUUIDFactory().createUUID();

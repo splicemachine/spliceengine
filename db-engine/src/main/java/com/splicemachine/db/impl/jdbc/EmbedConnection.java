@@ -352,6 +352,9 @@ public abstract class EmbedConnection implements EngineConnection
                         );
                     }
                 } catch (StandardException se) {
+                    if (se.getSQLState().equals(SQLState.LANG_MULTIDATABASE_NOT_ENABLED)) {
+                        throw se;
+                    }
                     throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
                 }
             }

@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,7 +35,6 @@ import static org.junit.Assert.*;
  * Tests around creating schemas
  */
 public class MultiDatabaseIT extends SpliceUnitTest {
-    protected static SpliceWatcher classWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(MultiDatabaseIT.class);
     private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String OTHER_DB_OWNER_NOT_SPLICE = MultiDatabaseIT.class.getSimpleName().toUpperCase() + "2";
@@ -45,6 +45,29 @@ public class MultiDatabaseIT extends SpliceUnitTest {
     private static String SEQUENCE = "SEQUENCE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
 
 
+    protected static SpliceWatcher classWatcher = new SpliceWatcher() {
+        @Override
+        protected void starting(Description description) {
+            super.starting(description);
+            try {
+                createConnection().execute("CALL SYSCS_UTIL.SYSCS_ENABLE_MULTIDATABASE()");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        protected void finished(Description description) {
+            try {
+                createConnection().execute("CALL SYSCS_UTIL.SYSCS_DISABLE_MULTIDATABASE()");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            super.finished(description);
+        }
+
+
+    };
     protected static SpliceDatabaseWatcher otherDbOwnerNotSpliceWatcher = new SpliceDatabaseWatcher(OTHER_DB_OWNER_NOT_SPLICE, OTHER_DB_OWNER_NOT_SPLICE);
     protected static SpliceDatabaseWatcher otherDbWatcher = new SpliceDatabaseWatcher(OTHER_DB);
     protected static SpliceSchemaWatcher spliceDbSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);

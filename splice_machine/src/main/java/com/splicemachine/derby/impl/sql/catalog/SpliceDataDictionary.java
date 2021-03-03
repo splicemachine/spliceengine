@@ -25,8 +25,6 @@ import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -36,7 +34,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
@@ -73,8 +70,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
-
-import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -551,6 +546,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     protected SystemAggregateGenerator getSystemAggregateGenerator(){
         return new SpliceSystemAggregatorGenerator(this);
+    }
+
+    @Override
+    public void enableMultiDatabase(boolean value) {
+        this.af.enableMultiDatabase(value);
     }
 
     @Override

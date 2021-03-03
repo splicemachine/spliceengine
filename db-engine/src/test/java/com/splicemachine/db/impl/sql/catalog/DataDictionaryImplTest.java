@@ -61,6 +61,10 @@ public class DataDictionaryImplTest {
         }
 
         @Override
+        public void enableMultiDatabase(boolean value) {
+        }
+
+        @Override
         protected void setDependencyManager() {
 
         }

@@ -58,6 +58,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     protected static final String        CFG_SYSDATABASES_ID = "SysdatabasesIdentifier";
     protected static final String        CFG_SYSDATABASES_INDEX1_ID = "SysdatabasesIndex1Identifier";
     protected static final String        CFG_SYSDATABASES_INDEX2_ID = "SysdatabasesIndex2Identifier";
+    public static final String           CFG_ALLOW_MULTIDATABASE = "AllowMultidatabase";
     protected static final int           SYSCONGLOMERATES_CORE_NUM = 0;
     protected static final int           SYSTABLES_CORE_NUM = 1;
     protected static final int           SYSCOLUMNS_CORE_NUM = 2;

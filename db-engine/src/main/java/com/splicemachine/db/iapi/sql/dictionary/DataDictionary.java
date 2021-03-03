@@ -2358,4 +2358,6 @@ public interface DataDictionary{
     DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException;
 
     UUID createNewDatabaseAndDatabaseOwner(String name, String dbOwner, String dbPassword) throws StandardException;
+
+    void enableMultiDatabase(boolean value) throws StandardException;
 }
