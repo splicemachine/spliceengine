@@ -70,6 +70,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     protected DataValueDescriptor dvd;
     private long rpv=-1; //rows per value excluding skewed values
 
+    private com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] freqSketchNoFpItems;
+
     public ColumnStatisticsImpl() {
 
     }
@@ -151,6 +153,14 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                 thetaMem.freeMemory();
 
         }
+    }
+
+    private com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] getFreqSketchNoFpItems() {
+        if (freqSketchNoFpItems == null) {
+            freqSketchNoFpItems = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        }
+        assert freqSketchNoFpItems != null : "freqSketchNoFpItems is null";
+        return freqSketchNoFpItems;
     }
 
     /**
@@ -307,7 +317,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
             count = frequenciesSketch.getEstimate(lookUpElement);
         } else {
         // Iterated comparing
-            com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+            com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
             for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
                 DataValueDescriptor skewedValue = row.getItem();
                 try {
@@ -332,7 +342,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     private long getAvgRowsPerValueExcludingSkews() {
         long skewCount = 0;
         long skewNum = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
         for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             skewCount += row.getEstimate();
             skewNum ++;
@@ -348,7 +358,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     private long getSkewedRowCountInRange(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
         long skewCount = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
         for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             DataValueDescriptor skewedValue = row.getItem();
             try {
@@ -497,7 +507,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
          * it with the lower bound of rpv and upper bound of total not-null rows.
          */
 
-        long qualifiedRows = 0;
+        long qualifiedRows;
         /* 1. range selectivity returned by CDF */
         if (!includeStart && start != null && !start.isNull())
             start = new StatsExcludeStartDVD(start);
@@ -507,7 +517,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity - startSelectivity;
         double count = (double) quantilesSketch.getN();
-        if (totalSelectivity == Double.NaN || count == 0)
+        if (Double.isNaN(totalSelectivity) || count == 0)
             qualifiedRows = 0;
         else
             qualifiedRows = Math.round(totalSelectivity * count);
@@ -679,7 +689,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     public long selectivityExcludingValueIfSkewed(DataValueDescriptor value) {
         long skewCount = 0;
         long skewNum = 0;
-        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = getFreqSketchNoFpItems();
         for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
             DataValueDescriptor skewedValue = row.getItem();
             try {
