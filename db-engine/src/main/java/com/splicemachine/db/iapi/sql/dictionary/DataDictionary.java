@@ -659,7 +659,6 @@ public interface DataDictionary{
      * Indicate whether there is anything in the
      * particular database.
      * Checks for schemas, users, roles in the the database
-     * XXX(arnaud multidb) check for other objects in the DB?
      *
      * @param dd database descriptor
      * @return true/false
@@ -2355,9 +2354,9 @@ public interface DataDictionary{
 
     void createDbOwnerSchema(TransactionController tc, UUID databaseUuid, String dbOwner) throws StandardException;
 
-    DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException;
+    UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String name, String dbOwner, String dbPassword) throws StandardException;
 
-    UUID createNewDatabaseAndDatabaseOwner(String name, String dbOwner, String dbPassword) throws StandardException;
+    UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, UserDescriptor dbOwner) throws StandardException;
 
     void enableMultiDatabase(boolean value) throws StandardException;
 }

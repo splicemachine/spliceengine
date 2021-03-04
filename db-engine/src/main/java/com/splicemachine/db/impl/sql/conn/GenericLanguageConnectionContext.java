@@ -3497,6 +3497,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public UserDescriptor getCurrentUserDescriptor(Activation a) throws StandardException {
+        return getDataDictionary().getUser(getCurrentDatabase(a).getUUID(), getCurrentUserId(a));
+    }
+
+    @Override
     public void setCurrentUser(Activation a, String userName) {
         getCurrentSQLSessionContext(a).setUser(userName);
     }
