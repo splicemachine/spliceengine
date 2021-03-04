@@ -61,8 +61,9 @@ public class BulkLoadUtils {
 
         // determine how many regions the table/index should be split into
         Map<Long, Integer> numPartitions = new HashMap<>();
-        for (Long conglomId : mergedStatistics.keySet()) {
-            Tuple2<Double, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
+        for (Map.Entry<Long, Tuple2<Double, ColumnStatisticsImpl>> entry : mergedStatistics.entrySet()) {
+            long conglomId = entry.getKey();
+            Tuple2<Double, ColumnStatisticsImpl> stats = entry.getValue();
             double size = stats._1;
             int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
 
@@ -75,8 +76,9 @@ public class BulkLoadUtils {
         }
 
         // calculate cut points for each table/index using histogram
-        for (Long conglomId : numPartitions.keySet()) {
-            int numPartition = numPartitions.get(conglomId);
+        for (Map.Entry<Long, Integer> entry : numPartitions.entrySet()) {
+            long conglomId = entry.getKey();
+            int numPartition = entry.getValue();
             Map<String, byte[]> cutPointMap = new HashMap<>();
 
             ColumnStatisticsImpl columnStatistics = mergedStatistics.get(conglomId)._2;
@@ -137,9 +139,10 @@ public class BulkLoadUtils {
         }
 
         Map<Long, Tuple2<Double, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
-        for (Long conglomId : sm.keySet()) {
+        for (Map.Entry<Long, ColumnStatisticsMerge> entry : sm.entrySet()) {
+            long conglomId = entry.getKey();
             Double totalSize = sizeMap.get(conglomId);
-            ColumnStatisticsImpl columnStatistics = sm.get(conglomId).terminate();
+            ColumnStatisticsImpl columnStatistics = entry.getValue().terminate();
             statisticsMap.put(conglomId, new Tuple2(totalSize, columnStatistics));
         }
 

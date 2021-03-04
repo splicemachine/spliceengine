@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -101,6 +102,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 
 	@Override
+	@SuppressFBWarnings(value = "DE_MIGHT_IGNORE", justification = "intended?")
 	public byte[] getBytes() throws StandardException {
 		ObjectOutput output = null;
 		try {
