@@ -316,5 +316,20 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIndicatorColumn("CYCLEOPTION")
         };
     }
+
+    public static String SYSVW_SYSSEQUENCESVIEW_SQL =
+            "create view SYSSEQUENCESVIEW as SELECT" +
+                    "select\n" +
+                    "SEQUENCEID,\n" +
+                    "SEQUENCENAME,\n" +
+                    "SCHEMAID,\n" +
+                    "cast(SEQUENCEDATATYPE as CHAR(32)) AS SEQUENCEDATATYPE,\n" +
+                    "CURRENTVALUE,\n" +
+                    "STARTVALUE,\n" +
+                    "MINIMUMVALUE,\n" +
+                    "MAXIMUMVALUE,\n" +
+                    "INCREMENT,\n" +
+                    "CYCLEOPTION\n" +
+                    "FROM sys.SYSSEQUENCES";
 }
 

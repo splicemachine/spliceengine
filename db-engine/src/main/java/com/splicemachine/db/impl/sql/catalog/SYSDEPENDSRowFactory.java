@@ -249,4 +249,12 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
                         "com.splicemachine.db.catalog.DependableFinder", false),
            };
 	}
+
+    public static String SYSVW_SYSDEPENDS_SQL =
+            "create view SYSCONGLOMERATESVIEW as SELECT " +
+                    "DEPENDENTID, " +
+                    "cast(DEPENDENTFINDER as CHAR(64)) AS DEPENDENTFINDER, " +
+                    "PROVIDERID, " +
+                    "cast(PROVIDERFINDER as CHAR(64)) AS PROVIDERFINDER " +
+                    "from sys.SYSDEPENDS";
 }

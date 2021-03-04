@@ -566,4 +566,15 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "     WHERE K.CONSTRAINTID = SC.CONSTRAINTID) U \n" +
             "  ON C.ISCONSTRAINT AND \n" +
             "     C.CONGLOMERATEID = U.CONGLOMERATEID";
+
+    public static String SYSVW_SYSCONGLOMERATES_SQL =
+            "create view SYSCONGLOMERATESVIEW as SELECT" +
+                    "SCHEMAID, " +
+                    "TABLEID, " +
+                    "CONGLOMERATENUMBER, " +
+                    "CONGLOMERATENAME, " +
+                    "ISINDEX, " +
+                    "cast(DESCRIPTOR as char(64)) as DESCRIPTOR, " +
+                    "ISCONSTRAINT, " +
+                    "CONGLOMERATEID FROM sys.SYSCONGLOMERATES";
 }

@@ -543,6 +543,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // don't pull this call before createTableColumnViewInSysIBM()
         createColumnsViewInSysCat(tc);
+
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSDEPENDSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
     }
 
     @Override

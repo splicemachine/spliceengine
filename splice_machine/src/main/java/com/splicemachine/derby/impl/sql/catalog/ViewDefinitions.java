@@ -54,6 +54,9 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSVW", "SYSROUTINEPERMSVIEW"), new ViewInfo(DataDictionary.SYSROUTINEPERMS_CATALOG_NUM, 0, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSPERMSVIEW"), new ViewInfo(DataDictionary.SYSPERMS_CATALOG_NUM, 0, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSALIASTOTABLEVIEW"), new ViewInfo(DataDictionary.SYSALIASES_CATALOG_NUM, 0, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL));
+        views.put(new Pair<>("SYSVW", "SYSCONGLOMERATESVIEW"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 0, SYSCONGLOMERATESRowFactory.SYSVW_SYSCONGLOMERATES_SQL));
+        views.put(new Pair<>("SYSVW", "SYSDEPENDSVIEW"), new ViewInfo(DataDictionary.SYSDEPENDS_CATALOG_NUM, 0, SYSDEPENDSRowFactory.SYSVW_SYSDEPENDS_SQL));
+        views.put(new Pair<>("SYSVW", "SYSSEQUENCESVIEW"), new ViewInfo(DataDictionary.SYSSEQUENCES_CATALOG_NUM, 0, SYSSEQUENCESRowFactory.SYSVW_SYSSEQUENCESVIEW_SQL));
 
         views.put(new Pair<>("SYSIBM", "SYSCOLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 1, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM));
         views.put(new Pair<>("SYSIBM", "SYSTABLES"), new ViewInfo(DataDictionary.SYSTABLES_CATALOG_NUM, 1, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM));
