@@ -136,7 +136,7 @@ public class UnaryOperatorNode extends OperatorNode
      * are reset and valid only for the current access path.
      * They should not be used beyond cost estimation.
      */
-    ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
+    //ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
 
     // 0-based index column position
     protected int operandMatchIndexExprColumnPosition = -1;
@@ -740,7 +740,7 @@ public class UnaryOperatorNode extends OperatorNode
     public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc) {
         this.operandMatchIndexExpr = tableNumber;
         this.operandMatchIndexExprColumnPosition = columnPosition;
-        this.operandMatchIndexExprConglomDesc = conglomDesc;
+        //this.operandMatchIndexExprConglomDesc = conglomDesc;
     }
 
     public void castOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
