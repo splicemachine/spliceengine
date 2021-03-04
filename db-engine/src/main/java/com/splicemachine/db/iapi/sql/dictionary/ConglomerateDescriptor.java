@@ -45,7 +45,6 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 /**
  * The ConglomerateDescriptor class is used to get information about

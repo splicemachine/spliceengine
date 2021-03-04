@@ -336,7 +336,7 @@ public class GenericStatement implements Statement{
         }
 
         // if anyone else also has this prepared statement,
-        // we don't want them trying to compile wLook for stored statements that are in a system sith it while
+        // we don't want them trying to compile with it while
         // we are.  So, we synchronize on it and re-check
         // its validity first.
         // this is a no-op if and until there is a central
