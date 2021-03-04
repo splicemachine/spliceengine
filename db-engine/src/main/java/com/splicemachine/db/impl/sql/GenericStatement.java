@@ -850,8 +850,6 @@ public class GenericStatement implements Statement{
 
             StatementNode qt;
             if (boundAndOptimizedStatement == null) {
-                qt = parse(lcc, paramDefaults, timestamps, cc);
-
 /*
             if (statementText.toLowerCase().startsWith("call")) {
                 rewriteStmt = statementText;
@@ -865,6 +863,8 @@ public class GenericStatement implements Statement{
             } else
 */
                 rewriteStmt = statementText;
+
+                qt = parse(lcc, paramDefaults, timestamps, cc);
 
                 /*
                  ** Tell the data dictionary that we are about to do
