@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.datasketches.quantiles.ItemsSketch;
 import org.apache.datasketches.theta.Sketch;
 import org.apache.datasketches.theta.UpdateSketch;
@@ -46,6 +47,7 @@ import java.io.ObjectOutput;
  * NonUniqueKeyStatisticsImpl.  TODO JL
  *
  */
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "class is not complete")
 public class NonUniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     private ItemsSketch<ExecRow> quantilesSketch;
     private org.apache.datasketches.frequencies.ItemsSketch<ExecRow> frequenciesSketch;
