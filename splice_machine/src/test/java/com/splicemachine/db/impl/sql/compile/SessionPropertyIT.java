@@ -359,7 +359,7 @@ public class SessionPropertyIT extends SpliceUnitTest {
         Assert.assertTrue("Expected query planning to take less than 3 seconds", (endTime - startTime) < 3000);
 
         List<String> expectedErrors =
-           Arrays.asList("Invalid session property value '-1' specified, 'value should be a positive long' is expected. ");
+           Arrays.asList("Invalid session property value '-1' specified, 'value should be a positive long' is expected.");
         testUpdateFail("set session_property minPlanTimeout=-1", expectedErrors, methodWatcher);
     }
 }

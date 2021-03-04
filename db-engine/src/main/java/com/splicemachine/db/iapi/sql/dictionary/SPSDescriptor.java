@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -978,6 +977,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             // This can fail since multiple threads/clusters can recompile sps descriptors
             // especially after collecting stats on sys tables.
         }
+
     }
 
     /**

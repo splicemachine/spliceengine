@@ -3554,6 +3554,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          */
         boolean[] bArray=new boolean[2];
 
+        /*
+         ** Partial update
+         */
         ti.updateRow(keyRow1, row, SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, bArray, updCols, tc);
 
         /*
