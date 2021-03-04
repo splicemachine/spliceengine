@@ -1181,15 +1181,8 @@ public class SpliceUnitTest {
         // for parallel running tests waitForStaleTransactions might report false positives,
         // but you can set this to true if you're checking the tests one by one manually.
         boolean failOnError = false;
-        try {
-            if(isMemPlatform(methodWatcher)) {
-                waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            methodWatcher.closeAll();
-        }
+        waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
+        methodWatcher.closeAll();
     }
 
     public static String getSqlItJarFile()
