@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
 /**
  * This is a simple class used to store the run time information
@@ -52,7 +51,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIE
  * check.
  */
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public final class TriggerInfo implements Formatable {
+public class TriggerInfo implements Formatable {
 
     private TriggerDescriptor[] triggerDescriptors;
     private String[] columnNames;

@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.sql.execute.TupleFilter;
 import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 
@@ -462,7 +463,6 @@ public class TabInfoImpl
                                   RowLocation[] rowLocationOut)
             throws StandardException
     {
-        ConglomerateController        heapController;
         RowLocation                    heapLocation;
         ExecIndexRow                indexableRow;
         int                            insertRetCode;
@@ -471,71 +471,71 @@ public class TabInfoImpl
         ConglomerateController[]    indexControllers = new ConglomerateController[ indexCount ];
 
         // Open the conglomerates
-        heapController =
-                tc.openConglomerate(
+        try (ConglomerateController heapController = tc.openConglomerate(
                         getHeapConglomerate(),
                         false,
                         TransactionController.OPENMODE_FORUPDATE,
                         TransactionController.MODE_RECORD,
-                        TransactionController.ISOLATION_REPEATABLE_READ);
+                        TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        /* NOTE: Due to the lovely problem of trying to add
-         * a new column to syscolumns and an index on that
-         * column during upgrade, we have to deal with the
-         * issue of the index not existing yet.  So, it's okay
-         * if the index doesn't exist yet.  (It will magically
-         * get created at a later point during upgrade.)
-         */
+            /* NOTE: Due to the lovely problem of trying to add
+             * a new column to syscolumns and an index on that
+             * column during upgrade, we have to deal with the
+             * issue of the index not existing yet.  So, it's okay
+             * if the index doesn't exist yet.  (It will magically
+             * get created at a later point during upgrade.)
+             */
 
-        for ( int ictr = 0; ictr < indexCount; ictr++ )
-        {
-            long conglomNumber = getIndexConglomerate(ictr);
-            if (conglomNumber > -1)
-            {
-                indexControllers[ ictr ] =
-                        tc.openConglomerate(
-                                conglomNumber,
-                                false,
-                                TransactionController.OPENMODE_FORUPDATE,
-                                TransactionController.MODE_RECORD,
-                                TransactionController.ISOLATION_REPEATABLE_READ);
+            try {
+                for (int ictr = 0; ictr < indexCount; ictr++) {
+                    long conglomNumber = getIndexConglomerate(ictr);
+                    if (conglomNumber > -1) {
+                        indexControllers[ictr] =
+                                tc.openConglomerate(
+                                        conglomNumber,
+                                        false,
+                                        TransactionController.OPENMODE_FORUPDATE,
+                                        TransactionController.MODE_RECORD,
+                                        TransactionController.ISOLATION_REPEATABLE_READ);
+                    }
+                }
+
+                heapLocation = heapController.newRowLocationTemplate();
+                rowLocationOut[0] = heapLocation;
+
+                RowLocation[] rowLocations = new RowLocation[rowList.length];
+                for (int i = 0; i < rowLocations.length; i++) {
+                    rowLocations[i] = heapController.newRowLocationTemplate();
+                }
+
+                heapController.batchInsertAndFetchLocation(rowList, rowLocations);
+                for (int ictr = 0; ictr < indexCount; ictr++) {
+                    if (indexControllers[ictr] == null) {
+                        continue;
+                    }
+                    List<ExecRow> indexRows = new ArrayList(rowList.length);
+                    for (int i = 0; i < rowList.length; i++) {
+                        // Get an index row based on the base row
+                        indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
+                                rowLocations[i],
+                                rowList[i]).getClone());
+                    }
+                    insertRetCode = indexControllers[ictr].batchInsert(indexRows);
+                    if (insertRetCode == ConglomerateController.ROWISDUPLICATE) {
+                        retCode = 1;
+                    }
+                }
+                return retCode;
+            } finally {
+                // Close the open conglomerates
+                for (int ictr = 0; ictr < indexCount; ictr++) {
+                    if (indexControllers[ictr] == null) {
+                        continue;
+                    }
+                    indexControllers[ictr].close();
+                }
             }
         }
-
-        heapLocation = heapController.newRowLocationTemplate();
-        rowLocationOut[0]=heapLocation;
-
-        RowLocation[] rowLocations = new RowLocation[rowList.length];
-        for ( int i = 0; i< rowLocations.length;i++) {
-            rowLocations[i] = heapController.newRowLocationTemplate();
-        }
-
-        heapController.batchInsertAndFetchLocation(rowList,rowLocations);
-            for ( int ictr = 0; ictr < indexCount; ictr++ ) {
-                if (indexControllers[ ictr ] == null) {
-                    continue;
-                }
-                List<ExecRow> indexRows = new ArrayList(rowList.length);
-                for (int i =0; i< rowList.length; i++) {
-                    // Get an index row based on the base row
-                    indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
-                            rowLocations[i],
-                            rowList[i]).getClone());
-                }
-                insertRetCode = indexControllers[ ictr ].batchInsert(indexRows);
-                if ( insertRetCode == ConglomerateController.ROWISDUPLICATE ) {
-                    retCode = 1;
-                }
-            }
-        // Close the open conglomerates
-        for ( int ictr = 0; ictr < indexCount; ictr++ ) {
-            if (indexControllers[ ictr ] == null) {
-                continue;
-            }
-            indexControllers[ ictr ].close();
-        }
-        heapController.close();
-        return    retCode;
     }
 
     public int insertIndexRowListImpl(ExecRow[] rowList,
@@ -547,43 +547,38 @@ public class TabInfoImpl
     {
         int                            insertRetCode;
         int                            retCode = ROWNOTDUPLICATE;
-        ConglomerateController    indexController = null;
 
         // Open the conglomerates
         long conglomNumber = getIndexConglomerate(ictr);
+
         if (conglomNumber > -1) {
-            indexController =
-                    tc.openConglomerate(
-                            conglomNumber,
-                            false,
-                            TransactionController.OPENMODE_FORUPDATE,
-                            TransactionController.MODE_RECORD,
-                            TransactionController.ISOLATION_REPEATABLE_READ);
-        }
+            try (ConglomerateController indexController = tc.openConglomerate(
+                    conglomNumber,
+                    false,
+                    TransactionController.OPENMODE_FORUPDATE,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        if (SanityManager.DEBUG)
-        {
-            SanityManager.ASSERT(indexController != null,
-                        "indexController is expected to be non-null");
-        }
 
-        // loop through rows on this list, inserting them into system table
-        List<ExecRow> indexRows = new ArrayList(numRows);
-        for (int rowNumber = 0; rowNumber < numRows; rowNumber++) {
-            // Get an index row based on the base row
-            indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
-                    rowLocationList[rowNumber],
-                    rowList[rowNumber]).getClone());
+                // loop through rows on this list, inserting them into system table
+                List<ExecRow> indexRows = new ArrayList(numRows);
+                for (int rowNumber = 0; rowNumber < numRows; rowNumber++) {
+                    // Get an index row based on the base row
+                    indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
+                            rowLocationList[rowNumber],
+                            rowList[rowNumber]).getClone());
+                }
+                insertRetCode = indexController.batchInsert(indexRows);
+                if (insertRetCode == ConglomerateController.ROWISDUPLICATE) {
+                    retCode = 1;
+                }
+            }
+        } else {
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("indexController is expected to be non-null");
+            }
         }
-        insertRetCode = indexController.batchInsert(indexRows);
-        if ( insertRetCode == ConglomerateController.ROWISDUPLICATE ) {
-            retCode = 1;
-        }
-
-        // Close the open conglomerates
-        indexController.close();
-
-        return    retCode;
+        return retCode;
     }
 
     /**
@@ -871,18 +866,16 @@ public class TabInfoImpl
                     int indexNumber )
             throws StandardException
     {
-        ConglomerateController        heapCC;
-
         /* Open the heap conglomerate */
-        heapCC = tc.openConglomerate(
+        try (ConglomerateController heapCC = tc.openConglomerate(
                 getHeapConglomerate(),
                 false,
                 0,                         // for read only
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        try { return getRow( tc, heapCC, key, indexNumber ); }
-        finally { heapCC.close(); }
+            return getRow(tc, heapCC, key, indexNumber);
+        }
     }
 
     /**
@@ -904,23 +897,16 @@ public class TabInfoImpl
                                int indexNumber)
             throws StandardException
     {
-        ConglomerateController        heapCC;
-        heapCC = tc.openConglomerate(
+        try (ConglomerateController heapCC = tc.openConglomerate(
                 getHeapConglomerate(),
                 false,
                 0,                         // for read only
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        try
-        {
             RowLocation rl[] = new RowLocation[1];
             getRowInternal(tc, heapCC, key, indexNumber, rl);
             return rl[0];
-        }
-        finally
-        {
-            heapCC.close();
         }
     }
     /**

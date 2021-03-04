@@ -70,32 +70,32 @@ import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
 /**
- *	This class  describes actions that are ALWAYS performed for an
- *	ALTER TABLE Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for an
+ *    ALTER TABLE Statement at Execution time.
  *
  */
 
 public class AlterTableConstantOperation extends IndexConstantOperation {
     private static final Logger LOG = Logger.getLogger(AlterTableConstantOperation.class);
     // copied from constructor args and stored locally.
-    protected SchemaDescriptor			sd;
-    protected String						tableName;
-    protected UUID						schemaId;
-    protected ColumnInfo[]				columnInfo;
-    protected ConstantAction[]	constraintActions;
-    protected int						    behavior;
-    protected String						indexNameForStatistics;
-    private     int						    numIndexes;
-    private     long[]					    indexConglomerateNumbers;
-    private     ExecIndexRow[]			    indexRows;
-    protected IndexRowGenerator[]		    compressIRGs;
-    private     ColumnOrdering[][]		    ordering;
-    private     int[][]		                collation;
+    protected SchemaDescriptor            sd;
+    protected String                        tableName;
+    protected UUID                        schemaId;
+    protected ColumnInfo[]                columnInfo;
+    protected ConstantAction[]    constraintActions;
+    protected int                            behavior;
+    protected String                        indexNameForStatistics;
+    private     int                            numIndexes;
+    private     long[]                        indexConglomerateNumbers;
+    private     ExecIndexRow[]                indexRows;
+    protected IndexRowGenerator[]            compressIRGs;
+    private     ColumnOrdering[][]            ordering;
+    private     int[][]                        collation;
 
     // CONSTRUCTORS
 
     /**
-     *	Make the AlterAction for an ALTER TABLE statement.
+     *    Make the AlterAction for an ALTER TABLE statement.
      *
      * @param sd              descriptor for the table's schema.
      *  @param tableName          Name of table.
@@ -127,7 +127,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             SanityManager.ASSERT(sd != null, "schema descriptor is null");
     }
 
-    public	String	toString() {
+    public    String    toString() {
         return "ALTER TABLE " + tableName;
     }
 
@@ -201,20 +201,20 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-		   /*
-		    ** If the schema descriptor is null, then we must have just read
+           /*
+            ** If the schema descriptor is null, then we must have just read
         ** ourselves in.  So we will get the corresponding schema descriptor 
         ** from the data dictionary.
-		    */
+            */
         if (sd == null) {
             sd = getAndCheckSchemaDescriptor(dd, schemaId, "ALTER TABLE");
         }
-		
-		    /* Prepare all dependents to invalidate.  (This is their chance
-		     * to say that they can't be invalidated.  For example, an open
-		     * cursor referencing a table/view that the user is attempting to
-		     * alter.) If no one objects, then invalidate any dependent objects.
-		     */
+
+            /* Prepare all dependents to invalidate.  (This is their chance
+             * to say that they can't be invalidated.  For example, an open
+             * cursor referencing a table/view that the user is attempting to
+             * alter.) If no one objects, then invalidate any dependent objects.
+             */
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
         TransactionController tc = lcc.getTransactionExecute();
@@ -237,7 +237,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 int constraintType = cca.getConstraintType();
 
               /* Some constraint types require special checking:
-               *   Check		 - table must be empty, for now TODO:JC - still true?
+               *   Check         - table must be empty, for now TODO:JC - still true?
                *   Primary Key - table cannot already have a primary key
                */
                 switch (constraintType) {
@@ -390,17 +390,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         // Get the properties on the old heap
         long oldCongNum = tableDescriptor.getHeapConglomerateId();
-        ConglomerateController compressHeapCC =
+        Properties properties = new Properties();
+        try (ConglomerateController compressHeapCC =
             tc.openConglomerate(
                 oldCongNum,
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE);
+                TransactionController.ISOLATION_SERIALIZABLE)) {
 
-        Properties properties = new Properties();
-        compressHeapCC.getInternalTablePropertySet(properties);
-        compressHeapCC.close();
+            compressHeapCC.getInternalTablePropertySet(properties);
+        }
 
         int tableType = tableDescriptor.getTableType();
         long newCongNum = tc.createConglomerate(tableDescriptor.isExternal(),
@@ -602,17 +602,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         // Get the properties on the old heap
         long oldCongNum = tableDescriptor.getHeapConglomerateId();
-        ConglomerateController compressHeapCC =
+        Properties properties = new Properties();
+        try (ConglomerateController compressHeapCC =
             tc.openConglomerate(
                 oldCongNum,
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE);
+                TransactionController.ISOLATION_SERIALIZABLE)) {
 
-        Properties properties = new Properties();
-        compressHeapCC.getInternalTablePropertySet(properties);
-        compressHeapCC.close();
+            compressHeapCC.getInternalTablePropertySet(properties);
+        }
 
         int tableType = tableDescriptor.getTableType();
         long newCongNum = tc.createConglomerate(tableDescriptor.isExternal(),
@@ -715,14 +715,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         ConglomerateDescriptor cd = td.getConglomerateDescriptor(indexConglomerateNumbers[index]);
 
         // Build the properties list for the new conglomerate
-        ConglomerateController indexCC =
-                tc.openConglomerate(
+        Properties properties;
+        try (ConglomerateController indexCC = tc.openConglomerate(
                         indexConglomerateNumbers[index],
                         false,
                         TransactionController.OPENMODE_FORUPDATE,
                         TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_SERIALIZABLE);
-        Properties properties = getIndexProperties(newBaseConglom, index, cd, indexCC);
+                        TransactionController.ISOLATION_SERIALIZABLE)) {
+            properties = getIndexProperties(newBaseConglom, index, cd, indexCC);
+         }
 
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
@@ -737,12 +738,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         doIndexUpdate(dd,td,tc, index, newIndexCongloms, cd, properties, false,rowArray,columnOrder,collationIds);
 
-		/* Update the DataDictionary
-		 *
-		 * Update sys.sysconglomerates with new conglomerate #, we need to
-		 * update all (if any) duplicate index entries sharing this same
-		 * conglomerate.
-		 */
+        /* Update the DataDictionary
+         *
+         * Update sys.sysconglomerates with new conglomerate #, we need to
+         * update all (if any) duplicate index entries sharing this same
+         * conglomerate.
+         */
         activation.getLanguageConnectionContext().getDataDictionary().updateConglomerateDescriptor(
                 td.getConglomerateDescriptors(indexConglomerateNumbers[index]),
                 newIndexCongloms[index],
@@ -790,9 +791,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         Properties properties = new Properties();
         indexCC.getInternalTablePropertySet(properties);
 
-		    /* Create the properties that language supplies when creating the
-		     * the index.  (The store doesn't preserve these.)
-		     */
+            /* Create the properties that language supplies when creating the
+             * the index.  (The store doesn't preserve these.)
+             */
         int indexRowLength = indexRows[index].nColumns();
         properties.put("baseConglomerateId", Long.toString(newHeapConglom));
         if (cd.getIndexDescriptor().isUnique()) {
@@ -806,7 +807,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         properties.put( "rowLocationColumn", Integer.toString(indexRowLength - 1));
         properties.put("nKeyFields", Integer.toString(indexRowLength));
 
-        indexCC.close();
         return properties;
     }
 
@@ -814,18 +814,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     /**
      * Get info on the indexes on the table being compressed.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     protected int getAffectedIndexes(TableDescriptor td) throws StandardException {
         SpliceLogUtils.trace(LOG, "getAffectedIndexes");
 
-        IndexLister	indexLister = td.getIndexLister( );
+        IndexLister    indexLister = td.getIndexLister( );
 
-		/* We have to get non-distinct index row generaters and conglom numbers
-		 * here and then compress it to distinct later because drop column
-		 * will need to change the index descriptor directly on each index
-		 * entry in SYSCONGLOMERATES, on duplicate indexes too.
-		 */
+        /* We have to get non-distinct index row generaters and conglom numbers
+         * here and then compress it to distinct later because drop column
+         * will need to change the index descriptor directly on each index
+         * entry in SYSCONGLOMERATES, on duplicate indexes too.
+         */
         compressIRGs = indexLister.getIndexRowGenerators();
         numIndexes = compressIRGs.length;
         indexConglomerateNumbers = indexLister.getIndexConglomerateNumbers();
@@ -844,11 +844,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                         rl,
                         indexRows[index],
                         null);
-				        /* For non-unique indexes, we order by all columns + the RID.
-				         * For unique indexes, we just order by the columns.
-				         * No need to try to enforce uniqueness here as
-				         * index should be valid.
-				         */
+                        /* For non-unique indexes, we order by all columns + the RID.
+                         * For unique indexes, we just order by the columns.
+                         * No need to try to enforce uniqueness here as
+                         * index should be valid.
+                         */
                 int[] baseColumnPositions = curIndex.baseColumnPositions();
 
                 boolean[] isAscending = curIndex.isAscending();
