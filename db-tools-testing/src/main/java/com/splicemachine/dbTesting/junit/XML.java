@@ -41,6 +41,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Assert;
 
 /**
@@ -145,6 +146,7 @@ public class XML {
      * @param numRows Number of times we should insert the received
      *  file's content.
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "testing only, doesn't matter")
     public static void insertFile(Connection conn, String tableName,
         String colName, String fName, int numRows)
         throws IOException, SQLException, PrivilegedActionException
@@ -204,6 +206,7 @@ public class XML {
      * @param numRows Number of times we should insert the received
      *  file's content.
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "testing only, doesn't matter")
     public static void insertDocWithDTD(Connection conn, String tableName,
         String colName, String fName, String dtdName, int numRows)
         throws IOException, SQLException, PrivilegedActionException

@@ -51,6 +51,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.spark.sql.Row;
@@ -422,6 +423,7 @@ public class UserType extends DataType implements UserDataValue {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
+	@SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO", justification = "intended")
 	public int compare(DataValueDescriptor other)
 		throws StandardException
 	{
