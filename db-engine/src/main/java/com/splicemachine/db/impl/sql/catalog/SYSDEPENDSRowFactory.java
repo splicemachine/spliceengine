@@ -44,6 +44,11 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.utils.Pair;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSDEPENDSS row.
@@ -248,5 +253,30 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getJavaColumn("PROVIDERFINDER",
                         "com.splicemachine.db.catalog.DependableFinder", false),
            };
-	}
+    }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        assert cdsl.size() == SYSVW_SYSDEPENDS_SQL.getFirst();
+        cdsl.add( getSYSVW_SYSDEPENDS_SQL_ColumnDescriptor(view, viewId) );
+        return cdsl;
+    }
+
+    final public static Pair<Integer, String> SYSVW_SYSDEPENDS_SQL = new Pair<>(0,
+                    "create view SYSCONGLOMERATESVIEW as SELECT " +
+                    "DEPENDENTID, " +
+                    "cast(DEPENDENTFINDER as CHAR(64)) AS DEPENDENTFINDER, " +
+                    "PROVIDERID, " +
+                    "cast(PROVIDERFINDER as CHAR(64)) AS PROVIDERFINDER " +
+                    "from sys.SYSDEPENDS");
+
+    private ColumnDescriptor[] getSYSVW_SYSDEPENDS_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "DEPENDENTID",     1, Types.CHAR, false, 72),
+                getCD(view, viewId, "DEPENDENTFINDER", 2, Types.CHAR, false, 36),
+                getCD(view, viewId, "PROVIDERID",      3, Types.CHAR, false, 72),
+                getCD(view, viewId, "PROVIDERFINDER",  4, Types.CHAR, false, 128)
+        };
+    }
 }
