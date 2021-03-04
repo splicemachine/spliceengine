@@ -724,11 +724,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, String dbOwner, String dbPassword) throws StandardException {
         assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
+        dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
         UserDescriptor dbOwnerDesc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, null);
         return createNewDatabaseAndDatabaseOwner(tc, dbName, dbOwnerDesc);
     }
 
     public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, UserDescriptor dbOwner) throws StandardException {
+        if (!af.isMultiDatabaseEnabled()) {
+            throw StandardException.newException(SQLState.LANG_MULTIDATABASE_NOT_ENABLED);
+        }
         assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
         DatabaseDescriptor dbDesc = createNewDatabase(dbName, dbOwner.getUserName());
         UUID dbId = dbDesc.getUUID();
@@ -745,9 +749,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
         if (!tc.isElevated()) {
             throw StandardException.plainWrapException(new IOException("createNewDatabase: not writeable"));
-        }
-        if (!af.isMultiDatabaseEnabled()) {
-            throw StandardException.newException(SQLState.LANG_MULTIDATABASE_NOT_ENABLED, name);
         }
 
         UUID uuid = getUUIDFactory().createUUID();
