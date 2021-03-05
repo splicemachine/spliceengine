@@ -1101,8 +1101,21 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     @Test
     public void testTranslate() throws Exception {
         try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)))", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)))", "CHAR(7) NOT NULL", conn);
             checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
-            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "CHAR(7) NOT NULL", conn);
+
+            checkExpressionType("TRANSLATE(1)", "VARCHAR(11) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1.0)", "VARCHAR(4) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1, 'ace', 'ACE')", "VARCHAR(11) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1.0, 'ace', 'ACE')", "VARCHAR(4) NOT NULL", conn);
+
+            assertFailed(conn, "select translate(cast('abc' as varchar(3) for bit data))", "0A000");
+            assertFailed(conn, "select translate('abc', 'ab')", "0A000");
+
+            checkStringExpression("TRANSLATE('abcdefg')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('aBcDefG')", "ABCDEFG", conn);
 
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE')", "aBcD FG", conn);
@@ -1110,6 +1123,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
             checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
+            checkStringExpression("TRANSLATE('1.5', ',', '.')", "1,5", conn);
 
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
@@ -1121,7 +1135,6 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
 
             checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
-
         }
 
         methodWatcher.execute("drop table testTranslate if exists");
@@ -1133,33 +1146,24 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
         };
         for (TestConnection conn: conns) {
+            checkStringExpression("translate(lower(a)) from testTranslate", "ABCDEFG", conn);
             checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
             checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
-            try (PreparedStatement ps = conn.prepareStatement("select translate(?, b, c) from testTranslate")) {
-                ps.setString(1, "ABCDEFG");
+            try (PreparedStatement ps = conn.prepareStatement("select translate(?), translate(?), translate(?, b, c), translate(a, ?, c), translate(a, b, ?), translate(?, ?, ?) from testTranslate")) {
+                ps.setString(1, "abc");
+                ps.setInt(2, 1);
+                ps.setString(3, "ABCDEFG");
+                ps.setString(4, "ace");
+                ps.setString(5, "ACE");
+                ps.setString(6, "123");
+                ps.setString(7, "476");
+                ps.setString(8, "321");
                 try (ResultSet rs = ps.executeQuery()) {
                     Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-                }
-            }
-            try (PreparedStatement ps = conn.prepareStatement("select translate(a, ?, c) from testTranslate")) {
-                ps.setString(1, "ace");
-                try (ResultSet rs = ps.executeQuery()) {
-                    Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-                }
-            }
-            try (PreparedStatement ps = conn.prepareStatement("select translate(a, b, ?) from testTranslate")) {
-                ps.setString(1, "ACE");
-                try (ResultSet rs = ps.executeQuery()) {
-                    Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                            "1  | 2 |   3    |   4    |   5    | 6  |\n" +
+                                    "-----------------------------------------\n" +
+                                    "ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |",
+                            TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
                 }
             }
         }
