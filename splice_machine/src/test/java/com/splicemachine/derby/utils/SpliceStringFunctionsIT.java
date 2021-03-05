@@ -1138,8 +1138,11 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
         }
 
         methodWatcher.execute("drop table testTranslate if exists");
-        methodWatcher.execute("create table testTranslate(a char(7), b char(3), c char(3))");
-        methodWatcher.execute("insert into testTranslate values ('ABCDEFG', 'ace', 'ACE')");
+        methodWatcher.execute("create table testTranslate(id int, a char(7), b char(3), c char(3))");
+        methodWatcher.execute("insert into testTranslate values (1, 'ABCDEFG', 'ace', 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (2, null, 'ace', 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (3, 'ABCDEFG', null, 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (4, 'ABCDEFG', 'ace', null)");
         TestConnection[] conns = {
                 methodWatcher.connectionBuilder().useOLAP(false).build(),
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
@@ -1149,7 +1152,14 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("translate(lower(a)) from testTranslate", "ABCDEFG", conn);
             checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
             checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
-            try (PreparedStatement ps = conn.prepareStatement("select translate(?), translate(?), translate(?, b, c), translate(a, ?, c), translate(a, b, ?), translate(?, ?, ?) from testTranslate")) {
+            try (PreparedStatement ps = conn.prepareStatement("" +
+                    "select id," +
+                    "translate(?)," +
+                    "translate(?)," +
+                    "translate(?, b, c)," +
+                    "translate(a, ?, c)," +
+                    "translate(a, b, ?)," +
+                    "translate(?, ?, ?) from testTranslate order by 1")) {
                 ps.setString(1, "abc");
                 ps.setInt(2, 1);
                 ps.setString(3, "ABCDEFG");
@@ -1160,9 +1170,12 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 ps.setString(8, "321");
                 try (ResultSet rs = ps.executeQuery()) {
                     Assert.assertEquals(
-                            "1  | 2 |   3    |   4    |   5    | 6  |\n" +
-                                    "-----------------------------------------\n" +
-                                    "ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |",
+                            "ID | 2  | 3 |   4    |   5    |   6    | 7  |\n" +
+                                    "---------------------------------------------\n" +
+                                    " 1 |ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |\n" +
+                                    " 2 |ABC | 1 |aBcDeFG | NULL   | NULL   |674 |\n" +
+                                    " 3 |ABC | 1 | NULL   |aBcDeFG | NULL   |674 |\n" +
+                                    " 4 |ABC | 1 | NULL   | NULL   |aBcDeFG |674 |",
                             TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
                 }
             }
