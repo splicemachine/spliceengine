@@ -347,6 +347,6 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
-        return new HPartitionDescriptor(table.getTableDescriptor());
+        return new HPartitionDescriptor(table.getDescriptor());
     }
 }

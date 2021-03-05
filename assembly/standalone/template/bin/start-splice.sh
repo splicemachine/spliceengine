@@ -38,11 +38,11 @@ IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/log"
 
 if [ ! -d $RUN_DIR ]; then
-	mkdir -p $RUN_DIR
+    mkdir -p $RUN_DIR
 fi
 
 if [ ! -d $BASE_DIR/db ]; then
-	mkdir -p $BASE_DIR/db
+    mkdir -p $BASE_DIR/db
 fi
 
 chmod -R 777 $BASE_DIR/demodata
@@ -161,7 +161,7 @@ HBASE_ROOT_DIR_URI="${BASE_DIR}/db/hbase"
 _startSplice "${BASE_DIR}" "${SPLICE_LOG}" "${LOG4J_FILE}" "${HBASE_ROOT_DIR_URI}" "${CP}"
 
 echo -n "  Waiting. "
- while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 5; done
+until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
 echo
 
 echo "done."

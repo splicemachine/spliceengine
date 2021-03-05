@@ -5,12 +5,14 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.triggers.Trigger_Referencing_Clause_IT;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
@@ -311,4 +313,21 @@ public class PermissionIT {
             adminConn.execute(format("drop view %s.v1", SCHEMA1));
         }
     }
+
+    void testPermissions(String sql) throws SQLException {
+        adminConn.execute(sql);
+        SpliceUnitTest.sqlExpectException(user1Conn, sql,
+                SQLState.AUTH_NO_GENERIC_PERMISSION, false);
+    }
+
+    @Test
+    public void testRestrictedMethods() throws Exception {
+        if( !SpliceUnitTest.isMemPlatform(methodWatcher) )
+            testPermissions("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_CONFIG_INFO(null, 0)");
+        testPermissions("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.level.com', 'INFO')");
+        testPermissions("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('test', 'test')");
+        testPermissions("call SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('test')");
+        testPermissions("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL('test', 'INFO')");
+    }
+
 }

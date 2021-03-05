@@ -889,15 +889,17 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 admin.enableTableReplication(Long.toString(conglomId));
             }
 
-            ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
+            try (ConglomerateController indexController = tc.openConglomerate(
+                    conglomId, false, 0,
+                    TransactionController.MODE_TABLE,
+                    TransactionController.ISOLATION_SERIALIZABLE)) {
 
-            // Check to make sure that the conglomerate can be used as an index
-            if ( ! indexController.isKeyed()) {
-                indexController.close();
-                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+                // Check to make sure that the conglomerate can be used as an index
+                if (!indexController.isKeyed()) {
+                    throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName, indexType);
+                }
             }
-            indexController.close();
-            long indexCId=createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
+            createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
             // dump split keys
             if (splitKeys!= null && splitKeys.length > 0) {
                 List<Tuple2<Long, byte[][]>> cutPointsList = Lists.newArrayList();

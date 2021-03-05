@@ -25,7 +25,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String SPLICE_DB = "splicedb";
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
-    public static final String CONGLOMERATE_TABLE_NAME = SIConfigurations.CONGLOMERATE_TABLE_NAME;
+    public static final String CONGLOMERATE_TABLE_NAME = HBaseConfiguration.CONGLOMERATE_TABLE_NAME;
     public static byte[] getConglomerateTableNameBytes() {
         return Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     }

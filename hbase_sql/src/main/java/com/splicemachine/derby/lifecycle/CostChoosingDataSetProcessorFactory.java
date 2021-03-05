@@ -69,9 +69,10 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op==null?"null":op.getName());
             return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
         }
-        // If we've already committed to running on spark, due to running a substatement
-        // of a statement chosen to run on spark, or for some other reason, stick with the decision.
-        if (op != null && op.isOlapServer())
+        // Due to the way transactions are committed with SparkDataSetProcessors, if the main statement starts in spark,
+        // trigger substatements must also use a SparkDataSetProcessor.
+        // TODO-msirek: Lift this restriction in the future.
+        if (op != null && op.isOlapServer() && activation.isSubStatement())
             return new SparkDataSetProcessor();
 
         if (((BaseActivation)activation).datasetProcessorType().isOlap()) {
@@ -92,7 +93,8 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
     public DataSetProcessor bulkProcessor(@Nullable Activation activation, @Nullable SpliceOperation op) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "bulkProcessor(): bulkProcessor provided for op %s", op==null?"null":op.getName());
-        if(! allowsDistributedExecution()){
+        // It is too costly to open a new bulk processor for every row processed in a row trigger.
+        if(! allowsDistributedExecution() && !activation.isRowTrigger()){
             /*
              * We are running in a distributed node, use the bulk processor to avoid saturating HBase
              */

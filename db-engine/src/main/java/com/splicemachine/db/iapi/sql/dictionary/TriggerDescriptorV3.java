@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.io.IOException;
@@ -127,6 +128,9 @@ public class TriggerDescriptorV3 extends TriggerDescriptor {
         this.version = 3;
     }
 
+    public TriggerDescriptorV3(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        init(triggerDescriptor);
+    }
     //////////////////////////////////////////////////////////////
     //
     // FORMATABLE
@@ -150,8 +154,8 @@ public class TriggerDescriptorV3 extends TriggerDescriptor {
      * @throws ClassNotFoundException thrown on error
      */
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternalOld(in);
         version = in.readInt();
 
         Object obj = in.readObject();
@@ -174,11 +178,19 @@ public class TriggerDescriptorV3 extends TriggerDescriptor {
      * @param out write bytes here.
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        super.writeExternalOld(out);
         out.writeInt(version);
         out.writeObject(triggerDefinitionList.size() > 1 ? triggerDefinitionList : null);
         out.writeObject(actionSPSIdList.size() > 1 ? actionSPSIdList : null);
     }
+
+    @Override
+    public CatalogMessage.TriggerDescriptor.Builder toProtobufBuilder() {
+        CatalogMessage.TriggerDescriptor.Builder builder = super.toProtobufBuilder();
+        builder.setType(CatalogMessage.TriggerDescriptor.Type.TriggerDescriptorV3);
+        return builder;
+    }
+
 }
 

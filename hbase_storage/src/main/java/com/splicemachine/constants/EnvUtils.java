@@ -46,8 +46,6 @@ public class EnvUtils {
             }
         }else if (tableName.getQualifierAsString().equals(HConfiguration.TRANSACTION_TABLE))
             return TableType.TRANSACTION_TABLE;
-        else if(tableName.getQualifierAsString().equals(HConfiguration.TENTATIVE_TABLE))
-            return TableType.DDL_TABLE;
         else {
 			try {
 				long tableNumber = Long.parseLong(tableName.getQualifierAsString());

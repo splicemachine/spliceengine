@@ -31,10 +31,14 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -81,9 +85,24 @@ public class SynonymAliasInfo implements AliasInfo, Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+	@Override
+	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.SynonymAliasInfo synonymAliasInfo = CatalogMessage.SynonymAliasInfo.parseFrom(bs);
+		schemaName = synonymAliasInfo.getSchemaName();
+		tableName = synonymAliasInfo.getTableName();
+	}
+
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
 		schemaName = (String) in.readObject();
 		tableName = (String) in.readObject();
 	}
@@ -95,13 +114,28 @@ public class SynonymAliasInfo implements AliasInfo, Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.SynonymAliasInfo synonymAliasInfo = CatalogMessage.SynonymAliasInfo.newBuilder()
+				.setSchemaName(schemaName)
+				.setTableName(tableName)
+				.build();
+		ArrayUtil.writeByteArray(out, synonymAliasInfo.toByteArray());
+	}
+
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeObject(schemaName);
 		out.writeObject(tableName);
 	}
- 
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

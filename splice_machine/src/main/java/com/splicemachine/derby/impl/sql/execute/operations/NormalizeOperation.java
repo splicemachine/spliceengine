@@ -115,8 +115,8 @@ public class NormalizeOperation extends SpliceBaseOperation{
     public ExecRow getExecRowDefinition(){
         try{
             return getFromResultDescription(resultDescription);
-        }catch(StandardException e){
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }catch(Throwable t){
+            SpliceLogUtils.logAndThrowRuntime(LOG, StandardException.getOrWrap(t));
             return null;
         }
     }

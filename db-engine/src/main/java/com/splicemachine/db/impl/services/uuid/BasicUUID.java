@@ -31,10 +31,13 @@
 
 package com.splicemachine.db.impl.services.uuid;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -85,6 +88,15 @@ public class BasicUUID implements UUID, Formatable
 		majorId = readMSB(sr);
 	}
 
+	public BasicUUID (CatalogMessage.UUID uuid) {
+		init(uuid);
+	}
+
+	private void init(CatalogMessage.UUID uuid) {
+		majorId = uuid.getMajorId();
+		timemillis = uuid.getTimemillis();
+		sequence = uuid.getSequence();
+	}
 	/*
 	 * Formatable methods
 	 */
@@ -96,8 +108,31 @@ public class BasicUUID implements UUID, Formatable
 		Write this out.
 		@exception IOException error writing to log stream
 	*/
-	public void writeExternal(ObjectOutput out) throws IOException 
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	@Override
+	public CatalogMessage.UUID toProtobuf() {
+		CatalogMessage.UUID uuid = CatalogMessage.UUID.newBuilder()
+				.setMajorId(majorId)
+				.setTimemillis(timemillis)
+				.setSequence(sequence)
+				.build();
+		return uuid;
+	}
+	protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.UUID uuid = toProtobuf();
+		ArrayUtil.writeByteArray(out, uuid.toByteArray());
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeLong(majorId);
 		out.writeLong(timemillis);
 		out.writeInt(sequence);
@@ -107,8 +142,23 @@ public class BasicUUID implements UUID, Formatable
 		Read this in
 		@exception IOException error reading from log stream
 	*/
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.UUID uuid = CatalogMessage.UUID.parseFrom(bs);
+		init(uuid);
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		majorId = in.readLong();
 		timemillis = in.readLong();
 		sequence = in.readInt();

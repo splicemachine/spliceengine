@@ -1256,7 +1256,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            }).toList();
         } else {
             return FluentIterable.from(movingExecutionWindow).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
                 @Nullable
@@ -1314,7 +1314,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            }).toList();
         }
     }
 

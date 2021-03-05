@@ -2127,7 +2127,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     public static void setPreserveLineEndings(Connection conn, Boolean preserve) throws Exception {
         try( Statement s = conn.createStatement()) {
-            s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
+            s.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
                     "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + preserve + "' )");
         }
     }

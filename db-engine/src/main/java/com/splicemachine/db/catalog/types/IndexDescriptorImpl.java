@@ -34,15 +34,15 @@ package com.splicemachine.db.catalog.types;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
@@ -55,15 +55,15 @@ import java.util.List;
 
 /**
  *
- *	This class implements Formatable. That means that it
- *	can write itself to and from a formatted stream. If
- *	you add more fields to this class, make sure that you
- *	also write/read them with the writeExternal()/readExternal()
- *	methods.
+ *    This class implements Formatable. That means that it
+ *    can write itself to and from a formatted stream. If
+ *    you add more fields to this class, make sure that you
+ *    also write/read them with the writeExternal()/readExternal()
+ *    methods.
  *
- *	If, inbetween releases, you add more fields to this class,
- *	then you should bump the version number emitted by the getTypeFormatId()
- *	method.
+ *    If, inbetween releases, you add more fields to this class,
+ *    then you should bump the version number emitted by the getTypeFormatId()
+ *    method.
  *
  * @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator
  *
@@ -126,8 +126,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /**
      * Constructor for an IndexDescriptorImpl
      * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
+     * @param indexType        The type of index
+     * @param isUnique        True means the index is unique
      * @param isUniqueWithDuplicateNulls True means the index will be unique
      *                              for non null values but duplicate nulls
      *                              will be allowed.
@@ -136,15 +136,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *                              isUniqueWithDuplicateNulls is set to true the
      *                              index will allow duplicate nulls but for
      *                              non null keys will act like a unique index.
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
-     * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
+     * @param baseColumnPositions    An array of column positions in the base
+     *                                 table.  Each index column corresponds to a
+     *                                 column position in the base table.
+     * @param isAscending    An array of booleans telling asc/desc on each
+     *                         column.
+     * @param numberOfOrderedColumns    In the future, it will be possible
+     *                                     to store non-ordered columns in an
+     *                                     index.  These will be useful for
+     *                                     covered queries.
      */
     public IndexDescriptorImpl(String indexType,
                                 boolean isUnique,
@@ -191,110 +191,161 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
              new String[]{}, new ByteArray[]{}, new String[]{});
     }
 
-	/** Zero-argument constructor for Formatable interface */
-	public IndexDescriptorImpl()
-	{
-	}
+    /** Zero-argument constructor for Formatable interface */
+    public IndexDescriptorImpl()
+    {
+    }
 
+
+	public IndexDescriptorImpl(CatalogMessage.IndexDescriptorImpl indexDescriptorImpl) throws IOException {
+	    init(indexDescriptorImpl);
+    }
+
+    private void init(CatalogMessage.IndexDescriptorImpl indexDescriptorImpl) throws IOException{
+	     isUnique = indexDescriptorImpl.getIsUnique();
+        int count = indexDescriptorImpl.getIsAscendingCount();
+        isAscending = new boolean[count];
+        for (int i = 0; i < count; ++i) {
+            isAscending[i] = indexDescriptorImpl.getIsAscending(i);
+        }
+        count = indexDescriptorImpl.getBaseColumnPositionsCount();
+        baseColumnPositions = new int[count];
+        for (int i = 0; i < baseColumnPositions.length; ++i) {
+            baseColumnPositions[i] = indexDescriptorImpl.getBaseColumnPositions(i);
+        }
+        numberOfOrderedColumns = indexDescriptorImpl.getNumberOfOrderedColumns();
+        indexType = indexDescriptorImpl.getIndexType();
+        isUniqueWithDuplicateNulls = indexDescriptorImpl.getIsUniqueWithDuplicateNulls();
+        excludeNulls = indexDescriptorImpl.getExcludeNulls();
+        excludeDefaults = indexDescriptorImpl.getExcludeDefaults();
+
+        count = indexDescriptorImpl.getGeneratedClassNamesCount();
+        generatedClassNames = new String[count];
+        for (int i = 0; i < count; ++i) {
+            generatedClassNames[i] = indexDescriptorImpl.getGeneratedClassNames(i);
+        }
+
+        count = indexDescriptorImpl.getExprTextsCount();
+        exprTexts = new String[count];
+        for (int i = 0; i < count; ++i) {
+            exprTexts[i] = indexDescriptorImpl.getExprTexts(i);
+        }
+
+        count = indexDescriptorImpl.getExprBytecodeCount();
+        exprBytecode = new ByteArray[count];
+        for (int i = 0; i < count; ++i) {
+            CatalogMessage.ByteArray byteArray = indexDescriptorImpl.getExprBytecode(i);
+            exprBytecode[i] = ProtobufUtils.fromProtobuf(byteArray);
+        }
+
+        count = indexDescriptorImpl.getIndexColumnTypesCount();
+        indexColumnTypes = new DataTypeDescriptor[count];
+        for (int i = 0; i < count; ++i) {
+            CatalogMessage.DataTypeDescriptor dataTypeDescriptor = indexDescriptorImpl.getIndexColumnTypes(i);
+            indexColumnTypes[i] = ProtobufUtils.fromProtobuf(dataTypeDescriptor);
+        }
+        synchronized (this) {
+            executableExprs = new BaseExecutableIndexExpression[indexDescriptorImpl.getExprBytecodeCount()];
+        }
+    }
 	/**
-     * 
+     *
      * 
      * @see IndexDescriptor#isUniqueWithDuplicateNulls
      */
-	public boolean isUniqueWithDuplicateNulls()
-	{
-		return isUniqueWithDuplicateNulls;
-	}
+    public boolean isUniqueWithDuplicateNulls()
+    {
+        return isUniqueWithDuplicateNulls;
+    }
 
-	/** @see IndexDescriptor#isUnique */
-	public boolean isUnique()
-	{
-		return isUnique;
-	}
+    /** @see IndexDescriptor#isUnique */
+    public boolean isUnique()
+    {
+        return isUnique;
+    }
 
-	/** @see IndexDescriptor#baseColumnPositions */
-	public int[] baseColumnPositions()
-	{
-		return baseColumnPositions;
-	}
+    /** @see IndexDescriptor#baseColumnPositions */
+    public int[] baseColumnPositions()
+    {
+        return baseColumnPositions;
+    }
 
-	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
-	{
-	    if (isOnExpression()) {
-	        throw new IllegalArgumentException("Cannot retrieve ordinal position of a base table column in an index " +
-                    "defined on expressions because it may appear in multiple expressions.");
+    /** @see IndexDescriptor#getKeyColumnPosition */
+    public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+    {
+        if (isOnExpression()) {
+            return -1;
         }
-		/* Return 0 if column is not in the key */
-		int keyPosition = 0;
+        /* Return 0 if column is not in the key */
+        int keyPosition = 0;
 
-		for (int index = 0; index < baseColumnPositions.length; index++)
-		{
-			/* Return 1-based key column position if column is in the key */
-			if (baseColumnPositions[index] == heapColumnPosition)
-			{
-				keyPosition = index + 1;
-				break;
-			}
-		}
+        for (int index = 0; index < baseColumnPositions.length; index++)
+        {
+            /* Return 1-based key column position if column is in the key */
+            if (baseColumnPositions[index] == heapColumnPosition)
+            {
+                keyPosition = index + 1;
+                break;
+            }
+        }
 
-		return keyPosition;
-	}
-
-	/** @see IndexDescriptor#numberOfOrderedColumns */
-	public int numberOfOrderedColumns()
-	{
-		return numberOfOrderedColumns;
-	}
-
-	/** @see IndexDescriptor#indexType */
-	public String indexType()
-	{
-		return indexType;
-	}
-
-	/** @see IndexDescriptor#getIndexColumnTypes */
-	public DataTypeDescriptor[] getIndexColumnTypes() { return indexColumnTypes; }
-
-	/** @see IndexDescriptor#isAscending */
-	public boolean isAscending(Integer keyColumnPosition) {
-		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= isAscending.length)
-			return false;
-		return isAscending[i];
+        return keyPosition;
     }
 
-	/** @see IndexDescriptor#isDescending */
-	public boolean isDescending(Integer keyColumnPosition) {
-		int i = keyColumnPosition - 1;
-		if (i < 0 || i >= isAscending.length)
-			return false;
-		return ! isAscending[i];
+    /** @see IndexDescriptor#numberOfOrderedColumns */
+    public int numberOfOrderedColumns()
+    {
+        return numberOfOrderedColumns;
     }
 
-	/** @see IndexDescriptor#isAscending */
-	public boolean[]		isAscending()
-	{
-		return isAscending;
-	}
+    /** @see IndexDescriptor#indexType */
+    public String indexType()
+    {
+        return indexType;
+    }
 
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		this.baseColumnPositions = baseColumnPositions;
-	}
+    /** @see IndexDescriptor#getIndexColumnTypes */
+    public DataTypeDescriptor[] getIndexColumnTypes() { return indexColumnTypes; }
 
-	/** @see IndexDescriptor#setIsAscending */
-	public void		setIsAscending(boolean[] isAscending)
-	{
-		this.isAscending = isAscending;
-	}
+    /** @see IndexDescriptor#isAscending */
+    public boolean isAscending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        if (i < 0 || i >= isAscending.length)
+            return false;
+        return isAscending[i];
+    }
 
-	/** @see IndexDescriptor#setNumberOfOrderedColumns */
-	public void		setNumberOfOrderedColumns(int numberOfOrderedColumns)
-	{
-		this.numberOfOrderedColumns = numberOfOrderedColumns;
-	}
+    /** @see IndexDescriptor#isDescending */
+    public boolean isDescending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        if (i < 0 || i >= isAscending.length)
+            return false;
+        return ! isAscending[i];
+    }
+
+    /** @see IndexDescriptor#isAscending */
+    public boolean[]        isAscending()
+    {
+        return isAscending;
+    }
+
+    /** @see IndexDescriptor#setBaseColumnPositions */
+    public void        setBaseColumnPositions(int[] baseColumnPositions)
+    {
+        this.baseColumnPositions = baseColumnPositions;
+    }
+
+    /** @see IndexDescriptor#setIsAscending */
+    public void        setIsAscending(boolean[] isAscending)
+    {
+        this.isAscending = isAscending;
+    }
+
+    /** @see IndexDescriptor#setNumberOfOrderedColumns */
+    public void        setNumberOfOrderedColumns(int numberOfOrderedColumns)
+    {
+        this.numberOfOrderedColumns = numberOfOrderedColumns;
+    }
 
     /**
      *
@@ -358,7 +409,23 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *
      * @exception IOException    Thrown on read error
      */
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.IndexDescriptorImpl indexDescriptorImpl = CatalogMessage.IndexDescriptorImpl.parseFrom(bs);
+        init(indexDescriptorImpl);
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         FormatableHashtable fh = (FormatableHashtable) in.readObject();
         isUnique = fh.getBoolean(IS_UNIQUE_KEY);
         int keyLength = fh.getInt(KEY_LENGTH_KEY);
@@ -405,7 +472,60 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *
      * @exception IOException    Thrown on write error
      */
-    public void writeExternal(ObjectOutput out) throws IOException
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.IndexDescriptorImpl indexDescriptor = toProtobuf();
+        ArrayUtil.writeByteArray(out, indexDescriptor.toByteArray());
+    }
+
+    public CatalogMessage.IndexDescriptorImpl toProtobuf() {
+        CatalogMessage.IndexDescriptorImpl.Builder builder = CatalogMessage.IndexDescriptorImpl.newBuilder();
+        builder.setIsUnique(isUnique)
+                .setNumberOfOrderedColumns(numberOfOrderedColumns)
+                .setIndexType(indexType)
+                .setIsUniqueWithDuplicateNulls(isUniqueWithDuplicateNulls)
+                .setExcludeNulls(excludeNulls)
+                .setExcludeDefaults(excludeDefaults);
+        for (boolean asc : isAscending) {
+            builder.addIsAscending(asc);
+        }
+
+        for (int pos : baseColumnPositions) {
+            builder.addBaseColumnPositions(pos);
+        }
+
+        assert generatedClassNames.length == exprBytecode.length;
+        for (String className : generatedClassNames) {
+            builder.addGeneratedClassNames(className);
+        }
+
+        assert exprTexts.length == exprBytecode.length;
+        for (String exprText : exprTexts) {
+            builder.addExprTexts(exprText);
+        }
+
+        assert indexColumnTypes.length == exprBytecode.length;
+        for (ByteArray byteArray : exprBytecode) {
+            builder.addExprBytecode(byteArray.toProtobuf());
+        }
+
+        for (DataTypeDescriptor dataTypeDescriptor : indexColumnTypes) {
+            builder.addIndexColumnTypes(dataTypeDescriptor.toProtobuf());
+        }
+
+        return builder.build();
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException
     {
         FormatableHashtable fh = new FormatableHashtable();
         fh.putBoolean(IS_UNIQUE_KEY, isUnique);
