@@ -92,6 +92,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     private ReferencedColumnsMap referencedColumns;
 
+    // table number -> scan selectivity
+    private HashMap<Integer, Double> scanSelectivityCache;
+
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
     }
@@ -308,7 +311,17 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     @Override
     public double scanSelectivity(Optimizable innerTable) throws StandardException{
-        return andNode.getLeftOperand().scanSelectivity(innerTable);
+        if (scanSelectivityCache == null) {
+            scanSelectivityCache = new HashMap<>(referencedSet.cardinality());
+        }
+        int tableNumber = innerTable.getTableNumber();
+        if (scanSelectivityCache.containsKey(tableNumber)) {
+            return scanSelectivityCache.get(tableNumber);
+        } else {
+            double scanSelectivity = andNode.getLeftOperand().scanSelectivity(innerTable);
+            scanSelectivityCache.put(tableNumber, scanSelectivity);
+            return scanSelectivity;
+        }
     }
 
     @Override
@@ -805,6 +818,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * Copy all fields of this Predicate (except the two that
      * are set from 'init', and referencedColumns if skipReferencedColumns
      * is true).
+     * Do not copy scanSelectivityCache because andNode might be different.
      */
 
     public void copyFields(Predicate otherPred, boolean skipReferencedColumns){
