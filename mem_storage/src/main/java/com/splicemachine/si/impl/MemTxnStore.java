@@ -183,13 +183,12 @@ public class MemTxnStore implements TxnStore{
     public void rollback(long txnId, long originatorTxnId) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
         Lock lock = lockStriper.get(beginTS).writeLock();
-        // make sure that the region doesn't close while we are working on it
         boolean lockAcquired = false;
         while (!lockAcquired) {
             try {
                 lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
                 if (!lockAcquired && commitPendingTxns.contains(txnId)) {
-                    if (originatorTxnId < txnId) { // simplest comparison that leads that
+                    if (originatorTxnId < txnId) { // comparison to avoid dead lock without coordination
                         throw new MCannotRollbackException(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
                                                                                                          "transaction %d since it is in " +
                                                                                                          "commit-pending state with the originator %d",

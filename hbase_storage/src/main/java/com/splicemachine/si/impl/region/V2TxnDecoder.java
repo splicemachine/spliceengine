@@ -157,7 +157,6 @@ public class V2TxnDecoder implements TxnDecoder{
      * the Encoding.encodeX() methods) as follows:
      *
      * "d" -- packed tuple of (beginTimestamp,parentTxnId,isDependent,additive,isolationLevel) // Youssef: looks like isDependent is not encoded?
-     * "c" -- counter (using a packed integer representation)
      * "k" -- keepAlive timestamp
      * "t" -- commit timestamp
      * "g" -- globalCommitTimestamp
@@ -170,8 +169,8 @@ public class V2TxnDecoder implements TxnDecoder{
      *
      * In the new format, if a transaction has been written to the table, then it automatically allows writes
      *
-     * order: c,d,e,g,k,s,t,v
-     * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
+     * order: c,d,e,g,k,s,t,v,w
+     * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId,ConflictingTxnIds
      */
     @Override
     public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo, byte[] rowKey, Clock clock) throws IOException {

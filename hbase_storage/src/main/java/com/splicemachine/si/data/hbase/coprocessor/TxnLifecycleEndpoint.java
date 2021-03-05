@@ -96,13 +96,11 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                                                                           durability);
                 TimestampSource timestampSource = driver.getTimestampSource();
                 int txnLockStrips = configuration.getTransactionLockStripes();
-                ClientTxnLifecycleManager lifecycleManager = new ClientTxnLifecycleManager(timestampSource, siEnv.exceptionFactory());
-                lifecycleManager.setTxnStore(siEnv.txnStore());
                 lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,
                                                               regionStore,
                                                               new RegionServerControl(region, (RegionServerServices) rce.getOnlineRegions()),
                                                               timestampSource,
-                                                              lifecycleManager);
+                                                              siEnv.getSIDriver().lifecycleManager() );
                 isTxnTable = true;
             }
         } catch (Throwable t) {

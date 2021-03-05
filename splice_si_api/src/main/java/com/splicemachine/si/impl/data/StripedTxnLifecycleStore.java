@@ -180,7 +180,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
             try {
                 lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
                 if (!lockAcquired && commitPendingTxns.contains(txnId)) {
-                    if (originatorTxnId < txnId) { // simplest comparison that leads that
+                    if (originatorTxnId < txnId) { // comparison to avoid dead lock across multiple processes without explicit coordination
                         throw baseStore.cannotRollback(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
                                                                             "transaction %d since it is in " +
                                                                             "commit-pending state with the originator %d",

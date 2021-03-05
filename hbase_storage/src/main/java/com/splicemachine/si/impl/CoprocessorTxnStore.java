@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
  * remotely.
  * <p/>
- * This class has no local cache. Callers are responsible for caching returned transactions
- * safely.
+ * This class has a cache that maps a transaction to a list of its conflicting transactions, the callers are still
+ * however responsible for caching returned transactions safely.
  *
  * @author Scott Fines
  *         Date: 6/27/14
