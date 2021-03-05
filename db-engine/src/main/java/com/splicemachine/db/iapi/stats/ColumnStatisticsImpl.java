@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import org.apache.datasketches.memory.Memory;
 import org.apache.datasketches.frequencies.ErrorType;
+import org.apache.datasketches.memory.WritableMemory;
 import org.apache.datasketches.quantiles.ItemsSketch;
 import org.apache.datasketches.theta.Sketch;
 import org.apache.datasketches.theta.Sketches;
@@ -178,13 +179,13 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         dvd = (DataValueDescriptor) in.readObject();
         byte[] quantiles = new byte[in.readInt()];
         in.readFully(quantiles);
-        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(Memory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
+        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(WritableMemory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
         byte[] frequencies = new byte[in.readInt()];
         in.readFully(frequencies);
-        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(Memory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
+        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(WritableMemory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
         byte[] thetaSketchBytes = new byte[in.readInt()];
         in.readFully(thetaSketchBytes);
-        thetaSketch = Sketches.wrapSketch(Memory.wrap(thetaSketchBytes)); // Sketch.heapify(thetaMem);
+        thetaSketch = Sketches.wrapSketch(WritableMemory.wrap(thetaSketchBytes));
     }
 
     private org.apache.datasketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] getFreqSketchNoFpItems() {
