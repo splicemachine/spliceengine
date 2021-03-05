@@ -14,23 +14,21 @@
 
 package com.splicemachine.benchmark;
 
+import org.apache.log4j.Logger;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
 import com.splicemachine.util.StatementUtils;
-import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
 import java.sql.*;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.*;
 
 import static org.junit.Assert.assertEquals;
 
 @Category(Benchmark.class)
-public class TriggerBenchmark {
+public class TriggerBenchmark extends Benchmark {
 
     private static final Logger LOG = Logger.getLogger(TriggerBenchmark.class);
 
@@ -59,9 +57,18 @@ public class TriggerBenchmark {
     @BeforeClass
     public static void setUp() throws Exception {
 
-        LOG.info("Clean up");
         try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
             try (Statement statement = connection.createStatement()) {
+
+                statement.execute("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
+                ResultSet rs = statement.getResultSet();
+                while (rs.next()) {
+                    String host = rs.getString(1);
+                    String release = rs.getString(2);
+                    LOG.info("HOST: " + host + "  SPLICE: " + release);
+                }
+
+                LOG.info("Clean up");
                 try {
                     statement.execute("DROP SCHEMA " + spliceSchemaWatcher.schemaName + " CASCADE");
                 }
@@ -84,7 +91,7 @@ public class TriggerBenchmark {
         testStatement.execute("CREATE TABLE " + UPDATE_AUDIT_TABLE + " (time TIMESTAMP, audit INTEGER NOT NULL)");
 
         size = DEFAULT_SIZE;
-        run(DEFAULT_CONNECTIONS, TriggerBenchmark::populateTables);
+        runBenchmark(DEFAULT_CONNECTIONS, TriggerBenchmark::populateTables);
         curSize.set(size);
 
         LOG.info("Analyze, create triggers");
@@ -103,93 +110,12 @@ public class TriggerBenchmark {
         testConnection.close();
     }
 
-    // Statistics
-
     static final String STAT_ERROR = "ERROR";
     static final String STAT_CREATE = "CREATE";
     static final String STAT_INSERT_T = "INSERT_T";
     static final String STAT_INSERT_NOT = "INSERT_NOT";
     static final String STAT_UPDATE_T = "UPDATE_T";
     static final String STAT_UPDATE_NOT = "UPDATE_NOT";
-
-    static final int MAXSTATS = 64;
-    static AtomicLongArray statsCnt = new AtomicLongArray(MAXSTATS);
-    static AtomicLongArray statsSum = new AtomicLongArray(MAXSTATS);
-    static AtomicLong nextReport = new AtomicLong(0);
-    static long deadLine = Long.MAX_VALUE;
-    static ConcurrentHashMap<String, Integer> indexMap = new ConcurrentHashMap<>(MAXSTATS);
-    static AtomicInteger lastIdx = new AtomicInteger(0);
-
-
-    static void updateStats(String stat) {
-        updateStats(stat, 1, 0);
-    }
-
-    static void updateStats(String stat, long delta) {
-        updateStats(stat, 1, delta);
-    }
-
-    static void updateStats(String stat, long increment, long delta) {
-        int idx = indexMap.computeIfAbsent(stat, key -> lastIdx.getAndIncrement());
-        if (idx >= MAXSTATS) {
-            throw new RuntimeException("ERROR: Too many keys: " + idx);
-        }
-
-        statsCnt.addAndGet(idx, increment);
-        statsSum.addAndGet(idx, delta);
-
-        long curTime = System.currentTimeMillis();
-        long t = nextReport.get();
-        if (curTime > t && nextReport.compareAndSet(t, (t == 0 ? curTime : t) + 60000) && t > 0) {
-            reportStats();
-            if (curTime > deadLine) {
-                throw new RuntimeException("Deadline has been reached");
-            }
-        }
-    }
-
-    static void reportStats() {
-        StringBuilder sb = new StringBuilder().append("Statistics:");
-        for (Map.Entry<String, Integer> entry : indexMap.entrySet()) {
-            int idx = entry.getValue();
-            long count = statsCnt.getAndSet(idx, 0);
-            long time  = statsSum.getAndSet(idx, 0);
-            if (count != 0) {
-                long avg = (time + count / 2) / count;
-                sb.append("\n\t").append(entry.getKey());
-                sb.append("\tcalls: ").append(count);
-                sb.append("\ttime: ").append(time / 1000).append(" s");
-                sb.append("\tavg: ").append(avg).append(" ms");
-            }
-        }
-        LOG.info(sb.toString());
-    }
-
-    static void resetStats() {
-        reportStats();
-        nextReport.set(0);
-    }
-
-    static void run(int numThreads, Runnable runnable) {
-        Thread[] threads = new Thread[numThreads];
-        for (int i = 0; i < threads.length; ++i) {
-            Thread thread = new Thread(runnable);
-            threads[i] = thread;
-        }
-        for (Thread t : threads) {
-            t.start();
-        }
-
-        try {
-            for (Thread thread : threads) {
-                thread.join();
-            }
-        }
-        catch (InterruptedException ie) {
-            ie.printStackTrace();
-        }
-        resetStats();
-    }
 
     static int size;
     static AtomicInteger curSize = new AtomicInteger(0);
@@ -342,7 +268,7 @@ public class TriggerBenchmark {
     @Test
     public void insertBenchmarkSingle() throws Exception {
         LOG.info("insertBenchmarkSingle");
-        run(1, () -> doInserts(DEFAULT_OPS));
+        runBenchmark(1, () -> doInserts(DEFAULT_OPS));
         assertEquals(curSize.get() - size, StatementUtils.onlyLong(testStatement, "select count(*) from " + INSERT_AUDIT_TABLE));
     }
 
@@ -350,14 +276,14 @@ public class TriggerBenchmark {
     @Test
     public void insertBenchmarkMulti() throws Exception {
         LOG.info("insertBenchmarkMulti");
-        run(DEFAULT_CONNECTIONS, () -> doInserts(2 * DEFAULT_OPS));
+        runBenchmark(DEFAULT_CONNECTIONS, () -> doInserts(2 * DEFAULT_OPS));
         assertEquals(curSize.get() - size, StatementUtils.onlyLong(testStatement, "select count(*) from " + INSERT_AUDIT_TABLE));
     }
 
     @Test
     public void updateBenchmarkSingle() throws Exception {
         LOG.info("updateBenchmarkSingle");
-        run(1, () -> doUpdates(DEFAULT_OPS));
+        runBenchmark(1, () -> doUpdates(DEFAULT_OPS));
         assertEquals(curUpdate.get(), StatementUtils.onlyLong(testStatement, "select count(*) from " + UPDATE_AUDIT_TABLE));
     }
 
@@ -365,7 +291,7 @@ public class TriggerBenchmark {
     @Test
     public void updateBenchmarkMulti() throws Exception  {
         LOG.info("updateBenchmarkMulti");
-        run(DEFAULT_CONNECTIONS, () -> doUpdates(2 * DEFAULT_OPS));
+        runBenchmark(DEFAULT_CONNECTIONS, () -> doUpdates(2 * DEFAULT_OPS));
         assertEquals(curUpdate.get(), StatementUtils.onlyLong(testStatement, "select count(*) from " + UPDATE_AUDIT_TABLE));
     }
 }
