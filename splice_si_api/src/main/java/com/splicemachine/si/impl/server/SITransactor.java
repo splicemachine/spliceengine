@@ -649,6 +649,11 @@ public class SITransactor implements Transactor{
                     case DEFERRED: {
                         long[] conflictingTxns = getDataActiveTransactions(updateTransaction, table, kvPair, txnSupplier, cell);
                         if (conflictingTxns != null) {
+                            if(LOG.isTraceEnabled()) {
+                                LOG.trace(String.format("adding txn(s) %s to the list of txn %d's conflicting txns",
+                                                        Arrays.toString(conflictingTxns),
+                                                        updateTransaction.getTxnId()));
+                            }
                             txnStore.addConflictingTxnIds(updateTransaction.getTxnId(), conflictingTxns);
                         }
                     }
@@ -663,6 +668,11 @@ public class SITransactor implements Transactor{
 
     private long[] getDataActiveTransactions(TxnView txn, Partition table, KVPair kvPair, TxnSupplier txnSupplier, DataCell cell) throws IOException {
         if(shouldIgnoreConflicts(table)) {
+            if(LOG.isTraceEnabled()) {
+                LOG.trace(String.format("detection of conflicting data active txns ignored for txn %d as it affects table %s",
+                                        txn.getTxnId(),
+                                        table.getTableName()));
+            }
             return null;
         }
         DataGet dataGet = opFactory.newGet(kvPair.getRowKey(), null);

@@ -26,6 +26,7 @@ import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import splice.com.google.common.primitives.Longs;
 
@@ -114,11 +115,13 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                 for(long conflictingTxn : txn.getInfo().getConflictingTxnIdsList()) {
                     if(conflictingTxn == txnId) {
                         continue;
-                    } else if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
-                        SpliceLogUtils.warn(LOG,"transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
+                    }
+                    if(LOG.isEnabledFor(Level.WARN)) {
+                        SpliceLogUtils.warn(LOG, "transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
+                    }
+                    if(baseStore.contains(conflictingTxn)) { // avoid RPC if possible
                         rollbackTransaction(conflictingTxn, txnId);
                     } else {
-                        SpliceLogUtils.warn(LOG,"transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
                         lifecycleManager.rollback(conflictingTxn, txnId);
                     }
                 }
@@ -183,6 +186,9 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                                                                             "commit-pending state with the originator %d",
                                                         txnId, originatorTxnId));
                     } else {
+                        if(LOG.isTraceEnabled()) {
+                            LOG.trace(String.format("new attempt to rollback txn %d with originator txn %d", txnId, originatorTxnId));
+                        }
                         continue; // keep trying, we'll eventually be able to
                     }
                 }

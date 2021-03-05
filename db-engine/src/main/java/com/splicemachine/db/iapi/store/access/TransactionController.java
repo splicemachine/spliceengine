@@ -264,36 +264,6 @@ public interface TransactionController
     byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
     byte IS_KEPT		=	(byte) 0x02; // no auto remove
 
-    /**
-     * Conflict resolution strategies.
-     */
-    enum ConflictResolutionStrategy {
-        NOT_SET(0),
-        IMMEDIATE(1),
-        DEFERRED(2);
-
-        int index = 1;
-        ConflictResolutionStrategy(int index) {
-            this.index = index;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public static ConflictResolutionStrategy fromInt(int index) {
-            switch(index) {
-                case 1:
-                    return IMMEDIATE;
-                case 2:
-                    return DEFERRED;
-                case 0: // fallthrough
-                default:
-                    return NOT_SET;
-            }
-        }
-    }
-
     /**************************************************************************
      * Interfaces previously defined in TcAccessIface:
      **************************************************************************

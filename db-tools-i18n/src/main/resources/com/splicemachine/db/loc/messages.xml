@@ -8700,36 +8700,42 @@ so the product will default to showing a correct English message. -->
 
             <msg>
                 <name>L001</name>
-                <text>------------ BEGIN ERROR MESSAGE -------------</text>
+                <text>------------ BEGIN ERROR MESSAGE -------------
+</text>
             </msg>
 
             <msg>
                 <name>L002</name>
-                <text>------------ END ERROR MESSAGE -------------</text>
+                <text>------------ END ERROR MESSAGE -------------
+</text>
             </msg>
 
             <msg>
                 <name>L003</name>
                 <text>
-                    ------------ BEGIN SHUTDOWN ERROR STACK -------------</text>
+                    ------------ BEGIN SHUTDOWN ERROR STACK -------------
+</text>
             </msg>
 
             <msg>
                 <name>L004</name>
                 <text>
-                    ------------ END SHUTDOWN ERROR STACK -------------</text>
+                    ------------ END SHUTDOWN ERROR STACK -------------
+</text>
             </msg>
 
             <msg>
                 <name>L005</name>
                 <text>
-                    ------------ BEGIN ERROR STACK -------------</text>
+                    ------------ BEGIN ERROR STACK -------------
+</text>
             </msg>
 
             <msg>
                 <name>L006</name>
                 <text>
-                    ------------ END ERROR STACK -------------</text>
+                    ------------ END ERROR STACK -------------
+</text>
             </msg>
 
             <msg>
