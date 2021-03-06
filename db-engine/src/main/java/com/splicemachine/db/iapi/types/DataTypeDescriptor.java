@@ -1564,7 +1564,7 @@ public class DataTypeDescriptor implements Formatable{
      * and compatible with <code>String</code>
      * @see java.sql.Types
      */
-    private static boolean isCharacterType(int jdbcType){
+    public static boolean isCharacterType(int jdbcType){
 
         switch(jdbcType){
             case Types.CHAR:
