@@ -1267,5 +1267,9 @@ public interface Property {
      */
     String DISABLE_INDEX_PREFIX_ITERATION =
             "splice.optimizer.disablePrefixIteratorMode";
+
+    String ENTERPRISE_KEY = "splicemachine.enterprise.key";
+
+    String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
 }
 
