@@ -666,10 +666,13 @@ public class ScanCostFunction{
      * @throws StandardException
      */
     public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
+        int level = 0;
         for (int i = 0; i< holders.size();i++) {
             // Do not include join predicates unless join strategy is nested loop.
-            if (holders.get(i).shouldApplySelectivity())
-                selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
+            if (holders.get(i).shouldApplySelectivity()) {
+                selectivity = computeSqrtLevel(selectivity, level, holders.get(i));
+                level++;
+            }
         }
         return selectivity;
     }
