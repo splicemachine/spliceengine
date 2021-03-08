@@ -297,6 +297,12 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 				new ColumnDescriptor("UPDATERULE",9,9,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
 						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("FK_COLNAMES",10,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("PK_COLNAMES",11,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
 			});
 		return cdsl;
 	}
@@ -365,37 +371,132 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 	}
 
     public static String SYSCAT_REFERENCES_VIEW_SQL = "create view REFERENCES as \n" +
-			"SELECT CC.CONSTRAINTNAME AS CONSTNAME\n" +
-			"     , VC.SCHEMANAME AS TABSCHEMA\n" +
-			"     , TC.TABLENAME AS TABNAME\n" +
-			"     , CP.CONSTRAINTNAME AS REFKEYNAME\n" +
-			"     , VP.SCHEMANAME AS REFTABSCHEMA\n" +
-			"     , TP.TABLENAME AS REFTABNAME\n" +
-			"     , CAST(C.DESCRIPTOR.numberOfOrderedColumns() AS SMALLINT) AS COLCOUNT\n" +
-			"     , (CASE FK.DELETERULE \n" +
-			"          WHEN 'R' THEN 'A'\n" +
-			"          WHEN 'S' THEN 'R'\n" +
-			"          WHEN 'C' THEN 'C'\n" +
-			"          WHEN 'U' THEN 'N'\n" +
-			"        END) AS DELETERULE\n" +
-			"     , (CASE FK.UPDATERULE\n" +
-			"          WHEN 'R' THEN 'A'\n" +
-			"          WHEN 'S' THEN 'R'\n" +
-			"        END) AS UPDATERULE\n" +
-			"FROM --splice-properties joinOrder=fixed\n" +
-			"     SYS.SYSFOREIGNKEYS FK\n" +
-			"   , SYS.SYSCONSTRAINTS CC\n" +
-			"   , SYS.SYSCONSTRAINTS CP\n" +
-			"   , SYS.SYSTABLES TC\n" +
-			"   , SYS.SYSTABLES TP\n" +
-			"   , SYSVW.SYSSCHEMASVIEW VC\n" +
-			"   , SYSVW.SYSSCHEMASVIEW VP\n" +
-			"   , SYS.SYSCONGLOMERATES C\n" +
-			"WHERE FK.CONSTRAINTID = CC.CONSTRAINTID\n" +
-			"  AND CC.TABLEID = TC.TABLEID\n" +
-			"  AND CC.SCHEMAID = VC.SCHEMAID\n" +
-			"  AND FK.KEYCONSTRAINTID = CP.CONSTRAINTID\n" +
-			"  AND CP.TABLEID = TP.TABLEID\n" +
-			"  AND CP.SCHEMAID = VP.SCHEMAID\n" +
-			"  AND FK.CONGLOMERATEID = C.CONGLOMERATEID";
+			"SELECT X.CONSTNAME\n" +
+			"     , X.TABSCHEMA\n" +
+			"     , X.TABNAME\n" +
+			"     , X.REFKEYNAME\n" +
+			"     , X.REFTABSCHEMA\n" +
+			"     , X.REFTABNAME\n" +
+			"     , X.COLCOUNT\n" +
+			"     , X.DELETERULE\n" +
+			"     , X.UPDATERULE\n" +
+			"     , CAST(X.FK_COLNAMES AS VARCHAR(640)) AS FK_COLNAMES\n" +
+			"     , CAST(STRING_AGG(X.PK_COLNAME, ',') AS VARCHAR(640)) AS PK_COLNAMES\n" +
+			"FROM (\n" +
+			"    SELECT W.CONSTNAME\n" +
+			"         , W.TABSCHEMA\n" +
+			"         , W.TABNAME\n" +
+			"         , W.REFKEYNAME\n" +
+			"         , W.REFTABSCHEMA\n" +
+			"         , W.REFTABNAME\n" +
+			"         , W.COLCOUNT\n" +
+			"         , W.DELETERULE\n" +
+			"         , W.UPDATERULE\n" +
+			"         , W.FK_COLNAMES\n" +
+			"         , COLSP.COLUMNNAME AS PK_COLNAME\n" +
+			"         , CONGLOMSP.DESCRIPTOR.getKeyColumnPosition(COLSP.COLUMNNUMBER) AS PKCOLS_ORD\n" +
+			"    FROM --splice-properties joinOrder=fixed\n" +
+			"    (\n" +
+			"        SELECT V.CONSTNAME\n" +
+			"             , V.TABSCHEMA\n" +
+			"             , V.TABNAME\n" +
+			"             , V.REFKEYNAME\n" +
+			"             , V.REFTABSCHEMA\n" +
+			"             , V.REFTABNAME\n" +
+			"             , V.COLCOUNT\n" +
+			"             , V.DELETERULE\n" +
+			"             , V.UPDATERULE\n" +
+			"             , V.PK_TABLEID\n" +
+			"             , V.PK_CONSTRAINTID\n" +
+			"             , STRING_AGG(V.FK_COLNAME, ',') AS FK_COLNAMES\n" +
+			"        FROM (\n" +
+			"            SELECT U.CONSTNAME\n" +
+			"                 , U.TABSCHEMA\n" +
+			"                 , U.TABNAME\n" +
+			"                 , U.REFKEYNAME\n" +
+			"                 , U.REFTABSCHEMA\n" +
+			"                 , U.REFTABNAME\n" +
+			"                 , CAST(CONGLOMSC.DESCRIPTOR.numberOfOrderedColumns() AS SMALLINT) AS COLCOUNT\n" +
+			"                 , U.DELETERULE\n" +
+			"                 , U.UPDATERULE\n" +
+			"                 , COLSC.COLUMNNAME AS FK_COLNAME\n" +
+			"                 , CONGLOMSC.DESCRIPTOR.getKeyColumnPosition(COLSC.COLUMNNUMBER) AS FKCOLS_ORD\n" +
+			"                 , U.PK_TABLEID\n" +
+			"                 , U.PK_CONSTRAINTID\n" +
+			"            FROM --splice-properties joinOrder=fixed\n" +
+			"            (\n" +
+			"                  SELECT CC.CONSTRAINTNAME AS CONSTNAME\n" +
+			"                       , VC.SCHEMANAME AS TABSCHEMA\n" +
+			"                       , TC.TABLENAME AS TABNAME\n" +
+			"                       , CP.CONSTRAINTNAME AS REFKEYNAME\n" +
+			"                       , VP.SCHEMANAME AS REFTABSCHEMA\n" +
+			"                       , TP.TABLENAME AS REFTABNAME\n" +
+			"                       , (CASE FK.DELETERULE \n" +
+			"                            WHEN 'R' THEN 'A'\n" +
+			"                            WHEN 'S' THEN 'R'\n" +
+			"                            WHEN 'C' THEN 'C'\n" +
+			"                            WHEN 'U' THEN 'N'\n" +
+			"                          END) AS DELETERULE\n" +
+			"                       , (CASE FK.UPDATERULE\n" +
+			"                            WHEN 'R' THEN 'A'\n" +
+			"                            WHEN 'S' THEN 'R'\n" +
+			"                          END) AS UPDATERULE\n" +
+			"                       , CAST(NULL AS TIMESTAMP) AS CREATE_TIME\n" +
+			"                       , FK.CONGLOMERATEID as FK_CONGLOMID\n" +
+			"                       , CC.TABLEID as FK_TABLEID\n" +
+			"                       , CP.TABLEID as PK_TABLEID\n" +
+			"                       , FK.KEYCONSTRAINTID as PK_CONSTRAINTID\n" +
+			"                  FROM --splice-properties joinOrder=fixed\n" +
+			"                       SYS.SYSFOREIGNKEYS FK\n" +
+			"                     , SYS.SYSCONSTRAINTS CC\n" +
+			"                     , SYS.SYSCONSTRAINTS CP\n" +
+			"                     , SYS.SYSTABLES TC\n" +
+			"                     , SYS.SYSTABLES TP\n" +
+			"                     , SYSVW.SYSSCHEMASVIEW VC\n" +
+			"                     , SYSVW.SYSSCHEMASVIEW VP\n" +
+			"                  WHERE FK.CONSTRAINTID = CC.CONSTRAINTID\n" +
+			"                    AND CC.TABLEID = TC.TABLEID\n" +
+			"                    AND CC.SCHEMAID = VC.SCHEMAID\n" +
+			"                    AND FK.KEYCONSTRAINTID = CP.CONSTRAINTID\n" +
+			"                    AND CP.TABLEID = TP.TABLEID\n" +
+			"                    AND CP.SCHEMAID = VP.SCHEMAID\n" +
+			"                ) U\n" +
+			"              , SYS.SYSCONGLOMERATES CONGLOMSC\n" +
+			"              , SYS.SYSCOLUMNS COLSC\n" +
+			"            WHERE U.FK_CONGLOMID = CONGLOMSC.CONGLOMERATEID\n" +
+			"              AND U.FK_TABLEID = COLSC.REFERENCEID\n" +
+			"              AND CASE WHEN CONGLOMSC.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMSC.DESCRIPTOR.getKeyColumnPosition(COLSC.COLUMNNUMBER) > 0) END\n" +
+			"            ORDER BY U.CONSTNAME, FKCOLS_ORD\n" +
+			"            ) V\n" +
+			"        GROUP BY V.CONSTNAME\n" +
+			"               , V.TABSCHEMA\n" +
+			"               , V.TABNAME\n" +
+			"               , V.REFKEYNAME\n" +
+			"               , V.REFTABSCHEMA\n" +
+			"               , V.REFTABNAME\n" +
+			"               , V.COLCOUNT\n" +
+			"               , V.DELETERULE\n" +
+			"               , V.UPDATERULE\n" +
+			"               , V.PK_TABLEID\n" +
+			"               , V.PK_CONSTRAINTID\n" +
+			"        ) W\n" +
+			"      , SYS.SYSPRIMARYKEYS PK\n" +
+			"      , SYS.SYSCONGLOMERATES CONGLOMSP\n" +
+			"      , SYS.SYSCOLUMNS COLSP\n" +
+			"    WHERE W.PK_CONSTRAINTID = PK.CONSTRAINTID\n" +
+			"      AND PK.CONGLOMERATEID = CONGLOMSP.CONGLOMERATEID\n" +
+			"      AND W.PK_TABLEID = COLSP.REFERENCEID\n" +
+			"      AND CASE WHEN CONGLOMSP.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMSP.DESCRIPTOR.getKeyColumnPosition(COLSP.COLUMNNUMBER) > 0) END\n" +
+			"    ORDER BY W.CONSTNAME, PKCOLS_ORD\n" +
+			"    ) X\n" +
+			"GROUP BY X.CONSTNAME\n" +
+			"       , X.TABSCHEMA\n" +
+			"       , X.TABNAME\n" +
+			"       , X.REFKEYNAME\n" +
+			"       , X.REFTABSCHEMA\n" +
+			"       , X.REFTABNAME\n" +
+			"       , X.COLCOUNT\n" +
+			"       , X.DELETERULE\n" +
+			"       , X.UPDATERULE\n" +
+			"       , X.FK_COLNAMES";
 }
