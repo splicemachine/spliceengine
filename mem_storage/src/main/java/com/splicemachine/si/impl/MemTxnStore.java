@@ -18,7 +18,11 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.api.txn.lifecycle.CannotRollbackException;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.data.StripedTxnLifecycleStore;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
@@ -48,6 +52,8 @@ import java.util.concurrent.locks.ReadWriteLock;
  */
 @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9968")
 public class MemTxnStore implements TxnStore{
+    private static final Logger LOG =Logger.getLogger(MemTxnStore.class);
+
     private LongStripedSynchronizer<ReadWriteLock> lockStriper;
     private final ConcurrentMap<Long, TxnHolder> txnMap;
     private final TimestampSource commitTsGenerator;
@@ -212,8 +218,9 @@ public class MemTxnStore implements TxnStore{
                     throw new MCannotRollbackException(txnId, originatorTxnId, String.format("transaction %d is already committed", txnId));
                 case ROLLEDBACK:
                     return;
-                default:
+                default: {
                     txnHolder.txn = getRolledbackTxn(txnId, txn);
+                }
             }
         } finally {
             lock.unlock();
@@ -296,6 +303,9 @@ public class MemTxnStore implements TxnStore{
                 for(long conflictingTxn : txnHolder.conflictingTxns) {
                     if(conflictingTxn == txnId) {
                         continue;
+                    }
+                    if(LOG.isEnabledFor(Level.WARN)) {
+                        SpliceLogUtils.warn(LOG, "transaction %d is going to rollback transaction %d", txnId, conflictingTxn);
                     }
                    rollback(conflictingTxn, txnId);
                 }

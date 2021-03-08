@@ -667,7 +667,7 @@ public class SITransactor implements Transactor{
     // Helpers
 
     private long[] getDataActiveTransactions(TxnView txn, Partition table, KVPair kvPair, TxnSupplier txnSupplier, DataCell cell) throws IOException {
-        if(shouldIgnoreConflicts(table)) {
+        if(shouldIgnoreConflictsInternal(table)) {
             if(LOG.isTraceEnabled()) {
                 LOG.trace(String.format("detection of conflicting data active txns ignored for txn %d as it affects table %s",
                                         txn.getTxnId(),
@@ -692,6 +692,7 @@ public class SITransactor implements Transactor{
             }
             // get the parent
             TxnView txnView = txnSupplier.getTransaction(dataTxnId);
+            long id = txnView.getTxnId();
             while(true) {
                 TxnView parent = txnView.getParentTxnView();
                 if(parent == Txn.ROOT_TRANSACTION) break;
@@ -700,20 +701,33 @@ public class SITransactor implements Transactor{
             Txn.State state = txnView.getState();
             if(state == Txn.State.ACTIVE) {
                 activeTx.add(txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
+                if(LOG.isTraceEnabled()) {
+                    String tableName = table.getTableName();
+                    if(table.getDescriptor() != null && table.getDescriptor().getValue("tableDisplayName") != null) {
+                        tableName = table.getDescriptor().getValue("tableDisplayName");
+                    }
+                    LOG.trace(String.format("transaction %d (%d) conflicts with %d on table %s on cell: key [%s] value [%s]",
+                                            txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK, id, txn.getTxnId(),
+                                            tableName, Arrays.toString(cell.key()), Arrays.toString(cell.value())));
+                }
             } else if(state == Txn.State.COMMITTED && txnView.getCommitTimestamp() > txn.getBeginTimestamp()) { // bail out
                 throwWriteWriteConflict(txn, cell, dataTxnId);
             }
         }
-        if(!activeTx.isEmpty()) {
-            LOG.warn("transaction " + txn + " conflicts with " + activeTx.toString() + " on table " + table.getTableName() + " on row " + cell);
-        }
+
         return Longs.toArray(activeTx);
     }
 
-    private boolean shouldIgnoreConflicts(Partition table) throws IOException {
-        return "SYSSTATEMENTS".equals(table.getDescriptor().getValue("tableDisplayName"))
-                && (table.getDescriptor().getValue("schemaDisplayName") == null
-                || table.getDescriptor().getValue("schemaDisplayName").equals("SYS"));
+    private static boolean shouldIgnoreConflictsInternal(Partition table) throws IOException {
+        String[] ignoredTables = new String[]{"SYSSTATEMENTS", "SYSCOLUMNS", "SYSDEPENDS"};
+        for(String ignoredTable : ignoredTables) {
+            if (ignoredTable.equals(table.getDescriptor().getValue("tableDisplayName"))
+                    && (table.getDescriptor().getValue("schemaDisplayName") == null
+                    || table.getDescriptor().getValue("schemaDisplayName").equals("SYS"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void throwWriteWriteConflict(TxnView updateTransaction, DataCell cell, long dataTransactionId) throws IOException {
