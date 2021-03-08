@@ -15,8 +15,13 @@
 
 package com.splicemachine.test;
 
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import org.apache.log4j.Logger;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +37,7 @@ public class Benchmark {
      */
 
     static final int MAXSTATS = 64;
+    static final boolean cumulative = true; // false - reset stats on every report
     static AtomicLongArray statsCnt = new AtomicLongArray(MAXSTATS);
     static AtomicLongArray statsSum = new AtomicLongArray(MAXSTATS);
     static AtomicLong nextReport = new AtomicLong(0);
@@ -71,12 +77,12 @@ public class Benchmark {
         StringBuilder sb = new StringBuilder().append("Statistics:");
         for (Map.Entry<String, Integer> entry : indexMap.entrySet()) {
             int idx = entry.getValue();
-            long count = statsCnt.getAndSet(idx, 0);
-            long time  = statsSum.getAndSet(idx, 0);
+            long count = cumulative ? statsCnt.get(idx) : statsCnt.getAndSet(idx, 0);
+            long time  = cumulative ? statsSum.get(idx) : statsSum.getAndSet(idx, 0);
             if (count != 0) {
                 long avg = (time + count / 2) / count;
                 sb.append("\n\t").append(entry.getKey());
-                sb.append("\tcalls: ").append(count);
+                sb.append("\tops: ").append(count);
                 sb.append("\ttime: ").append(time / 1000).append(" s");
                 sb.append("\tavg: ").append(avg).append(" ms");
             }
@@ -87,6 +93,27 @@ public class Benchmark {
     public static void resetStats() {
         reportStats();
         nextReport.set(0);
+        statsCnt = new AtomicLongArray(statsCnt.length());
+        statsSum = new AtomicLongArray(statsSum.length());
+    }
+
+    /*
+     *    Setup
+     */
+
+    public static void getInfo() throws Exception {
+        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
+            try (Statement statement = connection.createStatement()) {
+
+                statement.execute("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
+                ResultSet rs = statement.getResultSet();
+                while (rs.next()) {
+                    String host = rs.getString(1);
+                    String release = rs.getString(2);
+                    LOG.info("HOST: " + host + "  SPLICE: " + release);
+                }
+            }
+        }
     }
 
     /*

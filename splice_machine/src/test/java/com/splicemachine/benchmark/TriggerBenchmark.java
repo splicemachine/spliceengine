@@ -57,30 +57,7 @@ public class TriggerBenchmark extends Benchmark {
     @BeforeClass
     public static void setUp() throws Exception {
 
-        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
-            try (Statement statement = connection.createStatement()) {
-
-                statement.execute("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
-                ResultSet rs = statement.getResultSet();
-                while (rs.next()) {
-                    String host = rs.getString(1);
-                    String release = rs.getString(2);
-                    LOG.info("HOST: " + host + "  SPLICE: " + release);
-                }
-
-                LOG.info("Clean up");
-                try {
-                    statement.execute("DROP SCHEMA " + spliceSchemaWatcher.schemaName + " CASCADE");
-                }
-                catch (SQLException ex) {
-                    if (!ex.getSQLState().equals("42Y07")) {    // ignore if schema doesn't exist
-                        throw ex;
-                    }
-                }
-                statement.execute("CALL SYSCS_UTIL.VACUUM()");
-                statement.execute("CREATE SCHEMA " + spliceSchemaWatcher.schemaName);
-            }
-        }
+        getInfo();
 
         LOG.info("Create tables");
         testConnection = makeConnection();
