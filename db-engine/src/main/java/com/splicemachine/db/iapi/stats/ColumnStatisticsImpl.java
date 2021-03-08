@@ -30,16 +30,15 @@
  */
 package com.splicemachine.db.iapi.stats;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLDate;
-import com.splicemachine.db.iapi.types.SQLDouble;
-import com.splicemachine.db.iapi.types.SQLTime;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.*;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.memory.WritableMemory;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -111,7 +110,31 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        byte[] quantilesSketchBytes = quantilesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
+        byte[] frequenciesSketchBytes = frequenciesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
+        byte[] thetaSketchBytes = thetaSketch.toByteArray();
+
+        TypeMessage.ColumnStatisticsImpl columnStatistics = TypeMessage.ColumnStatisticsImpl.newBuilder()
+                .setNullCount(nullCount)
+                .setDvd(dvd.toProtobuf())
+                .setQuantilesSketch(ByteString.copyFrom(quantilesSketchBytes))
+                .setFrequenciesSketch(ByteString.copyFrom(frequenciesSketchBytes))
+                .setThetaSketch(ByteString.copyFrom(thetaSketchBytes))
+                .build();
+        ArrayUtil.writeByteArray(out, columnStatistics.toByteArray());
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeLong(nullCount);
         out.writeObject(dvd);
         byte[] quantilesSketchBytes = quantilesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
@@ -127,6 +150,30 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    protected void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        TypeMessage.ColumnStatisticsImpl columnStatistics =
+                TypeMessage.ColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
+
+        nullCount = columnStatistics.getNullCount();
+        dvd = ProtobufUtils.fromProtobuf(columnStatistics.getDvd());
+        byte[] quantiles = columnStatistics.getQuantilesSketch().toByteArray();
+        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(WritableMemory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
+        byte[] frequencies = columnStatistics.getFrequenciesSketch().toByteArray();
+        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(WritableMemory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
+        byte[] thetaSketchBytes = columnStatistics.getThetaSketch().toByteArray();
+        thetaSketch = Sketches.wrapSketch(WritableMemory.wrap(thetaSketchBytes));
+    }
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         nullCount = in.readLong();
         dvd = (DataValueDescriptor) in.readObject();
         byte[] quantiles = new byte[in.readInt()];

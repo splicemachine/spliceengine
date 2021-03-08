@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -450,7 +451,7 @@ public class CreateIndexNode extends DDLStatementNode
 
                 properties.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
 
             }
         }

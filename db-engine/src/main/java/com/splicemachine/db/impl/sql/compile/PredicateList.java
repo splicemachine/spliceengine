@@ -3566,6 +3566,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                         MethodBuilder mb,
                                         Optimizable optTable,
                                         boolean absolute) throws StandardException{
+        if (size() == 0) {
+            mb.pushNull("java.lang.String");
+            return;
+        }
         ExpressionClassBuilder acb=(ExpressionClassBuilder)acbi;
 
         String retvalType=ClassName.Qualifier+"[][]";

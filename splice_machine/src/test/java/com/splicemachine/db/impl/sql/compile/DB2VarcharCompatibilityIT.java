@@ -33,7 +33,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Collection;
 
-import static com.splicemachine.derby.utils.SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -102,18 +101,34 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                         row("SBVGCCC C", "  "),
                         row("SBVGCCC", "A ")))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table z (v1 int, v2 varchar(10))")
+                .withInsert("insert into z values(?,?)")
+                .withRows(rows(
+                        row(1, "a    "),
+                        row(1, "a        ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table y (v3 int, v4 varchar(10))")
+                .withInsert("insert into y values(?,?)")
+                .withRows(rows(
+                        row(1, "a    "),
+                        row(1, "a      ")))
+                .create();
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
-        spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
     }
 
     @AfterClass
     public static void exitDB2CompatibilityMode() throws Exception {
-        spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
     }
 
@@ -294,7 +309,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     @Test
     public void testInvalidateStoredStatements() throws Exception {
         // Turn off DB2 varchar compatibility mode.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         methodWatcher.executeUpdate("delete from t11");
         methodWatcher.executeUpdate("create trigger trig1\n" +
                                     "after insert on t1\n" +
@@ -306,7 +321,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("insert into t1 values (1, 'a     ')");
 
         // Turn on DB2 varchar compatibility mode.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
 
         // The following statement should cause all triggers to be recompiled
         // the next time they are fired.
@@ -334,7 +349,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
         methodWatcher.executeUpdate("drop trigger trig1");
         methodWatcher.executeUpdate("delete from t11");
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
 
         // Delete the rows we created so we don't impact other tests.
         methodWatcher.executeUpdate("delete from t1 where b = 'a     '");
@@ -342,7 +357,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 		methodWatcher.executeUpdate("insert into t11 select * from t1");
 
         // Restore the flag setting to the value when this test started.
-        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
     }
 
     @Test
@@ -479,5 +494,54 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         testPreparedQuery1(sqlTemplate, expected, false, true);
 
+    }
+
+    @Test
+    public void testSparkDistinct() throws Exception {
+        String query = format("select distinct v1, v2 from z --splice-properties useSpark=%s", useSpark);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |\n" +
+                    "--------\n" +
+                    " 1 | a |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        query = format("select distinct v1 from z --splice-properties useSpark=%s", useSpark);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            // test distinct fix on non-StringType column, should work
+            String expected = "V1 |\n" +
+                    "----\n" +
+                    " 1 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        query = format("select v1,v2,v3,v4\n" +
+                "from z --splice-properties useSpark=%s\n" +
+                ",y where v1=v3\n" +
+                "union\n" +
+                "select v1,v2,v3,v4 from z,y where v1=v3", useSpark);
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |V3 |V4 |\n" +
+                    "----------------\n" +
+                    " 1 | a | 1 | a |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        query = format("select v1,v2,v3,v4\n" +
+                "from z --splice-properties useSpark=%s\n" +
+                ",y where v2=v4\n" +
+                "union\n" +
+                "select v1,v2,v3,v4 from z,y where v2=v4", useSpark);
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
+            String expected = "V1 |V2 |V3 |V4 |\n" +
+                    "----------------\n" +
+                    " 1 | a | 1 | a |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 }

@@ -31,14 +31,13 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
@@ -55,7 +54,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.Locale;
 
 /**
  * SQLReal satisfies the DataValueDescriptor
@@ -224,20 +222,55 @@ public final class SQLReal
         return StoredFormatIds.SQL_REAL_ID;
     }
 
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-        out.writeFloat(value);
-    }
 
-    /** @see java.io.Externalizable#readExternal */
-    public void readExternal(ObjectInput in) throws IOException {
-        isNull = in.readBoolean();
-        value = in.readFloat();
-    }
     public void readExternalFromArray(ArrayInputStream in) throws IOException {
         isNull = in.readBoolean();
         value = in.readFloat();
     }
+
+
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
+		out.writeBoolean(isNull);
+		out.writeFloat(value);
+	}
+
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLReal.Builder builder = TypeMessage.SQLReal.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLReal)
+						.setExtension(TypeMessage.SQLReal.sqlReal, builder.build())
+						.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLReal sqlReal = dvd.getExtension(TypeMessage.SQLReal.sqlReal);
+		init(sqlReal);
+	}
+
+	public void init(TypeMessage.SQLReal sqlReal) {
+		isNull = sqlReal.getIsNull();
+		if (!isNull) {
+			value = sqlReal.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
+		value = in.readFloat();
+	}
 
     /**
      * @see Storable#restoreToNull
@@ -358,6 +391,9 @@ public final class SQLReal
         }
     }
 
+    public SQLReal(TypeMessage.SQLReal val) {
+        init(val);
+    }
     /**
         @exception StandardException thrown if string not accepted
      */

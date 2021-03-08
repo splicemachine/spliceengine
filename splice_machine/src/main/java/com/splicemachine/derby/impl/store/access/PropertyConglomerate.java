@@ -18,6 +18,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -108,7 +109,7 @@ public class PropertyConglomerate {
             serviceProperties.put(Property.LOCKS_ESCALATION_THRESHOLD, "500");
             serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
             serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
-            serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
+            serviceProperties.put(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
             serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
             for (Object key: serviceProperties.keySet()) {
                 propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
@@ -283,8 +284,7 @@ public class PropertyConglomerate {
         if (value != null) {
             // not a delete request, so insert the new property.
             row = makeNewTemplate(key, value);
-            try (ConglomerateController cc =
-                tc.openConglomerate(
+            try (ConglomerateController cc = tc.openConglomerate(
                     propertiesConglomId,
                     false,
                     TransactionController.OPENMODE_FORUPDATE,
@@ -703,6 +703,45 @@ public class PropertyConglomerate {
         // service properties lived in the past and it would have been difficult to update this file previously.
         // In the future, Splice may allow for updates to the service properties within ZooKeeper.
         return readServiceProperties(tc);
+    }
+
+    /**
+     * This function is invoked during an upgrade that changes serialization of splice:16 table. Data are read
+     * using old format and written in new format
+     * @param tc
+     * @throws StandardException
+     */
+    public void rewritePropertyConglomerate(TransactionController tc) throws StandardException {
+        // scan the table for a row with no matching "key"
+
+        List<DataValueDescriptor[]> rows = new ArrayList<>();
+        try (ScanController scan = openScan(tc, (String) null, 0)) {
+            DataValueDescriptor[] row = makeNewTemplate();
+            while (scan.fetchNext(row)) {
+                DataValueDescriptor[] clonedRow = makeNewTemplate();
+                for (int i = 0; i < row.length; ++i) {
+                    clonedRow[i] = row[i].cloneValue(true);
+                }
+                rows.add(clonedRow);
+            }
+        }
+
+        tc.snapshot(propertiesConglomId + "_snapshot", Long.toString(propertiesConglomId));
+        tc.truncate(Long.toString(propertiesConglomId));
+
+        try (ConglomerateController cc =
+                     tc.openConglomerate(
+                             propertiesConglomId,
+                             false,
+                             TransactionController.OPENMODE_FORUPDATE,
+                             TransactionController.MODE_TABLE,
+                             TransactionController.ISOLATION_SERIALIZABLE)) {
+            for (DataValueDescriptor[] row : rows) {
+                ExecRow vRow = new ValueRow();
+                vRow.setRowArray(row);
+                cc.insert(vRow);
+            }
+        }
     }
 }
 
