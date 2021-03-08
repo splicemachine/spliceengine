@@ -34,12 +34,12 @@ package com.splicemachine.db.catalog;
 /**
 
   * A Dependable is an in-memory representation of an object managed
-  *	by the Dependency System.
+  * by the Dependency System.
   * 
   * There are two kinds of Dependables:
   * Providers and Dependents. Dependents depend on Providers and
-  *	are responsible for executing compensating logic when their
-  *	Providers change.
+  * are responsible for executing compensating logic when their
+  * Providers change.
   * <P>
   * The fields represent the known Dependables.
   * <P>
@@ -50,77 +50,77 @@ package com.splicemachine.db.catalog;
   */
 public interface Dependable
 {
-	/*
-	  *	Universe of known Dependables.
-	  */
-
-	String ALIAS						= "Alias";
-	String CONGLOMERATE					= "Conglomerate";
-	String CONSTRAINT					= "Constraint";
-	String DEFAULT						= "Default";
-	String HEAP							= "Heap";
-	String INDEX						= "Index";
-	String PREPARED_STATEMENT 			= "PreparedStatement";
-	String ACTIVATION                   = "Activation";
-	String FILE                         = "File";
-	String STORED_PREPARED_STATEMENT	= "StoredPreparedStatement";
-	String TABLE						= "Table";
-	String COLUMNS_IN_TABLE				= "ColumnsInTable";
-	String TRIGGER						= "Trigger";
-	String VIEW							= "View";
-	String SCHEMA						= "Schema";
-	String TABLE_PERMISSION             = "TablePrivilege";
-	String SCHEMA_PERMISSION            = "SchemaPrivilege";
-	String COLUMNS_PERMISSION           = "ColumnsPrivilege";
-	String ROUTINE_PERMISSION           = "RoutinePrivilege";
-	String ROLE_GRANT                   = "RoleGrant";
+    /*
+    * Universe of known Dependables.
+    */
+    String ALIAS                        = "Alias";
+    String CONGLOMERATE                 = "Conglomerate";
+    String CONSTRAINT                   = "Constraint";
+    String DEFAULT                      = "Default";
+    String HEAP                         = "Heap";
+    String INDEX                        = "Index";
+    String PREPARED_STATEMENT           = "PreparedStatement";
+    String ACTIVATION                   = "Activation";
+    String FILE                         = "File";
+    String STORED_PREPARED_STATEMENT    = "StoredPreparedStatement";
+    String TABLE                        = "Table";
+    String COLUMNS_IN_TABLE             = "ColumnsInTable";
+    String TRIGGER                      = "Trigger";
+    String VIEW                         = "View";
+    String SCHEMA                       = "Schema";
+    String TABLE_PERMISSION             = "TablePrivilege";
+    String SCHEMA_PERMISSION            = "SchemaPrivilege";
+    String COLUMNS_PERMISSION           = "ColumnsPrivilege";
+    String ROUTINE_PERMISSION           = "RoutinePrivilege";
+    String ROLE_GRANT                   = "RoleGrant";
     String SEQUENCE                     = "Sequence";
     String PERM                         = "Perm";
+    String SPS_PROPERTY                 = "PreparedStatementProperty";
 
 
     /**
-	  *	Get an object which can be written to disk and which,
-	  *	when read from disk, will find or reconstruct this in-memory
-	  * Dependable.
-	  *
-	  *	@return		A Finder object that can be written to disk if this is a
-	  *					Persistent Dependable.
-	  *				Null if this is not a persistent dependable.
-	  */
-	DependableFinder	getDependableFinder();
+      * Get an object which can be written to disk and which,
+      * when read from disk, will find or reconstruct this in-memory
+      * Dependable.
+      *
+      * @return A Finder object that can be written to disk if this is a
+      * Persistent Dependable.
+      * Null if this is not a persistent dependable.
+      */
+    DependableFinder getDependableFinder();
 
 
-	/**
-	  *	Get the name of this Dependable OBJECT. This is useful
-	  *	for diagnostic messages.
-	  *
-	  *	@return	Name of Dependable OBJECT.
-	  */
-	String	getObjectName();
+    /**
+      * Get the name of this Dependable OBJECT. This is useful
+      * for diagnostic messages.
+      *
+      * @return Name of Dependable OBJECT.
+      */
+    String getObjectName();
 
 
-	/**
-	  *	Get the UUID of this Dependable OBJECT.
-	  *
-	  *	@return	UUID of this OBJECT.
-	  */
-	UUID	getObjectID();
+    /**
+      *    Get the UUID of this Dependable OBJECT.
+      *
+      *    @return    UUID of this OBJECT.
+      */
+    UUID getObjectID();
 
 
-	/**
-	  *	Return whether or not this Dependable is persistent. Persistent
-	  *	dependencies are stored in SYS.SYSDEPENDS.
-	  *
-	  *	@return	true if this Dependable is persistent.
-	  */
-	boolean	isPersistent();
+    /**
+      * Return whether or not this Dependable is persistent. Persistent
+      * dependencies are stored in SYS.SYSDEPENDS.
+      *
+      * @return true if this Dependable is persistent.
+      */
+    boolean isPersistent();
 
 
-	/**
-	  * Get the unique class id for the Dependable.
-	  *	Every Dependable belongs to a class of Dependables.
-	  *
-	  *	@return	type of this Dependable.
-	  */
-	String	getClassType();
+    /**
+      * Get the unique class id for the Dependable.
+      * Every Dependable belongs to a class of Dependables.
+      *
+      * @return type of this Dependable.
+      */
+    String getClassType();
 }

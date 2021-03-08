@@ -421,6 +421,9 @@ public class CastNode extends ValueNode
                 )
         { setNullability( true ); }
         else { setNullability(castOperand.getTypeServices().isNullable()); }
+
+        // after binding the cast node, check dependencies to SPS properties.
+        addSPSPropertyDependency();
     }
 
     /**
