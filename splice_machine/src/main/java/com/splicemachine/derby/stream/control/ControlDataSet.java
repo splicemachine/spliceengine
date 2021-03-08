@@ -518,6 +518,9 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new UnsupportedOperationException("Not Implemented in Control Side");
     }
 
+    public DataSet<Tuple2<V, Tuple2<V,V>>> cartesianProduct(OperationContext context, DataSet<V> rightDataSet) {
+        throw new UnsupportedOperationException("Not Implemented in Control Side");
+    }
 
     /**
      * Window Function. Take a WindowContext that define the partition, the order, and the frame boundary.

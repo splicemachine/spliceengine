@@ -25,6 +25,7 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
+import scala.Tuple2;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -280,6 +281,7 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet, Broadcast type) throws StandardException;
 
+    DataSet<Tuple2<V, Tuple2<V,V>>> cartesianProduct(OperationContext context, DataSet<V> rightDataSet) throws StandardException;
     /**
      *  Window Function abstraction. Take a window context that defines the the partition, the sorting , the frame boundary
      *  and the differents functions

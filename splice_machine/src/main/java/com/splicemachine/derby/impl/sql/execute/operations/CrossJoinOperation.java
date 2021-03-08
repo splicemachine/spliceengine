@@ -135,9 +135,10 @@ public class CrossJoinOperation extends JoinOperation{
             if (isOuterJoin() || isAntiJoin() || isInclusionJoin()) {
                 throw new UnsupportedOperationException("Cross join shouldn't be run on outer join or anti join");
             }
-            if (this.leftHashKeys.length != 0)
-                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, noCacheBroadcastJoinRight))
+            if (this.leftHashKeys.length != 0) {
+                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext, this.leftHashKeys));
+            }
+            result = leftDataSet.cartesianProduct(operationContext, rightDataSet)
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

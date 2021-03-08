@@ -62,6 +62,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -704,6 +705,12 @@ public class SparkDataSet<V> implements DataSet<V> {
         OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
         return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet, type);
+    }
+
+    public DataSet<Tuple2<V, Tuple2<V,V>>> cartesianProduct(OperationContext context, DataSet<V> rightDataSet) {
+        JavaRDD<V> cachedLeft = rdd.persist(StorageLevel.DISK_ONLY());
+        JavaRDD cachedRight = ((SparkDataSet)rightDataSet).rdd.persist(StorageLevel.DISK_ONLY());
+        return new SparkDataSet<>(cachedLeft.cartesian(cachedRight).map(new SparkExtractKey()), "cartesianProduct");
     }
 
     /**

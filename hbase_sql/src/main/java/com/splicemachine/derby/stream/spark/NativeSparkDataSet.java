@@ -975,6 +975,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    public DataSet<Tuple2<V, Tuple2<V, V>>> cartesianProduct(OperationContext context, DataSet<V> rightDataSet) throws StandardException {
+        return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, null, context)).cartesianProduct(context, rightDataSet);
+    }
+
     /**
      * Take a Splice DataSet and  convert to a Spark Dataset
      * doing a map

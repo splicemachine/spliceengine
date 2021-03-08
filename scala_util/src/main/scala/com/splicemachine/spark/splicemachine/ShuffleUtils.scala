@@ -38,4 +38,8 @@ object ShuffleUtils {
   def shuffleSplice(rdd: JavaRDD[ExecRow]): JavaRDD[ExecRow] = {
     new JavaRDD(new ShuffledPartitionsRDD(rdd))
   }
+
+  def concatSeq(seq1: Seq[Object], seq2: Seq[Object]): Seq[Object] = {
+    seq1 ++ seq2
+  }
 }
