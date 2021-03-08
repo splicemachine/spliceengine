@@ -56,6 +56,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -142,7 +143,8 @@ public class GenericStatement implements Statement{
         boolean recompile=false;
         try{
             return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
-        } catch(StandardException se){
+        } catch(Throwable t){
+            StandardException se = StandardException.getOrWrap(t);
             // There is a chance that we didn't see the invalidation
             // request from a DDL operation in another thread because
             // the statement wasn't registered as a dependent until
@@ -429,12 +431,12 @@ public class GenericStatement implements Statement{
             if (internalSQL)
                 cc.setCompilingTrigger(true);
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
-        }catch(StandardException se){
+        } catch (Throwable e) {
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-
-            throw se;
-        }finally{
+            throw StandardException.getOrWrap(e);
+        }
+        finally{
             synchronized(preparedStmt){
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
@@ -838,7 +840,6 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-
                 bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
@@ -862,10 +863,12 @@ public class GenericStatement implements Statement{
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
             return qt;
-        } catch (StandardException e) {
-            lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
-            throw e;
-        }  finally{ // for block introduced by pushCompilerContext()
+        } catch (Throwable e) {
+            StandardException se = StandardException.getOrWrap(e);
+            lcc.logErrorCompiling(getSource(), se, System.nanoTime() - startTime);
+            throw se;
+        }
+        finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
             lcc.setHasJoinStrategyHint(false);
             if (boundAndOptimizedStatement == null)
@@ -987,9 +990,9 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-        }catch(StandardException se){
+        }catch(Throwable t){
             lcc.commitNestedTransaction();
-            throw se;
+            throw StandardException.getOrWrap(t);
         }
     }
 
