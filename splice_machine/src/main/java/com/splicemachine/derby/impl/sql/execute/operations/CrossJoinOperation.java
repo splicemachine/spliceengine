@@ -139,6 +139,7 @@ public class CrossJoinOperation extends JoinOperation{
                 leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext, this.leftHashKeys));
             }
             result = leftDataSet.cartesianProduct(operationContext, rightDataSet)
+                    .filter(new HashRestrictionFunction(operationContext))
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

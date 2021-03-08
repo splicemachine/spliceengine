@@ -35,6 +35,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 
 /**
 	Basic implementation of ExecIndexRow.
@@ -112,4 +116,23 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 	public ValueRow cloneMe() {
 		return new IndexRow(nColumns());
 	}
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(orderedNulls.length);
+        for(boolean b : orderedNulls) {
+            out.writeBoolean(b);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        int len = in.readInt();
+        orderedNulls = new boolean[len];
+        for (int i = 0; i < len; ++i) {
+            orderedNulls[i] = in.readBoolean();
+        }
+    }
 }
