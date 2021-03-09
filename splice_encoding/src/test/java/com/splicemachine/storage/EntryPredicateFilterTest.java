@@ -54,8 +54,7 @@ public class EntryPredicateFilterTest {
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
 
-        boolean match = predicateFilter.match(decoder, accumulator);
-        Assert.assertTrue("did not match!",match);
+        predicateFilter.match(decoder, accumulator);
 
         //make sure this row only returns back testTyp1
         byte[] retBytes = accumulator.finish();
@@ -113,8 +112,7 @@ public class EntryPredicateFilterTest {
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
 
-        boolean match = predicateFilter.match(decoder, accumulator);
-        Assert.assertTrue("did not match!",match);
+        predicateFilter.match(decoder, accumulator);
 
         //make sure this row only returns back testTyp1
         byte[] retBytes = accumulator.finish();

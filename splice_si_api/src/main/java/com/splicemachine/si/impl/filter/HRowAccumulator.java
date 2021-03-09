@@ -53,10 +53,8 @@ public class HRowAccumulator implements RowAccumulator{
     @Override
     public boolean accumulateCell(DataCell value) throws IOException{
         bytesAccumulated+=value.encodedLength();
-        boolean pass = predicateFilter.match(decoder, entryAccumulator);
-        if(!pass)
-            entryAccumulator.reset();
-        return pass;
+        predicateFilter.match(decoder, entryAccumulator);
+        return true;
     }
 
     @Override

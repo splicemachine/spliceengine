@@ -67,18 +67,19 @@ public class RegionDataScanner implements DataScanner{
     }
 
     @Override
-    public @Nonnull List<DataCell> next(int limit) throws IOException{
-        if(internalList==null)
-            internalList = new ArrayList<>(limit>0?limit:10);
+    public @Nonnull List<DataCell> next(int limit) throws IOException {
+        if (internalList == null)
+            internalList = new ArrayList<>(limit > 0 ? limit : 10);
         internalList.clear();
         readTimer.startTiming();
         delegate.next(internalList);
-        if(!internalList.isEmpty()){
+        if (!internalList.isEmpty()) {
             readTimer.tick(1);
             collectMetrics(internalList);
-        }else
+        } else {
             readTimer.stopTiming();
-        return Lists.transform(internalList,transform);
+        }
+        return Lists.transform(internalList, transform);
     }
 
 

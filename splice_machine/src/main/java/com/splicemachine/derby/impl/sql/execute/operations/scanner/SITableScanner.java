@@ -198,33 +198,33 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     @Override
     public ExecRow next() throws StandardException, IOException {
         SIFilter filter = getSIFilter();
-        do{
+        do {
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
-            List<DataCell> keyValues=regionScanner.next(-1);
-            if(keyValues.size()<=0){
+            List<DataCell> keyValues = regionScanner.next(-1);
+            if (keyValues.size() <= 0) {
                 currentRowLocation = null;
                 return null;
-            }else{
+            } else {
                 DataCell currentKeyValue = keyValues.get(0);
-                if(template.nColumns()>0){
-                    if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
-                        //filter the row first, then filter the row key
+                if (template.nColumns() > 0) {
+                    if (!filterRowKey(currentKeyValue) || !filterRow(filter, keyValues)) {
+                        //filter the row first, then filter the row key (shouldn't this comment be:filter the row key, then filter the row)
                         filterCounter.increment();
                         continue;
                     }
-                }else if(!filterRow(filter,keyValues)){
+                } else if (!filterRow(filter, keyValues)) {
                     //still need to filter rows to deal with transactional issues
                     filterCounter.increment();
                     continue;
                 } else {
                     if (LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
+                        SpliceLogUtils.trace(LOG, "miss columns=%d", template.nColumns());
                 }
                 //fill the unpopulated non-null columns with default values
                 if (defaultRow != null && defaultValueMap != null) {
-                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
-                        if (template.getColumn(i+1).isNull())
-                            template.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    for (int i = defaultValueMap.anySetBit(); i >= 0; i = defaultValueMap.anySetBit(i)) {
+                        if (template.getColumn(i + 1).isNull())
+                            template.setColumn(i + 1, defaultRow.getColumn(i + 1).cloneValue(false));
                     }
                 }
                 measureOutputSize(keyValues);
@@ -233,7 +233,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 template.setKey(currentRowLocation.getBytes());
                 return template;
             }
-        }while(true); //TODO -sf- this doesn't seem quite right
+        } while (true); //TODO -sf- this doesn't seem quite right
     }
 
     public long getBytesOutput(){
@@ -293,8 +293,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return regionScanner;
     }
 
-    /*********************************************************************************************************************/
-		/*Private helper methods*/
+    /********************************* Private helper methods *********************************************************/
+
     private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint,
                                                 boolean ignoreRecentTransactions) {
         TxnView txnView = txn;
@@ -398,41 +398,24 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     protected void setRowLocation(DataCell sampleKv) throws StandardException {
+        /*
+         * If indexName !=null, then we are currently scanning an index,
+         * so our RowLocation should point to the main table, and not to the
+         * index (that we're actually scanning)
+         */
         if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
-            /*
-			 * If indexName !=null, then we are currently scanning an index,
-			 * so our RowLocation should point to the main table, and not to the
-			 * index (that we're actually scanning)
-			 */
-            if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
-                currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
-            } else {
-                if (entryDecoder == null)
-                    entryDecoder = new EntryDecoder();
-                entryDecoder.set(sampleKv.valueArray(), sampleKv.valueOffset(), sampleKv.valueLength());
-
-                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                byte[] bytes = decoder.decodeNextBytesUnsorted();
-                if (reuseRowLocation) {
-                    slice.set(bytes);
-                } else {
-                    slice = ByteSlice.wrap(bytes);
-                }
-                if (currentRowLocation == null || !reuseRowLocation)
-                    currentRowLocation = new HBaseRowLocation(slice);
-                else
-                    currentRowLocation.setValue(slice);
-            }
+            currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
         } else {
             if (reuseRowLocation) {
                 slice.set(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
             } else {
                 slice = ByteSlice.wrap(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
             }
-            if(currentRowLocation==null || !reuseRowLocation)
+            if(currentRowLocation==null || !reuseRowLocation) {
                 currentRowLocation = new HBaseRowLocation(slice);
-            else
+            } else {
                 currentRowLocation.setValue(slice);
+            }
         }
     }
 
@@ -451,6 +434,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                     return false; //failed the predicate
                 case SKIP:
                     numCells--;
+                case INCLUDE: // fallthrough
+                case INCLUDE_AND_NEXT_COL: // fallthrough
                 default:
                     //these are okay--they mean the encoding is good
             }
@@ -461,12 +446,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private boolean filterRowKey(DataCell data) throws IOException {
         if(!isKeyed) return true;
         keyDecoder.set(data.keyArray(), data.keyOffset(), data.keyLength());
-        if(keyAccumulator==null)
-            keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
-                    keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
+        if(keyAccumulator==null) {
+            keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template,
+                                                               keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
+        }
         keyAccumulator.reset();
         primaryKeyIndex.reset();
-        return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
+        predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
+        return true;
     }
 
     private class KeyIndex implements Indexed{
