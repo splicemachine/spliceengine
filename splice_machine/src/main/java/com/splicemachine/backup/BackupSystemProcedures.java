@@ -739,7 +739,8 @@ public class BackupSystemProcedures {
 
 //<<<<<<< Updated upstream
             try {
-                SIDriver.driver().lifecycleManager().commit(txn.getTxnId());
+                //SIDriver.driver().lifecycleManager().commit(txn.getTxnId());
+                txn.commit();
             } catch (IOException e) {
                 // ignore
             }
@@ -752,7 +753,8 @@ public class BackupSystemProcedures {
             SpliceLogUtils.error(LOG, "Database rollback error", t);
             t.printStackTrace();
             try {
-                SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
+                //SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
+                txn.rollback();
             } catch (IOException e) {
                 // ignore
             }
