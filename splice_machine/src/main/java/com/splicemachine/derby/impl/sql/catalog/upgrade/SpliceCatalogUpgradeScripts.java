@@ -115,11 +115,11 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2001, UpgradeScriptForViews.ChangingGetKeyColumnPosition(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, UpgradeScriptForViews.changingGetKeyColumnPosition(sdd, tc));
         addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
         addUpgradeScript(baseVersion4, 2004, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.FixSYSCOLPERMSVIEW(sdd, tc));
-        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.AddViewsDB_11267(sdd, tc));
+        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.fixSYSCOLPERMSVIEW(sdd, tc));
+        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.addViewsDB11267(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 

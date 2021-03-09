@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -25,11 +26,12 @@ import java.util.List;
  */
 public class UpgradeScriptForViews {
     static public class UpgradeScriptForViewsInternal extends UpgradeScriptBase {
-        String[] views;
-        String name;
+        final String[] views;
+        final String name;
 
+        @SuppressFBWarnings("EI_EXPOSE_REP2")
         public UpgradeScriptForViewsInternal(String name, String[] views,
-                                     SpliceDataDictionary sdd, TransactionController tc) {
+                                             SpliceDataDictionary sdd, TransactionController tc) {
             super(sdd, tc);
             this.views = views;
             this.name = name;
@@ -49,7 +51,7 @@ public class UpgradeScriptForViews {
         }
     }
 
-    public static UpgradeScriptBase ChangingGetKeyColumnPosition(SpliceDataDictionary sdd, TransactionController tc) {
+    public static UpgradeScriptBase changingGetKeyColumnPosition(SpliceDataDictionary sdd, TransactionController tc) {
         return new UpgradeScriptForViewsInternal("ChangingGetKeyColumnPosition", new String[]{
                     "SYSIBM.SYSCOLUMNS",
                     "SYSCAT.INDEXCOLUSE",
@@ -59,14 +61,14 @@ public class UpgradeScriptForViews {
     }
 
     // DB-11610 fix NPE in select * from sysvw.SYSCOLPERMSVIEW
-    public static UpgradeScriptBase FixSYSCOLPERMSVIEW(SpliceDataDictionary sdd, TransactionController tc) {
+    public static UpgradeScriptBase fixSYSCOLPERMSVIEW(SpliceDataDictionary sdd, TransactionController tc) {
         return new UpgradeScriptForViewsInternal("FixSYSCOLPERMSVIEW", new String[]{
                     "SYSVW.SYSCOLPERMSVIEW"
             }, sdd, tc);
     }
 
     // newly created for DB-11267
-    public static UpgradeScriptBase AddViewsDB_11267(SpliceDataDictionary sdd, TransactionController tc) {
+    public static UpgradeScriptBase addViewsDB11267(SpliceDataDictionary sdd, TransactionController tc) {
         return new UpgradeScriptForViewsInternal("AddViewsDB_11267", new String[]{
                 "SYSVW.SYSCONGLOMERATESVIEW",
                 "SYSVW.SYSDEPENDSVIEW",

@@ -421,7 +421,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
         return cdsl;
     }
 
-    public static Pair<Integer, String> SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = new Pair<Integer, String>(0,
+    final public static Pair<Integer, String> SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = new Pair<>(0,
             "create view SYSCONGLOMERATEINSCHEMAS as \n" +
             "SELECT C.CONGLOMERATENUMBER, C.CONGLOMERATENAME, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
             "C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
@@ -440,8 +440,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             };
     }
 
-    final public static int SYSCAT_INDEXCOLUSE_VIEW_SQL_INDEX = 1;
-    public static Pair<Integer, String> SYSCAT_INDEXCOLUSE_VIEW_SQL = new Pair<Integer, String>(1,
+    final public static Pair<Integer, String> SYSCAT_INDEXCOLUSE_VIEW_SQL = new Pair<>(1,
             "    SELECT  \n" +
             "           S.SCHEMANAME AS INDSCHEMA, \n" +
             "           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
@@ -498,10 +497,9 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             };
     }
 
-    final public static int SYSIBM_SYSINDEXES_VIEW_SQL_INDEX = 2;
     // Reference:
     // https://www.ibm.com/support/knowledgecenter/SSEPEK_12.0.0/cattab/src/tpc/db2z_sysibmsysindexestable.html
-    public static Pair<Integer, String> SYSIBM_SYSINDEXES_VIEW_SQL = new Pair<Integer, String>(2,
+    final public static Pair<Integer, String> SYSIBM_SYSINDEXES_VIEW_SQL = new Pair<>(2,
             "create view SYSINDEXES as \n" +
             "SELECT \n" +
             "  C.CONGLOMERATENAME AS NAME, \n" +
@@ -545,8 +543,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     }
 
     final public static int SYSVW_SYSCONGLOMERATES_INDEX = 3;
-    final public static Pair<Integer, String> SYSVW_SYSCONGLOMERATES_SQL =
-            new Pair<Integer, String>(3,
+    final public static Pair<Integer, String> SYSVW_SYSCONGLOMERATES_SQL = new Pair<>(3,
                     "create view SYSCONGLOMERATESVIEW as SELECT " +
                     "SCHEMAID, " +
                     "TABLEID, " +
