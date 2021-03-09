@@ -207,18 +207,15 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             } else {
                 DataCell currentKeyValue = keyValues.get(0);
                 if (template.nColumns() > 0) {
-                    if (!filterRowKey(currentKeyValue) || !filterRow(filter, keyValues)) {
-                        //filter the row first, then filter the row key (shouldn't this comment be:filter the row key, then filter the row)
-                        filterCounter.increment();
-                        continue;
-                    }
+                    filterRowKey(currentKeyValue); // filter the row key, then filter the row
                 } else if (!filterRow(filter, keyValues)) {
                     //still need to filter rows to deal with transactional issues
                     filterCounter.increment();
                     continue;
                 } else {
-                    if (LOG.isTraceEnabled())
+                    if (LOG.isTraceEnabled()) {
                         SpliceLogUtils.trace(LOG, "miss columns=%d", template.nColumns());
+                    }
                 }
                 //fill the unpopulated non-null columns with default values
                 if (defaultRow != null && defaultValueMap != null) {
@@ -443,8 +440,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return numCells > 0 && filter.getAccumulator().result() != null;
     }
 
-    private boolean filterRowKey(DataCell data) throws IOException {
-        if(!isKeyed) return true;
+    private void filterRowKey(DataCell data) throws IOException {
+        if(!isKeyed) {
+            return;
+        }
         keyDecoder.set(data.keyArray(), data.keyOffset(), data.keyLength());
         if(keyAccumulator==null) {
             keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template,
@@ -453,7 +452,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         keyAccumulator.reset();
         primaryKeyIndex.reset();
         predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
-        return true;
     }
 
     private class KeyIndex implements Indexed{
