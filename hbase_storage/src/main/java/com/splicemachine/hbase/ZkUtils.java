@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -87,6 +88,23 @@ public class ZkUtils{
         }catch(KeeperException e){
             if(e.code()==KeeperException.Code.NODEEXISTS){
                 //it's already been created, so nothing to do
+                return true;
+            }
+            throw e;
+        }
+    }
+
+    public static boolean createOrUpdate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode)
+            throws KeeperException, InterruptedException {
+        try{
+            getRecoverableZooKeeper().create(path,bytes,acls,createMode);
+            return true;
+        }catch(KeeperException e){
+            if(e.code()==KeeperException.Code.NODEEXISTS){
+                // update the value if needed
+                if (!Arrays.equals(getRecoverableZooKeeper().getData(path, false, null), bytes)) {
+                    getRecoverableZooKeeper().setData(path, bytes, -1);
+                }
                 return true;
             }
             throw e;

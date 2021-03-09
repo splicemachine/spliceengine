@@ -351,7 +351,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)
                 cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
 
-        if (rtc != null)
+        if (rtc != null && rtc.getTransactionManager().getActiveStateTxId() == id)
             return rtc.getTransactionManager(); //we already have a transaction from the context
 
         if (LOG.isDebugEnabled())
