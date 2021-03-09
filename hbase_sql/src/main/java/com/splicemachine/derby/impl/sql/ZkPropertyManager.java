@@ -68,7 +68,7 @@ public class ZkPropertyManager implements PropertyManager{
     @Override
     public void addProperty(String propertyName,String propertyValue) throws StandardException{
         try{
-            ZkUtils.safeCreate(zkSpliceDerbyPropertyPath+"/"+propertyName,Bytes.toBytes(propertyValue),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            ZkUtils.createOrUpdate(zkSpliceDerbyPropertyPath+"/"+propertyName,Bytes.toBytes(propertyValue),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

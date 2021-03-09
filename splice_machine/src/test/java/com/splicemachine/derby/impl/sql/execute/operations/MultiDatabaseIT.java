@@ -70,9 +70,9 @@ public class MultiDatabaseIT extends SpliceUnitTest {
     };
     protected static SpliceDatabaseWatcher otherDbOwnerNotSpliceWatcher = new SpliceDatabaseWatcher(OTHER_DB_OWNER_NOT_SPLICE, OTHER_DB_OWNER_NOT_SPLICE);
     protected static SpliceDatabaseWatcher otherDbWatcher = new SpliceDatabaseWatcher(OTHER_DB);
-    protected static SpliceSchemaWatcher spliceDbSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    protected static SpliceSchemaWatcher spliceDbSchemaWatcher = new SpliceSchemaWatcher((String)null, SCHEMA);
     protected static SpliceSchemaWatcher otherDbSchemaWatcher = new SpliceSchemaWatcher(OTHER_DB, SCHEMA);
-    protected static SpliceSchemaWatcher otherDbOwnerNotSpliceSchemaWatcher = new SpliceSchemaWatcher(OTHER_DB_OWNER_NOT_SPLICE, SCHEMA, OTHER_DB_OWNER_NOT_SPLICE);
+    protected static SpliceSchemaWatcher otherDbOwnerNotSpliceSchemaWatcher = new SpliceSchemaWatcher(SpliceNetConnection.newBuilder().database(OTHER_DB_OWNER_NOT_SPLICE).user(OTHER_DB_OWNER_NOT_SPLICE), SCHEMA);
 
     protected static TestConnection spliceDbConn;
     protected static TestConnection otherDbConn;
@@ -86,7 +86,6 @@ public class MultiDatabaseIT extends SpliceUnitTest {
             .around(spliceDbSchemaWatcher)
             .around(otherDbSchemaWatcher)
             .around(otherDbOwnerNotSpliceSchemaWatcher);
-            ;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();

@@ -89,7 +89,7 @@ public class SYSDATABASESRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    SYSDATABASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+    public SYSDATABASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
         super(uuidf,ef,dvf, dd);
         initInfo(SYSDATABASES_COLUMN_COUNT, TABLENAME_STRING,

@@ -31,6 +31,7 @@ public class SpliceCatalogUpgradeScripts{
 
     SpliceDataDictionary sdd;
     TransactionController tc;
+    Properties startParams;
 
     List<VersionAndUpgrade> scripts;
 
@@ -71,9 +72,10 @@ public class SpliceCatalogUpgradeScripts{
     static final public Splice_DD_Version baseVersion3 = new Splice_DD_Version(null, 3, 1, 0);
     static final public Splice_DD_Version baseVersion4 = new Splice_DD_Version(null, 3, 2, 0);
 
-    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc){
+    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc, Properties startParams){
         this.sdd=sdd;
         this.tc=tc;
+        this.startParams = startParams;
 
         scripts = new ArrayList<>();
         // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
@@ -114,6 +116,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForChangingGetKeyColumnPosition(sdd, tc));
+        addUpgradeScript(baseVersion4, 2002, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX(arnaud, multidb) change version here
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }

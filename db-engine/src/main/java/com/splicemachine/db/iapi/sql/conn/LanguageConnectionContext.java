@@ -1217,7 +1217,13 @@ public interface LanguageConnectionContext extends Context {
     void setCurrentRole(Activation a, String role);
 
     /**
-     * Set the current role
+     * Set the current roles
+     * @param roles  the list of roles to be set to current
+     */
+    public void setCurrentRoles(List<String> roles);
+
+    /**
+     * Set the current roles
      *  @param a activation of set role statement
      * @param roles  the list of roles to be set to current
      */

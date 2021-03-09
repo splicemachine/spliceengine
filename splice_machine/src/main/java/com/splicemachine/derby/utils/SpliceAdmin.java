@@ -2902,7 +2902,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-            dd.createOrUpdateAllSystemProcedures(null, tc);
+            dd.createOrUpdateAllSystemProcedures(lcc.getCurrentDatabase(), tc);
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
