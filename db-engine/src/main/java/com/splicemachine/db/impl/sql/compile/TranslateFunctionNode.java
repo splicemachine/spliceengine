@@ -103,11 +103,6 @@ public class TranslateFunctionNode extends OperatorNode {
             throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "TRANSLATE(op, outputTranslationTable) not implemented");
         }
 
-        for (int i = 0; i < 3; ++i) {
-            if (operands.get(i).requiresTypeFromContext()) {
-                castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-            }
-        }
         for (int i = 1; i < 3; ++i) {
             if (operands.get(i).getTypeId().isBitTypeId()) {
                 castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, operands.get(i).getTypeServices().getMaximumWidth()));
