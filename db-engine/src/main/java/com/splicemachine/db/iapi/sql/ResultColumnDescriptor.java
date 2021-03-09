@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -133,4 +134,8 @@ public interface ResultColumnDescriptor
 	 * isWritable()). The JDBC driver implements these itself, using
 	 * the data type information and knowing data type characteristics.
 	 */
+
+	default CatalogMessage.ResultColumnDescriptor toProtobuf() {
+		throw new RuntimeException("toProtobuf() not implemented");
+	}
 }

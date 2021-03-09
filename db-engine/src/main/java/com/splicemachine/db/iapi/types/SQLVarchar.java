@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -47,9 +48,7 @@ import java.text.RuleBasedCollator;
  * subclass of SQLChar.  Only those methods with different behavior are
  * implemented here.
  */
-public class SQLVarchar
-	extends SQLChar
-{
+public class SQLVarchar extends SQLChar {
 
 	/*
 	 * DataValueDescriptor interface.
@@ -138,6 +137,9 @@ public class SQLVarchar
 		super(val);
 	}
 
+	public SQLVarchar(TypeMessage.SQLChar sqlChar) {
+		init(sqlChar);
+	}
     /**
      * <p>
      * This is a special constructor used when we need to represent a password

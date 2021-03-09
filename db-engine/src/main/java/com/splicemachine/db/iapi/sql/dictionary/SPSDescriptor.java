@@ -867,7 +867,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                 dm.invalidateFor(this, DependencyManager.USER_RECOMPILE_REQUEST, lcc);
                 break;
             case DependencyManager.DROP_SPS:
-                //System.out.println("SPSD " + preparedStatement);
                 dm.clearDependencies(lcc, this);
                 break;
 

@@ -288,6 +288,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     public void fetchWithoutQualify() throws StandardException{
         try{
             if(currentRow!=null){
+                currentRow.resetRowArray();
                 try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, scanColumnList, serializers)) {
                     DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
                     decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));

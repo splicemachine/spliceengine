@@ -49,6 +49,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -504,8 +505,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[8].setValue(ex.getTotalCompletedTasks());
                         dvds[9].setValue(ex.getTotalRejectedTasks());
                         dvds[10].setValue(ex.getTotalScheduledTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -546,8 +547,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[4].setValue(ex.getMissRate());
                         dvds[5].setValue(ex.getHitCount());
                         dvds[6].setValue(ex.getHitRate());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -559,8 +560,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, MANAGED_CACHE_COLUMNS,lastActivation);
                 try {
                     resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
+                } catch(Throwable t) {
+                    throw PublicAPI.wrapThrowable(t);
                 }
                 EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
                 resultSet[0] = ers;
@@ -682,8 +683,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             configMap.clear();
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1373,9 +1374,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            // we need to invalidate the statement caches since we could set parameters that affect query plans.
-            SYSCS_INVALIDATE_STORED_STATEMENTS();
-            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
 
             ResultHelper resultHelper = new ResultHelper();
 
@@ -1860,9 +1858,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
                 }
 
-                admin.disableTable("splice:" + conglomerateNumber);
+                admin.disableTable(Long.toString(conglomerateNumber));
                 admin.restoreSnapshot(sname);
-                admin.enableTable("splice:" + conglomerateNumber);
+                admin.enableTable(Long.toString(conglomerateNumber));
                 dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
                 SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
                         conglomerateNumber, creationTime, lastRestoreTime);
@@ -1898,7 +1896,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
             SnapshotDescriptor descriptor =
                     new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
-            admin.snapshot(sname, "splice:" + conglomerateNumber);
+            admin.snapshot(sname, Long.toString(conglomerateNumber));
             dd.addSnapshot(descriptor, tc);
             snapshotList.add(sname);
             if (LOG.isDebugEnabled())
