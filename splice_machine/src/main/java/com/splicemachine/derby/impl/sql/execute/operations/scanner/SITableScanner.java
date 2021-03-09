@@ -328,7 +328,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              * but we have to transactionally resolve anyway, for instance if the field we are actually interested
                              * in is on the rowkey.
                              */
-                            if (keyValue.dataType() == CellType.USER_DATA  && (!accumulator.isInteresting(keyValue) || accumulator.isFinished()) && keyIncluded){
+                            if (keyValue.dataType() == CellType.USER_DATA  && keyIncluded && (accumulator.isFinished() || !accumulator.isInteresting(keyValue))){
                                 return ReturnCode.INCLUDE;
                             }
                             return super.filterCell(keyValue);
