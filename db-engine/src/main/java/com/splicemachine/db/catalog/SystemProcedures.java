@@ -51,6 +51,7 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 
@@ -717,9 +718,9 @@ public class SystemProcedures{
             query=query+" update statistics "+IdUtil.normalToDelimited(indexname);
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -802,9 +803,9 @@ public class SystemProcedures{
 
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -1060,9 +1061,9 @@ public class SystemProcedures{
 
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -1357,6 +1358,7 @@ public class SystemProcedures{
      *
      * @throws StandardException Standard exception policy.
      **/
+    @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
     public static void SYSCS_BULK_INSERT(
             String schemaName,
             String tableName,
@@ -1383,9 +1385,9 @@ public class SystemProcedures{
                         StringUtil.quoteStringLiteral(vtiArg)+")"+
                         " as t";
 
-        PreparedStatement ps=conn.prepareStatement(binsertSql);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(binsertSql)) {
+            ps.executeUpdate();
+        }
     }
 
     /**
@@ -1501,6 +1503,7 @@ public class SystemProcedures{
      *
      * @return a random number
      */
+    @SuppressFBWarnings(value="DMI_RANDOM_USED_ONLY_ONCE", justification = "FIX: DB-10207")
     public static double RAND(int seed){
         return (new Random(seed)).nextDouble();
     }
@@ -2065,8 +2068,7 @@ public class SystemProcedures{
     public static void SYSCS_SET_USER_ACCESS(String userName, String connectionPermission) throws SQLException{
         try{
             if(userName==null)
-                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
-                        userName);
+                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, (Object) null);
 
             String addListProperty;
             if(Property.FULL_ACCESS.equals(connectionPermission)){

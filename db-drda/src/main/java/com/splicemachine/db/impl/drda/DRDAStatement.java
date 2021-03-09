@@ -53,10 +53,12 @@ import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.jdbc.Util;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
 	DRDAStatement stores information about the statement being executed
 */
+@SuppressFBWarnings(value="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification = "intentional for ccsidDBC, ccsidMBC, ccsidSBC, maxrslcnt")
 class DRDAStatement
 {
 
@@ -1497,6 +1499,8 @@ class DRDAStatement
 						getOutputParameterTypeFromClassName(objectType);
 					if (parameterType  != NOT_OUTPUT_PARAM)
 						outputFlag = true;
+				default:
+					assert false;
 			}
 
 			if (outputFlag)
