@@ -264,7 +264,7 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
     }
 
     final public static Pair<Integer, String> SYSVW_SYSDEPENDS_SQL = new Pair<>(0,
-                    "create view SYSCONGLOMERATESVIEW as SELECT " +
+                    "create view SYSDEPENDSVIEW as SELECT " +
                     "DEPENDENTID, " +
                     "cast(DEPENDENTFINDER as CHAR(64)) AS DEPENDENTFINDER, " +
                     "PROVIDERID, " +

@@ -1267,4 +1267,25 @@ public class SpliceUnitTest {
         consumer.accept(true, false);
         consumer.accept(true, true);
     }
+
+
+    public static void matchMultipleLines(String in, String expectedOutRegex) {
+        String[] o2 = in.split("\n");
+        String[] ex2 = expectedOutRegex.split("\n");
+        Assert.assertEquals(in + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
+        for(int i =0; i<o2.length; i++) {
+            Assert.assertTrue("\n" + o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
+        }
+    }
+    public static String escapeRegexp(String asterixFilter)
+    {
+        String filter = asterixFilter;
+        String toEscape[] = {"\\", "<", "(", "[", "{", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
+        for(String s : toEscape) {
+            filter = filter.replace(s, "\\" + s);
+        }
+
+        filter = filter.replace("§", ".*");
+        return filter;
+    }
 }
