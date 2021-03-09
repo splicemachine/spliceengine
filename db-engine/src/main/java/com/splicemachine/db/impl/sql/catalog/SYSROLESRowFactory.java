@@ -53,7 +53,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 {
     public static final String TABLENAME_STRING = "SYSROLES";
 
-    private static final int SYSROLES_COLUMN_COUNT = 8;
+    public static final int SYSROLES_COLUMN_COUNT = 8;
     /* Column #s for sysinfo (1 based) */
     private static final int SYSROLES_ROLE_UUID = 1;
     private static final int SYSROLES_ROLEID = 2;
@@ -77,9 +77,9 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     static final int SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR = 3;
 
     // (role)ID_(grant)EE_(grant)OR
-    static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
+    public static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
     // (role)ID_(is)DEF
-    static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
+    public static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
     // UUID
     static final int SYSROLES_INDEX_UUID_IDX = 2;
     // (grant)EE_DEFAULT(role)
@@ -183,7 +183,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         /* 7th column is DefaultRole */
         row.setColumn(7, new SQLChar(isDefaultRole? "Y" : "N"));
 
-        /* 8th column is DefaultRole */
+        /* 8th column is DatabaseId*/
         row.setColumn(8, new SQLChar(databaseId));
 
         return row;

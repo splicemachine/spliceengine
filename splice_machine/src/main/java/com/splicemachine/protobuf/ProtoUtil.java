@@ -137,13 +137,15 @@ public class ProtoUtil {
     }
 
     public static DDLChange createNotifyJarLoader(long txnId, boolean reload, boolean drop, String schemaName, String sqlName, BasicUUID dbId) {
-        return DDLChange.newBuilder().setTxnId(txnId).setNotifyJarLoader(NotifyJarLoader.newBuilder()
+        NotifyJarLoader.Builder builder= NotifyJarLoader.newBuilder()
                 .setReload(reload)
                 .setDrop(drop)
                 .setSchemaName(schemaName==null?"":schemaName)
-                .setDbUUID(dbId==null?null:transferDerbyUUID(dbId))
-                .setSqlName(sqlName==null?"":sqlName)
-                .build())
+                .setSqlName(sqlName==null?"":sqlName);
+        if (dbId != null) {
+            builder.setDbUUID(transferDerbyUUID(dbId));
+        }
+        return DDLChange.newBuilder().setTxnId(txnId).setNotifyJarLoader(builder.build())
                 .setDdlChangeType(DDLChangeType.NOTIFY_JAR_LOADER)
                 .build();
     }

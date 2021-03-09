@@ -64,7 +64,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     public static final int SYSSCHEMAS_DATABASEID = 4;
 
 
-    protected static final int SYSSCHEMAS_INDEX1_ID = 0;
+    public static final int SYSSCHEMAS_INDEX1_ID = 0;
     protected static final int SYSSCHEMAS_INDEX1_DATABASEID = 1;
     protected static final int SYSSCHEMAS_INDEX1_SCHEMANAME = 2;
 
@@ -299,7 +299,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
     private static final String PUBLIC_SCHEMA =
             "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
-                    "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
+                    "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW', 'SYSCS_UTIL', 'SYSFUN') ";
 
     public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
             SUPER_USER_SCHEMA +
