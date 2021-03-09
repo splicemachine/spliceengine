@@ -119,6 +119,6 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
 
         dd.dropRoleGrantsByGrantee(roleName, dbId, tc);
         dd.dropRoleGrantsByName(roleName, dbId, tc);
-        dd.dropAllPermsByGrantee(roleName, tc); // XXX (arnaud, multidb) that should also be multidb specific
+        dd.dropAllPermsByGrantee(roleName, dbId, tc);
     }
 }

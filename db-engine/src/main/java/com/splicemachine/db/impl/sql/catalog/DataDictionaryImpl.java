@@ -3140,9 +3140,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public void dropAllPermsByGrantee(String authId,TransactionController tc) throws StandardException{
+    public void dropAllPermsByGrantee(String authId, UUID dbId, TransactionController tc) throws StandardException{
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSSCHEMAPERMS_CATALOG_NUM,
                 SYSSCHEMAPERMSRowFactory.GRANTEE_SCHEMA_GRANTOR_INDEX_NUM,
@@ -3151,6 +3152,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSTABLEPERMS_CATALOG_NUM,
                 SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
@@ -3159,6 +3161,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSCOLPERMS_CATALOG_NUM,
                 SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
@@ -3167,6 +3170,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSROUTINEPERMS_CATALOG_NUM,
                 SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
@@ -3175,6 +3179,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSPERMS_CATALOG_NUM,
                 SYSPERMSRowFactory.GRANTEE_OBJECTID_GRANTOR_INDEX_NUM,
@@ -3190,11 +3195,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * user is no more.
      */
     private void dropPermsByGrantee(String authId,
+                                    UUID dbId,
                                     TransactionController tc,
                                     int catalog,
                                     int indexNo,
                                     int granteeColnoInIndex) throws StandardException{
-        visitPermsByGrantee(authId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.DROP);
+        visitPermsByGrantee(authId, dbId, tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.DROP);
     }
 
     /**
@@ -3202,11 +3208,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * authorization id.
      */
     private boolean existsPermByGrantee(String authId,
+                                        UUID dbId,
                                         TransactionController tc,
                                         int catalog,
                                         int indexNo,
                                         int granteeColnoInIndex) throws StandardException{
-        return visitPermsByGrantee(authId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.EXISTS);
+        return visitPermsByGrantee(authId,dbId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.EXISTS);
     }
 
 
@@ -3249,6 +3256,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException
      */
     private boolean visitPermsByGrantee(String authId,
+                                        UUID dbId,
                                         TransactionController tc,
                                         int catalog,
                                         int indexNo,
@@ -3301,12 +3309,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         SanityManager.ASSERT(base_row_exists, "base row doesn't exist");
                     }
 
-                    if (action == DataDictionaryImpl.EXISTS) {
-                        return true;
-                    } else if (action == DataDictionaryImpl.DROP) {
-                    PermissionsDescriptor perm=(PermissionsDescriptor)rf.buildDescriptor(outRow,null,this, tc);
-                        removePermEntryInCache(perm);
-                        ti.deleteRow(tc, indexRow, indexNo);
+                    PermissionsDescriptor perm = (PermissionsDescriptor)rf.buildDescriptor(outRow,null,this, tc);
+                    if (perm.getSchemaDescriptor().getDatabaseId().equals(dbId)) {
+                        if (action == DataDictionaryImpl.EXISTS) {
+                            return true;
+                        } else if (action == DataDictionaryImpl.DROP) {
+                            removePermEntryInCache(perm);
+                            ti.deleteRow(tc, indexRow, indexNo);
+                        }
                     }
                 }
             }
@@ -10832,26 +10842,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public boolean existsGrantToAuthid(String authId, UUID databaseId, TransactionController tc) throws StandardException{
-        return
-                (existsPermByGrantee(
+        return existsPermByGrantee(
+                authId,
+                databaseId,
+                tc,
+                SYSTABLEPERMS_CATALOG_NUM,
+                SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
+                SYSTABLEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
+                existsPermByGrantee(
                         authId,
+                        databaseId,
                         tc,
-                        SYSTABLEPERMS_CATALOG_NUM,
-                        SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
-                        SYSTABLEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
-                        existsPermByGrantee(
-                                authId,
-                                tc,
-                                SYSCOLPERMS_CATALOG_NUM,
-                                SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
-                                SYSCOLPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
-                        existsPermByGrantee(
-                                authId,
-                                tc,
-                                SYSROUTINEPERMS_CATALOG_NUM,
-                                SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
-                                SYSROUTINEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
-                        existsRoleGrantByGrantee(authId, databaseId, tc));
+                        SYSCOLPERMS_CATALOG_NUM,
+                        SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
+                        SYSCOLPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
+                existsPermByGrantee(
+                        authId,
+                        databaseId,
+                        tc,
+                        SYSROUTINEPERMS_CATALOG_NUM,
+                        SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
+                        SYSROUTINEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
+                existsRoleGrantByGrantee(authId, databaseId, tc);
     }
 
 
