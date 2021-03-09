@@ -73,7 +73,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         formathash = new Hashtable();
     }
 
-    PropertyConglomerate getTransactionalProperties() {
+    public PropertyConglomerate getTransactionalProperties() {
         return xactProperties;
     }
 

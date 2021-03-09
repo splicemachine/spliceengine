@@ -16,6 +16,8 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.util.Properties;
+
 /**
  * Created by jyuan on 10/17/14.
  */

@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
@@ -78,6 +79,7 @@ public class SpliceDatabase extends BasicDatabase{
     private static Logger LOG=Logger.getLogger(SpliceDatabase.class);
     private AtomicBoolean registered = new AtomicBoolean(false);
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
@@ -108,10 +110,25 @@ public class SpliceDatabase extends BasicDatabase{
 
         configureAuthentication();
 
-        // setup authorization
-
-
         create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
+
+        if (!create) {
+            String catalogVersion = startParams.getProperty("catalogVersion");
+            if (catalogVersion == null) {
+                BaseDataDictionary.WRITE_NEW_FORMAT = false;
+                BaseDataDictionary.READ_NEW_FORMAT = false;
+            }
+            else {
+                String s[] = catalogVersion.split("\\.");
+                if (s.length > 3) {
+                    int sprintNumber = Integer.parseInt(s[3]);
+                    if (sprintNumber < BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+                        BaseDataDictionary.WRITE_NEW_FORMAT = false;
+                        BaseDataDictionary.READ_NEW_FORMAT = false;
+                    }
+                }
+            }
+        }
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
