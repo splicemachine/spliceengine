@@ -292,4 +292,31 @@ public class MultiDatabaseIT extends SpliceUnitTest {
         assertFailed(otherDbConn, "select * from sys.sysdatabases", "42Y07");
         assertFailed(otherDbOwnerNotSpliceConn, "select * from sys.sysdatabases", "42Y07");
     }
+
+    @Test
+    public void testCreateDatabase() throws Exception {
+        spliceDbConn.execute("create database CREATE_DATABASE_SPLICE_DB_CONN");
+        otherDbConn.execute("create database CREATE_DATABASE_OTHER_DB_CONN");
+        otherDbOwnerNotSpliceConn.execute("create database CREATE_DATABASE_OTHER_DB_OWNER_NOT_SPLICE_CONN");
+
+        String sql = "select d.authorizationid, d.databasename " +
+                "from sys.sysdatabases d, sys.sysusers u " +
+                "where d.databaseid = u.databaseid and d.authorizationid = u.username and d.databasename like 'CREATE_DATABASE_%_CONN' " +
+                "order by 2";
+
+        try {
+            String expected = "AUTHORIZATIONID |                 DATABASENAME                  |\n" +
+                    "------------------------------------------------------------------\n" +
+                    "MULTIDATABASEIT2 |CREATE_DATABASE_OTHER_DB_OWNER_NOT_SPLICE_CONN |\n" +
+                    "     SPLICE      |         CREATE_DATABASE_OTHER_DB_CONN         |\n" +
+                    "     SPLICE      |        CREATE_DATABASE_SPLICE_DB_CONN         |";
+            testQuery(sql, expected, spliceDbConn);
+        } finally {
+            spliceDbConn.execute("drop database CREATE_DATABASE_SPLICE_DB_CONN cascade");
+            otherDbConn.execute("drop database CREATE_DATABASE_OTHER_DB_CONN cascade");
+            otherDbOwnerNotSpliceConn.execute("drop database CREATE_DATABASE_OTHER_DB_OWNER_NOT_SPLICE_CONN cascade");
+            String expected = "";
+            testQuery(sql, expected, spliceDbConn);
+        }
+    }
 }

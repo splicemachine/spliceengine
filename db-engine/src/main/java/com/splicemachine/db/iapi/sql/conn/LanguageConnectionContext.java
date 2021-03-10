@@ -45,11 +45,7 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -494,6 +490,8 @@ public interface LanguageConnectionContext extends Context {
      * @return String the authorization id
      */
     String getCurrentUserId(Activation a);
+
+    UserDescriptor getCurrentUserDescriptor(Activation a) throws StandardException;
 
     void setCurrentUser(Activation a, String userName);
 
