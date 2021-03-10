@@ -1449,6 +1449,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    private static void SYSCS_ENABLE_MULTIDABASE(boolean value) throws SQLException {
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            lcc.getDataDictionary().enableMultiDatabase(value);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_ENABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(true);
+    }
+
+    public static void SYSCS_DISABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(false);
+    }
+
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
         List<HostAndPort> servers;
         try {

@@ -346,12 +346,15 @@ public abstract class EmbedConnection implements EngineConnection
                     TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
                     if (dd.getDatabaseDescriptor(getDBName(), tc, false) == null) {
                         af.elevateRawTransaction(Bytes.toBytes("boot"));
-                        dd.createNewDatabaseAndDatabaseOwner(getDBName(),
+                        dd.createNewDatabaseAndDatabaseOwner(tc, getDBName(),
                                 info.getProperty(Attribute.USERNAME_ATTR),
                                 info.getProperty(Attribute.PASSWORD_ATTR)
                         );
                     }
                 } catch (StandardException se) {
+                    if (se.getSQLState().equals(SQLState.LANG_MULTIDATABASE_NOT_ENABLED)) {
+                        throw se;
+                    }
                     throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
                 }
             }

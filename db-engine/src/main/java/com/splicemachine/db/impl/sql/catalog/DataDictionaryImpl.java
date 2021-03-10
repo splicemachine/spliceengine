@@ -160,7 +160,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public DataDescriptorGenerator dataDescriptorGenerator;
     protected DataValueFactory dvf;
-    AccessFactory af;
+    protected AccessFactory af;
     //DataDictionaryContext                ddc;
 
     protected ExecutionFactory exFactory;
@@ -716,28 +716,39 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         authorizationDatabasesOwner.put(databaseID, authorizationId);
     }
 
-    public UUID createNewDatabaseAndDatabaseOwner(String name, String dbOwner, String dbPassword) throws StandardException {
-        dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
-        DatabaseDescriptor dbDesc = createNewDatabase(name, dbOwner);
-        UUID dbId = dbDesc.getUUID();
-        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+    private void assertTcElevated(TransactionController tc, String caller) throws StandardException {
         if (!tc.isElevated()) {
-            throw StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+            throw StandardException.plainWrapException(new IOException(caller + ": not writeable"));
         }
-        UserDescriptor desc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, dbId);
-        addDescriptor(desc, null, SYSUSERS_CATALOG_NUM, false, tc, false);
-        authorizationDatabasesOwner.put(dbId, IdUtil.getUserAuthorizationId(dbOwner));
+    }
+
+    public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, String dbOwner, String dbPassword) throws StandardException {
+        assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
+        dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
+        UserDescriptor dbOwnerDesc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, null);
+        return createNewDatabaseAndDatabaseOwner(tc, dbName, dbOwnerDesc);
+    }
+
+    public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, UserDescriptor dbOwner) throws StandardException {
+        if (!af.isMultiDatabaseEnabled()) {
+            throw StandardException.newException(SQLState.LANG_MULTIDATABASE_NOT_ENABLED);
+        }
+        assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
+        DatabaseDescriptor dbDesc = createNewDatabase(dbName, dbOwner.getUserName());
+        UUID dbId = dbDesc.getUUID();
+        dbOwner.setDatabaseId(dbId);
+        addDescriptor(dbOwner, null, SYSUSERS_CATALOG_NUM, false, tc, false);
+        authorizationDatabasesOwner.put(dbId, dbOwner.getUserName());
         createDbSpecificSystemSchemas(tc, dbDesc);
         return dbId;
     }
 
-    // XXX(arnaud multidb) remove that one. We should not be able to create a db without an owner
-    public DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException {
+    private DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException {
         dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
         ContextService.getFactory();
         TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
         if (!tc.isElevated()) {
-            throw StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+            throw StandardException.plainWrapException(new IOException("createNewDatabase: not writeable"));
         }
 
         UUID uuid = getUUIDFactory().createUUID();
@@ -6522,7 +6533,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public void dropDependentsStoredDependencies(UUID dependentsUUID,TransactionController tc) throws StandardException{
         if (!tc.isElevated()) {
-            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+            StandardException.plainWrapException(new IOException("dropDependentsStoredDependencies: not writeable"));
         }
 
         dropDependentsStoredDependencies(dependentsUUID,tc,true);

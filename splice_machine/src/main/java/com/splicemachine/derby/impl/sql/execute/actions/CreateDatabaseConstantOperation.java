@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -93,14 +94,14 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
          * the transaction.
          */
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        lcc.getDataDictionary().startWriting(lcc);
-        lcc.getDataDictionary().createNewDatabase(dbName, null); // XXX(arnaud multidb) should we really allow no owner for a DB?
+        DataDictionary dd = lcc.getDataDictionary();
+        UserDescriptor currentUser = lcc.getCurrentUserDescriptor(activation);
+        dd.startWriting(lcc);
+        dd.createNewDatabaseAndDatabaseOwner(tc, dbName, currentUser);
 
         if (!isDatabasePresent(activation)) {
             throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);
         }
-
-        // XXX (arnaud multidb) create owner of DB with some syntax here?
     }
 
     public String getScopeName() {

@@ -272,4 +272,8 @@ public interface AccessFactory
     TransactionController getReadOnlyTransaction(ContextManager cm, long txnId) throws StandardException;
 
     void elevateRawTransaction(byte[] writeTable) throws StandardException;
+
+    boolean isMultiDatabaseEnabled();
+
+    void enableMultiDatabase(boolean value);
 }

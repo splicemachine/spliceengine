@@ -121,17 +121,25 @@ public final class  UserDescriptor extends TupleDescriptor
         return _databaseId;
     }
 
-    public boolean isDbOwner(DataDictionary dd) {
-        String dbo = dd.getAuthorizationDatabaseOwner(_databaseId);
+    public void setDatabaseId(UUID dbId) {
+        _databaseId = dbId;
+    }
+
+    private boolean isDbOwner() {
+        String dbo = dataDictionary.getAuthorizationDatabaseOwner(_databaseId);
 
         return dbo.equals(this._userName);
+    }
+
+    UserDescriptor cloneForOtherDatabase(UUID otherDbUUID) {
+        return new UserDescriptor(dataDictionary, _userName, _hashingScheme, getAndZeroPassword(), _lastModified, otherDbUUID);
     }
 
     public void drop(LanguageConnectionContext lcc, boolean dropIfOwner) throws StandardException {
         DataDictionary dd=lcc.getDataDictionary();
 
         // you can't drop the credentials of the dbo
-        if (!dropIfOwner && isDbOwner(dd)) {
+        if (!dropIfOwner && isDbOwner()) {
             throw StandardException.newException(SQLState.CANT_DROP_DBO);
         }
 

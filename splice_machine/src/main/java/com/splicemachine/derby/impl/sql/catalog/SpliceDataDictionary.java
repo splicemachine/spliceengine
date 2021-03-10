@@ -628,6 +628,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
+    public void enableMultiDatabase(boolean value) {
+        this.af.enableMultiDatabase(value);
+    }
+
+    @Override
     protected void loadDictionaryTables(TransactionController tc,
                                         Properties startParams) throws StandardException{
         super.loadDictionaryTables(tc,startParams);

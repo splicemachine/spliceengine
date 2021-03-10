@@ -19,6 +19,8 @@ import java.io.Serializable;
 import java.util.*;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.Pair;
 import splice.com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
@@ -760,5 +762,12 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         this.database = database;
     }
 
+    public boolean isMultiDatabaseEnabled() {
+        return Boolean.parseBoolean(serviceProperties.getProperty(BaseDataDictionary.CFG_ALLOW_MULTIDATABASE));
+    }
+
+    public void enableMultiDatabase(boolean value) {
+        serviceProperties.setProperty(BaseDataDictionary.CFG_ALLOW_MULTIDATABASE, Boolean.toString(value));
+    }
 }
 
