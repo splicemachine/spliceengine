@@ -672,7 +672,7 @@ public class BackupSystemProcedures {
         try {
 //<<<<<<< Updated upstream
             txn = SIDriver.driver().lifecycleManager().beginTransaction();
-            txn.elevateToWritable(Bytes.toBytes("rollback"));
+            txn = txn.elevateToWritable(Bytes.toBytes("rollback"));
         } catch (IOException e) {
             return;
         }
