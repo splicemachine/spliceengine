@@ -1044,9 +1044,10 @@ public class FromBaseTable extends FromTable {
                 }
 
                 //skip join predicates unless they support predicate pushdown
-                if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
+                if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {//skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p, defaultSelectivityFactor);
                     numUnusedLeadingIndexFields = currentAccessPath.getNumUnusedLeadingIndexFields();
+                }
             }
             long numFirstIndexColumnProbes =
                 numUnusedLeadingIndexFields > 0 ? scc.getFirstColumnStats().getFirstIndexColumnCardinality() : 0;
