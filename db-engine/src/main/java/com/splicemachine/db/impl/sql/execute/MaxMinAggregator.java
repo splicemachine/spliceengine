@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -89,9 +91,9 @@ public final class MaxMinAggregator extends OrderableAggregator {
 	}
 
 	/////////////////////////////////////////////////////////////
-	// 
+	//
 	// FORMATABLE INTERFACE
-	// 
+	//
 	// Formatable implementations usually invoke the super()
 	// version of readExternal or writeExternal first, then
 	// do the additional actions here. However, since the
@@ -100,23 +102,48 @@ public final class MaxMinAggregator extends OrderableAggregator {
 	// invoke the superclass's read/writeExternal method
 	// last, not first. See DERBY-3219 for more discussion.
 	/////////////////////////////////////////////////////////////
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isMax);
 		super.writeExternal(out);
 	}
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
+	/**
+	 * @see java.io.Externalizable#readExternal
 	 *
 	 * @exception IOException on error
 	 * @exception ClassNotFoundException on error
 	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException {
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		isMax = in.readBoolean();
 		super.readExternal(in);
 	}
+
+	@Override
+	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+
+		CatalogMessage.MaxMinAggregator aggregator = CatalogMessage.MaxMinAggregator.newBuilder()
+				.setIsMax(isMax)
+				.setValue(value.toProtobuf())
+				.build();
+
+		builder.setType(CatalogMessage.SystemAggregator.Type.MaxMinAggregator)
+				.setExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator, aggregator);
+
+		return builder;
+	}
+
+	@Override
+	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+		super.init(systemAggregator);
+		CatalogMessage.MaxMinAggregator aggregator =
+				systemAggregator.getExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator);
+		isMax = aggregator.getIsMax();
+		value = ProtobufUtils.fromProtobuf(aggregator.getValue());
+	}
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

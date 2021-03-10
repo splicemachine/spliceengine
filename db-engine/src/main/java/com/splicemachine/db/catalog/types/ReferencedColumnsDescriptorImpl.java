@@ -32,9 +32,12 @@
 package com.splicemachine.db.catalog.types;
 
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.catalog.ReferencedColumns;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -62,22 +65,20 @@ import java.io.IOException;
  *   eg create trigger tr1 after update of c1 on t1 referencing old as oldt 
  *      for each row values(oldt.id); 
  */
-public class ReferencedColumnsDescriptorImpl
-	implements ReferencedColumns, Formatable
-{
+public class ReferencedColumnsDescriptorImpl implements ReferencedColumns, Formatable {
 	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+	 **
+	 **	This class implements Formatable. That means that it
+	 **	can write itself to and from a formatted stream. If
+	 **	you add more fields to this class, make sure that you
+	 **	also write/read them with the writeExternal()/readExternal()
+	 **	methods.
+	 **
+	 **	If, inbetween releases, you add more fields to this class,
+	 **	then you should bump the version number emitted by the getTypeFormatId()
+	 **	method.
+	 **
+	 ********************************************************/
 
 	private int[] referencedColumns;
 	private int[] referencedColumnsInTriggerAction;
@@ -88,43 +89,41 @@ public class ReferencedColumnsDescriptorImpl
 	 * @param referencedColumns The array of referenced columns.
 	 */
 
-	public ReferencedColumnsDescriptorImpl(	int[] referencedColumns)
-	{
+	public ReferencedColumnsDescriptorImpl(int[] referencedColumns) {
 		this.referencedColumns = referencedColumns;
 	}
 
 	/**
 	 * Constructor for an ReferencedColumnsDescriptorImpl
 	 *
-	 * @param referencedColumns The array of referenced columns.
+	 * @param referencedColumns                The array of referenced columns.
 	 * @param referencedColumnsInTriggerAction The array of referenced columns
-	 *   in trigger action through old/new transition variables.
+	 *                                         in trigger action through old/new transition variables.
 	 */
 
-	public ReferencedColumnsDescriptorImpl(	int[] referencedColumns,
-			int[] referencedColumnsInTriggerAction)
-	{
+	public ReferencedColumnsDescriptorImpl(int[] referencedColumns,
+										   int[] referencedColumnsInTriggerAction) {
 		this.referencedColumns = referencedColumns;
 		this.referencedColumnsInTriggerAction = referencedColumnsInTriggerAction;
 	}
 
-	/** Zero-argument constructor for Formatable interface */
-	public ReferencedColumnsDescriptorImpl()
-	{
-	}	
 	/**
-	* @see ReferencedColumns#getReferencedColumnPositions
-	*/
-	public int[] getReferencedColumnPositions()
-	{
+	 * Zero-argument constructor for Formatable interface
+	 */
+	public ReferencedColumnsDescriptorImpl() {
+	}
+
+	/**
+	 * @see ReferencedColumns#getReferencedColumnPositions
+	 */
+	public int[] getReferencedColumnPositions() {
 		return referencedColumns;
 	}
-	
+
 	/**
-	* @see ReferencedColumns#getTriggerActionReferencedColumnPositions
-	*/
-	public int[] getTriggerActionReferencedColumnPositions()
-	{
+	 * @see ReferencedColumns#getTriggerActionReferencedColumnPositions
+	 */
+	public int[] getTriggerActionReferencedColumnPositions() {
 		return referencedColumnsInTriggerAction;
 	}
 
@@ -134,39 +133,71 @@ public class ReferencedColumnsDescriptorImpl
 	 * For triggers, 3 possible scenarios
 	 * 1)referencedColumns is not null but referencedColumnsInTriggerAction
 	 * is null - then following will get read
-	 *   referencedColumns.length
-	 *   individual elements from referencedColumns arrary
-	 *   eg create trigger tr1 after update of c1 on t1 for each row values(1); 
-	 * 2)referencedColumns is null but referencedColumnsInTriggerAction is not 
+	 * referencedColumns.length
+	 * individual elements from referencedColumns arrary
+	 * eg create trigger tr1 after update of c1 on t1 for each row values(1);
+	 * 2)referencedColumns is null but referencedColumnsInTriggerAction is not
 	 * null - then following will get read
-	 *   -1
-	 *   -1
-	 *   referencedColumnsInTriggerAction.length
-	 *   individual elements from referencedColumnsInTriggerAction arrary
-	 *   eg create trigger tr1 after update on t1 referencing old as oldt 
-	 *      for each row values(oldt.id); 
+	 * -1
+	 * -1
+	 * referencedColumnsInTriggerAction.length
+	 * individual elements from referencedColumnsInTriggerAction arrary
+	 * eg create trigger tr1 after update on t1 referencing old as oldt
+	 * for each row values(oldt.id);
 	 * 3)referencedColumns and referencedColumnsInTriggerAction are not null -
-	 *   then following will get read
-	 *   -1
-	 *   referencedColumns.length
-	 *   individual elements from referencedColumns arrary
-	 *   referencedColumnsInTriggerAction.length
-	 *   individual elements from referencedColumnsInTriggerAction arrary
-	 *   eg create trigger tr1 after update of c1 on t1 referencing old as oldt 
-	 *      for each row values(oldt.id); 
-	 *      
-	 *  Scenario 1 for triggers is possible for all different releases of dbs
-	 *  ie both pre-10.7 and 10.7(and higher). But scenarios 2 and 3 are only
-	 *  possible with database at 10.7 or higher releases. Prior to 10.7, we
-	 *  did not collect any trigger action column info and hence
-	 *  referencedColumnsInTriggerAction will always be null for triggers
-	 *  created prior to 10.7 release. 
-	 *      
-	 * @see java.io.Externalizable#readExternal
+	 * then following will get read
+	 * -1
+	 * referencedColumns.length
+	 * individual elements from referencedColumns arrary
+	 * referencedColumnsInTriggerAction.length
+	 * individual elements from referencedColumnsInTriggerAction arrary
+	 * eg create trigger tr1 after update of c1 on t1 referencing old as oldt
+	 * for each row values(oldt.id);
+	 * <p>
+	 * Scenario 1 for triggers is possible for all different releases of dbs
+	 * ie both pre-10.7 and 10.7(and higher). But scenarios 2 and 3 are only
+	 * possible with database at 10.7 or higher releases. Prior to 10.7, we
+	 * did not collect any trigger action column info and hence
+	 * referencedColumnsInTriggerAction will always be null for triggers
+	 * created prior to 10.7 release.
 	 *
-	 * @exception IOException	Thrown on read error
+	 * @throws IOException Thrown on read error
+	 * @see java.io.Externalizable#readExternal
 	 */
-	public void readExternal(ObjectInput in) throws IOException 
+	@Override
+	public void readExternal(ObjectInput in) throws IOException {
+
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		} else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.ReferencedColumnsDescriptorImpl referencedColumnsDescriptor =
+				CatalogMessage.ReferencedColumnsDescriptorImpl.parseFrom(bs);
+
+		if (!referencedColumnsDescriptor.getIsReferencedColumnsNull()) {
+			int count = referencedColumnsDescriptor.getReferencedColumnsCount();
+			referencedColumns = new int[count];
+			for (int i = 0; i < referencedColumns.length; ++i) {
+				referencedColumns[i] = referencedColumnsDescriptor.getReferencedColumns(i);
+			}
+		}
+
+		if (!referencedColumnsDescriptor.getIsReferencedColumnsInTriggerActionNull()) {
+			int count = referencedColumnsDescriptor.getReferencedColumnsInTriggerActionCount();
+			referencedColumnsInTriggerAction = new int[count];
+			for (int i = 0; i < count; ++i) {
+				referencedColumnsInTriggerAction[i] =
+						referencedColumnsDescriptor.getReferencedColumnsInTriggerAction(i);
+			}
+		}
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException
 	{
 	        int rcLength; 
 	        int versionNumber = in.readInt(); 
@@ -256,7 +287,39 @@ public class ReferencedColumnsDescriptorImpl
 	 *
 	 * @exception IOException	Thrown on write error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException 
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.ReferencedColumnsDescriptorImpl.Builder builder =
+				CatalogMessage.ReferencedColumnsDescriptorImpl.newBuilder();
+
+		builder.setIsReferencedColumnsNull(referencedColumns == null)
+				.setIsReferencedColumnsInTriggerActionNull(referencedColumnsInTriggerAction == null);
+
+		if (referencedColumns != null) {
+			for (int referencedColumn : referencedColumns) {
+				builder.addReferencedColumns(referencedColumn);
+			}
+		}
+		if (referencedColumnsInTriggerAction != null) {
+			for (int aReferencedColumnsInTriggerAction : referencedColumnsInTriggerAction) {
+				builder.addReferencedColumnsInTriggerAction(aReferencedColumnsInTriggerAction);
+			}
+		}
+		CatalogMessage.ReferencedColumnsDescriptorImpl referencedColumnsDescriptor = builder.build();
+		ArrayUtil.writeByteArray(out, referencedColumnsDescriptor.toByteArray());
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException
 	{ 
 		//null value for referencedColumnsInTriggerAction means one of 2 cases
 		//1)We are working in soft-upgrade mode dealing with databases lower

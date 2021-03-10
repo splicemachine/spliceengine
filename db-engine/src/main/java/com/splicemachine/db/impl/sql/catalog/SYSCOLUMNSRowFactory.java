@@ -269,10 +269,18 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTSTART, new SQLLongint(autoincStart));
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTINC, new SQLLongint(autoincInc));
 //                    column.getTableDescriptor().getColumnDescriptor(colName).getAutoincInc()));
-        } else {
+        } else if (autoincInc == 0){
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTVALUE, new SQLLongint());
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTSTART, new SQLLongint());
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTINC, new SQLLongint());
+        }
+        else {
+            row.setColumn(SYSCOLUMNS_AUTOINCREMENTVALUE,
+                    new SQLLongint(autoincValue));
+            row.setColumn(SYSCOLUMNS_AUTOINCREMENTSTART,
+                    new SQLLongint(autoincStart));
+            row.setColumn(SYSCOLUMNS_AUTOINCREMENTINC,
+                    new SQLLongint(autoincInc));
         }
         row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
         row.setColumn(SYSCOLUMNS_PARTITION_POSITION,new SQLInteger(partitionPosition));

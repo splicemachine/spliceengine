@@ -138,7 +138,7 @@ public class TriggerNewTransitionRows
             DataSet<ExecRow> triggerRows = null;
             long conglomID;
 
-            TriggerExecutionContext tec = null;
+            TriggerExecutionContext tec = this.tec;
             if (triggerRowsHolder == null) {
                 try {
                     tec = Factory.getTriggerExecutionContext();
@@ -162,7 +162,10 @@ public class TriggerNewTransitionRows
                 //       So, using it directly reads the trigger rows directly
                 //       instead of from a temporary conglomerate.
                 sourceSet = triggerRowsHolder.getSourceSet();
-                tec = activation.getLanguageConnectionContext().getTriggerExecutionContext();
+                if (tec == null)
+                    tec = triggerRowsHolder.getTriggerExecutionContext();
+                if (tec == null)
+                    tec = activation.getLanguageConnectionContext().getTriggerExecutionContext();
 
                 if (activation.getResultSet() instanceof DMLWriteOperation)
                     writeOperation = (DMLWriteOperation) (activation.getResultSet());
@@ -325,6 +328,8 @@ public class TriggerNewTransitionRows
                         rowHolder.setActivation(activation);
 
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
+                    rowHolder.setTriggerExecutionContext(tec);
+
                     try {
                         resultSet = tec.getNewRowSet();
                     } catch (SQLException e) {

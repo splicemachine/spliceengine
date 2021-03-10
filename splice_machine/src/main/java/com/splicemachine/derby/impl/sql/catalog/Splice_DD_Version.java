@@ -84,6 +84,10 @@ public class Splice_DD_Version extends DD_Version {
         return patchVersionNumber;
     }
 
+    public int getSprintVersionNumber() {
+        return sprintVersionNumber;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVersionNumber);

@@ -17,13 +17,11 @@ package com.splicemachine.access.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -33,7 +31,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SI_PERMISSION_FAMILY;
@@ -150,16 +150,19 @@ public class HBaseConnectionFactory{
     //        admin.deleteTable(id);
     //    }
 
-    public HTableDescriptor generateTable(String tableName){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(createDataFamily());
-        return desc;
+    public TableDescriptor generateTable(String tableName){
+        TableDescriptor descriptor = TableDescriptorBuilder
+                .newBuilder(TableName.valueOf(namespace,tableName))
+                .setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY)
+                .setColumnFamily(createDataFamily())
+                .setValue(SIConstants.CATALOG_VERSION_ATTR, HBaseConfiguration.catalogVersions.get(tableName))
+                .build();
+        return descriptor;
     }
 
-    public HTableDescriptor generateTransactionTable(){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespaceBytes, HConfiguration.TRANSACTION_TABLE_BYTES));
-        HColumnDescriptor columnDescriptor=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+    public TableDescriptor generateTransactionTable(){
+        ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor columnDescriptor =
+                new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(DEFAULT_FAMILY_BYTES);
         columnDescriptor.setMaxVersions(5);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         columnDescriptor.setCompressionType(compress);
@@ -167,10 +170,13 @@ public class HBaseConnectionFactory{
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
         columnDescriptor.setBloomFilterType(BloomType.valueOf(HConfiguration.DEFAULT_BLOOMFILTER.toUpperCase()));
         columnDescriptor.setTimeToLive(HConfiguration.DEFAULT_TTL);
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(columnDescriptor);
-        desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)));
-        return desc;
+        TableDescriptor descriptor = TableDescriptorBuilder
+                .newBuilder(TableName.valueOf(namespaceBytes, HConfiguration.TRANSACTION_TABLE_BYTES))
+                .setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY)
+                .setColumnFamily(columnDescriptor)
+                .setColumnFamily(new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)))
+                .build();
+        return descriptor;
     }
 
     public static byte[][] generateTransactionSplits(){
@@ -181,8 +187,9 @@ public class HBaseConnectionFactory{
         return result;
     }
 
-    public HColumnDescriptor createDataFamily(){
-        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+    public ColumnFamilyDescriptor createDataFamily(){
+        ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor snapshot =
+                new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(DEFAULT_FAMILY_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         snapshot.setCompressionType(compress);
@@ -201,13 +208,12 @@ public class HBaseConnectionFactory{
 
 
             if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.TRANSACTION_TABLE))){
-                HTableDescriptor td=generateTransactionTable();
+                TableDescriptor td=generateTransactionTable();
                 admin.createTable(td,generateTransactionSplits());
                 SpliceLogUtils.info(LOG,HConfiguration.TRANSACTION_TABLE+" created");
             }
-            createTable(HConfiguration.TENTATIVE_TABLE);
             createTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
-            createTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+            createTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
 
             /*
              * We have to have a special table to hold our Sequence values,
@@ -230,7 +236,7 @@ public class HBaseConnectionFactory{
 
         Admin admin=connection.getAdmin();
         if(!admin.tableExists(TableName.valueOf(namespaceBytes, Bytes.toBytes(tableName)))){
-            HTableDescriptor td=generateTable(tableName);
+            TableDescriptor td=generateTable(tableName);
             admin.createTable(td);
             SpliceLogUtils.info(LOG, tableName +" created");
         }
