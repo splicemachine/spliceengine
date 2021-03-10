@@ -768,4 +768,21 @@ public class CrossJoinIT extends SpliceUnitTest {
             assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         }
     }
+
+    @Test
+    public void testCrossJoinRightTableIsSmallTable() throws Exception {
+        String sqlText = format("select count(*) from \n" +
+                                "t4 BH --splice-properties useSpark=%s\n" +
+                                ",t4 BU WHERE\n" +
+                                "(BH.a4=1 or BH.b4=1) and\n" +
+                                "             (BH.a4=BU.b4 OR BH.b4=BU.b4)\n" +
+                                "         AND BU.b4 <> 1", useSpark, bigTable);
+
+        if (useSpark) {
+            String explainQuery = "explain " + sqlText;
+            // The table with predicate "BH.A4 = 1" is smaller.
+            // Make sure it is picked as the right table.
+            rowContainsQuery(new int[]{6,7,8}, explainQuery, classWatcher, "CrossJoin", "(BH.A4[2:1] = 1)", "(BU.B4[0:1] <> 1)])");
+        }
+    }
 }
