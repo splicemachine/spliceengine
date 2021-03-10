@@ -96,7 +96,7 @@ public class HBasePartitionAdmin implements PartitionAdmin{
     @Override
     public PartitionCreator newPartition() throws IOException{
         HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
-        HColumnDescriptor dataFamily = instance.createDataFamily();
+        ColumnFamilyDescriptor dataFamily = instance.createDataFamily();
         return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
     }
 
@@ -339,12 +339,19 @@ public class HBasePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void snapshot(String snapshotName, String tableName) throws IOException{
-        admin.snapshot(snapshotName, TableName.valueOf(tableName));
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        admin.snapshot(snapshotName, tn);
     }
 
     @Override
     public void deleteSnapshot(String snapshotName) throws IOException{
        admin.deleteSnapshot(snapshotName);
+    }
+
+    @Override
+    public Set<String> listSnapshots() throws IOException {
+        List<SnapshotDescription> snapshotDescriptions = admin.listSnapshots();
+        return snapshotDescriptions.stream().map(s -> s.getName()).collect(Collectors.toSet());
     }
 
     @Override
@@ -355,13 +362,15 @@ public class HBasePartitionAdmin implements PartitionAdmin{
     @Override
     public void disableTable(String tableName) throws IOException
     {
-        admin.disableTable(TableName.valueOf(tableName));
+        TableName tn =tableInfoFactory.getTableInfo(tableName);
+        admin.disableTable(tn);
     }
 
     @Override
     public void enableTable(String tableName) throws IOException
     {
-        admin.enableTable(TableName.valueOf(tableName));
+        TableName tn =tableInfoFactory.getTableInfo(tableName);
+        admin.enableTable(tn);
     }
 
     @Override
@@ -604,9 +613,9 @@ public class HBasePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+    public void setCatalogVersion(String conglomerate, String version) throws IOException {
 
-        TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+        TableName tn = tableInfoFactory.getTableInfo(conglomerate);
         try {
             org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
             ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setValue(SIConstants.CATALOG_VERSION_ATTR, version);
@@ -636,9 +645,9 @@ public class HBasePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+    public String getCatalogVersion(String conglomerate) throws StandardException {
         try {
-            TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+            TableName tn = tableInfoFactory.getTableInfo(conglomerate);
             org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
             return td.getValue(SIConstants.CATALOG_VERSION_ATTR);
         }catch (Exception e) {
@@ -799,25 +808,39 @@ public class HBasePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public int getTableCount() throws IOException{
+    public int getTableCount() throws IOException {
 
         try {
-            TableName[] tableNames =  admin.listTableNames();
+            TableName[] tableNames = admin.listTableNames();
             return tableNames.length;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             SpliceLogUtils.warn(LOG, "Could not find the table count.");
             throw e;
         }
     }
 
     @Override
-    public void createSITable(String tableName) throws StandardException{
+    public void createSITable(String tableName) throws StandardException {
         try {
             HBaseConnectionFactory instance = HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
             instance.createTable(tableName);
         } catch (IOException e) {
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    @Override
+    public void cloneSnapshot(String snapshotName, String tableName) throws IOException{
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        admin.cloneSnapshot(snapshotName, tn);
+    }
+
+    @Override
+    public void truncate(String tableName) throws IOException{
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        if (admin.isTableEnabled(tn)) {
+            admin.disableTable(tn);
+        }
+        admin.truncateTable(tn, true);
     }
 }

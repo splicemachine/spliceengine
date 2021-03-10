@@ -45,7 +45,11 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+import org.apache.commons.io.IOUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -299,6 +303,12 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 				new ColumnDescriptor("UPDATERULE",9,9,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
 						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("FK_COLNAMES",10,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("PK_COLNAMES",11,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
 			});
 		return cdsl;
 	}
@@ -327,7 +337,7 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			if (SanityManager.DEBUG)
 			{
 				SanityManager.THROWASSERT("Invalid  value '"
-										  +raRuleString+ "' for a referetial Action");
+										  +raRuleString+ "' for a referential Action");
 			}
 		}
 		return raRule ;
@@ -359,45 +369,19 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			if (SanityManager.DEBUG)
 			{
 				SanityManager.THROWASSERT("Invalid  value '"
-							+raRule+ "' for a referetial Action");
+							+raRule+ "' for a referential Action");
 			}
 
 		}
 		return raRuleString ;
 	}
 
-    public static String SYSCAT_REFERENCES_VIEW_SQL = "create view REFERENCES as \n" +
-			"SELECT CC.CONSTRAINTNAME AS CONSTNAME\n" +
-			"     , VC.SCHEMANAME AS TABSCHEMA\n" +
-			"     , TC.TABLENAME AS TABNAME\n" +
-			"     , CP.CONSTRAINTNAME AS REFKEYNAME\n" +
-			"     , VP.SCHEMANAME AS REFTABSCHEMA\n" +
-			"     , TP.TABLENAME AS REFTABNAME\n" +
-			"     , CAST(C.DESCRIPTOR.numberOfOrderedColumns() AS SMALLINT) AS COLCOUNT\n" +
-			"     , (CASE FK.DELETERULE \n" +
-			"          WHEN 'R' THEN 'A'\n" +
-			"          WHEN 'S' THEN 'R'\n" +
-			"          WHEN 'C' THEN 'C'\n" +
-			"          WHEN 'U' THEN 'N'\n" +
-			"        END) AS DELETERULE\n" +
-			"     , (CASE FK.UPDATERULE\n" +
-			"          WHEN 'R' THEN 'A'\n" +
-			"          WHEN 'S' THEN 'R'\n" +
-			"        END) AS UPDATERULE\n" +
-			"FROM --splice-properties joinOrder=fixed\n" +
-			"     SYS.SYSFOREIGNKEYS FK\n" +
-			"   , SYS.SYSCONSTRAINTS CC\n" +
-			"   , SYS.SYSCONSTRAINTS CP\n" +
-			"   , SYS.SYSTABLES TC\n" +
-			"   , SYS.SYSTABLES TP\n" +
-			"   , SYSVW.SYSSCHEMASVIEW VC\n" +
-			"   , SYSVW.SYSSCHEMASVIEW VP\n" +
-			"   , SYS.SYSCONGLOMERATES C\n" +
-			"WHERE FK.CONSTRAINTID = CC.CONSTRAINTID\n" +
-			"  AND CC.TABLEID = TC.TABLEID\n" +
-			"  AND CC.SCHEMAID = VC.SCHEMAID\n" +
-			"  AND FK.KEYCONSTRAINTID = CP.CONSTRAINTID\n" +
-			"  AND CP.TABLEID = TP.TABLEID\n" +
-			"  AND CP.SCHEMAID = VP.SCHEMAID\n" +
-			"  AND FK.CONGLOMERATEID = C.CONGLOMERATEID";
+	public static String SYSCAT_REFERENCES_VIEW_SQL;
+	static {
+		try (InputStream view_def = SYSFOREIGNKEYSRowFactory.class.getResourceAsStream("/com/splicemachine/db/impl/sql/catalog/syscat_references_view.sql")) {
+			SYSCAT_REFERENCES_VIEW_SQL = IOUtils.toString(view_def, StandardCharsets.UTF_8);
+		} catch (IOException ioe) {
+			throw new RuntimeException(ioe.getMessage());
+		}
+	}
 }

@@ -31,9 +31,13 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -43,8 +47,7 @@ import java.io.ObjectOutput;
  *
  * @see AliasInfo
  */
-public class MethodAliasInfo
-implements AliasInfo, Formatable
+public class MethodAliasInfo implements AliasInfo, Formatable
 {
 	/********************************************************
 	**
@@ -87,9 +90,24 @@ implements AliasInfo, Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
+	@Override
 	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.MethodAliasInfo methodAliasInfo = CatalogMessage.MethodAliasInfo.parseFrom(bs);
+		methodName = methodAliasInfo.getMethodName();
+	}
+
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
 		methodName = (String)in.readObject();
 	}
 
@@ -100,12 +118,27 @@ implements AliasInfo, Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.MethodAliasInfo methodAliasInfo = CatalogMessage.MethodAliasInfo.newBuilder()
+				.setMethodName(methodName)
+				.build();
+		ArrayUtil.writeByteArray(out, methodAliasInfo.toByteArray());
+	}
+
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeObject( methodName );
 	}
- 
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

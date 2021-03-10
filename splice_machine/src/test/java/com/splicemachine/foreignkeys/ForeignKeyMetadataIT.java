@@ -159,27 +159,27 @@ public class ForeignKeyMetadataIT {
 
     @Test
     public void testReferencesAndSysKeyColUseViews() throws Exception {
-        methodWatcher.executeUpdate("create table if not exists SELF_REF (c int, d int, " +
-                "constraint SRPK primary key (c), constraint SRFK foreign key (c) references SELF_REF(c))");
+        methodWatcher.executeUpdate("create table if not exists SELF_REF (a int, b int, " +
+                "constraint SRPK primary key (a, b), constraint SRFK foreign key (a, b) references SELF_REF(a, b))");
         methodWatcher.executeUpdate("create table if not exists TBL1_REF (c int, d int, " +
-                "constraint TRFK1 foreign key (c) references SELF_REF(c) ON DELETE SET NULL)");
+                "constraint TRFK1 foreign key (c, d) references SELF_REF(a, b) ON DELETE SET NULL)");
         methodWatcher.executeUpdate("create table if not exists TBL2_REF (c int, d int, " +
-                "constraint TRFK2 foreign key (c) references SELF_REF(c) ON DELETE CASCADE)");
+                "constraint TRFK2 foreign key (d, c) references SELF_REF(a, b) ON DELETE CASCADE)");
         methodWatcher.executeUpdate("create table if not exists TBL3_REF (c int, d int, " +
-                "constraint TRFK3 foreign key (c) references SELF_REF(c) ON DELETE RESTRICT)");
+                "constraint TRFK3 foreign key (c, d) references SELF_REF(a, b) ON DELETE RESTRICT)");
         methodWatcher.executeUpdate("create table if not exists TBL4_REF (c int, d int, " +
-                "constraint TRFK4 foreign key (c) references SELF_REF(c) ON UPDATE RESTRICT)");
+                "constraint TRFK4 foreign key (d, c) references SELF_REF(a, b) ON UPDATE RESTRICT)");
 
         String query = "select * from syscat.references r where r.tabname like '%_REF%'";
 
         String expected =
-                "CONSTNAME |      TABSCHEMA      | TABNAME |REFKEYNAME |    REFTABSCHEMA     |REFTABNAME |COLCOUNT |DELETERULE |UPDATERULE |\n" +
-                "----------------------------------------------------------------------------------------------------------------------------\n" +
-                "   SRFK    |FOREIGNKEYMETADATAIT |SELF_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     A     |\n" +
-                "   TRFK1   |FOREIGNKEYMETADATAIT |TBL1_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     N     |     A     |\n" +
-                "   TRFK2   |FOREIGNKEYMETADATAIT |TBL2_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     C     |     A     |\n" +
-                "   TRFK3   |FOREIGNKEYMETADATAIT |TBL3_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     R     |     A     |\n" +
-                "   TRFK4   |FOREIGNKEYMETADATAIT |TBL4_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    1    |     A     |     R     |";
+                "CONSTNAME |      TABSCHEMA      | TABNAME |REFKEYNAME |    REFTABSCHEMA     |REFTABNAME |COLCOUNT |DELETERULE |UPDATERULE | FK_COLNAMES | PK_COLNAMES |\n" +
+                "--------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "   SRFK    |FOREIGNKEYMETADATAIT |SELF_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    2    |     A     |     A     |     A,B     |     A,B     |\n" +
+                "   TRFK1   |FOREIGNKEYMETADATAIT |TBL1_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    2    |     N     |     A     |     C,D     |     A,B     |\n" +
+                "   TRFK2   |FOREIGNKEYMETADATAIT |TBL2_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    2    |     C     |     A     |     D,C     |     A,B     |\n" +
+                "   TRFK3   |FOREIGNKEYMETADATAIT |TBL3_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    2    |     R     |     A     |     C,D     |     A,B     |\n" +
+                "   TRFK4   |FOREIGNKEYMETADATAIT |TBL4_REF |   SRPK    |FOREIGNKEYMETADATAIT | SELF_REF  |    2    |     A     |     R     |     D,C     |     A,B     |";
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
@@ -201,7 +201,8 @@ public class ForeignKeyMetadataIT {
 
         expected = "NAME | COLNO | CONSTNAME | CONSTNAME |\n" +
                 "--------------------------------------\n" +
-                "  C  |   0   |   SRFK    |   SRPK    |";
+                "  A  |   0   |   SRFK    |   SRPK    |\n" +
+                "  B  |   1   |   SRFK    |   SRPK    |";
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }

@@ -580,6 +580,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             return node;
         }
 
+        addSPSPropertyDependency(columnReference);
 
         return columnReference;
     }

@@ -179,7 +179,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincStart = autoincStart;
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
-        this.collectStatistics = allowsStatistics(columnType);
+        this.collectStatistics =  allowsStatistics(columnType);
         this.partitionPosition = partitionPosition;
         this.useExtrapolation = useExtrapolation;
     }

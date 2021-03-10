@@ -35,16 +35,20 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.types.StructField;
 
@@ -55,7 +59,7 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
-
+import static com.splicemachine.db.iapi.types.TypeId.VARCHAR_DB2_COMPATIBLE_ID;
 /**
  * DataTypeDescriptor describes a runtime SQL type.
  * It consists of a catalog type (TypeDescriptor)
@@ -72,6 +76,7 @@ public class DataTypeDescriptor implements Formatable{
     // DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
     // it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
     public static final long serialVersionUID = 804804029538241393l;
+    private boolean isDB2CompatibleVarchar;
 
     /********************************************************
      **
@@ -402,6 +407,9 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth);
     }
 
+    public DataTypeDescriptor(CatalogMessage.DataTypeDescriptor dataTypeDescriptor) throws IOException {
+        init(dataTypeDescriptor);
+    }
     /**
      * Constructor to use when the caller doesn't know if it is requesting
      * numeric or no-numeric DTD. For instance, when dealing with MAX/MIN
@@ -457,14 +465,23 @@ public class DataTypeDescriptor implements Formatable{
                 typeId.getMaximumMaximumWidth());
     }
 
-    private DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable){
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable) {
+        this(source, isNullable, false);
+    }
+
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable, boolean DB2Compatible){
         //There might be other places, but one place this method gets called
         //from is ResultColumn.init. When the ResultColumn(RC) is for a
         //ColumnDescriptor(CD), the RC's TypeDescriptorImpl(TDI) should get
         //all the attributes of CD's TDI. So, if the CD is for a user table's
         //character type column, then this call by RC.init should have CD's
         //collation attributes copied into RC along with other attributes.
-        this.typeId=source.typeId;
+        if (DB2Compatible && source.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID) {
+            this.typeId = VARCHAR_DB2_COMPATIBLE_ID;
+            this.isDB2CompatibleVarchar = true;
+        }
+        else
+            this.typeId=source.typeId;
         typeDescriptor=new TypeDescriptorImpl(source.typeDescriptor,
                 source.getPrecision(),
                 source.getScale(),
@@ -1135,6 +1152,7 @@ public class DataTypeDescriptor implements Formatable{
         return new DataTypeDescriptor(this,isNullable);
     }
 
+
     /**
      * Return a type description identical to this type
      * with the exception that its collation information is
@@ -1391,6 +1409,7 @@ public class DataTypeDescriptor implements Formatable{
 
             case StoredFormatIds.CHAR_TYPE_ID:
             case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
                 return 2.0*getMaximumWidth();
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
@@ -1545,7 +1564,7 @@ public class DataTypeDescriptor implements Formatable{
      * and compatible with <code>String</code>
      * @see java.sql.Types
      */
-    private static boolean isCharacterType(int jdbcType){
+    public static boolean isCharacterType(int jdbcType){
 
         switch(jdbcType){
             case Types.CHAR:
@@ -1642,18 +1661,50 @@ public class DataTypeDescriptor implements Formatable{
      * @throws IOException            thrown on error
      * @throws ClassNotFoundException thrown on error
      */
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.parseFrom(bs);
+        init(dataTypeDescriptor);
+    }
+
+    private void init(CatalogMessage.DataTypeDescriptor dataTypeDescriptor) throws IOException{
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = dataTypeDescriptor.getTypeDescriptor();
+        typeDescriptor = ProtobufUtils.fromProtobuf(typeDescriptorImpl);
+        collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        isDB2CompatibleVarchar = dataTypeDescriptor.getIsDB2CompatibleVarchar();
+        init();
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException{
         typeDescriptor=(TypeDescriptorImpl)in.readObject();
         collationDerivation=in.readInt();
+        init();
+    }
+
+    private void init() throws IOException {
+
 
         String typeName=this.getTypeName();
-        typeId=TypeId.getBuiltInTypeId(typeName);
+        if (isDB2CompatibleVarchar)
+            typeId = VARCHAR_DB2_COMPATIBLE_ID;
+        else
+            typeId=TypeId.getBuiltInTypeId(typeName);
         if(typeId==null && typeName!=null){
-         /*
-          * This is a User-defined TypeId, which we serialize. For whatever reason,
-          * derby does not approve of serializing the TypeId information for user-defined
-          * types, so we have to make do with this instead
-          */
+            /*
+             * This is a User-defined TypeId, which we serialize. For whatever reason,
+             * derby does not approve of serializing the TypeId information for user-defined
+             * types, so we have to make do with this instead
+             */
             try{
                 typeId=TypeId.getUserDefinedTypeId(typeName,false);
             }catch(StandardException se){
@@ -1668,10 +1719,36 @@ public class DataTypeDescriptor implements Formatable{
      * @param out write bytes here.
      * @throws IOException thrown on error
      */
-    public void writeExternal(ObjectOutput out) throws IOException{
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException{
         out.writeObject(typeDescriptor);
         out.writeInt(getCollationDerivation());
     }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException{
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = toProtobuf();
+        ArrayUtil.writeByteArray(out, dataTypeDescriptor.toByteArray());
+    }
+
+    public CatalogMessage.DataTypeDescriptor toProtobuf() {
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = typeDescriptor.toProtobuf();
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.newBuilder()
+                .setTypeDescriptor(typeDescriptorImpl)
+                .setCollationDerivation(getCollationDerivation())
+                .setIsDB2CompatibleVarchar(isDB2CompatibleVarchar)
+                .build();
+        return dataTypeDescriptor;
+    }
+
 
     /**
      * Get the formatID which corresponds to this class.

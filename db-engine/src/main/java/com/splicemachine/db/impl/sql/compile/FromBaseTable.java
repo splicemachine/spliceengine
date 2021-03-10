@@ -982,7 +982,7 @@ public class FromBaseTable extends FromTable {
                     if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
 
-                if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
+                if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p, defaultSelectivityFactor);
             }
             scf.generateCost();
@@ -3450,7 +3450,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean areAllJoinPredicates(List<Predicate> predList) {
         for (Predicate predicate : predList) {
-            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+            if (!predicate.isHashableJoinPredicate() && !predicate.isFullJoinPredicate()) {
                 return false;
             }
         }

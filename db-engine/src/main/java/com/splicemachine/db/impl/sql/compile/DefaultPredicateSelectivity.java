@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.impl.ast.RSUtils;
 
@@ -63,8 +64,15 @@ public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
         return
             getNumReferencedTables() < 2             ||
             baseTable.getCurrentAccessPath() == null ||
-            RSUtils.isNLJ(baseTable.getCurrentAccessPath());
+            canPushJoinPredAsInnerTablePred(baseTable.getCurrentAccessPath());
     }
+
+    private boolean canPushJoinPredAsInnerTablePred(AccessPath accessPath) {
+        if (accessPath == null)
+            return false;
+        return accessPath.getJoinStrategy().getJoinStrategyType().isAllowsJoinPredicatePushdown();
+    }
+
 
     public Predicate getPredicate() { return p; }
 }

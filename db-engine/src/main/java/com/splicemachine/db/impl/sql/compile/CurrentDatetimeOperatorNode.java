@@ -154,6 +154,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                 assert false;
         }
 
+        addSPSPropertyDependency();
+
         return this;
     }
 

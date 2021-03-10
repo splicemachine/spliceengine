@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.catalog.types;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -56,21 +58,30 @@ public class DecimalTypeIdImpl extends BaseTypeIdImpl
         if (isNumeric)
             setNumericType();
 	}
-	
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
+
+	public DecimalTypeIdImpl(CatalogMessage.BaseTypeIdImpl baseTypeId ) {
+		init(baseTypeId);
+	}
+
+	@Override
+	protected void init(CatalogMessage.BaseTypeIdImpl baseTypeId ) {
+		super.init(baseTypeId);
+		CatalogMessage.DecimalTypeIdImpl decimalTypeId =
+				baseTypeId.getExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		boolean isNumeric = decimalTypeId.getIsNumeric();
+		if (isNumeric)
+		{
+			setNumericType();
+		}
+	}
+
+	@Override
+	protected void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
 		boolean isNumeric = in.readBoolean();
 
-		super.readExternal(in);
+		super.readExternalOld(in);
 
 		if (isNumeric)
 		{
@@ -79,24 +90,29 @@ public class DecimalTypeIdImpl extends BaseTypeIdImpl
 
 	}
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+	@Override
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeBoolean(getJDBCTypeId() == Types.NUMERIC);
 
-		super.writeExternal(out);
+		super.writeExternalOld(out);
 	}
 
-	private void setNumericType()
+	protected void setNumericType()
 	{
 		unqualifiedName = "NUMERIC";
 		JDBCTypeId = Types.NUMERIC;
+	}
+
+	@Override
+	public CatalogMessage.BaseTypeIdImpl toProtobuf() {
+		CatalogMessage.DecimalTypeIdImpl decimalTypeId = CatalogMessage.DecimalTypeIdImpl.newBuilder()
+				.setIsNumeric(getJDBCTypeId() == Types.NUMERIC)
+				.build();
+
+		CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+		CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.DecimalTypeIdImpl)
+				.setExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl, decimalTypeId);
+		return builder.build();
 	}
 }
