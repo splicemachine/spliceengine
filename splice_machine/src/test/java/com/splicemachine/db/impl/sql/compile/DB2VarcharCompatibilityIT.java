@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
@@ -592,6 +593,13 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                     "----------------\n" +
                     " 1 | a | 1 | a |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDB_11570() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()){
+            checkBooleanExpression("'abcdefgh            '=strip(replace(TRANSLATE('abcdefgh            ',' ',X'00'),' ',''))", true, conn);
         }
     }
 }

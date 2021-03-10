@@ -200,7 +200,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isJoinPredicate()) {
+                    if (pred.isHashableJoinPredicate()) {
                         ap.setMissingHashKeyOK(true);
 
                         AndNode andNode = pred.getAndNode();

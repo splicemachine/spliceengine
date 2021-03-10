@@ -1045,7 +1045,7 @@ public class FromBaseTable extends FromTable {
                 }
 
                 //skip join predicates unless they support predicate pushdown
-                if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {
+                if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {
                     scf.addPredicate(p, defaultSelectivityFactor);
                     numUnusedLeadingIndexFields = currentAccessPath.getNumUnusedLeadingIndexFields();
                 }
@@ -3608,7 +3608,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean areAllJoinPredicates(List<Predicate> predList) {
         for (Predicate predicate : predList) {
-            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+            if (!predicate.isHashableJoinPredicate() && !predicate.isFullJoinPredicate()) {
                 return false;
             }
         }
