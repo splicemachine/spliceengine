@@ -15171,15 +15171,7 @@ caseInnerExpression(ValueNode compareTo) throws StandardException :
 {
     <END>
     {
-        ValueNode value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.CAST_NODE,
-                                        (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                                        getContextManager()),
-                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
-                                        getContextManager());
-        ((CastNode) value).setForExternallyGeneratedCASTnode();
-        ((CastNode) value).setForNullsInConditionalNode();
-        return value;
+        return getNullForCase();
     }
 |
     <ELSE> expr = thenElseExpression() <END>
@@ -15241,14 +15233,7 @@ thenElseExpression() throws StandardException :
     LOOKAHEAD ( {getToken(1).kind == NULL} )
     <NULL>
     {
-        ValueNode value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.CAST_NODE,
-                                        (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                                        getContextManager()),
-                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
-                                        getContextManager());
-        ((CastNode) value).setForExternallyGeneratedCASTnode();
-        return value;
+        return getNullForCase();
     }
 |
     expr = additiveExpression(null, 0)
