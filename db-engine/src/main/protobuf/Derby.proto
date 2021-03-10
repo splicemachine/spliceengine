@@ -1,0 +1,429 @@
+option java_package = "com.splicemachine.db.impl.sql";
+option java_outer_classname = "CatalogMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+import "Types.proto";
+
+message DefaultInfoImpl {
+  optional DataValueDescriptor defaultValue = 1;
+  optional string defaultText = 2;
+  optional int32 type = 3;
+  repeated string referencedColumnNames = 4;
+  optional string originalCurrentSchema = 5;
+}
+
+message TypeDescriptorImpl {
+  optional BaseTypeIdImpl typeId=1;
+  optional int32 precision=2;
+  optional int32 scale=3;
+  optional int32 collationType=4;
+  optional bool isNullable=5;
+  optional int32 maximumWidth=6;
+  repeated TypeDescriptorImpl children=7;
+}
+
+message BaseTypeIdImpl {
+  extensions 1000 to 1999;
+  enum Type
+  {
+    BaseTypeIdImpl = 1;
+    UserDefinedTypeIdImpl = 2;
+    DecimalTypeIdImpl = 3;
+    RowMultiSetImpl=4;
+  }
+  optional Type type = 1;
+
+  optional int32 JDBCTypeId=2;
+  optional int32 formatId = 3;
+  optional string schemaName=4;
+  optional string unqualifiedName=5;
+}
+
+message MethodAliasInfo {
+  optional string methodName=1;
+}
+
+
+message UserDefinedTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required UserDefinedTypeIdImpl userDefinedTypeImpl = 1000;
+  }
+  optional string className=1;
+}
+
+message DecimalTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required DecimalTypeIdImpl decimalTypeIdImpl = 1001;
+  }
+  optional bool isNumeric=1;
+}
+
+message RowMultiSetImpl {
+  extend BaseTypeIdImpl
+  {
+    required RowMultiSetImpl rowMultiSetImpl = 1002;
+  }
+  repeated string columnNames = 1;
+  repeated TypeDescriptorImpl types = 2;
+}
+
+message ReferencedColumnsDescriptorImpl {
+  optional bool isReferencedColumnsNull = 1;
+  repeated int32 referencedColumns = 2;
+  optional bool isReferencedColumnsInTriggerActionNull = 3;
+  repeated int32 referencedColumnsInTriggerAction = 4;
+}
+
+
+message DataTypeDescriptor {
+  optional TypeDescriptorImpl typeDescriptor = 1;
+  optional int32 collationDerivation = 2;
+}
+message DDdependableFinder {
+  extensions 1000 to 1100;
+  enum Type
+  {
+    DDdependableFinder = 1;
+    DDColumnDependableFinder = 2;
+  }
+  optional Type type = 1;
+  optional int32 formatId=2;
+}
+
+message DDColumnDependableFinder {
+  extend DDdependableFinder
+  {
+    required DDColumnDependableFinder dDColumnDependableFinder = 1000;
+  }
+  optional bytes columnBitMap = 1;
+}
+
+message AggregateAliasInfo {
+  optional TypeDescriptorImpl forType=1;
+  optional TypeDescriptorImpl returnType=2;
+}
+
+message RoutineAliasInfo{
+  optional string specificName=1;
+  optional int32 dynamicResultSets=2;
+  optional int32 parameterStyle=3;
+  optional int32 sqlOptions=4;
+  optional TypeDescriptorImpl returnType=5;
+  optional bool calledOnNullInput=6;
+  optional int32 expansionNum=7;
+  repeated string parameterNames=8;
+  repeated TypeDescriptorImpl parameterTypes=9;
+  repeated int32 parameterModes=10;
+  optional string language=11;
+  optional bytes compiledPyCode=12;
+}
+
+message SynonymAliasInfo {
+  optional string schemaName=1;
+  optional string tableName=2;
+}
+
+message FormatableBitSet {
+  optional bytes value = 1;
+  optional int32 lengthAsBits = 2;
+}
+
+message ByteArray {
+  optional bytes array = 1;
+  optional int32 offset = 2;
+  optional int32 length = 3;
+}
+
+message IndexRowGenerator{
+  optional IndexDescriptorImpl id = 1;
+}
+
+
+message IndexDescriptorImpl {
+  optional bool isUnique = 1;
+  repeated bool isAscending = 2;
+  repeated int32 baseColumnPositions = 3;
+  optional int32 numberOfOrderedColumns = 4;
+  optional string indexType = 5;
+  optional bool isUniqueWithDuplicateNulls = 6;
+  optional bool excludeNulls = 7;
+  optional bool excludeDefaults = 8;
+  repeated string generatedClassNames = 9;
+  repeated string exprTexts = 10;
+  repeated ByteArray exprBytecode = 11;
+  repeated DataTypeDescriptor indexColumnTypes = 12;
+}
+
+
+message SystemAggregator {
+  extensions 1000 to max;
+  enum Type
+  {
+    CountAggregator = 1;
+    AvgAggregator = 2;
+    DecimalBufferedSumAggregator = 3;
+    DoubleBufferedSumAggregator = 4;
+    LongBufferedSumAggregator = 5;
+    MaxMinAggregator = 6;
+    StringAggregator = 7;
+    SumAggregator = 8;
+  }
+  optional Type type = 1;
+  optional bool eliminatedNulls = 2;
+}
+
+message CountAggregator {
+  extend SystemAggregator
+  {
+    required CountAggregator countAggregator = 1000;
+  }
+  optional bool isCountStar = 1;
+  optional int64 value = 2;
+}
+
+message AvgAggregator {
+  extend SystemAggregator
+  {
+    required AvgAggregator avgAggregator = 1001;
+  }
+  optional SystemAggregator sumAggregator = 1;
+  optional int64 count = 2;
+  optional int32 scale = 3;
+}
+
+message DecimalBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required DecimalBufferedSumAggregator decimalBufferedSumAggregator = 1002;
+  }
+  optional bool isNull = 1;
+  optional bytes sum = 2;
+}
+
+message DoubleBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required DoubleBufferedSumAggregator doubleBufferedSumAggregator = 1003;
+  }
+  optional bool isNull = 1;
+  optional bytes sumTree = 2;
+}
+
+message LongBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required LongBufferedSumAggregator longBufferedSumAggregator = 1004;
+  }
+  optional bool isNull = 1;
+  optional int64 sum = 2;
+}
+
+message MaxMinAggregator {
+  extend SystemAggregator
+  {
+    required MaxMinAggregator maxMinAggregator = 1005;
+  }
+  optional bool isMax = 1;
+  optional DataValueDescriptor value = 2;
+}
+
+message StringAggregator {
+  extend SystemAggregator
+  {
+    required StringAggregator stringAggregator = 1006;
+  }
+  optional bytes aggregator = 1;
+  optional string separator = 2;
+}
+
+message SumAggregator {
+  extend SystemAggregator
+  {
+    required SumAggregator sumAggregator = 1007;
+  }
+}
+
+message CursorTableReference {
+  optional string exposedName = 1;
+  optional string baseName = 2;
+  optional string schemaName = 3;
+}
+
+message CursorInfo {
+  optional int32 updateMode = 1;
+  optional CursorTableReference targetTable = 2;
+  repeated ResultColumnDescriptor targetColumns = 3;
+  repeated string updateColumns = 4;
+}
+
+message ResultColumnDescriptor {
+  optional string name = 1;
+  optional string tableName = 2;
+  optional string schemaName = 3;
+  optional int32 columnPos = 4;
+  optional DataTypeDescriptor type = 5;
+  optional bool isAutoincrement = 6;
+  optional bool updatableByCursor = 7;
+}
+
+message UUID {
+  optional int64 majorId = 1;
+  optional int64 timemillis = 2;
+  optional int32 sequence = 3;
+}
+
+message FKInfo {
+  optional int32 formatId = 1;
+  optional string tableName = 2;
+  optional int32 type = 3;
+  optional int32 stmtType = 4;
+  optional UUID refUUID = 5;
+  optional int64 refConglomNumber = 6;
+  repeated string fkConstraintNames = 7;
+  repeated UUID fkUUIDs = 8;
+  repeated int64 fkConglomNumbers = 9;
+  repeated bool fkIsSelfReferencing = 10;
+  repeated int32 colArray = 11;
+  repeated int32 raRules = 12;
+}
+
+message TriggerDescriptor {
+  extensions 1000 to 1999;
+  enum Type {
+    TriggerDescriptorV2 = 1;
+    TriggerDescriptorV3 = 2;
+    TriggerDescriptorV4 = 3;
+  }
+  optional Type type = 1;
+  optional UUID id = 2;
+  optional string name = 3;
+  optional UUID triggerSchemaId = 4;
+  optional UUID triggerTableId = 5;
+  optional int32 triggerDMLId = 6;
+  optional bool isBefore = 7;
+  optional bool isRow = 8;
+  optional bool isEnabled = 9;
+  optional UUID whenSPSId = 10;
+  repeated UUID actionSPSIdList = 11;
+  repeated int32 referencedCols = 12;
+  repeated int32 referencedColsInTriggerAction = 13;
+  repeated string triggerDefinitionList = 14;
+  optional bool referencingOld = 15;
+  optional bool referencingNew = 16;
+  optional string oldReferencingName = 17;
+  optional string newReferencingName = 18;
+  optional string whenClauseText = 19;
+}
+
+message TriggerDescriptorV2 {
+  extend TriggerDescriptor
+  {
+    required TriggerDescriptorV2 triggerDescriptorV2 = 1001;
+  }
+  optional int32 numBaseTableColumns = 1;
+}
+
+message TriggerDescriptorV3 {
+  extend TriggerDescriptor
+  {
+    required TriggerDescriptorV3 triggerDescriptorV3 = 1002;
+  }
+}
+
+message TriggerDescriptorV4 {
+  extend TriggerDescriptor
+  {
+    required TriggerDescriptorV4 triggerDescriptorV4 = 1003;
+  }
+  optional int32 numBaseTableColumns = 1;
+  optional bool specialFromTableTrigger = 2;
+}
+
+message TriggerInfo {
+  repeated TriggerDescriptor triggerDescriptor = 1;
+  repeated string columnNames = 2;
+  repeated int32 columnId = 3;
+}
+
+message WriteCursorConstantOperation {
+  extensions 1000 to max;
+  enum Type
+  {
+    InsertConstantOperation = 1;
+    UpdateConstantOperation = 2;
+    DeleteConstantOperation = 3;
+  }
+
+  optional Type type = 1;
+  optional int64 conglomId = 2;
+  optional SpliceConglomerate heapSCOCI = 3;
+  repeated IndexRowGenerator indexRowGenerator = 4;
+  repeated int64 indexCIDS = 5;
+  repeated SpliceConglomerate indexSCOCIs = 6;
+  optional bool deferred = 7;
+  optional bytes targetProperties = 8;
+  optional UUID targetUUID = 9;
+  optional int32 lockMode = 10;
+  repeated FKInfo fkInfo = 11;
+  optional TriggerInfo triggerInfo = 12;
+  optional FormatableBitSet baseRowReadList = 13;
+  repeated int32 baseRowReadMap = 14;
+  repeated int32 streamStorableHeapColIds = 15;
+  optional bool singleRowSource = 16;
+  repeated string indexNames = 17;
+  repeated int32 pkColumns = 18;
+}
+
+message InsertConstantOperation {
+  extend WriteCursorConstantOperation
+  {
+    required InsertConstantOperation insertConstantOperation = 1001;
+  }
+  repeated bool indexCols = 1;
+  optional string schemaName = 2;
+  optional string tableName = 3;
+  optional bytes autoincRowLocation = 4;
+  repeated string columnNames = 5;
+  repeated int64 autoincIncrement = 6;
+}
+
+message UpdateConstantOperation {
+  extend WriteCursorConstantOperation
+  {
+    required UpdateConstantOperation updateConstantOperation = 1002;
+  }
+  repeated int32 changedColumnIds = 1;
+  repeated int32 storagePositionIds = 2;
+  optional bool positionedUpdate = 3;
+  optional int32 numColumns = 4;
+}
+
+message DeleteConstantOperation {
+  extend WriteCursorConstantOperation
+  {
+    required DeleteConstantOperation deleteConstantOperation = 1003;
+  }
+  optional int32 numColumns = 1;
+  repeated WriteCursorConstantOperation dependentCActions = 2;
+  optional ResultDescription resultDescription = 3;
+}
+
+message ResultDescription {
+  optional string statementType = 1;
+  repeated ResultColumnDescriptor columns = 2;
+}
+
+message GenericStorablePreparedStatement {
+  optional CursorInfo cursorInfo = 1;
+  optional bool needsSavepoint = 2;
+  optional bool isAtomic = 3;
+  optional bytes executionConstants = 4;
+  optional ResultDescription resultDescription = 5;
+  optional bytes savedObjects = 6;
+  optional string className = 7;
+  optional ByteArray byteCode = 8;
+  repeated DataTypeDescriptor paramTypeDescriptors = 9;
+}

@@ -82,7 +82,7 @@ public class ConglomerateUtils{
                 return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
             }
             else {
-                return readConglomerate(conglomId, instanceClass, txn, SIConfigurations.CONGLOMERATE_TABLE_NAME);
+                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
             }
         }
         catch (IOException e) {
@@ -322,7 +322,7 @@ public class ConglomerateUtils{
             }
         }
 
-        writeConglomerateTable(SIConfigurations.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
@@ -365,7 +365,7 @@ public class ConglomerateUtils{
         long conglomId = conglomerate.getContainerid();
         byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
         SpliceLogUtils.debug(LOG,"updating table {%d} in hbase with serialized data {%s}",conglomId,conglomerate);
-        writeConglomerateTable(SIConfigurations.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
