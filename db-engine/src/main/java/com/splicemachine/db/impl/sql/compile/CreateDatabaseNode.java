@@ -100,7 +100,7 @@ public class CreateDatabaseNode extends DDLStatementNode
      */
     public void bindStatement() throws StandardException
     {
-        // XXX (arnaud multidb) implement that
+        //TODO (multidb) (DB-11633) Restrict creation of database node to splicedb.SPLICE
     }
 
     public String statementToString()

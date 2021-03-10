@@ -1073,7 +1073,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         DataDictionary dd=getDataDictionary();
         String nextSynonymTable=tabName.getTableName();
         String nextSynonymSchema=tabName.getSchemaName();
-        UUID dbId = getLanguageConnectionContext().getDatabaseId(); // XXX(arnaud multidb) decode as part of the fully defined tabName
+        UUID dbId = getLanguageConnectionContext().getDatabaseId(); // TODO(multidb) (DB-11632) decode as part of the fully defined tabName
         boolean found=false;
         CompilerContext cc=getCompilerContext();
 

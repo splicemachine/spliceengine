@@ -151,7 +151,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
             aid = schemaDescriptor.getAuthorizationId();
 
-            dbid = schemaDescriptor.getDatabaseId().toString(); //XXX(arnaud multidb) create if null?
+            dbid = schemaDescriptor.getDatabaseId().toString();
 
         }
 
