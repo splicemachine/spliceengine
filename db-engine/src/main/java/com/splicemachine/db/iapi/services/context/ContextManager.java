@@ -284,10 +284,20 @@ public class ContextManager
 		ThreadDeath seenThreadDeath = null;
 		if (error instanceof ThreadDeath)
 			seenThreadDeath = (ThreadDeath) error;
+		else {
+			if (error instanceof PassThroughException) {
+				error = error.getCause();
+			}
 
-        if (error instanceof PassThroughException) {
-            error = error.getCause();
-        }
+			if (!(error instanceof StandardException)) {
+				// note: all non-StandardExceptions will cause Connections to either be corrupted or closed
+				// by below's call to `ctx.cleanupOnError(error);` see eg.
+				// EmbedConnectionContext.cleanupOnError, which would call conn.setInactive().
+				// every other fatal exception which SHOULD cause connection to be closed
+				// (like ThreadDeath) should be added above with `else if(error instanceof XXX)`.
+				error = StandardException.plainWrapException(error);
+			}
+		}
 
 		boolean reportError = reportError(error);
 

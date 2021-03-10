@@ -67,7 +67,7 @@ public class StandardException extends Exception
 	 * Exception State
 	 */
 	private Object[] arguments;
-	private int severity;
+	private int severity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 	private String textMessage;
 	private String sqlState;
 	private transient int report;
