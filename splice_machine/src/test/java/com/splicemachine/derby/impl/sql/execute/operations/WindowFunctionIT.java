@@ -14,12 +14,15 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.LongerThanFiveMinutes;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -44,6 +47,10 @@ import static org.junit.Assert.*;
  *
  * Created by jyuan on 7/30/14.
  */
+@SuppressFBWarnings({
+        "VA_FORMAT_STRING_USES_NEWLINE",
+        "RV_RETURN_VALUE_IGNORED" // todo: fix this
+})
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
 @Category({LongerThanTwoMinutes.class, LongerThanFiveMinutes.class})
@@ -1020,7 +1027,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     });
 
     @ClassRule
-    public static SpliceWatcher methodWatcher = new SpliceWatcher();
+    final public static SpliceWatcher methodWatcher = new SpliceWatcher();
 
 
     @Test
@@ -5444,4 +5451,20 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
+    @Test
+    public void testRankWithoutOrderByErrorMessage() throws Exception {
+        String sqlText = String.format("SELECT rank_col, rank() over (partition by rn/10) rnk from %s", this.getTableReference(EMPTAB));
+
+        try {
+            methodWatcher.execute(sqlText);
+            Assert.fail("expect exception");
+        }
+        catch(SQLException e) {
+            Assert.assertEquals("Syntax error: RANK requires an ORDER BY clause.", e.getMessage());
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+    }
+
+
 }
