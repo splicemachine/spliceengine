@@ -36,7 +36,7 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddColumnsViewInSYSCAT\n" +
             "VERSION4.2001: UpgradeScriptForViews ChangingGetKeyColumnPosition\n" +
             "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
-            "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n"
+            "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
             "VERSION4.2004: UpgradeScriptForViews FixSYSCOLPERMSVIEW\n" +
             "VERSION4.2004: UpgradeScriptForViews AddViewsDB_11267\n";
 

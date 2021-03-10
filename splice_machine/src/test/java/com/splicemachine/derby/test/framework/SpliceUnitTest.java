@@ -1269,6 +1269,13 @@ public class SpliceUnitTest {
     }
 
 
+
+    /**
+     * matching regexp with multiple lines by splitting the input string and the result string and
+     * comparing individually
+     * @param in the input multiline string
+     * @param expectedOutRegex the multiline string that is used to match the input
+     */
     public static void matchMultipleLines(String in, String expectedOutRegex) {
         String[] o2 = in.split("\n");
         String[] ex2 = expectedOutRegex.split("\n");
@@ -1277,9 +1284,20 @@ public class SpliceUnitTest {
             Assert.assertTrue("\n" + o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
         }
     }
-    public static String escapeRegexp(String asterixFilter)
+
+    /**
+     * creates a regexp where all characters are escaped and § is mapped to .*, so that
+     * when we have a result with a variable result like with a conglomerate id
+     * | 347893 | MY_TABLE |
+     * we can use
+     * |§| MY_TABLE |
+     * to match the result
+     * @param asteriskFilter
+     * @return escaped regexp String, and § mapped to .*
+     */
+    public static String escapeRegexp(String asteriskFilter)
     {
-        String filter = asterixFilter;
+        String filter = asteriskFilter;
         String toEscape[] = {"\\", "<", "(", "[", "{", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
         for(String s : toEscape) {
             filter = filter.replace(s, "\\" + s);
