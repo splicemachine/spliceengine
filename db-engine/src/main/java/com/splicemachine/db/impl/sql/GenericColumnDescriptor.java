@@ -302,12 +302,10 @@ public final class GenericColumnDescriptor
         } else {
             out.writeBoolean(false);
         }
-        out.writeInt(serializationMagicNumber);
         out.writeInt(columnPos);
         out.writeObject(type);
         out.writeBoolean(isAutoincrement);
         out.writeBoolean(updatableByCursor);
-        out.writeBoolean(hasGenerationClause);
     }
 
     /**
@@ -345,19 +343,10 @@ public final class GenericColumnDescriptor
         if (in.readBoolean()) {
             schemaName = in.readUTF();
         }
-        int tempInt = in.readInt();
-        boolean deserializeHasGenerationClause = false;
-        if (tempInt == serializationMagicNumber) {
 			columnPos = in.readInt();
-			deserializeHasGenerationClause = true;
-		}
-        else
-        	columnPos = tempInt;
         type = getStoredDataTypeDescriptor(in.readObject());
         isAutoincrement = in.readBoolean();
         updatableByCursor = in.readBoolean();
-        if (deserializeHasGenerationClause)
-            hasGenerationClause = in.readBoolean();
     }
 
 	/**
