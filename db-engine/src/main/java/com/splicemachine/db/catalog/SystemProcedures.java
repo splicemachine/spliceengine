@@ -51,6 +51,7 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 
@@ -654,8 +655,8 @@ public class SystemProcedures{
         TransactionController tc=lcc.getTransactionExecute();
         try{
             tc.elevate("dbprops");
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
         PropertyInfo.setDatabaseProperty(key,value);
     }
@@ -675,8 +676,8 @@ public class SystemProcedures{
 
         try{
             return PropertyUtil.getDatabaseProperty(lcc.getTransactionExecute(),key);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -717,9 +718,9 @@ public class SystemProcedures{
             query=query+" update statistics "+IdUtil.normalToDelimited(indexname);
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -802,9 +803,9 @@ public class SystemProcedures{
 
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -1044,8 +1045,8 @@ public class SystemProcedures{
             if(td!=null && td.getTableType()==TableDescriptor.VTI_TYPE){
                 return;
             }
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
 
         //Send all the other inplace compress requests to ALTER TABLE
@@ -1060,9 +1061,9 @@ public class SystemProcedures{
 
         Connection conn=getDefaultConn();
 
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.executeUpdate();
+        }
 
         conn.close();
     }
@@ -1138,8 +1139,8 @@ public class SystemProcedures{
 
             JarUtil.replace(lcc,
                     schemaName,sqlName,url);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1174,8 +1175,8 @@ public class SystemProcedures{
 
             JarUtil.drop(lcc,schemaName,sqlName);
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1357,6 +1358,7 @@ public class SystemProcedures{
      *
      * @throws StandardException Standard exception policy.
      **/
+    @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
     public static void SYSCS_BULK_INSERT(
             String schemaName,
             String tableName,
@@ -1383,9 +1385,9 @@ public class SystemProcedures{
                         StringUtil.quoteStringLiteral(vtiArg)+")"+
                         " as t";
 
-        PreparedStatement ps=conn.prepareStatement(binsertSql);
-        ps.executeUpdate();
-        ps.close();
+        try (PreparedStatement ps = conn.prepareStatement(binsertSql)) {
+            ps.executeUpdate();
+        }
     }
 
     /**
@@ -1501,6 +1503,7 @@ public class SystemProcedures{
      *
      * @return a random number
      */
+    @SuppressFBWarnings(value="DMI_RANDOM_USED_ONLY_ONCE", justification = "FIX: DB-10207")
     public static double RAND(int seed){
         return (new Random(seed)).nextDouble();
     }
@@ -1528,8 +1531,8 @@ public class SystemProcedures{
             DataDictionary dd=lcc.getDataDictionary();
 
             dd.recompileInvalidSPSPlans(lcc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1544,8 +1547,8 @@ public class SystemProcedures{
             DataDictionary dd=lcc.getDataDictionary();
 
             dd.invalidateAllSPSPlans(lcc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1571,8 +1574,8 @@ public class SystemProcedures{
             dd.startWriting(lcc);
 
             dd.updateMetadataSPSes(tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1605,8 +1608,8 @@ public class SystemProcedures{
             dd.startWriting(lcc);
 
             dd.createSystemProcedure(schemaName,procName,tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1639,8 +1642,8 @@ public class SystemProcedures{
             dd.startWriting(lcc);
 
             dd.dropSystemProcedure(schemaName,procName,tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1726,6 +1729,8 @@ public class SystemProcedures{
             status = false;
             reason = sqle.getMessage();
             throw sqle;
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
         finally {
             if (AUDITLOG.isInfoEnabled())
@@ -1806,8 +1811,8 @@ public class SystemProcedures{
                 //    tc.setProperty
                 //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1863,8 +1868,8 @@ public class SystemProcedures{
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
             dd.updateSystemSchemaAuthorization(aid,tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1927,8 +1932,8 @@ public class SystemProcedures{
 
             dd.updateUser(userDescriptor,tc);
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        }catch(Throwable t){
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -1999,14 +2004,17 @@ public class SystemProcedures{
 
             dd.dropUser(userName,lcc.getTransactionExecute());
             status = true;
-
-        }catch(StandardException se){
+        }
+        catch(Throwable t) {
+            StandardException se = StandardException.getOrWrap(t);
             status = false;
             reason = se.getMessage();
-            throw PublicAPI.wrapStandardException(se);
-        }finally {
+            throw PublicAPI.wrapThrowable(t);
+        }
+        finally {
             if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.DROP_USER.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
+                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.DROP_USER.name(), status, ip,
+                        lcc.getStatementContext().getStatementText(), reason));
         }
     }
 
@@ -2028,8 +2036,8 @@ public class SystemProcedures{
             throws SQLException{
         try{
             return IdUtil.getUserAuthorizationId(userName);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -2044,8 +2052,8 @@ public class SystemProcedures{
             throws SQLException{
         try{
             return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(schemaName,sequenceName);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -2060,8 +2068,7 @@ public class SystemProcedures{
     public static void SYSCS_SET_USER_ACCESS(String userName, String connectionPermission) throws SQLException{
         try{
             if(userName==null)
-                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
-                        userName);
+                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, (Object) null);
 
             String addListProperty;
             if(Property.FULL_ACCESS.equals(connectionPermission)){
@@ -2089,8 +2096,8 @@ public class SystemProcedures{
                         IdUtil.appendNormalToList(userName,addList));
             }
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
