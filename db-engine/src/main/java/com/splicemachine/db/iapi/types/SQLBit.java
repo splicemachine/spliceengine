@@ -31,12 +31,14 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.StringUtil;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
@@ -44,9 +46,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 /**
  * SQLBit represents the SQL type CHAR FOR BIT DATA
  */
-public class SQLBit
-	extends SQLBinary
-{
+public class SQLBit extends SQLBinary {
 
 	/**
 	 *
@@ -143,6 +143,10 @@ public class SQLBit
 		setValue(val);
 	}
 
+	public SQLBit(TypeMessage.SQLBinary sqlBinary) {
+		init(sqlBinary);
+	}
+
 	/**
 	 * Normalization method - this method may be called when putting
 	 * a value into a SQLBit, for example, when inserting into a SQLBit
@@ -158,7 +162,7 @@ public class SQLBit
 
 	public void normalize(
 				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
+				  DataValueDescriptor source)
 					throws StandardException
 	{
 		int		desiredWidth = desiredType.getMaximumWidth();
@@ -258,6 +262,5 @@ public class SQLBit
 	public Format getFormat() {
 		return Format.BIT;
 	}
-
 
 }

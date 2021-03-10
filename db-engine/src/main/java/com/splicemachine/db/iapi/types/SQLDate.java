@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,7 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -72,9 +75,7 @@ import java.util.GregorianCalendar;
  * do to the overhead of Date.valueOf(), etc. methods.
  */
 
-public final class SQLDate extends DataType
-						implements DateTimeDataValue
-{
+public final class SQLDate extends DataType implements DateTimeDataValue {
 
 	/**
 	 +     * The JodaTime has problems with all the years before 1884
@@ -152,7 +153,7 @@ public final class SQLDate extends DataType
 		{
 			return null;
 		}
-        
+
         return new Timestamp(getTimeInMillis(cal));
     }
 
@@ -189,9 +190,9 @@ public final class SQLDate extends DataType
     {
         // Note Calendar uses 0 for January, Derby uses 1.
         cal.set(getYear(encodedDate),
-                getMonth(encodedDate)-1, getDay(encodedDate));     
+                getMonth(encodedDate)-1, getDay(encodedDate));
     }
-    
+
 	/**
 		getObject returns the date value
 
@@ -225,24 +226,6 @@ public final class SQLDate extends DataType
 		return StoredFormatIds.SQL_DATE_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
-
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeInt(encodedDate);
-	}
-
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException {
-		isNull = in.readBoolean();
-		setValue(in.readInt());
-	}
 
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
@@ -411,6 +394,55 @@ public final class SQLDate extends DataType
 		parseDate(value);
 	}
     
+
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.SQLDate.Builder builder = TypeMessage.SQLDate.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            builder.setEncodedDate(encodedDate);
+        }
+        TypeMessage.DataValueDescriptor dvd =
+                TypeMessage.DataValueDescriptor.newBuilder()
+                        .setType(TypeMessage.DataValueDescriptor.Type.SQLDate)
+                        .setExtension(TypeMessage.SQLDate.sqlDate, builder.build())
+                        .build();
+
+        return dvd;
+    }
+
+    /**
+     @exception IOException error writing data
+
+     */
+    @Override
+    public void writeExternalOld(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+        out.writeInt(encodedDate);
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.SQLDate date = dvd.getExtension(TypeMessage.SQLDate.sqlDate);
+        init(date);
+    }
+
+    private void init(TypeMessage.SQLDate date) {
+        isNull = date.getIsNull();
+        if (!isNull) {
+            encodedDate = date.getEncodedDate();
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
+        isNull = in.readBoolean();
+        setValue(in.readInt());
+    }
+
     private void parseDate( java.util.Date value) throws StandardException
 	{
 		setValue(computeEncodedDate(value));
@@ -420,6 +452,10 @@ public final class SQLDate extends DataType
 	{
 		setValue(encodedDate);
 	}
+
+    public SQLDate(TypeMessage.SQLDate sqlDate) {
+        init(sqlDate);
+    }
 
     /**
      * Construct a date from a string. The allowed date formats are:
@@ -437,7 +473,7 @@ public final class SQLDate extends DataType
      * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLDate( String dateStr, boolean isJdbcEscape, LocaleFinder localeFinder)
-        throws StandardException
+            throws StandardException
     {
         parseDate( dateStr, isJdbcEscape, localeFinder, (Calendar) null);
     }
@@ -458,7 +494,7 @@ public final class SQLDate extends DataType
      * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLDate( String dateStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
-        throws StandardException
+            throws StandardException
     {
         parseDate( dateStr, isJdbcEscape, localeFinder, cal);
     }
@@ -470,9 +506,9 @@ public final class SQLDate extends DataType
     private static final char IBM_EUR_SEPARATOR = '.';
     private static final char[] IBM_EUR_SEPARATOR_ONLY = {IBM_EUR_SEPARATOR};
     private static final char[] END_OF_STRING = {(char) 0};
-    
+
     private void parseDate( String dateStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
-        throws StandardException
+            throws StandardException
     {
         boolean validSyntax = true;
         DateTimeParser parser = new DateTimeParser( dateStr);
@@ -485,34 +521,34 @@ public final class SQLDate extends DataType
         {
             switch( parser.nextSeparator())
             {
-            case ISO_SEPARATOR:
-                setValue(SQLTimestamp.parseDateOrTimestamp( parser, false)[0]);
-                return;
+                case ISO_SEPARATOR:
+                    setValue(SQLTimestamp.parseDateOrTimestamp( parser, false)[0]);
+                    return;
 
-            case IBM_USA_SEPARATOR:
-                if( isJdbcEscape)
-                {
-                    validSyntax = false;
+                case IBM_USA_SEPARATOR:
+                    if( isJdbcEscape)
+                    {
+                        validSyntax = false;
+                        break;
+                    }
+                    month = parser.parseInt( 2, true, IBM_USA_SEPARATOR_ONLY, false);
+                    day = parser.parseInt( 2, true, IBM_USA_SEPARATOR_ONLY, false);
+                    year = parser.parseInt( 4, false, END_OF_STRING, false);
                     break;
-                }
-                month = parser.parseInt( 2, true, IBM_USA_SEPARATOR_ONLY, false);
-                day = parser.parseInt( 2, true, IBM_USA_SEPARATOR_ONLY, false);
-                year = parser.parseInt( 4, false, END_OF_STRING, false);
-                break;
 
-            case IBM_EUR_SEPARATOR:
-                if( isJdbcEscape)
-                {
-                    validSyntax = false;
+                case IBM_EUR_SEPARATOR:
+                    if( isJdbcEscape)
+                    {
+                        validSyntax = false;
+                        break;
+                    }
+                    day = parser.parseInt( 2, true, IBM_EUR_SEPARATOR_ONLY, false);
+                    month = parser.parseInt( 2, true, IBM_EUR_SEPARATOR_ONLY, false);
+                    year = parser.parseInt( 4, false, END_OF_STRING, false);
                     break;
-                }
-                day = parser.parseInt( 2, true, IBM_EUR_SEPARATOR_ONLY, false);
-                month = parser.parseInt( 2, true, IBM_EUR_SEPARATOR_ONLY, false);
-                year = parser.parseInt( 4, false, END_OF_STRING, false);
-                break;
 
-            default:
-                validSyntax = false;
+                default:
+                    validSyntax = false;
             }
         }
         catch( StandardException se)
@@ -633,7 +669,7 @@ public final class SQLDate extends DataType
         return new SQLInteger();
     }
 
-    
+
 	/**
 	 * @see DateTimeDataValue#getYear
 	 * 
@@ -644,7 +680,7 @@ public final class SQLDate extends DataType
 	{
         if (isNull()) {
             return nullValueInt();
-        } else {    
+        } else {
             return SQLDate.setSource(getYear(encodedDate), result);
         }
     }
@@ -699,7 +735,7 @@ public final class SQLDate extends DataType
      * @exception StandardException		Thrown on error
      */
     public NumberDataValue getWeek(NumberDataValue result)
-        throws StandardException {
+            throws StandardException {
         if (isNull()) {
             return nullValueInt();
         } else {
@@ -713,7 +749,7 @@ public final class SQLDate extends DataType
      * @exception StandardException		Thrown on error
      */
     public NumberDataValue getWeekDay(NumberDataValue result)
-        throws StandardException {
+            throws StandardException {
         if (isNull()) {
             return nullValueInt();
         } else {
@@ -741,7 +777,7 @@ public final class SQLDate extends DataType
      * @exception StandardException		Thrown on error
      */
     public NumberDataValue getDayOfYear(NumberDataValue result)
-        throws StandardException {
+            throws StandardException {
         if (isNull()) {
             return nullValueInt();
         } else {
@@ -1020,8 +1056,8 @@ public final class SQLDate extends DataType
         	break;
         }
         if( y < 1 || y > 9999
-            || m < 1 || m > 12
-            || d < 1 || d > maxDay) {
+                || m < 1 || m > 12
+                || d < 1 || d > maxDay) {
             throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
         }
         return (y << 16) + (m << 8) + d;
@@ -1084,7 +1120,7 @@ public final class SQLDate extends DataType
 				throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "date");
 		}
     } // end of dateToString
-    
+
 	/**
 	 * Get the String version from the encodedDate.
 	 *
@@ -1173,14 +1209,14 @@ public final class SQLDate extends DataType
     }
 
 
-        /**
-         * Implement the date SQL function: construct a SQL date from a string, number, or timestamp.
-         *
-         * @param operand Must be a date or a string convertible to a date.
-         * @param dvf the DataValueFactory
-         *
-         * @exception StandardException standard error policy
-         */
+    /**
+     * Implement the date SQL function: construct a SQL date from a string, number, or timestamp.
+     *
+     * @param operand Must be a date or a string convertible to a date.
+     * @param dvf the DataValueFactory
+     *
+     * @exception StandardException standard error policy
+     */
     public static DateTimeDataValue computeDateFunction( DataValueDescriptor operand,
                                                          DataValueFactory dvf) throws StandardException
     {
@@ -1202,12 +1238,12 @@ public final class SQLDate extends DataType
                 int daysSinceEpoch = operand.getInt();
                 if( daysSinceEpoch <= 0 || daysSinceEpoch > 3652059)
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                                                          operand.getString(), "date");
+                            operand.getString(), "date");
                 Calendar cal = new GregorianCalendar( 1970, 0, 1, 12, 0, 0);
 				cal.add(Calendar.DATE, daysSinceEpoch - 1);
                 return new SQLDate( computeEncodedDate( cal.get( Calendar.YEAR),
-                                                        cal.get( Calendar.MONTH) + 1,
-                                                        cal.get( Calendar.DATE)));
+                        cal.get( Calendar.MONTH) + 1,
+                        cal.get( Calendar.DATE)));
             }
             String str = operand.getString();
             if( str.length() == 7)
@@ -1217,16 +1253,16 @@ public final class SQLDate extends DataType
                 int dayOfYear = SQLTimestamp.parseDateTimeInteger( str, 4, 3);
                 if( dayOfYear < 1 || dayOfYear > 366)
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                                                          operand.getString(), "date");
+                            operand.getString(), "date");
                 Calendar cal = new GregorianCalendar( year, 0, 1, 2, 0, 0);
                 cal.add( Calendar.DAY_OF_YEAR, dayOfYear - 1);
                 int y = cal.get( Calendar.YEAR);
                 if( y != year)
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                                                          operand.getString(), "date");
+                            operand.getString(), "date");
                 return new SQLDate( computeEncodedDate( year,
-                                                        cal.get( Calendar.MONTH) + 1,
-                                                        cal.get( Calendar.DATE)));
+                        cal.get( Calendar.MONTH) + 1,
+                        cal.get( Calendar.DATE)));
             }
             // Else use the standard cast.
             return dvf.getDateValue( str, false);
@@ -1235,18 +1271,18 @@ public final class SQLDate extends DataType
         {
             if( SQLState.LANG_DATE_SYNTAX_EXCEPTION.startsWith( se.getSQLState()))
                 throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                                                      operand.getString(), "date");
+                        operand.getString(), "date");
             throw se;
         }
     } // end of computeDateFunction
 
     /** Adding this method to ensure that super class' setInto method doesn't get called
-      * that leads to the violation of JDBC spec( untyped nulls ) when batching is turned on.
-      */     
+     * that leads to the violation of JDBC spec( untyped nulls ) when batching is turned on.
+     */
     public void setInto(PreparedStatement ps, int position) throws SQLException, StandardException {
 
-                  ps.setDate(position, getDate((Calendar) null));
-     }
+        ps.setDate(position, getDate((Calendar) null));
+    }
 
 
     /**
@@ -1267,7 +1303,7 @@ public final class SQLDate extends DataType
                                            NumberDataValue intervalCount,
                                            java.sql.Date currentDate,
                                            DateTimeDataValue resultHolder)
-        throws StandardException
+            throws StandardException
     {
         return toTimestamp().timestampAdd( intervalType, intervalCount, currentDate, resultHolder);
     }
@@ -1276,7 +1312,7 @@ public final class SQLDate extends DataType
     {
         return new SQLTimestamp( getEncodedDate(), 0, 0);
     }
-    
+
     /**
      * Finds the difference between two datetime values as a number of intervals. Implements the JDBC
      * TIMESTAMPDIFF escape function.
@@ -1296,7 +1332,7 @@ public final class SQLDate extends DataType
                                           DateTimeDataValue time1,
                                           java.sql.Date currentDate,
                                           NumberDataValue resultHolder)
-        throws StandardException
+            throws StandardException
     {
         return toTimestamp().timestampDiff(intervalType, time1, currentDate, resultHolder);
     }
