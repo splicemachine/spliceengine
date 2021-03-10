@@ -722,7 +722,7 @@ public class BackupSystemProcedures {
             
             // Rollback
 //            backupManager.rollbackDatabase(transactionId, currentTxId);
-            LOG.info("Rolling back to "+transactionId+" from "+curTs+", currentTxId="+currentTxId);
+            LOG.info("Rolling back to "+transactionId+" from "+curTs+", currentTxId="+currentTxId+", txn="+txn.getTxnId());
             backupManager.rollbackDatabase(transactionId, curTs);  // curTs or currentTxId ?
             
             // Finish Restore Mode
