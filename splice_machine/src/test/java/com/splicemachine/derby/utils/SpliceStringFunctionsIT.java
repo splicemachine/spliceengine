@@ -1149,11 +1149,11 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
         };
         for (TestConnection conn: conns) {
-            checkStringExpression("translate(lower(a)) from testTranslate", "ABCDEFG", conn);
-            checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
-            checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
             try (PreparedStatement ps = conn.prepareStatement("" +
                     "select id," +
+                    "translate(lower(a)), " +
+                    "translate(a,b,c), " +
+                    "translate(a,'ac', c, 'U'), " +
                     "translate(?)," +
                     "translate(?)," +
                     "translate(?, b, c)," +
@@ -1170,12 +1170,12 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 ps.setString(8, "321");
                 try (ResultSet rs = ps.executeQuery()) {
                     Assert.assertEquals(
-                            "ID | 2  | 3 |   4    |   5    |   6    | 7  |\n" +
-                                    "---------------------------------------------\n" +
-                                    " 1 |ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |\n" +
-                                    " 2 |ABC | 1 |aBcDeFG | NULL   | NULL   |674 |\n" +
-                                    " 3 |ABC | 1 | NULL   |aBcDeFG | NULL   |674 |\n" +
-                                    " 4 |ABC | 1 | NULL   | NULL   |aBcDeFG |674 |",
+                            "ID |   2    |   3    |   4    | 5  | 6 |   7    |   8    |   9    |10  |\n" +
+                                    "------------------------------------------------------------------------\n" +
+                                    " 1 |ABCDEFG |aBcDeFG |aBcDUFG |ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |\n" +
+                                    " 2 | NULL   | NULL   | NULL   |ABC | 1 |aBcDeFG | NULL   | NULL   |674 |\n" +
+                                    " 3 |ABCDEFG | NULL   |aBcDUFG |ABC | 1 | NULL   |aBcDeFG | NULL   |674 |\n" +
+                                    " 4 |ABCDEFG | NULL   | NULL   |ABC | 1 | NULL   | NULL   |aBcDeFG |674 |",
                             TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
                 }
             }
