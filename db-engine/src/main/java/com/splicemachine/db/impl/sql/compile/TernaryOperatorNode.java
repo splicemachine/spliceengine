@@ -267,109 +267,92 @@ public class TernaryOperatorNode extends OperatorNode
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
 
         getReceiver().generateExpression(acb, mb);
-        if (operatorType == TRIM || operatorType == DB2RTRIM)
-        {
-            mb.push(trimType);
-            getLeftOperand().generateExpression(acb, mb);
-            mb.cast(getLeftInterfaceType());
+        switch (operatorType) {
+            case TRIM:
+            case DB2RTRIM:
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                mb.push(trimType);
+                getLeftOperand().generateExpression(acb, mb);
+                mb.cast(getLeftInterfaceType());
 
-            mb.getField(field);
-            nargs = 3;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == LOCATE)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            getRightOperand().generateExpression(acb, mb);
-            mb.upCast(getRightInterfaceType());
-            mb.getField(field);
-            nargs = 3;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == SUBSTRING)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            if (getRightOperand() != null)
-            {
+                mb.getField(field);
+                nargs = 3;
+                receiverType = getReceiverInterfaceType();
+                break;
+            case LOCATE:
+                getLeftOperand().generateExpression(acb, mb);
+                mb.upCast(getLeftInterfaceType());
                 getRightOperand().generateExpression(acb, mb);
                 mb.upCast(getRightInterfaceType());
-            }
-            else
-            {
-                mb.pushNull(getRightInterfaceType());
-            }
+                mb.getField(field);
+                nargs = 3;
+                receiverType = getReceiverInterfaceType();
+                break;
+            case SUBSTRING:
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                getLeftOperand().generateExpression(acb, mb);
+                mb.upCast(getLeftInterfaceType());
+                if (getRightOperand() != null)
+                {
+                    getRightOperand().generateExpression(acb, mb);
+                    mb.upCast(getRightInterfaceType());
+                }
+                else
+                {
+                    mb.pushNull(getRightInterfaceType());
+                }
 
-            mb.getField(field); // third arg
-            mb.push(getReceiver().getTypeServices().getMaximumWidth());
-            mb.push(getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID || getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID);
-            nargs = 5;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == LEFT)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            mb.getField(field);
-            nargs = 2;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == RIGHT)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            mb.getField(field);
-            nargs = 2;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == TIMESTAMPADD || operatorType == TIMESTAMPDIFF)
-        {
-            Object intervalType = getLeftOperand().getConstantValueAsObject();
-            if( SanityManager.DEBUG)
-                SanityManager.ASSERT( intervalType != null && intervalType instanceof Integer,
-                                      "Invalid interval type used for " + operator);
-            mb.push((Integer) intervalType);
-            getRightOperand().generateExpression( acb, mb);
-            mb.upCast( TernaryArgType[ operatorType][2]);
-            acb.getCurrentDateExpression( mb);
-            mb.getField(field);
-            nargs = 4;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == REPLACE)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            if (getRightOperand() != null)
-            {
-                getRightOperand().generateExpression(acb, mb);
-                mb.upCast(getRightInterfaceType());
-            }
-            else
-            {
-                mb.pushNull(getRightInterfaceType());
-            }
-            mb.getField(field);
-            nargs = 3;
-            receiverType = getReceiverInterfaceType();
-        }
-        else if (operatorType == SPLIT_PART)
-        {
-            getLeftOperand().generateExpression(acb, mb);
-            mb.upCast(getLeftInterfaceType());
-            if (getRightOperand() != null)
-            {
-                getRightOperand().generateExpression(acb, mb);
-                mb.upCast(getRightInterfaceType());
-            }
-            else
-            {
-                mb.pushNull(getRightInterfaceType());
-            }
-            mb.getField(field);
-            nargs = 3;
-            receiverType = getReceiverInterfaceType();
+                mb.getField(field); // third arg
+                mb.push(getReceiver().getTypeServices().getMaximumWidth());
+                mb.push(getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID ||
+                        getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID);
+                nargs = 5;
+                receiverType = getReceiverInterfaceType();
+                break;
+            case LEFT:
+            case RIGHT:
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                getLeftOperand().generateExpression(acb, mb);
+                mb.upCast(getLeftInterfaceType());
+                mb.getField(field);
+                nargs = 2;
+                receiverType = getReceiverInterfaceType();
+                break;
+            case TIMESTAMPADD:
+            case TIMESTAMPDIFF:
+                Object intervalType = getLeftOperand().getConstantValueAsObject();
+                if( SanityManager.DEBUG)
+                    SanityManager.ASSERT( intervalType != null && intervalType instanceof Integer,
+                                          "Invalid interval type used for " + operator);
+                assert intervalType instanceof Integer;
+                mb.push((Integer) intervalType);
+                getRightOperand().generateExpression( acb, mb);
+                mb.upCast( TernaryArgType[ operatorType][2]);
+                acb.getCurrentDateExpression( mb);
+                mb.getField(field);
+                nargs = 4;
+                receiverType = getReceiverInterfaceType();
+                break;
+            case REPLACE:
+            case SPLIT_PART:
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                getLeftOperand().generateExpression(acb, mb);
+                mb.upCast(getLeftInterfaceType());
+                if (getRightOperand() != null)
+                {
+                    getRightOperand().generateExpression(acb, mb);
+                    mb.upCast(getRightInterfaceType());
+                }
+                else
+                {
+                    mb.pushNull(getRightInterfaceType());
+                }
+                mb.getField(field);
+                nargs = 3;
+                receiverType = getReceiverInterfaceType();
+                break;
+            default:
+                break;
         }
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultInterfaceType, nargs);

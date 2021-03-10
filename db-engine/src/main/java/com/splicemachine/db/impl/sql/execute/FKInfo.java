@@ -35,21 +35,21 @@ import com.splicemachine.db.catalog.UUID;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.types.RowLocation;
 
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.FormatIdUtil;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.StreamCorruptedException;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 
+import java.util.Arrays;
 import java.util.Vector;
 
 /**
@@ -176,6 +176,9 @@ public class FKInfo implements Formatable {
 		}
 	}
 
+	public FKInfo(CatalogMessage.FKInfo fkInfo) throws IOException {
+		init(fkInfo);
+	}
 	/**
 	 * Comb through the FKInfo structures and pick out the
 	 * ones that have columns that intersect with the input
@@ -256,9 +259,51 @@ public class FKInfo implements Formatable {
 	 *
  	 * @exception IOException thrown on error
 	 */
-    @Override
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.FKInfo fkInfo = toProtoBuf();
+		ArrayUtil.writeByteArray(out, fkInfo.toByteArray());
+	}
+
+	public CatalogMessage.FKInfo toProtoBuf() {
+		CatalogMessage.FKInfo.Builder builder = CatalogMessage.FKInfo.newBuilder();
+		builder.setFormatId(rowLocation.getTypeFormatId())
+				.setTableName(tableName)
+				.setType(type)
+				.setStmtType(stmtType)
+				.setRefUUID(refUUID.toProtobuf())
+				.setRefConglomNumber(refConglomNumber)
+				.addAllFkConstraintNames(Arrays.asList(fkConstraintNames));
+
+		for (int i = 0; i < fkUUIDs.length; ++i) {
+			builder.addFkUUIDs(fkUUIDs[i].toProtobuf());
+		}
+
+		for (int i = 0; i < fkConglomNumbers.length; ++i) {
+			builder.addFkConglomNumbers(fkConglomNumbers[i]);
+		}
+		for (int i = 0; i < fkIsSelfReferencing.length; ++i) {
+			builder.addFkIsSelfReferencing(fkIsSelfReferencing[i]);
+		}
+
+		for (int i = 0; i < colArray.length; ++i) {
+			builder.addColArray(colArray[i]);
+		}
+		for (int i = 0; i < raRules.length; ++i) {
+			builder.addRaRules(raRules[i]);
+		}
+		return builder.build();
+	}
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		/*
 		** Row locations cannot be written unless they
 		** have a valid value.  So we'll just write out
@@ -290,8 +335,69 @@ public class FKInfo implements Formatable {
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-    @Override
+	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void init(CatalogMessage.FKInfo fkInfo) throws IOException {
+		try {
+			rowLocation = (RowLocation) Monitor.newInstanceFromIdentifier(fkInfo.getFormatId());
+			if (SanityManager.DEBUG) {
+				SanityManager.ASSERT(rowLocation != null, "row location is null in readExternal");
+			}
+		}catch (StandardException e) {
+			throw new IOException(e);
+		}
+
+		tableName = fkInfo.getTableName();
+		type = fkInfo.getType();
+		stmtType = fkInfo.getStmtType();
+		refUUID = ProtobufUtils.fromProtobuf(fkInfo.getRefUUID());
+		refConglomNumber = fkInfo.getRefConglomNumber();
+
+		fkConstraintNames = new String[fkInfo.getFkConstraintNamesCount()];
+		for (int i = 0; i < fkConstraintNames.length; ++i) {
+			fkConstraintNames[i] = fkInfo.getFkConstraintNames(i);
+		}
+
+		fkUUIDs = new UUID[fkInfo.getFkUUIDsCount()];
+		for (int i = 0; i < fkUUIDs.length; ++i) {
+			fkUUIDs[i] = ProtobufUtils.fromProtobuf(fkInfo.getFkUUIDs(i));
+		}
+
+		fkConglomNumbers = new long[fkInfo.getFkConglomNumbersCount()];
+		for (int i = 0; i < fkConglomNumbers.length; ++i) {
+			fkConglomNumbers[i] = fkInfo.getFkConglomNumbers(i);
+		}
+
+		fkIsSelfReferencing = new boolean[fkInfo.getFkIsSelfReferencingCount()];
+		for (int i = 0; i < fkIsSelfReferencing.length; ++i) {
+			fkIsSelfReferencing[i] = fkInfo.getFkIsSelfReferencing(i);
+		}
+
+		colArray = new int[fkInfo.getColArrayCount()];
+		for (int i = 0; i < colArray.length; ++i) {
+			colArray[i] = fkInfo.getColArray(i);
+		}
+
+		raRules = new int[fkInfo.getRaRulesCount()];
+		for (int i = 0; i < raRules.length; ++i) {
+			raRules[i] = fkInfo.getRaRules(i);
+		}
+	}
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.FKInfo fkInfo = CatalogMessage.FKInfo.parseFrom(bs);
+		init(fkInfo);
+	}
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		try
 		{
 			/*

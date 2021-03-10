@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.io.IOException;
@@ -135,6 +136,9 @@ public class TriggerDescriptorV4 extends TriggerDescriptorV3 {
         this.version = 4;
     }
 
+    public TriggerDescriptorV4 (CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        init(triggerDescriptor);
+    }
     //////////////////////////////////////////////////////////////
     //
     // FORMATABLE
@@ -158,8 +162,8 @@ public class TriggerDescriptorV4 extends TriggerDescriptorV3 {
      * @throws ClassNotFoundException thrown on error
      */
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternalOld(in);
         numBaseTableColumns = in.readInt();
         specialFromTableTrigger = in.readBoolean();
 
@@ -171,10 +175,33 @@ public class TriggerDescriptorV4 extends TriggerDescriptorV3 {
      * @param out write bytes here.
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        super.writeExternalOld(out);
         out.writeInt(numBaseTableColumns);
         out.writeBoolean(specialFromTableTrigger);
+    }
+
+    @Override
+    public CatalogMessage.TriggerDescriptor.Builder toProtobufBuilder() {
+        CatalogMessage.TriggerDescriptor.Builder builder = super.toProtobufBuilder();
+        CatalogMessage.TriggerDescriptorV4 triggerDescriptorV4 = CatalogMessage.TriggerDescriptorV4.newBuilder()
+                .setNumBaseTableColumns(numBaseTableColumns)
+                .setSpecialFromTableTrigger(specialFromTableTrigger)
+                .build();
+
+        builder.setType(CatalogMessage.TriggerDescriptor.Type.TriggerDescriptorV4)
+                .setExtension(CatalogMessage.TriggerDescriptorV4.triggerDescriptorV4, triggerDescriptorV4);
+
+        return builder;
+    }
+
+    @Override
+    protected void init(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        super.init(triggerDescriptor);
+        CatalogMessage.TriggerDescriptorV4 triggerDescriptorV4 =
+                triggerDescriptor.getExtension(CatalogMessage.TriggerDescriptorV4.triggerDescriptorV4);
+        numBaseTableColumns = triggerDescriptorV4.getNumBaseTableColumns();
+        specialFromTableTrigger = triggerDescriptorV4.getSpecialFromTableTrigger();
     }
 }
 

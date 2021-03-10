@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -481,5 +482,14 @@ public abstract class OperatorNode extends ValueNode
         mb.getField(field);
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
+    }
+
+    public void generateSetIgnoreTrailingWhitespacesInVarcharComparison(int operandIndex, MethodBuilder mb) throws StandardException {
+        if (getCompilerContext().getVarcharDB2CompatibilityMode()) {
+            mb.dup();
+            mb.push(true);
+            mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.StringDataValue,
+                    "setIgnoreTrailingWhitespacesInVarcharComparison", "void", 1);
+        }
     }
 }

@@ -281,6 +281,9 @@ public abstract class StatementPermission {
                 }
                 throw se;
             }
+			catch(Throwable t) {
+				throw StandardException.getOrWrap(t);
+			}
         }
 
     } // end of genericCheck

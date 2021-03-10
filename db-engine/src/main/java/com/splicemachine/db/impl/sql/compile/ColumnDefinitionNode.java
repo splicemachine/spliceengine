@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 
 import java.sql.Types;
 import java.util.Vector;
@@ -656,7 +657,7 @@ public class ColumnDefinitionNode extends TableElementNode
             if (SanityManager.DEBUG)
             {
                 /* Save the APL off in the constraint node */
-                if (!apl.isEmpty())
+                if (!apl.isEmpty() && apl.values().stream().anyMatch(p -> !(p instanceof SPSProperty)))
                 {
 
                     SanityManager.THROWASSERT("DEFAULT clause has unexpected dependencies");

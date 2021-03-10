@@ -53,7 +53,6 @@ public interface Dependable
     /*
       *    Universe of known Dependables.
       */
-
     String ALIAS                        = "Alias";
     String CONGLOMERATE                 = "Conglomerate";
     String CONSTRAINT                   = "Constraint";
@@ -76,6 +75,7 @@ public interface Dependable
     String ROLE_GRANT                   = "RoleGrant";
     String SEQUENCE                     = "Sequence";
     String PERM                         = "Perm";
+    String SPS_PROPERTY                 = "PreparedStatementProperty";
     String DATABASE                     = "Database";
 
 

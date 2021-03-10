@@ -72,6 +72,7 @@ import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Optional;
@@ -255,6 +256,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param startParams The start-up parameters
      * @throws StandardException Thrown if the module fails to start
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         softwareVersion=new DD_Version(this,DataDictionary.DD_VERSION_DERBY_10_9);
@@ -550,6 +552,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 createDbOwnerSchema(bootingTC, getSpliceDatabaseDescriptor().getUUID(), SchemaDescriptor.DEFAULT_USER_NAME);
             }
 
+            startParams.setProperty("catalogVersion", dictionaryVersion.toString());
             assert authorizationDatabasesOwner.containsKey(spliceDbDesc.getUUID()) :"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
@@ -3401,7 +3404,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param keyRow Start/stop position.
      * @throws StandardException Thrown on failure
      */
-    private void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
+    protected void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
         ExecRow curRow;
         PermissionsDescriptor perm;
         TabInfoImpl ti=getNonCoreTI(SYSCOLPERMS_CATALOG_NUM);
@@ -4116,7 +4119,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
                         replaceRow[i] = new SQLBoolean(false);
                     else if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
-                        replaceRow[i] = new UserType(null);
+                        replaceRow[i] = new UserType((Object)null);
                     else
                         replaceRow[i] = rowTemplate[i].cloneValue(false);
                 }
@@ -5883,7 +5886,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc           The TransactionController
      * @throws StandardException Thrown on failure
      */
-    private void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
+    protected void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
         ExecIndexRow checkRow1;
         DataValueDescriptor constraintIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSCHECKS_CATALOG_NUM);
@@ -6856,6 +6859,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         boolean nativeAuthenticationEnabled=PropertyUtil.nativeAuthenticationEnabled(startParams);
         if(nativeAuthenticationEnabled){
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
+            dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
         softwareVersion.upgradeIfNeeded(dictionaryVersion,tc,startParams);
@@ -6989,6 +6993,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
                                           DataDescriptorGenerator ddg) throws StandardException{
@@ -7088,7 +7093,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
                                 SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID)));
 
-        //Add the SYSIBM Schema
+                //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSIBMADM Schema
@@ -7870,7 +7875,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return version.orNull();
 
         TransactionController tc = getTransactionCompile();
-        String v = tc.getCatalogVersion(conglomerateNumber);
+        String v = tc.getCatalogVersion(Long.toString(conglomerateNumber));
         dataDictionaryCache.catalogVersionCacheAdd(conglomerateNumber, v == null ? Optional.absent() : Optional.of(v));
         return v;
     }
@@ -8239,7 +8244,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 System.out.println("ASSERT FAILURE: "+strbuf.toString());
                 SanityManager.DEBUG_PRINT("ASSERT FAILURE",strbuf.toString());
             }catch(StandardException se){
-                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(se.toString());
+                strbuf.append("\ngot the following StandardException when doing extra consistency checks:\n").append(se.toString());
+            }
+            catch(Throwable t) {
+                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(t.toString());
             }
         }
     }
