@@ -28,6 +28,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 
@@ -42,6 +43,8 @@ public class CrossJoinOperation extends JoinOperation{
     protected boolean broadcastRightSide;
     protected boolean noCacheBroadcastJoinRight;
     protected long sequenceId;
+    protected JavaRDD leftRDD;
+    protected JavaRDD rightRDD;
     protected static final String NAME = CrossJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -88,6 +91,10 @@ public class CrossJoinOperation extends JoinOperation{
         return sequenceId;
     }
 
+    public void setLeftRDD(JavaRDD leftRDD) { this.leftRDD = leftRDD; }
+
+    public void setRightRDD(JavaRDD rightRDD) { this.rightRDD = rightRDD; }
+
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
@@ -108,7 +115,6 @@ public class CrossJoinOperation extends JoinOperation{
         OperationContext operationContext = dsp.createOperationContext(this);
         dsp.incrementOpDepth();
         boolean usesNativeSparkDataSet =
-           !dsp.isSparkDB2CompatibilityMode() &&
            dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
@@ -165,5 +171,14 @@ public class CrossJoinOperation extends JoinOperation{
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getLeftHashKeys() {
         return leftHashKeys;
+    }
+
+    @Override
+    public void close() throws StandardException {
+        if (leftRDD != null)
+            leftRDD.unpersist();
+        if (rightRDD != null)
+            rightRDD.unpersist();
+        super.close();
     }
 }
