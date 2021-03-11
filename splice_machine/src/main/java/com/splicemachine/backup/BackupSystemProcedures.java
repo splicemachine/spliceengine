@@ -48,7 +48,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
-import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
@@ -666,11 +665,13 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION(long transactionId,
-                                                              ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION(ResultSet[] resultSets) throws StandardException, SQLException {
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        long snapshotTxId = lcc.getTransactionExecute().getActiveStateTxId();
+        
         Txn txn;
         try {
-//<<<<<<< Updated upstream
             txn = SIDriver.driver().lifecycleManager().beginTransaction();
             txn = txn.elevateToWritable(Bytes.toBytes("rollback"));
         } catch (IOException e) {
@@ -679,51 +680,22 @@ public class BackupSystemProcedures {
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);
 
-//=======
-////            lcc.setReadOnly(true);
-//            
-            TimestampSource ts = SIDriver.driver().getTimestampSource();
-            long curTs = ts.currentTimestamp();
-////            long nextTs = ts.nextTimestamp();
-//            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
-//            
-////            if( curTs > -1 ) {
-////                throw new Exception("currentTxId "+currentTxId+" curTs "+curTs+" nextTs "+nextTs);
-////            }
-//            
-//>>>>>>> Stashed changes
             IgnoreTxnSupplier ignoreTxn = SIDriver.driver() == null ? null : SIDriver.driver().getIgnoreTxnSupplier();
-            if( ignoreTxn != null && ignoreTxn.shouldIgnore(transactionId) ) {
-                throw new Exception("Already rolled back past "+transactionId+". Cannot roll back to it.");
+            if( ignoreTxn != null && ignoreTxn.shouldIgnore(snapshotTxId) ) {
+                throw new Exception("Already rolled back past "+snapshotTxId+". Cannot roll back to it.");
             }
-            LanguageConnectionContext lcc = transactionResource.getLcc();
 
-//<<<<<<< Updated upstream
-            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
-//=======
-////            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
-//>>>>>>> Stashed changes
-//            if( transactionId >= currentTxId ) {
-//                throw new Exception(""+transactionId+" is not a past transaction. Cannot roll back to it.");
-//            }
-
-//<<<<<<< Updated upstream
-//            TransactionController tc=lcc.getTransactionExecute();
-//            tc.elevate("rollback");
-//=======
-//            TransactionController tc=lcc.getTransactionExecute();
-////            tc.elevate("rollback");  // causes error "The request is not supported for a read-only database."
-//>>>>>>> Stashed changes
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            
+            long currentTxId = txn.getTxnId();
 
             // Set Restore Mode to prevent other workloads from running
             DDLMessage.DDLChange change = ProtoUtil.createRestoreMode(currentTxId);
             String changeId = DDLUtils.notifyMetadataChange(change);
             
             // Rollback
-//            backupManager.rollbackDatabase(transactionId, currentTxId);
-            LOG.info("Rolling back to "+transactionId+" from "+curTs+", currentTxId="+currentTxId+", txn="+txn.getTxnId());
-            backupManager.rollbackDatabase(transactionId, curTs);  // curTs or currentTxId ?
+            LOG.info("Rolling back to "+snapshotTxId+" from "+currentTxId);
+            backupManager.rollbackDatabase(snapshotTxId, currentTxId);
             
             // Finish Restore Mode
             DDLUtils.finishMetadataChange(changeId);
@@ -737,23 +709,16 @@ public class BackupSystemProcedures {
 
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
 
-//<<<<<<< Updated upstream
             try {
-                //SIDriver.driver().lifecycleManager().commit(txn.getTxnId());
                 txn.commit();
             } catch (IOException e) {
                 // ignore
             }
-//=======
-////            lcc.setReadOnly(false);
-////            ts.bumpTimestamp(nextTs);
-//>>>>>>> Stashed changes
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database rollback error", t);
             t.printStackTrace();
             try {
-                //SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
                 txn.rollback();
             } catch (IOException e) {
                 // ignore
