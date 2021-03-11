@@ -291,6 +291,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 case THROW_ERROR:
                     stats.thrownErrorsRows.add(currentBulkWrite.getSize());
                     throwExceptionFromFailedRows(bulkWriteResult);
+                    break;
                 case RETRY:
                     stats.retriedRows.add(currentBulkWrite.getSize());
                     /*
@@ -328,6 +329,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             case THROW_ERROR:
                 stats.partialThrownErrorRows.add(currentBulkWrite.getSize());
                 throwExceptionFromFailedRows(bulkWriteResult);
+                break;
             case RETRY:
                 logPartialRetry(ctx, bulkWriteResult, currentBulkWrite, writeResponse);
 
@@ -406,7 +408,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     /** this is used to mark exceptions that are from failed rows (throwExceptionFromFailedRows)
      * (in contast to pipeline exceptions)
      */
-    class ResultException extends Exception {
+    static class ResultException extends Exception {
         Exception exception;
         ResultException(Exception exception) {
             this.exception = exception;

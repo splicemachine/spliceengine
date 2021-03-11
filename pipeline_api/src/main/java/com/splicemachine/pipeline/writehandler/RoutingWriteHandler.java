@@ -15,6 +15,8 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
+import java.util.Arrays;
+
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
@@ -138,6 +140,6 @@ public abstract class RoutingWriteHandler implements WriteHandler {
 
     @Override
     public String toString() {
-        return "RoutingWriteHandler { destination = " + destination + " keepState = " + keepState + "}";
+        return "RoutingWriteHandler { destination = " + Arrays.toString(destination) + " keepState = " + keepState + "}";
     }
 }
