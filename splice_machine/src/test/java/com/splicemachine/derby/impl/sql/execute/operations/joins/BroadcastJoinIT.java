@@ -1017,8 +1017,12 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         if (useSpark)
             testQuery(sqlText, expected, methodWatcher);
         String explainQuery = "explain " + sqlText;
-        if (useSpark)
+        if (useSpark) {
+            methodWatcher.execute("set session_property olapAlwaysPenalizeNLJ=true");
             testQueryDoesNotContain(explainQuery, "NestedLoopJoin", methodWatcher, true);
+            methodWatcher.execute("set session_property olapAlwaysPenalizeNLJ=false");
+            testQueryContains(explainQuery, "NestedLoopJoin", methodWatcher, true);
+        }
         else
             testQueryContains(explainQuery, "NestedLoopJoin", methodWatcher, true);
 
