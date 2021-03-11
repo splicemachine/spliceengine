@@ -317,6 +317,11 @@ public class CompilerContextImpl extends ContextImpl
         floatingPointNotation = value;
     }
 
+    public void setCursorUntypedExpressionType(DataTypeDescriptor type)
+    {
+        cursorUntypedExpressionType = type;
+    }
+
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
     }
@@ -331,6 +336,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public int getFloatingPointNotation() {
         return floatingPointNotation;
+    }
+
+    public DataTypeDescriptor getCursorUntypedExpressionType() {
+        return cursorUntypedExpressionType;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -1208,6 +1217,7 @@ public class CompilerContextImpl extends ContextImpl
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
     private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
+    private       DataTypeDescriptor                  cursorUntypedExpressionType                  = null;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;

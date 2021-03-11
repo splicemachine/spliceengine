@@ -1157,6 +1157,8 @@ public interface Property {
     String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
     String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
+    String CURSOR_UNTYPED_EXPRESSION_TYPE = "splice.bind.cursorUntypedExpressionType";
+
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
