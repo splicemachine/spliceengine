@@ -67,6 +67,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import org.apache.commons.lang3.SystemUtils;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.base.Strings;
@@ -2091,5 +2092,13 @@ public abstract class QueryTreeNode implements Node, Visitable{
     protected int getBaseHashCode() {
         int nodeType = getNodeType();
         return nodeType ^ (nodeType >>> 16);
+    }
+
+    protected void addSPSPropertyDependency() throws StandardException {
+        addSPSPropertyDependency(this);
+    }
+
+    protected void addSPSPropertyDependency(final Node node) throws StandardException {
+        SPSPropertyRegistry.checkAndAddDependency(node, getCompilerContext());
     }
 }

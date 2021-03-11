@@ -826,17 +826,17 @@ public class SelectivityIT extends SpliceUnitTest {
         rowContainsQuery(5,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and b.a = c.a and a.a = c.a " +
                                               "and a.b = b.b and a.b = c.b","outputRows=3,",methodWatcher);
 
-        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 = b.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 = b.a and a.a = c.a","outputRows=8,",methodWatcher);
         rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 b --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 c --splice-properties joinStrategy=nestedloop\n" +
                              "where a.a = b.a and (a.b+a.a)/2 = b.a and a.a = c.a","outputRows=10,",methodWatcher);
-        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 between b.a-1 and b.a+1 and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (a.b+a.a)/2 between b.a-1 and b.a+1 and a.a = c.a","outputRows=8,",methodWatcher);
         rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 b --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 c --splice-properties joinStrategy=nestedloop\n" +
                             "where a.a = b.a and (a.b+a.a)/2 between b.a-1 and b.a+1 and a.a = c.a","outputRows=10,",methodWatcher);
-        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (c.a+a.a)/2 <> b.a and a.a = c.a","outputRows=10,",methodWatcher);
+        rowContainsQuery(2,"explain select * from t11 a, t11 b, t11 c where a.a = b.a and (c.a+a.a)/2 <> b.a and a.a = c.a","outputRows=8,",methodWatcher);
         rowContainsQuery(2,"explain select * from t11 a --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 b --splice-properties joinStrategy=nestedloop\n" +
                             ", t11 c --splice-properties joinStrategy=nestedloop\n" +

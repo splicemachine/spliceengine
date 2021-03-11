@@ -49,6 +49,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -1373,9 +1374,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            // we need to invalidate the statement caches since we could set parameters that affect query plans.
-            SYSCS_INVALIDATE_STORED_STATEMENTS();
-            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
 
             ResultHelper resultHelper = new ResultHelper();
 

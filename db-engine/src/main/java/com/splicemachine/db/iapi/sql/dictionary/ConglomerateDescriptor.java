@@ -80,6 +80,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	private final UUID	tableID;
 	private final UUID	schemaID;
 
+
 	/**
 	 * Constructor for a conglomerate descriptor.
 	 *

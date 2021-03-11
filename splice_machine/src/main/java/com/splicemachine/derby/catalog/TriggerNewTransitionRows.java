@@ -65,10 +65,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -97,6 +93,9 @@ public class TriggerNewTransitionRows
 	private DataSet<ExecRow> sourceSet;
 	private TriggerExecutionContext tec;
 	protected TriggerRowHolderImpl rowHolder = null;
+	private DataSet<ExecRow> oldRowsSourceSet;
+	private DataSet<ExecRow> newRowsSourceSet;
+
 
 	public TriggerNewTransitionRows()
 	{
@@ -157,6 +156,11 @@ public class TriggerNewTransitionRows
             else {
 
                 activation = triggerRowsHolder.getActivation();
+                //
+                //       The following line references the Dataset which feeds the main DMLWriteOperation
+                //       against the trigger target table.
+                //       So, using it directly reads the trigger rows directly
+                //       instead of from a temporary conglomerate.
                 sourceSet = triggerRowsHolder.getSourceSet();
                 if (tec == null)
                     tec = triggerRowsHolder.getTriggerExecutionContext();
@@ -171,16 +175,30 @@ public class TriggerNewTransitionRows
                 templateRow = triggerRowsHolder.getExecRowDefinition();
             }
 
-            boolean usePersistedDataSet = op.isOlapServer() && sourceSet != null &&
+            // Can the Dataset be reused?
+            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
-                                          writeOperation instanceof InsertOperation;
-            // Disable the persisted DataSet path for now.
-            // It doesn't work properly with tables with generated columns.
-            usePersistedDataSet = false;
+                                          !sourceSet.isNativeSpark()             &&
+                                          !tec.hasGeneratedColumn()              &&
+                                          !tec.hasSpecialFromTableTrigger();
             boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
-            if (usePersistedDataSet) {
-                sourceSet.persist();
-                triggerRows = sourceSet;
+            boolean isOldRows = this instanceof TriggerOldTransitionRows;
+            DataSet<ExecRow> commonSourceSet = isOldRows ? oldRowsSourceSet : newRowsSourceSet;
+
+            if (useCommonDataSet) {
+                if (commonSourceSet != null)
+                    triggerRows = commonSourceSet;
+                else {
+                    triggerRows = sourceSet;
+                    if (!sourceSet.isNativeSpark()) {
+                        triggerRows = applyTriggerRowsMapFunction(sourceSet, op, tec);
+                        triggerRows = triggerRows.upgradeToSparkNativeDataSet(op.getOperationContext());
+                        if (isOldRows)
+                            oldRowsSourceSet = triggerRows;
+                        else
+                            newRowsSourceSet = triggerRows;
+                    }
+                }
             }
             else {
                 DataSet<ExecRow> cachedRowsSet = null;
@@ -214,6 +232,7 @@ public class TriggerNewTransitionRows
                     tableVersion,
                     false,   // rowIdKey
                     conglomerate,
+                    null,
                     null);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
@@ -247,11 +266,22 @@ public class TriggerNewTransitionRows
                 else
                     triggerRows = cachedRowsSet;
             }
-            boolean isOld = (this instanceof TriggerOldTransitionRows);
-            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld, tec));
+            if (!useCommonDataSet)
+                triggerRows = applyTriggerRowsMapFunction(triggerRows, op, tec);
             if (writeOperation != null)
                 writeOperation.registerCloseable(this);
-	    return triggerRows;
+
+	        return triggerRows;
+        }
+
+        private DataSet applyTriggerRowsMapFunction(DataSet triggerRows,
+                                                    SpliceOperation op,
+                                                    TriggerExecutionContext tec) throws StandardException {
+	        TriggerNewTransitionRowsKind triggerRowsKind =
+                    (this instanceof TriggerOldTransitionRows) ? TriggerNewTransitionRowsKind.OLD :
+                                                                 TriggerNewTransitionRowsKind.NEW;
+            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), triggerRowsKind, tec));
+            return triggerRows;
         }
 
         public OperationContext getOperationContext() {
@@ -293,7 +323,10 @@ public class TriggerNewTransitionRows
 
                     tec.setConnectionContext(cc);
                     tec.setLanguageConnectionContext(lcc);
-                    rowHolder.setActivation(activation);
+                    if (activation.getParentActivation() != null)
+                        rowHolder.setActivation(activation.getParentActivation());
+                    else if (rowHolder.getActivation() == null)
+                        rowHolder.setActivation(activation);
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     rowHolder.setTriggerExecutionContext(tec);
 
@@ -342,6 +375,7 @@ public class TriggerNewTransitionRows
            sourceSet = null;
        }
        tec = null;
+       oldRowsSourceSet = newRowsSourceSet = null;
    }
 
     @Override
@@ -359,5 +393,10 @@ public class TriggerNewTransitionRows
     @Override
     public boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment) throws SQLException {
         return false;
+    }
+
+    public enum TriggerNewTransitionRowsKind {
+        NEW,
+        OLD
     }
 }

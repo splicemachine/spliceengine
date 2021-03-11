@@ -59,7 +59,7 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
-
+import static com.splicemachine.db.iapi.types.TypeId.VARCHAR_DB2_COMPATIBLE_ID;
 /**
  * DataTypeDescriptor describes a runtime SQL type.
  * It consists of a catalog type (TypeDescriptor)
@@ -76,6 +76,7 @@ public class DataTypeDescriptor implements Formatable{
     // DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
     // it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
     public static final long serialVersionUID = 804804029538241393l;
+    private boolean isDB2CompatibleVarchar;
 
     /********************************************************
      **
@@ -464,14 +465,23 @@ public class DataTypeDescriptor implements Formatable{
                 typeId.getMaximumMaximumWidth());
     }
 
-    private DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable){
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable) {
+        this(source, isNullable, false);
+    }
+
+    public DataTypeDescriptor(DataTypeDescriptor source,boolean isNullable, boolean DB2Compatible){
         //There might be other places, but one place this method gets called
         //from is ResultColumn.init. When the ResultColumn(RC) is for a
         //ColumnDescriptor(CD), the RC's TypeDescriptorImpl(TDI) should get
         //all the attributes of CD's TDI. So, if the CD is for a user table's
         //character type column, then this call by RC.init should have CD's
         //collation attributes copied into RC along with other attributes.
-        this.typeId=source.typeId;
+        if (DB2Compatible && source.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID) {
+            this.typeId = VARCHAR_DB2_COMPATIBLE_ID;
+            this.isDB2CompatibleVarchar = true;
+        }
+        else
+            this.typeId=source.typeId;
         typeDescriptor=new TypeDescriptorImpl(source.typeDescriptor,
                 source.getPrecision(),
                 source.getScale(),
@@ -824,7 +834,7 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
-        if (higherType.getChildren() == null && lowerType.getChildren()!=null) // set children
+        if (higherType.getChildren() == null && lowerType != null && lowerType.getChildren() != null)
             higherType.setChildren(lowerType.getChildren());
 
         higherType=new DataTypeDescriptor(higherType, precision,scale,nullable,maximumWidth);
@@ -1142,6 +1152,7 @@ public class DataTypeDescriptor implements Formatable{
         return new DataTypeDescriptor(this,isNullable);
     }
 
+
     /**
      * Return a type description identical to this type
      * with the exception that its collation information is
@@ -1398,6 +1409,7 @@ public class DataTypeDescriptor implements Formatable{
 
             case StoredFormatIds.CHAR_TYPE_ID:
             case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
                 return 2.0*getMaximumWidth();
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
@@ -1552,7 +1564,7 @@ public class DataTypeDescriptor implements Formatable{
      * and compatible with <code>String</code>
      * @see java.sql.Types
      */
-    private static boolean isCharacterType(int jdbcType){
+    public static boolean isCharacterType(int jdbcType){
 
         switch(jdbcType){
             case Types.CHAR:
@@ -1669,6 +1681,7 @@ public class DataTypeDescriptor implements Formatable{
         CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = dataTypeDescriptor.getTypeDescriptor();
         typeDescriptor = ProtobufUtils.fromProtobuf(typeDescriptorImpl);
         collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        isDB2CompatibleVarchar = dataTypeDescriptor.getIsDB2CompatibleVarchar();
         init();
     }
 
@@ -1682,7 +1695,10 @@ public class DataTypeDescriptor implements Formatable{
 
 
         String typeName=this.getTypeName();
-        typeId=TypeId.getBuiltInTypeId(typeName);
+        if (isDB2CompatibleVarchar)
+            typeId = VARCHAR_DB2_COMPATIBLE_ID;
+        else
+            typeId=TypeId.getBuiltInTypeId(typeName);
         if(typeId==null && typeName!=null){
             /*
              * This is a User-defined TypeId, which we serialize. For whatever reason,
@@ -1728,6 +1744,7 @@ public class DataTypeDescriptor implements Formatable{
         CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.newBuilder()
                 .setTypeDescriptor(typeDescriptorImpl)
                 .setCollationDerivation(getCollationDerivation())
+                .setIsDB2CompatibleVarchar(isDB2CompatibleVarchar)
                 .build();
         return dataTypeDescriptor;
     }

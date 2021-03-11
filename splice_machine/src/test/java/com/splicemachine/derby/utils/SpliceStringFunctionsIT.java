@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -41,7 +42,7 @@ import static org.junit.Assert.*;
  * @author Walt Koetke
  */
 public class SpliceStringFunctionsIT extends SpliceUnitTest {
-	
+
     private static final String CLASS_NAME = SpliceStringFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
@@ -53,15 +54,15 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
 
     // Table for INSTR testing.
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
-    	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d int)");
+        "B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d int)");
 
     // Table for INITCAP testing.
     private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
-    	"C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
+        "C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
 
     // Table for CONCAT testing.
     private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
-    	"D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
+        "D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
 
     // Table for CHR testing.
     private static final SpliceTableWatcher tableWatcherE = new SpliceTableWatcher(
@@ -372,10 +373,10 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     @Test
     public void testInstrFunction() throws Exception {
         int count = 0;
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
 
-	    try (ResultSet rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB)) {
+        try (ResultSet rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB)) {
             count = 0;
             while (rs.next()) {
                 sCell1 = rs.getString(1);
@@ -388,13 +389,13 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     private void runRTrimTests(boolean useSpark) throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
         int count = 0;
 
-	    // Use a join so we can test native spark execution.
-	    try (ResultSet rs = methodWatcher.executeQuery(
-	            "SELECT RTRIM(a.a,a.b), a.c from " + tableWatcherK + " a --splice-properties joinStrategy=nestedloop,useSpark=" + useSpark +
+        // Use a join so we can test native spark execution.
+        try (ResultSet rs = methodWatcher.executeQuery(
+                "SELECT RTRIM(a.a,a.b), a.c from " + tableWatcherK + " a --splice-properties joinStrategy=nestedloop,useSpark=" + useSpark +
                     "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b")) {
 
             while (rs.next()) {
@@ -404,7 +405,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                 count++;
             }
         }
-	    Assert.assertEquals("Incorrect row count", 13, count);
+        Assert.assertEquals("Incorrect row count", 13, count);
     }
 
     @Test
@@ -414,12 +415,12 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     }
 
     private void runRTrimSysFunTests(boolean useSpark, String expected) throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
         int count = 0;
 
-	    // Use a join so we can test native spark execution.
-	    String sqlText = "SELECT SYSFUN.RTRIM(a.a) from " + tableWatcherK + " a --splice-properties useSpark=" + useSpark +
+        // Use a join so we can test native spark execution.
+        String sqlText = "SELECT SYSFUN.RTRIM(a.a) from " + tableWatcherK + " a --splice-properties useSpark=" + useSpark +
                     "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b";
 
         testQuery(sqlText, expected, methodWatcher);
@@ -452,10 +453,10 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
 
     @Test
     public void testInitcapFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
 
-	    try (ResultSet rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC)) {
+        try (ResultSet rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC)) {
             while (rs.next()) {
                 sCell1 = rs.getString(1);
                 sCell2 = rs.getString(2);
@@ -472,43 +473,43 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             testPosStrFunctionHelper(true, join);
         }
 
-	    String query = "Values(POSSTR(cast(null as char(3)), ''))";
-	    String expected = "1  |\n" +
+        String query = "Values(POSSTR(cast(null as char(3)), ''))";
+        String expected = "1  |\n" +
                             "------\n" +
                             "NULL |";
         testQuery(query, expected, methodWatcher);
-	    query = "Values(POSSTR(cast(null as char(3)), cast(null as char(3))))";
+        query = "Values(POSSTR(cast(null as char(3)), cast(null as char(3))))";
         testQuery(query, expected, methodWatcher);
-	    query = "Values(POSSTR('', cast(null as char(3))))";
+        query = "Values(POSSTR('', cast(null as char(3))))";
         testQuery(query, expected, methodWatcher);
 
         expected = "1 |\n" +
                     "----\n" +
                     " 2 |";
-	    query = "Values(POSSTR('123', 2))";
+        query = "Values(POSSTR('123', 2))";
         testQuery(query, expected, methodWatcher);
 
         expected = "1 |\n" +
                     "----\n" +
                     " 0 |";
-	    query = "Values(POSSTR('123', 1234))";
+        query = "Values(POSSTR('123', 1234))";
         testQuery(query, expected, methodWatcher);
 
         expected = "1 |\n" +
                     "----\n" +
                     " 3 |";
-	    query = "Values(POSSTR('  \t', '\t'))";
+        query = "Values(POSSTR('  \t', '\t'))";
         testQuery(query, expected, methodWatcher);
 
         expected = "1 |\n" +
                     "----\n" +
                     " 6 |";
-	    query = "Values(POSSTR('bcabCabc', 'abc'))";
+        query = "Values(POSSTR('bcabCabc', 'abc'))";
         testQuery(query, expected, methodWatcher);
     }
 
     private void testPosStrFunctionHelper(boolean useSpark, String strategy) throws Exception {
-	    String expected = "B        |     C      |  3  |\n" +
+        String expected = "B        |     C      |  3  |\n" +
                         "------------------------------------\n" +
                         "    Bam Bam     |Bam Bam Bam |  0  |\n" +
                         " Barney Rubble  |   Wilma    |  0  |\n" +
@@ -520,9 +521,9 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                         "Fred Flintstone |  stoner    |  0  |\n" +
                         "     NULL       |   NULL     |NULL |";
 
-	    String query = "SELECT a.b, a.c, POSSTR(a.b, a.c) from " + tableWatcherB + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+        String query = "SELECT a.b, a.c, POSSTR(a.b, a.c) from " + tableWatcherB + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
                     "\n, " + tableWatcherB + " b where a.a = b.a";
-	    testQuery(query, expected, methodWatcher);
+        testQuery(query, expected, methodWatcher);
 
         expected = "A   |  C   | 3 |\n" +
                     "-------------------\n" +
@@ -540,17 +541,17 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
                     " abc g |abc g | 1 |\n" +
                     "abcabc |      | 1 |";
 
-	    query = "SELECT a.a, a.c, POSSTR(a.a, a.c) from " + tableWatcherK + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
+        query = "SELECT a.a, a.c, POSSTR(a.a, a.c) from " + tableWatcherK + format(" a --splice-properties joinStrategy=%s,useSpark=", strategy) + useSpark +
                     "\n, " + tableWatcherK + " b where a.a = b.a and a.b = b.b";
-	    testQuery(query, expected, methodWatcher);
+        testQuery(query, expected, methodWatcher);
     }
 
     @Test
     public void testConcatFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
 
-	    try (ResultSet rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD)) {
+        try (ResultSet rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD)) {
             while (rs.next()) {
                 sCell1 = rs.getString(1);
                 sCell2 = rs.getString(2);
@@ -561,10 +562,10 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
 
     @Test
     public void testConcatAliasFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
+        String sCell1 = null;
+        String sCell2 = null;
 
-	    try (ResultSet rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD)) {
+        try (ResultSet rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD)) {
             while (rs.next()) {
                 sCell1 = rs.getString(1);
                 sCell2 = rs.getString(2);
@@ -1101,8 +1102,21 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
     @Test
     public void testTranslate() throws Exception {
         try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)))", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)))", "CHAR(7) NOT NULL", conn);
             checkExpressionType("TRANSLATE(cast('ABCDEFG' as varchar(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
-            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "VARCHAR(7) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(cast('ABCDEFG' as char(7)), 'ace', 'ACE')", "CHAR(7) NOT NULL", conn);
+
+            checkExpressionType("TRANSLATE(1)", "VARCHAR(11) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1.0)", "VARCHAR(4) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1, 'ace', 'ACE')", "VARCHAR(11) NOT NULL", conn);
+            checkExpressionType("TRANSLATE(1.0, 'ace', 'ACE')", "VARCHAR(4) NOT NULL", conn);
+
+            assertFailed(conn, "select translate(cast('abc' as varchar(3) for bit data))", "0A000");
+            assertFailed(conn, "select translate('abc', 'ab')", "0A000");
+
+            checkStringExpression("TRANSLATE('abcdefg')", "ABCDEFG", conn);
+            checkStringExpression("TRANSLATE('aBcDefG')", "ABCDEFG", conn);
 
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE')", "aBcD FG", conn);
@@ -1110,6 +1124,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("TRANSLATE('ABCDEFG', 'acefoo', 'ACE')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', '')", "ABCDEFG", conn);
             checkStringExpression("TRANSLATE('ABABACBABCABA', 'ac', 'AC')", "aBaBacBaBcaBa", conn);
+            checkStringExpression("TRANSLATE('1.5', ',', '.')", "1,5", conn);
 
             checkStringExpression("TRANSLATE('ABCDEFG', 'ace', 'ACE', 'U')", "aBcDeFG", conn);
             checkStringExpression("TRANSLATE('ABCDEFG', 'ac', 'ACE', 'U')", "aBcDUFG", conn);
@@ -1121,45 +1136,48 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             checkStringExpression("TRANSLATE(cast(x'00' as varchar(1) for sbcs data), 'a', x'00')", "a", conn);
 
             checkStringExpression("STRIP(replace(translate('19013191 ',' ',x'00'),' ',''))", "19013191", conn);
-
         }
 
         methodWatcher.execute("drop table testTranslate if exists");
-        methodWatcher.execute("create table testTranslate(a char(7), b char(3), c char(3))");
-        methodWatcher.execute("insert into testTranslate values ('ABCDEFG', 'ace', 'ACE')");
+        methodWatcher.execute("create table testTranslate(id int, a char(7), b char(3), c char(3))");
+        methodWatcher.execute("insert into testTranslate values (1, 'ABCDEFG', 'ace', 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (2, null, 'ace', 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (3, 'ABCDEFG', null, 'ACE')");
+        methodWatcher.execute("insert into testTranslate values (4, 'ABCDEFG', 'ace', null)");
         TestConnection[] conns = {
                 methodWatcher.connectionBuilder().useOLAP(false).build(),
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(false).build(),
                 methodWatcher.connectionBuilder().useOLAP(true).useNativeSpark(true).build()
         };
         for (TestConnection conn: conns) {
-            checkStringExpression("translate(a, b, c) from testTranslate", "aBcDeFG", conn);
-            checkStringExpression("translate(a, 'ac', c, 'U') from testTranslate", "aBcDUFG", conn);
-            try (PreparedStatement ps = conn.prepareStatement("select translate(?, b, c) from testTranslate")) {
-                ps.setString(1, "ABCDEFG");
+            try (PreparedStatement ps = conn.prepareStatement("" +
+                    "select id," +
+                    "translate(lower(a)), " +
+                    "translate(a,b,c), " +
+                    "translate(a,'ac', c, 'U'), " +
+                    "translate(?)," +
+                    "translate(?)," +
+                    "translate(?, b, c)," +
+                    "translate(a, ?, c)," +
+                    "translate(a, b, ?)," +
+                    "translate(?, ?, ?) from testTranslate order by 1")) {
+                ps.setString(1, "abc");
+                ps.setInt(2, 1);
+                ps.setString(3, "ABCDEFG");
+                ps.setString(4, "ace");
+                ps.setString(5, "ACE");
+                ps.setString(6, "123");
+                ps.setString(7, "476");
+                ps.setString(8, "321");
                 try (ResultSet rs = ps.executeQuery()) {
                     Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-                }
-            }
-            try (PreparedStatement ps = conn.prepareStatement("select translate(a, ?, c) from testTranslate")) {
-                ps.setString(1, "ace");
-                try (ResultSet rs = ps.executeQuery()) {
-                    Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-                }
-            }
-            try (PreparedStatement ps = conn.prepareStatement("select translate(a, b, ?) from testTranslate")) {
-                ps.setString(1, "ACE");
-                try (ResultSet rs = ps.executeQuery()) {
-                    Assert.assertEquals(
-                            "1    |\n" +
-                            "---------\n" +
-                            "aBcDeFG |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                            "ID |   2    |   3    |   4    | 5  | 6 |   7    |   8    |   9    |10  |\n" +
+                                    "------------------------------------------------------------------------\n" +
+                                    " 1 |ABCDEFG |aBcDeFG |aBcDUFG |ABC | 1 |aBcDeFG |aBcDeFG |aBcDeFG |674 |\n" +
+                                    " 2 | NULL   | NULL   | NULL   |ABC | 1 |aBcDeFG | NULL   | NULL   |674 |\n" +
+                                    " 3 |ABCDEFG | NULL   |aBcDUFG |ABC | 1 | NULL   |aBcDeFG | NULL   |674 |\n" +
+                                    " 4 |ABCDEFG | NULL   | NULL   |ABC | 1 | NULL   | NULL   |aBcDeFG |674 |",
+                            TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
                 }
             }
         }

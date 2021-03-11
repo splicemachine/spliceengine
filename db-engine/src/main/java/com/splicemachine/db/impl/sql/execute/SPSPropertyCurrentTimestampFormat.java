@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012 - 2020 Splice Machine, Inc.
- *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -12,25 +11,26 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.catalog.upgrade;
+package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.catalog.*;
-import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode;
+import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
 
-/**
- */
-public class UpgradeScriptForChangingGetKeyColumnPosition extends UpgradeScriptBase {
-    public UpgradeScriptForChangingGetKeyColumnPosition(SpliceDataDictionary sdd, TransactionController tc) {
-        super(sdd, tc);
+public class SPSPropertyCurrentTimestampFormat extends SPSProperty {
+
+    protected SPSPropertyCurrentTimestampFormat(UUID uuid, String name) {
+        super(uuid, name);
     }
 
     @Override
-    protected void upgradeSystemTables() throws StandardException {
-        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
-        sdd.createOrUpdateSystemView(tc, "SYSCAT", "INDEXCOLUSE");
-        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSKEYCOLUSE");
-        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
+    protected void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
+        if(node instanceof CurrentDatetimeOperatorNode) {
+            cc.createDependency(this);
+        }
     }
 }

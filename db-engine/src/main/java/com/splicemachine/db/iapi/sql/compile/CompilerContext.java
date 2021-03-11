@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
+import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -192,6 +193,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
+    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
@@ -739,6 +741,10 @@ public interface CompilerContext extends Context
 
     void setFloatingPointNotation(int floatingPointNotation);
 
+    void setCursorUntypedExpressionType(DataTypeDescriptor type);
+
+    DataTypeDescriptor getCursorUntypedExpressionType();
+
     String getTimestampFormat();
 
     String getSecondFunctionCompatibilityMode();
@@ -762,6 +768,10 @@ public interface CompilerContext extends Context
     void setDisablePerParallelTaskJoinCosting(boolean newValue);
 
     boolean getDisablePerParallelTaskJoinCosting();
+
+    void setDisablePrefixIteratorMode(boolean newValue);
+
+    boolean getDisablePrefixIteratorMode();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 
