@@ -207,7 +207,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             }else{
                 DataCell currentKeyValue = keyValues.get(0);
                 if(template.nColumns()>0){
-                    if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
+                    if(!(filterRowKey(currentKeyValue) && filterRow(filter,keyValues))){
                         //filter the row first, then filter the row key
                         filterCounter.increment();
                         continue;
