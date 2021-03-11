@@ -37,11 +37,13 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddColumnsViewInSYSCAT\n" +
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForChangingGetKeyColumnPosition\n" +
             "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
-            "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
-            "VERSION4.2005: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
+            "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n";
 
-    // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
-    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
+    // Those must run before other upgrade scripts
+    // see DB-11296, UpgradeConglomerateTable; see DB-10193, UpgradeScriptToAddMultiDatabase
+    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
+                "VERSION4.2005: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
+
     // add more scripts here
 
     private String replaceVersions(String s) {
