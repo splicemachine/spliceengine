@@ -39,10 +39,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Class that represents a call to the RANK() window function.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification = ".")
 public final class RankFunctionNode extends WindowFunctionNode  {
     /**
      * Initializer. QueryTreeNode override.
