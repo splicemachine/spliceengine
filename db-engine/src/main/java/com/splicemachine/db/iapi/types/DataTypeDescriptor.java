@@ -834,7 +834,7 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
-        if (higherType.getChildren() == null && lowerType.getChildren()!=null) // set children
+        if (higherType.getChildren() == null && lowerType != null && lowerType.getChildren() != null)
             higherType.setChildren(lowerType.getChildren());
 
         higherType=new DataTypeDescriptor(higherType, precision,scale,nullable,maximumWidth);

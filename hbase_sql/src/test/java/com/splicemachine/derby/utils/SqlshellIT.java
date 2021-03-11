@@ -81,28 +81,12 @@ public class SqlshellIT {
         Assert.assertEquals("splice> " + in + expectedOut + "splice> ", execute(in));
     }
 
-    public static String escapeRegexp(String asterixFilter)
-    {
-        String filter = asterixFilter;
-        String toEscape[] = {"<", "(", "[", "{", "\\", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
-        for(String s : toEscape) {
-            filter = filter.replaceAll("\\" + s, "\\\\" + s);
-        }
-        filter = filter.replace("§", ".*");
-        return filter;
-    }
-
     // execute, expect output to match regular expression
     static void executeR(String in, String expectedOutRegex) {
-        expectedOutRegex = "splice\\> " + escapeRegexp(in)
+        expectedOutRegex = "splice\\> " + SpliceUnitTest.escapeRegexp(in)
                 + expectedOutRegex + "splice\\> \n";
         String o = execute(in);
-        String[] o2 = o.split("\n");
-        String[] ex2 = expectedOutRegex.split("\n");
-        Assert.assertEquals(o + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
-        for(int i =0; i<o2.length; i++) {
-            Assert.assertTrue(o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
-        }
+        SpliceUnitTest.matchMultipleLines(o, expectedOutRegex);
     }
 
     static Main createMain() {
@@ -162,7 +146,7 @@ public class SqlshellIT {
                         "\n" +
                         "4 rows selected\n");
 
-        executeR( "show primarykeys from T_2;\n", escapeRegexp(
+        executeR( "show primarykeys from T_2;\n", SpliceUnitTest.escapeRegexp(
                         "TABLE_NAME                    |COLUMN_NAME                   |KEY_SEQ   |PK_NAME                       \n" +
                         "-------------------------------------------------------------------------------------------------------\n" +
                         "T_2                           |COL_1                         |1         |§\n" +
@@ -172,7 +156,7 @@ public class SqlshellIT {
 
     @Test
     public void testShowTables() {
-        executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
+        executeR("show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
             "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
             "-------------------------------------------------------------------------------------------------------\n" +
             "SQLSHELLIT          |ABC                                               |§|                    \n" +
@@ -341,7 +325,7 @@ public class SqlshellIT {
         try {
             execute("CREATE TABLE TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME (COLUMN_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME INTEGER );\n", zeroRowsUpdated);
 
-            executeR("show tables in SQLSHELLIT;\n", escapeRegexp(
+            executeR("show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
                     "TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS             \n" +
                     "-------------------------------------------------------------------------------------------------------\n" +
                     "SQLSHELLIT          |ABC                                               |§|                    \n" +
@@ -352,7 +336,7 @@ public class SqlshellIT {
                     "4 rows selected\n") );
 
             execute("maximumdisplaywidth 0;\n", "");
-            executeR( "show tables in SQLSHELLIT;\n", escapeRegexp(
+            executeR( "show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
                     "TABLE_SCHEM|TABLE_NAME|CONGLOM_ID|REMARKS\n" +
                     "-----------------------------------------\n" +
                     "SQLSHELLIT|ABC|§|\n" +
@@ -363,7 +347,7 @@ public class SqlshellIT {
                     "4 rows selected\n") );
 
             execute("maximumdisplaywidth 8;\n", "");
-            executeR( "show tables in SQLSHELLIT;\n", escapeRegexp(
+            executeR( "show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
                     "TABLE_S&|TABLE_N&|CONGLOM&|REMARKS \n" +
                     "-----------------------------------\n" +
                     "SQLSHEL&|ABC     |§|        \n" +
@@ -383,7 +367,7 @@ public class SqlshellIT {
     public void testShowIndices()
     {
         try {
-            executeR("show indexes from SQLSHELLIT.TX2;\n", escapeRegexp(
+            executeR("show indexes from SQLSHELLIT.TX2;\n", SpliceUnitTest.escapeRegexp(
                 "TABLE_NAME                                        |INDEX_NAME                                        |COLUMN_NAME         |ORDINAL&|NON_UNIQUE|TYPE |ASC&|CONGLOM_NO\n" +
                 "--------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
                 "TX2                                               |IDX1                                              |ABC                 |1       |true      |BTREE|A   |§\n" +
@@ -393,14 +377,14 @@ public class SqlshellIT {
             execute("maximumdisplaywidth 10;\n");
 
             executeR("show indexes from SQLSHELLIT.T_2;\n",
-                    escapeRegexp(   "TABLE_NAME|INDEX_NAME|COLUMN_NA&|ORDINAL_P&|NON_UNIQUE|TYPE      |ASC_OR_DE&|CONGLOM_NO\n" +
+                    SpliceUnitTest.escapeRegexp(   "TABLE_NAME|INDEX_NAME|COLUMN_NA&|ORDINAL_P&|NON_UNIQUE|TYPE      |ASC_OR_DE&|CONGLOM_NO\n" +
                                     "---------------------------------------------------------------------------------------\n" +
                                     "T_2       |ID_1      |COL_1     |1         |true      |BTREE     |A         |§\n" +
                                     "\n" +
                                     "1 row selected\n") );
 
             execute("maximumdisplaywidth 0;\n", "");
-            executeR("show indexes in SQLSHELLIT;\n", escapeRegexp(
+            executeR("show indexes in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
                     "TABLE_NAME|INDEX_NAME|COLUMN_NAME|ORDINAL_POSITION|NON_UNIQUE|TYPE|ASC_OR_DESC|CONGLOM_NO\n" +
                     "-----------------------------------------------------------------------------------------\n" +
                     "TX2|IDX1|ABC|1|true|BTREE|A|§\n" +
