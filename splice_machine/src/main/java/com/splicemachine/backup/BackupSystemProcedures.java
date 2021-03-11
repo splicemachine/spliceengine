@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -37,16 +38,21 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -659,31 +665,37 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION(long transactionId,
-                                                              ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION(ResultSet[] resultSets) throws StandardException, SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        long snapshotTxId = lcc.getTransactionExecute().getActiveStateTxId();
+        
+        Txn txn;
         try {
+            txn = SIDriver.driver().lifecycleManager().beginTransaction();
+            txn = txn.elevateToWritable(Bytes.toBytes("rollback"));
+        } catch (IOException e) {
+            return;
+        }
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
+
             IgnoreTxnSupplier ignoreTxn = SIDriver.driver() == null ? null : SIDriver.driver().getIgnoreTxnSupplier();
-            if( ignoreTxn != null && ignoreTxn.shouldIgnore(transactionId) ) {
-                throw new Exception("Already rolled back past "+transactionId+". Cannot roll back to it.");
+            if( ignoreTxn != null && ignoreTxn.shouldIgnore(snapshotTxId) ) {
+                throw new Exception("Already rolled back past "+snapshotTxId+". Cannot roll back to it.");
             }
 
-            long currentTxId = lcc.getTransactionExecute().getActiveStateTxId();
-            if( transactionId >= currentTxId ) {
-                throw new Exception(""+transactionId+" is not a past transaction. Cannot roll back to it.");
-            }
-
-            TransactionController tc=lcc.getTransactionExecute();
-            tc.elevate("rollback");
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            
+            long currentTxId = txn.getTxnId();
 
             // Set Restore Mode to prevent other workloads from running
             DDLMessage.DDLChange change = ProtoUtil.createRestoreMode(currentTxId);
             String changeId = DDLUtils.notifyMetadataChange(change);
             
             // Rollback
-            backupManager.rollbackDatabase(transactionId, currentTxId);
+            LOG.info("Rolling back to "+snapshotTxId+" from "+currentTxId);
+            backupManager.rollbackDatabase(snapshotTxId, currentTxId);
             
             // Finish Restore Mode
             DDLUtils.finishMetadataChange(changeId);
@@ -696,10 +708,21 @@ public class BackupSystemProcedures {
             UpgradeSystemProcedures.restartOlapServer();
 
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
+
+            try {
+                txn.commit();
+            } catch (IOException e) {
+                // ignore
+            }
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database rollback error", t);
             t.printStackTrace();
+            try {
+                txn.rollback();
+            } catch (IOException e) {
+                // ignore
+            }
         }
     }
 }
