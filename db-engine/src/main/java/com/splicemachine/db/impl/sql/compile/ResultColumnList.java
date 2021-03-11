@@ -1846,6 +1846,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    void setUnknownParameterType(DataTypeDescriptor type) throws StandardException{
+        for (ResultColumn rc: this) {
+            rc.setUnknownParameterType(type);
+        }
+    }
+
     /**
      * Check for (and reject) XML values directly under the ResultColumns.
      * This is done for SELECT/VALUES statements.  We reject values
