@@ -401,8 +401,18 @@ public class TriggerHandler {
                 f.get(); // bubble up any exceptions
             }
         }
-        for (Future<Void> f : futures) {
-            f.get(); // bubble up any exceptions
+        try {
+            for (Future<Void> f : futures) {
+                f.get(); // bubble up any exceptions
+            }
+        }
+        catch (ExecutionException e) {
+            // Need to cancel the running futures so no further
+            // exceptions are hit.
+            for (Future<Void> f : futures) {
+                f.cancel(true);
+            }
+            throw e;
         }
         pendingAfterRows.clear();
     }
@@ -477,5 +487,17 @@ public class TriggerHandler {
                 return null;
             }
         };
+    }
+
+    public void setHasGeneratedColumn() {
+        triggerActivator.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        return triggerActivator.hasGeneratedColumn();
+    }
+
+    public boolean hasSpecialFromTableTrigger() {
+        return hasSpecialFromTableTrigger;
     }
 }
