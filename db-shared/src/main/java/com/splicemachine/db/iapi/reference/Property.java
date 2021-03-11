@@ -1244,5 +1244,9 @@ public interface Property {
      */
     String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
             "splice.optimizer.disablePerParallelTaskJoinCosting";
+
+    String ENTERPRISE_KEY = "splicemachine.enterprise.key";
+
+    String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
 }
 

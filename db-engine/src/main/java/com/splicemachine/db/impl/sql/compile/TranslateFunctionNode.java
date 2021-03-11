@@ -119,4 +119,27 @@ public class TranslateFunctionNode extends OperatorNode {
                 operands.get(0).getTypeServices().getMaximumWidth()));
         return this;
     }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
+        /* Allocate an object for re-use to hold the result of the operator */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
+        operands.get(0).generateExpression(acb, mb);
+        mb.upCast(interfaceTypes.get(0));
+        generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+        for (int i = 1; i < operands.size(); ++i) {
+            if (operands.get(i) != null)
+            {
+                operands.get(i).generateExpression(acb, mb);
+                mb.upCast(interfaceTypes.get(i));
+            }
+            else
+            {
+                mb.pushNull(interfaceTypes.get(i));
+            }
+        }
+        mb.getField(field);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
+    }
 }

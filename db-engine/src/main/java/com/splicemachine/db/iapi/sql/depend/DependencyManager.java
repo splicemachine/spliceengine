@@ -170,7 +170,7 @@ import java.util.Collection;
 	}
 
 	interface DependencyManager() {
-		void addDependency(Dependent d, Provider p, ContextManager cm);
+		void checkAndAddDependency(Dependent d, Provider p, ContextManager cm);
 		void invalidateFor(Provider p);
 		void invalidateFor(Provider p, DependencyType dt, InvalidType it);
 		void clearDependencies(Dependent d);
@@ -352,7 +352,7 @@ public interface DependencyManager {
 
     int DROP_UDT = 50;
     int DROP_AGGREGATE = 51;
-    
+
     /**
      * Extensions to this interface may use action codes > MAX_ACTION_CODE without fear of
      * clashing with action codes in this base interface.
@@ -364,7 +364,7 @@ public interface DependencyManager {
 		This will be considered to be the default type of
 		dependency, when dependency types show up.
 		<p>
-		Implementations of addDependency should be fast --
+		Implementations of checkAndAddDependency should be fast --
 		performing alot of extra actions to add a dependency would
 		be a detriment.
 

@@ -23,6 +23,9 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -118,13 +121,17 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 		this.dependentCActions =  dependentCActions;
 	}
 
+	public	DeleteConstantOperation(CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException {
+		init(writeCursorConstantOperation);
+	}
 	/**
 	  @see java.io.Externalizable#readExternal
 	  @exception IOException thrown on error
 	  @exception ClassNotFoundException	thrown on error
 	  */
-	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
+	@Override
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
+		super.readExternalOld(in);
 		numColumns = in.readInt();
 		//information required for cascade delete
 		dependentCActions = new ConstantAction[ArrayUtil.readArrayLength(in)];
@@ -136,14 +143,58 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 
 	  @exception IOException thrown on error
 	  */
-	public void writeExternal( ObjectOutput out ) throws IOException {
-		super.writeExternal(out);
+	@Override
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
+		super.writeExternalOld(out);
 		out.writeInt(numColumns);
 
 		//write cascade delete information
 		ArrayUtil.writeArray(out, dependentCActions);
 		out.writeObject(resultDescription);
 
+	}
+	@Override
+	protected void init(CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+		super.init(writeCursorConstantOperation);
+		CatalogMessage.DeleteConstantOperation deleteConstantOperation =
+				writeCursorConstantOperation.getExtension(CatalogMessage.DeleteConstantOperation.deleteConstantOperation);
+		numColumns = deleteConstantOperation.getNumColumns();
+		int length = deleteConstantOperation.getDependentCActionsCount();
+		dependentCActions = new ConstantAction[length];
+		for (int i = 0; i < length; ++i) {
+			dependentCActions[i] = WriteCursorConstantOperation.fromProtobuf(
+					deleteConstantOperation.getDependentCActions(i));
+		}
+		resultDescription =
+				deleteConstantOperation.hasResultDescription() ?
+						ProtobufUtils.fromProtobuf(deleteConstantOperation.getResultDescription()) : null;
+	}
+
+	@Override
+	public  CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.WriteCursorConstantOperation.Builder builder = super.toProtobufBuilder();
+		CatalogMessage.DeleteConstantOperation.Builder deleteConstantOperationBuilder =
+				CatalogMessage.DeleteConstantOperation.newBuilder()
+				.setNumColumns(numColumns);
+		if (dependentCActions != null) {
+			for (int i = 0; i < dependentCActions.length; ++i) {
+				if (dependentCActions[i] instanceof WriteCursorConstantOperation) {
+					WriteCursorConstantOperation op = (WriteCursorConstantOperation) dependentCActions[i];
+					deleteConstantOperationBuilder.addDependentCActions(op.toProtobufBuilder().build());
+				}
+				else {
+					String err = String.format("Object of type %s is not serializable",
+							dependentCActions[i].getClass().getName());
+					throw new RuntimeException(err);
+				}
+			}
+		}
+
+		if (resultDescription != null) {
+			deleteConstantOperationBuilder.setResultDescription(
+					((GenericResultDescription)resultDescription).toProtobuf());
+		}
+		return builder;
 	}
 
 	/**

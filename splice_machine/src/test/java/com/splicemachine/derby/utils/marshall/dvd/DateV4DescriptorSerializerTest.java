@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.time.ZoneId;
+import java.sql.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -52,7 +53,7 @@ public class DateV4DescriptorSerializerTest {
         byte[] bytes;
         GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone(zoneId));
         DataValueDescriptor dvdSource = new SQLDate(dateString, false, localeFinder, cal);
-        DataValueDescriptor dvdTarget = new SQLDate(null);
+        DataValueDescriptor dvdTarget = new SQLDate((Date)null);
         bytes = Encoding.encode(((SQLDate) dvdSource).getDiskEncodedDate(), false);
         descriptorSerializer.decodeDirect(dvdTarget, bytes, 0, bytes.length, false);
         assertEquals(dvdSource, dvdTarget);

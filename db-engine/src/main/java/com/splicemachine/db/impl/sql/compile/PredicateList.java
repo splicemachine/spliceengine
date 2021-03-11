@@ -1373,7 +1373,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ** Is it just one more than the previous position?
                 */
                 if((thisIndexPosition-currentStartPosition)> numColsInStartPred ||
-                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
+                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate()){
                     /*
                     ** There's a gap in the start positions.  Don't mark any
                     ** more predicates as start predicates.
@@ -1418,7 +1418,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             /* Same as above, except for stop keys */
             if(currentStopPosition + numColsInStopPred <= thisIndexPosition || thisIndexPosition == -1){
                 if((thisIndexPosition-currentStopPosition)> numColsInStopPred ||
-                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
+                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate()){
                     gapInStopPositions=true;
                 }
 
