@@ -21,6 +21,7 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.api.ConflictResolutionStrategy;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -700,14 +701,18 @@ public class SITransactor implements Transactor{
             }
             Txn.State state = txnView.getState();
             if(state == Txn.State.ACTIVE) {
-                activeTx.add(txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
+                if(SanityManager.DEBUG) {
+                    SanityManager.ASSERT(txnView.getTxnId() == (txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK),
+                                         String.format("unexpected parent txn Id %d", txnView.getTxnId()));
+                }
+                activeTx.add(txnView.getTxnId());
                 if(LOG.isTraceEnabled()) {
                     String tableName = table.getTableName();
                     if(table.getDescriptor() != null && table.getDescriptor().getValue("tableDisplayName") != null) {
                         tableName = table.getDescriptor().getValue("tableDisplayName");
                     }
-                    LOG.trace(String.format("transaction %d (%d) conflicts with %d on table %s on cell: key [%s] value [%s]",
-                                            txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK, id, txn.getTxnId(),
+                    LOG.trace(String.format("transaction %d conflicts with %d on table %s on cell: key [%s] value [%s]",
+                                            id, txn.getTxnId(),
                                             tableName, Arrays.toString(cell.key()), Arrays.toString(cell.value())));
                 }
             } else if(state == Txn.State.COMMITTED && txnView.getCommitTimestamp() > txn.getBeginTimestamp()) { // bail out
@@ -718,6 +723,14 @@ public class SITransactor implements Transactor{
         return Longs.toArray(activeTx);
     }
 
+    /**
+     * checks whether we are trying to SI tables which we usually ignore WW conflicts of, some of these scenarios include:
+     * - calling stored procedures causes writes in SYSCOLUMNS and SYSDEPENDS (for more information please check Jira DB-3386).
+     * - calling an SPS causes a write in SYSSTATEMENTS
+     * conflicting writes are ignored in these cases, with immediate conflict detection it is easily possible to localize
+     * this behavior by surrounding the code path with try-catch-ErrorState-WWConflict-and-ignore, with deferred conflict
+     * detection it is not possible to follow the same logic since we gather conflicts and check them against at commit-time.
+     */
     private static boolean shouldIgnoreConflictsInternal(Partition table) throws IOException {
         String[] ignoredTables = new String[]{"SYSSTATEMENTS", "SYSCOLUMNS", "SYSDEPENDS"};
         for(String ignoredTable : ignoredTables) {

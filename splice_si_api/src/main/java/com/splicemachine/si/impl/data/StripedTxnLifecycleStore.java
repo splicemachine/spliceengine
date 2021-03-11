@@ -176,40 +176,40 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
         // make sure that the region doesn't close while we are working on it
         serverControl.startOperation();
         boolean lockAcquired = false;
-        while (!lockAcquired) {
-            try {
-                lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
-                if (!lockAcquired && commitPendingTxns.contains(txnId)) {
-                    if (originatorTxnId < txnId) { // comparison to avoid dead lock across multiple processes without explicit coordination
-                        throw baseStore.cannotRollback(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
-                                                                            "transaction %d since it is in " +
-                                                                            "commit-pending state with the originator %d",
-                                                        txnId, originatorTxnId));
-                    } else {
-                        if(LOG.isTraceEnabled()) {
-                            LOG.trace(String.format("new attempt to rollback txn %d with originator txn %d", txnId, originatorTxnId));
-                        }
-                        continue; // keep trying, we'll eventually be able to
-                    }
-                }
-                try {
-                    /*
-                     * Checks if the client has disconnected while acquiring this lock.
-                     * If it has, we need to ensure that our lock is released (if it has been
-                     * acquired).
-                     */
-                    serverControl.ensureNetworkOpen();
-                } catch (IOException ioe) {
-                    if (lockAcquired) { // the lock was acquired, so it needs to be unlocked
-                        unlock(lock);
-                    }
-                    throw ioe;
-                }
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
-        }
         try {
+            while (!lockAcquired) {
+                try {
+                    lockAcquired = lock.tryLock(200, TimeUnit.MILLISECONDS);
+                    if (!lockAcquired && commitPendingTxns.contains(txnId)) {
+                        if (originatorTxnId < txnId) { // comparison to avoid dead lock across multiple processes without explicit coordination
+                            throw baseStore.cannotRollback(txnId, originatorTxnId, String.format("deadlock avoidance, fail to rollback " +
+                                                                                                         "transaction %d since it is in " +
+                                                                                                         "commit-pending state with the originator %d",
+                                                                                                 txnId, originatorTxnId));
+                        } else {
+                            if (LOG.isTraceEnabled()) {
+                                LOG.trace(String.format("new attempt to rollback txn %d with originator txn %d", txnId, originatorTxnId));
+                            }
+                            continue; // keep trying, we'll eventually be able to
+                        }
+                    }
+                    try {
+                        /*
+                         * Checks if the client has disconnected while acquiring this lock.
+                         * If it has, we need to ensure that our lock is released (if it has been
+                         * acquired).
+                         */
+                        serverControl.ensureNetworkOpen();
+                    } catch (IOException ioe) {
+                        if (lockAcquired) { // the lock was acquired, so it needs to be unlocked
+                            unlock(lock);
+                        }
+                        throw ioe;
+                    }
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+            }
             Txn.State state = baseStore.getState(txnId);
             if (state == null) {
                 return;
@@ -223,7 +223,9 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                     baseStore.recordRollback(txnId);
             }
         } finally {
-            unlock(lock);
+            if(lockAcquired) {
+                unlock(lock);
+            }
         }
     }
 

@@ -180,7 +180,7 @@ public class SIConfigurations implements ConfigurationDefault {
 
     // write-write conflict resolution strategy
     public static final String CONFLICT_RESOLUTION_STRATEGY = "splice.txn.conflictResolutionStrategy";
-    public static final String DEFAULT_CONFLICT_RESOLUTION_STRATEGY = ConflictResolutionStrategy.DEFERRED.toString();
+    public static final ConflictResolutionStrategy DEFAULT_CONFLICT_RESOLUTION_STRATEGY = ConflictResolutionStrategy.DEFERRED;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -224,12 +224,14 @@ public class SIConfigurations implements ConfigurationDefault {
             builder.durability = Durability.SYNC;
         }
 
-        String conflictResolutionStrategyString = configurationSource.getString(CONFLICT_RESOLUTION_STRATEGY, DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
+        String conflictResolutionStrategyString = configurationSource.getString(CONFLICT_RESOLUTION_STRATEGY,
+                                                                                DEFAULT_CONFLICT_RESOLUTION_STRATEGY.toString());
+        builder.conflictResolutionStrategy = DEFAULT_CONFLICT_RESOLUTION_STRATEGY;
         try {
             builder.conflictResolutionStrategy = ConflictResolutionStrategy.valueOf(conflictResolutionStrategyString);
         } catch (IllegalArgumentException ex) {
-            LOG.error(String.format("Couldn't parse %s option: '%s'", CONFLICT_RESOLUTION_STRATEGY, conflictResolutionStrategyString));
-            builder.conflictResolutionStrategy = ConflictResolutionStrategy.IMMEDIATE;
+            LOG.warn(String.format("Couldn't parse %s option: '%s', falling back to %s",
+                                   CONFLICT_RESOLUTION_STRATEGY, conflictResolutionStrategyString, DEFAULT_CONFLICT_RESOLUTION_STRATEGY));
         }
     }
 }
