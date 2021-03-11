@@ -91,4 +91,6 @@ public interface DDLWatcher {
     boolean canReadCache(TransactionManager xact_mgr);
 
     boolean canUseSPSCache(TransactionManager txnMgr);
+
+    void clearFinishedChange(String changeId) throws StandardException;
 }

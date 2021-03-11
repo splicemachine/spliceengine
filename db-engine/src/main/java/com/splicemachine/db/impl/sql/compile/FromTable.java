@@ -628,6 +628,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         currentAccessPath.setJoinStrategy(null);
         currentAccessPath.setHintedJoinStrategy(false);
         currentAccessPath.setMissingHashKeyOK(false);
+        currentAccessPath.setNumUnusedLeadingIndexFields(0);
     }
 
     @Override

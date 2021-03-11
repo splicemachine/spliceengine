@@ -1509,6 +1509,10 @@ public interface LanguageConnectionContext extends Context {
 
     void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
 
+    boolean isPredicateUsageForIndexOrPkAccessDisabled();
+
+    boolean alwaysAllowIndexPrefixIteration();
+
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;
 

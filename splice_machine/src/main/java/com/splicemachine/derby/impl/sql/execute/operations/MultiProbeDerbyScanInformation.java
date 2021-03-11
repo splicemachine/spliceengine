@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.SerializationUtils;
@@ -75,10 +76,11 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           int inlistTypeArrayItem,
                                           String tableVersion,
                                           String defaultRowMethodName,
-                                          int defaultValueMapItem) {
+                                          int defaultValueMapItem,
+                                          int numUnusedLeadingIndexFields) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
                 scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion,
-				defaultRowMethodName, defaultValueMapItem);
+                defaultRowMethodName, defaultValueMapItem, numUnusedLeadingIndexFields);
         this.getProbeValsFuncName = getProbeValsFuncName;
         this.sortRequired = sortRequired;
         this.inlistPosition = inlistPosition;
@@ -125,7 +127,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -150,14 +152,16 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         if (isMemPlatform) {
 			for (int i = 0; i < probeValues.length; i++) {
 				probeValue = probeValues[i];
-				scan = getScan(txn, null, keyDecodingMap, null, null);
+				scan = getScan(txn, null, keyDecodingMap, null, null,
+					           ((BaseActivation)activation).getScanKeyPrefix(),
+                               ((BaseActivation)activation).getSameStartStopScanKeyPrefix(), null);
 				scans.add(scan);
 			}
 		}
 		else{
 			probeValue = null;
 			List<Pair<byte[],byte[]>> startStopKeys =
-				getStartStopKeys(txn, null, keyDecodingMap, probeValues);
+				getStartStopKeys(txn, scanKeyPrefixes, keyDecodingMap, probeValues);
 
 
 			String javaCmd = System.getProperty("sun.java.command");
@@ -175,7 +179,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				probeValue = null;
 				endIndex = (i+probesPerThread) <= startStopKeys.size() ? i+probesPerThread : startStopKeys.size();
 				List<Pair<byte[],byte[]>> keys = startStopKeys.subList(i, endIndex);
-				scan = getScan(txn, null, keyDecodingMap, null, null);
+				scan = getScan(txn, null, keyDecodingMap, null, null, null, false, null);
 				try {
 				scan.addRowkeyRangesFilter(keys);
 				} catch (IOException e) {
