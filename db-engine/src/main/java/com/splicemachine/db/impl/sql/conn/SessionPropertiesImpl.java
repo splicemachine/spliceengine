@@ -118,6 +118,14 @@ public class SessionPropertiesImpl implements SessionProperties {
                 long minPlanTimeout = Long.parseLong(valString);
                 properties[MINPLANTIMEOUT.getId()] = minPlanTimeout;
                 break;
+            case DISABLEPREDSFORINDEXORPKACCESSPATH:
+                boolean disablePredsForIndexOrPrimaryKeyAccessPath = Boolean.parseBoolean(valString);
+                properties[DISABLEPREDSFORINDEXORPKACCESSPATH.getId()] = disablePredsForIndexOrPrimaryKeyAccessPath;
+                break;
+            case ALWAYSALLOWINDEXPREFIXITERATION:
+                boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
+                properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
+                break;
             default:
                 assert false;
         }

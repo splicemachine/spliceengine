@@ -723,6 +723,21 @@ public class GenericStatement implements Statement{
         cc.setNewMergeJoin(newMergeJoin);
     }
 
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePrefixIteratorModeString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
+        boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        try {
+            if (disablePrefixIteratorModeString != null)
+                disablePrefixIteratorMode =
+                Boolean.parseBoolean(disablePrefixIteratorModeString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String disablePerParallelTaskJoinCostingString =
         PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);

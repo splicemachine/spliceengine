@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 /**
  * A CostEstimate represents the cost of getting a ResultSet, along with the
@@ -98,6 +99,11 @@ public interface CostEstimate extends StoreCostResult {
     void setSingleScanRowCount(double singleRowScanCount);
 
     void setNumPartitions(int numPartitions);
+
+
+    void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats);
+
+    FirstColumnOfIndexStats getFirstColumnStats();
 
     /**
      * Set the degree of parallelism when running on Spark,
