@@ -47,7 +47,7 @@ public class PredicateUtils {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&
-                    p.isJoinPredicate() &&
+                    p.isHashableJoinPredicate() &&
                     p.getAndNode().getLeftOperand().isBinaryEqualsOperatorNode();
         }
     };
