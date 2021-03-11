@@ -81,6 +81,7 @@ import splice.com.google.common.collect.ImmutableListMultimap;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Multimaps;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -1949,7 +1950,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(isDatabaseReferenced(tc,coreInfo[SYSSCHEMAS_CORE_NUM],
                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
-                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, // XXX (arnaud multidb should that be an index to fetch DB ID ?)
+                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID,
                 dbIdOrderable)){
             return false;
         }
@@ -1967,8 +1968,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 dbIdOrderable)){
             return false;
         }
-
-        // XXX (arnaud multidb) Check other things as we add DATABASEID columns to other sys tables
 
         return true;
     }
@@ -4179,7 +4178,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     /**
      * Get every statement in this database.
-     * Return the SPSDescriptors in an list.
+     * Return the SPSDescriptors in a list.
      * The returned descriptors don't contain the compiled statement, so it
      * it safe to call this method during upgrade when it isn't known if the
      * saved statement can still be deserialized with the new version.
@@ -4945,12 +4944,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public GenericDescriptorList getTriggerDescriptors(TableDescriptor td) throws StandardException{
+    public GenericDescriptorList getTriggerDescriptors(@Nonnull TableDescriptor td) throws StandardException{
         GenericDescriptorList gdl;
-
-        if(td==null){
-            return getAllTriggerDescriptors();
-        }
 
         /* Build the TableDescriptor's TDL if it is currently empty */
         gdl=td.getTriggerDescriptorList();
@@ -5082,7 +5077,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * Load up the constraint descriptor list for this table
      * descriptor and return it.  If the descriptor list
-     * is already loaded up, it is retuned without further
+     * is already loaded up, it is returned without further
      * ado.  If no table descriptor is passed in, then all
      * constraint descriptors are retrieved.  Note that in
      * this case, the constraint descriptor objects may be
@@ -6447,54 +6442,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         getDescriptorViaIndex(SYSDEPENDSRowFactory.SYSDEPENDS_INDEX2_ID,keyRow,null,ti,null,ddlList,false, null);
         return ddlList;
-    }
-
-    /**
-     * Build and return an List with DependencyDescriptors for
-     * all of the stored dependencies.
-     * This is useful for consistency checking.
-     *
-     * @return List        List of all DependencyDescriptors.
-     * @throws StandardException Thrown on failure
-     */
-    @Override
-    // XXX(arnaud multidb) make that DB specific?
-    public List<DependencyDescriptor> getAllDependencyDescriptorsList() throws StandardException{
-        TransactionController tc;
-        ExecRow outRow;
-        List<DependencyDescriptor> ddl=newSList();
-        TabInfoImpl ti=getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
-        SYSDEPENDSRowFactory rf=(SYSDEPENDSRowFactory)ti.getCatalogRowFactory();
-
-
-        // Get the current transaction controller
-        tc=getTransactionCompile();
-
-        outRow=rf.makeEmptyRow();
-
-        try (ScanController scanController=tc.openScan(
-                ti.getHeapConglomerate(),  // conglomerate to open
-                false, // don't hold open across commit
-                0, // for read
-                TransactionController.MODE_TABLE,   // scans entire table.
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,                     // all fields as objects
-                null,   // start position - first row
-                ScanController.GE,      // startSearchOperation
-                null,
-                null,   // stop position - through last row
-                ScanController.GT)) {   // stopSearchOperation
-
-            while (scanController.fetchNext(outRow.getRowArray())) {
-                DependencyDescriptor dependencyDescriptor;
-
-            dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null,this, tc);
-
-                ddl.add(dependencyDescriptor);
-            }
-        }
-
-        return ddl;
     }
 
     /**
@@ -10936,48 +10883,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    @Override
-    public void createSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.createProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        // XXX (arnaud multidb) make this DB specific?
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, spliceDbDesc.getAuthorizationId());
-    }
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    @Override
-    public void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.dropProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        // XXX (arnaud multidb) make this db specific?
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, spliceDbDesc.getAuthorizationId());
-    }
-
-    /**
      * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
@@ -10999,7 +10904,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         DatabaseDescriptor databaseDescriptor = getDatabaseDescriptor(databaseName, tc);
         procedureGenerator.createOrUpdateProcedure(databaseDescriptor.getUUID(), schemaName, procName,tc,newlyCreatedRoutines);
-        // XXX (arnaud multidb) make this db specific?
         grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, databaseDescriptor.getAuthorizationId());
     }
 
