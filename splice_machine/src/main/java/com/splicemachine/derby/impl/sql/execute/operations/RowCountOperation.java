@@ -187,8 +187,15 @@ public class RowCountOperation extends SpliceBaseOperation {
             handleSparkExplain(ds, sourceDS, dsp);
             return ds;
         }
-        else
-            return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        else {
+            if (offset != 0 || fetchLimit > Integer.MAX_VALUE || fetchLimit < Integer.MIN_VALUE )
+                return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+            else{
+                int numRows = (int) fetchLimit;
+                // A limit function that has a native spark implementation.
+                return sourceSet.limit(numRows, operationContext);
+            }
+        }
     }
 
     @Override

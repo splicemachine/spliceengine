@@ -143,6 +143,14 @@ public interface DataSet<V> extends //Iterable<V>,
 
     /**
      *
+     * Return at most numRows elements of the dataset.
+     *
+     * @return
+     */
+    DataSet<V> limit(int numRows, OperationContext context);
+
+    /**
+     *
      * Perform a distinct on all elements of the dataset.  Adding information
      * here to hack the Spark UI to see custom labels.
      *
