@@ -486,6 +486,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
             setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
