@@ -265,6 +265,27 @@ function usage
     echo "  -h => print this message"
 }
 
+function verify_profiles
+{
+   local PROFILE=$1
+   local MVN_PROFILES=$(mvn -T 20 help:all-profiles | grep "Profile Id" | awk '{print $3}')
+   for arg in $(echo $PROFILE | tr "," "\n")
+   do
+      local in=0
+      for mvn_profile in $(echo $MVN_PROFILES | tr " " "\n")
+      do
+          if [[ "$arg" == "$mvn_profile" ]]; then
+             in=1
+             break
+          fi
+      done
+      if [[ $in -eq 0 ]]; then
+          echo "unknown profile '$arg', available profiles: $( echo $MVN_PROFILES | tr '\n' ' ')"
+          exit 1
+      fi
+   done
+}
+
 while getopts "chkp:s:bld:fT:Ke" flag ; do
     case $flag in
         h* | \?)
@@ -289,7 +310,7 @@ while getopts "chkp:s:bld:fT:Ke" flag ; do
         ;;
         p)
         # the hbase profile
-            PROFILE="${OPTARG}"
+          PROFILE="${OPTARG}"
         ;;
         s)
         # number of cluster members
@@ -351,6 +372,8 @@ elif [[ "${DISTRIBUTED}" == "1" ]]; then
 else
     PROFILE="insecure,${PROFILE}"
 fi
+
+verify_profiles $PROFILE
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = ${CHAOS} in:"
 echo "   ${RUN_DIR}"
