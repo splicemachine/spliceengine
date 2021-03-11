@@ -119,6 +119,7 @@ public class SessionPropertiesImpl implements SessionProperties {
             case OLAPALWAYSPENALIZENLJ:
                 boolean olapAlwaysPenalizeNLJ = Boolean.parseBoolean(valString);
                 properties[OLAPALWAYSPENALIZENLJ.getId()] = olapAlwaysPenalizeNLJ;
+                break;
             case DISABLEPREDSFORINDEXORPKACCESSPATH:
                 boolean disablePredsForIndexOrPrimaryKeyAccessPath = Boolean.parseBoolean(valString);
                 properties[DISABLEPREDSFORINDEXORPKACCESSPATH.getId()] = disablePredsForIndexOrPrimaryKeyAccessPath;
