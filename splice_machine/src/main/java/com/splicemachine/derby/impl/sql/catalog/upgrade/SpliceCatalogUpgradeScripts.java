@@ -87,37 +87,23 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
         addUpgradeScript(baseVersion1, 1917, new UpgradeScriptForMultiTenancy(sdd,tc));
-        addUpgradeScript(baseVersion1, 1924, new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
 
-        addUpgradeScript(baseVersion2, 1933, new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
         addUpgradeScript(baseVersion2, 1938, new UpgradeScriptForTriggerWhenClause(sdd,tc));
         addUpgradeScript(baseVersion2, 1940, new UpgradeScriptForReplicationSystemTables(sdd,tc));
-        addUpgradeScript(baseVersion2, 1941, new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
 
-        addUpgradeScript(baseVersion2, 1948, new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         addUpgradeScript(baseVersion2, 1953, new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
         addUpgradeScript(baseVersion2, 1959, new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
-        addUpgradeScript(baseVersion2, 1962, new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
 
-        addUpgradeScript(baseVersion2, 1964, new UpgradeScriptForAliasToTableView(sdd,tc));
-        addUpgradeScript(baseVersion2, 1970, new UpgradeScriptForAddTablesAndViewsInSYSIBMADM(sdd,tc));
         addUpgradeScript(baseVersion2, 1971, new UpgradeScriptToAddCatalogVersion(sdd,tc));
         addUpgradeScript(baseVersion2, 1974, new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
 
-        addUpgradeScript(baseVersion2, 1977, new UpgradeScriptToAddSysKeyColUseViewInSYSIBM(sdd, tc));
         addUpgradeScript(baseVersion3, 1979, new UpgradeScriptToSetJavaClassNameColumnInSYSALIASES(sdd, tc));
 
-        addUpgradeScript(baseVersion4, 1983, new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         addUpgradeScript(baseVersion4, 1985, new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
         addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
-        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForChangingGetKeyColumnPosition(sdd, tc));
         addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
-        addUpgradeScript(baseVersion4, 2004, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 
@@ -177,6 +163,7 @@ public class SpliceCatalogUpgradeScripts{
         if( sdd != null ) {
             sdd.clearSPSPlans();
             sdd.createOrUpdateAllSystemProcedures(tc);
+            sdd.refreshAllSystemViews(tc);
             sdd.updateMetadataSPSes(tc);
         }
     }

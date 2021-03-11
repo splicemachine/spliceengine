@@ -25,8 +25,7 @@ public class UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInS
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.createSysIndexesViewInSysIBM(tc);
-        SpliceLogUtils.info(LOG, "Catalog upgraded: added sysindexes view in SYSIBM schema");
+        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
 
         sdd.createIndexColumnUseViewInSysCat(tc);
         SpliceLogUtils.info(LOG, "Catalog upgraded: added indexcoluse view in SYSCAT schema");

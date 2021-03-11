@@ -24,8 +24,6 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -35,7 +33,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
@@ -72,8 +69,6 @@ import org.apache.log4j.Logger;
 import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
-
-import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -286,15 +281,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 
-    public void createTableColumnViewInSysIBM(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
-        createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
-    }
-
-    public void createKeyColumnUseViewInSysIBM(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSIBM", "SYSKEYCOLUSE");
-    }
-
     public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
         String viewName = "INDEXCOLUSE";
         createOrUpdateSystemView(tc, "SYSCAT", viewName);
@@ -329,19 +315,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
         }
-    }
-
-    public void createReferencesViewInSysCat(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSCAT", "REFERENCES");
-    }
-
-    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
-    }
-
-    // SYSCAT.COLUMNS view must be created after SYSIBM.SYSCOLUMNS because it's defined on top of SYSCOLUMNS view
-    public void createColumnsViewInSysCat(TransactionController tc) throws StandardException {
-        createOrUpdateSystemView(tc, "SYSCAT", "COLUMNS");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -379,20 +352,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if (td == null) {
             createNaturalNumbersTable(tc);
         }
-    }
-
-    public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-        //Add the SYSIBMADM schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
-            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
-        }
-
-        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL");
-        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL_INFO");
-        createOrUpdateSystemView(tc, "SYSIBMADM", "APPLICATIONS");
-
-        SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -519,30 +478,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         createTokenTable(tc);
 
-        createSystemViews(tc);
-
-        createPermissionTableSystemViews(tc);
-
         createReplicationTables(tc);
 
         createNaturalNumbersTable(tc);
 
-        createTableColumnViewInSysIBM(tc);
-
-        createKeyColumnUseViewInSysIBM(tc);
-
-        createTablesAndViewsInSysIBMADM(tc);
-
-        createAliasToTableSystemView(tc);
+        refreshAllSystemViews(tc);
 
         createIndexColumnUseViewInSysCat(tc);
-
-        createReferencesViewInSysCat(tc);
-
-        createSysIndexesViewInSysIBM(tc);
-
-        // don't pull this call before createTableColumnViewInSysIBM()
-        createColumnsViewInSysCat(tc);
     }
 
     @Override
@@ -1182,21 +1124,17 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         viewDefinitions.createOrUpdateView(tc, this, schemaName, viewName);
     }
 
-    public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
+    public void refreshAllSystemViews(TransactionController tc) throws StandardException {
         //Add the SYSVW schema if it does not exists
+        tc.elevate("dictionary");
         if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
-            SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
-            return;
+            sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, tc);
         }
-
-        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLEPERMSVIEW");
-        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMAPERMSVIEW");
-        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLPERMSVIEW");
-        createOrUpdateSystemView(tc, "SYSVW", "SYSROUTINEPERMSVIEW");
-        createOrUpdateSystemView(tc, "SYSVW", "SYSPERMSVIEW");
-
-        SpliceLogUtils.info(LOG, "System Views for permission tables created in SYSVW!");
+        //Add the SYSIBMADM schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
+            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
+        }
+        viewDefinitions.refreshAllSystemViews(tc, this);
     }
 
     public void removeUnusedIndexInSysFiles(TransactionController tc) throws StandardException {
@@ -1210,22 +1148,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             SpliceLogUtils.info(LOG, "Dropped index %s", "SYSFILES_INDEX3");
         }
-    }
-
-    public void createAliasToTableSystemView(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-        //Add the SYSVW schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
-            SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
-            return;
-        }
-
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        // create sysaliastotableview
-        createOrUpdateSystemView(tc, "SYSVW", "SYSALIASTOTABLEVIEW");
-
-        SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
     }
 
     public void addCatalogVersion(TransactionController tc) throws StandardException{
