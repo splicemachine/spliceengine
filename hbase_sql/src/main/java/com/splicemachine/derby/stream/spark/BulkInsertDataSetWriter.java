@@ -47,6 +47,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -72,6 +73,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     public BulkInsertDataSetWriter(){
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public BulkInsertDataSetWriter(DataSet dataSet,
                                    String tableVersion,
                                    int[] pkCols,
@@ -189,32 +191,18 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                                   ConglomerateDescriptorList conglomerateDescriptorList, List<Long> allCongloms,
                                   ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) throws StandardException
     {
-        long indexConglom = -1;
-        boolean isUnique = false;
         for (ConglomerateDescriptor searchCD : conglomerateDescriptorList) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
                     searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
-                indexConglom = searchCD.getConglomerateNumber();
-                DataValueDescriptor dvd =
-                        td.getColumnDescriptor(
-                                searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
                 DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                         activation.getLanguageConnectionContext(),
                         td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
                         td, searchCD.getIndexDescriptor(), td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
-                isUnique = searchCD.getIndexDescriptor().isUnique();
                 tentativeIndexList.add(ddlChange.getTentativeIndex());
                 allCongloms.add(searchCD.getConglomerateNumber());
                 break;
             }
         }
-        RowAndIndexGenerator rowAndIndexGenerator =
-                new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
-                        spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
-        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-        DataSet keys = rowAndIndexes.mapPartitions(
-                new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom, isUnique));
-        List<String> files = keys.collect();
     }
 
     private List<Tuple2<Long, byte[][]>> doSampling(Activation activation, TableDescriptor td,
@@ -337,9 +325,9 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private void revokeCreatePrivilege(Map<Long, Boolean> granted) throws StandardException{
         try {
             PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
-            for (Long conglomId : granted.keySet()) {
-                if (granted.get(conglomId)) {
-                    Partition partition = tableFactory.getTable(Long.toString(conglomId));
+            for (Map.Entry<Long, Boolean> it : granted.entrySet()) {
+                if (it.getValue()) {
+                    Partition partition = tableFactory.getTable(Long.toString(it.getKey()));
                     partition.revokeCreatePrivilege();
                 }
             }

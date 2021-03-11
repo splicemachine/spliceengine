@@ -64,7 +64,7 @@ public class SITransactor implements Transactor{
     private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
 
-    class MutationToRun {
+    static class MutationToRun {
         int index;
         LongHashSet conflictingChildren;
         DataPut data;
