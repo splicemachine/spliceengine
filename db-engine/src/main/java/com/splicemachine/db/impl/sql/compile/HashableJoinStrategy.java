@@ -200,7 +200,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isJoinPredicate()) {
+                    if (pred.isHashableJoinPredicate()) {
                         ap.setMissingHashKeyOK(true);
 
                         AndNode andNode = pred.getAndNode();
@@ -247,7 +247,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         if (predList != null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor(), false);
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath(), false);
         }
 
         /*

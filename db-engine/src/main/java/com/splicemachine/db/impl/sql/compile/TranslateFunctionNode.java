@@ -20,12 +20,8 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataTypeUtilities;
-import com.splicemachine.db.iapi.types.TypeId;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -83,11 +79,34 @@ public class TranslateFunctionNode extends OperatorNode {
                                     List<AggregateNode> aggregateVector) throws StandardException {
         bindOperands(fromList, subqueryList, aggregateVector);
 
-        for (int i = 0; i < 3; ++i) {
-            if (operands.get(i).requiresTypeFromContext()) {
+        for (int i = 0; i < 4; ++i) {
+            if (operands.get(i) != null && operands.get(i).requiresTypeFromContext()) {
                 castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
             }
         }
+
+        if (operands.get(0).getTypeId().isBitTypeId()) {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "TRANSLATE on BIT DATA types not yet implemented");
+        }
+
+        if (!operands.get(0).getTypeId().isCharOrVarChar()) {
+            castOperandAndBindCast(0, DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                    Types.VARCHAR,
+                    operands.get(0).getTypeServices().isNullable(),
+                    operands.get(0).getTypeCompiler().getCastToCharWidth(operands.get(0).getTypeServices(), getCompilerContext())));
+        }
+
+        // Only one operand: TRANSLATE is equivalent to UPPER
+        if (operands.get(1) == null) {
+            ValueNode upper = new SimpleStringOperatorNode(operands.get(0), "upper", getContextManager());
+            return upper.bindExpression(fromList, subqueryList, aggregateVector);
+        }
+
+        // output but no input table: currently not supported
+        if (operands.get(2) == null) {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "TRANSLATE(op, outputTranslationTable) not implemented");
+        }
+
         for (int i = 1; i < 3; ++i) {
             if (operands.get(i).getTypeId().isBitTypeId()) {
                 castOperandAndBindCast(i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, operands.get(i).getTypeServices().getMaximumWidth()));
@@ -114,9 +133,32 @@ public class TranslateFunctionNode extends OperatorNode {
             }
         }
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-                Types.VARCHAR,
+                operands.get(0).getTypeId().getJDBCTypeId(),
                 operands.stream().anyMatch(op -> op != null && op.getTypeServices().isNullable()),
                 operands.get(0).getTypeServices().getMaximumWidth()));
         return this;
+    }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
+        /* Allocate an object for re-use to hold the result of the operator */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
+        operands.get(0).generateExpression(acb, mb);
+        mb.upCast(interfaceTypes.get(0));
+        generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+        for (int i = 1; i < operands.size(); ++i) {
+            if (operands.get(i) != null)
+            {
+                operands.get(i).generateExpression(acb, mb);
+                mb.upCast(interfaceTypes.get(i));
+            }
+            else
+            {
+                mb.pushNull(interfaceTypes.get(i));
+            }
+        }
+        mb.getField(field);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
     }
 }

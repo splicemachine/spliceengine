@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -53,15 +54,10 @@ import java.util.List;
 @SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SimpleStringOperatorNode extends UnaryOperatorNode
 {
-    /**
-     * Initializer for a SimpleOperatorNode
-     *
-     * @param operand        The operand
-     * @param methodName    The method name
-     */
 
-    public void init(Object operand, Object methodName)
-    {
+    public SimpleStringOperatorNode(ValueNode operand, String methodName, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE);
         super.init(operand, methodName, methodName);
     }
 

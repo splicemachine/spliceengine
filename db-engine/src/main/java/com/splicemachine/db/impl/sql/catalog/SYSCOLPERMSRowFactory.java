@@ -361,13 +361,15 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         return cdsl;
     }
     public static String SYSCOLPERMS_VIEW_SQL = "create view SYSCOLPERMSVIEW as \n" +
-            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "SELECT P.COLPERMSID, P.GRANTEE, P.GRANTOR, P.TABLEID, P.TYPE, CAST(P.COLUMNS AS LONG VARCHAR) AS COLUMNS, " +
+            "T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
             "WHERE T.TABLEID = P.TABLEID AND " +
             "P.grantee in (select name from sysvw.sysallroles) \n" +
 
             "UNION ALL \n" +
 
-            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "SELECT P.COLPERMSID, P.GRANTEE, P.GRANTOR, P.TABLEID, P.TYPE, CAST(P.COLUMNS AS LONG VARCHAR) AS COLUMNS, " +
+            "T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
             "WHERE T.TABLEID = P.TABLEID AND " +
             "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

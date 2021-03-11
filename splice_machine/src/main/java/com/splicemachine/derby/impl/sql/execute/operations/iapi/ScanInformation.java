@@ -15,6 +15,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.iapi;
 
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.si.api.txn.TxnView;
@@ -60,13 +62,16 @@ public interface ScanInformation<T> {
 
     DataScan getScan(TxnView txn) throws StandardException;
 
-    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, T stopKeyPrefix, List<Pair<T, T>> keyRows) throws StandardException;
+    DataScan getScan(TxnView txn, T startKeyHint, int[] keyDecodingMap, T stopKeyPrefix,
+                     List<Pair<T, T>> keyRows, DataValueDescriptor scanKeyPrefix,
+                     boolean sameStartStopScanKeyPrefix,
+                     List<ExecRow> firstIndexColumnKeys) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
     long getConglomerateId();
     
-    List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
+    List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

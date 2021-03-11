@@ -1531,6 +1531,10 @@ public interface LanguageConnectionContext extends Context {
 
     void setCompilingStoredPreparedStatement(boolean newValue);
 
+    boolean isPredicateUsageForIndexOrPkAccessDisabled();
+
+    boolean alwaysAllowIndexPrefixIteration();
+
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;
 

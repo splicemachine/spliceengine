@@ -200,7 +200,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
     private boolean isOuterTableEmpty(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException{
         for (int i = 0; i < predList.size(); i++) {
             Predicate p = (Predicate) predList.getOptPredicate(i);
-            if (!p.isJoinPredicate()) continue;
+            if (!p.isHashableJoinPredicate()) continue;
             BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)p.getAndNode().getLeftOperand();
             ColumnReference outerColumn = null;
             if (bron.getLeftOperand() instanceof ColumnReference) {
@@ -239,7 +239,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         BitSet outerColumns = new BitSet(keyAscending.length);
         for(int p = 0;p<predList.size();p++){
             Predicate pred = (Predicate)predList.getOptPredicate(p);
-            if(pred.isJoinPredicate()) continue; //we'll deal with these later
+            if(pred.isHashableJoinPredicate()) continue; //we'll deal with these later
             RelationalOperator relop=pred.getRelop();
             if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
             if(relop.getOperator()==RelationalOperator.EQUALS_RELOP) {
@@ -286,7 +286,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
 
             for(int p=0;p<predList.size();p++){
                 Predicate pred = (Predicate)predList.getOptPredicate(p);
-                if(!pred.isJoinPredicate()) continue; //we've already dealt with those
+                if(!pred.isHashableJoinPredicate()) continue; //we've already dealt with those
                 RelationalOperator relop=pred.getRelop();
                 assert relop instanceof BinaryRelationalOperatorNode:
                         "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";

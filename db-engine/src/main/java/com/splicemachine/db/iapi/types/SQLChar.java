@@ -191,6 +191,8 @@ public class SQLChar extends DataType implements StringDataValue, StreamStorable
     /* Locale info (for International support) */
     private LocaleFinder localeFinder;
 
+    private boolean ignoreTrailingWhitespacesInVarcharComparison = false;
+
 
     /**************************************************************************
      * Constructors for This class:
@@ -3600,7 +3602,11 @@ public class SQLChar extends DataType implements StringDataValue, StreamStorable
      */
     protected StringDataValue getNewVarchar() throws StandardException
     {
-        return new SQLVarchar();
+        if (ignoreTrailingWhitespacesInVarcharComparison) {
+            return new SQLVarcharDB2Compatible();
+        } else {
+            return new SQLVarchar();
+        }
     }
 
     protected void setLocaleFinder(LocaleFinder localeFinder)
@@ -3786,5 +3792,11 @@ public class SQLChar extends DataType implements StringDataValue, StreamStorable
     public void setValueForSbcsData(DataValueDescriptor dvd) throws StandardException
     {
         setValue(dvd.getBytes()==null?null:new String(dvd.getBytes(), StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void setIgnoreTrailingWhitespacesInVarcharComparison(boolean value)
+    {
+        ignoreTrailingWhitespacesInVarcharComparison = value;
     }
 }

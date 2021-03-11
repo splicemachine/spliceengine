@@ -370,6 +370,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean compilingStoredPreparedStatement;
 
     /* constructor */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
         ContextManager cm,
         TransactionController tranCtrl,
@@ -498,6 +499,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (disableNestedLoopJoinPredicatePushDown != null &&
                 disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
+
+            String disablePredsForIndexOrPkAccessPath = connectionProperties.getProperty(Property.CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH);
+            if (disablePredsForIndexOrPkAccessPath != null &&
+                    disablePredsForIndexOrPkAccessPath.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH, "TRUE".toString());
+            }
+            String alwaysAllowIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION);
+            if (alwaysAllowIndexPrefixIteration != null &&
+                    alwaysAllowIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
@@ -4072,6 +4084,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return nljPredicatePushDownDisabled;
+    }
+
+    @Override
+    public boolean isPredicateUsageForIndexOrPkAccessDisabled() {
+        Boolean disablePredsForIndexOrPkAccessPath = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH);
+        if (disablePredsForIndexOrPkAccessPath != null) {
+            return disablePredsForIndexOrPkAccessPath;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean alwaysAllowIndexPrefixIteration() {
+        Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
+        if (alwaysAllowIndexPrefixIteration != null) {
+            return alwaysAllowIndexPrefixIteration;
+        }
+
+        return false;
     }
 
     @Override

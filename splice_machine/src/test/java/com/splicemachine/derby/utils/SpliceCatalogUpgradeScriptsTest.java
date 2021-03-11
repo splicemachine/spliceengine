@@ -34,8 +34,11 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTableColumnViewInSYSIBM\n" +
             "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddColumnsViewInSYSCAT\n" +
-            "VERSION4.2001: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForChangingGetKeyColumnPosition\n" +
-            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
+            "VERSION4.2001: UpgradeScriptForViews ChangingGetKeyColumnPosition\n" +
+            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
+            "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
+            "VERSION4.2004: UpgradeScriptForViews FixSYSCOLPERMSVIEW\n" +
+            "VERSION4.2004: UpgradeScriptForViews AddViewsDB_11267\n";
 
     // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
     String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
@@ -116,11 +119,20 @@ public class SpliceCatalogUpgradeScriptsTest {
         Assert.assertEquals(4, counter[0]);
     }
 
+    String removeAt(String s)
+    {
+        int at =s.lastIndexOf('@');
+        if(at == -1) return s;
+        else
+            return s.substring(0, at);
+
+    }
+
     String getUpgradeScriptsToStr(List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> upgradeNeeded)
     {
         StringBuilder sb = new StringBuilder(100);
         for( SpliceCatalogUpgradeScripts.VersionAndUpgrade el : upgradeNeeded ) {
-            sb.append(el.version + ": " + el.script.getClass().getName() + "\n");
+            sb.append(el.version + ": " + removeAt(el.script.toString()) + "\n");
         }
         return sb.toString();
     }

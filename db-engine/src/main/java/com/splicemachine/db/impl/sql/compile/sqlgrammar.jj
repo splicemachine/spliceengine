@@ -53,79 +53,9 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
-/* aggregates */
-import com.splicemachine.db.impl.sql.compile.CountAggregateDefinition;
-import com.splicemachine.db.impl.sql.compile.MaxMinAggregateDefinition;
-import com.splicemachine.db.impl.sql.compile.SumAvgAggregateDefinition;
-import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
-
-import com.splicemachine.db.impl.sql.compile.AggregateNode;
-import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
-import com.splicemachine.db.impl.sql.compile.BlobFunctionNode;
-import com.splicemachine.db.impl.sql.compile.CallStatementNode;
-import com.splicemachine.db.impl.sql.compile.CharConstantNode;
-import com.splicemachine.db.impl.sql.compile.CastNode;
-import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
-import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
-import com.splicemachine.db.impl.sql.compile.CreateTableNode;
-import com.splicemachine.db.impl.sql.compile.CursorNode;
-import com.splicemachine.db.impl.sql.compile.DaysFunctionNode;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.FromList;
-import com.splicemachine.db.impl.sql.compile.FromSubquery;
-import com.splicemachine.db.impl.sql.compile.FromTable;
-import com.splicemachine.db.impl.sql.compile.GroupByList;
-import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
-import com.splicemachine.db.impl.sql.compile.IndexExpression;
-import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
-import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.MethodCallNode;
-import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import com.splicemachine.db.impl.sql.compile.ReplaceAggregatesWithCRVisitor;
-import com.splicemachine.db.impl.sql.compile.ResultColumnList;
-import com.splicemachine.db.impl.sql.compile.ResultColumn;
-import com.splicemachine.db.impl.sql.compile.OrderByList;
-import com.splicemachine.db.impl.sql.compile.OrderByColumn;
-import com.splicemachine.db.impl.sql.compile.ResultSetNode;
-import com.splicemachine.db.impl.sql.compile.SelectNode;
-import com.splicemachine.db.impl.sql.compile.SubqueryNode;
-import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.compile.TernaryOperatorNode;
-import com.splicemachine.db.impl.sql.compile.ParameterNode;
-import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
-import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
-import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
-import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
-import com.splicemachine.db.impl.sql.compile.SecondFunctionNode;
-import com.splicemachine.db.impl.sql.compile.StatementListNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
-import com.splicemachine.db.impl.sql.compile.TableElementList;
-import com.splicemachine.db.impl.sql.compile.TableElementNode;
-import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
-import com.splicemachine.db.impl.sql.compile.BasicPrivilegesNode;
-import com.splicemachine.db.impl.sql.compile.TransactionStatementNode;
-import com.splicemachine.db.impl.sql.compile.TranslateFunctionNode;
-import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
-import com.splicemachine.db.impl.sql.compile.UnionNode;
-import com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode;
-import com.splicemachine.db.impl.sql.compile.UnaryOperatorNode;
-import com.splicemachine.db.impl.sql.compile.UntypedNullConstantNode;
-import com.splicemachine.db.impl.sql.compile.UpdateNode;
-import com.splicemachine.db.impl.sql.compile.UserTypeConstantNode;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
-import com.splicemachine.db.impl.sql.compile.ValueNodeList;
-import com.splicemachine.db.impl.sql.compile.GroupByColumn;
-import com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode;
-import com.splicemachine.db.impl.sql.compile.DDLStatementNode;
-import com.splicemachine.db.impl.sql.compile.AlterTableNode;
 
-import com.splicemachine.db.impl.sql.compile.ParseException;
-import com.splicemachine.db.impl.sql.compile.Token;
-import com.splicemachine.db.impl.sql.compile.TokenMgrError;
-import com.splicemachine.db.impl.sql.compile.SQLParserConstants;
-import com.splicemachine.db.impl.sql.compile.CharStream;
 import com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.SchemaPrivilegeInfo;
@@ -6610,15 +6540,15 @@ escapedValueFunction() throws StandardException :
 ValueNode translateFunctionNode() throws StandardException:
 {
     ValueNode stringExpression;
-    ValueNode toString;
-    ValueNode fromString;
+    ValueNode toString = null;
+    ValueNode fromString = null;
     ValueNode pad = null;
 }
 {
     <LEFT_PAREN>
         stringExpression = additiveExpression(null, 0)
-    <COMMA> toString = additiveExpression(null, 0)
-    <COMMA> fromString = additiveExpression(null, 0)
+    [ <COMMA> toString = additiveExpression(null, 0) ]
+    [ <COMMA> fromString = additiveExpression(null, 0) ]
     [ <COMMA> pad = additiveExpression(null, 0) ]
 
     <RIGHT_PAREN>
@@ -7098,11 +7028,10 @@ characterValueFunction() throws StandardException :
     {
         if (locale == null)
         {
-            return (ValueNode) nodeFactory.getNode(
-                    C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
-                    value,
-                    (upperTok != null) ? "upper" : "lower",
-                    getContextManager());
+            return new SimpleStringOperatorNode(
+                value,
+                (upperTok != null) ? "upper" : "lower",
+                getContextManager());
         }
         else
         {
@@ -7120,11 +7049,10 @@ characterValueFunction() throws StandardException :
     {
         if (locale == null)
         {
-            return (ValueNode) nodeFactory.getNode(
-                    C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
-                    value,
-                    (upperTok != null) ? "upper" : "lower",
-                    getContextManager());
+            return new SimpleStringOperatorNode(
+                value,
+                (upperTok != null) ? "upper" : "lower",
+                getContextManager());
         }
         else
         {
@@ -15171,15 +15099,7 @@ caseInnerExpression(ValueNode compareTo) throws StandardException :
 {
     <END>
     {
-        ValueNode value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.CAST_NODE,
-                                        (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                                        getContextManager()),
-                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
-                                        getContextManager());
-        ((CastNode) value).setForExternallyGeneratedCASTnode();
-        ((CastNode) value).setForNullsInConditionalNode();
-        return value;
+        return getNullForCase();
     }
 |
     <ELSE> expr = thenElseExpression() <END>
@@ -15241,14 +15161,7 @@ thenElseExpression() throws StandardException :
     LOOKAHEAD ( {getToken(1).kind == NULL} )
     <NULL>
     {
-        ValueNode value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.CAST_NODE,
-                                        (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                                        getContextManager()),
-                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
-                                        getContextManager());
-        ((CastNode) value).setForExternallyGeneratedCASTnode();
-        return value;
+        return getNullForCase();
     }
 |
     expr = additiveExpression(null, 0)
