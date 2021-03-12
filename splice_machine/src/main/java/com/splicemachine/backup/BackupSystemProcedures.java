@@ -675,6 +675,8 @@ public class BackupSystemProcedures {
             txn = SIDriver.driver().lifecycleManager().beginTransaction();
             txn = txn.elevateToWritable(Bytes.toBytes("rollback"));
         } catch (IOException e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database rollback error at begin/elevate txn", e);
             return;
         }
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
@@ -709,19 +711,14 @@ public class BackupSystemProcedures {
 
             SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
 
-            try {
-                txn.commit();
-            } catch (IOException e) {
-                // ignore
-            }
+            txn.commit();
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database rollback error", t);
-            t.printStackTrace();
             try {
                 txn.rollback();
             } catch (IOException e) {
-                // ignore
+                SpliceLogUtils.error(LOG, "Database rollback error at txn rollback", t);
             }
         }
     }
