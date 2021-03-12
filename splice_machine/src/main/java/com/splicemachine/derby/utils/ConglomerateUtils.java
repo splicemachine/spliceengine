@@ -232,7 +232,7 @@ public class ConglomerateUtils{
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
+    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,TxnView txn) throws StandardException{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
                 null,null,null,null,
                 -1,null, Conglomerate.Priority.NORMAL);

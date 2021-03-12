@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -36,22 +37,54 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         try {
+            SpliceLogUtils.info(LOG, "Start upgrading data dictionary serialization format.");
+            // Make a copy of system tables that are to be upgrade. The original table will be truncated. We will
+            // read from the copy in old serde format and write to original table in new format. Indexes will be
+            // truncated and rebuilt
+            UpgradeUtils.cloneConglomerate(sdd, tc);
             BaseDataDictionary.WRITE_NEW_FORMAT = true;
             BaseDataDictionary.READ_NEW_FORMAT = false;
-            tc.rewritePropertyConglomerate();
+
+            // rewrite system tables
             sdd.upgradeDataDictionarySerializationToV2(tc);
+            // rewrite SPLICE_CONGLOMERATE and SPLICE_CONGLOMERATE_SI
             UpgradeUtils.upgradeConglomerates(tc, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
             UpgradeUtils.upgradeConglomerates(tc, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+            // rewrite splice:16
+            tc.rewritePropertyConglomerate();
             BaseDataDictionary.WRITE_NEW_FORMAT = true;
             BaseDataDictionary.READ_NEW_FORMAT = true;
             dropUnusedTable();
-
+            SpliceLogUtils.info(LOG, "Finished upgrading data dictionary serialization format successfully.");
         } catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Failed to upgrade data dictionary serialization format.");
+            // If anything is wrong, roll back all dictionary changes. This will clone all snapshots to original tables.
             rollback();
             throw StandardException.plainWrapException(e);
         }
         finally {
+            // Finally delete snapshot and cloned conglomerate.
             deleteSnapshots();
+            dropClonedConglomerate();
+        }
+    }
+
+    private void dropClonedConglomerate() throws StandardException {
+        try {
+            UpgradeUtils.dropClonedConglomerate(sdd, tc);
+            List<String> tableNames = Arrays.asList(
+                    HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME,
+                    HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            for (String tableName : tableNames) {
+                String backupTable = tableName + "_backup";
+                if (admin.tableExists(backupTable)) {
+                    admin.deleteTable(backupTable);
+                    SpliceLogUtils.info(LOG, "Dropped cloned table %s", backupTable);
+                }
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 
