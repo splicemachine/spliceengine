@@ -80,7 +80,7 @@ public class SITransactor implements Transactor{
         this.exceptionLib = exceptionFactory;
         this.defaultConstraintChecker = operationStatusLib.getNoOpConstraintChecker();
         this.conflictResolutionStrategyIsSet = false;
-        this.conflictResolutionStrategy = ConflictResolutionStrategy.valueOf(SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
+        this.conflictResolutionStrategy = SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY;
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -263,7 +263,7 @@ public class SITransactor implements Transactor{
             SIDriver driver = SIDriver.driver();
             conflictResolutionStrategy = driver != null ?
                     driver.getConfiguration().getConflictResolutionStrategy() :
-                    ConflictResolutionStrategy.valueOf(SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY);
+                    SIConfigurations.DEFAULT_CONFLICT_RESOLUTION_STRATEGY;
             conflictResolutionStrategyIsSet = true;
         }
     }
