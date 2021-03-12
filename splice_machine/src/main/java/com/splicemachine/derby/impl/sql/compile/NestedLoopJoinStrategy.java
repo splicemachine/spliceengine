@@ -326,7 +326,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
         if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
-            if (!isSelectOrProjectFromBaseTable(table))
+            if (!isBaseTable(table))
                 return NLJ_ON_SPARK_PENALTY * multiplier;
             if (hasJoinPredicateWithIndexKeyLookup(predList))
                 return retval;
@@ -339,10 +339,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                optimizer.getJoinType() < INNERJOIN;
     }
 
-    private boolean isSelectOrProjectFromBaseTable(Optimizable table) {
-        while (table instanceof ProjectRestrictNode)
-            table = (Optimizable)((ProjectRestrictNode)table).getChildResult();
-        return table != null && table instanceof FromBaseTable;
+    private boolean isBaseTable(Optimizable table) {
+        return table instanceof FromBaseTable;
     }
 
     private boolean hasJoinPredicateWithIndexKeyLookup(OptimizablePredicateList predList) {
