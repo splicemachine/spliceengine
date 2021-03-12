@@ -202,6 +202,7 @@ message DecimalBufferedSumAggregator {
   }
   optional bool isNull = 1;
   optional bytes sum = 2;
+  optional int32 bufferSize = 3;
 }
 
 message DoubleBufferedSumAggregator {
@@ -211,6 +212,7 @@ message DoubleBufferedSumAggregator {
   }
   optional bool isNull = 1;
   optional bytes sumTree = 2;
+  optional int32 bufferSize = 3;
 }
 
 message LongBufferedSumAggregator {
@@ -220,6 +222,7 @@ message LongBufferedSumAggregator {
   }
   optional bool isNull = 1;
   optional int64 sum = 2;
+  optional int32 bufferSize = 3;
 }
 
 message MaxMinAggregator {
