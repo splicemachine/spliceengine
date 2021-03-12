@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -408,90 +409,39 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
 
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
-        cdsl.add(
-            new ColumnDescriptor[]{
-                new ColumnDescriptor("CONGLOMERATENUMBER",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("CONGLOMERATENAME",2,2,
-                            DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
-                            null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("SCHEMANAME"               ,3,3,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("TABLENAME"               ,4,4,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("ISINDEX"               ,5,5,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("ISCONSTRAINT"               ,6,6,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
-                        null,null,view,viewId,0,0,0)
-
-        });
-
-        cdsl.add(
-            new ColumnDescriptor[]{
-                new ColumnDescriptor("INDSCHEMA",1,1,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("INDNAME",2,2,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLNAME",3,3,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLSEQ",4,4,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLORDER",5,5,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLLATIONSCHEMA",6,6,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLLATIONNAME",7,7,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("VIRTUAL",8,8,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true, 1),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("TEXT",9,9,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CLOB, true),
-                        null,null,view,viewId,0,0,0)
-        });
-
-        // SYSIBM.SYSINDEXES
-        cdsl.add(
-            new ColumnDescriptor[]{
-                new ColumnDescriptor("NAME",1,1,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128), // NOT NULL in DB2
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("CREATOR",2,2,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("TBNAME",3,3,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("TBCREATOR",4,4,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("UNIQUERULE",5,5,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("COLCOUNT",6,6,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
-                        null,null,view,viewId,0,0,0)
-            });
+        assert cdsl.size() == SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL.getFirst();
+        cdsl.add( getSYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL_ColumnDescriptor(view, viewId) );
+        assert cdsl.size() == SYSCAT_INDEXCOLUSE_VIEW_SQL.getFirst();
+        cdsl.add( getSYSCAT_INDEXCOLUSE_VIEW_SQL_ColumnDescriptor(view, viewId) );
+        assert cdsl.size() == SYSIBM_SYSINDEXES_VIEW_SQL.getFirst();
+        cdsl.add( getSYSIBM_SYSINDEXES_VIEW_SQL_ColumnDescriptor(view, viewId) );
+        assert cdsl.size() == SYSVW_SYSCONGLOMERATES_SQL.getFirst();
+        cdsl.add( getSYSVW_SYSCONGLOMERATES_SQL_ColumnDescriptor(view, viewId) );
 
         return cdsl;
     }
-    public static String SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = "create view SYSCONGLOMERATEINSCHEMAS as \n" +
-            "SELECT C.CONGLOMERATENUMBER, C.CONGLOMERATENAME, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
-            "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID";
+
+    final public static Pair<Integer, String> SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = new Pair<>(0,
+            "create view SYSCONGLOMERATEINSCHEMAS as \n" +
+            "SELECT C.CONGLOMERATENUMBER, C.CONGLOMERATENAME, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
+            "C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
+            "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID");
 
 
-    public static String SYSCAT_INDEXCOLUSE_VIEW_SQL = "create view INDEXCOLUSE as \n" +
+    private ColumnDescriptor[] getSYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                    getCD(view, viewId, "CONGLOMERATENUMBER", 1, Types.BIGINT, false),
+                    getCD(view, viewId, "CONGLOMERATENAME",   2, Types.VARCHAR, true, 128),
+                    getCD(view, viewId, "SCHEMANAME",         3, Types.VARCHAR, false, 128),
+                    getCD(view, viewId, "TABLENAME",          4, Types.VARCHAR, false, 128),
+                    getCD(view, viewId, "ISINDEX",            5, Types.BOOLEAN, false),
+                    getCD(view, viewId, "ISCONSTRAINT",       6, Types.BOOLEAN, false)
+
+            };
+    }
+
+    final public static Pair<Integer, String> SYSCAT_INDEXCOLUSE_VIEW_SQL = new Pair<>(1,
+            "create view INDEXCOLUSE as \n" +
             "    SELECT  \n" +
             "           S.SCHEMANAME AS INDSCHEMA, \n" +
             "           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
@@ -532,11 +482,26 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "      AND CONGLOMS.DESCRIPTOR IS NOT NULL \n" +
             "      AND CONGLOMS.DESCRIPTOR.isOnExpression() \n" +
             "      AND NUMBERS.N <= CONGLOMS.DESCRIPTOR.numberOfOrderedColumns() \n" +
-            "    ORDER BY INDSCHEMA, INDNAME, COLSEQ";
+            "    ORDER BY INDSCHEMA, INDNAME, COLSEQ");
+
+    private ColumnDescriptor[] getSYSCAT_INDEXCOLUSE_VIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                    getCD(view, viewId, "INDSCHEMA",       1, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "INDNAME",         2, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "COLNAME",         3, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "COLSEQ",          4, Types.SMALLINT, false),
+                    getCD(view, viewId, "COLORDER",        5, Types.CHAR,     false, 1),
+                    getCD(view, viewId, "COLLATIONSCHEMA", 6, Types.VARCHAR,  true,  128),
+                    getCD(view, viewId, "COLLATIONNAME",   7, Types.VARCHAR,  true,  128),
+                    getCD(view, viewId, "VIRTUAL",         8, Types.CHAR,     true,  1),
+                    getCD(view, viewId, "TEXT",            9, Types.CLOB,     true)
+            };
+    }
 
     // Reference:
     // https://www.ibm.com/support/knowledgecenter/SSEPEK_12.0.0/cattab/src/tpc/db2z_sysibmsysindexestable.html
-    public static String SYSIBM_SYSINDEXES_VIEW_SQL = "create view SYSINDEXES as \n" +
+    final public static Pair<Integer, String> SYSIBM_SYSINDEXES_VIEW_SQL = new Pair<>(2,
+            "create view SYSINDEXES as \n" +
             "SELECT \n" +
             "  C.CONGLOMERATENAME AS NAME, \n" +
             "  S1.SCHEMANAME AS CREATOR, \n" +
@@ -565,5 +530,41 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "     FROM SYS.SYSCONSTRAINTS SC, SYS.SYSKEYS K   -- get all unique constraint conglomerate IDs \n" +
             "     WHERE K.CONSTRAINTID = SC.CONSTRAINTID) U \n" +
             "  ON C.ISCONSTRAINT AND \n" +
-            "     C.CONGLOMERATEID = U.CONGLOMERATEID";
+            "     C.CONGLOMERATEID = U.CONGLOMERATEID");
+
+    private ColumnDescriptor[] getSYSIBM_SYSINDEXES_VIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                    getCD(view, viewId, "NAME",       1, Types.VARCHAR,  true,  128),
+                    getCD(view, viewId, "CREATOR",    2, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "TBNAME",     3, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "TBCREATOR",  4, Types.VARCHAR,  false, 128),
+                    getCD(view, viewId, "UNIQUERULE", 5, Types.CHAR,     false, 1),
+                    getCD(view, viewId, "COLCOUNT",   6, Types.SMALLINT, false)
+            };
+    }
+
+    final public static int SYSVW_SYSCONGLOMERATES_INDEX = 3;
+    final public static Pair<Integer, String> SYSVW_SYSCONGLOMERATES_SQL = new Pair<>(3,
+                    "create view SYSCONGLOMERATESVIEW as SELECT " +
+                    "SCHEMAID, " +
+                    "TABLEID, " +
+                    "CONGLOMERATENUMBER, " +
+                    "CONGLOMERATENAME, " +
+                    "ISINDEX, " +
+                    "cast(DESCRIPTOR as char(64)) as DESCRIPTOR, " +
+                    "ISCONSTRAINT, " +
+                    "CONGLOMERATEID FROM sys.SYSCONGLOMERATES");
+
+    private ColumnDescriptor[] getSYSVW_SYSCONGLOMERATES_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "SCHEMAID",           1, Types.CHAR,    false, 36),
+                getCD(view, viewId, "TABLEID",            2, Types.CHAR,    false, 36),
+                getCD(view, viewId, "CONGLOMERATENUMBER", 3, Types.BIGINT,  false),
+                getCD(view, viewId, "CONGLOMERATENAME",   4, Types.VARCHAR, true,  128),
+                getCD(view, viewId, "ISINDEX",            5, Types.BOOLEAN, false),
+                getCD(view, viewId, "DESCRIPTOR",         6, Types.CHAR,    true,  64),
+                getCD(view, viewId, "ISCONSTRAINT",       7, Types.BOOLEAN, true),
+                getCD(view, viewId, "CONGLOMERATEID",     8, Types.CHAR,    false, 36)
+        };
+    }
 }

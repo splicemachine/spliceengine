@@ -36,6 +36,12 @@ class SystemViewDefinitions {
             this.viewIndex = viewIndex;
             this.viewSql = viewSql;
         }
+
+        ViewInfo(int catalogNum, Pair<Integer, String> viewSql) {
+            this.catalogNum = catalogNum;
+            this.viewIndex = viewSql.getFirst();
+            this.viewSql = viewSql.getSecond();
+        }
     }
 
     Map<Pair<String, String>, ViewInfo> views;
@@ -44,7 +50,7 @@ class SystemViewDefinitions {
         this.views = new LinkedHashMap<>();
         views.put(new Pair<>("SYSVW", "SYSALLROLES"), new ViewInfo(DataDictionary.SYSROLES_CATALOG_NUM, 0, SYSROLESRowFactory.ALLROLES_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSSCHEMASVIEW"), new ViewInfo(DataDictionary.SYSSCHEMAS_CATALOG_NUM, 0, null)); // sql determined at run time
-        views.put(new Pair<>("SYSVW", "SYSCONGLOMERATEINSCHEMAS"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 0, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL));
+        views.put(new Pair<>("SYSVW", "SYSCONGLOMERATEINSCHEMAS"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSTABLESVIEW"), new ViewInfo(DataDictionary.SYSTABLES_CATALOG_NUM, 0, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSCOLUMNSVIEW"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 0, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSTABLESTATISTICS"), new ViewInfo(DataDictionary.SYSTABLESTATS_CATALOG_NUM, 0, SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL));
@@ -55,13 +61,16 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSVW", "SYSROUTINEPERMSVIEW"), new ViewInfo(DataDictionary.SYSROUTINEPERMS_CATALOG_NUM, 0, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSPERMSVIEW"), new ViewInfo(DataDictionary.SYSPERMS_CATALOG_NUM, 0, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSALIASTOTABLEVIEW"), new ViewInfo(DataDictionary.SYSALIASES_CATALOG_NUM, 0, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL));
+        views.put(new Pair<>("SYSVW", "SYSCONGLOMERATESVIEW"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSVW_SYSCONGLOMERATES_SQL));
+        views.put(new Pair<>("SYSVW", "SYSDEPENDSVIEW"), new ViewInfo(DataDictionary.SYSDEPENDS_CATALOG_NUM, SYSDEPENDSRowFactory.SYSVW_SYSDEPENDS_SQL));
+        views.put(new Pair<>("SYSVW", "SYSSEQUENCESVIEW"), new ViewInfo(DataDictionary.SYSSEQUENCES_CATALOG_NUM, SYSSEQUENCESRowFactory.SYSVW_SYSSEQUENCESVIEW_SQL));
 
         views.put(new Pair<>("SYSIBM", "SYSCOLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 1, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM));
         views.put(new Pair<>("SYSIBM", "SYSTABLES"), new ViewInfo(DataDictionary.SYSTABLES_CATALOG_NUM, 1, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM));
         views.put(new Pair<>("SYSIBM", "SYSKEYCOLUSE"), new ViewInfo(DataDictionary.SYSCONSTRAINTS_CATALOG_NUM, 0, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM));
-        views.put(new Pair<>("SYSIBM", "SYSINDEXES"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 2, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL));
+        views.put(new Pair<>("SYSIBM", "SYSINDEXES"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSIBM_SYSINDEXES_VIEW_SQL));
 
-        views.put(new Pair<>("SYSCAT", "INDEXCOLUSE"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, 1, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL));
+        views.put(new Pair<>("SYSCAT", "INDEXCOLUSE"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSCAT_INDEXCOLUSE_VIEW_SQL));
         views.put(new Pair<>("SYSCAT", "REFERENCES"), new ViewInfo(DataDictionary.SYSFOREIGNKEYS_CATALOG_NUM, 0, SYSFOREIGNKEYSRowFactory.SYSCAT_REFERENCES_VIEW_SQL));
         views.put(new Pair<>("SYSCAT", "COLUMNS"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 2, SYSCOLUMNSRowFactory.COLUMNS_VIEW_IN_SYSCAT));
 

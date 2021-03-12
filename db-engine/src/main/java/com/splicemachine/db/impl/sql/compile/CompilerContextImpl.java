@@ -294,6 +294,12 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
 
+    public void setDisablePrefixIteratorMode(boolean newValue) {
+        disablePrefixIteratorMode = newValue;
+    }
+
+    public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
+
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
     }
@@ -317,6 +323,11 @@ public class CompilerContextImpl extends ContextImpl
         floatingPointNotation = value;
     }
 
+    public void setCursorUntypedExpressionType(DataTypeDescriptor type)
+    {
+        cursorUntypedExpressionType = type;
+    }
+
     public int getCurrentTimestampPrecision() {
         return currentTimestampPrecision;
     }
@@ -331,6 +342,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public int getFloatingPointNotation() {
         return floatingPointNotation;
+    }
+
+    public DataTypeDescriptor getCursorUntypedExpressionType() {
+        return cursorUntypedExpressionType;
     }
 
     public boolean isOuterJoinFlatteningDisabled() {
@@ -1208,12 +1223,14 @@ public class CompilerContextImpl extends ContextImpl
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
     private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
+    private       DataTypeDescriptor                  cursorUntypedExpressionType                  = null;
     // Used to track the flattened half outer joins.
     private       int                                 nextOJLevel                                  = 1;
     private       boolean                             outerJoinFlatteningDisabled;
     private       boolean                             ssqFlatteningForUpdateDisabled;
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it

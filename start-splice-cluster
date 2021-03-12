@@ -258,6 +258,7 @@ function usage
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start. The default is 1 master and 2 region servers."
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
+    echo "  -e use ee (enterprise edition) profile"
     echo "  -k just KILL any and all splice processes currently running."
     echo "  -K like k, but will also reset database to clean. Needs some rebuild afterwards (use -l)."
     echo "  -T <n> use -T <n> with maven (build with n threads)."
@@ -285,7 +286,7 @@ function verify_profiles
    done
 }
 
-while getopts "chkp:s:bld:fT:K" flag ; do
+while getopts "chkp:s:bld:fT:Ke" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -338,6 +339,10 @@ while getopts "chkp:s:bld:fT:K" flag ; do
         # number of threads
            MVN_THREADS="-T ${OPTARG}"
         ;;
+        e)
+        # enterprise edition
+          ENTERPRISE_EDITION=1
+        ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
             exit 1
@@ -353,6 +358,10 @@ SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=$
 # Run...
 ########################################################################################################
 _kill_em_all 9
+
+if [[ "${ENTERPRISE_EDITION}" == "1" ]]; then
+  PROFILE="${PROFILE},ee"
+fi
 
 HBASE_PROFILE=${PROFILE%%,*}
 if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then

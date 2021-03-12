@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.SqlExceptionFactory;
@@ -47,7 +48,6 @@ public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
                                  SqlExceptionFactory exceptionFactory,
                                  DDLWatchChecker ddlWatchChecker,
                                  TxnSupplier txnSupplier){
-        long maxDdlWait=config.getMaxDdlWait() << 1;
         this.checker=ddlWatchChecker;
         this.refresher=new DDLWatchRefresher(checker,
                 txnController,
@@ -105,5 +105,10 @@ public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
         }catch(IOException e){
             LOG.error("Unable to refresh DDL",e);
         }
+    }
+
+    @Override
+    public void clearFinishedChange(String changeId) throws StandardException {
+        refresher.clearFinishedChange(changeId, ddlListeners);
     }
 }

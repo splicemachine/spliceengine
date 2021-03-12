@@ -40,6 +40,7 @@ public class MScan implements DataScan{
         // If this function is getting called, it is an error condition.
         throw new IOException();
     }
+
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){
