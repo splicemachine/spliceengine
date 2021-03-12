@@ -70,6 +70,11 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		position = 0;
 	}
 
+	public LongBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+		this(64);
+		init(agg);
+	}
+
 	@Override
 	protected void accumulate(DataValueDescriptor addend) throws StandardException {
 		buffer[position] = addend.getLong();

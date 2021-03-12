@@ -51,7 +51,7 @@ public  class SumAggregator extends OrderableAggregator
 	public SumAggregator() {}
 
 	public SumAggregator(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException  {
-	    super.init(systemAggregator);
+	    init(systemAggregator);
 	}
 
 	@Override
@@ -171,13 +171,20 @@ public  class SumAggregator extends OrderableAggregator
 
 	@Override
 	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException{
+		CatalogMessage.SumAggregator.Builder sumAggregatorBuilder = CatalogMessage.SumAggregator.newBuilder();
+		if (value != null) {
+			sumAggregatorBuilder.setValue(value.toProtobuf());
+		}
 		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
-		builder.setType(CatalogMessage.SystemAggregator.Type.SumAggregator);
+		builder.setType(CatalogMessage.SystemAggregator.Type.SumAggregator)
+				.setExtension(CatalogMessage.SumAggregator.sumAggregator, sumAggregatorBuilder.build());
 		return builder;
 	}
 
 	@Override
 	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
 		super.init(systemAggregator);
+		CatalogMessage.SumAggregator sumAggregator = systemAggregator.getExtension(CatalogMessage.SumAggregator.sumAggregator);
+		value = sumAggregator.hasValue() ? ProtobufUtils.fromProtobuf(sumAggregator.getValue()) : null;
 	}
 }
