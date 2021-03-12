@@ -184,7 +184,7 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 			 ObjectInputStream ois = new ObjectInputStream(bis)) {
 			this.sumTree =	(TreeMap<Integer, MutableDouble>)ois.readObject();
 		}
-		init(aggregator.getBufferSize(), null);
+		init(aggregator.getBufferSize(), sumTree);
 	}
 
 	@Override
