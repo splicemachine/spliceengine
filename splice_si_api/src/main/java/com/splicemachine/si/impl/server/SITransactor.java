@@ -701,11 +701,7 @@ public class SITransactor implements Transactor{
             }
             Txn.State state = txnView.getState();
             if(state == Txn.State.ACTIVE) {
-                if(SanityManager.DEBUG) {
-                    SanityManager.ASSERT(txnView.getTxnId() == (txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK),
-                                         String.format("unexpected parent txn Id %d", txnView.getTxnId()));
-                }
-                activeTx.add(txnView.getTxnId());
+                activeTx.add(txnView.getTxnId() & SIConstants.TRANSANCTION_ID_MASK); // get the parent of in-memory sub transactions.
                 if(LOG.isTraceEnabled()) {
                     String tableName = table.getTableName();
                     if(table.getDescriptor() != null && table.getDescriptor().getValue("tableDisplayName") != null) {
