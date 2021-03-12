@@ -57,17 +57,21 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 
 	private java.util.TreeMap<Integer, MutableDouble> sumTree;
 	private boolean isNull = true;
+    private int bufferSize;
 
 	public DoubleBufferedSumAggregator() {}
 	public DoubleBufferedSumAggregator(int bufferSize) {
 		this(bufferSize, null);
 	}
 	public DoubleBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
-		this(64);
 		init(agg);
 	}
 
 	public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
+		init(bufferSize, tree);
+	}
+
+	private void init(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
 		if (tree == null)
 			sumTree = new TreeMap<>();
 		else
@@ -79,6 +83,7 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 		buffer = new double[s];
 		this.length = s-1;
 		position = 0;
+		this.bufferSize = bufferSize;
 	}
 
 	@Override
@@ -158,6 +163,7 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 					CatalogMessage.DoubleBufferedSumAggregator.newBuilder()
 							.setIsNull(isNull)
 							.setSumTree(ByteString.copyFrom(bs))
+							.setBufferSize(bufferSize)
 							.build();
 			CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
 			builder.setType(CatalogMessage.SystemAggregator.Type.DoubleBufferedSumAggregator)
@@ -178,6 +184,7 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 			 ObjectInputStream ois = new ObjectInputStream(bis)) {
 			this.sumTree =	(TreeMap<Integer, MutableDouble>)ois.readObject();
 		}
+		init(aggregator.getBufferSize(), null);
 	}
 
 	@Override
