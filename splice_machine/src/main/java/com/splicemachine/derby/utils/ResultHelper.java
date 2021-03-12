@@ -19,10 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -161,11 +158,36 @@ class ResultHelper {
             maxLength = Math.max(maxLength, value == null ? 4 : value.length());
             set = true;
         }
+
+        String get(ResultSet rs) throws SQLException {
+            return rs.getString(index);
+        }
         @Override
         public void init() {
             set("");
         }
     }
+
+    class IntegerColumn extends Column {
+        @Override
+        DataTypeDescriptor getDataTypeDescriptor() {
+            return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+        }
+        public void set(int value) {
+            assert row != null;
+            row.setColumn(index, new SQLInteger(value));
+            set = true;
+        }
+        Integer get(ResultSet rs) throws SQLException {
+            int val = rs.getInt(index);
+            return rs.wasNull() ? null : val;
+        }
+        @Override
+        public void init() {
+            set(0);
+        }
+    }
+
     class BigintColumn extends Column {
         @Override
         DataTypeDescriptor getDataTypeDescriptor() {
@@ -175,6 +197,10 @@ class ResultHelper {
             assert row != null;
             row.setColumn(index, new SQLLongint(value));
             set = true;
+        }
+        Long get(ResultSet rs) throws SQLException {
+            long val = rs.getLong(index);
+            return rs.wasNull() ? null : val;
         }
         @Override
         public void init() {

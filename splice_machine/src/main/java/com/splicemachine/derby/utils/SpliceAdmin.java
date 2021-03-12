@@ -96,6 +96,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.splicemachine.db.iapi.sql.StatementType.*;
@@ -110,8 +111,12 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
 public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
-    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
+    @FunctionalInterface
+    public interface ConsumeWithException<T, T2, E extends Throwable> {
+        void accept(T t, T2 t2) throws E;
+    }
+
+    public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
         List<HostAndPort> servers;
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
@@ -121,13 +126,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL(?, ?)")) {
-                    ps.setString(1, loggerName);
-                    ps.setString(2, logLevel);
-                    ps.execute();
-                }
+                function.accept(server, connection);
             }
         }
+    }
+
+    public static void execute(Connection connection, String sql) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
+        }
+    }
+
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL(?, ?)")) {
+                ps.setString(1, loggerName);
+                ps.setString(2, logLevel);
+                ps.execute();
+            }
+        });
     }
     public static void SYSCS_SET_LOGGER_LEVEL_LOCAL(final String loggerName,final String logLevel) throws SQLException{
         Logging logging;
@@ -241,25 +259,17 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
         List<String> loggerLevels = new ArrayList<>();
 
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL_LOCAL(?)")) {
-                    ps.setString(1, loggerName);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            loggerLevels.add(rs.getString(1));
-                        }
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL_LOCAL(?)")) {
+                ps.setString(1, loggerName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        loggerLevels.add(rs.getString(1));
                     }
-                };
-            }
-        }
+                }
+            };
+        });
+
         List<ExecRow> rows = new ArrayList<>();
         for (String logger : loggerLevels) {
             ExecRow row = new ValueRow(1);
@@ -313,24 +323,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException{
         Set<String> loggers = new HashSet<>();
 
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
-                        while (rs.next()) {
-                            loggers.add(rs.getString(1));
-                        }
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+                try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
+                    while (rs.next()) {
+                        loggers.add(rs.getString(1));
                     }
                 }
             }
-        }
+        });
 
         ArrayList<String> loggerNames = new ArrayList<>(loggers);
         Collections.sort(loggerNames);
@@ -375,16 +376,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
         List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+        executeOnAllServers( (hostAndPort, connection) -> {
                 try (Statement stmt = connection.createStatement()) {
                     try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()")) {
                         while (rs.next()) {
@@ -399,8 +392,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         }
                     }
                 }
-            }
-        }
+            });
 
         GenericColumnDescriptor[] descriptors = {
                 new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
@@ -1322,16 +1314,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
         List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+        executeOnAllServers( (server, connection) -> {
                 try (PreparedStatement ps = connection.prepareStatement("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY(?)")) {
                     ps.setString(1, key);
                     try (ResultSet rs = ps.executeQuery()) {
@@ -1342,9 +1326,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                             rows.add(row);
                         }
                     }
-                };
-            }
-        }
+                }
+            } );
 
         GenericColumnDescriptor[] descriptors = {
                 new GenericColumnDescriptor("HOST_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
@@ -1448,19 +1431,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString());
-                 Statement s = connection.createStatement()) {
-                    s.execute("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
-            }
-        }
+        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()") );
     }
 
     public static void SYSCS_GET_TABLE_COUNT(ResultSet[] resultSets) throws StandardException, SQLException{
@@ -1516,19 +1487,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE() throws SQLException{
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString());
-                 Statement ps = connection.createStatement()) {
-                     ps.execute("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()");
-            }
-        }
+        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()") );
     }
 
     private static Collection<PartitionServer> getLoad() throws SQLException{
@@ -2513,21 +2472,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void INVALIDATE_GLOBAL_DICTIONARY_CACHE() throws Exception {
-        List<HostAndPort> servers;
-
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (Statement stmt = connection.createStatement()) {
-                    stmt.execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
-                }
-            }
-        }
+        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()") );
     }
 
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
