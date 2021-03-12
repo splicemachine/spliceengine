@@ -36,10 +36,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.NumberDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.IOException;
@@ -339,6 +336,6 @@ public final class AvgAggregator extends OrderableAggregator
 		count = avgAggregator.getCount();
 		scale = avgAggregator.getScale();
 		CatalogMessage.SystemAggregator ag = avgAggregator.getSumAggregator();
-		aggregator = new SumAggregator(ag);
+		aggregator = ProtobufUtils.toSumAggregator(ag);
 	}
 }

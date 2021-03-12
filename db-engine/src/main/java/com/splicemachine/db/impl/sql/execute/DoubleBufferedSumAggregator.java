@@ -62,6 +62,11 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 	public DoubleBufferedSumAggregator(int bufferSize) {
 		this(bufferSize, null);
 	}
+	public DoubleBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+		this(64);
+		init(agg);
+	}
+
 	public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
 		if (tree == null)
 			sumTree = new TreeMap<>();
