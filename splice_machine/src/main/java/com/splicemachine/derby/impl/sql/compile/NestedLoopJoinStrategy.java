@@ -287,7 +287,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        remoteCostPerPartition += nljOnSparkPenalty;
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
@@ -327,7 +326,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
         if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
-            if (!isBaseTable(table))
+            if (!isSelectOrProjectFromBaseTable(table))
                 return NLJ_ON_SPARK_PENALTY * multiplier;
             if (hasJoinPredicateWithIndexKeyLookup(predList))
                 return retval;
@@ -340,8 +339,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                optimizer.getJoinType() < INNERJOIN;
     }
 
-    private boolean isBaseTable(Optimizable table) {
-        return table instanceof FromBaseTable;
+    private boolean isSelectOrProjectFromBaseTable(Optimizable table) {
+        while (table instanceof ProjectRestrictNode)
+            table = (Optimizable)((ProjectRestrictNode)table).getChildResult();
+        return table != null && table instanceof FromBaseTable;
     }
 
     private boolean hasJoinPredicateWithIndexKeyLookup(OptimizablePredicateList predList) {
