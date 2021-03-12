@@ -61,6 +61,11 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 
 	}
 
+	public DecimalBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+		this(64);
+		init(agg);
+	}
+
 	public DecimalBufferedSumAggregator(int bufferSize) {
 		int s = 1;
 		while(s<bufferSize){

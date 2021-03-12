@@ -245,6 +245,7 @@ message SumAggregator {
   {
     required SumAggregator sumAggregator = 1007;
   }
+  optional DataValueDescriptor value = 1;
 }
 
 message CursorTableReference {
