@@ -126,6 +126,19 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 .withRows(rows(
                         row("hello", "there")))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table AG (a int, b real, c bigint, d decimal(15,2))")
+                .withInsert("insert into AG(a, b, c, d) values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, 1, 2, 3),
+                        row(2, 1, 2, 3),
+                        row(3, 1, 2, 3)))
+                .create();
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
     }
 
     @BeforeClass
@@ -139,6 +152,19 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     public static void exitDB2CompatibilityMode() throws Exception {
         spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
+    }
+
+    @Test
+    public void testAvgAggregator() throws Exception {
+        String sqlText = "select a, avg(b), avg(c), avg(d) from ag group by a order by a";
+        String expected =
+                "A | 2  | 3 |   4   |\n" +
+                "---------------------\n" +
+                " 1 |3.0 | 4 |5.0000 |\n" +
+                " 2 |3.0 | 4 |5.0000 |\n" +
+                " 3 |3.0 | 4 |5.0000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
     }
 
     @Test
