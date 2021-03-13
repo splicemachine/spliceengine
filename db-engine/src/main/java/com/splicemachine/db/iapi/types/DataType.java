@@ -1374,33 +1374,23 @@ public abstract class DataType extends NullValueData implements DataValueDescrip
         }
     }
 
-    /* 256 gives < 1% normalized rank error. Note that this error is independent to data
-     * stream size. Reference:
-     * https://datasketches.apache.org/docs/Quantiles/QuantilesAccuracy.html .
+    /**
+     *
+     * 256 gives < 1% normalized rank error
+     *
+     * @return
+     * @throws StandardException
      */
     @Override
     public org.apache.datasketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
         return org.apache.datasketches.quantiles.ItemsSketch.getInstance(256,this);
     }
 
-    /* Bigger maxMapSize leads to better accuracy. Reference:
-     * https://datasketches.apache.org/docs/Frequency/FrequentItemsErrorTable.html .
-     * Memory consumption is (18 bytes * currentMapSize). currentMapSize starts from 8 and
-     * gets doubled when the number of items in map is bigger than 0.75 * currentMapSize.
-     * Also, currentMapSize is capped at maxMapSize.
-     */
     @Override
     public org.apache.datasketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-
-        return new org.apache.datasketches.frequencies.ItemsSketch(8192);
+        return new org.apache.datasketches.frequencies.ItemsSketch(256);
     }
 
-    /* Bigger nomEntries leads to better accuracy. Reference:
-     * https://datasketches.apache.org/docs/Theta/ThetaErrorTable.html .
-     * Internal hash table size could also start small and grow as needed but it depends
-     * on the value of resizeFactor, or lgRF. Check Util.startingSubMultiple() in Sketch
-     * library for the logic determining the starting size.
-     */
     @Override
     public UpdateSketch getThetaSketch() throws StandardException {
         return UpdateSketch.builder().setNominalEntries(256).build();
