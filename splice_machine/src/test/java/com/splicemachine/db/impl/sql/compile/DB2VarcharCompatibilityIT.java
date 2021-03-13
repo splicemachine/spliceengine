@@ -205,6 +205,8 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate, "SORTMERGE");
         testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "CROSS");
+        testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate2, "NESTEDLOOP", "NESTEDLOOP");
         testQuery(sqlText, expected, methodWatcher);
     }
