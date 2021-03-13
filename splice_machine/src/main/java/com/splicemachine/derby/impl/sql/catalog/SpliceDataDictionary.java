@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.clearspring.analytics.util.Lists;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -2006,16 +2007,65 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
 
-    public GenericDescriptorList getAllDescriptors(int catalogNum) throws StandardException {
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+    public void rewriteDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
 
-        GenericDescriptorList list=new GenericDescriptorList();
+        CatalogRowFactory rf=ti.getCatalogRowFactory();
+        ExecRow outRow;
+        TransactionController tc;
+        TupleDescriptor td=null;
 
-        getDescriptorViaHeap(null,null,ti,null,list);
-        return list;
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+
+        outRow=rf.makeEmptyRow();
+
+        /*
+         ** Table scan
+         */
+        try (ScanController scanController=tc.openScan(
+                cloned_conglomerate,    // conglomerate to open
+                false,                        // don't hold open across commit
+                0,                            // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,        // start position - first rowSpliceDataDictionary
+                0,                    // startSearchOperation - none
+                null,        // scanQualifier,
+                null,        // stop position - through last row
+                0)) {                  // stopSearchOperation - none
+
+            final int batchSize = 100;
+            List<TupleDescriptor> descriptors = Lists.newArrayList();
+            int count = 0;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                td = rf.buildDescriptor(outRow, null, this);
+                count++;
+                descriptors.add(td);
+                if (count % batchSize == 0) {
+                    addDescriptors(descriptors, catalogNum, tc);
+                    descriptors.clear();
+                }
+            }
+
+            if (descriptors.size() > 0) {
+                addDescriptors(descriptors, catalogNum, tc);
+                descriptors.clear();
+            }
+        }
     }
 
-    final int[] serdeUpgradedTables = {
+
+    private void addDescriptors(List<TupleDescriptor> descriptors,
+                                int catalogNum,
+                                TransactionController tc) throws StandardException{
+        TupleDescriptor[] descriptorsArray = new TupleDescriptor[descriptors.size()];
+        descriptorsArray = descriptors.toArray(descriptorsArray);
+        addDescriptorArray(descriptorsArray, null, catalogNum, true, tc);
+    }
+
+    public static final List<Integer> serdeUpgradedTables = Collections.unmodifiableList(Arrays.asList(
             SYSDEPENDS_CATALOG_NUM,
             SYSALIASES_CATALOG_NUM,
             SYSCHECKS_CATALOG_NUM,
@@ -2025,85 +2075,38 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SYSSEQUENCES_CATALOG_NUM,
             SYSCOLUMNSTATS_CATALOG_NUM,
             SYSCONGLOMERATES_CATALOG_NUM,
-            SYSCOLUMNS_CATALOG_NUM
-    };
+            SYSCOLUMNS_CATALOG_NUM));
 
     public void upgradeDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
 
-        for (int i = 0; i < serdeUpgradedTables.length; ++i) {
-            SpliceLogUtils.info(LOG, "reading descriptors for %d", serdeUpgradedTables[i]);
-            GenericDescriptorList list = getAllDescriptors(serdeUpgradedTables[i]);
-            snapshotTable(tc, serdeUpgradedTables[i]);
-            truncateTable(tc, serdeUpgradedTables[i]);
-            for (Object obj : list) {
-                switch (serdeUpgradedTables[i]) {
-                    case SYSCONGLOMERATES_CATALOG_NUM:
-                        ConglomerateDescriptor conglomerateDescriptor = (ConglomerateDescriptor) obj;
-                        addDescriptor(conglomerateDescriptor, null, SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSCOLUMNS_CATALOG_NUM:
-                        ColumnDescriptor columnDescriptor = (ColumnDescriptor) obj;
-                        addDescriptor(columnDescriptor, null, SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSDEPENDS_CATALOG_NUM:
-                        DependencyDescriptor dependencyDescriptor = (DependencyDescriptor) obj;
-                        addDescriptor(dependencyDescriptor, null, SYSDEPENDS_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSALIASES_CATALOG_NUM:
-                        AliasDescriptor ad = (AliasDescriptor) obj;
-                        addDescriptor(ad, null, SYSALIASES_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSCHECKS_CATALOG_NUM:
-                        SubCheckConstraintDescriptor checkConstraintDescriptor = (SubCheckConstraintDescriptor) obj;
-                        addDescriptor(checkConstraintDescriptor, null, SYSCHECKS_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSTRIGGERS_CATALOG_NUM:
-                        TriggerDescriptor triggerDescriptor = (TriggerDescriptor) obj;
-                        addDescriptor(triggerDescriptor, null, SYSTRIGGERS_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSCOLPERMS_CATALOG_NUM:
-                        ColPermsDescriptor colPermsDescriptor = (ColPermsDescriptor) obj;
-                        addDescriptor(colPermsDescriptor, null, SYSCOLPERMS_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSSEQUENCES_CATALOG_NUM:
-                        SequenceDescriptor sequenceDescriptor = (SequenceDescriptor) obj;
-                        addDescriptor(sequenceDescriptor, null, SYSSEQUENCES_CATALOG_NUM, false, tc, false);
-                        break;
-
-                    case SYSCOLUMNSTATS_CATALOG_NUM:
-                        ColumnStatisticsDescriptor columnStatisticsDescriptor = (ColumnStatisticsDescriptor) obj;
-                        long conglomId = columnStatisticsDescriptor.getConglomerateId();
-                        String partitionId = columnStatisticsDescriptor.getPartitionId();
-                        int columnId = columnStatisticsDescriptor.getColumnId();
-                        ItemStatistics columnStatistics = columnStatisticsDescriptor.getStats();
-                        ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, partitionId, columnId, columnStatistics);
-                        addColumnStatistics(statsRow, tc);
-                        break;
-                    case SYSSTATEMENTS_CATALOG_NUM:
-                        SPSDescriptor spsDescriptor = (SPSDescriptor) obj;
-                        addDescriptor(spsDescriptor, null, SYSSTATEMENTS_CATALOG_NUM, false, tc, false);
-                        break;
-                    default:
-                        throw new RuntimeException("Unexpected table number: " + serdeUpgradedTables[i]);
-                }
-            }
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            SpliceLogUtils.info(LOG, "Upgrading descriptors for %d", serdeUpgradedTables.get(i));
+            int catalogNum = serdeUpgradedTables.get(i);
+            // snapshot the table
+            snapshotTable(tc, catalogNum);
+            TabInfoImpl ti = getTableInfo(catalogNum);
+            long conglomerate = ti.getHeapConglomerate();
+            // clone the base table
+            String snapshotName = conglomerate + "_snapshot";
+            long cloned_conglomerate = conglomerate + 1;
+            tc.cloneSnapshot(snapshotName, Long.toString(cloned_conglomerate));
+            SpliceLogUtils.info(LOG,"Cloning snapshot %s to conglomerate %d",
+                    snapshotName, cloned_conglomerate);
+            // truncate the table and rewrite using cloned base table
+            truncateTable(tc, catalogNum);
+            SpliceLogUtils.info(LOG,"Truncated conglomerate %d", conglomerate);
+            rewriteDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            SpliceLogUtils.info(LOG,"Finished upgrading catalogNum %d, conglomerate %d",
+                    catalogNum, conglomerate);
         }
     }
 
     public void rollbackDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
         Set<String> snapshots = tc.listSnapshots();
 
-        for (int i = 0; i < serdeUpgradedTables.length; ++i) {
-            SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables[i]);
-            int catalogNum = serdeUpgradedTables[i];
-            TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            int catalogNum = serdeUpgradedTables.get(i);
+            TabInfoImpl ti = getTableInfo(catalogNum);
             long conglomerate = ti.getHeapConglomerate();
             String snapshotName = conglomerate + "_snapshot";
 
@@ -2117,12 +2120,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                         tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
                     }
                 }
+                SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables.get(i));
             }
         }
     }
 
     private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        TabInfoImpl ti = getTableInfo(catalogNum);
         long conglomerate = ti.getHeapConglomerate();
         String snapshotName = conglomerate + "_snapshot";
         tc.snapshot(snapshotName, Long.toString(conglomerate));
@@ -2135,7 +2139,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private void truncateTable(TransactionController tc, int catalogNum) throws StandardException{
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        TabInfoImpl ti = getTableInfo(catalogNum);
         long conglomerate = ti.getHeapConglomerate();
         tc.truncate(Long.toString(conglomerate));
         int n = ti.getNumberOfIndexes();
@@ -2147,13 +2151,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void cleanupSerdeUpgrade(TransactionController tc) throws StandardException {
         Set<String> snapshots = tc.listSnapshots();
-        for (int i = 0; i < serdeUpgradedTables.length; ++i) {
-            deleteSnapshot(tc, serdeUpgradedTables[i], snapshots);
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            deleteSnapshot(tc, serdeUpgradedTables.get(i), snapshots);
         }
     }
 
     private void deleteSnapshot(TransactionController tc, int catalogNum, Set<String> snapshots) throws StandardException {
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        TabInfoImpl ti = getTableInfo(catalogNum);
         long conglomerate = ti.getHeapConglomerate();
         String snapshotName = conglomerate + "_snapshot";
         if (snapshots.contains(snapshotName)) {
@@ -2167,5 +2171,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 tc.deleteSnapshot(snapshotName);
             }
         }
+    }
+
+    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        return ti;
     }
 }
