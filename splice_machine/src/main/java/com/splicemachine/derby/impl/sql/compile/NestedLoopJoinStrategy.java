@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -285,7 +287,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        remoteCostPerPartition += nljOnSparkPenalty;
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
@@ -298,11 +299,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     // Nested loop join is most useful if it can be used to
     // derive an index point-lookup predicate, otherwise it can be
     // very slow on Spark.
-    // NOTE: The following description of the behavior will
-    //       only be enabled once DB-11521 is fixed:
+    // NOTE: The following description of the behavior is
+    //       enabled if session property olapAlwaysPenalizeNLJ
+    //       is false, or not set:
     // Detect when no join predicates are present that have
     // both a start key and a stop key.  If none are present,
-    // or we're reading more than 10 rows from the outer table,
     // return a large cost penalty so we'll avoid such joins.
     private double getNljOnSparkPenalty(Optimizable table,
                                         OptimizablePredicateList predList,
@@ -319,14 +320,17 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double multiplier = innerCost.getFromBaseTableRows();
         if (multiplier < 1d)
             multiplier = 1d;
-        // TODO:  Enable this code when DB-11521 is fixed.
-        //        Currently join cardinality is grossly underestimated,
-        //        so what we think is a safe nested loop join may in fact
-        //        be joining hundreds or thousands of rows from the left table.
-//        if (!isBaseTable(table))
-//            return NLJ_ON_SPARK_PENALTY * multiplier;
-//        if (hasJoinPredicateWithIndexKeyLookup(predList) && outerCost.rowCount() <= 10)
-//            return retval;
+        QueryTreeNode queryTreeNode = (QueryTreeNode) table;
+        LanguageConnectionContext lcc = queryTreeNode.getLanguageConnectionContext();
+        Boolean olapAlwaysPenalizeNLJ = (Boolean)
+            lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+
+        if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
+            if (!isBaseTable(table))
+                return NLJ_ON_SPARK_PENALTY * multiplier;
+            if (hasJoinPredicateWithIndexKeyLookup(predList))
+                return retval;
+        }
         return NLJ_ON_SPARK_PENALTY * multiplier;
     }
 
