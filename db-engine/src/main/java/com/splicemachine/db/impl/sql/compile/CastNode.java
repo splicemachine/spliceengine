@@ -292,17 +292,7 @@ public class CastNode extends ValueNode
             }
         }
 
-        /* We can't chop out cast above an untyped null because
-         * the store can't handle it.
-         */
-        if ((castOperand instanceof ConstantNode) &&
-                !(castOperand instanceof UntypedNullConstantNode))
-        {
-            // Return the new constant if the cast was performed
-            return bindConstantCast();
-        }
-
-        return this;
+        return bindConstantCast();
     }
 
     /**
@@ -313,8 +303,7 @@ public class CastNode extends ValueNode
      *
      * @exception StandardException        Thrown on error
      */
-    public void bindCastNodeOnly()
-            throws StandardException
+    public void bindCastNodeOnly() throws StandardException
     {
 
         /*
@@ -400,6 +389,11 @@ public class CastNode extends ValueNode
 
         // after binding the cast node, check dependencies to SPS properties.
         addSPSPropertyDependency();
+    }
+
+    public ValueNode bindImplicitCast() throws StandardException {
+        bindCastNodeOnly();
+        return bindConstantCast();
     }
 
     /**
@@ -1077,6 +1071,13 @@ public class CastNode extends ValueNode
     }
 
     private ValueNode bindConstantCast() throws StandardException {
+        /* We can't chop out cast above an untyped null because
+         * the store can't handle it.
+         */
+        if (!(castOperand instanceof ConstantNode) ||
+                (castOperand instanceof UntypedNullConstantNode)) {
+            return this;
+        }
         /* If the castOperand is a typed constant then we do the cast at
          * bind time and return a constant of the correct type.
          * NOTE: This could return an exception, but we're prepared to

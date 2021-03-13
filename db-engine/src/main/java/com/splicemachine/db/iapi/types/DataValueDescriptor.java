@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
@@ -1062,7 +1062,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @return
      * @throws StandardException
      */
-    com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException;
+    org.apache.datasketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException;
 
     /**
      *
@@ -1071,7 +1071,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @return
      * @throws StandardException
      */
-    com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException;
+    org.apache.datasketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException;
 
     /**
      *
