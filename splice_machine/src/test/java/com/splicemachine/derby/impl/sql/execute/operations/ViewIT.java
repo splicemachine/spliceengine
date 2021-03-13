@@ -131,6 +131,12 @@ public class ViewIT {
         finally {
             methodWatcher.execute("DROP SEQUENCE ViewIT_SEQUENCE RESTRICT");
         }
+    }
 
+    @Test
+    public void testINDEXCOLUSE() throws Exception {
+        try ( ResultSet rs = methodWatcher.executeQuery("select * from syscat.indexcoluse")) {
+            Assert.assertTrue(TestUtils.FormattedResult.ResultFactory.toString(rs).contains("SYSALIASES_INDEX1"));
+        }
     }
 }

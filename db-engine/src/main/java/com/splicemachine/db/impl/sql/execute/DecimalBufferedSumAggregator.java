@@ -56,12 +56,21 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 
 	private BigDecimal sum = BigDecimal.ZERO;
 	private boolean isNull = true;
+	private int bufferSize;
 
 	public DecimalBufferedSumAggregator() { // SERDE
 
 	}
 
+	public DecimalBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+		init(agg);
+	}
+
 	public DecimalBufferedSumAggregator(int bufferSize) {
+		init(bufferSize);
+	}
+
+	private void init(int bufferSize) {
 		int s = 1;
 		while(s<bufferSize){
 			s<<=1;
@@ -69,8 +78,8 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		buffer = new BigDecimal[s];
 		this.length = s-1;
 		position = 0;
+		this.bufferSize = bufferSize;
 	}
-
 	@Override
 	protected void accumulate(DataValueDescriptor addend) throws StandardException {
 		buffer[position] = getBigDecimal(addend);
@@ -140,6 +149,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 					CatalogMessage.DecimalBufferedSumAggregator.newBuilder()
 							.setIsNull(isNull)
 							.setSum(ByteString.copyFrom(bs))
+							.setBufferSize(bufferSize)
 							.build();
 
 			CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
@@ -160,6 +170,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 			 ObjectInputStream ois = new ObjectInputStream(bis)) {
 			this.sum =	(BigDecimal)ois.readObject();
 		}
+		init(aggregator.getBufferSize());
 	}
 
 	@Override

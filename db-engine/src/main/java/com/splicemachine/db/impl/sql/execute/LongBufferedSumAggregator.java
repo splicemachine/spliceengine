@@ -57,10 +57,16 @@ public class LongBufferedSumAggregator extends SumAggregator {
 	private long sum = 0;
 	private boolean isNull = true; //set to false when elements are added
 
+	private int bufferSize;
+
 	public LongBufferedSumAggregator() {
 
 	}
 	public LongBufferedSumAggregator(int bufferSize) {
+		init(bufferSize);
+	}
+
+	private void init(int bufferSize) {
 		int s = 1;
 		while(s<bufferSize){
 			s<<=1;
@@ -68,6 +74,11 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		buffer = new long[s];
 		this.length = s-1;
 		position = 0;
+		this.bufferSize = bufferSize;
+	}
+
+	public LongBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+		init(agg);
 	}
 
 	@Override
@@ -137,6 +148,7 @@ public class LongBufferedSumAggregator extends SumAggregator {
 				CatalogMessage.LongBufferedSumAggregator.newBuilder()
 						.setIsNull(isNull)
 						.setSum(sum)
+						.setBufferSize(bufferSize)
 						.build();
 		builder.setType(CatalogMessage.SystemAggregator.Type.LongBufferedSumAggregator)
 				.setExtension(CatalogMessage.LongBufferedSumAggregator.longBufferedSumAggregator, aggregator);
@@ -150,6 +162,7 @@ public class LongBufferedSumAggregator extends SumAggregator {
 				systemAggregator.getExtension(CatalogMessage.LongBufferedSumAggregator.longBufferedSumAggregator);
 		this.isNull = aggregator.getIsNull();
 		this.sum = aggregator.getSum();
+		init(aggregator.getBufferSize());
 	}
 
 	@Override

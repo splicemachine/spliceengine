@@ -441,6 +441,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     }
 
     final public static Pair<Integer, String> SYSCAT_INDEXCOLUSE_VIEW_SQL = new Pair<>(1,
+            "create view INDEXCOLUSE as \n" +
             "    SELECT  \n" +
             "           S.SCHEMANAME AS INDSCHEMA, \n" +
             "           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
