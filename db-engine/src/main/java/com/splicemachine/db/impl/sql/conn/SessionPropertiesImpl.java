@@ -112,6 +112,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
                 properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
                 break;
+            case OLAPALWAYSPENALIZENLJ:
+                boolean olapAlwaysPenalizeNLJ = Boolean.parseBoolean(valString);
+                properties[OLAPALWAYSPENALIZENLJ.getId()] = olapAlwaysPenalizeNLJ;
+                break;
             default:
                 assert false;
         }
