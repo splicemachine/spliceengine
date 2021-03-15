@@ -28,7 +28,7 @@ import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.datasketches.quantiles.ItemsSketch;
+import com.yahoo.sketches.quantiles.ItemsSketch;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -61,9 +61,8 @@ public class BulkLoadUtils {
 
         // determine how many regions the table/index should be split into
         Map<Long, Integer> numPartitions = new HashMap<>();
-        for (Map.Entry<Long, Tuple2<Double, ColumnStatisticsImpl>> entry : mergedStatistics.entrySet()) {
-            long conglomId = entry.getKey();
-            Tuple2<Double, ColumnStatisticsImpl> stats = entry.getValue();
+        for (Long conglomId : mergedStatistics.keySet()) {
+            Tuple2<Double, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
             double size = stats._1;
             int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
 
@@ -76,9 +75,8 @@ public class BulkLoadUtils {
         }
 
         // calculate cut points for each table/index using histogram
-        for (Map.Entry<Long, Integer> entry : numPartitions.entrySet()) {
-            long conglomId = entry.getKey();
-            int numPartition = entry.getValue();
+        for (Long conglomId : numPartitions.keySet()) {
+            int numPartition = numPartitions.get(conglomId);
             Map<String, byte[]> cutPointMap = new HashMap<>();
 
             ColumnStatisticsImpl columnStatistics = mergedStatistics.get(conglomId)._2;
@@ -139,10 +137,9 @@ public class BulkLoadUtils {
         }
 
         Map<Long, Tuple2<Double, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
-        for (Map.Entry<Long, ColumnStatisticsMerge> entry : sm.entrySet()) {
-            long conglomId = entry.getKey();
+        for (Long conglomId : sm.keySet()) {
             Double totalSize = sizeMap.get(conglomId);
-            ColumnStatisticsImpl columnStatistics = entry.getValue().terminate();
+            ColumnStatisticsImpl columnStatistics = sm.get(conglomId).terminate();
             statisticsMap.put(conglomId, new Tuple2(totalSize, columnStatistics));
         }
 
