@@ -1648,14 +1648,14 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
                                     leftTypeId,
                                     true, leftOperand.getTypeServices().getMaximumWidth()),
                             getContextManager());
-            rightOperand = ((CastNode) rightOperand).bindImplicitCast();
+            ((CastNode) rightOperand).bindCastNodeOnly();
         } else if (leftTypeId.isNumericTypeId() && rightTypeId.isCharOrVarChar()) {
             rightOperand = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
                     rightOperand,
                     DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
                     getContextManager());
-            rightOperand = ((CastNode) rightOperand).bindImplicitCast();
+            ((CastNode) rightOperand).bindCastNodeOnly();
         }
         return rightOperand;
     }

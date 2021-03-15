@@ -42,7 +42,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import org.apache.datasketches.theta.UpdateSketch;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -104,7 +104,7 @@ public final class ListDataType extends DataType {
     @Override
     public String getString() throws StandardException
     {
-        StringBuilder sb = new StringBuilder("( ");
+        StringBuffer sb = new StringBuffer("( ");
         for (int i = 0; i < numElements; i++) {
             String stringToAdd = dvd[i] == null ? null : dvd[i].getString();
             sb.append(stringToAdd != null ? stringToAdd : "NULL");

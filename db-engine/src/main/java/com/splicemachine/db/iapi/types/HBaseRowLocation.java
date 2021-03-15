@@ -24,7 +24,7 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.datasketches.theta.UpdateSketch;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
