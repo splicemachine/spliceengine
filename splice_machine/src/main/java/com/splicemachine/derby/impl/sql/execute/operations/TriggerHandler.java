@@ -57,8 +57,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
-
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
  * convenient methods for firing.
@@ -489,5 +487,17 @@ public class TriggerHandler {
                 return null;
             }
         };
+    }
+
+    public void setHasGeneratedColumn() {
+        triggerActivator.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        return triggerActivator.hasGeneratedColumn();
+    }
+
+    public boolean hasSpecialFromTableTrigger() {
+        return hasSpecialFromTableTrigger;
     }
 }

@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.CrossJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
@@ -68,6 +69,8 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
+
+import static org.apache.spark.api.java.StorageLevels.*;
 
 /**
  *
@@ -208,6 +211,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> distinct(OperationContext context) {
         return distinct("Remove Duplicates", false, context, false, null);
+    }
+
+    @Override
+    public DataSet<V> limit(int numRows, OperationContext context){
+        return zipWithIndex(context).mapPartitions(new OffsetFunction<SpliceOperation, V>(context, 0, numRows));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

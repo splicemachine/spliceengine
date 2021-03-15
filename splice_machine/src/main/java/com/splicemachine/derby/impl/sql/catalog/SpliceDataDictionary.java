@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.clearspring.analytics.util.Lists;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -21,7 +22,6 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -58,6 +59,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -65,13 +67,11 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Function;
 
 import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
@@ -232,13 +232,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
-        if (catalogNum < NUM_CORE)
-            ti=coreInfo[catalogNum];
-        else
-            ti=getNonCoreTI(catalogNum);
-        CatalogRowFactory crf=ti.getCatalogRowFactory();
 
-        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view, viewId).get(viewIndex);
+
+        ColumnDescriptor[] tableViewCds=null;
+        ViewInfoProvider crf = null;
+        if (catalogNum < NUM_CORE) {
+            ti = coreInfo[catalogNum];
+            crf=ti.getCatalogRowFactory();
+        } else if(catalogNum < NUM_NONCORE) {
+            ti = getNonCoreTI(catalogNum);
+            crf=ti.getCatalogRowFactory();
+        } else {
+            crf = getTransientViewColumns(catalogNum);
+        }
+        tableViewCds = crf.getViewColumns(view, viewId).get(viewIndex);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -375,23 +382,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
-        if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
-        }
-        initSystemIndexVariables(ibmConnectionTable);
-        return ibmConnectionTable;
-    }
-
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSIBMADM schema if it does not exists
         if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
             sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
         }
-
-        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
-        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
 
         createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL");
         createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL_INFO");
@@ -537,7 +533,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createKeyColumnUseViewInSysIBM(tc);
 
         createTablesAndViewsInSysIBMADM(tc);
-        
+
         createAliasToTableSystemView(tc);
 
         createIndexColumnUseViewInSysCat(tc);
@@ -548,6 +544,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // don't pull this call before createTableColumnViewInSysIBM()
         createColumnsViewInSysCat(tc);
+
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSDEPENDSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
     }
 
     @Override
@@ -555,13 +555,23 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return new SpliceSystemAggregatorGenerator(this);
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     protected void loadDictionaryTables(TransactionController tc,
                                         Properties startParams) throws StandardException{
+        Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
+        if (catalogVersion.getSprintVersionNumber() < BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+            BaseDataDictionary.READ_NEW_FORMAT = false;
+            BaseDataDictionary.WRITE_NEW_FORMAT = false;
+        }
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
+
+        //upgrade may change SPLICE_DATA_DICTIONARY_VERSION
+        catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
+        startParams.setProperty("catalogVersion", catalogVersion.toString());
     }
 
     /**
@@ -609,6 +619,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             ((SpliceTransaction)txnManager.getRawTransaction()).elevate(Bytes.toBytes("boot"));
             if(spliceSoftwareVersion!=null){
                 txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
+                startParams.setProperty("catalogVersion", spliceSoftwareVersion.toString());
             }
         }
 
@@ -650,7 +661,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private SpliceSequence getSpliceSequence(String sequenceUUIDstring, boolean useBatch)
-        throws StandardException {
+            throws StandardException {
         try{
             if(sequenceRowLocationBytesMap==null){
                 sequenceRowLocationBytesMap=new ConcurrentLinkedHashMap.Builder<String, byte[]>()
@@ -753,7 +764,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.elevate("dictionary");
             SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
             scripts.runUpgrades(catalogVersion);
-            tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
+            tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION, spliceSoftwareVersion,true);
             tc.commit();
         }
     }
@@ -925,7 +936,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException {
         Manager manager = EngineDriver.driver().manager();
-            return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;
+        return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;
     }
 
     /**
@@ -955,18 +966,22 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
         ArrayList<String> toUpgrade = new ArrayList<>();
         Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
-                {
-                    toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
-                    for( int j = 0; j < info.getNumberOfIndexes(); j++ )
-                        toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
-                    return null;
-                };
+        {
+            toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
+            for( int j = 0; j < info.getNumberOfIndexes(); j++ )
+                toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+            return null;
+        };
         for (int i = 0; i < coreInfo.length; ++i) {
             assert coreInfo[i] != null;
             addTabInfo.apply(coreInfo[i]);
         }
         for (int i = 0; i < NUM_NONCORE; ++i) {
             // noncoreInfo[x] will be null otherwise
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
             addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
         }
 
@@ -974,7 +989,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             toUpgrade.add(s);
         }
         toUpgrade.add("16"); // splice:16 core table
-        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+        toUpgrade.add(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
 
         return admin.upgradeTablePrioritiesFromList(toUpgrade);
     }
@@ -1221,13 +1236,17 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void addCatalogVersion(TransactionController tc) throws StandardException{
         for (int i = 0; i < coreInfo.length; ++i) {
             long conglomerateId = coreInfo[i].getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i));
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
-            long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
+            long conglomerateId = tabInfo.getHeapConglomerate();
             if (conglomerateId > 0) {
-                tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+                tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i + NUM_CORE));
             }
             else {
                 SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
@@ -1299,18 +1318,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     false);
             /* Scan the entire heap */
             try (ScanController sc=
-                    tc.openScan(
-                            ti.getHeapConglomerate(),
-                            false,
-                            TransactionController.OPENMODE_FORUPDATE,
-                            TransactionController.MODE_TABLE,
-                            TransactionController.ISOLATION_REPEATABLE_READ,
-                            columnToReadSet,
-                            null,
-                            ScanController.NA,
-                            scanQualifier,
-                            null,
-                            ScanController.NA)) {
+                         tc.openScan(
+                                 ti.getHeapConglomerate(),
+                                 false,
+                                 TransactionController.OPENMODE_FORUPDATE,
+                                 TransactionController.MODE_TABLE,
+                                 TransactionController.ISOLATION_REPEATABLE_READ,
+                                 columnToReadSet,
+                                 null,
+                                 ScanController.NA,
+                                 scanQualifier,
+                                 null,
+                                 ScanController.NA)) {
 
                 while (sc.fetchNext(rowTemplate)) {
                     /* Replace the column in the table */
@@ -1328,7 +1347,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
-        faultInTabInfo(ti);
 
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
@@ -1378,5 +1396,177 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public boolean useTxnAwareCache() {
         return !SpliceClient.isRegionServer;
+    }
+
+
+    public void rewriteDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+
+        CatalogRowFactory rf=ti.getCatalogRowFactory();
+        ExecRow outRow;
+        TransactionController tc;
+        TupleDescriptor td=null;
+
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+
+        outRow=rf.makeEmptyRow();
+
+        /*
+         ** Table scan
+         */
+        try (ScanController scanController=tc.openScan(
+                cloned_conglomerate,    // conglomerate to open
+                false,                        // don't hold open across commit
+                0,                            // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,        // start position - first rowSpliceDataDictionary
+                0,                    // startSearchOperation - none
+                null,        // scanQualifier,
+                null,        // stop position - through last row
+                0)) {                  // stopSearchOperation - none
+
+            final int batchSize = 100;
+            List<TupleDescriptor> descriptors = Lists.newArrayList();
+            int count = 0;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                td = rf.buildDescriptor(outRow, null, this);
+                count++;
+                descriptors.add(td);
+                if (count % batchSize == 0) {
+                    addDescriptors(descriptors, catalogNum, tc);
+                    descriptors.clear();
+                }
+            }
+
+            if (descriptors.size() > 0) {
+                addDescriptors(descriptors, catalogNum, tc);
+                descriptors.clear();
+            }
+        }
+    }
+
+
+    private void addDescriptors(List<TupleDescriptor> descriptors,
+                                int catalogNum,
+                                TransactionController tc) throws StandardException{
+        TupleDescriptor[] descriptorsArray = new TupleDescriptor[descriptors.size()];
+        descriptorsArray = descriptors.toArray(descriptorsArray);
+        addDescriptorArray(descriptorsArray, null, catalogNum, true, tc);
+    }
+
+    public static final List<Integer> serdeUpgradedTables = Collections.unmodifiableList(Arrays.asList(
+            SYSDEPENDS_CATALOG_NUM,
+            SYSALIASES_CATALOG_NUM,
+            SYSCHECKS_CATALOG_NUM,
+            SYSSTATEMENTS_CATALOG_NUM,
+            SYSTRIGGERS_CATALOG_NUM,
+            SYSCOLPERMS_CATALOG_NUM,
+            SYSSEQUENCES_CATALOG_NUM,
+            SYSCOLUMNSTATS_CATALOG_NUM,
+            SYSCONGLOMERATES_CATALOG_NUM,
+            SYSCOLUMNS_CATALOG_NUM));
+
+    public void upgradeDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
+
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            SpliceLogUtils.info(LOG, "Upgrading descriptors for %d", serdeUpgradedTables.get(i));
+            int catalogNum = serdeUpgradedTables.get(i);
+            // snapshot the table
+            snapshotTable(tc, catalogNum);
+            TabInfoImpl ti = getTableInfo(catalogNum);
+            long conglomerate = ti.getHeapConglomerate();
+            // clone the base table
+            String snapshotName = conglomerate + "_snapshot";
+            long cloned_conglomerate = conglomerate + 1;
+            tc.cloneSnapshot(snapshotName, Long.toString(cloned_conglomerate));
+            SpliceLogUtils.info(LOG,"Cloning snapshot %s to conglomerate %d",
+                    snapshotName, cloned_conglomerate);
+            // truncate the table and rewrite using cloned base table
+            truncateTable(tc, catalogNum);
+            SpliceLogUtils.info(LOG,"Truncated conglomerate %d", conglomerate);
+            rewriteDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            SpliceLogUtils.info(LOG,"Finished upgrading catalogNum %d, conglomerate %d",
+                    catalogNum, conglomerate);
+        }
+    }
+
+    public void rollbackDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            int catalogNum = serdeUpgradedTables.get(i);
+            TabInfoImpl ti = getTableInfo(catalogNum);
+            long conglomerate = ti.getHeapConglomerate();
+            String snapshotName = conglomerate + "_snapshot";
+
+            if (snapshots.contains(snapshotName)) {
+                tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
+                int n = ti.getNumberOfIndexes();
+                for (int j = 0; j < n; ++j) {
+                    conglomerate = ti.getIndexConglomerate(j);
+                    snapshotName = conglomerate + "_snapshot";
+                    if (snapshots.contains(snapshotName)) {
+                        tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
+                    }
+                }
+                SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables.get(i));
+            }
+        }
+    }
+
+    private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        String snapshotName = conglomerate + "_snapshot";
+        tc.snapshot(snapshotName, Long.toString(conglomerate));
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            snapshotName = conglomerate + "_snapshot";
+            tc.snapshot(snapshotName, Long.toString(conglomerate));
+        }
+    }
+
+    private void truncateTable(TransactionController tc, int catalogNum) throws StandardException{
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        tc.truncate(Long.toString(conglomerate));
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            tc.truncate(Long.toString(conglomerate));
+        }
+    }
+
+    public void cleanupSerdeUpgrade(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            deleteSnapshot(tc, serdeUpgradedTables.get(i), snapshots);
+        }
+    }
+
+    private void deleteSnapshot(TransactionController tc, int catalogNum, Set<String> snapshots) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        String snapshotName = conglomerate + "_snapshot";
+        if (snapshots.contains(snapshotName)) {
+            tc.deleteSnapshot(snapshotName);
+        }
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            snapshotName = conglomerate + "_snapshot";
+            if (snapshots.contains(snapshotName)) {
+                tc.deleteSnapshot(snapshotName);
+            }
+        }
+    }
+
+    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        return ti;
     }
 }

@@ -31,12 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.*;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -53,7 +52,7 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -182,13 +181,46 @@ public final class SQLLongint extends NumberDataType {
 		return StoredFormatIds.SQL_LONGINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull);
 		out.writeLong(value);
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLLongint.Builder builder = TypeMessage.SQLLongint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLLongint)
+						.setExtension(TypeMessage.SQLLongint.sqlLongint, builder.build())
+						.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLLongint longint = dvd.getExtension(TypeMessage.SQLLongint.sqlLongint);
+		init(longint);
+	}
+
+	private void init(TypeMessage.SQLLongint longint) {
+		isNull = longint.getIsNull();
+		if (!isNull) {
+			value = longint.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		setIsNull(in.readBoolean());
 		value = in.readLong();
 	}
@@ -310,6 +342,10 @@ public final class SQLLongint extends NumberDataType {
 			;
 		else
 			setValue(obj.longValue());
+	}
+
+	public SQLLongint(TypeMessage.SQLLongint longint) {
+		init(longint);
 	}
 
 	/**

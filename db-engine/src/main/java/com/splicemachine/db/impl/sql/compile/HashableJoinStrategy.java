@@ -78,15 +78,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
         */
 
-		/* Don't consider hash join on the target table of an update/delete.
-		 * RESOLVE - this is a temporary restriction.  Problem is that we
-		 * do not put RIDs into the row in the hash table when scanning
-		 * the heap and we need them for a target table.
-		 */
-        if (innerTable.isTargetTable()) {
-            return false;
-        }
-
 		/* If the predicate given by the user _directly_ references
 		 * any of the base tables _beneath_ this node, then we
 		 * cannot safely use the predicate for a hash because the
@@ -200,7 +191,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isJoinPredicate()) {
+                    if (pred.isHashableJoinPredicate()) {
                         ap.setMissingHashKeyOK(true);
 
                         AndNode andNode = pred.getAndNode();
@@ -247,7 +238,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         if (predList != null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor(), false);
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath(), false);
         }
 
         /*

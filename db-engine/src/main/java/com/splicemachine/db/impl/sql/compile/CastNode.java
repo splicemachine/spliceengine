@@ -127,36 +127,12 @@ public class CastNode extends ValueNode
                     DataTypeDescriptor castTarget,
                     ContextManager cm) throws StandardException {
         super(cm);
+        setNodeType(C_NodeTypes.CAST_NODE);
         this.castOperand = castOperand;
         setType(castTarget);
     }
 
-    /**
-     * Constructor for a CastNode
-     *
-     * @param castOperand    The operand of the node
-     * @param charType        CHAR or VARCHAR JDBC type as target
-     * @param charLength    target type length
-     * @param cm            The context manager
-     *
-     * @exception StandardException        Thrown on error
-     */
-
-    public CastNode(ValueNode castOperand,
-                    int charType,
-                    int charLength,
-                    ContextManager cm) throws StandardException {
-        super(cm);
-        this.castOperand = castOperand;
-        targetCharType = charType;
-        if (charLength < 0)    // unknown, figure out later
-            return;
-        requestedStringLength = charLength;
-        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLength));
-    }
-
     public CastNode() {
-
     }
 
     /**
@@ -316,17 +292,7 @@ public class CastNode extends ValueNode
             }
         }
 
-        /* We can't chop out cast above an untyped null because
-         * the store can't handle it.
-         */
-        if ((castOperand instanceof ConstantNode) &&
-                !(castOperand instanceof UntypedNullConstantNode))
-        {
-            // Return the new constant if the cast was performed
-            return bindConstantCast();
-        }
-
-        return this;
+        return bindConstantCast();
     }
 
     /**
@@ -337,8 +303,7 @@ public class CastNode extends ValueNode
      *
      * @exception StandardException        Thrown on error
      */
-    public void bindCastNodeOnly()
-            throws StandardException
+    public void bindCastNodeOnly() throws StandardException
     {
 
         /*
@@ -421,6 +386,14 @@ public class CastNode extends ValueNode
                 )
         { setNullability( true ); }
         else { setNullability(castOperand.getTypeServices().isNullable()); }
+
+        // after binding the cast node, check dependencies to SPS properties.
+        addSPSPropertyDependency();
+    }
+
+    public ValueNode bindImplicitCast() throws StandardException {
+        bindCastNodeOnly();
+        return bindConstantCast();
     }
 
     /**
@@ -1098,6 +1071,13 @@ public class CastNode extends ValueNode
     }
 
     private ValueNode bindConstantCast() throws StandardException {
+        /* We can't chop out cast above an untyped null because
+         * the store can't handle it.
+         */
+        if (!(castOperand instanceof ConstantNode) ||
+                (castOperand instanceof UntypedNullConstantNode)) {
+            return this;
+        }
         /* If the castOperand is a typed constant then we do the cast at
          * bind time and return a constant of the correct type.
          * NOTE: This could return an exception, but we're prepared to

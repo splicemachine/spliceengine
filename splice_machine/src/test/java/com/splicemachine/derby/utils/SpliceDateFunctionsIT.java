@@ -235,7 +235,7 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     private void withSecondCompatibilityMode(String mode) throws Exception {
-        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.secondCompatibilityMode', '%s' )", mode));
+        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.secondCompatibilityMode', '%s' )", mode));
     }
 
     @Test

@@ -460,10 +460,10 @@ public class BinaryRelationalOperatorNode
                 }
             }
 
-        }catch(StandardException se){
+        }catch(Throwable t){
             if(SanityManager.DEBUG){
                 SanityManager.THROWASSERT("Failed when trying to "+
-                        "find base table number for column reference check:",se);
+                        "find base table number for column reference check:", t);
             }
         }
 
@@ -1485,8 +1485,18 @@ public class BinaryRelationalOperatorNode
             ConglomerateDescriptor cdRight = ((ColumnReference) getRightOperand()).getBaseConglomerateDescriptor();
             if (cdLeft ==null && cdRight==null)
                 return -1.0d;
-            boolean leftFromBaseTable = cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
-            boolean rightFromBaseTable = cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            /* DB-11238 note
+             * We have two situations here:
+             * 1. Left and right are from the same table X, and we have only table X. That means this predicate is a
+             *    single table predicate. We should use the max() formula below, just as before.
+             * 2. Left and right are from the same table X, but X is joining itself. In this case, we are estimating
+             *    the selectivity of this predicate on optTable, i.e., inner table of the join. We should use only
+             *    the side that matches optTable.
+             */
+            boolean leftFromBaseTable = getLeftOperand().getTableNumber() == optTable.getTableNumber() &&
+                    cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean rightFromBaseTable = getRightOperand().getTableNumber() == optTable.getTableNumber() &&
+                    cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             if (leftFromBaseTable && rightFromBaseTable) {
                 return Math.max(((ColumnReference) getLeftOperand()).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) getRightOperand()).columnReferenceEqualityPredicateSelectivity());
             } else if (leftFromBaseTable) {
@@ -2234,10 +2244,10 @@ public class BinaryRelationalOperatorNode
             valNodeBaseTables.and(optBaseTables);
             found=(valNodeBaseTables.getFirstSetBit()!=-1);
 
-        }catch(StandardException se){
+        }catch(Throwable t){
             if(SanityManager.DEBUG){
                 SanityManager.THROWASSERT("Failed when trying to "+
-                        "find base table numbers for reference check:",se);
+                        "find base table numbers for reference check:", t);
             }
         }
 

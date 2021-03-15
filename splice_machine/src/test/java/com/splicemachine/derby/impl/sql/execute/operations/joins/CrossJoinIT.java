@@ -350,11 +350,21 @@ public class CrossJoinIT extends SpliceUnitTest {
 
     @Test
     public void testPickBroadcastWithIndex() throws Exception {
+        /* DB-11238 note
+         * Since the cost of nested loop join is corrected (effectively lowered) on OLTP,
+         * this query selects nested loop join instead. To make broadcast join attractive,
+         * we need to increase the number of outer rows. However, statistics of column c2
+         * seems to be weird:
+         * s2.c2 < 10  : output 1 row
+         * s2.c2 < 100 : output 1 row
+         * s2.c2 < 1000: output 956 row
+         * If statistics are better, there should be no need to bump it to 1000.
+         */
         String sqlText =
                 format("explain select count(*) from %s as s1 inner join %s as s2 " +
-                        "--SPLICE-PROPERTIES useSpark=%s \n" +
-                        " on s1.c1 = s2.c2 and s2.c2 < 10" , bigTable, bigTable, useSpark);
-        rowContainsQuery(6, sqlText,"Broadcast", classWatcher);
+                        "--SPLICE-PROPERTIES useSpark=%s\n" +
+                        " on s1.c1 = s2.c2 and s2.c2 < 1000" , bigTable, bigTable, useSpark);
+        rowContainsQuery(new int[]{6,8}, sqlText, classWatcher, "Broadcast", "IndexScan");
     }
 
     @Ignore("Ignore this test because of DB-8204")
@@ -766,6 +776,23 @@ public class CrossJoinIT extends SpliceUnitTest {
         try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
             String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        }
+    }
+
+    @Test
+    public void testCrossJoinRightTableIsSmallTable() throws Exception {
+        String sqlText = format("select count(*) from \n" +
+                                "t4 BH --splice-properties useSpark=%s\n" +
+                                ",t4 BU WHERE\n" +
+                                "(BH.a4=1 or BH.b4=1) and\n" +
+                                "             (BH.a4=BU.b4 OR BH.b4=BU.b4)\n" +
+                                "         AND BU.b4 <> 1", useSpark, bigTable);
+
+        if (useSpark) {
+            String explainQuery = "explain " + sqlText;
+            // The table with predicate "BH.A4 = 1" is smaller.
+            // Make sure it is picked as the right table.
+            rowContainsQuery(new int[]{6,7,8}, explainQuery, classWatcher, "CrossJoin", "(BH.A4[2:1] = 1)", "(BU.B4[0:1] <> 1)])");
         }
     }
 }

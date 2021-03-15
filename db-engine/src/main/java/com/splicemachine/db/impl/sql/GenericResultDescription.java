@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 
@@ -38,6 +40,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -98,6 +101,9 @@ public final class GenericResultDescription
 	{
 	}
 
+	public GenericResultDescription(CatalogMessage.ResultDescription resultDescription) throws IOException {
+		init(resultDescription);
+	}
 	/**
 	 * Build a GenericResultDescription from columns and type
 	 *
@@ -211,8 +217,35 @@ public final class GenericResultDescription
 	 *
  	 * @exception IOException thrown on error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.ResultDescription resultDescription = toProtobuf();
+		ArrayUtil.writeByteArray(out, resultDescription.toByteArray());
+	}
+
+	public CatalogMessage.ResultDescription toProtobuf() {
+		CatalogMessage.ResultDescription.Builder builder = CatalogMessage.ResultDescription.newBuilder();
+		if (statementType != null) {
+			builder.setStatementType(statementType);
+		}
+		for (int i = 0; i < columns.length; ++i) {
+			if (!(columns[i] instanceof GenericColumnDescriptor)) {
+				columns[i] = new GenericColumnDescriptor(columns[i]);
+			}
+			builder.addColumns(columns[i].toProtobuf());
+		}
+
+		return builder.build();
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		// DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
 		int len = (columns == null) ? 0 : columns.length;
 
@@ -243,9 +276,35 @@ public final class GenericResultDescription
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
+	@Override
 	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.ResultDescription resultDescription = CatalogMessage.ResultDescription.parseFrom(bs);
+		init(resultDescription);
+	}
+
+	private void init(CatalogMessage.ResultDescription resultDescription) throws IOException {
+		statementType = resultDescription.hasStatementType() ? resultDescription.getStatementType() : null;
+		int len = resultDescription.getColumnsCount();
+		if (len > 0) {
+			columns = new GenericColumnDescriptor[len];
+			for (int i = 0; i < len; ++i) {
+				columns[i] = ProtobufUtils.fromProtobuf(resultDescription.getColumns(i));
+			}
+		}
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		int len;
 
 		columns = null;

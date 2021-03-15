@@ -16,7 +16,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -35,6 +37,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 6/19/13
  */
+@Category(SerialTest.class) // Not run in parallel since it is changing global DB configs
 public class PreparedStatementIT extends SpliceUnitTest {
     private static final String CLASS_NAME = PreparedStatementIT.class.getSimpleName().toUpperCase();
 
@@ -603,5 +606,23 @@ public class PreparedStatementIT extends SpliceUnitTest {
         }
 
         testQueryContains(format("select * from %s.%s", tableSchema.schemaName, tableName), "2222-01-01 00:00:00.654321", methodWatcher, false);
+    }
+
+    @Test
+    public void testCursorUntypedExpressionType() throws Exception {
+        String sql = "select ?";
+        try (PreparedStatement ignored = conn.prepareStatement(sql)) {
+            Assert.fail("Expect failure due parameter unknown type.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X34", e.getSQLState());
+        }
+        try {
+            methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', 'varchar')");
+            testOneParamHelper(sql, "abc", "1  |\n" +
+                    "-----\n" +
+                    "abc |");
+        } finally {
+            methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', null)");
+        }
     }
 }

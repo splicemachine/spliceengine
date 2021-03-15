@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -46,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.sql.DataSource;
 import java.security.MessageDigest;
@@ -97,8 +99,8 @@ public final class NativeAuthenticationServiceImpl
     
     private String      _credentialsDB;
     private boolean _authenticateDatabaseOperationsLocally;
-    private long        _passwordLifetimeMillis = Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT;
-    private double      _passwordExpirationThreshold = Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT;
+    private long        _passwordLifetimeMillis = PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT;
+    private double      _passwordExpirationThreshold = PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT;
     private String      _badlyFormattedPasswordProperty;
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +172,7 @@ public final class NativeAuthenticationServiceImpl
         String passwordLifetimeString = PropertyUtil.getPropertyFromSet
             (
              properties,
-             Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME
+             PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME
              );
         if ( passwordLifetimeString != null )
         {
@@ -178,13 +180,13 @@ public final class NativeAuthenticationServiceImpl
 
             if ( passwordLifetime != null ) { _passwordLifetimeMillis = passwordLifetime; }
             else
-            { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME; }
+            { _badlyFormattedPasswordProperty = PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME; }
         }
 
         String  expirationThresholdString = PropertyUtil.getPropertyFromSet
             (
              properties,
-             Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD
+             PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD
              );
         if ( expirationThresholdString != null )
         {
@@ -192,7 +194,7 @@ public final class NativeAuthenticationServiceImpl
 
             if ( expirationThreshold != null ) { _passwordExpirationThreshold = expirationThreshold; }
             else
-            { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD; }
+            { _badlyFormattedPasswordProperty = PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD; }
         }
         
     }
@@ -386,9 +388,6 @@ public final class NativeAuthenticationServiceImpl
     private boolean isCredentialsService( String canonicalDatabaseName )
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
-
-        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
-
         return canonicalCredentialsDBName != null && canonicalCredentialsDBName.equals(canonicalDatabaseName);
     }
 
@@ -492,7 +491,10 @@ public final class NativeAuthenticationServiceImpl
 	 * @param userPassword	The user's password used to connect to JBMS system
 	 * @param databaseName	The database which the user wants to connect to.
 	 */
-	private boolean	authenticateLocally
+	@SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", // intentional, DERBY-5539
+            "RV_RETURN_VALUE_IGNORED" // false positive
+	    })
+    private boolean	authenticateLocally
         (
          String userName,
          String userPassword,
@@ -589,7 +591,7 @@ public final class NativeAuthenticationServiceImpl
                     throw SQLWarningFactory.newSQLWarning( SQLState.DBO_PASSWORD_EXPIRES_SOON, databaseName );
                 }
                 
-                long    daysRemaining = remainingLifetime / Property.MILLISECONDS_IN_DAY;
+                long    daysRemaining = remainingLifetime / PropertyHelper.MILLISECONDS_IN_DAY;
                 throw SQLWarningFactory.newSQLWarning
                     ( SQLState.PASSWORD_EXPIRES_SOON, Long.toString( daysRemaining ), databaseName );
             }

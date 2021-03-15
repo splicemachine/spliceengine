@@ -99,6 +99,8 @@ public class ScanCostFunction{
     // will be used shortly
     private final boolean forUpdate;
 
+    private final boolean isOlap;
+
     // selectivity elements for scanning phase
     private final List<SelectivityHolder>[] scanSelectivityHolder;
 
@@ -145,6 +147,7 @@ public class ScanCostFunction{
                             BitSet baseColumnsInScan,
                             BitSet baseColumnsInLookup,
                             boolean forUpdate,
+                            boolean isOlap,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
         this.cd = cd;
@@ -157,7 +160,8 @@ public class ScanCostFunction{
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
-        this.forUpdate=forUpdate;
+        this.forUpdate = forUpdate;
+        this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
 
         /* We always allocate one extra column in a selectivity holder array because column
@@ -417,6 +421,7 @@ public class ScanCostFunction{
         scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
         scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
         scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
         scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
@@ -459,7 +464,7 @@ public class ScanCostFunction{
      * @throws StandardException
      */
 
-    public void generateCost() throws StandardException {
+    public void generateCost(long numFirstIndexColumnProbes) throws StandardException {
 
         double baseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder, QualifierPhase.BASE);
         double filterBaseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
@@ -497,7 +502,9 @@ public class ScanCostFunction{
         double closeLatency = scc.getCloseLatency();
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
-        double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
+        double remoteCost = (openLatency + closeLatency) +
+                            (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
+                            totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
         assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
@@ -512,7 +519,10 @@ public class ScanCostFunction{
         scanCost.setRemoteCost((long)remoteCost);
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        double baseCost = openLatency+closeLatency;
+        assert numFirstIndexColumnProbes >= 0;
+        baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
+        baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
@@ -529,7 +539,8 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
+            double lookupCostPerRow = isOlap ? (openLatency+closeLatency) : ((openLatency+closeLatency) / 10);
+            lookupCost = totalRowCount*filterBaseTableSelectivity*lookupCostPerRow;
             scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
@@ -554,6 +565,7 @@ public class ScanCostFunction{
         double localCost = baseCost+lookupCost+projectionCost;
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
         scanCost.setLocalCost(localCost);
+        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
         scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
         scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
@@ -666,10 +678,13 @@ public class ScanCostFunction{
      * @throws StandardException
      */
     public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
+        int level = 0;
         for (int i = 0; i< holders.size();i++) {
             // Do not include join predicates unless join strategy is nested loop.
-            if (holders.get(i).shouldApplySelectivity())
-                selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
+            if (holders.get(i).shouldApplySelectivity()) {
+                selectivity = computeSqrtLevel(selectivity, level, holders.get(i));
+                level++;
+            }
         }
         return selectivity;
     }

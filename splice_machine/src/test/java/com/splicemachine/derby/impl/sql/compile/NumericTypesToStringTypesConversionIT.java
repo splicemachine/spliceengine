@@ -71,7 +71,7 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
             default:
                 assert false;
         }
-        methodWatcher.executeUpdate(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.floatingPointNotation', '%s' )", notationStr));
+        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.floatingPointNotation', '%s' )", notationStr));
     }
 
     private static final String queryTemplate = "select cast(%s as %s(%d)), cast(%s as %s(%d)), %s(%s), %s(%s) from test";

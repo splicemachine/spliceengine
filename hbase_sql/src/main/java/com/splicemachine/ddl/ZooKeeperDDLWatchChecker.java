@@ -18,6 +18,10 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
@@ -67,11 +71,32 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
                 }
             }
         };
-
-
+        initZKDemarcationPoint();
         return true;
     }
 
+    private void initZKDemarcationPoint() throws IOException{
+        String rootPath = SIDriver.driver().getConfiguration().getSpliceRootPath();
+        String ddlPath = rootPath+HConfiguration.DDL_PATH;
+        List<String> children = ZkUtils.getChildren(ddlPath, null);
+        long max = 0;
+        for (String child : children) {
+            String demarcationPath = ddlPath + "/" + child;
+            byte[] data = ZkUtils.getData(demarcationPath);
+            long demarcationPoint = data != null ? Bytes.toLong(data) : 0;
+            if (demarcationPoint > max) {
+                max = demarcationPoint;
+            }
+        }
+        String demarcationPointPath = ddlPath+"/"+id;
+        try {
+            ZkUtils.recursiveSafeCreate(demarcationPointPath, Bytes.toBytes(max), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.EPHEMERAL);
+            SpliceLogUtils.info(LOG, "Initialize DDL demarcation point to %d", max);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
     @Override
     public Collection<String> getCurrentChangeIds() throws IOException{
         try{
@@ -159,4 +184,27 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
        zkClient.deleteChangeNode(key);
     }
 
+
+    @Override
+    public void assignDDLDemarcationPoint(long txnId) throws Exception {
+        String rootPath = SIDriver.driver().getConfiguration().getSpliceRootPath();
+        String demarcationPath = rootPath+HConfiguration.DDL_PATH+"/"+id;
+        byte[] data = Bytes.toBytes(txnId);
+        ZkUtils.setData(demarcationPath, data, -1);
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "Set DDL demarcation point to %d", txnId);
+        }
+
+    }
+
+    @Override
+    public long initDemarcationPoint() throws IOException{
+        String rootPath = SIDriver.driver().getConfiguration().getSpliceRootPath();
+        String demarcationPointPath = rootPath+HConfiguration.DDL_PATH+"/"+id;
+        byte[] data = ZkUtils.getData(demarcationPointPath);
+        long demarcationPoint = data != null ? Bytes.toLong(data) : 0;
+        SpliceLogUtils.info(LOG, "Get DDL demarcation point %d from zookeeper", demarcationPoint);
+
+        return demarcationPoint;
+    }
 }

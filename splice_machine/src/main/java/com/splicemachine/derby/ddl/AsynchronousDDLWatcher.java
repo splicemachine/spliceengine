@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -76,6 +77,7 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
         if(!checker.initialize(this))
             return; //we aren't a server, so do nothing further
 
+        refresher.initDemarcationPoint();
         try {
             // run refresh() synchronously the first time
             if (!refresher.refreshDDL(ddlListeners)) return;
@@ -178,5 +180,10 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     @Override
     public boolean canUseSPSCache(TransactionManager txnMgr){
         return refresher.canUseSPSCache(txnMgr);
+    }
+
+    @Override
+    public void clearFinishedChange(String changeId) throws StandardException {
+        refresher.clearFinishedChange(changeId, ddlListeners);
     }
 }

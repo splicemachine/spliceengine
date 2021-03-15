@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
@@ -58,6 +59,7 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
@@ -74,11 +76,12 @@ public class DataDictionaryCache {
     private ManagedCache<String,SequenceUpdater> sequenceGeneratorCache;
     private ManagedCache<PermissionsDescriptor,Optional<PermissionsDescriptor>> permissionsCache;
     private ManagedCache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
+    private ManagedCache<Long, FirstColumnOfIndexStats> firstColumnStatsCache;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache;
     private ManagedCache<Long,Conglomerate> conglomerateCache;
     private ManagedCache<Pair<Long, Long>, Conglomerate> txnAwareConglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
-    private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
+    private ManagedCache<GenericStatement,StatementCacheValue> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
     private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
@@ -93,7 +96,7 @@ public class DataDictionaryCache {
 
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
-            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
+            "firstColumnStatsCache", "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
             "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "catalogVersionCache", "txnAwareConglomerateCache", "constraintDescriptorListCache"};
 
     public static List<String> getCacheNames() {
@@ -168,6 +171,8 @@ public class DataDictionaryCache {
         }
         sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build(), seqgenCacheSize);
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(partstatCacheSize).build(), partstatCacheSize);
+        firstColumnStatsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(partstatCacheSize).build(), partstatCacheSize);
         conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(conglomerateCacheSize).build(), conglomerateCacheSize);
@@ -284,8 +289,31 @@ public class DataDictionaryCache {
 
     public void partitionStatisticsCacheRemove(Long conglomID) throws StandardException {
         if (LOG.isDebugEnabled())
-            LOG.debug("invalidateCachedStatistics " + conglomID);
+            LOG.debug("partitionStatisticsCacheRemove " + conglomID);
         partitionStatisticsCache.invalidate(conglomID);
+        firstColumnStatsCacheRemove(conglomID);
+    }
+
+    public FirstColumnOfIndexStats firstColumnStatsCacheFind(Long conglomID) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("firstColumnStatsCacheFind " + conglomID);
+        return firstColumnStatsCache.getIfPresent(conglomID);
+    }
+
+    public void firstColumnStatsCacheAdd(Long conglomID, FirstColumnOfIndexStats firstColStats) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("firstColumnStatsCacheAdd " + conglomID);
+        firstColumnStatsCache.put(conglomID, firstColStats);
+    }
+
+    private void firstColumnStatsCacheRemove(Long conglomID) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("firstColumnStatsCacheRemove " + conglomID);
+        firstColumnStatsCache.invalidate(conglomID);
     }
 
     public void permissionCacheAdd(PermissionsDescriptor key, Optional<PermissionsDescriptor> optional) throws StandardException {
@@ -513,6 +541,7 @@ public class DataDictionaryCache {
         sequenceGeneratorCache.invalidateAll();
         permissionsCache.invalidateAll();
         partitionStatisticsCache.invalidateAll();
+        firstColumnStatsCache.invalidateAll();
         storedPreparedStatementCache.invalidateAll();
         schemaCache.invalidateAll();
         oidSchemaCache.invalidateAll();
@@ -540,8 +569,8 @@ public class DataDictionaryCache {
 
     public void statementCacheRemove(GenericStatement gs) throws StandardException {
         if (LOG.isDebugEnabled()) {
-            GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
-            LOG.debug("statementCacheRemove " + gs.toString() +(gsps != null ? " found" : " null"));
+            StatementCacheValue value = statementCache.getIfPresent(gs);
+            LOG.debug("statementCacheRemove " + gs.toString() +(value != null ? " found" : " null"));
         }
         statementCache.invalidate(gs);
     }
@@ -557,16 +586,28 @@ public class DataDictionaryCache {
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs.toString());
-        statementCache.put(gs,gsp);
+        statementCache.put(gs,new StatementCacheValue(gsp));
+    }
+
+    public List<Pair<String, Timestamp>> cachedStatements() throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        List<Pair<String, Timestamp>> result = new ArrayList<>();
+        statementCache.asMap().forEach((key, value) -> result.add(new Pair<String, Timestamp>(key.getStatementText(), value.getTimestamp())));
+        return result;
     }
 
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
-        GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
+        StatementCacheValue value = statementCache.getIfPresent(gs);
         if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheFind " + gs.toString() +(gsps != null ? " found" : " null"));
-        return gsps;
+            LOG.debug("statementCacheFind " + gs.toString() +(value != null ? " found" : " null"));
+        if(value == null) {
+            return null;
+        } else {
+            return value.getStatement();
+        }
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
@@ -785,7 +826,7 @@ public class DataDictionaryCache {
 
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
-            ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
+            ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, firstColumnStatsCache, storedPreparedStatementCache,
                     conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache,
                     oidSchemaCache, catalogVersionCache, txnAwareConglomerateCache, constraintDescriptorListCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)

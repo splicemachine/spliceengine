@@ -44,6 +44,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -83,6 +84,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private SpliceMethod<ExecRow> defaultRowAllocator;
     private int defaultValueMapItem;
     private FormatableBitSet defaultValueMap;
+    private int numUnusedLeadingIndexFields;
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated
@@ -102,7 +104,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 boolean rowIdKey,
                                 String tableVersion,
                                 String defaultRowMethodName,
-                                int defaultValueMapItem) {
+                                int defaultValueMapItem,
+                                int numUnusedLeadingIndexFields) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -117,6 +120,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.tableVersion = tableVersion;
         this.defaultRowMethodName = defaultRowMethodName;
         this.defaultValueMapItem = defaultValueMapItem;
+        this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
     }
 
     @Override
@@ -262,6 +266,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         out.writeBoolean(rowIdKey);
         SerializationUtils.writeNullableString(defaultRowMethodName, out);
         out.writeInt(defaultValueMapItem);
+        out.writeInt(numUnusedLeadingIndexFields);
     }
 
     @Override
@@ -280,15 +285,19 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.rowIdKey = in.readBoolean();
         defaultRowMethodName = SerializationUtils.readNullableString(in);
         defaultValueMapItem = in.readInt();
+        numUnusedLeadingIndexFields = in.readInt();
     }
 
     @Override
     public DataScan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null, null, null);
+        return getScan(txn, null, null, null, null, null, false, null);
     }
 
     @Override
-    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, ExecRow stopKeyPrefix, List<Pair<ExecRow, ExecRow>> keyRows) throws StandardException {
+    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, ExecRow stopKeyPrefix,
+                            List<Pair<ExecRow, ExecRow>> keyRows, DataValueDescriptor scanKeyPrefix,
+                            boolean sameStartStopScanKeyPrefix,
+                            List<ExecRow> firstIndexColumnKeys) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -305,7 +314,15 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
             startSearchOperator = ScanController.NA;
         }
 
-        if (startKeyOverride != null) {
+        if (scanKeyPrefix != null) {
+            if (!sameStartStopScanKeyPrefix)
+                startSearchOperator = ScanController.GT;
+            else if (sameStartStop)
+                startSearchOperator = ScanController.NA;
+            else
+                startSearchOperator = ScanController.GE;
+        }
+        else if (startKeyOverride != null) {
             startSearchOperator = ScanController.GE;
         }
 
@@ -314,8 +331,29 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         }
         /* Below populateQualifiers can mutate underlying DataValueDescriptors in some cases, clone them for use in
            start/stop keys first. */
-        DataValueDescriptor[] startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
-        DataValueDescriptor[] stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
+        DataValueDescriptor[] startKeyValues;
+        DataValueDescriptor[] stopKeyValues;
+        if (scanKeyPrefix != null) {
+            if (!sameStartStopScanKeyPrefix || overriddenStartPos == null)
+                startKeyValues = new DataValueDescriptor[1];
+            else
+                startKeyValues = overriddenStartPos.getClone().getRowArray();
+            startKeyValues[0] = scanKeyPrefix;
+        }
+        else
+            startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
+
+        if (sameStartStopScanKeyPrefix && scanKeyPrefix != null) {
+            stopSearchOperator = ScanController.GT;
+            if (!sameStartStopScanKeyPrefix || stopPosition == null)
+                stopKeyValues = new DataValueDescriptor[1];
+            else
+                stopKeyValues = stopPosition.getClone().getRowArray();
+            stopKeyValues[0] = scanKeyPrefix;
+        }
+        else
+            stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
+
         DataValueDescriptor[] stopPrefixValues = stopKeyPrefix == null ? null : stopKeyPrefix.getClone().getRowArray();
         Qualifier[][] qualifiers = populateQualifiers();
 
@@ -338,21 +376,18 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 tableVersion,
                 rowIdKey,
                 conglomerate,
-                keyRows);
+                keyRows,
+                firstIndexColumnKeys);
     }
 
-    public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, DataValueDescriptor[] probeValues) throws StandardException {
-        boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
+    public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, List<ExecRow> scanKeyPrefixes, int[] keyDecodingMap, DataValueDescriptor[] probeValues) throws StandardException {
+        boolean sameStartStop = sameStartStopPosition;
         ExecRow startPosition;
         ExecRow stopPosition;
         ExecRow overriddenStartPos;
 
         if (sameStartStop) {
             startSearchOperator = ScanController.NA;
-        }
-
-        if (startKeyOverride != null) {
-            startSearchOperator = ScanController.GE;
         }
 
         DataValueDescriptor[] startKeyValues;
@@ -363,17 +398,30 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
         Pair<byte[],byte[]> startStopKey;
         List<Pair<byte[],byte[]>> startStopKeys = new ArrayList<>(probeValues.length);
+        List<ExecRow> localScanKeyPrefixes;
+        if (scanKeyPrefixes == null) {
+            localScanKeyPrefixes = new LinkedList<>();
+            localScanKeyPrefixes.add((ExecRow) null);
+        }
+        else
+            localScanKeyPrefixes = scanKeyPrefixes;
         for (DataValueDescriptor probeValue : probeValues) {
             setProbeValue(probeValue);
             startPosition = getStartPosition();
             stopPosition = sameStartStop ? startPosition : getStopPosition();
-            overriddenStartPos = startKeyOverride != null ? startKeyOverride : startPosition;
+            overriddenStartPos = startPosition;
 
             startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
             stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
             stopPrefixValues = null;
 
-            startStopKey = Scans.setupScanKey(
+            DataValueDescriptor scanKeyPrefix;
+            for (ExecRow row:localScanKeyPrefixes) {
+                if (row == null)
+                    scanKeyPrefix = null;
+                else
+                    scanKeyPrefix = row.getColumn(1);
+                startStopKey = Scans.setupScanKey(
                     startKeyValues,
                     startSearchOperator,
                     stopKeyValues,
@@ -386,8 +434,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                     activation.getDataValueFactory(),
                     tableVersion,
                     rowIdKey,
-                    getResultRow());
-            startStopKeys.add(startStopKey);
+                    getResultRow(),
+                    scanKeyPrefix);
+                startStopKeys.add(startStopKey);
+            }
         }
         return startStopKeys;
     }
@@ -439,7 +489,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

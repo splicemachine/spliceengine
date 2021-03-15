@@ -263,6 +263,7 @@ public class TypeId{
     private static final TypeId NUMERIC_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(true));
     public static final TypeId DECFLOAT_ID=create(StoredFormatIds.DECFLOAT_TYPE_ID,StoredFormatIds.DECFLOAT_TYPE_ID_IMPL);
     private static final TypeId VARCHAR_ID=create(StoredFormatIds.VARCHAR_TYPE_ID,StoredFormatIds.VARCHAR_TYPE_ID_IMPL);
+    public static final TypeId VARCHAR_DB2_COMPATIBLE_ID=create(StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID,StoredFormatIds.VARCHAR_TYPE_ID_IMPL);
     private static final TypeId ARRAY_ID=create(StoredFormatIds.ARRAY_TYPE_ID,StoredFormatIds.ARRAY_TYPE_ID_IMPL);
     private static final TypeId DATE_ID=create(StoredFormatIds.DATE_TYPE_ID,StoredFormatIds.DATE_TYPE_ID_IMPL);
     private static final TypeId TIME_ID=create(StoredFormatIds.TIME_TYPE_ID,StoredFormatIds.TIME_TYPE_ID_IMPL);
@@ -865,6 +866,7 @@ public class TypeId{
                 break;
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
                 typePrecedence=VARCHAR_PRECEDENCE;
                 javaTypeName="java.lang.String";
                 maxMaxWidth=TypeId.VARCHAR_MAXWIDTH;
@@ -1486,6 +1488,9 @@ public class TypeId{
             case StoredFormatIds.VARCHAR_TYPE_ID:
                 return new SQLVarchar();
 
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
+                return new SQLVarcharDB2Compatible();
+
             case StoredFormatIds.XML_TYPE_ID:
                 return new XML();
 
@@ -1555,6 +1560,9 @@ public class TypeId{
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
                 return new SQLVarchar("");
+
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
+                return new SQLVarcharDB2Compatible("");
 
             case StoredFormatIds.DATE_TYPE_ID:
             case StoredFormatIds.TIME_TYPE_ID:
@@ -1647,6 +1655,7 @@ public class TypeId{
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
                 // Return 200 if maximum width is max int
                 if(dts.getMaximumWidth()==Integer.MAX_VALUE){
                     return 200;
@@ -1747,6 +1756,7 @@ public class TypeId{
             case StoredFormatIds.DECIMAL_TYPE_ID:
             case StoredFormatIds.CHAR_TYPE_ID:
             case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_DB2_COMPATIBLE_TYPE_ID:
             case StoredFormatIds.BLOB_TYPE_ID:
             case StoredFormatIds.CLOB_TYPE_ID:
                 return true;

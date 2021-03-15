@@ -258,13 +258,35 @@ function usage
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start. The default is 1 master and 2 region servers."
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
+    echo "  -e use ee (enterprise edition) profile"
     echo "  -k just KILL any and all splice processes currently running."
     echo "  -K like k, but will also reset database to clean. Needs some rebuild afterwards (use -l)."
     echo "  -T <n> use -T <n> with maven (build with n threads)."
     echo "  -h => print this message"
 }
 
-while getopts "chkp:s:bld:fT:K" flag ; do
+function verify_profiles
+{
+   local PROFILE=$1
+   local MVN_PROFILES=$(mvn -T 20 help:all-profiles | grep "Profile Id" | awk '{print $3}')
+   for arg in $(echo $PROFILE | tr "," "\n")
+   do
+      local in=0
+      for mvn_profile in $(echo $MVN_PROFILES | tr " " "\n")
+      do
+          if [[ "$arg" == "$mvn_profile" ]]; then
+             in=1
+             break
+          fi
+      done
+      if [[ $in -eq 0 ]]; then
+          echo "unknown profile '$arg', available profiles: $( echo $MVN_PROFILES | tr '\n' ' ')"
+          exit 1
+      fi
+   done
+}
+
+while getopts "chkp:s:bld:fT:Ke" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -288,7 +310,7 @@ while getopts "chkp:s:bld:fT:K" flag ; do
         ;;
         p)
         # the hbase profile
-            PROFILE="${OPTARG}"
+          PROFILE="${OPTARG}"
         ;;
         s)
         # number of cluster members
@@ -317,6 +339,10 @@ while getopts "chkp:s:bld:fT:K" flag ; do
         # number of threads
            MVN_THREADS="-T ${OPTARG}"
         ;;
+        e)
+        # enterprise edition
+          ENTERPRISE_EDITION=1
+        ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
             exit 1
@@ -333,6 +359,10 @@ SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=$
 ########################################################################################################
 _kill_em_all 9
 
+if [[ "${ENTERPRISE_EDITION}" == "1" ]]; then
+  PROFILE="${PROFILE},ee"
+fi
+
 HBASE_PROFILE=${PROFILE%%,*}
 if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   RUN_DIR="${BASE_DIR}/mem_sql"
@@ -342,6 +372,8 @@ elif [[ "${DISTRIBUTED}" == "1" ]]; then
 else
     PROFILE="insecure,${PROFILE}"
 fi
+
+verify_profiles $PROFILE
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = ${CHAOS} in:"
 echo "   ${RUN_DIR}"

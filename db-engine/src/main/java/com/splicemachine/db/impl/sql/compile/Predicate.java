@@ -92,6 +92,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     private ReferencedColumnsMap referencedColumns;
 
+    // table number -> scan selectivity
+    private HashMap<Integer, Double> scanSelectivityCache;
+
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
     }
@@ -308,7 +311,17 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     @Override
     public double scanSelectivity(Optimizable innerTable) throws StandardException{
-        return andNode.getLeftOperand().scanSelectivity(innerTable);
+        if (scanSelectivityCache == null) {
+            scanSelectivityCache = new HashMap<>(referencedSet.cardinality());
+        }
+        int tableNumber = innerTable.getTableNumber();
+        if (scanSelectivityCache.containsKey(tableNumber)) {
+            return scanSelectivityCache.get(tableNumber);
+        } else {
+            double scanSelectivity = andNode.getLeftOperand().scanSelectivity(innerTable);
+            scanSelectivityCache.put(tableNumber, scanSelectivity);
+            return scanSelectivity;
+        }
     }
 
     @Override
@@ -805,6 +818,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * Copy all fields of this Predicate (except the two that
      * are set from 'init', and referencedColumns if skipReferencedColumns
      * is true).
+     * Do not copy scanSelectivityCache because andNode might be different.
      */
 
     public void copyFields(Predicate otherPred, boolean skipReferencedColumns){
@@ -841,7 +855,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * pushed into subqueries.
      */
     protected boolean pushableToSubqueries() throws StandardException{
-        if(!isJoinPredicate(false))
+        if(!isHashableJoinPredicate(false))
             return false;
 
         // isJoinPredicate() only treats BinaryRelationalOperatorNode as JoinPredicate, so when we get it
@@ -878,18 +892,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     }
 
-    public boolean isJoinPredicate(){
-        return isJoinPredicate(true);
+    public boolean isHashableJoinPredicate(){
+        return isHashableJoinPredicate(true);
     }
 
     /**
-     * Is this predicate a join predicate?  In order to be so,
+     * Is this predicate a hashable join predicate?  In order to be so,
      * it must be a binary relational operator node that has either
      * a column reference or an index expression on both sides.
      *
      * @return Whether or not this is a join predicate.
      */
-    public boolean isJoinPredicate(boolean checkScope){
+    public boolean isHashableJoinPredicate(boolean checkScope){
         // If the predicate isn't a binary relational operator,
         // then it's not a join predicate.
         if(!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)){

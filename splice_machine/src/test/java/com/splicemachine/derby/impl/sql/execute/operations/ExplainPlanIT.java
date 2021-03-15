@@ -16,7 +16,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -46,6 +45,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     private static final String tableDef = "(I INT)";
     protected static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+    private static boolean isMemPlatform = false;
 
     /// a class to make sure Connection, Statement and ResultSet are correctly closed (spotbugs)
     /// todo(martinrupp) there's a lot of other spotbugs in ITs similar to this, check if we can have sth like a
@@ -75,6 +75,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         private Connection connection;
         private Statement s;
         private ResultSet rs;
+    }
+
+    public static boolean
+    isMemPlatform() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
     }
 
     @ClassRule
@@ -111,6 +119,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @BeforeClass
     public static void createTables() throws Exception {
+        isMemPlatform = isMemPlatform();
         Connection conn = spliceClassWatcher.getOrCreateConnection();
 
         new TableCreator(conn)
@@ -170,6 +179,10 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         new TableCreator(conn)
                 .withCreate("create table t6 (a6 int, b6 int, c6 int)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 int, b7 int, c7 int)")
                 .create();
     }
 
@@ -453,13 +466,13 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q2: test the switch from table scan to index scan */
-        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
-        int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
+        String engine2[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        int rowCount2[] = {1000000, 1000000, 854, 27, 1, 1, 1, 1};
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]))) {
                 Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
-                if (i < 3) {
+            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine2[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
+            if (i < 2) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     //skip the next step to get to the TableScan step
                     Assert.assertTrue(rs.next());
@@ -484,18 +497,21 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         try (ResultSet rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3")) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
-            //skip the next two steps to get to the IndexScan step
+            //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
-            Assert.assertTrue(rs.next());
+            if (isMemPlatform)
+                Assert.assertTrue(rs.next());
+
+            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
 
             Assert.assertTrue(rs.next());
-            Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
+            Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
         /* Q3: test join case */
         String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
-        int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
+        int rowCount3[] = {1000000, 1000000, 854, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
         for (int i=0; i < selectivity.length; i++) {
@@ -506,7 +522,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine3[i]), rs.getString(1).contains(format("engine=%s", engine3[i])));
                 // skip ScrollInsensitive step
                 Assert.assertTrue(rs.next());
-                if (i < 3) {
+            if (i < 2) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     // with large input table rows, broadcast join should win
                     Assert.assertTrue(rs.next());
@@ -543,12 +559,15 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
             Assert.assertTrue(rs.next());
             Assert.assertTrue("Expected NestedLoopJoin", rs.getString(1).contains("NestedLoopJoin"));
-            //skip the next two steps to get to the IndexScan step
+            //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
             Assert.assertTrue(rs.next());
+            if (isMemPlatform)
+                Assert.assertTrue(rs.next());
 
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue("Expected IndexScan", rs.getString(1).contains("IndexScan"));
+            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
+
+            Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));
         }
 
@@ -825,5 +844,48 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
             Assert.assertTrue(explainStr.contains("ScrollInsensitive"));
         }
+    }
+
+    private long cacheTime(String query) throws SQLException {
+        try(ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_CACHED_STATEMENTS()")) {
+            while(rs.next()) {
+                if(rs.getString(2).equals(query)) {
+                    return rs.getTimestamp(3).getTime();
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void testCachingExplainStatementInternal(String statement, String explainPrefix) throws Exception {
+        Assume.assumeFalse(isMemPlatform(methodWatcher));
+        methodWatcher.execute("call syscs_util.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+        String explainQuery = explainPrefix + statement;
+        methodWatcher.execute(explainQuery);
+        long cacheTime = cacheTime(statement);
+        Assert.assertTrue(cacheTime > 0);
+        methodWatcher.execute(statement);
+        long cacheTimeAfterExecution = cacheTime(statement);
+        Assert.assertEquals("statement cached by explain was recompiled!", cacheTime, cacheTimeAfterExecution);
+    }
+
+    @Test
+    public void testCachingExplainStatementDifferentStatements() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
+        testCachingExplainStatementInternal("select * from t7", "explain ");
+        testCachingExplainStatementInternal("select * from t7 where a7 > 1", "explain ");
+        testCachingExplainStatementInternal("update t7 set a7 = 40 where a7 = 42", "explain ");
+        testCachingExplainStatementInternal("select * from t7 --splice-properties useOlap=false", "explain ");
+        testCachingExplainStatementInternal("select * from t7 --splice-properties useOlap=true", "explain ");
+    }
+
+    @Test
+    public void testCachingExplainStatementDifferentExplainPrefix() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
+        testCachingExplainStatementInternal("select * from t7", "explain \n\n\t ");
+        testCachingExplainStatementInternal("select * from t7", "ExpLain \t   \n");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain \n\n\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain   \n\n\n\nexclude  no \t\t\t   statistics   \n\t\n\t");
+        testCachingExplainStatementInternal("select * from t7", "--comment1\n--comment2\n   explain exclude no statistics\t\t\t\t\t");
     }
 }
