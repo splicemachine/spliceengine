@@ -555,4 +555,11 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         }
         return result;
     }
+
+    public void copy(BinaryComparisonOperatorNode other) throws StandardException
+    {
+    	super.copy(other);
+        this.forQueryRewrite = other.forQueryRewrite;
+        this.betweenSelectivity = other.betweenSelectivity;
+    }
 }

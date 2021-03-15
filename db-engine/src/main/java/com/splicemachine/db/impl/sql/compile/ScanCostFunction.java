@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -305,7 +306,7 @@ public class ScanCostFunction{
      * @param p
      * @throws StandardException
      */
-    public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
+    public void addPredicate(Predicate p, double defaultSelectivityFactor, Optimizer optimizer) throws StandardException{
         if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
             collectNoStatsColumnsFromInListPred(p);
@@ -320,22 +321,22 @@ public class ScanCostFunction{
             collectNoStatsColumnsFromInListPred(p);
         }
         else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
             if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
                 scanPredicatePossible = false;
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP, optimizer);
             accumulateExprEvalCost(p);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else { // Project Restrict Selectivity Filter
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor, optimizer), TOP);
             accumulateExprEvalCost(p);
         }
     }
@@ -348,7 +349,7 @@ public class ScanCostFunction{
      * @param qualifierPhase
      * @throws StandardException
      */
-    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
+    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase, Optimizer optimizer) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
                         (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
@@ -361,7 +362,7 @@ public class ScanCostFunction{
         }
         else {
             // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor), phase);
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor, optimizer), phase);
         }
     }
 
