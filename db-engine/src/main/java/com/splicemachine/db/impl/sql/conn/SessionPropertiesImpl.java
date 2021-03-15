@@ -135,6 +135,18 @@ public class SessionPropertiesImpl implements SessionProperties {
             case COSTMODEL:
                 properties[COSTMODEL.getId()] = valString;
                 break;
+            case JOINSTRATEGY:
+                String joinStrategy = StringUtil.SQLToUpperCase(valString);
+                switch (joinStrategy) {
+                    case "CROSS":
+                    case "NESTEDLOOP":
+                    case "MERGE":
+                    case "SORTMERGE":
+                    case "BROADCAST":
+                        properties[JOINSTRATEGY.getId()] = joinStrategy;
+                        break;
+                }
+                break;
             default:
                 assert false;
         }

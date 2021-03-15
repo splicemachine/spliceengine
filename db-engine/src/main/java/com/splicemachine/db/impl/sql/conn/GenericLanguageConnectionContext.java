@@ -490,6 +490,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
             setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_JOIN_STRATEGY, SessionProperties.PROPERTYNAME.JOINSTRATEGY);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -4289,4 +4290,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return activeStateTxId;
     }
 
+    @Override
+    public String getHintedJoinStrategy() {
+        return (String) sessionProperties.getProperty(
+            SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+    }
 }

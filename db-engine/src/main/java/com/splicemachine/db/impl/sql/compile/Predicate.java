@@ -46,6 +46,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
 
+import static com.splicemachine.db.impl.sql.compile.PredicateSimplificationVisitor.isBooleanFalse;
+import static com.splicemachine.db.impl.sql.compile.PredicateSimplificationVisitor.isBooleanTrue;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
@@ -187,6 +189,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     @Override
     public boolean isStopKey(){
         return stopKey;
+    }
+
+    @Override
+    public boolean isKey(){
+        return startKey || stopKey;
     }
 
     @Override
@@ -707,6 +714,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         startKey=false;
         stopKey=false;
         isQualifier=false;
+        rowId=false;
         // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
         indexPosition = -2;
         matchIndexExpression = false;
@@ -1627,5 +1635,158 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relOp;
         return bron.getLeftOperand().getTypeServices().
                                      getTypeName().equals(TypeId.VARCHAR_NAME);
+    }
+
+    // Build a raw AndNode boolean expression into a Predicate.
+    private Predicate getNewPredicate(ValueNode booleanExpression) throws StandardException {
+        int numTables = getCompilerContext().getMaximalPossibleTableCount();
+        JBitSet tableMap=new JBitSet(numTables);
+        ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
+        booleanExpression.categorize(tableMap, columnsMap, false);
+
+        JBitSet newJBitSet = new JBitSet(getReferencedSet().size());
+        AndNode andNode = booleanExpression instanceof AndNode ?
+                          (AndNode) booleanExpression :
+                          AndNode.newAndNode(booleanExpression, true);
+        Predicate newPred =
+            (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                                         andNode, newJBitSet, getContextManager());
+        return newPred;
+    }
+
+    // For a given predicate, check the heap conglomerate and all index
+    // conglomerates to see if it can be used as a start key or stop key
+    // for any of those indexes.
+    private boolean predicateEnablesKeyedIndexAccess(Predicate predicate,
+                                                     FromBaseTable optTable,
+                                                     AccessPath accessPath,
+                                                     Optimizer optimizer) throws StandardException {
+        ConglomerateDescriptor[] conglomDescs;
+        if (accessPath != null) {
+            conglomDescs = new ConglomerateDescriptor[1];
+            conglomDescs[0] = accessPath.getConglomerateDescriptor();
+        }
+        else
+            conglomDescs = optTable.conglomDescs;
+
+        int numConglomerates = conglomDescs.length;
+        PredicateList predicateList = getNewPredList();
+        predicateList.addOptPredicate(predicate);
+        AccessPath tempAccessPath = optTable.getCurrentAccessPath();
+        ConglomerateDescriptor savedConglomerateDescriptor = tempAccessPath.getConglomerateDescriptor();
+        boolean foundKey = false;
+        for (int i = 0; i < numConglomerates; i++) {
+            tempAccessPath.setConglomerateDescriptor(conglomDescs[i]);
+            predicateList.categorize();
+            predicateList.classify(optTable, tempAccessPath, true);
+            foundKey = predicate.isKey();
+            predicate.clearScanFlags();
+            if (foundKey) {
+                if (predicate.getReferencedSet().cardinality() < 2)
+                    break;
+                FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
+                if (outerBaseTable == null) {
+                    break;
+                }
+                if (predicate.getReferencedSet().contains(outerBaseTable.getReferencedTableMap())) {
+                    break;
+                }
+                foundKey = false;
+            }
+        }
+        predicateList.removeOptPredicate(0);
+        tempAccessPath.setConglomerateDescriptor(savedConglomerateDescriptor);
+        return foundKey;
+    }
+
+    public boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException {
+        if (andNode.getLeftOperand() instanceof OrNode) {
+            OrNode orNode = (OrNode) andNode.getLeftOperand();
+            if (orNode.getLeftOperand() instanceof AndNode ||
+                orNode.getRightOperand() instanceof AndNode)
+                return false;
+            ValueNode node = andNode.getLeftOperand();
+            OrNode tmpOrNode;
+            while (node instanceof OrNode) {
+                tmpOrNode = (OrNode)node;
+                Predicate newPred = getNewPredicate(tmpOrNode.getLeftOperand());
+                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath, optimizer))
+                    return false;
+                node = tmpOrNode.getRightOperand();
+            }
+            if (node instanceof BinaryRelationalOperatorNode) {
+                Predicate newPred = getNewPredicate(node);
+                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath, optimizer))
+                    return false;
+            }
+            else if (!(node instanceof BooleanConstantNode))
+                return false;
+
+            return true;
+        }
+        return false;
+    }
+
+    public List<OptimizablePredicateList> separateOredPredicates() throws StandardException {
+        List<OptimizablePredicateList> predicateLists = new ArrayList<>();
+        if (andNode.getLeftOperand() instanceof OrNode)
+            walkOredTerms(andNode.getLeftOperand(), predicateLists);
+        if (predicateLists.isEmpty())
+            return null;
+        else
+            return predicateLists;
+    }
+
+    private void walkOredTerms(ValueNode node, List<OptimizablePredicateList> predicateLists) throws StandardException {
+        if (!(node instanceof OrNode)) {
+            PredicateList predList = getNewPredList();
+            AndNode andNodeToAdd;
+            CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
+            // Break the link between ColumnReferences in the new predicate
+            // and ColumnReferences in the PredicateList this was extracted from.
+            node = (ValueNode)node.accept(cloneCRsVisitor);
+            if (node instanceof AndNode)
+                andNodeToAdd = (AndNode) node;
+            else
+                andNodeToAdd = getNewAndWithBooleanExpression(node);
+            Predicate predicateToAdd = getNewAndedPredicate(andNodeToAdd);
+            predList.addPredicate(predicateToAdd);
+            predicateLists.add(predList);
+            return;
+        }
+        OrNode orNode = (OrNode)node;
+        if (isBooleanTrue(orNode.getLeftOperand()) || isBooleanTrue(orNode.getRightOperand()))
+            return;
+        if (!isBooleanFalse(orNode.getLeftOperand()))
+            walkOredTerms(orNode.getLeftOperand(), predicateLists);
+        if (!isBooleanFalse(orNode.getRightOperand()))
+            walkOredTerms(orNode.getRightOperand(), predicateLists);
+    }
+
+    private PredicateList getNewPredList() throws StandardException {
+        return (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+    }
+
+    private AndNode getNewAndWithBooleanExpression(ValueNode booleanExpression) throws StandardException {
+        BooleanConstantNode trueNode;
+        trueNode = (BooleanConstantNode) getNodeFactory().getNode(
+                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                Boolean.TRUE,
+                getContextManager());
+        AndNode newAnd = (AndNode) getNodeFactory().getNode(
+				C_NodeTypes.AND_NODE,
+				booleanExpression,
+				trueNode,
+				getContextManager());
+        return newAnd;
+     }
+
+    private Predicate getNewAndedPredicate(AndNode andNode) throws StandardException {
+        Predicate newPred = (Predicate)getNodeFactory().getNode(
+            C_NodeTypes.PREDICATE,
+            andNode,
+            getReferencedSet(),
+            getContextManager());
+        return newPred;
     }
 }

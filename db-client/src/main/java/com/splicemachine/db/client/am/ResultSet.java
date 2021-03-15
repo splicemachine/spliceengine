@@ -39,6 +39,8 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
 
+import static com.splicemachine.db.client.am.LOBStateTracker.NO_OP_TRACKER;
+
 @SuppressFBWarnings(value = {"NM_SAME_SIMPLE_NAME_AS_INTERFACE", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 public abstract class ResultSet implements java.sql.ResultSet,
         ResultSetCallbackInterface {
@@ -241,6 +243,9 @@ public abstract class ResultSet implements java.sql.ResultSet,
         resultSetHoldability_ = resultSetHoldability;
         fetchDirection_ = statement_.fetchDirection_;
         suggestedFetchSize_ = statement_.fetchSize_;
+        // Making sure the following is always initialized avoids NullPointerExceptions
+        // that sometimes hide the original Exception.
+        lobState = NO_OP_TRACKER;
 
         maxRows_ = statement_.maxRows_;
         
@@ -6220,7 +6225,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
      */
     final void createLOBColumnTracker() {
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(this.lobState == null,
+            SanityManager.ASSERT(this.lobState == null || this.lobState == NO_OP_TRACKER,
                     "LOB state tracker already initialized.");
         }
         if (this.connection_.supportsSessionDataCaching() &&
@@ -6244,7 +6249,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             this.lobState = new LOBStateTracker(lobIndexes, isBlob, true);
         } else {
             // Use a no-op state tracker to simplify code expecting a tracker.
-            this.lobState = LOBStateTracker.NO_OP_TRACKER;
+            this.lobState = NO_OP_TRACKER;
         }
     }
 
