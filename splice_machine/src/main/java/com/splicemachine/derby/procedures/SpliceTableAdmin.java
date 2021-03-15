@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
@@ -45,6 +45,8 @@ import com.splicemachine.derby.impl.storage.DistributedCheckTableJob;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;

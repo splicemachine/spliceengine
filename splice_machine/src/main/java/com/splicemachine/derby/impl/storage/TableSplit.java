@@ -27,7 +27,7 @@ import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;

@@ -48,6 +48,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.procedures.BaseAdminProcedures;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;

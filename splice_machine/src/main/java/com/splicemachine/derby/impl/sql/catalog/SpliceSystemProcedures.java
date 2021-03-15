@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.procedures.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
 import com.splicemachine.replication.ReplicationSystemProcedure;
 
@@ -273,12 +274,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         /*
          * Procedure get write pipeline intake info
          */
-        Procedure getWriteIntakeInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getWriteIntakeInfo);
+        procedures.add(PipelineAdmin.getSYSCS_GET_WRITE_INTAKE_INFO());
 
         /*
          * Procedure get exec service info
@@ -988,24 +984,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(vacuum);
 
-
-        /*
-         * Procedure to return timestamp generator info
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(TimestampAdmin.class.getCanonicalName())
-                .build());
-
-        /*
-         * Procedure to return timestamp request info
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_REQUEST_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(TimestampAdmin.class.getCanonicalName())
-                .build());
+        procedures.add(TimestampAdmin.getSYSCS_GET_TIMESTAMP_GENERATOR_INFO());
+        procedures.add(TimestampAdmin.getSYSCS_GET_TIMESTAMP_REQUEST_INFO());
 
         /*
          * Procedure to delete a backup
@@ -1476,14 +1456,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(fixTable);
 
-        Procedure showCreateTable = Procedure.newBuilder().name("SHOW_CREATE_TABLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schemaName", 128)
-                .varchar("tableName", 128)
-                .ownerClass(SpliceAdminShow.class.getCanonicalName())
-                .build();
-        procedures.add(showCreateTable);
+        procedures.add( ShowCreateTableProcedure.getProcedure() );
 
         Procedure addPeer = Procedure.newBuilder().name("ADD_PEER")
                 .numOutputParams(0)

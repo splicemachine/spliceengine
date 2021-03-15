@@ -1,9 +1,11 @@
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.procedures.ProcedureUtils;
@@ -21,10 +23,21 @@ import java.util.stream.Collectors;
 
 import static com.splicemachine.db.iapi.sql.StatementType.*;
 
-public class SpliceAdminShow extends BaseAdminProcedures {
+public class ShowCreateTableProcedure extends BaseAdminProcedures {
+
+    public static Procedure getProcedure() {
+        return Procedure.newBuilder().name("SHOW_CREATE_TABLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schemaName", 128)
+                .varchar("tableName", 128)
+                .ownerClass(ShowCreateTableProcedure.class.getCanonicalName())
+                .build().debugCheck();
+    }
 
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
-    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException, StandardException
+    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet)
+            throws SQLException, StandardException
     {
         List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
         resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
@@ -210,7 +223,7 @@ public class SpliceAdminShow extends BaseAdminProcedures {
                     referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                 }
                 String s = String.format("ALTER TABLE \"%s\".\"%s\" ADD ", schemaName, tableName);
-                fkKeys.append(s + SpliceAdminShow.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                fkKeys.append(s + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
                 fks.add(fkKeys.toString() + "\n");
             }
         }
@@ -283,7 +296,7 @@ public class SpliceAdminShow extends BaseAdminProcedures {
                             fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
                             referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                         }
-                        fkKeys.append(", " + SpliceAdminShow.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                        fkKeys.append(", " + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
                     }
                     break;
                 default:

@@ -26,7 +26,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;

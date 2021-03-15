@@ -42,7 +42,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;

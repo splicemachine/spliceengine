@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.*;
@@ -55,6 +55,7 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
@@ -95,7 +96,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
@@ -105,63 +105,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
  *         Date: 12/9/13
  */
 @SuppressWarnings("unused")
-public class SpliceAdmin extends BaseAdminProcedures{
+public class SpliceAdmin extends BaseAdminProcedures {
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
-
-    @FunctionalInterface
-    public interface ConsumeWithException<T, T2, E extends Throwable> {
-        void accept(T t, T2 t2) throws E;
-    }
-    @FunctionalInterface
-    public interface ConsumeWithException3<T, T2, T3, E extends Throwable> {
-        void accept(T t, T2 t2, T3 t3) throws E;
-    }
-
-    public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                function.accept(server, connection);
-            }
-        }
-    }
-
-    public static void executeOnAllServers(String sql) throws SQLException {
-
-        executeOnAllServers((hostAndPort, connection) -> execute(connection, sql));
-    }
-
-    public static void executeOnAllServers(String sql,
-                                           ConsumeWithException3<HostAndPort, Connection, ResultSet, SQLException> function)
-            throws SQLException {
-
-        executeOnAllServers( (hostAndPort, connection) -> {
-            if(function == null)
-                execute(connection, sql);
-            else {
-                try (Statement stmt = connection.createStatement()) {
-
-                    try (ResultSet rs = stmt.executeQuery(sql)) {
-                        function.accept(hostAndPort, connection, rs);
-                    }
-                }
-            }
-        });
-
-
-    }
-
-    public static void execute(Connection connection, String sql) throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
-        }
-    }
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
@@ -407,10 +352,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 version.getURL()));
         sb.append(") foo (hostname, release, implementationVersion, buildTime, url)");
         resultSet[0]=executeStatement(sb);
-    }
-
-    public static void SYSCS_GET_WRITE_INTAKE_INFO(ResultSet[] resultSets) throws SQLException{
-        PipelineAdmin.SYSCS_GET_WRITE_INTAKE_INFO(resultSets);
     }
 
     private static final ResultColumnDescriptor[] EXEC_SERVICE_COLUMNS= {

@@ -40,7 +40,7 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

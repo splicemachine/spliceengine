@@ -25,6 +25,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.procedures.BaseAdminProcedures;
 import org.joda.time.DateTime;
 
 import java.sql.ResultSet;
@@ -56,7 +57,7 @@ import java.util.List;
  *   resultSet[0] = rs;
  *
  */
-class ResultHelper {
+public class ResultHelper {
     public VarcharColumn addVarchar(String name, int length) {
         VarcharColumn c = new VarcharColumn();
         c.add(name, length);
@@ -89,7 +90,7 @@ class ResultHelper {
         return columnDescriptors.toArray(new ResultColumnDescriptor[columnDescriptors.size()]);
     }
 
-    void newRow() throws SQLException {
+    public void newRow() throws SQLException {
         finishRow();
         row = new ValueRow(numColumns());
     }
@@ -145,7 +146,7 @@ class ResultHelper {
         }
     }
 
-    class VarcharColumn extends Column {
+    public class VarcharColumn extends Column {
         int maxLength = 0;
 
         @Override
@@ -177,7 +178,7 @@ class ResultHelper {
         }
     }
 
-    class IntegerColumn extends Column {
+    public class IntegerColumn extends Column {
         @Override
         DataTypeDescriptor getDataTypeDescriptor() {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
@@ -203,7 +204,7 @@ class ResultHelper {
         }
     }
 
-    class BigintColumn extends Column {
+    public class BigintColumn extends Column {
         @Override
         DataTypeDescriptor getDataTypeDescriptor() {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, length);
@@ -229,7 +230,7 @@ class ResultHelper {
         }
     }
 
-    class TimestampColumn extends Column {
+    public class TimestampColumn extends Column {
         DataTypeDescriptor getDataTypeDescriptor() {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP, length);
         }
@@ -266,7 +267,7 @@ class ResultHelper {
         }
     }
 
-    void newRowFromResultSet(ResultSet rs) throws SQLException {
+    public void newRowFromResultSet(ResultSet rs) throws SQLException {
         newRow();
         for( Column column : columns) {
             column.fromResultSet(rs);

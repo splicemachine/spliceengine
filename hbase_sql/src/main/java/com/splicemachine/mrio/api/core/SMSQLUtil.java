@@ -27,7 +27,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;

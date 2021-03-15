@@ -12,8 +12,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.PipelineDriver;
@@ -42,7 +43,16 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 11/14/14
  */
-public class PipelineAdmin extends BaseAdminProcedures{
+public class PipelineAdmin extends BaseAdminProcedures {
+
+    public static Procedure getSYSCS_GET_WRITE_INTAKE_INFO() {
+        return Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(PipelineAdmin.class.getCanonicalName())
+                .build().debugCheck();
+    }
+
     private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = {
             new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("depThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),

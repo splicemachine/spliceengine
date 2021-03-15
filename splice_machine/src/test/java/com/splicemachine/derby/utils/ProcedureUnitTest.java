@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.derby.impl.sql.catalog.SpliceSystemProcedures;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import org.junit.Assert;
 import org.junit.Test;
 
