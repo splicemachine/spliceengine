@@ -105,7 +105,7 @@ public final class MaxMinAggregator extends OrderableAggregator {
 	@Override
 	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isMax);
-		super.writeExternal(out);
+		super.writeExternalOld(out);
 	}
 
 	/**
@@ -141,7 +141,7 @@ public final class MaxMinAggregator extends OrderableAggregator {
 		CatalogMessage.MaxMinAggregator aggregator =
 				systemAggregator.getExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator);
 		isMax = aggregator.getIsMax();
-		value = ProtobufUtils.fromProtobuf(aggregator.getValue());
+		value = aggregator.hasValue() ? ProtobufUtils.fromProtobuf(aggregator.getValue()) : null;
 	}
 
 	/**

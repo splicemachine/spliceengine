@@ -609,4 +609,9 @@ public class MemTxnStore implements TxnStore{
             rl.unlock();
         }
     }
+
+    @Override
+    public void invalidate() {
+        // no op
+    }
 }

@@ -21,6 +21,8 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
@@ -60,6 +62,7 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -1075,6 +1078,28 @@ public class DDLUtils {
             dc.clearPermissionCache();
             dc.clearSpsNameCache();
             dc.clearStoredPreparedStatementCache();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preLeaveRestore(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preRestore with change=%s",change);
+        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
+            SIDriver.driver().getTxnSupplier().invalidate();
+            SIDriver.driver().getIgnoreTxnSupplier().refresh();
+            dd.getDataDictionaryCache().clearAll();
+            SIDriver.driver().lifecycleManager().leaveRestoreMode();
+            Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            for (Context context : allContexts) {
+                ((LanguageConnectionContext) context).leaveRestoreMode();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

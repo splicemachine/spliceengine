@@ -301,6 +301,8 @@ public interface TxnLifecycleManager{
      */
     void enterRestoreMode();
 
+    void leaveRestoreMode();
+
     boolean isRestoreMode();
 
     void setReplicationRole(String role);

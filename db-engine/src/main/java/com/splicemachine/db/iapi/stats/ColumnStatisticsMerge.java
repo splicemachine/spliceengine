@@ -37,9 +37,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.yahoo.sketches.quantiles.ItemsUnion;
-import com.yahoo.sketches.theta.Sketches;
-import com.yahoo.sketches.theta.Union;
+import org.apache.datasketches.quantiles.ItemsUnion;
+import org.apache.datasketches.theta.Sketches;
+import org.apache.datasketches.theta.Union;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
@@ -59,7 +59,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     protected boolean initialized;
     protected Union thetaSketchUnion;
     protected ItemsUnion quantilesSketchUnion;
-    protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
+    protected org.apache.datasketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected long nullCount = 0L;
     protected DataValueDescriptor dvd;
     protected long totalCount = 0L;
@@ -111,6 +111,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
             initialized = true;
         }
 
+        assert value != null : "column statistics should not be null";
         if (!value.getType().equals(columnStatsType))
             throw new RuntimeException("Multiple column stats type co-exists!");
 
@@ -122,7 +123,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
                 cardinality = fakeColumnStatistics.cardinality();
         }
 
-        assert value.quantilesSketch !=null && value.frequenciesSketch !=null && value.thetaSketch !=null && value!=null:"Sketches should not be null";
+        assert value.quantilesSketch != null && value.frequenciesSketch != null && value.thetaSketch != null :"Sketches should not be null";
         quantilesSketchUnion.update(value.quantilesSketch);
         frequenciesSketch.merge(value.frequenciesSketch);
         thetaSketchUnion.update(value.thetaSketch);

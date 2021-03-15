@@ -37,7 +37,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
@@ -136,6 +136,10 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         if(LOG.isTraceEnabled())
             LOG.trace("getId ");
         return containerId;
+    }
+
+    public void setId(long containerId){
+       this.containerId = containerId;
     }
 
     public boolean[] getAscDescInfo(){

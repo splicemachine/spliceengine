@@ -33,7 +33,8 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.yahoo.sketches.quantiles.ItemsSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.datasketches.quantiles.ItemsSketch;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -44,13 +45,14 @@ import java.io.ObjectOutput;
  * Statistics Container for a key...
  *
  */
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "class is not complete")
 public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     private ItemsSketch<ExecRow> quantilesSketch;
     private long nullCount;
     private ExecRow execRow;
 
     public PrimaryKeyStatisticsImpl(ExecRow execRow) throws StandardException {
-        this(execRow,com.yahoo.sketches.quantiles.ItemsSketch.getInstance(execRow), 0L);
+        this(execRow,org.apache.datasketches.quantiles.ItemsSketch.getInstance(execRow), 0L);
     }
 
     public PrimaryKeyStatisticsImpl(ExecRow execRow, ItemsSketch quantilesSketch,
@@ -98,8 +100,8 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop, boolean useExtrapolation) {
-        double startSelectivity = start==null?0.0d:quantilesSketch.getCDF(new ExecRow[]{start})[0];
-        double stopSelectivity = stop==null?1.0d:quantilesSketch.getCDF(new ExecRow[]{stop})[0];
+        double startSelectivity = start==null || quantilesSketch.isEmpty() ? 0.0d : quantilesSketch.getCDF(new ExecRow[]{start})[0];
+        double stopSelectivity = stop==null || quantilesSketch.isEmpty() ? 1.0d : quantilesSketch.getCDF(new ExecRow[]{stop})[0];
         return (long) ((stopSelectivity-startSelectivity)*quantilesSketch.getN());
     }
 

@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -284,25 +286,24 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        remoteCostPerPartition += nljOnSparkPenalty;
-        innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
     }
 
     // Nested loop join is most useful if it can be used to
     // derive an index point-lookup predicate, otherwise it can be
     // very slow on Spark.
-    // NOTE: The following description of the behavior will
-    //       only be enabled once DB-11521 is fixed:
+    // NOTE: The following description of the behavior is
+    //       enabled if session property olapAlwaysPenalizeNLJ
+    //       is false, or not set:
     // Detect when no join predicates are present that have
     // both a start key and a stop key.  If none are present,
-    // or we're reading more than 10 rows from the outer table,
     // return a large cost penalty so we'll avoid such joins.
     private double getNljOnSparkPenalty(Optimizable table,
                                         OptimizablePredicateList predList,
@@ -319,14 +320,17 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double multiplier = innerCost.getFromBaseTableRows();
         if (multiplier < 1d)
             multiplier = 1d;
-        // TODO:  Enable this code when DB-11521 is fixed.
-        //        Currently join cardinality is grossly underestimated,
-        //        so what we think is a safe nested loop join may in fact
-        //        be joining hundreds or thousands of rows from the left table.
-//        if (!isBaseTable(table))
-//            return NLJ_ON_SPARK_PENALTY * multiplier;
-//        if (hasJoinPredicateWithIndexKeyLookup(predList) && outerCost.rowCount() <= 10)
-//            return retval;
+        QueryTreeNode queryTreeNode = (QueryTreeNode) table;
+        LanguageConnectionContext lcc = queryTreeNode.getLanguageConnectionContext();
+        Boolean olapAlwaysPenalizeNLJ = (Boolean)
+            lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+
+        if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
+            if (!isBaseTable(table))
+                return NLJ_ON_SPARK_PENALTY * multiplier;
+            if (hasJoinPredicateWithIndexKeyLookup(predList))
+                return retval;
+        }
         return NLJ_ON_SPARK_PENALTY * multiplier;
     }
 
@@ -393,19 +397,23 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
+        /* DB-11662 note
+         * The explanation above makes sense, but it seems that not taking innerLocalCost per
+         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
+         * strategies, especially when the inner table scan cost is very high.
+         */
         double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
         if (useSparkCostFormula)
             return outerCost.getLocalCostPerParallelTask() +
-                   ((outerCost.rowCount()/outerCost.getParallelism())
-                    * innerLocalCost) +
-            ((outerCost.rowCount())*(innerRemoteCost))
-                    + joiningRowCost/outerCost.getParallelism();
+                   (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * innerCost.getLocalCostPerParallelTask()) +
+                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
+                    joiningRowCost / outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
-                   (outerCost.rowCount()/outerCost.getParallelism())
-                    * (innerCost.localCost()+innerCost.getRemoteCost()) +
-                   joiningRowCost/outerCost.getParallelism();
+                   Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
+                   joiningRowCost / outerCost.getParallelism();
     }
 
     /**

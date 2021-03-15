@@ -1200,13 +1200,14 @@ public class SpliceUnitTest {
                 Thread.sleep(1000);
                 oldest1 = oldest2;
             }
+            String oldestMsg = "Oldest txn: " + oldest1;
             if (failOnError) {
-                Assert.fail(name + " failed to close all transactions.");
+                Assert.fail(name + " failed to close all transactions. " + oldestMsg);
             } else {
                 // if you see this error, this is a hint that something might be left open, especially if you see
                 // multiple of these messages. turn failOnError=true and check tests one by one.
                 LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
-                        "tests running in parallel.");
+                        "tests running in parallel. " + oldestMsg);
             }
         } catch( SQLException e)
         {

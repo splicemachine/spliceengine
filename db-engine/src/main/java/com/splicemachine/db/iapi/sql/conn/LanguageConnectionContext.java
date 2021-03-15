@@ -1379,6 +1379,7 @@ public interface LanguageConnectionContext extends Context {
      */
     void enterRestoreMode();
 
+    void leaveRestoreMode();
     /**
      * Set a trigger execution context (TEC) stack on this LCC.<br/>
      * Used to serialize TECs across serialization boundaries.

@@ -461,6 +461,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_ALIAS:
                     case CREATE_VIEW:
                         break;
+                    case LEAVE_RESTORE_MODE:
+                        DDLUtils.preLeaveRestore(change, dataDictionary);
+                        break;
                     case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
                     case DROP_FOREIGN_KEY:
                         DDLUtils.preDropForeignKey(change, dataDictionary);
