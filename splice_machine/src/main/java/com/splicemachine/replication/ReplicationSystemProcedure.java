@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SYSREPLICATIONRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -678,4 +679,158 @@ public class ReplicationSystemProcedure {
         String clusterKey = getClusterKey();
         replicationManager.enablePeer(clusterKey, peerId, peerClusterKey);
     }
- }
+
+    public static void addProcedures(List<Procedure> procedures) {
+        Procedure addPeer = Procedure.newBuilder().name("ADD_PEER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .smallint("peerId")
+                .varchar("clusterKey", 32672)
+                .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(addPeer);
+
+        Procedure removePeer = Procedure.newBuilder().name("REMOVE_PEER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .smallint("peerId")
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(removePeer);
+
+        Procedure enablePeer = Procedure.newBuilder().name("ENABLE_PEER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .smallint("peerId")
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(enablePeer);
+
+        Procedure disablePeer = Procedure.newBuilder().name("DISABLE_PEER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .smallint("peerId")
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(disablePeer);
+
+        Procedure enableTableReplication = Procedure.newBuilder().name("ENABLE_TABLE_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .build();
+        procedures.add(enableTableReplication);
+
+        Procedure disableTableReplication = Procedure.newBuilder().name("DISABLE_TABLE_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .build();
+        procedures.add(disableTableReplication);
+
+        Procedure setReplicationRole = Procedure.newBuilder().name("SET_REPLICATION_ROLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .varchar("role", 10)
+                .build();
+        procedures.add(setReplicationRole);
+
+        Procedure getReplicationRole = Procedure.newBuilder().name("GET_REPLICATION_ROLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getReplicationRole);
+
+        Procedure enableSchemaReplication = Procedure.newBuilder().name("ENABLE_SCHEMA_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .catalog("schemaName")
+                .build();
+        procedures.add(enableSchemaReplication);
+
+
+        Procedure disableSchemaReplication = Procedure.newBuilder().name("DISABLE_SCHEMA_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .catalog("schemaName")
+                .build();
+        procedures.add(disableSchemaReplication);
+
+        Procedure enableDatabaseReplication = Procedure.newBuilder().name("ENABLE_DATABASE_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(enableDatabaseReplication);
+
+        Procedure disableDatabaseReplication = Procedure.newBuilder().name("DISABLE_DATABASE_REPLICATION")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(disableDatabaseReplication);
+
+        Procedure getClusterKey = Procedure.newBuilder().name("GET_CLUSTER_KEY")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getClusterKey);
+
+        Procedure getPeers = Procedure.newBuilder().name("LIST_PEERS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getPeers);
+
+        Procedure getWalPositions = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITIONS")
+                .numOutputParams(0)
+                .smallint("peerId")
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getWalPositions);
+
+        Procedure getWalPosition = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITION")
+                .numOutputParams(0)
+                .varchar("wal",32672)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getWalPosition);
+
+        Procedure getReplicationProgress = Procedure.newBuilder().name("GET_REPLICATION_PROGRESS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(getReplicationProgress);
+
+        Procedure dumpUnreplicatedWals = Procedure.newBuilder().name("DUMP_UNREPLICATED_WALS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(dumpUnreplicatedWals);
+
+        Procedure replicationEnabled = Procedure.newBuilder().name("REPLICATION_ENABLED")
+                .numOutputParams(0)
+                .catalog("schemaName")
+                .catalog("tableName")
+                .numResultSets(1)
+                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                .build();
+        procedures.add(replicationEnabled);
+    }
+
+}

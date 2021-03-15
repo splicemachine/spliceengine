@@ -40,8 +40,8 @@ import static org.junit.Assert.assertEquals;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-public class StatisticsAdminIT extends SpliceUnitTest {
-    private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
+public class StatisticsProceduresIT extends SpliceUnitTest {
+    private static final String SCHEMA= StatisticsProceduresIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
     private static final String SCHEMA3=SCHEMA+"3";
     private static final String SCHEMA4=SCHEMA+"4";

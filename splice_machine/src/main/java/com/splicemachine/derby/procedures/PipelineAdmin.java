@@ -45,12 +45,12 @@ import java.util.List;
  */
 public class PipelineAdmin extends BaseAdminProcedures {
 
-    public static Procedure getSYSCS_GET_WRITE_INTAKE_INFO() {
-        return Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
+    public static void addProcedures(List<Procedure> procedures) {
+        procedures.add( Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(PipelineAdmin.class.getCanonicalName())
-                .build().debugCheck();
+                .build().debugCheck() );
     }
 
     private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = {

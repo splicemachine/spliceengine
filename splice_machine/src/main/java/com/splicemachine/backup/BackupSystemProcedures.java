@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -63,8 +64,157 @@ import java.util.TimeZone;
  * Created by jyuan on 2/12/15.
  */
 public class BackupSystemProcedures {
-
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
+
+    public static void addProcedures(List<Procedure> procedures) {
+        /*
+         * Procedure to delete a backup
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .bigint("backupId")
+                .build());
+
+        /*
+         * Procedure to delete backups in a time window
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_OLD_BACKUPS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .integer("backupWindow")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .varchar("type", 32672)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_ASYNC")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_TABLE_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_SCHEMA_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_BACKUP")
+                .numOutputParams(0)
+                .bigint("backupId")
+                .numResultSets(0)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_TABLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("directory", 32672)
+                .varchar("type", 30)
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_TABLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("destSchema")
+                .catalog("destTable")
+                .catalog("sourceSchema")
+                .catalog("sourceTable")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_SCHEMA")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .varchar("directory", 32672)
+                .varchar("type", 30)
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_SCHEMA")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("destSchema")
+                .catalog("sourceSchema")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TIMESTAMP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .varchar("pointInTime", 100)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TRANSACTION")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .bigint("transactionId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_RUNNING_BACKUPS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
+    }
 
     public static void VALIDATE_SCHEMA_BACKUP(String schemaName,
                                               String directory,

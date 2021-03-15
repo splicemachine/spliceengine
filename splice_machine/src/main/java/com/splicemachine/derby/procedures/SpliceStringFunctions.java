@@ -12,13 +12,21 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.text.WordUtils;
@@ -39,6 +47,69 @@ import splice.com.google.common.cache.LoadingCache;
  */
 
 public class SpliceStringFunctions {
+    public static List<Procedure> getProcedures() throws StandardException {
+        return Arrays.asList(
+                Procedure.newBuilder().name("INSTR")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("INITCAP")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("CONCAT")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("RTRIM")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("REGEXP_LIKE")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("REGEXP", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("CHR")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.CHAR, 1))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .integer("I")
+                        .build(),
+                Procedure.newBuilder().name("HEX")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                        .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                        .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH / 2)
+                        .build()
+        );
+    }
 
     public static final String TRAILING_WHITESPACE_REGEXP = "\\s+$";
     /**

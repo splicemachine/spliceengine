@@ -7,6 +7,7 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.derby.impl.sql.catalog.SpliceSystemProcedures;
 import com.splicemachine.derby.procedures.SpliceAdmin;
+import com.splicemachine.derby.procedures.StatisticsProcedures;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class ProcedureUnitTest {
                 .varchar("schema",128)
                 .varchar("table",1024)
                 .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
                 .buildCheck();
     }
 
@@ -53,7 +54,7 @@ public class ProcedureUnitTest {
                     .numOutputParams(0)
                     .numResultSets(1)
                     .varchar("schema", 128)
-                    .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                    .ownerClass(StatisticsProcedures.class.getCanonicalName())
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {
@@ -73,7 +74,7 @@ public class ProcedureUnitTest {
                     .varchar("schema", 128)
                     .integer("WRONG_TYPE")
                     .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                    .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                    .ownerClass(StatisticsProcedures.class.getCanonicalName())
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {

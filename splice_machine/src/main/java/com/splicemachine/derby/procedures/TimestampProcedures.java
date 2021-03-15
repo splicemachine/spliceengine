@@ -57,7 +57,13 @@ import com.splicemachine.utils.Pair;
  * @author Walt Koetke
  */
 @SuppressWarnings("unused")
-public class TimestampAdmin extends BaseAdminProcedures {
+public class TimestampProcedures extends BaseAdminProcedures {
+
+	public static void addProcedures(List<Procedure> procedures) {
+		procedures.add( getSYSCS_GET_TIMESTAMP_GENERATOR_INFO() );
+		procedures.add( getSYSCS_GET_TIMESTAMP_REQUEST_INFO() );
+
+	}
 
 	private static final ResultColumnDescriptor[] TIMESTAMP_GENERATOR_INFO_COLUMNS = new GenericColumnDescriptor[] {
 		new GenericColumnDescriptor("numberTimestampsCreated", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -71,7 +77,7 @@ public class TimestampAdmin extends BaseAdminProcedures {
 		return Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
 				.numOutputParams(0)
 				.numResultSets(1)
-				.ownerClass(TimestampAdmin.class.getCanonicalName())
+				.ownerClass(TimestampProcedures.class.getCanonicalName())
 				.build().debugCheck();
 	}
 
@@ -113,7 +119,7 @@ public class TimestampAdmin extends BaseAdminProcedures {
 		return Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_REQUEST_INFO")
 				.numOutputParams(0)
 				.numResultSets(1)
-				.ownerClass(TimestampAdmin.class.getCanonicalName())
+				.ownerClass(TimestampProcedures.class.getCanonicalName())
 				.build().debugCheck();
 	}
 

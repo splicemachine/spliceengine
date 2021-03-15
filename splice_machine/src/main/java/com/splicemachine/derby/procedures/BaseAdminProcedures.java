@@ -50,7 +50,7 @@ import splice.com.google.common.net.HostAndPort;
  * are provided here to do so.
  * 
  * @see SpliceAdmin
- * @see TimestampAdmin
+ * @see TimestampProcedures
  */
 public abstract class BaseAdminProcedures {
 

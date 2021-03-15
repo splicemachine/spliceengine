@@ -109,48 +109,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
-        executeOnAllServers( (hostAndPort, connection) -> {
-            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL(?, ?)")) {
-                ps.setString(1, loggerName);
-                ps.setString(2, logLevel);
-                ps.execute();
-            }
-        });
-    }
-    public static void SYSCS_SET_LOGGER_LEVEL_LOCAL(final String loggerName,final String logLevel) throws SQLException{
-        Logging logging;
-        try {
-            logging = JMXUtils.getLocalMBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
-        }catch(MalformedObjectNameException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-        logging.setLoggerLevel(loggerName,logLevel);
-    }
-
-    public static void SYSCS_GET_LOGGER_LEVEL_LOCAL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
-        Logging logging;
-        try {
-            logging = JMXUtils.getLocalMBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
-        }catch(MalformedObjectNameException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        String loggerLevel = logging.getLoggerLevel(loggerName);
-
-        ResultHelper res = new ResultHelper();
-        ResultHelper.VarcharColumn col = res.addVarchar("LOGLEVEL", 15);
-        res.newRow();
-        col.set(loggerLevel);
-
-        resultSet[0] = res.getResultSet();
-    }
-
-    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_CACHED_STATEMENTS(final ResultSet[] resultSet) throws SQLException{
         List<HostAndPort> servers;
         try {
@@ -217,84 +175,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
             col2.set(new DateTime(cachedStatement.getSecond()));
         }
         resultSet[0] = resultHelper.getResultSet();
-    }
-
-    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
-    public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
-        List<String> loggerLevels = new ArrayList<>();
-
-        executeOnAllServers( (hostAndPort, connection) -> {
-            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL_LOCAL(?)")) {
-                ps.setString(1, loggerName);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        loggerLevels.add(rs.getString(1));
-                    }
-                }
-            };
-        });
-
-        ResultHelper res = new ResultHelper();
-        ResultHelper.VarcharColumn col = res.addVarchar("LOG_LEVEL", 120);
-
-        List<ExecRow> rows = new ArrayList<>();
-        for (String logger : loggerLevels) {
-            res.newRow();
-            col.set(logger);
-        }
-
-        resultSet[0] = res.getResultSet();
-    }
-
-
-    public static void SYSCS_GET_LOGGERS_LOCAL(final ResultSet[] resultSet) throws SQLException {
-        Logging logging;
-        try {
-            logging = JMXUtils.getLocalMXBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
-        }catch(MalformedObjectNameException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
-        ResultHelper res = new ResultHelper();
-        ResultHelper.VarcharColumn col = res.addVarchar("SPLICELOGGER", 100);
-
-        HashSet<String> loggerNames = new HashSet<>();
-        loggerNames.addAll(logging.getLoggerNames());
-        ArrayList<String> loggers = new ArrayList<>(loggerNames);
-        Collections.sort(loggers);
-        for(String logger : loggers){
-            res.newRow();
-            col.set(logger);
-        }
-
-        resultSet[0] = res.getResultSet();
-
-    }
-
-    public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException{
-        Set<String> loggers = new HashSet<>();
-
-        executeOnAllServers( "call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()", (hostAndPort, connection, rs) -> {
-                    while (rs.next()) {
-                        loggers.add(rs.getString(1));
-                    }
-            });
-
-        ResultHelper res = new ResultHelper();
-        ResultHelper.VarcharColumn col = res.addVarchar("SPLICE_LOGGER", 100);
-
-        ArrayList<String> loggerNames = new ArrayList<>(loggers);
-        Collections.sort(loggerNames);
-
-        List<ExecRow> rows = new ArrayList<>();
-        for (String logger : loggerNames) {
-            res.newRow();
-            col.set(logger);
-        }
-
-        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_ACTIVE_SERVERS(ResultSet[] resultSet) throws SQLException{

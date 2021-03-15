@@ -117,7 +117,8 @@ public class ShowCreateTableProcedure extends BaseAdminProcedures {
             }//End External Table
             else if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
                 //Target table is a View
-                throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" + schemaName + "\".\"" + tableName + "\"");
+                throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" +
+                        schemaName + "\".\"" + tableName + "\"");
             } else if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
                 //Target table is a system table
                 throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
@@ -223,14 +224,16 @@ public class ShowCreateTableProcedure extends BaseAdminProcedures {
                     referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                 }
                 String s = String.format("ALTER TABLE \"%s\".\"%s\" ADD ", schemaName, tableName);
-                fkKeys.append(s + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                fkKeys.append(s + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName,
+                        referencedColNames, fkColNames, updateType, deleteType));
                 fks.add(fkKeys.toString() + "\n");
             }
         }
         return fks;
     }
     @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
-    private static String createConstraint(TableDescriptor td, String schemaName, String tableName, boolean separateFK) throws SQLException, StandardException {
+    private static String createConstraint(TableDescriptor td, String schemaName, String tableName,
+                                           boolean separateFK) throws SQLException, StandardException {
         Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
                 .stream()
                 .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
@@ -254,7 +257,8 @@ public class ShowCreateTableProcedure extends BaseAdminProcedures {
                     boolean pkFirstCol = true;
                     for (int index=0; index<keyColumns.length; index ++) {
                         String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
-                        priKeys.append(pkFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " PRIMARY KEY(\"" + colName + "\"": ",\"" + colName + "\"");
+                        priKeys.append(pkFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " PRIMARY KEY(\""
+                                + colName + "\"": ",\"" + colName + "\"");
                         pkFirstCol = false;
                     }
                     if (!pkFirstCol)
@@ -267,7 +271,8 @@ public class ShowCreateTableProcedure extends BaseAdminProcedures {
                     boolean uniqueFirstCol = true;
                     for (int index=0; index<keyColumns.length; index ++) {
                         String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
-                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
+                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + cd.getConstraintName() +
+                                " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
                         uniqueFirstCol = false;
                     }
                     if (!uniqueFirstCol)
@@ -296,7 +301,8 @@ public class ShowCreateTableProcedure extends BaseAdminProcedures {
                             fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
                             referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                         }
-                        fkKeys.append(", " + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                        fkKeys.append(", " + ShowCreateTableProcedure.buildForeignKeyConstraint(fkName, refTblName,
+                                referencedColNames, fkColNames, updateType, deleteType));
                     }
                     break;
                 default:

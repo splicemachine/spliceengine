@@ -30,7 +30,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
-import com.splicemachine.derby.utils.SpliceDateFunctions;
+import com.splicemachine.derby.procedures.SpliceDateFunctions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 
@@ -42,7 +42,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 
-import static com.splicemachine.derby.utils.SpliceDateFunctions.TO_DATE;
+import static com.splicemachine.derby.procedures.SpliceDateFunctions.TO_DATE;
 import static com.splicemachine.derby.utils.SpliceDateTimeFormatter.*;
 
 /**
