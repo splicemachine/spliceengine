@@ -55,6 +55,12 @@ class AccessPathImpl implements AccessPath{
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
     private int numUnusedLeadingIndexFields;
+    private boolean useDNF = false;
+    private Predicate uisPredicate;
+    private Predicate uisRowIdPredicate;
+    private FromTable unionOfIndexes = null;
+    private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
+
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
@@ -112,6 +118,10 @@ class AccessPathImpl implements AccessPath{
         setLockMode(copyFrom.getLockMode());
         setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
         setNumUnusedLeadingIndexFields(copyFrom.getNumUnusedLeadingIndexFields());
+        setUisPredicate(copyFrom.getUisPredicate());
+        setUisRowIdPredicate(copyFrom.getUisRowIdPredicate());
+        setUnionOfIndexes(copyFrom.getUnionOfIndexes());
+        setUisRowIdJoinBackToBaseTableResultSet(copyFrom.getUisRowIdJoinBackToBaseTableResultSet());
     }
 
     @Override public Optimizer getOptimizer(){ return optimizer; }
@@ -126,9 +136,10 @@ class AccessPathImpl implements AccessPath{
                     ", specialMaxScan == "+specialMaxScan+
                     ", joinStrategy == " + (joinStrategy == null ? "null" : joinStrategy) +
                     ", lockMode == "+lockMode+
-                    ", optimizer level == "+optimizer.getLevel()+
+                    ", optimizer level == "+ (optimizer != null ? optimizer.getLevel() : -1) +
                     ", missingHashKeyOK == "+isMissingHashKeyOK()+
-                    ", numUnusedLeadingIndexFields == "+getNumUnusedLeadingIndexFields();
+                    ", numUnusedLeadingIndexFields == "+getNumUnusedLeadingIndexFields()+
+                    ", unionedIndexScan == " + Boolean.valueOf(getUisRowIdJoinBackToBaseTableResultSet() != null);
         }else{
             return "";
         }
@@ -183,4 +194,45 @@ class AccessPathImpl implements AccessPath{
     public FirstColumnOfIndexStats getFirstColumnStats() {
         return getCostEstimate().getFirstColumnStats();
     }
+
+    @Override
+    public void setUisPredicate(Predicate uisPredicate) {
+        this.uisPredicate = uisPredicate;
+    }
+
+    @Override
+    public Predicate getUisPredicate() {
+        return uisPredicate;
+    }
+
+    @Override
+    public void setUisRowIdPredicate(Predicate uisRowIdPredicate) {
+        this.uisRowIdPredicate = uisRowIdPredicate;
+    }
+
+    @Override
+    public Predicate getUisRowIdPredicate() {
+        return uisRowIdPredicate;
+    }
+
+    @Override
+    public FromTable getUnionOfIndexes() {
+        return unionOfIndexes;
+    }
+
+    @Override
+    public void setUnionOfIndexes(FromTable unionOfIndexes) {
+        this.unionOfIndexes = unionOfIndexes;
+    }
+
+    @Override
+    public ResultSetNode getUisRowIdJoinBackToBaseTableResultSet() {
+        return uisRowIdJoinBackToBaseTableResultSet;
+    }
+
+    @Override
+    public void setUisRowIdJoinBackToBaseTableResultSet(ResultSetNode uisRowIdJoinBackToBaseTableResultSet) {
+        this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;
+    }
+
 }

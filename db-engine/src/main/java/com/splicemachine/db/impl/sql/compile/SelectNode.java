@@ -1875,6 +1875,10 @@ public class SelectNode extends ResultSetNode{
         ResultSetNode leftResultSet;
         ResultSetNode rightResultSet;
 
+        PredicateList predicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());;
+        if (optimizer.getPredicateList() != null)
+            optimizer.getPredicateList().copyPredicatesToOtherList(predicateList);
+
         /*
         ** Modify the access path for each Optimizable, as necessary
         **
@@ -2032,8 +2036,29 @@ public class SelectNode extends ResultSetNode{
                         getContextManager()
                 );
             }
+            joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
             ResultSetNode newPRNode = joinNode.genProjectRestrict();
+
+            // Remap ResultColumns present in ROWID = ROWID predicates.
+            // We want the predicates to be applied as join predicates
+            // instead of after the join.
+            JBitSet referencedTableMap = joinNode.getReferencedTableMap();
+            for(int index=predicateList.size()-1;index>=0;index--){
+                Predicate predicate=predicateList.elementAt(index);
+                if(!predicate.getPushable()){
+                    continue;
+                }
+                JBitSet curBitSet=predicate.getReferencedSet();
+                /* Do we have a match? */
+                if(referencedTableMap.contains(curBitSet)){
+                    /* Remap all of the ROWID ColumnReferences to point to the
+                     * source ProjectRestrictNode on the right or left of the join.
+                     */
+                    RemapCRsForJoinVisitor decoupleCRsVisitor = new RemapCRsForJoinVisitor();
+                    predicate.getAndNode().accept(decoupleCRsVisitor);
+                }
+            }
 
             // apply post outer join conditions
             if (((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
@@ -2766,6 +2791,7 @@ public class SelectNode extends ResultSetNode{
                 ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
                         getContextManager());
+                rowLocationNode.bindExpression(null, null, null);
                 rc.setExpression(rowLocationNode);
 
             } else {
