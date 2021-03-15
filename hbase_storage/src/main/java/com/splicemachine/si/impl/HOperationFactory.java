@@ -14,6 +14,9 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.Durability;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.storage.*;
@@ -24,6 +27,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -36,9 +40,13 @@ import java.util.List;
  *         Date: 1/18/16
  */
 public class HOperationFactory implements OperationFactory{
+    private static final Logger LOG = Logger.getLogger(HOperationFactory.class);
     public static final HOperationFactory INSTANCE = new HOperationFactory();
+    private final Durability durability;
 
-    private HOperationFactory(){}
+    private HOperationFactory(){
+        durability = HConfiguration.getConfiguration().getDurability();
+    }
 
     @Override
     public DataScan newScan(){
@@ -56,7 +64,9 @@ public class HOperationFactory implements OperationFactory{
 
     @Override
     public DataPut newPut(ByteSlice slice){
-        return new HPut(slice);
+        DataPut put = new HPut(slice);
+        put.setDurability(durability);
+        return put;
     }
 
     @Override
@@ -70,12 +80,17 @@ public class HOperationFactory implements OperationFactory{
 
     @Override
     public DataPut newPut(byte[] rowKey){
-        return new HPut(rowKey);
+        HPut put = new HPut(rowKey);
+        put.setDurability(durability);
+        return put;
     }
 
     @Override
     public DataDelete newDelete(byte[] rowKey){
-        return new HDelete(rowKey);
+        HDelete delete = new HDelete(rowKey);
+        delete.setDurability(durability);
+        return delete;
+
     }
 
     @Override
@@ -115,7 +130,20 @@ public class HOperationFactory implements OperationFactory{
     @Override
     public DataPut toDataPut(KVPair kvPair,byte[] family,byte[] column,long timestamp){
         HPut hp = new HPut(kvPair.rowKeySlice(),timestamp);
+        hp.setDurability(durability);
         hp.addCell(family,column,timestamp,kvPair.getValue());
         return hp;
+    }
+
+    public static org.apache.hadoop.hbase.client.Durability toHBaseDurability(com.splicemachine.access.api.Durability durability) {
+        switch (durability) {
+            case NONE: return org.apache.hadoop.hbase.client.Durability.SKIP_WAL;
+            case ASYNC: return org.apache.hadoop.hbase.client.Durability.ASYNC_WAL;
+            case SYNC: return org.apache.hadoop.hbase.client.Durability.SYNC_WAL;
+            default: {
+                LOG.error("Unexpected durability: " + durability);
+                return org.apache.hadoop.hbase.client.Durability.SYNC_WAL;
+            }
+        }
     }
 }

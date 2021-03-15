@@ -52,6 +52,7 @@ class KafkaMaintenanceIT extends FunSuite with Matchers with BeforeAndAfterAll {
     props.put("port", kafkaPort)
     props.put("offsets.topic.replication.factor", "1")  // helps splice standalone work on Kafka 2.2
     props.put("log.dir", s"$tmpDir/kafka-logs-$id")
+    println(s"log.dir = ${props.get("log.dir")}")
 
     kafka = new KafkaServerStartable(new KafkaConfig(props))
     kafka.startup
@@ -68,9 +69,17 @@ class KafkaMaintenanceIT extends FunSuite with Matchers with BeforeAndAfterAll {
     admin.close
     kafka.shutdown
   }
-  
-  def work(): Unit = {
-    KafkaMaintenance.deleteOldTopics( kafkaServer , dataFile.toString , 1 )
+
+  def work(): Unit = work(null, null)
+
+  def work(prefixToDelete: Seq[String], prefixToKeep: Seq[String]): Unit = {
+    KafkaMaintenance.deleteOldTopics(
+      kafkaServer,
+      dataFile.toString,
+      1,
+      if( prefixToDelete == null ) null else prefixToDelete.asJava,
+      if( prefixToKeep == null ) null else prefixToKeep.asJava
+    )
     org.junit.Assert.assertTrue(
       s"File not found: $dataFile",
       Files.exists(dataFile)
@@ -369,6 +378,49 @@ class KafkaMaintenanceIT extends FunSuite with Matchers with BeforeAndAfterAll {
       s"Unexpected content in: $dataFile",
       "NToy1, NToy2, SYTn1, SYTn2",
       Files.readAllLines(dataFile).asScala.sorted.map(_.split(",")(0)).mkString(", ")
+    )
+  }
+
+  test("Test with Some Delete Prefixes") {
+    testTopicPrefixFilters(Seq("DEL-A","DEL-B"), null)
+  }
+
+  test("Test with Some Keep Prefixes") {
+    testTopicPrefixFilters(null, Seq("KEEP-A","KEEP-B"))
+  }
+
+  def testTopicPrefixFilters(prefixToDelete: Seq[String], prefixToKeep: Seq[String]): Unit = {
+    clean
+    val d1 = "DEL-A-T1"
+    val d2 = "DEL-B-T2"
+    val k1 = "KEEP-A-T1"
+    val k2 = "KEEP-B-T2"
+    createTopics(Seq(d1,d2,k1,k2))
+
+    var kt = kafkaTopics()
+
+    org.junit.Assert.assertTrue(
+      "Topics not found in Kafka pre-work",
+      kt.contains(d1) && kt.contains(d2) && kt.contains(k1) && kt.contains(k2)
+    )
+
+    work(prefixToDelete, prefixToKeep)
+    makeTopicsOld
+    work(prefixToDelete, prefixToKeep)
+
+    kt = kafkaTopics()
+
+    org.junit.Assert.assertFalse(
+      "Topics found in Kafka",
+      kt.contains(d1) || kt.contains(d2)
+    )
+    org.junit.Assert.assertTrue(
+      "Topics not found in Kafka post-work",
+      kt.contains(k1) && kt.contains(k2)
+    )
+    org.junit.Assert.assertTrue(
+      s"Unexpected content in: $dataFile",
+      Files.lines(dataFile).count == 0
     )
   }
 }

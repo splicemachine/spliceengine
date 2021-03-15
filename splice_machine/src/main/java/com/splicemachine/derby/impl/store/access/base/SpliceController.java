@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.carrotsearch.hppc.BitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
@@ -168,6 +169,7 @@ public abstract class SpliceController implements ConglomerateController{
         return batchFetch(locations,destRows,validColumns,false);
     }
     @Override
+    @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification = "intentional")
     public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows, FormatableBitSet validColumns, boolean waitForLock) throws StandardException{
         if (locations.size() != destRows.size())
             return false;
@@ -194,6 +196,10 @@ public abstract class SpliceController implements ConglomerateController{
                 ExecRow row = new ValueRow(destRow.length);
                 row.setRowArray(destRow);
                 row.resetRowArray();
+                if (result == null) {
+                    i++;
+                    continue;
+                }
                 DataCell keyValue = result.userData();
                 rowDecoder.set(keyValue.valueArray(), keyValue.valueOffset(), keyValue.valueLength());
                 rowDecoder.decode(row);

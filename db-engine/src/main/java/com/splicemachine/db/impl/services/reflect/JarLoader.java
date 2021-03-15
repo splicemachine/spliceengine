@@ -567,4 +567,10 @@ public final class JarLoader extends SecureClassLoader {
     {
         return getJarName() + ":" + super.toString();
     }
+
+    public String getPath() {
+    	if (installedJar == null)
+    		return null;
+    	return installedJar.getPath();
+	}
 }

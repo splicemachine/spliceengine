@@ -87,6 +87,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @throws StandardException
      */
     public void init(Object arg1, Object arg2) throws StandardException {
+        super.init();
         this.window = (WindowNode)arg1;
     }
 
@@ -319,7 +320,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
         CompilerContext cc = getCompilerContext();
 
         // operand being null means a count(*)
-        if (operand != null) {
+        if (getOperand() != null) {
             int previousReliability = orReliability(CompilerContext.AGGREGATE_RESTRICTION);
 
             // overridden to bind all function operands
@@ -333,7 +334,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
               */
             // TODO: JC - this.getClass() gives the subclass vvv. shouldn't this be WindowFunctionNode.class?
             HasNodeVisitor visitor = new HasNodeVisitor(this.getClass(), ResultSetNode.class);
-            operand.accept(visitor);
+            getOperand().accept(visitor);
             if (visitor.hasNode()) {
                 throw StandardException.newException
                     (
@@ -344,13 +345,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
             // Also forbid any window function inside an aggregate unless in
             // subquery, cf. SQL 2003, section 10.9, SR 7 a).
-            SelectNode.checkNoWindowFunctions(operand, aggregateName);
+            SelectNode.checkNoWindowFunctions(getOperand(), aggregateName);
 
               /*
               ** Check the type of the operand.  Make sure that the user
               ** defined aggregate can handle the operand datatype.
               */
-            dts = operand.getTypeServices();
+            dts = getOperand().getTypeServices();
 
               /* Convert count(nonNullableColumn) to count(*)	*/
             if (uad instanceof CountAggregateDefinition &&
@@ -362,7 +363,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
               /*
               ** Don't allow an untyped null
               */
-            if (operand instanceof UntypedNullConstantNode) {
+            if (getOperand() instanceof UntypedNullConstantNode) {
                 throw StandardException.newException
                     (SQLState.LANG_USER_AGGREGATE_BAD_TYPE_NULL, getSQLName());
 
@@ -379,16 +380,16 @@ public abstract class WindowFunctionNode extends AggregateNode {
         if (resultType == null) {
             throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_BAD_TYPE,
                                                  getSQLName(),
-                                                 operand.getTypeId().getSQLTypeName());
+                                                 getOperand().getTypeId().getSQLTypeName());
 
         }
         // For user-defined aggregates, the input operand may need to be
         // coerced to the expected input type of the aggregator.
         if (isUserDefinedAggregate()) {
             ValueNode castNode = ((UserAggregateDefinition) uad).castInputValue
-                (operand, getContextManager());
+                (getOperand(), getContextManager());
             if (castNode != null) {
-                operand = castNode.bindExpression(fromList, subqueryList, aggregateVector);
+                setOperand(castNode.bindExpression(fromList, subqueryList, aggregateVector));
             }
         }
 

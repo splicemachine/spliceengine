@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
@@ -471,7 +472,7 @@ public class SITransactor implements Transactor{
             rollforward.add(kvPair.rowKeySlice());
 
         if (skipWAL)
-            newPut.skipWAL();
+            newPut.setDurability(Durability.NONE);
         return newPut;
     }
 

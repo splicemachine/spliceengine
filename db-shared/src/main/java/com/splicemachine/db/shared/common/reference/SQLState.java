@@ -737,6 +737,7 @@ public interface SQLState {
     String LANG_INVALID_ESCAPE_CHARACTER              = "22019";
     String LANG_INVALID_TRIM_CHARACTER                = "22020";
     String LANG_INVALID_CHARACTER_ENCODING            = "22021";
+    String LANG_INVALID_TRANSLATE_PADDING             = "22022";
     String LANG_INVALID_ESCAPE_SEQUENCE               = "22025";
     String LANG_INVALID_TRIM_SET                      = "22027";
     String LANG_STRING_TOO_LONG                       = "22028";
@@ -752,6 +753,7 @@ public interface SQLState {
     String LANG_INVALID_AGGREGATION_DATATYPE          = "2202E";
     String LANG_INVALID_TIME_SPAN_OPERATION           = "2202F";
     String LANG_FIELD_POSITION_ZERO                   = "22030";
+    String LANG_INVALID_TIMEZONE_OPERATION            = "22031";
     /*
      ** Integrity violations.
      */
@@ -837,6 +839,7 @@ public interface SQLState {
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                  = "42831.S.1";
     String LANG_DB2_REPLACEMENT_ERROR                         = "42815.S.713";
     String LANG_DB2_MULTINARY_DATATYPE_MISMATCH               = "42815.S.171";
+    String LANG_DB2_INVALID_DATETIME_EXPR                     = "42816";
     String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL           = "42820";
     String LANG_DB2_LIKE_SYNTAX_ERROR                         = "42824";
     String LANG_INVALID_FK_COL_FOR_SETNULL                    = "42834";
@@ -920,7 +923,7 @@ public interface SQLState {
     String LANG_INVALID_STATISTICS_SPEC                                    = "42X64";
     String LANG_INDEX_NOT_FOUND                                            = "42X65";
     String LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX                         = "42X66";
-    //42X67
+    String LANG_INVALID_UPDATE_STATEMENT                                   = "42X67";
     String LANG_NO_FIELD_FOUND                                             = "42X68";
     String LANG_PRIMITIVE_REFERENCING_EXPRESSION                           = "42X69";
     String LANG_TABLE_DEFINITION_R_C_L_MISMATCH                            = "42X70";
@@ -983,7 +986,7 @@ public interface SQLState {
     String LANG_NO_SUCH_FUNCTION                                           = "42Y03.S.2";
     String LANG_INVALID_FULL_STATIC_METHOD_NAME                            = "42Y04";
     String LANG_NO_SUCH_FOREIGN_KEY                                        = "42Y05";
-    //String LANG_METHOD_ALIAS_NOT_FOUND                                   = "42Y06";
+    String LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST                = "42Y06";
     String LANG_SCHEMA_DOES_NOT_EXIST                                      = "42Y07";
     String LANG_NO_FK_ON_SYSTEM_SCHEMA                                     = "42Y08";
     String LANG_VOID_METHOD_CALL                                           = "42Y09";
@@ -1029,7 +1032,7 @@ public interface SQLState {
     String LANG_INVALID_FORCED_INDEX2                                      = "42Y48";
     String LANG_DUPLICATE_PROPERTY                                         = "42Y49";
     String LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED                  = "42Y50";
-    //    String LANG_INVALID_FORCED_INDEX4                                = "42Y51";
+    String LANG_INVALID_MIN_PLAN_TIMEOUT                                   = "42Y51";
     String LANG_INVALID_FORCED_SKIPSTATS                                   = "42Y52";
     String LANG_INVALID_SPLITS                                             = "42Y53";
     String LANG_INVALID_SELECTIVITY                                        = "42Y54";
@@ -1146,7 +1149,7 @@ public interface SQLState {
     String LANG_SHARE_ROW           = "42Z88.U";
 
     // MORE GENERIC LANGUAGE STUFF
-    // String LANG_UPDATABLE_VTI_BAD_GETRESULTSETCONCURRENCY          = "42Z89";
+    String LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA           = "42Z89";
     String LANG_UPDATABLE_VTI_NON_UPDATABLE_RS            = "42Z90";
     String LANG_SUBQUERY                                  = "42Z91";
     String LANG_REPEATABLE_READ                           = "42Z92";
@@ -1947,6 +1950,7 @@ public interface SQLState {
     String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR = "XIE12.S";
     String UNSUPPORTED_COMPRESSION_FORMAT          = "XIE13.S";
     String UNSUPPORTED_QUOTE_MODE                  = "XIE14.S";
+    String UNSUPPORTED_FLOATING_POINT_NOTATION     = "XIE15.S";
 
 
     /*

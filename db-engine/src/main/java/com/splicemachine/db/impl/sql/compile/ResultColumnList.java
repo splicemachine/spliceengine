@@ -1260,7 +1260,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
              * Really need yet another node type that does its own code generation.
              */
             if(rc.getExpression() instanceof CurrentRowLocationNode){
-                ConglomerateController cc;
                 int savedItem;
                 RowLocation rl;
 
@@ -1269,14 +1268,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
-                cc=lcc.getTransactionCompile().openConglomerate(conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel);
-
-                try{
+                try (ConglomerateController cc = lcc.getTransactionCompile().openConglomerate(
+                        conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel)) {
                     rl=cc.newRowLocationTemplate();
-                }finally{
-                    if(cc!=null){
-                        cc.close();
-                    }
                 }
 
                 savedItem=acb.addItem(rl);
@@ -1849,6 +1843,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
             rc.rejectParameter();
+        }
+    }
+
+    void setUnknownParameterType(DataTypeDescriptor type) throws StandardException{
+        for (ResultColumn rc: this) {
+            rc.setUnknownParameterType(type);
         }
     }
 
@@ -2510,6 +2510,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      */
     public void remapColumnReferencesToExpressions() throws StandardException{
         int size=size();
+        boolean projectionPruningEnabled = getCompilerContext().isProjectionPruningEnabled();
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
 
@@ -2518,7 +2519,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             // is a ColumnReference; we call through to the ColumnReference
             // to give it a chance to remap itself from the outer query
             // node to this one.
-            if(rc.getExpression()!=null)
+            // DB-10817 note:
+            // When projection pruning is enabled, only remap columns that
+            // are referenced. For those are not referenced, their source
+            // may have been pruned already.
+            if(rc.getExpression() != null && (!projectionPruningEnabled || rc.isReferenced()))
                 rc.setExpression(rc.getExpression().remapColumnReferencesToExpressions());
         }
     }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -400,6 +402,11 @@ public class SpliceUnitTest {
         return Double.parseDouble(m1.group().substring("scannedRows=".length()));
     }
 
+    protected void runQuery(String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+        }
+    }
+
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -473,6 +480,68 @@ public class SpliceUnitTest {
         finally {
             if (rs != null)
                 rs.close();
+        }
+    }
+
+    protected void testPreparedQuery(String sqlText, SpliceWatcher methodWatcher,
+                                     String expected, List<Integer> paramList) throws Exception {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+
+            try(ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+        }
+    }
+
+    protected void testExplainContains(String sqlText,
+                                       SpliceWatcher methodWatcher,
+                                       List<String> containedStrings,
+                                       List<String> notContainedStrings) throws Exception {
+        String explainQuery = "explain " + sqlText;
+        try (ResultSet rs = methodWatcher.executeQuery(explainQuery)){
+            String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (containedStrings != null)
+                for (String containedString : containedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                        explainText.contains(containedString));
+                }
+            if (notContainedStrings != null)
+                for (String notContainedString : notContainedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                        !explainText.contains(notContainedString));
+                }
+        }
+    }
+
+    protected void testParameterizedExplainContains(String sqlText,
+                                     SpliceWatcher methodWatcher,
+                                     List<String> containedStrings,
+                                     List<String> notContainedStrings,
+                                     List<Integer> paramList) throws Exception {
+
+        String explainQuery = "explain " + sqlText;
+        try(PreparedStatement ps = methodWatcher.prepareStatement(explainQuery)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+            try(ResultSet rs = ps.executeQuery()) {
+                String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                if (containedStrings != null)
+                    for (String containedString : containedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                            explainText.contains(containedString));
+                    }
+                if (notContainedStrings != null)
+                    for (String notContainedString : notContainedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                            !explainText.contains(notContainedString));
+                    }
+            }
         }
     }
 
@@ -1064,14 +1133,12 @@ public class SpliceUnitTest {
         return count;
     }
 
-    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
-    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
-    {
-        try {
+    public static void sqlExpectException(Connection conn, String sqlText, String expectedState, boolean update) {
+        try ( Statement s = conn.createStatement() ){
             if( update )
-                methodWatcher.executeUpdate(sqlText);
+                s.executeUpdate(sqlText);
             else {
-                ResultSet rs = methodWatcher.executeQuery(sqlText);
+                ResultSet rs = s.executeQuery(sqlText);
                 rs.close();
             }
             Assert.fail("Exception not thrown for " + sqlText);
@@ -1080,6 +1147,21 @@ public class SpliceUnitTest {
             Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getSQLState());
         } catch (Exception e) {
             Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
+        }
+    }
+
+    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
+    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
+    {
+        sqlExpectException( methodWatcher.getOrCreateConnection(), sqlText, expectedState, update );
+    }
+
+    public static void assertThrows(Runnable r, String expectedExceptionStr) {
+        try {
+            r.run();
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            Assert.assertEquals(expectedExceptionStr, e.toString());
         }
     }
 
@@ -1118,13 +1200,14 @@ public class SpliceUnitTest {
                 Thread.sleep(1000);
                 oldest1 = oldest2;
             }
+            String oldestMsg = "Oldest txn: " + oldest1;
             if (failOnError) {
-                Assert.fail(name + " failed to close all transactions.");
+                Assert.fail(name + " failed to close all transactions. " + oldestMsg);
             } else {
                 // if you see this error, this is a hint that something might be left open, especially if you see
                 // multiple of these messages. turn failOnError=true and check tests one by one.
                 LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
-                        "tests running in parallel.");
+                        "tests running in parallel. " + oldestMsg);
             }
         } catch( SQLException e)
         {
@@ -1169,7 +1252,8 @@ public class SpliceUnitTest {
     {
         String[] paths = {
                 System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
-                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../mem_sql/target/sql-it/sql-it.jar",
         };
         for(String path : paths ) {
             if( new File(path).exists())
@@ -1195,6 +1279,94 @@ public class SpliceUnitTest {
             rs.next();
             Assert.assertEquals(output, rs.getBoolean(1));
         }
+    }
 
+    protected void checkNullExpression(String input, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try (ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertNull(rs.getObject(1));
+        }
+    }
+
+    protected void checkExpressionType(String input, String expectedType, TestConnection conn) throws SQLException {
+        String sql = format("select typeof(%s)", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedType, rs.getString(1));
+        }
+    }
+
+    protected void checkStringExpression(String input, String expectedOutput, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getString(1));
+        }
+    }
+
+    public static boolean isMemPlatform(SpliceWatcher watcher) throws Exception{
+        try (ResultSet rs = watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
+    }
+
+    public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
+        @Override
+        default void accept(final T t, final U u) {
+            try {
+                acceptThrows(t, u);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        void acceptThrows(T t, U u) throws Exception;
+    }
+
+    protected void runOltpOlapOlapNativeSpark(ThrowingBiConsumer<Boolean, Boolean> consumer) {
+        consumer.accept(false, false);
+        consumer.accept(true, false);
+        consumer.accept(true, true);
+    }
+
+
+
+    /**
+     * matching regexp with multiple lines by splitting the input string and the result string and
+     * comparing individually
+     * @param in the input multiline string
+     * @param expectedOutRegex the multiline string that is used to match the input
+     */
+    public static void matchMultipleLines(String in, String expectedOutRegex) {
+        String[] o2 = in.split("\n");
+        String[] ex2 = expectedOutRegex.split("\n");
+        Assert.assertEquals(in + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
+        for(int i =0; i<o2.length; i++) {
+            Assert.assertTrue("\n" + o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
+        }
+    }
+
+    /**
+     * creates a regexp where all characters are escaped and § is mapped to .*, so that
+     * when we have a result with a variable result like with a conglomerate id
+     * | 347893 | MY_TABLE |
+     * we can use
+     * |§| MY_TABLE |
+     * to match the result
+     * @param asteriskFilter
+     * @return escaped regexp String, and § mapped to .*
+     */
+    public static String escapeRegexp(String asteriskFilter)
+    {
+        String filter = asteriskFilter;
+        String toEscape[] = {"\\", "<", "(", "[", "{", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
+        for(String s : toEscape) {
+            filter = filter.replace(s, "\\" + s);
+        }
+
+        filter = filter.replace("§", ".*");
+        return filter;
     }
 }

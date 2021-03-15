@@ -360,12 +360,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-        /*
-        ** Parameters not allowed in select list of either side of union,
-        ** except when the union is for a table constructor.
-        */
         if (!bindRightOnly) {
-            if (!(this instanceof UnionNode) || !((UnionNode) this).tableConstructor()) {
+            if (!(this instanceof UnionNode)) {
                 leftResultSet.rejectParameters();
                 rightResultSet.rejectParameters();
             }
@@ -529,6 +525,19 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        /* DB-10817 note
+         * For a non-flattenable join, set the non-flattenable flag to all nested joins.
+         * This has nothing to do with flattening, but to build a PRN on top of each
+         * nested joins. This is necessary because JoinConditionVisitor may add extra
+         * hash key columns into children's result column lists. If any child is a
+         * JoinNode, not PRN, then it breaks the equation that
+         * resultColumns.size() = leftResultSet.resultColumns.size() + rightResultSet.resultColumns.size(),
+         * which is the assumption in generated code.
+         */
+        if (!isFlattenableJoinNode()) {
+            leftResultSet.notFlattenableJoin();
+            rightResultSet.notFlattenableJoin();
+        }
         leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList);
         /* If leftResultSet is a FromSubquery, then we must explicitly extract
          * out the subquery (flatten it).  (SelectNodes have their own

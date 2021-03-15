@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
 import com.splicemachine.db.iapi.types.TypeId;
@@ -130,7 +131,7 @@ public class XMLTypeCompiler extends BaseTypeCompiler
      * can get called before we finish type checking--so we return a dummy
      * value here and let the type check throw the appropriate error.
      */
-    public int getCastToCharWidth(DataTypeDescriptor dts)
+    public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
     {
         return -1;
     }

@@ -71,6 +71,7 @@ import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Optional;
@@ -123,6 +124,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
     protected SchemaDescriptor sysViewSchemaDesc;
+    protected SchemaDescriptor sysCatSchemaDesc;
 
     /**
      * Dictionary version of the on-disk database
@@ -252,6 +254,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param startParams The start-up parameters
      * @throws StandardException Thrown if the module fails to start
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         softwareVersion=new DD_Version(this,DataDictionary.DD_VERSION_DERBY_10_9);
@@ -350,7 +353,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             coreInfo[SYSSCHEMAS_CORE_NUM].setIndexConglomerate(
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
-
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -408,11 +410,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 //is either UCS_BASIC or TERRITORY_BASED. If none provided, 
                 //then we will take it to be the default which is UCS_BASIC.
                 userDefinedCollation=startParams.getProperty(
-                        Attribute.COLLATION,Property.UCS_BASIC_COLLATION);
+                        Attribute.COLLATION, PropertyHelper.UCS_BASIC_COLLATION);
                 bootingTC.setProperty(Property.COLLATION,userDefinedCollation,true);
             }else{
                 userDefinedCollation=startParams.getProperty(
-                        Property.COLLATION,Property.UCS_BASIC_COLLATION);
+                        Property.COLLATION, PropertyHelper.UCS_BASIC_COLLATION);
             }
 
             //Initialize the collation type of user schemas by looking at
@@ -491,7 +493,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // Set default hash algorithm used to protect passwords stored
                 // in the database for BUILTIN and NATIVE authentication.
                 bootingTC.setProperty(
-                        Property.AUTHENTICATION_BUILTIN_ALGORITHM,
+                        PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM,
                         findDefaultBuiltinAlgorithm(),
                         false);
             }else{
@@ -530,7 +532,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     }
                 }
             }
-
+            startParams.setProperty("catalogVersion", dictionaryVersion.toString());
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
@@ -578,11 +580,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private String findDefaultBuiltinAlgorithm(){
         try{
             // First check for the preferred default, and return it if present
-            MessageDigest.getInstance(Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
-            return Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT;
+            MessageDigest.getInstance(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
+            return PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT;
         }catch(NoSuchAlgorithmException nsae){
             // Couldn't find the preferred algorithm, so use the fallback
-            return Property.AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK;
+            return PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK;
         }
     }
 
@@ -673,7 +675,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         systemUtilSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
         sysFunSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID);
         sysViewSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID);
-
+        sysCatSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,SchemaDescriptor.SYSCAT_SCHEMA_UUID);
     }
 
     public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
@@ -727,7 +729,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(!supportConfigurableHash){
             return null;
         }else{
-            String algorithm=(String)PropertyUtil.getPropertyFromSet(props,Property.AUTHENTICATION_BUILTIN_ALGORITHM);
+            String algorithm=(String)PropertyUtil.getPropertyFromSet(props, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM);
 
             if(algorithm==null){
                 return null;
@@ -742,8 +744,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     salt=generateRandomSalt(props);
                     iterations=getIntProperty(
                             props,
-                            Property.AUTHENTICATION_BUILTIN_ITERATIONS,
-                            Property.AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT,
+                            PropertyHelper.AUTHENTICATION_BUILTIN_ITERATIONS,
+                            PropertyHelper.AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT,
                             1,Integer.MAX_VALUE);
                 }
             }
@@ -762,8 +764,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     private byte[] generateRandomSalt(Dictionary props){
         int saltLength=getIntProperty(props,
-                Property.AUTHENTICATION_BUILTIN_SALT_LENGTH,
-                Property.AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT,
+                PropertyHelper.AUTHENTICATION_BUILTIN_SALT_LENGTH,
+                PropertyHelper.AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT,
                 0,Integer.MAX_VALUE);
 
         SecureRandom random=new SecureRandom();
@@ -815,7 +817,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException {
+    public SchemaDescriptor getSystemSchemaDescriptor() {
         return systemSchemaDesc;
     }
 
@@ -831,7 +833,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSystemUtilSchemaDescriptor() {
         return (systemUtilSchemaDesc);
     }
 
@@ -846,7 +848,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysIBMSchemaDescriptor() {
         return sysIBMSchemaDesc;
     }
 
@@ -861,7 +863,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSysFunSchemaDescriptor() {
         return sysFunSchemaDesc;
     }
 
@@ -873,7 +875,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor() {
         return declaredGlobalTemporaryTablesSchemaDesc;
     }
 
@@ -885,7 +887,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public boolean isSystemSchemaName(String name) throws StandardException{
+    public boolean isSystemSchemaName(String name) {
         boolean ret_val=false;
 
         for(int i=systemSchemaNames.length-1;i>=0;){
@@ -922,23 +924,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             tc=getTransactionCompile();
         }
 
-        if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
-            return getSystemSchemaDescriptor();
-        }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded
-            // from pre 52, I may have 2 versions for you, one on disk
-            // (user SYSIBM), one imaginary (builtin). The
-            // one on disk (real one, if it exists), should always be used.
-            if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                return getSysIBMSchemaDescriptor();
-            }
-        }
+        SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
+        if (sd != null)
+            return sd;
 
-        /*
-        ** Manual lookup
-        */
-
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        sd = dataDictionaryCache.schemaCacheFind(schemaName);
         if (sd!=null)
             return sd;
 
@@ -958,6 +948,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return sd;
         }
     }
+
+    public SchemaDescriptor getSystemWideSchemaDescriptor(String schemaName) {
+        switch (schemaName) {
+            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
+                return getSystemSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
+                // oh you are really asking SYSIBM, if this db is soft upgraded
+                // from pre 52, I may have 2 versions for you, one on disk
+                // (user SYSIBM), one imaginary (builtin). The
+                // one on disk (real one, if it exists), should always be used.
+                if(dictionaryVersion == null || dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2)){
+                    return getSysIBMSchemaDescriptor();
+                }
+                break;
+            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
+                return sysIBMADMSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
+                return getSysFunSchemaDescriptor();
+            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
+                return sysViewSchemaDesc;
+            case SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME:
+                return sysCatSchemaDesc;
+            default:
+                break;
+        }
+        return null;
+    }
+
 
     /**
      * Get the target schema by searching for a matching row
@@ -1139,48 +1157,45 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public boolean existsSchemaOwnedBy(String authid,TransactionController tc) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
         SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
-        ConglomerateController heapCC=tc.openConglomerate(
+        try (ConglomerateController ignored =tc.openConglomerate(
                 ti.getHeapConglomerate(),false,0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        DataValueDescriptor authIdOrderable=new SQLVarchar(authid);
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+            DataValueDescriptor authIdOrderable = new SQLVarchar(authid);
+            ScanQualifier[][] scanQualifier = exFactory.getScanQualifier(1);
 
-        scanQualifier[0][0].setQualifier(
-                SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID-1,    /* to zero-based */
-                authIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
-                false);
+            scanQualifier[0][0].setQualifier(
+                    SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID - 1,    /* to zero-based */
+                    authIdOrderable,
+                    Orderable.ORDER_OP_EQUALS,
+                    false,
+                    false,
+                    false);
 
 
-        boolean result=false;
+            boolean result = false;
 
-        try(ScanController sc=tc.openScan(ti.getHeapConglomerate(),
-                false,
-                0,
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,
-                null,
-                0,
-                scanQualifier,
-                null,
-                0)){
-            ExecRow outRow=rf.makeEmptyRow();
+            try (ScanController sc = tc.openScan(ti.getHeapConglomerate(),
+                    false,
+                    0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,
+                    null,
+                    0,
+                    scanQualifier,
+                    null,
+                    0)) {
+                ExecRow outRow = rf.makeEmptyRow();
 
-            if(sc.fetchNext(outRow.getRowArray())){
-                result=true;
+                if (sc.fetchNext(outRow.getRowArray())) {
+                    result = true;
+                }
             }
-        }finally{
-            if(heapCC!=null){
-                heapCC.close();
-            }
+
+            return result;
         }
-
-        return result;
     }
 
     @Override
@@ -1786,9 +1801,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                          int indexId,
                                          int indexCol,
                                          DataValueDescriptor schemaIdOrderable) throws StandardException{
-        ConglomerateController heapCC=null;
-        ScanController scanController=null;
-        boolean foundRow;
         FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
 
         assert indexId>=0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
@@ -1804,13 +1816,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         false,
                         false);
 
-        try{
-            heapCC=tc.openConglomerate(
+        try (ConglomerateController ignored = tc.openConglomerate(
                     ti.getHeapConglomerate(),false,0,
                     TransactionController.MODE_RECORD,
-                    TransactionController.ISOLATION_REPEATABLE_READ);
+                    TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-            scanController=tc.openScan(
+            try (ScanController scanController = tc.openScan(
                     ti.getIndexConglomerate(indexId),    // conglomerate to open
                     false,                                // don't hold open across commit
                     0,                                  // for read
@@ -1821,19 +1832,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     ScanController.GE,                // startSearchOperation
                     qualifier,                            // scanQualifier,
                     null,                            // stop position - through last row
-                    ScanController.GT);                // stopSearchOperation
+                    ScanController.GT)) {              // stopSearchOperation
 
-            foundRow=(scanController.next());
-        }finally{
-            if(scanController!=null){
-                scanController.close();
-            }
-            if(heapCC!=null){
-                heapCC.close();
+                return (scanController.next());
             }
         }
-
-        return foundRow;
     }
 
     public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{
@@ -2582,57 +2585,48 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                     String authId,
                                     TransactionController tc,
                                     int action) throws StandardException{
-        ConglomerateController heapCC=tc.openConglomerate(
+        try (ConglomerateController heapCC=tc.openConglomerate(
                 ti.getHeapConglomerate(),false,0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        DataValueDescriptor authIdOrderable=new SQLVarchar(authId);
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+            DataValueDescriptor authIdOrderable = new SQLVarchar(authId);
+            ScanQualifier[][] scanQualifier = exFactory.getScanQualifier(1);
 
-        scanQualifier[0][0].setQualifier(
-                columnNo-1,    /* to zero-based */
-                authIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
-                false);
+            scanQualifier[0][0].setQualifier(
+                    columnNo - 1,    /* to zero-based */
+                    authIdOrderable,
+                    Orderable.ORDER_OP_EQUALS,
+                    false,
+                    false,
+                    false);
 
-        ScanController sc=tc.openScan(
-                ti.getIndexConglomerate(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX),
-                false,   // don't hold open across commit
-                0,       // for update
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,      // all fields as objects
-                null, // start position -
-                0,                            // startSearchOperation - none
-                scanQualifier,                //
-                null, // stop position -through last row
-                0);                           // stopSearchOperation - none
+            try (ScanController sc = tc.openScan(
+                    ti.getIndexConglomerate(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX),
+                    false,   // don't hold open across commit
+                    0,       // for update
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,      // all fields as objects
+                    null, // start position -
+                    0,                            // startSearchOperation - none
+                    scanQualifier,                //
+                    null, // stop position -through last row
+                    0)) {                         // stopSearchOperation - none
+                ExecRow outRow = rf.makeEmptyRow();
+                ExecIndexRow indexRow = getIndexRowFromHeapRow(
+                        ti.getIndexRowGenerator(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX),
+                        heapCC.newRowLocationTemplate(),
+                        outRow);
 
-        try{
-            ExecRow outRow=rf.makeEmptyRow();
-            ExecIndexRow indexRow=getIndexRowFromHeapRow(
-                    ti.getIndexRowGenerator(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX),
-                    heapCC.newRowLocationTemplate(),
-                    outRow);
-
-            while(sc.fetchNext(indexRow.getRowArray())){
-                if(action==DataDictionaryImpl.EXISTS){
-                    return true;
-                }else if(action==DataDictionaryImpl.DROP){
-                    ti.deleteRow(tc,indexRow,
-                            SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX);
+                while (sc.fetchNext(indexRow.getRowArray())) {
+                    if (action == DataDictionaryImpl.EXISTS) {
+                        return true;
+                    } else if (action == DataDictionaryImpl.DROP) {
+                        ti.deleteRow(tc, indexRow,
+                                SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX);
+                    }
                 }
-            }
-        }finally{
-            if(sc!=null){
-                sc.close();
-            }
-
-            if(heapCC!=null){
-                heapCC.close();
             }
         }
         return false;
@@ -2673,7 +2667,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false,
                 false);
 
-        ScanController sc=tc.openScan(
+        try (ScanController sc=tc.openScan(
                 ti.getHeapConglomerate(),
                 false,   // don't hold open across commit
                 0,       // for update
@@ -2684,43 +2678,42 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                            // startSearchOperation - none
                 scanQualifier,                //
                 null, // stop position -through last row
-                0);                           // stopSearchOperation - none
+                0)) {                         // stopSearchOperation - none
 
-        ExecRow outRow=rf.makeEmptyRow();
-        RoleGrantDescriptor grantDescr;
+            ExecRow outRow = rf.makeEmptyRow();
+            RoleGrantDescriptor grantDescr;
 
-        while(sc.fetchNext(outRow.getRowArray())){
-            grantDescr=(RoleGrantDescriptor)rf.buildDescriptor(outRow,null,this);
+            while (sc.fetchNext(outRow.getRowArray())) {
+                grantDescr = (RoleGrantDescriptor) rf.buildDescriptor(outRow, null, this);
 
-            if (roleOnly) {
-                // Next call is potentially inefficient.  We could read in
-                // definitions first in a separate hash table limiting
-                // this to a 2-pass scan.
-                RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee());
+                if (roleOnly) {
+                    // Next call is potentially inefficient.  We could read in
+                    // definitions first in a separate hash table limiting
+                    // this to a 2-pass scan.
+                    RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee());
 
-                if (granteeDef == null) {
-                    // not a role, must be user authid, skip
-                    continue;
+                    if (granteeDef == null) {
+                        // not a role, must be user authid, skip
+                        continue;
+                    }
                 }
-            }
 
-            String hashKey;
-            if(inverse){
-                hashKey=grantDescr.getGrantee();
-            }else{
-                hashKey=grantDescr.getRoleName();
-            }
+                String hashKey;
+                if (inverse) {
+                    hashKey = grantDescr.getGrantee();
+                } else {
+                    hashKey = grantDescr.getRoleName();
+                }
 
-            List<RoleGrantDescriptor> arcs=hm.get(hashKey);
-            if(arcs==null){
-                arcs=new LinkedList<>();
-            }
+                List<RoleGrantDescriptor> arcs = hm.get(hashKey);
+                if (arcs == null) {
+                    arcs = new LinkedList<>();
+                }
 
-            arcs.add(grantDescr);
-            hm.put(hashKey,arcs);
+                arcs.add(grantDescr);
+                hm.put(hashKey, arcs);
+            }
         }
-
-        sc.close();
 
         return hm;
 
@@ -2858,66 +2851,58 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(catalog);
         PermissionsCatalogRowFactory rf=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
 
-        ConglomerateController heapCC=tc.openConglomerate(
+        try (ConglomerateController heapCC=tc.openConglomerate(
                 ti.getHeapConglomerate(),false,0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        DataValueDescriptor authIdOrderable=new SQLVarchar(authId);
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+            DataValueDescriptor authIdOrderable=new SQLVarchar(authId);
+            ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
 
-        scanQualifier[0][0].setQualifier(
-                granteeColnoInIndex-1,    /* to zero-based */
-                authIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
-                false);
+            scanQualifier[0][0].setQualifier(
+                    granteeColnoInIndex-1,    /* to zero-based */
+                    authIdOrderable,
+                    Orderable.ORDER_OP_EQUALS,
+                    false,
+                    false,
+                    false);
 
-        ScanController sc=tc.openScan(
-                ti.getIndexConglomerate(indexNo),
-                false,                        // don't hold open across commit
-                0,                            // for update
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,      // all fields as objects
-                null, // start position -
-                0,                            // startSearchOperation - none
-                scanQualifier,                //
-                null, // stop position -through last row
-                0);                           // stopSearchOperation - none
+            try (ScanController sc=tc.openScan(
+                    ti.getIndexConglomerate(indexNo),
+                    false,                        // don't hold open across commit
+                    0,                            // for update
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,      // all fields as objects
+                    null, // start position -
+                    0,                            // startSearchOperation - none
+                    scanQualifier,                //
+                    null, // stop position -through last row
+                    0)) {                         // stopSearchOperation - none
 
-        try{
-            ExecRow outRow=rf.makeEmptyRow();
-            ExecIndexRow indexRow=getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexNo),heapCC.newRowLocationTemplate(),outRow);
+                ExecRow outRow = rf.makeEmptyRow();
+                ExecIndexRow indexRow = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexNo), heapCC.newRowLocationTemplate(), outRow);
 
-            while(sc.fetchNext(indexRow.getRowArray())){
-                RowLocation baseRowLocation=(RowLocation)indexRow.getColumn(indexRow.nColumns());
+                while (sc.fetchNext(indexRow.getRowArray())) {
+                    RowLocation baseRowLocation = (RowLocation) indexRow.getColumn(indexRow.nColumns());
 
-                boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow,null);
+                    boolean base_row_exists = heapCC.fetch(baseRowLocation, outRow, null);
 
-                if(SanityManager.DEBUG){
-                    // it can not be possible for heap row to
-                    // disappear while holding scan cursor on index at
-                    // ISOLATION_REPEATABLE_READ.
-                    SanityManager.ASSERT(base_row_exists,"base row doesn't exist");
+                    if (SanityManager.DEBUG) {
+                        // it can not be possible for heap row to
+                        // disappear while holding scan cursor on index at
+                        // ISOLATION_REPEATABLE_READ.
+                        SanityManager.ASSERT(base_row_exists, "base row doesn't exist");
+                    }
+
+                    if (action == DataDictionaryImpl.EXISTS) {
+                        return true;
+                    } else if (action == DataDictionaryImpl.DROP) {
+                        PermissionsDescriptor perm = (PermissionsDescriptor) rf.buildDescriptor(outRow, null, this);
+                        removePermEntryInCache(perm);
+                        ti.deleteRow(tc, indexRow, indexNo);
+                    }
                 }
-
-                if(action==DataDictionaryImpl.EXISTS){
-                    return true;
-                }else if(action==DataDictionaryImpl.DROP){
-                    PermissionsDescriptor perm=(PermissionsDescriptor)rf.buildDescriptor(outRow,null,this);
-                    removePermEntryInCache(perm);
-                    ti.deleteRow(tc,indexRow,indexNo);
-                }
-            }
-        }finally{
-            if(sc!=null){
-                sc.close();
-            }
-
-            if(heapCC!=null){
-                heapCC.close();
             }
         }
         return false;
@@ -2997,7 +2982,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param keyRow Start/stop position.
      * @throws StandardException Thrown on failure
      */
-    private void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
+    protected void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
         ExecRow curRow;
         PermissionsDescriptor perm;
         TabInfoImpl ti=getNonCoreTI(SYSCOLPERMS_CATALOG_NUM);
@@ -3270,8 +3255,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
         sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
-        if(sps!=null)
-                return sps;
+        if (sps!=null)
+            return sps;
         sps=getSPSDescriptorIndex2Scan(uuid.toString());
         dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
@@ -3642,7 +3627,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException{
         for(Object o : getAllSPSDescriptors()){
             SPSDescriptor spsd=(SPSDescriptor)o;
-            spsd.getPreparedStatement(true);
+            spsd.getPreparedStatement(true, lcc);
         }
     }
 
@@ -3693,8 +3678,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 new DataValueDescriptor[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc=
-                tc.openScan(
+        try (ScanController sc= tc.openScan(
                         ti.getHeapConglomerate(),
                         false,
                         TransactionController.OPENMODE_FORUPDATE,
@@ -3705,22 +3689,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ScanController.NA,
                         null,
                         null,
-                        ScanController.NA);
+                        ScanController.NA)) {
 
-        while(sc.fetchNext(rowTemplate)){
-            /* Replace the column in the table */
-            for (int i=0; i<rowTemplate.length; i++) {
-                if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
-                    replaceRow[i] = new SQLBoolean(false);
-                else if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
-                    replaceRow[i] = new UserType(null);
-                else
-                    replaceRow[i] = rowTemplate[i].cloneValue(false);
+            while (sc.fetchNext(rowTemplate)) {
+                /* Replace the column in the table */
+                for (int i = 0; i < rowTemplate.length; i++) {
+                    if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
+                        replaceRow[i] = new SQLBoolean(false);
+                    else if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
+                        replaceRow[i] = new UserType((Object)null);
+                    else
+                        replaceRow[i] = rowTemplate[i].cloneValue(false);
+                }
+                sc.replace(replaceRow, columnToUpdateSet);
             }
-            sc.replace(replaceRow,columnToUpdateSet);
         }
-
-        sc.close();
     }
 
     /**
@@ -4860,12 +4843,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                                    ConstraintDescriptorList dList,
                                                                    boolean forUpdate) throws StandardException{
         SYSCONSTRAINTSRowFactory rf=(SYSCONSTRAINTSRowFactory)ti.getCatalogRowFactory();
-        ConglomerateController heapCC;
         ConstraintDescriptor cd=null;
         ExecIndexRow indexRow1;
         ExecRow outRow;
         RowLocation baseRowLocation;
-        ScanController scanController;
         TransactionController tc;
 
         // Get the current transaction controller
@@ -4873,85 +4854,85 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         outRow=rf.makeEmptyRow();
 
-        heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,0,
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
 
-        /* Scan the index and go to the data pages for qualifying rows to
-         * build the column descriptor.
-         */
-        scanController=tc.openScan(
-                ti.getIndexConglomerate(indexId),  // conglomerate to open
-                false, // don't hold open across commit
-                (forUpdate)?TransactionController.OPENMODE_FORUPDATE:0,
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,         // all fields as objects
-                keyRow.getRowArray(),   // start position - exact key match.
-                ScanController.GE,      // startSearchOperation
-                null,                   //scanQualifier,
-                keyRow.getRowArray(),   // stop position - exact key match.
-                ScanController.GT);     // stopSearchOperation
+            /* Scan the index and go to the data pages for qualifying rows to
+             * build the column descriptor.
+             */
+            try (ScanController scanController = tc.openScan(
+                    ti.getIndexConglomerate(indexId),  // conglomerate to open
+                    false, // don't hold open across commit
+                    (forUpdate) ? TransactionController.OPENMODE_FORUPDATE : 0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    null,         // all fields as objects
+                    keyRow.getRowArray(),   // start position - exact key match.
+                    ScanController.GE,      // startSearchOperation
+                    null,                   //scanQualifier,
+                    keyRow.getRowArray(),   // stop position - exact key match.
+                    ScanController.GT)) {   // stopSearchOperation
 
-        while(scanController.next()){
-            SubConstraintDescriptor subCD=null;
+                while (scanController.next()) {
+                    SubConstraintDescriptor subCD = null;
 
-            // create an index row template
-            indexRow1=getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId),heapCC.newRowLocationTemplate(),outRow);
+                    // create an index row template
+                    indexRow1 = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId), heapCC.newRowLocationTemplate(), outRow);
 
-            scanController.fetch(indexRow1.getRowArray());
+                    scanController.fetch(indexRow1.getRowArray());
 
-            baseRowLocation=(RowLocation)indexRow1.getColumn(
-                    indexRow1.nColumns());
+                    baseRowLocation = (RowLocation) indexRow1.getColumn(
+                            indexRow1.nColumns());
 
-            boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow,null);
+                    boolean base_row_exists = heapCC.fetch(baseRowLocation, outRow, null);
 
-            // it can not be possible for heap row to disappear while
-            // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
-            assert base_row_exists:"base row doesn't exist";
+                    // it can not be possible for heap row to disappear while
+                    // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
+                    assert base_row_exists : "base row doesn't exist";
 
-            switch(rf.getConstraintType(outRow)){
-                case DataDictionary.PRIMARYKEY_CONSTRAINT:
-                case DataDictionary.FOREIGNKEY_CONSTRAINT:
-                case DataDictionary.UNIQUE_CONSTRAINT:
-                    subCD=getSubKeyConstraint(
-                            rf.getConstraintId(outRow),rf.getConstraintType(outRow));
-                    break;
+                    switch (rf.getConstraintType(outRow)) {
+                        case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                        case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                        case DataDictionary.UNIQUE_CONSTRAINT:
+                            subCD = getSubKeyConstraint(
+                                    rf.getConstraintId(outRow), rf.getConstraintType(outRow));
+                            break;
 
-                case DataDictionary.CHECK_CONSTRAINT:
-                    subCD=getSubCheckConstraint(
-                            rf.getConstraintId(outRow));
-                    break;
+                        case DataDictionary.CHECK_CONSTRAINT:
+                            subCD = getSubCheckConstraint(
+                                    rf.getConstraintId(outRow));
+                            break;
 
-                default:
-                    if(SanityManager.DEBUG){
-                        SanityManager.THROWASSERT("unexpected value from rf.getConstraintType(outRow)"+
-                                rf.getConstraintType(outRow));
+                        default:
+                            if (SanityManager.DEBUG) {
+                                SanityManager.THROWASSERT("unexpected value from rf.getConstraintType(outRow)" +
+                                        rf.getConstraintType(outRow));
+                            }
                     }
-            }
 
-            assert subCD!=null:"subCD is expected to be non-null";
+                    assert subCD != null : "subCD is expected to be non-null";
 
-            /* Cache the TD in the SCD so that
-             * the row factory doesn't need to go
-             * out to disk to get it.
-             */
-            subCD.setTableDescriptor(td);
+                    /* Cache the TD in the SCD so that
+                     * the row factory doesn't need to go
+                     * out to disk to get it.
+                     */
+                    subCD.setTableDescriptor(td);
 
-            cd=(ConstraintDescriptor)rf.buildDescriptor(outRow,subCD,this);
+                    cd = (ConstraintDescriptor) rf.buildDescriptor(outRow, subCD, this);
 
-            /* If dList is null, then caller only wants a single descriptor - we're done
-             * else just add the current descriptor to the list.
-             */
-            if(dList==null){
-                break;
-            }else{
-                dList.add(cd);
+                    /* If dList is null, then caller only wants a single descriptor - we're done
+                     * else just add the current descriptor to the list.
+                     */
+                    if (dList == null) {
+                        break;
+                    } else {
+                        dList.add(cd);
+                    }
+                }
             }
         }
-        scanController.close();
-        heapCC.close();
         return cd;
     }
 
@@ -4971,7 +4952,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                              List<ConstraintDescriptor> list) throws StandardException{
         SYSCONSTRAINTSRowFactory rf=(SYSCONSTRAINTSRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow;
-        ScanController scanController;
         TransactionController tc;
         ConstraintDescriptor cd=null;
 
@@ -4983,7 +4963,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /*
         ** Table scan
         */
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -4994,44 +4974,41 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                          // startSearchOperation - none
                 scanQualifiers,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                        // stopSearchOperation - none
 
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
-                SubConstraintDescriptor subCD=null;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                SubConstraintDescriptor subCD = null;
 
-                switch(rf.getConstraintType(outRow)){
+                switch (rf.getConstraintType(outRow)) {
                     case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     case DataDictionary.UNIQUE_CONSTRAINT:
-                        subCD=getSubKeyConstraint(rf.getConstraintId(outRow),rf.getConstraintType(outRow));
+                        subCD = getSubKeyConstraint(rf.getConstraintId(outRow), rf.getConstraintType(outRow));
                         break;
 
                     case DataDictionary.CHECK_CONSTRAINT:
-                        subCD=getSubCheckConstraint(rf.getConstraintId(outRow));
+                        subCD = getSubCheckConstraint(rf.getConstraintId(outRow));
                         break;
 
                     default:
-                        if(SanityManager.DEBUG){
+                        if (SanityManager.DEBUG) {
                             SanityManager.THROWASSERT("unexpected value from  rf.getConstraintType(outRow) "
-                                    +rf.getConstraintType(outRow));
+                                    + rf.getConstraintType(outRow));
                         }
                 }
 
-                assert subCD!=null:"subCD is expected to be non-null";
-                cd=(ConstraintDescriptor)rf.buildDescriptor(outRow,subCD,this);
+                assert subCD != null : "subCD is expected to be non-null";
+                cd = (ConstraintDescriptor) rf.buildDescriptor(outRow, subCD, this);
 
                 /* If dList is null, then caller only wants a single descriptor - we're done
                  * else just add the current descriptor to the list.
                  */
-                if(list==null){
+                if (list == null) {
                     break;
-                }else{
+                } else {
                     list.add(cd);
                 }
             }
-        }finally{
-            scanController.close();
         }
         return cd;
     }
@@ -5115,8 +5092,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow indexRow1;
         ExecRow outRow;
         RowLocation baseRowLocation;
-        ConglomerateController heapCC=null;
-        ScanController scanController=null;
         TransactionController tc;
         TabInfoImpl ti=getNonCoreTI(SYSCONSTRAINTS_CATALOG_NUM);
         SYSCONSTRAINTSRowFactory rf=(SYSCONSTRAINTSRowFactory)ti.getCatalogRowFactory();
@@ -5128,36 +5103,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         assert columnNum>0:"Invalid column number";
         assert columnNum<=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT:" Invalid column number";
 
-        try{
-            /* Use tableIDOrderable in both start and stop positions for scan */
-            DataValueDescriptor orderable=getIDValueAsCHAR(uuid);
+        /* Use tableIDOrderable in both start and stop positions for scan */
+        DataValueDescriptor orderable=getIDValueAsCHAR(uuid);
 
-            /* Set up the start/stop position for the scan */
-            ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-            keyRow.setColumn(1,orderable);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,orderable);
 
-            // Get the current transaction controller
-            tc=getTransactionCompile();
+        // Get the current transaction controller
+        tc=getTransactionCompile();
 
-            outRow=rf.makeEmptyRow();
+        outRow=rf.makeEmptyRow();
 
-            long heapConglomId=ti.getHeapConglomerate();
-            int lockMode=TransactionController.MODE_RECORD;
-            int isolationLevel=TransactionController.ISOLATION_REPEATABLE_READ;
-            heapCC=tc.openConglomerate(heapConglomId,false,0,lockMode,isolationLevel);
-
+        long heapConglomId=ti.getHeapConglomerate();
+        int lockMode=TransactionController.MODE_RECORD;
+        int isolationLevel=TransactionController.ISOLATION_REPEATABLE_READ;
+        try (ConglomerateController heapCC=tc.openConglomerate(heapConglomId,false,0,lockMode,isolationLevel)) {
             // create an index row template
-            indexRow1=getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId),heapCC.newRowLocationTemplate(),outRow);
+            indexRow1 = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId), heapCC.newRowLocationTemplate(), outRow);
 
             // just interested in one column
-            DataValueDescriptor[] rowTemplate=new DataValueDescriptor[SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT];
-            FormatableBitSet columnToGetSet=new FormatableBitSet(SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT);
-            columnToGetSet.set(columnNum-1);
+            DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT];
+            FormatableBitSet columnToGetSet = new FormatableBitSet(SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT);
+            columnToGetSet.set(columnNum - 1);
 
-            rowTemplate[columnNum-1]=new SQLChar();
+            rowTemplate[columnNum - 1] = new SQLChar();
 
             // Scan the index and go to the data pages for qualifying rows 
-            scanController=tc.openScan(
+            try (ScanController scanController = tc.openScan(
                     ti.getIndexConglomerate(indexId),// conglomerate to open
                     false,                            // don't hold open across commit
                     0,                                // for read
@@ -5168,27 +5141,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     ScanController.GE,                // startSearchOperation
                     null,                            // scanQualifier (none)
                     keyRow.getRowArray(),            // stop position - exact key match.
-                    ScanController.GT);                // stopSearchOperation
+                    ScanController.GT)) {              // stopSearchOperation
 
-            ValueRow row = new ValueRow();
-            row.setRowArray(rowTemplate);
+                ValueRow row = new ValueRow();
+                row.setRowArray(rowTemplate);
 
-            while(scanController.fetchNext(indexRow1.getRowArray())){
-                baseRowLocation=(RowLocation)indexRow1.getColumn(indexRow1.nColumns());
+                while (scanController.fetchNext(indexRow1.getRowArray())) {
+                    baseRowLocation = (RowLocation) indexRow1.getColumn(indexRow1.nColumns());
 
-                // get the row and grab the uuid
-                boolean base_row_exists=heapCC.fetch(baseRowLocation,row,columnToGetSet);
+                    // get the row and grab the uuid
+                    boolean base_row_exists = heapCC.fetch(baseRowLocation, row, columnToGetSet);
 
-                assert base_row_exists:"base row not found"; //SI reads should see the row
+                    assert base_row_exists : "base row not found"; //SI reads should see the row
 
-                slist.add(uuidFactory.recreateUUID(rowTemplate[columnNum-1].getString()));
-            }
-        }finally{
-            if(heapCC!=null){
-                heapCC.close();
-            }
-            if(scanController!=null){
-                scanController.close();
+                    slist.add(uuidFactory.recreateUUID(rowTemplate[columnNum - 1].getString()));
+                }
             }
         }
         return slist;
@@ -5438,27 +5405,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(constraint.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
             baseNum=SYSFOREIGNKEYS_CATALOG_NUM;
             indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
-
-            /*
-            ** If we have a foreign key, we need to decrement the
-            ** reference count of the contraint that this FK references.
-            ** We need to do this *before* we drop the foreign key
-            ** because of the way FK.getReferencedConstraint() works.
-            */
-            ReferencedKeyConstraintDescriptor refDescriptor=(ReferencedKeyConstraintDescriptor)getConstraintDescriptor(
-                    ((ForeignKeyConstraintDescriptor)constraint).
-                            getReferencedConstraintId());
-
-            if(refDescriptor!=null){
-                refDescriptor.decrementReferenceCount();
-
-                int[] colsToSet=new int[1];
-                colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,tc);
-            }
             ti = getNonCoreTI(baseNum);
-        }else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
+        } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
             faultInTabInfo(ti);
             indexNum=0;
@@ -5513,7 +5461,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc           The TransactionController
      * @throws StandardException Thrown on failure
      */
-    private void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
+    protected void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
         ExecIndexRow checkRow1;
         DataValueDescriptor constraintIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSCHECKS_CATALOG_NUM);
@@ -5545,13 +5493,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public Map<Long, ConglomerateDescriptor> hashAllConglomerateDescriptorsByNumber(TransactionController tc) throws StandardException{
         Map<Long, ConglomerateDescriptor> ht=new HashMap<>();
         ConglomerateDescriptor cd;
-        ScanController scanController;
         ExecRow outRow;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
         SYSCONGLOMERATESRowFactory rf=(SYSCONGLOMERATESRowFactory)ti.getCatalogRowFactory();
 
         outRow=rf.makeEmptyRow();
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),  // conglomerate to open
                 false, // don't hold open across commit
                 0, // for read
@@ -5562,21 +5509,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ScanController.GE,      // startSearchOperation
                 null,
                 null, //keyRow.getRowArray(),   // stop position - through last row
-                ScanController.GT);     // stopSearchOperation
+                ScanController.GT)) {   // stopSearchOperation
 
-        // it is important for read uncommitted scans to use fetchNext() rather
-        // than fetch, so that the fetch happens while latch is held, otherwise
-        // the next() might position the scan on a row, but the subsequent
-        // fetch() may find the row deleted or purged from the table.
-        while(scanController.fetchNext(outRow.getRowArray())){
-            cd=(ConglomerateDescriptor)rf.buildDescriptor(
-                    outRow,
-                    null,
-                    this);
-            ht.put(cd.getConglomerateNumber(),cd);
+            // it is important for read uncommitted scans to use fetchNext() rather
+            // than fetch, so that the fetch happens while latch is held, otherwise
+            // the next() might position the scan on a row, but the subsequent
+            // fetch() may find the row deleted or purged from the table.
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                cd = (ConglomerateDescriptor) rf.buildDescriptor(
+                        outRow,
+                        null,
+                        this);
+                ht.put(cd.getConglomerateNumber(), cd);
+            }
         }
-
-        scanController.close();
 
         return ht;
     }
@@ -5595,7 +5541,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public Map<UUID, TableDescriptor> hashAllTableDescriptorsByTableId(TransactionController tc) throws StandardException{
         Map<UUID, TableDescriptor> ht=new HashMap<>();
-        ScanController scanController;
         ExecRow outRow;
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
         SYSTABLESRowFactory
@@ -5603,7 +5548,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         outRow=rf.makeEmptyRow();
 
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),       // sys.systable
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -5614,22 +5559,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ScanController.GE,              // startSearchOperation
                 null,        //scanQualifier,
                 null,    //stop position-through last row
-                ScanController.GT);             // stopSearchOperation
+                ScanController.GT)) {           // stopSearchOperation
 
-        // it is important for read uncommitted scans to use fetchNext() rather
-        // than fetch, so that the fetch happens while latch is held, otherwise
-        // the next() might position the scan on a row, but the subsequent
-        // fetch() may find the row deleted or purged from the table.
-        while(scanController.fetchNext(outRow.getRowArray())){
-            TableDescriptor td=(TableDescriptor)
-                    rf.buildDescriptor(
-                            outRow,
-                            null,
-                            this,
-                            TransactionController.ISOLATION_READ_UNCOMMITTED);
-            ht.put(td.getUUID(),td);
+            // it is important for read uncommitted scans to use fetchNext() rather
+            // than fetch, so that the fetch happens while latch is held, otherwise
+            // the next() might position the scan on a row, but the subsequent
+            // fetch() may find the row deleted or purged from the table.
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                TableDescriptor td = (TableDescriptor)
+                        rf.buildDescriptor(
+                                outRow,
+                                null,
+                                this,
+                                TransactionController.ISOLATION_READ_UNCOMMITTED);
+                ht.put(td.getUUID(), td);
+            }
         }
-        scanController.close();
         return ht;
     }
 
@@ -6086,7 +6031,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public List<DependencyDescriptor> getAllDependencyDescriptorsList() throws StandardException{
-        ScanController scanController;
         TransactionController tc;
         ExecRow outRow;
         List<DependencyDescriptor> ddl=newSList();
@@ -6099,7 +6043,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         outRow=rf.makeEmptyRow();
 
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),  // conglomerate to open
                 false, // don't hold open across commit
                 0, // for read
@@ -6110,17 +6054,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ScanController.GE,      // startSearchOperation
                 null,
                 null,   // stop position - through last row
-                ScanController.GT);     // stopSearchOperation
+                ScanController.GT)) {   // stopSearchOperation
 
-        while(scanController.fetchNext(outRow.getRowArray())){
-            DependencyDescriptor dependencyDescriptor;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                DependencyDescriptor dependencyDescriptor;
 
-            dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null,this);
+                dependencyDescriptor = (DependencyDescriptor) rf.buildDescriptor(outRow, null, this);
 
-            ddl.add(dependencyDescriptor);
+                ddl.add(dependencyDescriptor);
+            }
         }
-
-        scanController.close();
 
         return ddl;
     }
@@ -6479,6 +6422,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         boolean nativeAuthenticationEnabled=PropertyUtil.nativeAuthenticationEnabled(startParams);
         if(nativeAuthenticationEnabled){
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
+            dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
         resetDatabaseOwner(tc);
@@ -6590,13 +6534,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 SchemaDescriptor sd = systemSchemaDesc;
-                if (catalogNumber == SYSMONGETCONNECTION_CATALOG_NUM)
-                    sd = sysIBMADMSchemaDesc;
-                else if (isDummy)
+                if (isDummy)
                     sd = sysIBMSchemaDesc;
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                String version = catalogVersions.get(catalogNumber);
                 if (ti != null) {
+                    String version = catalogVersions.get(catalogNumber);
                     makeCatalog(ti, sd, tc, version);
                 }
                 if(isDummy)
@@ -6614,6 +6556,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
                                           DataDescriptorGenerator ddg) throws StandardException{
@@ -6703,7 +6646,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
-        //Add the SYSIBM Schema
+                //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
         //Add the SYSIBMADM Schema
@@ -6951,11 +6894,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                      String schemaUUID,
                                      TransactionController tc)
             throws StandardException {
-        ConglomerateController heapCC;
         ExecRow row;
         DataValueDescriptor schemaIDOrderable;
         DataValueDescriptor tableNameOrderable;
-        ScanController scanController;
         TabInfoImpl ti = coreInfo[SYSTABLES_CORE_NUM];
         SYSTABLESRowFactory rf = (SYSTABLESRowFactory) ti.getCatalogRowFactory();
 
@@ -6973,55 +6914,54 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1, tableNameOrderable);
         keyRow.setColumn(2, schemaIDOrderable);
 
-        heapCC = tc.openConglomerate(
+        try (ConglomerateController heapCC = tc.openConglomerate(
                 ti.getHeapConglomerate(), false, 0,
                 TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        ExecRow indexTemplateRow = rf.buildEmptyIndexRow(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID, heapCC.newRowLocationTemplate());
+            ExecRow indexTemplateRow = rf.buildEmptyIndexRow(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID, heapCC.newRowLocationTemplate());
 
-        /* Scan the index and go to the data pages for qualifying rows to
-         * build the column descriptor.
-         */
-        scanController = tc.openScan(
-                ti.getIndexConglomerate(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID),  // conglomerate to open
-                false, // don't hold open across commit
-                0,
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                (FormatableBitSet) null,         // all fields as objects
-                keyRow.getRowArray(),   // start position - first row
-                ScanController.GE,      // startSearchOperation
-                (ScanQualifier[][]) null, //scanQualifier,
-                keyRow.getRowArray(),   // stop position - through last row
-                ScanController.GT);     // stopSearchOperation
+            /* Scan the index and go to the data pages for qualifying rows to
+             * build the column descriptor.
+             */
+            try (ScanController scanController = tc.openScan(
+                    ti.getIndexConglomerate(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID),  // conglomerate to open
+                    false, // don't hold open across commit
+                    0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    (FormatableBitSet) null,         // all fields as objects
+                    keyRow.getRowArray(),   // start position - first row
+                    ScanController.GE,      // startSearchOperation
+                    (ScanQualifier[][]) null, //scanQualifier,
+                    keyRow.getRowArray(),   // stop position - through last row
+                    ScanController.GT)) {   // stopSearchOperation
 
-        /* OK to fetch into the template row,
-         * since we won't be doing a next.
-         */
-        if (scanController.fetchNext(indexTemplateRow.getRowArray())) {
-            RowLocation baseRowLocation;
+                /* OK to fetch into the template row,
+                 * since we won't be doing a next.
+                 */
+                if (scanController.fetchNext(indexTemplateRow.getRowArray())) {
+                    RowLocation baseRowLocation;
 
 
-            baseRowLocation = (RowLocation) indexTemplateRow.getColumn(indexTemplateRow.nColumns());
+                    baseRowLocation = (RowLocation) indexTemplateRow.getColumn(indexTemplateRow.nColumns());
 
-            /* 1st column is TABLEID (UUID - char(36)) */
-            row.setColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID, new SQLChar());
-            FormatableBitSet bi = new FormatableBitSet(1);
-            bi.set(0);
-            boolean base_row_exists =
-                    heapCC.fetch(
-                            baseRowLocation, row, (FormatableBitSet) null);
+                    /* 1st column is TABLEID (UUID - char(36)) */
+                    row.setColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID, new SQLChar());
+                    FormatableBitSet bi = new FormatableBitSet(1);
+                    bi.set(0);
+                    boolean base_row_exists =
+                            heapCC.fetch(
+                                    baseRowLocation, row, (FormatableBitSet) null);
 
-            if (SanityManager.DEBUG) {
-                // it can not be possible for heap row to disappear while
-                // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
-                SanityManager.ASSERT(base_row_exists, "base row not found");
+                    if (SanityManager.DEBUG) {
+                        // it can not be possible for heap row to disappear while
+                        // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
+                        SanityManager.ASSERT(base_row_exists, "base row not found");
+                    }
+                }
             }
         }
-
-        scanController.close();
-        heapCC.close();
 
         return uuidFactory.recreateUUID(row.getColumn(1).toString());
     }
@@ -7203,7 +7143,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                     boolean wait) throws StandardException{
         int columnNum=SYSCOLUMNSRowFactory.SYSCOLUMNS_AUTOINCREMENTVALUE;
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
-        ConglomerateController heapCC=null;
         SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
@@ -7214,15 +7153,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         columnToRead.set(columnNum);     // start value.
         columnToRead.set(columnNum+1); // increment value.
 
-        try{
-            /* if wait is true then we need to do a wait while trying to
-               open/fetch from the conglomerate. note we use wait both to
-               open as well as fetch from the conglomerate.
-            */
-            heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,
+        /* if wait is true then we need to do a wait while trying to
+           open/fetch from the conglomerate. note we use wait both to
+           open as well as fetch from the conglomerate.
+        */
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,
                     (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
                     TransactionController.MODE_RECORD,
-                    TransactionController.ISOLATION_REPEATABLE_READ);
+                    TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             // fetch the current value
             boolean baseRowExists=heapCC.fetch(rl,row,columnToRead,wait);
@@ -7257,9 +7195,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 currentAI.setValue(currentAIValue);
                 return currentAI;
             }
-        }finally{
-            if(heapCC!=null)
-                heapCC.close();
         }
     }
 
@@ -7270,7 +7205,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                      int indexNumber,
                                                      long heapConglomerateNumber) throws StandardException{
         boolean isUnique;
-        ConglomerateController cc;
         ExecRow baseRow;
         ExecIndexRow indexableRow;
         int numColumns;
@@ -7295,10 +7229,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         baseRow=rf.makeEmptyRowForLatestVersion();
 
         // Get a RowLocation template
-        cc=tc.openConglomerate(heapConglomerateNumber,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_REPEATABLE_READ);
+        try (ConglomerateController cc = tc.openConglomerate(
+                heapConglomerateNumber,false,0,TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-        rl=cc.newRowLocationTemplate();
-        cc.close();
+            rl = cc.newRowLocationTemplate();
+        }
 
         // Get an index row based on the base row
         irg.getIndexRow(baseRow,rl,indexableRow,null);
@@ -7467,7 +7403,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return version.orNull();
 
         TransactionController tc = getTransactionCompile();
-        String v = tc.getCatalogVersion(conglomerateNumber);
+        String v = tc.getCatalogVersion(Long.toString(conglomerateNumber));
         dataDictionaryCache.catalogVersionCacheAdd(conglomerateNumber, v == null ? Optional.absent() : Optional.of(v));
         return v;
     }
@@ -7713,10 +7649,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                                            int isolationLevel,
                                                                            TransactionController tc) throws StandardException{
         CatalogRowFactory rf=ti.getCatalogRowFactory();
-        ConglomerateController heapCC;
         ExecIndexRow indexRow1 = null;
         ExecRow outRow;
-        ScanController scanController;
         T td=null;
 
         if(SanityManager.DEBUG){
@@ -7724,69 +7658,70 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     (isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ ||
                             isolationLevel==TransactionController.ISOLATION_READ_UNCOMMITTED);
         }
-        heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,0,TransactionController.MODE_RECORD,isolationLevel);
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,0,TransactionController.MODE_RECORD,isolationLevel)) {
 
-        /* Scan the index and go to the data pages for qualifying rows to
-         * build the column descriptor.
-         */
-        scanController=tc.openScan(
-                ti.getIndexConglomerate(indexId),  // conglomerate to open
-                false, // don't hold open across commit
-                (forUpdate)?TransactionController.OPENMODE_FORUPDATE:0,
-                TransactionController.MODE_RECORD,
-                isolationLevel,
-                null,         // all fields as objects
-                startKeyRow.getRowArray(),   // start position - first row
-                ScanController.GE,      // startSearchOperation
-                scanQualifiers,         //scanQualifier,
-                endKeyRow.getRowArray(),   // stop position - through last row
-                ScanController.GT);     // stopSearchOperation
-        List<RowLocation> rowLocations = new ArrayList();
+            /* Scan the index and go to the data pages for qualifying rows to
+             * build the column descriptor.
+             */
+            try (ScanController scanController = tc.openScan(
+                    ti.getIndexConglomerate(indexId),  // conglomerate to open
+                    false, // don't hold open across commit
+                    (forUpdate) ? TransactionController.OPENMODE_FORUPDATE : 0,
+                    TransactionController.MODE_RECORD,
+                    isolationLevel,
+                    null,         // all fields as objects
+                    startKeyRow.getRowArray(),   // start position - first row
+                    ScanController.GE,      // startSearchOperation
+                    scanQualifiers,         //scanQualifier,
+                    endKeyRow.getRowArray(),   // stop position - through last row
+                    ScanController.GT)) {   // stopSearchOperation
+                List<RowLocation> rowLocations = new ArrayList();
 
-        List<ExecRow> outRows = new ArrayList();
-        int i = 0;
-        while(true) {
-            if (list==null && i==1) // List = null means the caller wants only one record.
-                break;
-            // create an index row template
-            outRow=rf.makeEmptyRow().getClone();
-            indexRow1 = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId), heapCC.newRowLocationTemplate(), outRow);
-            // It is important for read uncommitted scans to use fetchNext()
-            // rather than fetch, so that the fetch happens while latch is
-            // held, otherwise the next() might position the scan on a row,
-            // but the subsequent fetch() may find the row deleted or purged
-            // from the table.
-            if (!scanController.fetchNext(indexRow1.getRowArray())) {
-                break;
-            }
-            i++;
+                List<ExecRow> outRows = new ArrayList();
+                int i = 0;
+                while (true) {
+                    if (list == null && i == 1) // List = null means the caller wants only one record.
+                        break;
+                    // create an index row template
+                    outRow = rf.makeEmptyRow().getClone();
+                    indexRow1 = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId), heapCC.newRowLocationTemplate(), outRow);
+                    // It is important for read uncommitted scans to use fetchNext()
+                    // rather than fetch, so that the fetch happens while latch is
+                    // held, otherwise the next() might position the scan on a row,
+                    // but the subsequent fetch() may find the row deleted or purged
+                    // from the table.
+                    if (!scanController.fetchNext(indexRow1.getRowArray())) {
+                        break;
+                    }
+                    i++;
 
-            outRows.add(outRow);
-            rowLocations.add((RowLocation) indexRow1.getColumn(
-                    indexRow1.nColumns()).cloneValue(true));
-        }
-        if (!heapCC.batchFetch(rowLocations,outRows,null)) {
-            if(SanityManager.DEBUG){
-                // it can not be possible for heap row to disappear while
-                // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
-                if((isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ)){
-                    StringBuilder strbuf=new StringBuilder("Error retrieving base row in table "+ti.getTableName());
-                    strbuf.append(": could not locate a row matching index row ").append(indexRow1)
-                            .append(" from index ").append(ti.getIndexName(indexId)).append(", conglom number ")
-                            .append(ti.getIndexConglomerate(indexId));
-                    debugGenerateInfo(strbuf,tc,heapCC,ti,indexId);
-                    SanityManager.THROWASSERT(strbuf.toString());
+                    outRows.add(outRow);
+                    rowLocations.add((RowLocation) indexRow1.getColumn(
+                            indexRow1.nColumns()).cloneValue(true));
+                }
+                if (!heapCC.batchFetch(rowLocations, outRows, null)) {
+                    if (SanityManager.DEBUG) {
+                        // it can not be possible for heap row to disappear while
+                        // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
+                        if ((isolationLevel == TransactionController.ISOLATION_REPEATABLE_READ)) {
+                            StringBuilder strbuf = new StringBuilder("Error retrieving base row in table " + ti.getTableName());
+                            strbuf.append(": could not locate a row matching index row ").append(indexRow1)
+                                    .append(" from index ").append(ti.getIndexName(indexId)).append(", conglom number ")
+                                    .append(ti.getIndexConglomerate(indexId));
+                            debugGenerateInfo(strbuf, tc, heapCC, ti, indexId);
+                            SanityManager.THROWASSERT(strbuf.toString());
+                        }
+                    }
+                }
+
+                for (ExecRow retrievedRow : outRows) {
+                    td = (T) rf.buildDescriptor(retrievedRow, parentTupleDescriptor, this);
+                    if (td != null && list != null)
+                        list.add(td);
                 }
             }
         }
 
-        for (ExecRow retrievedRow: outRows) {
-            td=(T)rf.buildDescriptor(retrievedRow,parentTupleDescriptor,this);
-            if (td!=null && list !=null)
-                list.add(td);
-        }
-        scanController.close();
-        heapCC.close();
         return td;
     }
 
@@ -7811,29 +7746,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
 
                 // consistency checking etc.
-                ConglomerateController btreeCC=tc.openConglomerate(ti.getIndexConglomerate(indexId),
+                try (ConglomerateController btreeCC=tc.openConglomerate(ti.getIndexConglomerate(indexId),
                         false,
                         0,TransactionController.MODE_RECORD,
-                        TransactionController.ISOLATION_REPEATABLE_READ);
+                        TransactionController.ISOLATION_REPEATABLE_READ)) {
 
-                btreeCC.debugConglomerate();
+                    btreeCC.debugConglomerate();
+                }
                 heapCC.debugConglomerate();
                 heapCC.checkConsistency();
                 strbuf.append("\nheapCC.checkConsistency() = true");
-                ConglomerateController indexCC=tc.openConglomerate(
+                try (ConglomerateController indexCC=tc.openConglomerate(
                         ti.getIndexConglomerate(indexId),
                         false,
                         0,
                         TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_REPEATABLE_READ);
-                indexCC.checkConsistency();
-                strbuf.append("\nindexCC.checkConsistency() = true");
+                        TransactionController.ISOLATION_REPEATABLE_READ)) {
+                    indexCC.checkConsistency();
+                    strbuf.append("\nindexCC.checkConsistency() = true");
+                }
 
                 System.err.println("ASSERT FAILURE: "+strbuf.toString());
                 System.out.println("ASSERT FAILURE: "+strbuf.toString());
                 SanityManager.DEBUG_PRINT("ASSERT FAILURE",strbuf.toString());
             }catch(StandardException se){
-                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(se.toString());
+                strbuf.append("\ngot the following StandardException when doing extra consistency checks:\n").append(se.toString());
+            }
+            catch(Throwable t) {
+                strbuf.append("\ngot the following error when doing extra consistency checks:\n").append(t.toString());
             }
         }
     }
@@ -7860,7 +7800,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                                  List<T> list) throws StandardException{
         CatalogRowFactory rf=ti.getCatalogRowFactory();
         ExecRow outRow;
-        ScanController scanController;
         TransactionController tc;
         TupleDescriptor td=null;
 
@@ -7872,7 +7811,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /*
         ** Table scan
         */
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),    // conglomerate to open
                 false,                        // don't hold open across commit
                 0,                            // for read
@@ -7883,22 +7822,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                    // startSearchOperation - none
                 scanQualifiers,        // scanQualifier,
                 null,        // stop position - through last row
-                0);                    // stopSearchOperation - none
+                0)) {                  // stopSearchOperation - none
 
-        while(scanController.fetchNext(outRow.getRowArray())){
-            td=rf.buildDescriptor(outRow,parentTupleDescriptor,this);
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                td = rf.buildDescriptor(outRow, parentTupleDescriptor, this);
 
-            /* If dList is null, then caller only wants a single descriptor - we're done
-             * else just add the current descriptor to the list.
-             */
-            if(list==null){
-                break;
-            }else{
-                //noinspection unchecked
-                list.add((T)td);
+                /* If dList is null, then caller only wants a single descriptor - we're done
+                 * else just add the current descriptor to the list.
+                 */
+                if (list == null) {
+                    break;
+                } else {
+                    //noinspection unchecked
+                    list.add((T) td);
+                }
             }
         }
-        scanController.close();
         //noinspection unchecked
         return (T)td;
     }
@@ -7908,19 +7847,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * (We fault in information about non-core tables as needed.)
      *
      * @param catalogNumber The index into noncoreTable[].
+     * @return the TableInfoImpl that corresponds to the catalogNumber, or null if the catalogNumber
+     *         is invalid.
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
+
+        if(ti == null) { // catalog number is invalid.
+            return null;
+        }
 
         faultInTabInfo(ti);
 
         return ti;
     }
 
+    protected ViewInfoProvider getTransientViewColumns(int catalogNum) {
+        ViewInfoProvider retval = null;
+        if (catalogNum == SYSMONGETCONNECTION_CATALOG_NUM) {
+            retval = new SYSMONGETCONNECTIONViewInfoProvider();
+        }
+        return retval;
+    }
+
     /**
      * returns the tabinfo for a non core system catalog. Input is a
-     * catalogNumber (defined in DataDictionary).
+     * catalogNumber (defined in DataDictionary), or null if the catalogNumber is invalid.
      */
     public TabInfoImpl getNonCoreTIByNumber(int catalogNumber) throws StandardException{
         int nonCoreNum=catalogNumber-NUM_CORE;
@@ -8027,8 +7980,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSREPLICATION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
-                case SYSMONGETCONNECTION_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf, this));
+                case INVALID_CATALOG_NUM:
+                    retval=null;
                     break;
                 case SYSNATURALNUMBERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(luuidFactory,exFactory,dvf,this));
@@ -8224,82 +8177,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
-     * Returns a unique system generated name of the form SQLyymmddhhmmssxxn
-     * yy - year, mm - month, dd - day of month, hh - hour, mm - minute, ss - second,
-     * xx - the first 2 digits of millisec because we don't have enough space to keep the exact millisec value,
-     * n - number between 0-9
-     * <p/>
-     * The number at the end is to handle more than one system generated name request came at the same time.
-     * In that case, the timestamp will remain the same, we will just increment n at the end of the name.
-     * <p/>
-     * Following is how we get around the problem of more than 10 system generated name requestes at the same time:
-     * When the database boots up, we start a counter with value -1 for the last digit in the generated name.
-     * We also keep the time in millisec to keep track of when the last system name was generated. At the
-     * boot time, it will be default to 0L. In addition, we have a calendar object for the time in millisec
-     * That calendar object is used to fetch yy, mm, dd, etc for the string SQLyymmddhhmmssxxn
-     * <p/>
-     * When the first request for the system generated name comes, time of last system generated name will be less than
-     * the current time. We initialize the counter to 0, set the time of last system generated name to the
-     * current time truncated off to lower 10ms time. The first name request is the only time we know for sure the
-     * time of last system generated name will be less than the current time. After this first request, the next request
-     * could be at any time. We go through the following algorithm for every generated name request.
-     * <p/>
-     * First check if the current time(truncated off to lower 10ms) is greater than the timestamp for last system generated name
-     * <p/>
-     * If yes, then we change the timestamp for system generated name to the current timestamp and reset the counter to 0
-     * and generate the name using the current timestamp and 0 as the number at the end of the generated name.
-     * <p/>
-     * If no, then it means this request for generated name has come at the same time as last one.
-     * Or it may come at a time less than the last generated name request. This could be because of seasonal time change
-     * or somebody manually changing the time on the computer. In any case,
-     * if the counter is less than 10(meaning this is not yet our 11th request for generated name at a given time),
-     * we use that in the generated name. But if the counter has reached 10(which means, this is the 11th name request
-     * at the same time), then we increment the system generated name timestamp by 10ms and reset the counter to 0
-     * (notice, at this point, the timestamp for system generated names is not in sync with the real current time, but we
-     * need to have this mechanism to get around the problem of more than 10 generated name requests at a same physical time).
+     * Returns a unique system generated name of the form SQL[UUID]. The uniqueness must be guaranteed across all region servers.
+     * com.splicemachine.db.iapi.services.uuid.UUIDFactory is used to generate an unique ID.
      *
      * @return system generated unique name
      */
     @Override
     public String getSystemSQLName(){
-        StringBuilder generatedSystemSQLName=new StringBuilder("SQL");
-        synchronized(this){
-            //get the current timestamp
-            long timeNow=(System.currentTimeMillis()/10L)*10L;
-
-            //if the current timestamp is greater than last constraint name generation time, then we reset the counter and
-            //record the new timestamp
-            if(timeNow>timeForLastSystemSQLName){
-                systemSQLNameNumber=0;
-                calendarForLastSystemSQLName.setTimeInMillis(timeNow);
-                timeForLastSystemSQLName=timeNow;
-            }else{
-                //the request has come at the same time as the last generated name request
-                //or it has come at a time less than the time the last generated name request. This can happen
-                //because of seasonal time change or manual update of computer time.
-
-                //get the number that was last used for the last digit of generated name and increment it by 1.
-                systemSQLNameNumber++;
-                if(systemSQLNameNumber==10){ //we have already generated 10 names at the last system generated timestamp value
-                    //so reset the counter
-                    systemSQLNameNumber=0;
-                    timeForLastSystemSQLName=timeForLastSystemSQLName+10L;
-                    //increment the timestamp for system generated names by 10ms
-                    calendarForLastSystemSQLName.setTimeInMillis(timeForLastSystemSQLName);
-                }
-            }
-
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.YEAR)));
-            //have to add 1 to the month value returned because the method give 0-January, 1-February and so on and so forth
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.MONTH)+1));
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.DAY_OF_MONTH)));
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.HOUR_OF_DAY)));
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.MINUTE)));
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.SECOND)));
-            //because we don't have enough space to store the entire millisec value, just store the higher 2 digits.
-            generatedSystemSQLName.append(twoDigits(calendarForLastSystemSQLName.get(Calendar.MILLISECOND)/10));
-            generatedSystemSQLName.append(systemSQLNameNumber);
-        }
+        StringBuilder generatedSystemSQLName = new StringBuilder("SQL");
+        generatedSystemSQLName.append(uuidFactory.createUUID().toString().toUpperCase().replaceAll("-",""));
         return generatedSystemSQLName.toString();
     }
 
@@ -8504,23 +8390,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         int columnNum=SYSSEQUENCESRowFactory.SYSSEQUENCES_CURRENT_VALUE;
         FormatableBitSet columnToUpdate=new FormatableBitSet(SYSSEQUENCESRowFactory.SYSSEQUENCES_COLUMN_COUNT);
         TabInfoImpl ti=getNonCoreTI(SYSSEQUENCES_CATALOG_NUM);
-        ConglomerateController heapCC=null;
         SYSSEQUENCESRowFactory rf=(SYSSEQUENCESRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
         // FormatableBitSet is 0 based.
         columnToUpdate.set(columnNum-1); // current value.
 
-        try{
-            /* if wait is true then we need to do a wait while trying to
-               open/fetch from the conglomerate. note we use wait both to
-               open as well as fetch from the conglomerate.
-            */
-            heapCC=tc.openConglomerate(ti.getHeapConglomerate(),
-                    false,
-                    (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
-                    TransactionController.MODE_RECORD,
-                    TransactionController.ISOLATION_REPEATABLE_READ);
+        /* if wait is true then we need to do a wait while trying to
+           open/fetch from the conglomerate. note we use wait both to
+           open as well as fetch from the conglomerate.
+        */
+        try (ConglomerateController heapCC=tc.openConglomerate(ti.getHeapConglomerate(),
+                false,
+                (TransactionController.OPENMODE_FORUPDATE|((wait)?0:TransactionController.OPENMODE_LOCK_NOWAIT)),
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             boolean baseRowExists=heapCC.fetch(rowLocation,row,columnToUpdate,wait);
             // We're not prepared for a non-existing base row.
@@ -8551,10 +8435,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }else{
                 return false;
             }
-        }finally{
-            if(heapCC!=null){
-                heapCC.close();
-            }
         }
     }
 
@@ -8567,16 +8447,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public RowLocation getRowLocationTemplate(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{
         RowLocation rl;
-        ConglomerateController heapCC;
 
         TransactionController tc=lcc.getTransactionCompile();
 
         long tableId=td.getHeapConglomerateId();
-        heapCC=tc.openConglomerate(tableId,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_READ_COMMITTED);
-        try{
+        try (ConglomerateController heapCC=tc.openConglomerate(tableId,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_READ_COMMITTED)) {
             rl=heapCC.newRowLocationTemplate();
-        }finally{
-            heapCC.close();
         }
 
         return rl;
@@ -10313,18 +10189,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     {"ERROR_MESSAGES","com.splicemachine.db.diag.ErrorMessages"},
             };
 
-    private String[][] DIAG_VTI_TABLE_FUNCTION_CLASSES=
+    private String[][] DIAG_VTI_TABLE_FUNCTION_CLASSES         =
             {
                     {"SPACE_TABLE","com.splicemachine.db.diag.SpaceTable"},
                     {"ERROR_LOG_READER","com.splicemachine.db.diag.ErrorLogReader"},
                     {"STATEMENT_DURATION","com.splicemachine.db.diag.StatementDuration"},
                     {"CONTAINED_ROLES","com.splicemachine.db.diag.ContainedRoles"},
             };
+    private String[][] SYSIBM_ADMIN_VTI_TABLE_FUNCTION_CLASSES =
+            {
+                    {SYSMONGETCONNECTIONViewInfoProvider.TABLENAME_STRING,"com.splicemachine.derby.vti.MonGetConnectionVTI"},
+            };
 
     @Override
     public String getVTIClass(TableDescriptor td,boolean asTableFunction) throws StandardException{
-        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
-                td.getSchemaName())){
+        if(isInAdminSchema(td)){
             return getBuiltinVTIClass(td,asTableFunction);
         }else{// see if it's a user-defined table function
             String schemaName=td.getSchemaName();
@@ -10345,6 +10224,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return null;
     }
 
+    private static boolean isInAdminSchema(TableDescriptor td) {
+        return SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())
+               || SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME.equals(td.getSchemaName());
+    }
+
     @Override
     public String getBuiltinVTIClass(TableDescriptor td,boolean asTableFunction) throws StandardException{
         assert td.getTableType()==TableDescriptor.VTI_TYPE:"getVTIClass: invalid table type "+td;
@@ -10352,11 +10236,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* First check to see if this is a system VTI. Note that if no schema was specified then the
          * call to "td.getSchemaName()" will return the current schema.
          */
-        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())){
-            String[][] vtiMappings=asTableFunction?DIAG_VTI_TABLE_FUNCTION_CLASSES:DIAG_VTI_TABLE_CLASSES;
-
-            for(String[] entry : vtiMappings){
-                if(entry[0].equals(td.getDescriptorName()))
+        if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(td.getSchemaName())) {
+            String[][] vtiMappings = asTableFunction ? DIAG_VTI_TABLE_FUNCTION_CLASSES : DIAG_VTI_TABLE_CLASSES;
+            for (String[] entry : vtiMappings) {
+                if (entry[0].equals(td.getDescriptorName()))
+                    return entry[1];
+            }
+        }
+        if(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME.equals(td.getSchemaName())) {
+            String[][] vtiMappings = SYSIBM_ADMIN_VTI_TABLE_FUNCTION_CLASSES;
+            for (String[] entry : vtiMappings) {
+                if (entry[0].equals(td.getDescriptorName()))
                     return entry[1];
             }
         }
@@ -10916,7 +10806,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(SYSBACKUP_CATALOG_NUM);
         SYSBACKUPRowFactory rf=(SYSBACKUPRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow;
-        ScanController scanController;
         TransactionController tc;
         List<BackupDescriptor> backupDescriptorList = Lists.newArrayList();
 
@@ -10927,7 +10816,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /*
         ** Table scan
         */
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -10938,15 +10827,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                          // startSearchOperation - none
                 null,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                       // stopSearchOperation - none
 
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
-                BackupDescriptor bd = (BackupDescriptor)rf.buildDescriptor(outRow, null, this);
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                BackupDescriptor bd = (BackupDescriptor) rf.buildDescriptor(outRow, null, this);
                 backupDescriptorList.add(bd);
             }
-        }finally{
-            scanController.close();
         }
 
         return backupDescriptorList;
@@ -10957,7 +10843,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
         SYSBACKUPITEMSRowFactory rf=(SYSBACKUPITEMSRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow;
-        ScanController scanController;
         TransactionController tc;
         List<BackupItemsDescriptor> backupItemDescriptorList = Lists.newArrayList();
 
@@ -10968,7 +10853,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /*
         ** Table scan
         */
-        scanController=tc.openScan(
+        try (ScanController scanController=tc.openScan(
                 ti.getHeapConglomerate(),      // conglomerate to open
                 false,                          // don't hold open across commit
                 0,                              // for read
@@ -10979,15 +10864,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                          // startSearchOperation - none
                 null,              // scanQualifier,
                 null, // stop position -through last row
-                0);                          // stopSearchOperation - none
+                0)) {                       // stopSearchOperation - none
 
-        try{
             while(scanController.fetchNext(outRow.getRowArray())){
                 BackupItemsDescriptor bd = (BackupItemsDescriptor) rf.buildDescriptor(outRow, null, this);
                 backupItemDescriptorList.add(bd);
             }
-        }finally{
-            scanController.close();
         }
 
         return backupItemDescriptorList;

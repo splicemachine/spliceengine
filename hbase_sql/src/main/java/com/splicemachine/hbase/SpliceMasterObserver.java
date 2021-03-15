@@ -37,7 +37,13 @@ import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.Stoppable;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
@@ -52,7 +58,13 @@ import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
-import java.util.*;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -110,6 +122,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
              * issue during testing
              */
             this.manager = new DatabaseLifecycleManager();
+
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -199,16 +212,17 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
         SConfiguration conf = HConfiguration.getConfiguration();
         if (conf.getOlapServerExternal()) {
             OlapServerMaster.Mode mode = OlapServerMaster.Mode.valueOf(conf.getOlapServerMode());
-            if (mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
-                String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
-                try {
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                } catch (Exception e) {
-                    throw new IOException(e);
-                }
-            } else {
+
+            String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
+            try {
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_RESTART_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.getRecoverableZooKeeper().getZooKeeper().setData(root + HBaseConfiguration.OLAP_SERVER_RESTART_PATH, "0".getBytes(Charset.defaultCharset().name()),  -1);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            if (!mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
                 try {
                     manager.registerNetworkService(new DatabaseLifecycleService() {
                         List<OlapServerSubmitter> serverSubmitters;

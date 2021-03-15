@@ -1031,6 +1031,30 @@ public class TableScanOperationIT{
     }
 
     @Test
+    public void testForFetchOnly() throws Exception {
+
+        String[] queries = {
+                "SELECT A1 FROM %s FOR FETCH ONLY",
+                "SELECT A1 FROM %s OPTIMIZE FOR 1 ROW FOR FETCH ONLY",
+                "SELECT A1 FROM %s FOR FETCH ONLY OPTIMIZE FOR 1 ROW",
+                "SELECT A1 FROM %s FOR READ ONLY",
+                "SELECT A1 FROM %s OPTIMIZE FOR 1 ROW FOR READ ONLY",
+                "SELECT A1 FROM %s FOR READ ONLY OPTIMIZE FOR 1 ROW",
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 1, count);
+                }
+            }
+        }
+    }
+
+    @Test
     public void testOptimizeForRowsSyntax() throws Exception {
         String[] queries = {
                 "SELECT A1 FROM %s OPTIMIZE FOR 1 ROW",

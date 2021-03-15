@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -158,7 +159,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
     /**
      * @see TypeCompiler#getCastToCharWidth
      */
-    public int getCastToCharWidth(DataTypeDescriptor dts)
+    public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
     {
         int formatId = getStoredFormatIdFromTypeId();
         switch (formatId)

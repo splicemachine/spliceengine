@@ -48,11 +48,13 @@ import java.util.Properties;
 
 import static com.splicemachine.db.shared.common.reference.MessageId.SPLICE_GENERIC_EXCEPTION;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER_BAD_REF_MISMATCH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test REFERENCING clause in triggers.
  */
-@Ignore
+
 @RunWith(Parameterized.class)
 @Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
@@ -64,22 +66,17 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     protected static final String PASSWORD1 = "U1";
     protected static final String USER2 = "U2";
     protected static final String PASSWORD2 = "U2";
+    private static int numTables = 0;
+    private static boolean isMemPlatform = false;
+    private static int runningOperations;
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
-
-    @ClassRule
-    public static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
-
-    @ClassRule
-    public static SpliceUserWatcher spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
+    public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     private TestConnection conn;
-    private TestConnection c1;
-    private TestConnection c2;
 
     private static final String SYNTAX_ERROR = "42X01";
     private static final String NON_SCALAR_QUERY = "21000";
@@ -98,6 +95,58 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     public Trigger_Referencing_Clause_IT(String connectionString ) {
         this.connectionString = connectionString;
+    }
+
+    public static boolean
+    isMemPlatform() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
+            rs.next();
+            return ((Boolean)rs.getObject(1));
+        }
+    }
+
+    public static void
+    vacuum() throws Exception{
+        // Mem doesn't have vacuum.
+        if (!isMemPlatform)
+            spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.VACUUM()");
+    }
+
+    public static int
+    getNumTables() throws Exception{
+        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
+            rs.next();
+            return ((Integer)rs.getObject(1));
+        }
+    }
+
+    public static int
+    getNumberOfRunningOperations() throws Exception{
+        List results = spliceClassWatcher.queryList("CALL SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
+        return results.size();
+    }
+
+    @BeforeClass
+    public static void recordStats() throws Exception {
+        isMemPlatform = isMemPlatform();
+        runningOperations = getNumberOfRunningOperations();
+        vacuum();
+        numTables = getNumTables();
+    }
+
+    @AfterClass
+    public static void checkForLeaks() throws Exception {
+        vacuum();
+        int newNumTables = getNumTables();
+        // Mem platform doesn't physically remove dropped tables, so
+        // this is an HBase-only check.
+        if (!isMemPlatform)
+            assertTrue("\nStarted with " + numTables + " tables and ended with " + newNumTables,
+                         numTables >= newNumTables);
+
+        int newNumOperations = getNumberOfRunningOperations();
+        assertTrue("\nStarted with " + runningOperations + " running operations and ended with " + newNumOperations,
+                     runningOperations >= newNumOperations);
     }
 
     protected void createInt_Proc() throws Exception {
@@ -138,18 +187,11 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
         conn.setAutoCommit(false);
         conn.setSchema(SCHEMA.toUpperCase());
-
-        c1 = classWatcher.connectionBuilder().user("U1").password("U1").build();
-        c2 = classWatcher.connectionBuilder().user("U2").password("U2").build();
-        c1.setAutoCommit(false);
-        c2.setAutoCommit(false);
     }
 
     @After
     public void rollback() throws Exception{
         conn.rollback();
-        c1.rollback();
-        c2.rollback();
     }
 
     @Test
@@ -335,7 +377,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("CREATE TRIGGER trigger6783_1 AFTER UPDATE OF GRADE1, GRADE2 ON tabDerby6783_1_1"
             + " REFERENCING NEW TABLE AS new OLD TABLE AS old"
             + " FOR EACH STATEMENT WHEN (exists (select 1 from old, new where old.GRADE1 <> new.GRADE1 OR old.GRADE2 <> new.GRADE2))"
-            + " UPDATE tabDerby6783_1_1 SET TOTAL_MARKS = (select old.MARKS1 + new.MARKS2 from old, new where tabDerby6783_1_1.id=old.id and new.id = old.id)");
+            + " UPDATE tabDerby6783_1_1 SET TOTAL_MARKS = (select old.MARKS1 + new.MARKS2 from old, new, tabDerby6783_1_1 where tabDerby6783_1_1.id=old.id and new.id = old.id)");
 
             s.execute("INSERT INTO tabDerby6783_1_1 VALUES (1, 'a', 'b', 30, 50, 0)");
             // Fire the trigger.
@@ -366,7 +408,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("CREATE TRIGGER trigger6783_1 AFTER UPDATE OF MARKS1, MARKS2 ON tabDerby6783_1_2"
             + " REFERENCING NEW TABLE AS new OLD TABLE AS old"
             + " FOR EACH STATEMENT WHEN (exists (select 1 from old, new where old.MARKS1 <> new.MARKS1))"
-            + " UPDATE tabDerby6783_1_2 SET FINAL_GRADE = (select old.GRADE1 from old, new where tabDerby6783_1_2.id=old.id and new.id = old.id)");
+            + " UPDATE tabDerby6783_1_2 SET FINAL_GRADE = (select old.GRADE1 from old, new, tabDerby6783_1_2 where tabDerby6783_1_2.id=old.id and new.id = old.id)");
 
             s.execute("INSERT INTO tabDerby6783_1_2 VALUES (1, 'a', 'b', 30, 50, 'c')");
 
@@ -396,13 +438,11 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("CREATE TRIGGER trigger_2 AFTER UPDATE OF BALANCE ON tabDerby6783_2"
             + " REFERENCING NEW TABLE AS new OLD TABLE AS old"
             + " FOR EACH STATEMENT WHEN (exists (select 1 from old, new where old.RATE < 10.0))"
-            + " UPDATE tabDerby6783_2 SET INTEREST = (select old.balance + new.balance * tabDerby6783_2.RATE from old, new where tabDerby6783_2.ACC_NUMBER=old.ACC_NUMBER and new.ACC_NUMBER = old.ACC_NUMBER)");
+            + " UPDATE tabDerby6783_2 SET INTEREST = (select old.balance + new.balance * tabDerby6783_2.RATE from old, new, tabDerby6783_2 where tabDerby6783_2.ACC_NUMBER=old.ACC_NUMBER and new.ACC_NUMBER = old.ACC_NUMBER)");
 
             s.execute("INSERT INTO tabDerby6783_2 VALUES (123, 12383.4534, 8.98, 2340)");
 
             s.execute("UPDATE tabDerby6783_2 SET BALANCE=22383.4543");
-
-            s.execute("select INTEREST from tabDerby6783_2");
 
             String query = "SELECT INTEREST FROM tabDerby6783_2";
             String expected = "INTEREST  |\n" +
@@ -528,11 +568,14 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     /**
      * Test that a trigger with a WHEN clause can be recursive.
-     * Recursive triggers are currently broken on Spark...
+     * Recursive triggers that are deeply nested are currently broken on Spark...
      */
-    @Ignore
+
     @Test
     public void testRecursiveTrigger() throws Exception {
+        // TODO: Fix triggers with maximum recursion on spark.
+        if (connectionString.contains("useSpark"))
+            return;
         try(Statement s = conn.createStatement()) {
             s.execute("create table t(x int)");
             s.execute("create trigger tr1 after insert on t "
@@ -732,8 +775,6 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             s.execute("INSERT INTO t1 values(2,'hello')");
 
-            Savepoint sp = conn.setSavepoint();
-
             String sqltext = "CREATE TRIGGER mytrig\n" +
             "   AFTER UPDATE OF a,b\n" +
             "   ON t1\n" +
@@ -885,9 +926,13 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     // Cause trigger rows to go over 1000000, causing a
     // rollback and switch to spark execution.
-    @Ignore
     @Test
     public void testNestedTriggersSwitchToSpark() throws Exception {
+        // This is a longer running test, which can't use Spark on
+        // mem platform anyway, so just bail out if that's our platform.
+        if (isMemPlatform)
+            return;
+
         try(Statement s = conn.createStatement()) {
             s.execute("create table t1 (a int, b int)");
             s.execute("create table t2 (a int, b int)");
@@ -1016,8 +1061,6 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             "   FOR EACH ROW MODE DB2SQL\n" +
             "SET NEW.A = NEW.A + 13");
 
-            Savepoint sp = conn.setSavepoint();
-
             s.execute("INSERT INTO t1 VALUES (3,1)");
             s.execute("UPDATE T1 SET A=3");
 
@@ -1142,8 +1185,6 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             "   FOR EACH ROW\n" +
             "WHEN (NEW.a = 4)\n" +
             "SIGNAL SQLSTATE '12345'\n");
-
-            Savepoint sp = conn.setSavepoint();
 
             s.execute("INSERT INTO t1 VALUES (3,1)");
             s.execute("UPDATE T1 SET A=3");
@@ -1280,8 +1321,6 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             "   FOR EACH ROW\n" +
             "WHEN (NEW.b > 1000)\n" +
             "SIGNAL SQLSTATE '12345'");
-
-            Savepoint sp = conn.setSavepoint();
 
             testFail("12345", "insert into t2 select * from t1", s);
 

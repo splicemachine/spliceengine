@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
@@ -57,13 +60,12 @@ import org.joda.time.DateTime;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.sql.Date;
 import java.text.CollationKey;
 import java.text.RuleBasedCollator;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Locale;
-import java.util.MissingResourceException;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 
 
 /**
@@ -94,9 +96,8 @@ import java.util.regex.Pattern;
 
  **/
 
-public class SQLChar
-    extends DataType implements StringDataValue, StreamStorable
-{
+public class SQLChar extends DataType implements StringDataValue, StreamStorable {
+
     private static Logger logger = Logger.getLogger(SQLChar.class);
     /**************************************************************************
      * static fields of the class
@@ -190,6 +191,8 @@ public class SQLChar
     /* Locale info (for International support) */
     private LocaleFinder localeFinder;
 
+    private boolean ignoreTrailingWhitespacesInVarcharComparison = false;
+
 
     /**************************************************************************
      * Constructors for This class:
@@ -213,6 +216,9 @@ public class SQLChar
         setValue( val );
     }
 
+    public SQLChar(TypeMessage.SQLChar sqlChar) {
+        init(sqlChar);
+    }
     /**
      * <p>
      * This is a special constructor used when we need to represent a password
@@ -890,118 +896,58 @@ public class SQLChar
         return ((value == null) && (rawLength == -1) && (stream == null) && (_clobValue == null));
     }
 
-    /**
-        Writes a non-Clob data value to the modified UTF-8 format used by Derby.
-
-        The maximum stored size is based upon the UTF format
-        used to stored the String. The format consists of
-        a two byte length field and a maximum number of three
-        bytes for each character.
-        <BR>
-        This puts an upper limit on the length of a stored
-        String. The maximum stored length is 65535, these leads to
-        the worse case of a maximum string length of 21844 ((65535 - 2) / 3).
-        <BR>
-        Strings with stored length longer than 64K is handled with
-        the following format:
-        (1) 2 byte length: will be assigned 0.
-        (2) UTF formated string data.
-        (3) terminate the string with the following 3 bytes:
-            first byte is:
-            +---+---+---+---+---+---+---+---+
-            | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-            second byte is:
-            +---+---+---+---+---+---+---+---+
-            | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-            third byte is:
-            +---+---+---+---+---+---+---+---+
-            | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-
-
-        The UTF format:
-        Writes a string to the underlying output stream using UTF-8
-        encoding in a machine-independent manner.
-        <p>
-        First, two bytes are written to the output stream as if by the
-        <code>writeShort</code> method giving the number of bytes to
-        follow. This value is the number of bytes actually written out,
-        not the length of the string. Following the length, each character
-        of the string is output, in sequence, using the UTF-8 encoding
-        for the character.
-        @exception  IOException  if an I/O error occurs.
-        @since      JDK1.0
-
-
-      @exception IOException thrown by writeUTF
-
-      @see java.io.DataInputStream
-
-    */
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-
-        if (isNull()) {
-            return;
-        }
-
-        //
-        // This handles the case that a CHAR or VARCHAR value was populated from
-        // a user Clob.
-        //
-        if ( _clobValue != null )
-        {
-            writeClobUTF( out );
-            return;
-        }
-
-        String lvalue = null;
-        char[] data = null;
-
-        int strlen = rawLength;
-        boolean isRaw;
-
-        if (strlen < 0) {
-            lvalue = value;
-            strlen = lvalue.length();
-            isRaw = false;
-        } else {
-            data = rawData;
-            isRaw = true;
-        }
-
-        // byte length will always be at least string length
-        int utflen = strlen;
-
-        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
-        {
-            int c = isRaw ? data[i] : lvalue.charAt(i);
-            if ((c >= 0x0001) && (c <= 0x007F))
-            {
-                // 1 byte for character
-            }
-            else if (c > 0x07FF)
-            {
-                utflen += 2; // 3 bytes for character
-            }
-            else
-            {
-                utflen += 1; // 2 bytes for character
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.SQLChar.Builder builder = TypeMessage.SQLChar.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            if (_clobValue != null) {
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                     ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                    writeClobUTF(os);
+                    os.flush();
+                    byte[] bs = bos.toByteArray();
+                    builder.setClob(ByteString.copyFrom(bs));
+                }
+            } else {
+                if (value != null) {
+                    builder.setValue(value);
+                }
+                else if (rawData != null ){
+                    for (char c : rawData) {
+                        builder.addRawData(c);
+                    }
+                }
             }
         }
-
-        StreamHeaderGenerator header = getStreamHeaderGenerator();
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(!header.expectsCharCount());
+        if (this instanceof SQLVarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarchar);
+        } else if (this instanceof SQLClob) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLClob);
+        } else if (this instanceof SQLLongvarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLLongVarchar);
+        } else if (this instanceof SQLVarcharDB2Compatible) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarcharDB2Compatible);
+        } else if (this instanceof CollatorSQLChar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLChar);
+        } else if (this instanceof CollatorSQLClob) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLClob);
+        } else if (this instanceof CollatorSQLLongvarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLLongVarchar);
+        } else if (this instanceof CollatorSQLVarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLVarchar);
+        } else if (this instanceof CollatorSQLVarcharDB2Compatible) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarcharDB2Compatible);
         }
-        // Generate the header, write it to the destination stream, write the
-        // user data and finally write an EOF-marker is required.
-        header.generateInto(out, utflen);
-        writeUTF(out, strlen, isRaw, null );
-        header.writeEOF(out, utflen);
+
+        TypeMessage.DataValueDescriptor dvd =
+                TypeMessage.DataValueDescriptor.newBuilder()
+                        .setType(TypeMessage.DataValueDescriptor.Type.SQLChar)
+                        .setExtension(TypeMessage.SQLChar.sqlChar, builder.build())
+                        .build();
+        return dvd;
     }
+
 
     /**
      * Writes the user data value to a stream in the modified UTF-8 format.
@@ -1179,8 +1125,158 @@ public class SQLChar
         cKey = null;
         isNull = evaluateNull();
     }
+    /**
+     Writes a non-Clob data value to the modified UTF-8 format used by Derby.
 
-    public void readExternal(ObjectInput in) throws IOException {
+     The maximum stored size is based upon the UTF format
+     used to stored the String. The format consists of
+     a two byte length field and a maximum number of three
+     bytes for each character.
+     <BR>
+     This puts an upper limit on the length of a stored
+     String. The maximum stored length is 65535, these leads to
+     the worse case of a maximum string length of 21844 ((65535 - 2) / 3).
+     <BR>
+     Strings with stored length longer than 64K is handled with
+     the following format:
+     (1) 2 byte length: will be assigned 0.
+     (2) UTF formated string data.
+     (3) terminate the string with the following 3 bytes:
+     first byte is:
+     +---+---+---+---+---+---+---+---+
+     | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+     second byte is:
+     +---+---+---+---+---+---+---+---+
+     | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+     third byte is:
+     +---+---+---+---+---+---+---+---+
+     | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+
+
+     The UTF format:
+     Writes a string to the underlying output stream using UTF-8
+     encoding in a machine-independent manner.
+     <p>
+     First, two bytes are written to the output stream as if by the
+     <code>writeShort</code> method giving the number of bytes to
+     follow. This value is the number of bytes actually written out,
+     not the length of the string. Following the length, each character
+     of the string is output, in sequence, using the UTF-8 encoding
+     for the character.
+     @exception  IOException  if an I/O error occurs.
+     @since      JDK1.0
+
+
+     @exception IOException thrown by writeUTF
+
+     @see java.io.DataInputStream
+
+     */
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+
+        if (isNull()) {
+            return;
+        }
+
+        //
+        // This handles the case that a CHAR or VARCHAR value was populated from
+        // a user Clob.
+        //
+        if ( _clobValue != null )
+        {
+            writeClobUTF( out );
+            return;
+        }
+
+        String lvalue = null;
+        char[] data = null;
+
+        int strlen = rawLength;
+        boolean isRaw;
+
+        if (strlen < 0) {
+            lvalue = value;
+            strlen = lvalue.length();
+            isRaw = false;
+        } else {
+            data = rawData;
+            isRaw = true;
+        }
+
+        // byte length will always be at least string length
+        int utflen = strlen;
+
+        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
+        {
+            int c = isRaw ? data[i] : lvalue.charAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F))
+            {
+                // 1 byte for character
+            }
+            else if (c > 0x07FF)
+            {
+                utflen += 2; // 3 bytes for character
+            }
+            else
+            {
+                utflen += 1; // 2 bytes for character
+            }
+        }
+
+        StreamHeaderGenerator header = getStreamHeaderGenerator();
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(!header.expectsCharCount());
+        }
+        // Generate the header, write it to the destination stream, write the
+        // user data and finally write an EOF-marker is required.
+        header.generateInto(out, utflen);
+        writeUTF(out, strlen, isRaw, null );
+        header.writeEOF(out, utflen);
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.SQLChar sqlChar = dvd.getExtension(TypeMessage.SQLChar.sqlChar);
+        init(sqlChar);
+    }
+
+    protected void init(TypeMessage.SQLChar sqlChar) {
+        isNull = sqlChar.getIsNull();
+        if (!isNull) {
+            if (sqlChar.hasValue()) {
+                value = sqlChar.getValue();
+            }
+            else if (sqlChar.hasClob()) {
+                byte[] ba = sqlChar.getClob().toByteArray();
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                     ObjectInputStream ois = new ObjectInputStream(bis)) {
+                    int utflen = ois.readUnsignedShort();
+                    readExternal(ois, utflen, 0);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else {
+                int size = sqlChar.getRawDataCount();
+                rawData = new char[size];
+                for (int i = 0; i < size; ++i) {
+                    rawData[i] = (char)sqlChar.getRawData(i);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
 
         if (isNull()) {
@@ -2032,7 +2128,7 @@ public class SQLChar
                     // We can address this later when we more deeply look into
                     // error and warning propagation.
                     Activation activation = statementContext.getActivation();
-                    if (activation != null) {
+                    if (activation != null && activation.getResultSet() != null) {
                         activation.getResultSet().addWarning(warning);
                     }
                 }
@@ -2781,6 +2877,59 @@ public class SQLChar
         return stringResult;
     }
 
+    public ConcatableDataValue translate(
+            StringDataValue outputTranslationTable,
+            StringDataValue inputTranslationTable,
+            StringDataValue pad,
+            ConcatableDataValue result)
+            throws StandardException
+    {
+        StringDataValue stringResult;
+        if (result == null) {
+            result = getNewVarchar();
+        }
+
+        stringResult = (StringDataValue) result;
+
+        if (this.isNull() ||
+                outputTranslationTable.isNull() || outputTranslationTable.getString() == null ||
+                inputTranslationTable.isNull() || inputTranslationTable.getString() == null) {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        String output = outputTranslationTable.getString();
+        String input = inputTranslationTable.getString();
+
+        char padChar;
+        if (pad == null || pad.isNull() || pad.getString() == null) {
+            padChar = ' ';
+        } else {
+            if (pad.getString().length() != 1) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_TRANSLATE_PADDING, pad.getString());
+            }
+            padChar = pad.getString().charAt(0);
+        }
+
+        HashMap<Character, Character> table = new HashMap<>();
+        for (int i = 0; i < input.length(); ++i) {
+            table.putIfAbsent(input.charAt(i), i < output.length() ? output.charAt(i) : padChar);
+        }
+
+        stringResult.setValue(getString()
+                .codePoints()
+                .map(c -> table.getOrDefault((char)c, (char)c))
+                .mapToObj(c -> (char) c)
+                .collect(Collector.of(
+                        StringBuilder::new,
+                        StringBuilder::append,
+                        StringBuilder::append,
+                        StringBuilder::toString))
+        );
+        return stringResult;
+    }
+
     /**
      * This function public for testing purposes.
      *
@@ -2813,6 +2962,45 @@ public class SQLChar
         {
             for (; end >= 0; end--)
                 if (trimChar != source.charAt(end))
+                    break;
+        }
+        if (end == -1)
+            return "";
+
+        return source.substring(start, end + 1);
+    }
+
+    private String db2TrimInternal(int trimType, String trimString, String source)
+    {
+        if (source == null) {
+            return null;
+        }
+
+        int len = source.length();
+        int start = 0;
+        if (trimType == LEADING || trimType == BOTH)
+        {
+            for (; start < len; start++)
+                if (trimString.charAt(start) != source.charAt(start))
+                    break;
+        }
+
+        if (start == len)
+            return "";
+
+        int end = len - 1;
+        int trimEnd = trimString.length() - 1;
+        if (trimEnd > end) {
+            trimString = trimString.substring(0, len);
+            trimEnd = end;
+        }
+        int origTrimEnd = trimEnd;
+        if (trimType == TRAILING || trimType == BOTH)
+        {
+            for (; end >= 0 && trimEnd >= 0; end--,
+                                             trimEnd = trimEnd == 0 ?
+                                               origTrimEnd : trimEnd - 1)
+                if (trimString.charAt(trimEnd) != source.charAt(end))
                     break;
         }
         if (end == -1)
@@ -2860,6 +3048,29 @@ public class SQLChar
         return result;
     }
 
+    // The same as ansiTrim, but allow longer trim strings than one character.
+    public StringDataValue db2Trim(
+    int             trimType,
+    StringDataValue trimString,
+    StringDataValue result)
+            throws StandardException
+    {
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+
+        if (trimString == null || trimString.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        result.setValue(db2TrimInternal(trimType, trimString.getString(), getString()));
+        return result;
+    }
+
     /** @see StringDataValue#upper
      *
      * @exception StandardException     Thrown on error
@@ -2882,6 +3093,33 @@ public class SQLChar
         upper = upper.toUpperCase(getLocale());
         result.setValue(upper);
         return result;
+    }
+
+    public NumberDataValue positionOfString(StringDataValue leftOperand, StringDataValue rightOperand,
+                                            NumberDataValue result)
+            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (NumberDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            result.setToNull();
+            return result;
+        }
+
+        String searchString = rightOperand.getString();
+        String expression = leftOperand.getString();
+        int position = expression.indexOf(searchString) + 1;
+
+        return new SQLInteger(position);
     }
 
     public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
@@ -3364,7 +3602,11 @@ public class SQLChar
      */
     protected StringDataValue getNewVarchar() throws StandardException
     {
-        return new SQLVarchar();
+        if (ignoreTrailingWhitespacesInVarcharComparison) {
+            return new SQLVarcharDB2Compatible();
+        } else {
+            return new SQLVarchar();
+        }
     }
 
     protected void setLocaleFinder(LocaleFinder localeFinder)
@@ -3550,5 +3792,11 @@ public class SQLChar
     public void setValueForSbcsData(DataValueDescriptor dvd) throws StandardException
     {
         setValue(dvd.getBytes()==null?null:new String(dvd.getBytes(), StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void setIgnoreTrailingWhitespacesInVarcharComparison(boolean value)
+    {
+        ignoreTrailingWhitespacesInVarcharComparison = value;
     }
 }

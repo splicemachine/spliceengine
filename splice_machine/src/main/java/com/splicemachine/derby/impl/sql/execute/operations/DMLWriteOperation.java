@@ -15,11 +15,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
@@ -33,7 +37,6 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -42,7 +45,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -60,10 +63,10 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.sql.SQLWarning;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
@@ -89,8 +92,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     protected DataSet<ExecRow> sourceSet;
     protected boolean isSpark;
     protected Txn nestedTxn = null;
+    private TransactionController transactionController = null;
+    private BaseSpliceTransaction internalTransaction = null;
     protected boolean exceptionHit = false;
     protected SPSDescriptor fromTableDmlSpsDescriptor;
+    protected boolean hasGeneratedColumn = false;
 
     public DMLWriteOperation(){
         super();
@@ -179,15 +185,44 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         try {
             if (dsp.getType() == DataSetProcessor.Type.SPARK || isOlapServer())
             {
-                nestedTxn =
-                    SIDriver.driver().lifecycleManager().beginChildTransaction(
-                            parent,
-                            parent.getIsolationLevel(),
-                            parent.isAdditive(),
-                            Bytes.toBytes(Long.toString(heapConglom)),
-                            false);
+                WriteCursorConstantOperation constantAction=(WriteCursorConstantOperation)writeInfo.getConstantAction();
+                TriggerInfo triggerInfo=constantAction.getTriggerInfo();
+                boolean needsfullyNestedTransaction = triggerInfo != null;
 
-                txn = nestedTxn;
+                LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+                TransactionController transactionExecute = lcc.getTransactionExecute();
+                if (needsfullyNestedTransaction && !lcc.hasNestedTransaction()) {
+                    // Start a nested transaction controller that deals only with internal
+                    // transactions, not savepoints.
+                    transactionController =
+                        transactionExecute.startNestedInternalTransaction(false,
+                                            Bytes.toBytes(Long.toString(heapConglom)),
+                                            false);
+                    lcc.pushNestedTransaction(transactionController);
+                    Transaction rawStoreXact = ((TransactionManager) transactionController).getRawStoreXact();
+                    if (!(((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn() instanceof Txn))
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                                        "DMLWriteOperation cannot make child Txn out of TxnView.");
+                    Txn childTxn = (Txn) ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+                    nestedTxn = childTxn;
+                    txn = (TxnView) childTxn;
+                }
+                else {
+                    nestedTxn =
+                    SIDriver.driver().lifecycleManager().beginChildTransaction(
+                    parent,
+                    parent.getIsolationLevel(),
+                    parent.isAdditive(),
+                    Bytes.toBytes(Long.toString(heapConglom)),
+                    false);
+
+                    txn = nestedTxn;
+                    if (needsfullyNestedTransaction){
+                        internalTransaction =
+                        (BaseSpliceTransaction) ((SpliceTransactionManager) transactionExecute).getRawStoreXact();
+                        internalTransaction.pushInternalTransaction((Txn) txn);
+                    }
+                }
             }
             else
                 txn = parent;
@@ -222,6 +257,16 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             }
             throw Exceptions.parseException(e);
          }
+        finally {
+             if (transactionController != null) {
+                 getActivation().getLanguageConnectionContext().popNestedTransaction();
+                 transactionController = null;
+             }
+             if (internalTransaction != null) {
+                 internalTransaction.popInternalTransaction();
+                 internalTransaction = null;
+             }
+        }
      }
 
     public DataSet<ExecRow> getSourceSet() {
@@ -260,6 +305,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
+            if (hasGeneratedColumn)
+                this.triggerHandler.setHasGeneratedColumn();
         }
         //re-init with current activation
         if(generationClausesFunMethodName!=null){
@@ -295,6 +342,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         ResultColumnDescriptor[] rcd=description.getColumnInfo();
         DataValueDescriptor[] dvds=new DataValueDescriptor[rcd.length];
         for(int i=0;i<rcd.length;i++){
+            if (rcd[i].isAutoincrement() || rcd[i].hasGenerationClause())
+                hasGeneratedColumn = true;
             dvds[i]=rcd[i].getType().getNull();
             TypeId typeId=rcd[i].getType().getTypeId();
             if(typeId.getTypeFormatId()==StoredFormatIds.USERDEFINED_TYPE_ID_V3){
@@ -359,8 +408,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     public void fireAfterStatementTriggers() throws StandardException{
-        if(triggerHandler!=null) {
-            triggerHandler.fireAfterStatementTriggers();
+        try {
+            if (triggerHandler != null) {
+                triggerHandler.fireAfterStatementTriggers();
+            }
+        }
+        finally {
+            // Statement triggers may use a persisted Dataset.
+            // Clean it up after the triggers no longer need it.
+            if (sourceSet != null) {
+                sourceSet.unpersistIt();
+                sourceSet = null;
+            }
         }
     }
 
@@ -421,6 +480,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         if (triggerHandler!=null) {
             triggerHandler.cleanup();
         }
+        if (sourceSet != null) {
+            sourceSet.unpersistIt();
+            sourceSet = null;
+        }
         super.close();
     }
 
@@ -437,6 +500,25 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
          */
         computeModifiedRows();
+        if (getModifiedRows() == 0) {
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            String spliceDB2ErrorCompatible =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
+            if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.compareToIgnoreCase("TRUE") == 0) {
+                SQLWarning warning = StandardException.newDB2CompatibleWarning(SQLState.LANG_NO_ROW_FOUND, ExceptionSeverity.DB2_NO_ROW_FOUND_SEVERITY);
+                activation.addWarning(warning);
+            }
+        }
+    }
+
+    private long getModifiedRows() {
+        long n = 0;
+        if (modifiedRowCount != null && modifiedRowCount.length > 0) {
+            for (long count : modifiedRowCount) {
+                n += count;
+            }
+        }
+        return n;
     }
 
     protected Pair<DataSet,int[]> getBatchedDataset(DataSetProcessor dsp) throws StandardException {
@@ -481,7 +563,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             dsp.decrementOpDepth();
         }
         setSourceSet(set);
+        if (needsPersistedDataset())
+            set.persist();
         return Pair.newPair(set, expectedUpdatecounts);
+    }
+
+    private boolean needsPersistedDataset() {
+        return triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause() &&
+               !triggerHandler.hasGeneratedColumn() &&
+               !triggerHandler.hasSpecialFromTableTrigger();
     }
 
     public boolean hasTriggers() { return triggerHandler != null; }

@@ -27,6 +27,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -342,5 +343,25 @@ public class IndexTransactionIT {
             throw se;
         }
 
+    }
+
+    @Test
+    public void testDropIndexWithAutocommitOff() throws Exception {
+        Connection connection = classWatcher.createConnection();
+        connection.setAutoCommit(false);
+        try(Statement s = connection.createStatement()) {
+            s.execute("create table test1.t1(c1 int)");
+            s.execute("create schema test2");
+            s.execute("create table test2.tab2 (c1 int not null primary key, c2 int, c3 int)");
+            s.execute("create index test2.ti on test2.tab2(c1)");
+            s.execute("drop index test2.ti");
+        }
+        finally {
+            connection.setAutoCommit(true);
+            try(Statement s = connection.createStatement()) {
+                s.execute("drop schema test1 cascade");
+                s.execute("drop schema test2 cascade");
+            }
+        }
     }
 }

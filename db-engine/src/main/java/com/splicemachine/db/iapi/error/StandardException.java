@@ -67,7 +67,7 @@ public class StandardException extends Exception
 	 * Exception State
 	 */
 	private Object[] arguments;
-	private int severity;
+	private int severity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 	private String textMessage;
 	private String sqlState;
 	private transient int report;
@@ -80,7 +80,7 @@ public class StandardException extends Exception
 	public StandardException() {
 		
 	}
-	
+
 	public void setIsSignal(boolean isSignal) { this.isSignal = isSignal; }
 	public boolean isSignal() { return isSignal; }
 	
@@ -763,6 +763,15 @@ public class StandardException extends Exception
 	** SQL warnings
 	*/
 
+	public static SQLWarning newDB2CompatibleWarning(String messageId, int errorCode) {
+
+		String		message = MessageService.getCompleteMessage(messageId, null);
+		String		state = StandardException.getSQLStateFromIdentifier(messageId);
+
+		return new SQLWarning(message, state, errorCode);
+
+	}
+
 	public static SQLWarning newWarning(String messageId) {
 
 		return newWarningCommon( messageId, (Object[]) null );
@@ -818,5 +827,15 @@ public class StandardException extends Exception
 
         return(SQLState.LOCK_TIMEOUT.equals(getSQLState()) ||
                SQLState.DEADLOCK.equals(getSQLState()));
+    }
+    /**
+     * @return if input is already a StandardException, return as is.
+	 *         Otherwise, use plainWrapException so we always return a StandardException
+     */
+	public static StandardException getOrWrap(Throwable e) {
+        if(e instanceof StandardException)
+            return (StandardException)e;
+        else
+            return plainWrapException(e);
     }
 }

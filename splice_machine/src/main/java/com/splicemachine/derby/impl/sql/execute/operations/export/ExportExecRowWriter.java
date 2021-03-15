@@ -19,6 +19,8 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.types.TypeId;
 import org.supercsv.io.CsvListWriter;
 
@@ -36,10 +38,14 @@ public class ExportExecRowWriter implements Closeable {
 
     private CsvListWriter csvWriter;
     private NumberFormat decimalFormat = NumberFormat.getInstance();
+    private int floatingPointNotation;
+    private String timestampFormat;
 
-    public ExportExecRowWriter(CsvListWriter csvWriter) {
+    public ExportExecRowWriter(CsvListWriter csvWriter, int floatingPointNotation, String timestampFormat) {
         checkNotNull(csvWriter);
         this.csvWriter = csvWriter;
+        this.floatingPointNotation = floatingPointNotation;
+        this.timestampFormat = timestampFormat;
     }
 
     /**
@@ -67,6 +73,16 @@ public class ExportExecRowWriter implements Closeable {
                 BigDecimal valueObject = (BigDecimal) value.getObject();
                 stringRowArray[i] = decimalFormat.format(valueObject);
             }
+            else if (isFloatingPoint(columnDescriptors[i])) {
+                FloatingPointDataType floatingPoint = (FloatingPointDataType) value;
+                floatingPoint.setFloatingPointNotation(floatingPointNotation);
+                stringRowArray[i] = value.getString();
+            }
+            else if (isTimestamp(columnDescriptors[i])) {
+                SQLTimestamp timestamp = (SQLTimestamp) value;
+                timestamp.setTimestampFormat(timestampFormat);
+                stringRowArray[i] = value.getString();
+            }
 
             // everything else
             else {
@@ -79,6 +95,16 @@ public class ExportExecRowWriter implements Closeable {
     private boolean isDecimal(ResultColumnDescriptor columnDescriptor) {
         TypeId typeId = columnDescriptor.getType().getTypeId();
         return typeId != null && typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID;
+    }
+
+    private boolean isFloatingPoint(ResultColumnDescriptor columnDescriptor) {
+        TypeId typeId = columnDescriptor.getType().getTypeId();
+        return typeId != null && typeId.isFloatingPointTypeId();
+    }
+
+    private boolean isTimestamp(ResultColumnDescriptor columnDescriptor) {
+        TypeId typeId = columnDescriptor.getType().getTypeId();
+        return typeId != null && typeId.getTypeFormatId() == StoredFormatIds.TIMESTAMP_TYPE_ID;
     }
 
     /**

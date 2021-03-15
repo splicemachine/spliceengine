@@ -22,6 +22,7 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
@@ -48,11 +49,11 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -61,11 +62,15 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import com.splicemachine.system.CsvOptions;
+import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
@@ -81,6 +86,7 @@ import splice.com.google.common.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -104,7 +110,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
 public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
-    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException{
         List<HostAndPort> servers;
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
@@ -151,6 +158,86 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0]=executeStatement(sb);
     }
 
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
+    public static void SYSCS_GET_CACHED_STATEMENTS(final ResultSet[] resultSet) throws SQLException{
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        int maxLength = 0;
+        int serverNameLength = 0;
+        Map<String, List<Pair<String,Timestamp>>> cachedServerToStatementsMap = new HashMap<>();
+        for (HostAndPort server : servers) {
+            List<Pair<String, Timestamp>> statements = new ArrayList<>();
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_CACHED_STATEMENTS_LOCAL()");
+                 ResultSet rs = ps.executeQuery()) {
+                while(rs.next()) {
+                    String statement = rs.getString(1);
+                    maxLength = Math.max(maxLength, statement.length());
+                    Timestamp timestamp = rs.getTimestamp(2);
+                    statements.add(new Pair<String, Timestamp>(statement, timestamp));
+                }
+            }
+            serverNameLength = Math.max(serverNameLength, server.toString().length());
+            cachedServerToStatementsMap.put(server.toString(), statements);
+        }
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("SERVER", Math.max(serverNameLength, 20));
+        ResultHelper.VarcharColumn col2 = resultHelper.addVarchar("CACHED_STATEMENT", Math.max(maxLength, 20));
+        ResultHelper.TimestampColumn col3 = resultHelper.addTimestamp("ADDITION_TIMESTAMP", 30);
+
+        for(Map.Entry<String, List<Pair<String, Timestamp>>> serverToStatement : cachedServerToStatementsMap.entrySet()) {
+            for(Pair<String, Timestamp> pair : serverToStatement.getValue()) {
+                resultHelper.newRow();
+                col1.set(serverToStatement.getKey());
+                col2.set(pair.getFirst());
+                try {
+                    col3.set(new DateTime(pair.getSecond()));
+                } catch (StandardException se) {
+                    throw PublicAPI.wrapStandardException(se);
+                }
+            }
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
+    public static void SYSCS_GET_CACHED_STATEMENTS_LOCAL(final ResultSet[] resultSet) throws SQLException {
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
+        DataDictionary dd = lcc.getDataDictionary();
+        List<Pair<String, Timestamp>> result;
+
+        try {
+            result = dd.getDataDictionaryCache().cachedStatements();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("CACHED_STATEMENT", Math.max(result.stream()
+                                                                                                .map(Pair::getFirst)
+                                                                                                .max(Comparator.comparingInt(String::length))
+                                                                                                .orElse("")
+                                                                                                .length(), 20));
+        ResultHelper.TimestampColumn col2 = resultHelper.addTimestamp("ADDITION_TIMESTAMP", 30);
+
+        for(Pair<String, Timestamp> cachedStatement : result) {
+            resultHelper.newRow();
+            col1.set(cachedStatement.getFirst());
+            try {
+                col2.set(new DateTime(cachedStatement.getSecond()));
+            } catch (StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
         List<String> loggerLevels = new ArrayList<>();
 
@@ -418,8 +505,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[8].setValue(ex.getTotalCompletedTasks());
                         dvds[9].setValue(ex.getTotalRejectedTasks());
                         dvds[10].setValue(ex.getTotalScheduledTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -460,8 +547,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         dvds[4].setValue(ex.getMissRate());
                         dvds[5].setValue(ex.getHitCount());
                         dvds[6].setValue(ex.getHitRate());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
+                    } catch(Throwable t) {
+                        throw PublicAPI.wrapThrowable(t);
                     }
                     rows.add(template.getClone());
                     i++;
@@ -473,8 +560,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, MANAGED_CACHE_COLUMNS,lastActivation);
                 try {
                     resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
+                } catch(Throwable t) {
+                    throw PublicAPI.wrapThrowable(t);
                 }
                 EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
                 resultSet[0] = ers;
@@ -596,8 +683,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             configMap.clear();
 
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
+        } catch(Throwable t) {
+            throw PublicAPI.wrapThrowable(t);
         }
     }
 
@@ -694,7 +781,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *                   than one table, if the table has an index, for instance.
      * @throws SQLException
      */
-    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName, String tableName) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
@@ -728,6 +815,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
             try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
+                partition.flush();
                 partition.compact(true);
             } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -955,13 +1043,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Transform the descriptors into the rows.
             for(Object aList : list){
                 SPSDescriptor spsd=(SPSDescriptor)aList;
-                ExecPreparedStatement ps=spsd.getPreparedStatement(false);
+                ExecPreparedStatement ps=spsd.getPreparedStatement(false, lcc);
                 dvds[0].setValue(spsd.getName());
                 dvds[1].setValue(spsd.getTypeAsString());
                 dvds[2].setValue(spsd.isValid());
                 dvds[3].setValue(spsd.getCompileTime());
                 dvds[4].setValue(spsd.initiallyCompilable());
-                dvds[5].setValue(spsd.getPreparedStatement(false)==null?null:"[object]");
+                dvds[5].setValue(spsd.getPreparedStatement(false, lcc)==null?null:"[object]");
                 rows.add(dataTemplate.getClone());
             }
 
@@ -1231,7 +1319,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     }
 
-
+    @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
         List<HostAndPort> servers;
@@ -1274,25 +1362,76 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
-    public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key,final String value) throws SQLException{
+    public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value,
+                                                          final ResultSet[] resultSet) throws SQLException{
         try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
+            String previous = PropertyUtil.getCachedDatabaseProperty(lcc, key);
             PropertyInfo.setDatabaseProperty(key, value);
+
             DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            // we need to invalidate the statement caches since we could set parameters that affect query plans.
-            SYSCS_INVALIDATE_STORED_STATEMENTS();
-            SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn c1 = resultHelper.addVarchar("name", 20);
+            ResultHelper.VarcharColumn c2 = resultHelper.addVarchar("value", 150);
+            resultHelper.newRow();
+            c1.set("PROPERTY_NAME");      c2.set(key);
+            resultHelper.newRow();
+            c1.set("NEW VALUE");    c2.set(value);
+            resultHelper.newRow();
+            c1.set("PREVIOUS VALUE");  c2.set(previous);
+
+            if( !PropertyHelper.getAllProperties().contains(key) ) {
+                resultHelper.newRow();
+                resultHelper.newRow();
+                c1.set("!!! WARNING !!!");
+                c2.set("Database Property '" + key + "' seems to be unknown!");
+
+                SpliceLogUtils.warn(LOG, "Database Property '" + key + "' was set, but it seems to be unknown");
+            }
+            else {
+                // reserved to add information about properties later
+                resultHelper.newRow();
+                c1.set("INFO");
+                c2.set("");
+            }
+            resultSet[0] = resultHelper.getResultSet();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
             throw new SQLException(e);
         }
-
     }
+
+    public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTIES(String filter,
+                                                            final boolean showNonNullOnly,
+                                                            final ResultSet[] resultSet) throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn colProperty = resultHelper.addVarchar("PROPERTY_NAME", -1);
+        ResultHelper.VarcharColumn colValue    = resultHelper.addVarchar("VALUE", -1);
+        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 50);
+        if( filter != null ) {
+            filter = DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(filter);
+        }
+
+        for(String property : PropertyHelper.getAllProperties()) {
+            if( filter != null && filter.length() > 0 && !property.matches(filter) ) continue;
+            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property);
+            if( showNonNullOnly && value == null ) continue;
+            resultHelper.newRow();
+            colProperty.set(property);
+            colValue.set(value);
+            colInfo.set(""); // reserved to add information about properties later
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
 
     public static void SYSCS_ENABLE_ENTERPRISE(final String value) throws SQLException{
         try {
@@ -1317,14 +1456,60 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement s = connection.createStatement()) {
+                    s.execute("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
             }
         }
     }
 
+    public static void SYSCS_GET_TABLE_COUNT(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            SIDriver driver = SIDriver.driver();
+            PartitionFactory partitionFactory = driver.getTableFactory();
+            PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
+            int tableCount = partitionAdmin.getTableCount();
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("NumTables", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLInteger(tableCount)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Cannot get table count.", t);
+        }
+    }
+
+    public static void SYSCS_IS_MEM_PLATFORM(ResultSet[] resultSets) throws StandardException, SQLException{
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            boolean isMemPlatform = EngineDriver.isMemPlatform();
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("IsMemPlatform", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+            };
+            ExecRow template = new ValueRow(1);
+
+            template.setRowArray(new DataValueDescriptor[]{new SQLBoolean(isMemPlatform)});
+            List<ExecRow> rows = Lists.newArrayList();
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Failed to test mem platform status.", t);
+        }
+    }
     public static void SYSCS_INVALIDATE_STORED_STATEMENTS() throws SQLException{
         SystemProcedures.SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS();
         SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE();
@@ -1339,10 +1524,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()")) {
-                    ps.execute();
-                }
+            try (Connection connection = RemoteUser.getConnection(server.toString());
+                 Statement ps = connection.createStatement()) {
+                     ps.execute("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()");
             }
         }
     }
@@ -1674,9 +1858,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
                 }
 
-                admin.disableTable("splice:" + conglomerateNumber);
+                admin.disableTable(Long.toString(conglomerateNumber));
                 admin.restoreSnapshot(sname);
-                admin.enableTable("splice:" + conglomerateNumber);
+                admin.enableTable(Long.toString(conglomerateNumber));
                 dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
                 SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
                         conglomerateNumber, creationTime, lastRestoreTime);
@@ -1712,7 +1896,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
             SnapshotDescriptor descriptor =
                     new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
-            admin.snapshot(sname, "splice:" + conglomerateNumber);
+            admin.snapshot(sname, Long.toString(conglomerateNumber));
             dd.addSnapshot(descriptor, tc);
             snapshotList.add(sname);
             if (LOG.isDebugEnabled())
@@ -1877,6 +2061,77 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
         return rows;
+    }
+
+    public static String getCurrentUserId() throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        return lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+    }
+
+    public static void ANALYZE_EXTERNAL_TABLE(String location, final ResultSet[] resultSet) throws IOException, SQLException {
+
+        GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, getCurrentUserId()+"_analyze",
+                    null, false, new CsvOptions(), null, null);
+
+        String[] res = result.getSuggestedSchema("\n").split("\n");
+        int maxLen = Arrays.stream(res).map(String::length).max(Integer::compareTo).get();
+
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("SCHEMA", Math.max(maxLen, 20));
+
+        for(String s : res ) {
+            resultHelper.newRow();
+            col1.set(s);
+        }
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
+    public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
+        DistributedFileSystem  fs = null;
+        try {
+            fs = SIDriver.driver().getFileSystem(location);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        try {
+            FileInfo fi1 = fs.getInfo(location);
+            if( fi1.exists() == false ) {
+                throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(location);
+            }
+
+            FileInfo files[] = fi1.listDir();
+            Arrays.sort(files, Comparator.comparing(FileInfo::fileName));
+
+            int maxLen = Arrays.stream(files).map(f -> f.fileName().length()).max(Integer::compareTo).get();
+            int pathColLen = Math.max(10, maxLen+2);
+
+            int ownerColLen = Arrays.stream(files).map(f -> f.getUser().length()).max(Integer::compareTo).get();
+            int groupColLen = Arrays.stream(files).map(f -> f.getGroup().length()).max(Integer::compareTo).get();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", ownerColLen+1);
+            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", groupColLen+1);
+            ResultHelper.TimestampColumn modtimeCol = resultHelper.addTimestamp("MODTIME", 30);
+            ResultHelper.BigintColumn  sizeCol      = resultHelper.addBigint("SIZE", 10);
+            ResultHelper.VarcharColumn permCol      = resultHelper.addVarchar("PERM", 12);
+            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", pathColLen );
+            for (FileInfo fi : files )
+            {
+                resultHelper.newRow();
+                pathCol.set( fi.fileName() );
+                ownerCol.set(fi.getUser());
+                groupCol.set(fi.getGroup());
+                modtimeCol.set( fi.getModificationTime() == 0 ? null : new DateTime(fi.getModificationTime()) );
+                sizeCol.set(fi.size());
+                permCol.set((fi.isDirectory() ? "d" : "-") + fi.getPermissionStr());
+            }
+            resultSet[0] = resultHelper.getResultSet();
+        } catch (IOException | StandardException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{

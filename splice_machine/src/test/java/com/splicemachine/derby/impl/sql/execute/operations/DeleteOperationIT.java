@@ -94,6 +94,12 @@ public class DeleteOperationIT extends SpliceUnitTest {
                 .withInsert("insert into b values(?)")
                 .withRows(rows(row(2), row(3)))
                 .create();
+
+        new TableCreator(connection)
+                .withCreate("create table c(i int)")
+                .withInsert("insert into c values(?)")
+                .withRows(rows(row(2), row(3)))
+                .create();
     }
 
     @Rule
@@ -186,5 +192,18 @@ public class DeleteOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from a");
         rs.next();
         Assert.assertEquals(0, rs.getInt(1));
+    }
+
+    @Test
+    public void testNoFromClause() throws Exception {
+        methodWatcher.execute("delete c where i=2");
+        String expected = "I |\n" +
+                        "----\n" +
+                        " 3 |";
+        testQuery("select * from c", expected, methodWatcher);
+
+        expected = "";
+        methodWatcher.execute("delete c where i in (select i from b)");
+        testQuery("select * from c", expected, methodWatcher);
     }
 }

@@ -1,7 +1,17 @@
 #!/bin/bash
 
 # set splice lib dir
-SPLICE_JARS="##SPLICELIBDIR##"
+#SPLICE_JARS="##SPLICELIBDIR##"
+
+if [[ -d ##SPLICELIBDIR## ]]; then
+  SPLICE_JARS="##SPLICELIBDIR##"
+elif [[ -d /usr/lib/splicemachine/lib ]]; then
+  SPLICE_JARS="/usr/lib/splicemachine/lib" # for clould deployment
+else
+  echo "Error: Please define SPLICE_JARS"
+  exit
+fi
+
 
 if [[ "SPLICE_JARS" == *"##"* ]]; then
    CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

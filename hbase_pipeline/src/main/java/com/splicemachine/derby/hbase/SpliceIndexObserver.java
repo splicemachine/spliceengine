@@ -16,6 +16,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.ExceptionUtil;
@@ -84,6 +85,10 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
             RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment) e);
             optionalRegionObserver = Optional.of(this);
             String tableName = rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
+            if (tableName.equals(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+                conglomId = -1;
+                return;
+            }
             TableType table = EnvUtils.getTableType(HConfiguration.getConfiguration(), rce);
             switch (table) {
                 case DERBY_SYS_TABLE:

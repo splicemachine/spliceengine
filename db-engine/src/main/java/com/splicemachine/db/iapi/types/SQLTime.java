@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,7 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -71,20 +74,18 @@ import java.util.GregorianCalendar;
  * Time is stored as two ints.  The first int represents hour, minute, second 
  * and the second represents fractional seconds (currently 0 since we don't support
  * time precision)
- * 	encodedTime = -1 indicates null
+ *     encodedTime = -1 indicates null
  *
  * PERFORMANCE OPTIMIZATION:
- *	The java.sql.Time object is only instantiated on demand for performance
- * 	reasons.
+ *    The java.sql.Time object is only instantiated on demand for performance
+ *     reasons.
  */
 
-public final class SQLTime extends DataType
-						implements DateTimeDataValue
-{
+public final class SQLTime extends DataType implements DateTimeDataValue {
 
-	private int		encodedTime;
-	private int		encodedTimeFraction; //currently always 0 since we don't
-											 //support time precision
+	private int        encodedTime;
+	private int        encodedTimeFraction; //currently always 0 since we don't
+	//support time precision
 	private int     stringFormat = JIS;
 
 	private static boolean skipDBContext = false;
@@ -92,20 +93,20 @@ public final class SQLTime extends DataType
 	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
 	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+	 ** DataValueDescriptor interface
+	 ** (mostly implemented in DataType)
+	 */
 
-    private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTime.class);
+	private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTime.class);
 
-    public int estimateMemoryUsage()
-    {
-        return BASE_MEMORY_USAGE;
-    } // end of estimateMemoryUsage
+	public int estimateMemoryUsage()
+	{
+		return BASE_MEMORY_USAGE;
+	} // end of estimateMemoryUsage
 
 	@Override
 	public void setStringFormat(int format) {
-    	stringFormat = format;
+		stringFormat = format;
 	}
 
 	public String getString() throws StandardException {
@@ -116,22 +117,22 @@ public final class SQLTime extends DataType
 		}
 	}
 
-    int getEncodedTime()
-    {
-        return encodedTime;
-    }
+	int getEncodedTime()
+	{
+		return encodedTime;
+	}
 
 	/**
-     * Convert a SQL TIME to a JDBC java.sql.Timestamp.
-     * 
-     * Behaviour is to set the date portion of the Timestamp
-     * to the actual current date, which may not match the
-     * SQL CURRENT DATE, which remains fixed for the lifetime
-     * of a SQL statement. JDBC drivers (especially network client drivers)
-     * could not be expected to fetch the CURRENT_DATE SQL value
-     * on every query that involved a TIME value, so the current
-     * date as seen by the JDBC client was picked as the logical behaviour.
-     * See DERBY-1811.
+	 * Convert a SQL TIME to a JDBC java.sql.Timestamp.
+	 *
+	 * Behaviour is to set the date portion of the Timestamp
+	 * to the actual current date, which may not match the
+	 * SQL CURRENT DATE, which remains fixed for the lifetime
+	 * of a SQL statement. JDBC drivers (especially network client drivers)
+	 * could not be expected to fetch the CURRENT_DATE SQL value
+	 * on every query that involved a TIME value, so the current
+	 * date as seen by the JDBC client was picked as the logical behaviour.
+	 * See DERBY-1811.
 	 */
 	public Timestamp getTimestamp( Calendar cal)
 	{
@@ -139,25 +140,25 @@ public final class SQLTime extends DataType
 			return null;
 		else
 		{
-            if( cal == null)
-            {
-                // Calendar initialized to current date and time.
-                cal = new GregorianCalendar(); 
-            }
-            else
-            {
-                cal.clear();
-                // Set Calendar to current date and time
-                // to pick up the current date. Time portion
-                // will be overridden by this value's time.
-                cal.setTimeInMillis(System.currentTimeMillis());
-            }
-            
-            SQLTime.setTimeInCalendar(cal, encodedTime);
-          
-            // Derby's resolution for the TIME type is only seconds.
+			if( cal == null)
+			{
+				// Calendar initialized to current date and time.
+				cal = new GregorianCalendar();
+			}
+			else
+			{
+				cal.clear();
+				// Set Calendar to current date and time
+				// to pick up the current date. Time portion
+				// will be overridden by this value's time.
+				cal.setTimeInMillis(System.currentTimeMillis());
+			}
+
+			SQLTime.setTimeInCalendar(cal, encodedTime);
+
+			// Derby's resolution for the TIME type is only seconds.
 			cal.set(Calendar.MILLISECOND, 0);
-            
+
 			return new Timestamp(cal.getTimeInMillis());
 		}
 	}
@@ -166,7 +167,7 @@ public final class SQLTime extends DataType
 	{
 		return getTime( (Calendar) null);
 	}
-		
+
 	public int getLength()
 	{
 		return 8;
@@ -184,33 +185,64 @@ public final class SQLTime extends DataType
 	 */
 
 	/**
-		Return my format identifier.
+	 Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
+	 @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+	 */
 	public int getTypeFormatId() {
 		return StoredFormatIds.SQL_TIME_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
+	/**
+	 @exception IOException error writing data
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
+	 */
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull);
 		out.writeInt(encodedTime);
 		out.writeInt(encodedTimeFraction);
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLTime.Builder builder = TypeMessage.SQLTime.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedTime(encodedTime);
+			builder.setEncodedTimeFraction(encodedTimeFraction);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLTime)
+						.setExtension(TypeMessage.SQLTime.sqlTime, builder.build())
+						.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLTime time = dvd.getExtension(TypeMessage.SQLTime.sqlTime);
+		init(time);
+	}
+
+	private void init(TypeMessage.SQLTime time) {
+		isNull = time.getIsNull();
+		if (!isNull) {
+			encodedTime = time.getEncodedTime();
+			encodedTimeFraction = time.getEncodedTimeFraction();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
@@ -250,17 +282,17 @@ public final class SQLTime extends DataType
 	 * DataValueDescriptor interface
 	 */
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
+	/**
+	 * @see DataValueDescriptor#setValueFromResultSet
 	 *
 	 * @exception SQLException		Thrown on error
 	 */
 	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
 									  boolean isNullable)
-		throws SQLException, StandardException
+			throws SQLException, StandardException
 	{
-			setValue(computeEncodedTime(resultSet.getTime(colNumber)));
-			//need to set encodedTimeFraction when we implement time precision
+		setValue(computeEncodedTime(resultSet.getTime(colNumber)));
+		//need to set encodedTimeFraction when we implement time precision
 	}
 
 	/**
@@ -273,7 +305,7 @@ public final class SQLTime extends DataType
 	 */
 	@SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO", justification = "intentional")
 	public int compare(DataValueDescriptor other)
-		throws StandardException
+			throws StandardException
 	{
 		/* Use compare method from dominant type, negating result
 		 * to reflect flipping of sides.
@@ -321,7 +353,7 @@ public final class SQLTime extends DataType
 		{
 			otherEncodedTime=((SQLTime)other).encodedTime;
 		}
-		else 
+		else
 		{
 			/* O.K. have to do it the hard way and calculate the numeric value
 			 * from the value
@@ -339,13 +371,13 @@ public final class SQLTime extends DataType
 	}
 
 	/**
-		@exception StandardException thrown on error
+	 @exception StandardException thrown on error
 	 */
 	public boolean compare(int op,
 						   DataValueDescriptor other,
 						   boolean orderedNulls,
 						   boolean unknownRV)
-		throws StandardException
+			throws StandardException
 	{
 		if (!orderedNulls)		// nulls are unordered
 		{
@@ -358,16 +390,16 @@ public final class SQLTime extends DataType
 	}
 
 	/*
-	** Class interface
-	*/
+	 ** Class interface
+	 */
 
 	/*
-	** Constructors
-	*/
+	 ** Constructors
+	 */
 
 	/** no-arg constructor required by Formattable */
-	public SQLTime() 
-	{ 
+	public SQLTime()
+	{
 		restoreToNull();
 	}
 
@@ -376,7 +408,11 @@ public final class SQLTime extends DataType
 		parseTime(value);
 	}
 
-    private void parseTime(java.util.Date value) throws StandardException
+	public SQLTime(TypeMessage.SQLTime sqlTime) {
+		init(sqlTime);
+	}
+
+	private void parseTime(java.util.Date value) throws StandardException
 	{
 		setValue(computeEncodedTime(value));
 	}
@@ -386,188 +422,188 @@ public final class SQLTime extends DataType
 	}
 
 
-    /**
-     * Construct a time from a string. The allowed time formats are:
-     *<ol>
-     *<li>old ISO and IBM European standard: hh.mm[.ss]
-     *<li>IBM USA standard: hh[:mm] {AM | PM}
-     *<li>JIS & current ISO: hh:mm[:ss]
-     *</ol>
-     * 
-     * @exception StandardException if the syntax is invalid or the value is out of range.
-     */
-    public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder)
-        throws StandardException
-    {
-        parseTime( timeStr, isJdbcEscape, localeFinder, (Calendar) null);
-    }
-    
-    /**
-     * Construct a time from a string. The allowed time formats are:
-     *<ol>
-     *<li>old ISO and IBM European standard: hh.mm[.ss]
-     *<li>IBM USA standard: hh[:mm] {AM | PM}
-     *<li>JIS & current ISO: hh:mm[:ss]
-     *</ol>
-     * 
-     * @exception StandardException if the syntax is invalid or the value is out of range.
-     */
-    public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
-        throws StandardException
-    {
-        parseTime( timeStr, isJdbcEscape, localeFinder, cal);
-    }
+	/**
+	 * Construct a time from a string. The allowed time formats are:
+	 *<ol>
+	 *<li>old ISO and IBM European standard: hh.mm[.ss]
+	 *<li>IBM USA standard: hh[:mm] {AM | PM}
+	 *<li>JIS & current ISO: hh:mm[:ss]
+	 *</ol>
+	 *
+	 * @exception StandardException if the syntax is invalid or the value is out of range.
+	 */
+	public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder)
+			throws StandardException
+	{
+		parseTime( timeStr, isJdbcEscape, localeFinder, (Calendar) null);
+	}
 
-    private static final char IBM_EUR_SEPARATOR = '.';
-    private static final char[] IBM_EUR_SEPARATOR_OR_END = {IBM_EUR_SEPARATOR, (char) 0};
-    static final char JIS_SEPARATOR = ':';
-    private static final char[] US_OR_JIS_MINUTE_END = {JIS_SEPARATOR, ' ', (char) 0};
-    private static final char[] ANY_SEPARATOR = { '.', ':', ' '};
-    private static final String[] AM_PM = {"AM", "PM"};
-    private static final char[] END_OF_STRING = {(char) 0};
-    
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "intentional, read comment")
+	/**
+	 * Construct a time from a string. The allowed time formats are:
+	 *<ol>
+	 *<li>old ISO and IBM European standard: hh.mm[.ss]
+	 *<li>IBM USA standard: hh[:mm] {AM | PM}
+	 *<li>JIS & current ISO: hh:mm[:ss]
+	 *</ol>
+	 *
+	 * @exception StandardException if the syntax is invalid or the value is out of range.
+	 */
+	public SQLTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
+			throws StandardException
+	{
+		parseTime( timeStr, isJdbcEscape, localeFinder, cal);
+	}
+
+	private static final char IBM_EUR_SEPARATOR = '.';
+	private static final char[] IBM_EUR_SEPARATOR_OR_END = {IBM_EUR_SEPARATOR, (char) 0};
+	static final char JIS_SEPARATOR = ':';
+	private static final char[] US_OR_JIS_MINUTE_END = {JIS_SEPARATOR, ' ', (char) 0};
+	private static final char[] ANY_SEPARATOR = { '.', ':', ' '};
+	private static final String[] AM_PM = {"AM", "PM"};
+	private static final char[] END_OF_STRING = {(char) 0};
+
+	@SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "intentional, read comment")
 	private void parseTime(String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
-        throws StandardException
-    {
-        boolean validSyntax = true;
-        DateTimeParser parser = new DateTimeParser( timeStr);
-        StandardException thrownSE = null;
-        int hour = 0;
-        int minute = 0;
-        int second = 0;
-        int amPm = -1;
-        try
-        {
-            if( parser.nextSeparator() == SQLTimestamp.DATE_SEPARATOR)
-            {
-                    setValue(SQLTimestamp.parseDateOrTimestamp( parser, true)[1]);
-                    return;
-            }
-            hour = parser.parseInt( 2, true, ANY_SEPARATOR, false);
-            switch( parser.getCurrentSeparator())
-            {
-            case IBM_EUR_SEPARATOR:
-                if( isJdbcEscape)
-                {
-                    validSyntax = false;
-                    break;
-                }
-                minute = parser.parseInt( 2, false, IBM_EUR_SEPARATOR_OR_END, false);
-                if( parser.getCurrentSeparator() == IBM_EUR_SEPARATOR)
-                    second = parser.parseInt( 2, false, END_OF_STRING, false);
-                break;
+			throws StandardException
+	{
+		boolean validSyntax = true;
+		DateTimeParser parser = new DateTimeParser( timeStr);
+		StandardException thrownSE = null;
+		int hour = 0;
+		int minute = 0;
+		int second = 0;
+		int amPm = -1;
+		try
+		{
+			if( parser.nextSeparator() == SQLTimestamp.DATE_SEPARATOR)
+			{
+				setValue(SQLTimestamp.parseDateOrTimestamp( parser, true)[1]);
+				return;
+			}
+			hour = parser.parseInt( 2, true, ANY_SEPARATOR, false);
+			switch( parser.getCurrentSeparator())
+			{
+				case IBM_EUR_SEPARATOR:
+					if( isJdbcEscape)
+					{
+						validSyntax = false;
+						break;
+					}
+					minute = parser.parseInt( 2, false, IBM_EUR_SEPARATOR_OR_END, false);
+					if( parser.getCurrentSeparator() == IBM_EUR_SEPARATOR)
+						second = parser.parseInt( 2, false, END_OF_STRING, false);
+					break;
 
-            case ':':
-                // IBM USA or JIS (new ISO)
-                minute = parser.parseInt( 2, false, US_OR_JIS_MINUTE_END, false);
-                switch( parser.getCurrentSeparator())
-                {
-                case ' ':
-                    // IBM USA with minutes
-                    if( isJdbcEscape)
-                    {
-                        validSyntax = false;
-                        break;
-                    }
-                    amPm = parser.parseChoice( AM_PM);
-                    parser.checkEnd();
-                    break;
+				case ':':
+					// IBM USA or JIS (new ISO)
+					minute = parser.parseInt( 2, false, US_OR_JIS_MINUTE_END, false);
+					switch( parser.getCurrentSeparator())
+					{
+						case ' ':
+							// IBM USA with minutes
+							if( isJdbcEscape)
+							{
+								validSyntax = false;
+								break;
+							}
+							amPm = parser.parseChoice( AM_PM);
+							parser.checkEnd();
+							break;
 
-                case JIS_SEPARATOR:
-                    second = parser.parseInt( 2, false, END_OF_STRING, false);
-                    break;
+						case JIS_SEPARATOR:
+							second = parser.parseInt( 2, false, END_OF_STRING, false);
+							break;
 
-                    // default is end of string, meaning that the seconds part is zero.
-                }
-                break;
+						// default is end of string, meaning that the seconds part is zero.
+					}
+					break;
 
-            case ' ':
-                // IBM USA with minutes omitted
-                if( isJdbcEscape)
-                {
-                    validSyntax = false;
-                    break;
-                }
-                amPm = parser.parseChoice( AM_PM);
-                break;
+				case ' ':
+					// IBM USA with minutes omitted
+					if( isJdbcEscape)
+					{
+						validSyntax = false;
+						break;
+					}
+					amPm = parser.parseChoice( AM_PM);
+					break;
 
-            default:
-                validSyntax = false;
-            }
-        }
-        catch( StandardException se)
-        {
-            validSyntax = false;
-            thrownSE = se;
-        }
-        if( validSyntax)
-        {
-            if( amPm == 0) // AM
-            {
-                if( hour == 12)
-                {
-                    if( minute == 0 && second == 0)
-                        hour = 24;
-                    else
-                        hour = 0;
-                }
-                else if( hour > 12)
-                    throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
-            }
-            else if( amPm == 1) // PM
-            {
-                if( hour < 12)
-                    hour += 12;
-                else if( hour > 12)
-                    throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
-            }
-            parser.checkEnd();
-            setValue(computeEncodedTime( hour, minute, second));
-        }
-        else
-        {
-            // See if it is a localized time or timestamp
-            timeStr = StringUtil.trimTrailing( timeStr);
-            DateFormat timeFormat = null;
-            if(localeFinder == null)
-                timeFormat = DateFormat.getTimeInstance();
-            else if( cal == null)
-                timeFormat = localeFinder.getTimeFormat();
-            else
-                timeFormat = (DateFormat) localeFinder.getTimeFormat().clone();
-            if( cal != null)
-                timeFormat.setCalendar( cal);
-            try
-            {
-                setValue(computeEncodedTime( timeFormat.parse( timeStr), cal));
-            }
-            catch( ParseException pe)
-            {
-                // Maybe it is a localized timestamp
-                try
-                {
-                    setValue(SQLTimestamp.parseLocalTimestamp( timeStr, localeFinder, cal)[1]);
-                }
-                catch( ParseException pe2)
-                {
-                    if( thrownSE != null)
-                        throw thrownSE;
-                    throw StandardException.newException( SQLState.LANG_DATE_SYNTAX_EXCEPTION);
-                }
-            }
-        }
-    } // end of parseTime
+				default:
+					validSyntax = false;
+			}
+		}
+		catch( StandardException se)
+		{
+			validSyntax = false;
+			thrownSE = se;
+		}
+		if( validSyntax)
+		{
+			if( amPm == 0) // AM
+			{
+				if( hour == 12)
+				{
+					if( minute == 0 && second == 0)
+						hour = 24;
+					else
+						hour = 0;
+				}
+				else if( hour > 12)
+					throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+			}
+			else if( amPm == 1) // PM
+			{
+				if( hour < 12)
+					hour += 12;
+				else if( hour > 12)
+					throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+			}
+			parser.checkEnd();
+			setValue(computeEncodedTime( hour, minute, second));
+		}
+		else
+		{
+			// See if it is a localized time or timestamp
+			timeStr = StringUtil.trimTrailing( timeStr);
+			DateFormat timeFormat = null;
+			if(localeFinder == null)
+				timeFormat = DateFormat.getTimeInstance();
+			else if( cal == null)
+				timeFormat = localeFinder.getTimeFormat();
+			else
+				timeFormat = (DateFormat) localeFinder.getTimeFormat().clone();
+			if( cal != null)
+				timeFormat.setCalendar( cal);
+			try
+			{
+				setValue(computeEncodedTime( timeFormat.parse( timeStr), cal));
+			}
+			catch( ParseException pe)
+			{
+				// Maybe it is a localized timestamp
+				try
+				{
+					setValue(SQLTimestamp.parseLocalTimestamp( timeStr, localeFinder, cal)[1]);
+				}
+				catch( ParseException pe2)
+				{
+					if( thrownSE != null)
+						throw thrownSE;
+					throw StandardException.newException( SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+				}
+			}
+		}
+	} // end of parseTime
 
 	/**
 	 * Set the value from a correctly typed Time object.
-	 * @throws StandardException 
+	 * @throws StandardException
 	 */
 	void setObject(Object theValue) throws StandardException
 	{
 		setValue((Time) theValue);
 	}
-    
+
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
 		if (theValue instanceof SQLTime) {
@@ -576,17 +612,17 @@ public final class SQLTime extends DataType
 			setValue(tvst.encodedTime, tvst.encodedTimeFraction);
 
 		}
-        else
-        {
-            Calendar cal = new GregorianCalendar();
+		else
+		{
+			Calendar cal = new GregorianCalendar();
 			setValue(theValue.getTime( cal), cal);
-        }
+		}
 	}
 
 	/**
-		@see DateTimeDataValue#setValue
+	 @see DateTimeDataValue#setValue
 
-		@exception StandardException thrown on failure.
+	 @exception StandardException thrown on failure.
 	 */
 	public void setValue(Time value, Calendar cal) throws StandardException
 	{
@@ -594,9 +630,9 @@ public final class SQLTime extends DataType
 	}
 
 	/**
-		@see DateTimeDataValue#setValue
+	 @see DateTimeDataValue#setValue
 
-		@exception StandardException thrown on failure.
+	 @exception StandardException thrown on failure.
 	 */
 	public void setValue(Timestamp value, Calendar cal) throws StandardException
 	{
@@ -609,7 +645,7 @@ public final class SQLTime extends DataType
 				value.getSecondOfMinute()));
 	}
 
-	
+
 
 	public void setValue(String theValue) throws StandardException {
 		setValue(theValue,null);
@@ -629,169 +665,215 @@ public final class SQLTime extends DataType
 	}
 
 	/*
-	** SQL Operators
-	*/
+	 ** SQL Operators
+	 */
 
-    NumberDataValue nullValueInt() {
-        return new SQLInteger();
-    }
+	NumberDataValue nullValueInt() {
+		return new SQLInteger();
+	}
 
 	/**
 	 * @see DateTimeDataValue#getYear
-	 * 
-	 * @exception StandardException		Thrown on error
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getYear(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getYear", "Time");
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+				"getYear", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getQuarter
-	 * 
-	 * @exception StandardException		Thrown on error
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getQuarter(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getQuarter", "Time");
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+				"getQuarter", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getMonth
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getMonth(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getMonth", "Time");
+				"getMonth", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getMonthName
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public StringDataValue getMonthName(StringDataValue result)
-							throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getMonthName", "Time");
+				"getMonthName", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getWeek
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getWeek(NumberDataValue result)
-        throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getWeek", "Time");
+				"getWeek", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getWeekDay
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getWeekDay(NumberDataValue result)
-        throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getWeekDay", "Time");
+				"getWeekDay", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getUSWeekDay
+	 *
+	 * @exception StandardException        Thrown on error
+	 */
+	public NumberDataValue getUSWeekDay(NumberDataValue result)
+			throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+				"getUSWeekDay", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getWeekDayName
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public StringDataValue getWeekDayName(StringDataValue result)
-							throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getWeekDayName", "Time");
+				"getWeekDayName", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getDayOfYear
-	 * 
-	 * @exception StandardException		Thrown on error
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getDayOfYear(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-						"getDayOfYear", "Time");
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+				"getDayOfYear", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getDate
 	 *
-	 * @exception StandardException		Thrown on error
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getDate(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
 		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-						"getDate", "Time");
+				"getDate", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getDays
+	 *
+	 * @exception StandardException        Thrown on error
+	 */
+	public NumberDataValue getDays(NumberDataValue result)
+			throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+				"getDays", "Time");
 	}
 
 	/**
 	 * @see DateTimeDataValue#getHours
-	 * 
-	 * @exception StandardException		Thrown on error
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getHours(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
-        if (isNull()) {
-            return nullValueInt();
-        } else {    
-            return SQLDate.setSource(getHour(encodedTime), result);
-        }
+		if (isNull()) {
+			return nullValueInt();
+		} else {
+			return SQLDate.setSource(getHour(encodedTime), result);
+		}
 	}
 
 	/**
 	 * @see DateTimeDataValue#getMinutes
-	 * 
-	 * @exception StandardException		Thrown on error
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
 	public NumberDataValue getMinutes(NumberDataValue result)
-							throws StandardException
+			throws StandardException
 	{
-        if (isNull()) {
-            return nullValueInt();
-        } else {    
-            return SQLDate.setSource(getMinute(encodedTime), result);
-        }
+		if (isNull()) {
+			return nullValueInt();
+		} else {
+			return SQLDate.setSource(getMinute(encodedTime), result);
+		}
 	}
 
 	/**
-	 * @see DateTimeDataValue#getSeconds
-	 * 
-	 * @exception StandardException		Thrown on error
+	 * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDouble
+	 *
+	 * @exception StandardException        Thrown on error
 	 */
-	public NumberDataValue getSeconds(NumberDataValue result)
-							throws StandardException
+	public NumberDataValue getSecondsAndFractionOfSecondAsDouble(NumberDataValue result)
+			throws StandardException
 	{
-        if (isNull()) {
-            return nullValueInt();
-        } else {    
-            return SQLDate.setSource(getSecond(encodedTime), result);
-        }
+		return getSecondsAsInt(result);
+	}
+
+	/**
+	 * @see DateTimeDataValue#getSecondsAsInt
+	 *
+	 * @exception StandardException        Thrown on error
+	 */
+	public NumberDataValue getSecondsAsInt(NumberDataValue result)
+			throws StandardException
+	{
+		if (isNull()) {
+			return nullValueInt();
+		} else {
+			return SQLDate.setSource(getSecond(encodedTime), result);
+		}
+	}
+
+	/**
+	 * @see DateTimeDataValue#getSecondsAndFractionOfSecondAsDecimal
+	 *
+	 * @exception StandardException        Thrown on error
+	 */
+	public NumberDataValue getSecondsAndFractionOfSecondAsDecimal(NumberDataValue result)
+			throws StandardException
+	{
+		return getSecondsAsInt(result);
 	}
 
 	/*
-	** String display of value
-	*/
+	 ** String display of value
+	 */
 
 	public String toString()
 	{
@@ -820,13 +902,13 @@ public final class SQLTime extends DataType
 	}
 
 	/** @see DataValueDescriptor#typePrecedence */
-	public int	typePrecedence()
+	public int    typePrecedence()
 	{
 		return TypeId.TIME_PRECEDENCE;
 	}
 
 	/**
-	 * Check if the value is null.  
+	 * Check if the value is null.
 	 *
 	 * @return Whether or not value is logically null.
 	 */
@@ -836,71 +918,71 @@ public final class SQLTime extends DataType
 	}
 
 	/**
-	 * Get the time value 
+	 * Get the time value
 	 * Since this is a JDBC object we use the JDBC definition
 	 * we use the JDBC definition, see JDBC API Tutorial and Reference
 	 * section 47.3.12
 	 * Date is set to Jan. 1, 1970
 	 *
-	 * @return	The localized time value.
+	 * @return    The localized time value.
 	 */
 	public Time getTime(java.util.Calendar cal)
 	{
 		if (isNull())
 			return null;
-        
-        // Derby's SQL TIME type only has second resolution
-        // so pass in 0 for nano-seconds
-        return getTime(cal, encodedTime, 0);
+
+		// Derby's SQL TIME type only has second resolution
+		// so pass in 0 for nano-seconds
+		return getTime(cal, encodedTime, 0);
 	}
-    
-    /**
-     * Set the time portion of a date-time value into
-     * the passed in Calendar object from its encodedTime
-     * value. Note that this is only the time down
-     * to a resolution of one second. Only the HOUR_OF_DAY,
-     * MINUTE and SECOND fields are modified. The remaining
-     * state of the Calendar is not modified.
-     */
-    static void setTimeInCalendar(Calendar cal, int encodedTime)
-    {
-        cal.set(Calendar.HOUR_OF_DAY, getHour(encodedTime));
-        cal.set(Calendar.MINUTE, getMinute(encodedTime));
-        cal.set(Calendar.SECOND, getSecond(encodedTime));        
-    }
-    
-    /**
-     * Get a java.sql.Time object from an encoded time
-     * and nano-second value. As required by JDBC the
-     * date component of the Time object will be set to
-     * Jan. 1, 1970
-     * @param cal Calendar to use for conversion
-     * @param encodedTime Derby encoded time value
-     * @param nanos number of nano-seconds.
-     * @return Valid Time object.
-     */
-    static Time getTime(Calendar cal, int encodedTime, int nanos)
-    {
-        if( cal == null)
-            cal = new GregorianCalendar();
-        
-        cal.clear();
-        
-        cal.set(1970, Calendar.JANUARY, 1);
 
-        SQLTime.setTimeInCalendar(cal, encodedTime);
+	/**
+	 * Set the time portion of a date-time value into
+	 * the passed in Calendar object from its encodedTime
+	 * value. Note that this is only the time down
+	 * to a resolution of one second. Only the HOUR_OF_DAY,
+	 * MINUTE and SECOND fields are modified. The remaining
+	 * state of the Calendar is not modified.
+	 */
+	static void setTimeInCalendar(Calendar cal, int encodedTime)
+	{
+		cal.set(Calendar.HOUR_OF_DAY, getHour(encodedTime));
+		cal.set(Calendar.MINUTE, getMinute(encodedTime));
+		cal.set(Calendar.SECOND, getSecond(encodedTime));
+	}
 
-        cal.set(Calendar.MILLISECOND, nanos/1000000);
-        
-        return new Time(cal.getTimeInMillis());
-    }
-    
-    
+	/**
+	 * Get a java.sql.Time object from an encoded time
+	 * and nano-second value. As required by JDBC the
+	 * date component of the Time object will be set to
+	 * Jan. 1, 1970
+	 * @param cal Calendar to use for conversion
+	 * @param encodedTime Derby encoded time value
+	 * @param nanos number of nano-seconds.
+	 * @return Valid Time object.
+	 */
+	static Time getTime(Calendar cal, int encodedTime, int nanos)
+	{
+		if( cal == null)
+			cal = new GregorianCalendar();
+
+		cal.clear();
+
+		cal.set(1970, Calendar.JANUARY, 1);
+
+		SQLTime.setTimeInCalendar(cal, encodedTime);
+
+		cal.set(Calendar.MILLISECOND, nanos/1000000);
+
+		return new Time(cal.getTimeInMillis());
+	}
+
+
 	/**
 	 * Get the encoded hour value (may be different than hour value for
-	 *  	current timezone if value encoded in a different timezone)
+	 *      current timezone if value encoded in a different timezone)
 	 *
-	 * @return	hour value
+	 * @return    hour value
 	 */
 	protected static int getHour(int encodedTime)
 	{
@@ -908,9 +990,9 @@ public final class SQLTime extends DataType
 	}
 	/**
 	 * Get the encoded minute value (may be different than the minute value for
-	 *  	current timezone if value encoded in a different timezone)
+	 *      current timezone if value encoded in a different timezone)
 	 *
-	 * @return	minute value
+	 * @return    minute value
 	 */
 	protected static int getMinute(int encodedTime)
 	{
@@ -918,45 +1000,45 @@ public final class SQLTime extends DataType
 	}
 	/**
 	 * Get the encoded second value (may be different than the second value for
-	 *  	current timezone if value encoded in a different timezone)
+	 *      current timezone if value encoded in a different timezone)
 	 *
-	 * @return	second value
+	 * @return    second value
 	 */
 	protected static int getSecond(int encodedTime)
 	{
 		return (encodedTime & 0xff);
 	}
 	/**
-	 *	Calculate the encoded time from a Calendar object
-	 *	encoded time is hour << 16 + min << 8 + sec
-	 *  this function is also used by SQLTimestamp 
+	 *    Calculate the encoded time from a Calendar object
+	 *    encoded time is hour << 16 + min << 8 + sec
+	 *  this function is also used by SQLTimestamp
 	 *
-	 * @param	cal calendar with time set
-	 * @return	encoded time
-     *
-     * @exception StandardException if the time is not in the DB2 range
+	 * @param    cal calendar with time set
+	 * @return    encoded time
+	 *
+	 * @exception StandardException if the time is not in the DB2 range
 	 */
 	static int computeEncodedTime(Calendar cal) throws StandardException
 	{
 		return computeEncodedTime(cal.get(Calendar.HOUR_OF_DAY),
-                                  cal.get(Calendar.MINUTE),
-                                  cal.get(Calendar.SECOND));
+				cal.get(Calendar.MINUTE),
+				cal.get(Calendar.SECOND));
 	}
 
-    static int computeEncodedTime( int hour, int minute, int second) throws StandardException
-    {
-        if( hour == 24)
-        {
-            if( minute != 0 || second != 0)
-                throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
-        }
-        else if( hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59)
-            throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+	static int computeEncodedTime( int hour, int minute, int second) throws StandardException
+	{
+		if( hour == 24)
+		{
+			if( minute != 0 || second != 0)
+				throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+		}
+		else if( hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59)
+			throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
 
-        return (hour << 16) + (minute << 8) + second;
-    }
+		return (hour << 16) + (minute << 8) + second;
+	}
 
-    static void timeComponentToString(int value, StringBuffer sb) {
+	static void timeComponentToString(int value, StringBuffer sb) {
 		String valStr = Integer.toString(value);
 		if (valStr.length() == 1) {
 			sb.append("0");
@@ -964,16 +1046,16 @@ public final class SQLTime extends DataType
 		sb.append(valStr);
 	}
 
-    /**
-     * Convert a time to a JDBC escape format string
-     *
-     * @param hour
-     * @param minute
-     * @param second
-     * @param sb The resulting string is appended to this StringBuffer
-     */
-    static void timeToString( int hour, int minute, int second, int format, StringBuffer sb) throws StandardException
-    {
+	/**
+	 * Convert a time to a JDBC escape format string
+	 *
+	 * @param hour
+	 * @param minute
+	 * @param second
+	 * @param sb The resulting string is appended to this StringBuffer
+	 */
+	static void timeToString( int hour, int minute, int second, int format, StringBuffer sb) throws StandardException
+	{
 		switch (format) {
 			case ISO:
 			case EUR:
@@ -1012,17 +1094,17 @@ public final class SQLTime extends DataType
 			default:
 				throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "time");
 		}
-    } // end of timeToString
+	} // end of timeToString
 
 	/**
 	 * Get the String version from the encodedTime.
 	 *
-	 * @return	 string value.
+	 * @return     string value.
 	 */
 	protected static String encodedTimeToString(int encodedTime, int format) throws StandardException
 	{
 		StringBuffer vstr = new StringBuffer();
-        timeToString( SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), format, vstr);
+		timeToString( SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), format, vstr);
 		return vstr.toString();
 	}
 
@@ -1030,56 +1112,56 @@ public final class SQLTime extends DataType
 	 * Compute encoded time value
 	 * Time is represented by hour << 16 + minute << 8 + seconds
 	 */
-	private	int computeEncodedTime(java.util.Date value) throws StandardException
+	private    int computeEncodedTime(java.util.Date value) throws StandardException
 	{
-        return computeEncodedTime( value, (Calendar) null);
-    }
+		return computeEncodedTime( value, (Calendar) null);
+	}
 
-    static int computeEncodedTime(java.util.Date value, Calendar currentCal) throws StandardException
-    {
-        if (value == null)
+	static int computeEncodedTime(java.util.Date value, Calendar currentCal) throws StandardException
+	{
+		if (value == null)
 			return -1;
-        if( currentCal == null)
-            currentCal = new GregorianCalendar();
+		if( currentCal == null)
+			currentCal = new GregorianCalendar();
 		currentCal.setTime(value);
 		return computeEncodedTime(currentCal);
 	}
 
-     /** Adding this method to ensure that super class' setInto method doesn't get called
-      * that leads to the violation of JDBC spec( untyped nulls ) when batching is turned on.
-      */
-    public void setInto(PreparedStatement ps, int position) throws SQLException, StandardException {
+	/** Adding this method to ensure that super class' setInto method doesn't get called
+	 * that leads to the violation of JDBC spec( untyped nulls ) when batching is turned on.
+	 */
+	public void setInto(PreparedStatement ps, int position) throws SQLException, StandardException {
 
-		      ps.setTime(position, getTime((Calendar) null));
-   }
-
-
-    /**
-     * Add a number of intervals to a datetime value. Implements the JDBC escape TIMESTAMPADD function.
-     *
-     * @param intervalType One of FRAC_SECOND_INTERVAL, SECOND_INTERVAL, MINUTE_INTERVAL, HOUR_INTERVAL,
-     *                     DAY_INTERVAL, WEEK_INTERVAL, MONTH_INTERVAL, QUARTER_INTERVAL, or YEAR_INTERVAL
-     * @param intervalCount The number of intervals to add
-     * @param currentDate Used to convert time to timestamp
-     * @param resultHolder If non-null a DateTimeDataValue that can be used to hold the result. If null then
-     *                     generate a new holder
-     *
-     * @return startTime + intervalCount intervals, as a timestamp
-     *
-     * @exception StandardException
-     */
-    public DateTimeDataValue timestampAdd( int intervalType,
-                                           NumberDataValue intervalCount,
-                                           java.sql.Date currentDate,
-                                           DateTimeDataValue resultHolder)
-        throws StandardException
-    {
-        return toTimestamp( currentDate).timestampAdd( intervalType, intervalCount, currentDate, resultHolder);
-    }
+		ps.setTime(position, getTime((Calendar) null));
+	}
 
 
-    @Override
-    public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
+	/**
+	 * Add a number of intervals to a datetime value. Implements the JDBC escape TIMESTAMPADD function.
+	 *
+	 * @param intervalType One of FRAC_SECOND_INTERVAL, SECOND_INTERVAL, MINUTE_INTERVAL, HOUR_INTERVAL,
+	 *                     DAY_INTERVAL, WEEK_INTERVAL, MONTH_INTERVAL, QUARTER_INTERVAL, or YEAR_INTERVAL
+	 * @param intervalCount The number of intervals to add
+	 * @param currentDate Used to convert time to timestamp
+	 * @param resultHolder If non-null a DateTimeDataValue that can be used to hold the result. If null then
+	 *                     generate a new holder
+	 *
+	 * @return startTime + intervalCount intervals, as a timestamp
+	 *
+	 * @exception StandardException
+	 */
+	public DateTimeDataValue timestampAdd( int intervalType,
+										   NumberDataValue intervalCount,
+										   java.sql.Date currentDate,
+										   DateTimeDataValue resultHolder)
+			throws StandardException
+	{
+		return toTimestamp( currentDate).timestampAdd( intervalType, intervalCount, currentDate, resultHolder);
+	}
+
+
+	@Override
+	public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
 		if( returnValue == null)
 			returnValue = new SQLTime();
 		if( leftOperand.isNull() || daysToAdd.isNull())
@@ -1092,8 +1174,8 @@ public final class SQLTime extends DataType
 		return returnValue;
 	}
 
-    @Override
-    public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
+	@Override
+	public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
 		if( returnValue == null)
 			returnValue = new SQLTime();
 		if(leftOperand.isNull() || daysToSubtract.isNull()) {
@@ -1105,8 +1187,8 @@ public final class SQLTime extends DataType
 		return returnValue;
 	}
 
-    @Override
-    public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
+	@Override
+	public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
 		if( returnValue == null)
 			returnValue = new SQLInteger();
 		if(leftOperand.isNull() || rightOperand.isNull()) {
@@ -1117,7 +1199,7 @@ public final class SQLTime extends DataType
 		Days diff = Days.daysBetween(thatDate, leftOperand.getDateTime());
 		returnValue.setValue(diff.getDays());
 		return returnValue;
-    }
+	}
 
 	@Override
 	public void setValue(String theValue,Calendar cal) throws StandardException{
@@ -1132,38 +1214,38 @@ public final class SQLTime extends DataType
 	}
 
 	private SQLTimestamp toTimestamp(java.sql.Date currentDate) throws StandardException
-    {
-        return new SQLTimestamp( SQLDate.computeEncodedDate( currentDate, (Calendar) null),
-                                 getEncodedTime(),
-                                 0 /* nanoseconds */);
-    }
-    
-    /**
-     * Finds the difference between two datetime values as a number of intervals. Implements the JDBC
-     * TIMESTAMPDIFF escape function.
-     *
-     * @param intervalType One of FRAC_SECOND_INTERVAL, SECOND_INTERVAL, MINUTE_INTERVAL, HOUR_INTERVAL,
-     *                     DAY_INTERVAL, WEEK_INTERVAL, MONTH_INTERVAL, QUARTER_INTERVAL, or YEAR_INTERVAL
-     * @param time1
-     * @param currentDate Used to convert time to timestamp
-     * @param resultHolder If non-null a NumberDataValue that can be used to hold the result. If null then
-     *                     generate a new holder
-     *
-     * @return the number of intervals by which this datetime is greater than time1
-     *
-     * @exception StandardException
-     */
-    public NumberDataValue timestampDiff( int intervalType,
-                                          DateTimeDataValue time1,
-                                          java.sql.Date currentDate,
-                                          NumberDataValue resultHolder)
-        throws StandardException
-    {
-        return toTimestamp( currentDate ).timestampDiff( intervalType, time1, currentDate, resultHolder);
-    }
-    public Format getFormat() {
-    	return Format.TIME;
-    }
+	{
+		return new SQLTimestamp( SQLDate.computeEncodedDate( currentDate, (Calendar) null),
+				getEncodedTime(),
+				0 /* nanoseconds */);
+	}
+
+	/**
+	 * Finds the difference between two datetime values as a number of intervals. Implements the JDBC
+	 * TIMESTAMPDIFF escape function.
+	 *
+	 * @param intervalType One of FRAC_SECOND_INTERVAL, SECOND_INTERVAL, MINUTE_INTERVAL, HOUR_INTERVAL,
+	 *                     DAY_INTERVAL, WEEK_INTERVAL, MONTH_INTERVAL, QUARTER_INTERVAL, or YEAR_INTERVAL
+	 * @param time1
+	 * @param currentDate Used to convert time to timestamp
+	 * @param resultHolder If non-null a NumberDataValue that can be used to hold the result. If null then
+	 *                     generate a new holder
+	 *
+	 * @return the number of intervals by which this datetime is greater than time1
+	 *
+	 * @exception StandardException
+	 */
+	public NumberDataValue timestampDiff( int intervalType,
+										  DateTimeDataValue time1,
+										  java.sql.Date currentDate,
+										  NumberDataValue resultHolder)
+			throws StandardException
+	{
+		return toTimestamp( currentDate ).timestampDiff( intervalType, time1, currentDate, resultHolder);
+	}
+	public Format getFormat() {
+		return Format.TIME;
+	}
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {

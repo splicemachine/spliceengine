@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.api.TableDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
@@ -174,16 +175,26 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
         return false;
     }
     @Override
-    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+    public void setCatalogVersion(String conglomerate, String version) throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
     @Override
-    public String getCatalogVersion(long conglomerateNumber) {
-        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    public String getCatalogVersion(String conglomerate) {
+        return "2";
     }
 
     @Override
     public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+
+    @Override
+    public int getTableCount() throws IOException {
+        return admin.getTableCount();
+    }
+
+    @Override
+    public void createSITable(String tableName) throws StandardException {
+        admin.createSITable(tableName);
     }
 }

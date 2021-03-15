@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -117,7 +118,7 @@ public class DateTypeCompiler extends BaseTypeCompiler
 	/**
 	 * @see TypeCompiler#getCastToCharWidth
 	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
 		return 10;
 	}

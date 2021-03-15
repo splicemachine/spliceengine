@@ -56,6 +56,7 @@ import java.util.stream.Stream;
  */
 public class ShowCreateTableIT extends SpliceUnitTest
 {
+    public static final String SYSTEM_SQL_NAME_PATTERN = "\\bSQL[0-9A-F]{32}\\b";
     private static final String SCHEMA = ShowCreateTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
@@ -141,7 +142,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T1')");
         rs.next();
         String ddl = rs.getString(1);
-        Pattern pattern = Pattern.compile("SQL\\d+");
+        Pattern pattern = Pattern.compile(SYSTEM_SQL_NAME_PATTERN);
         Matcher m1 = pattern.matcher(ddl);
         String csName = null;
         while (m1.find())
@@ -160,7 +161,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T2')");
         rs.next();
         String ddl = rs.getString(1);
-        Pattern pattern = Pattern.compile("SQL\\d+");
+        Pattern pattern = Pattern.compile(SYSTEM_SQL_NAME_PATTERN);
         Matcher m1 = pattern.matcher(ddl);
         String csName = null;
         while (m1.find())
@@ -177,7 +178,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T9')");
         rs.next();
         String ddl = rs.getString(1);
-        Pattern pattern = Pattern.compile("SQL\\d+");
+        Pattern pattern = Pattern.compile(SYSTEM_SQL_NAME_PATTERN);
         Matcher m1 = pattern.matcher(ddl);
         String csName = null;
         while (m1.find())
@@ -255,7 +256,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T6')");
         rs.next();
         String ddl = rs.getString(1);
-        Pattern pattern = Pattern.compile("SQL\\d+");
+        Pattern pattern = Pattern.compile(SYSTEM_SQL_NAME_PATTERN);
         Matcher m1 = pattern.matcher(ddl);
         String csName = null;
         while (m1.find())

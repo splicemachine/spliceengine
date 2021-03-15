@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.HOperationFactory;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Durability;
 import splice.com.google.common.collect.Iterables;
@@ -77,11 +78,6 @@ public class HDelete implements DataDelete,HMutation{
     }
 
     @Override
-    public void skipWAL() {
-        delete.setDurability(Durability.SKIP_WAL);
-    }
-
-    @Override
     public Map<String, byte[]> allAttributes(){
         return delete.getAttributesMap();
     }
@@ -100,5 +96,10 @@ public class HDelete implements DataDelete,HMutation{
 
     public Delete unwrapDelegate(){
        return delete;
+    }
+
+    @Override
+    public void setDurability(com.splicemachine.access.api.Durability durability) {
+        delete.setDurability(HOperationFactory.toHBaseDurability(durability));
     }
 }

@@ -97,9 +97,9 @@ mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka >> ${KAFKALOG} 
 
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
-mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} >> ${SPLICELOG} 2>&1 &
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} -Ddurability=NONE >> ${SPLICELOG} 2>&1 &
 echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
-mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 >> ${SPLICELOG}.member1.log 2>&1 &
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 -Ddurability=NONE >> ${SPLICELOG}.member1.log 2>&1 &
 # echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
 # mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             >> ${SPLICELOG}.member2.log 2>&1 &
 

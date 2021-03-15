@@ -17,16 +17,18 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.test.SerialTest;
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+import java.util.function.BiConsumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -39,10 +41,11 @@ import static org.junit.Assert.assertNull;
 public class FunctionIT extends SpliceUnitTest {
     protected static final String USER1 = "XIAYI";
     protected static final String PASSWORD1 = "xiayi";
+    protected static final String SCHEMA = FunctionIT.class.getSimpleName();
 
     private static final Logger LOG = Logger.getLogger(FunctionIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",FunctionIT.class.getSimpleName(),"(data double)");
     protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
@@ -52,6 +55,7 @@ public class FunctionIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TMM",FunctionIT.class.getSimpleName(),"(i int, db double, dc decimal(3,1), c char(4), vc varchar(4), ts timestamp, bl blob(1K), cl clob(1K))");  // XML column not implemented
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("COA",FunctionIT.class.getSimpleName(),"(d date, i int)");
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("TEST_FN_DATETIME_CHAR",FunctionIT.class.getSimpleName(),"(d date, t time, ts timestamp)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("TEST_BLOB",FunctionIT.class.getSimpleName(),"(i int, a char(3), b varchar(3), c char(3) for bit data, d varchar(3) for bit data, e blob)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -62,6 +66,7 @@ public class FunctionIT extends SpliceUnitTest {
         .around(spliceTableWatcher2)
         .around(spliceTableWatcher3)
         .around(spliceTableWatcher4)
+        .around(spliceTableWatcher5)
         .around(spliceFunctionWatcher)
         .around(new SpliceDataWatcher(){
             @Override
@@ -105,6 +110,7 @@ public class FunctionIT extends SpliceUnitTest {
                 "('1960-03-01', '12:00:00', '1960-01-01 23:03:20'), " +
                 "('1960-03-01', '12:01:00', '1960-01-01 23:03:20'), " +
                 "('1960-03-01', '24:00:00', '1960-01-01 23:03:20')");
+        spliceClassWatcher.executeUpdate("insert into " + schemaName + ".TEST_BLOB values (1, 'abc', 'abc', 'abc', 'abc', cast('abc' as blob)), (2, null, null, null, null, null)");
         spliceClassWatcher.commit();
     }
 
@@ -1021,6 +1027,117 @@ public class FunctionIT extends SpliceUnitTest {
         scalarFunctionExpectFailure("bitchar2", false, "256", "42611");
         scalarFunctionExpectFailure("bitchar1", null, "ISO", "42846");
         scalarFunctionExpectFailure("bitchar2", null, "ISO", "42846");
+    }
+
+    @Test
+    public void testCastTimestampToCharTruncate() throws SQLException {
+        String schemaName = FunctionIT.class.getSimpleName();
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()){
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as varchar(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as char(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(ts as varchar(4)) from " + schemaName + ".TMM", "1960", conn);
+            checkStringExpression("cast(ts as char(4)) from " + schemaName + ".TMM", "1960", conn);
+        }
+    }
+
+    @Test
+    public void testDb11089() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            try (ResultSet rs = conn.query("SELECT * FROM sysibm.sysdummy1 WHERE '?2,BL' NOT IN ( CAST('1969-12-16 17:40:41' AS VARCHAR(16)))")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("Y", rs.getString(1));
+            }
+        }
+    }
+
+    @Test
+    public void testCurrentSchema() throws Exception {
+        // DB-11073
+        try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
+            try (ResultSet rs = conn.query("select current schema as out_, in_ from sysibm.sysdummy1, (select current schema as in_ from sysibm.sysdummy1)")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals("FUNCTIONIT", rs.getString(1));
+                Assert.assertEquals("FUNCTIONIT", rs.getString(2));
+            }
+        }
+    }
+
+    @Test
+    public void testDb11090() throws Exception {
+        // DB-11090
+        checkNullExpression("CAST(NULL AS INT) NOT IN (1)", methodWatcher.getOrCreateConnection());
+    }
+
+    @Test
+    public void testMultiplyAlt() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            // Types
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(38, 3)),  cast(1 as decimal(15, 8)))", "DECIMAL(38,3) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(33, 23)), cast(1 as decimal(10, 1)))", "DECIMAL(38,19) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(25, 17)), cast(1 as decimal(20, 19)))", "DECIMAL(38,29) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(23, 3)),  cast(1 as decimal(17, 8)))", "DECIMAL(38,9) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(33, 5)),  cast(1 as decimal(11, 0)))", "DECIMAL(38,3) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decimal(28, 1)),  cast(1 as decimal(15, 1)))", "DECIMAL(38,2) NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(1 as smallint))", "DECIMAL(15,0) NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(1 as decimal(15, 8)))", "DECIMAL(25,8) NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(1 as double),  cast(1 as integer))", "DECFLOAT NOT NULL", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decfloat),  cast(1 as integer))", "DECFLOAT NOT NULL", conn);
+
+            checkExpressionType("MULTIPLY_ALT(cast(null as decfloat),  cast(1 as integer))", "DECFLOAT", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(null as integer),  cast(1 as integer))", "DECIMAL(20,0)", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as decfloat),  cast(null as integer))", "DECFLOAT", conn);
+            checkExpressionType("MULTIPLY_ALT(cast(1 as integer),  cast(null as integer))", "DECIMAL(20,0)", conn);
+
+            checkDecfloatExpression("MULTIPLY_ALT(cast('1.23456789' as DECFLOAT), 2)", "2.46913578", conn);
+            checkStringExpression("varchar(MULTIPLY_ALT(cast(737823 as bigint), 86400.))", "63747907200", conn);
+        }
+    }
+
+    @Test
+    public void testBlobFunction() throws Exception {
+        try (TestConnection conn = methodWatcher.connectionBuilder().schema(SCHEMA).build()) {
+            // Check types
+            // BLOB(op)
+            checkExpressionType("BLOB('abc')", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(varchar('abc'))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as char(3) for bit data))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as varchar(3) for bit data))", "BLOB(3) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as blob))", "BLOB(2147483647) NOT NULL", conn);
+
+            // BLOB(op, n)
+            checkExpressionType("BLOB('abc', 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(varchar('abc'), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as char(3) for bit data), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as varchar(3) for bit data), 10)", "BLOB(10) NOT NULL", conn);
+            checkExpressionType("BLOB(cast('abc' as blob), 10)", "BLOB(10) NOT NULL", conn);
+        }
+
+        runOltpOlapOlapNativeSpark( (useSpark, useNativeSpark) -> {
+            String sql = format("select i, blob(a), blob(b), blob(c), blob(d), blob(e) from %s.TEST_BLOB --splice-properties useSpark=%s, useNativeSpark=%s\n" +
+                    "order by 1", getSchemaName(), useSpark, useNativeSpark);
+            try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+                rs.next();
+                for (int i = 2; i <= 6; ++i) {
+                    Blob blob = rs.getBlob(i);
+                    Assert.assertEquals("abc", IOUtils.toString(blob.getBinaryStream()));
+                }
+                rs.next();
+                for (int i = 2; i <= 6; ++i) {
+                    Object o = rs.getObject(i);
+                    Assert.assertNull(o);
+                }
+            }
+        });
+
+        try (PreparedStatement ps = methodWatcher.prepareStatement("select blob(?)")) {
+            ps.setBytes(1, Bytes.toBytes("abc"));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                Assert.assertEquals("abc", IOUtils.toString(rs.getBlob(1).getBinaryStream()));
+            }
+        }
     }
 }
 

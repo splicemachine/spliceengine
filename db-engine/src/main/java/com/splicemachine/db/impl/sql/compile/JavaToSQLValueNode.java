@@ -36,7 +36,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -57,13 +59,13 @@ public class JavaToSQLValueNode extends ValueNode
     JavaValueNode    javaNode;
 
     /**
-     * Initializer for a JavaToSQLValueNode
-     *
-     * @param value        The Java value to convert to the SQL domain
+     * Constructor for a JavaToSQLValueNode
+     * @param value The Java value to convert to the SQL domain
      */
-    public void init(Object value)
-    {
-        this.javaNode = (JavaValueNode) value;
+    public JavaToSQLValueNode(Object value, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.JAVA_TO_SQL_VALUE_NODE);
+        this.javaNode = (JavaValueNode)value;
     }
 
     /**
@@ -298,7 +300,9 @@ public class JavaToSQLValueNode extends ValueNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -312,6 +316,8 @@ public class JavaToSQLValueNode extends ValueNode
      * subqueries and method calls.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -321,10 +327,10 @@ public class JavaToSQLValueNode extends ValueNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
-        return javaNode.categorize(referencedTabs, simplePredsOnly);
+        return javaNode.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**
@@ -340,8 +346,7 @@ public class JavaToSQLValueNode extends ValueNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         return javaNode.getOrderableVariantType();
     }
 
@@ -361,8 +366,7 @@ public class JavaToSQLValueNode extends ValueNode
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         // anything in the java domain is not equiavlent.
         return false;//this == o;
     }

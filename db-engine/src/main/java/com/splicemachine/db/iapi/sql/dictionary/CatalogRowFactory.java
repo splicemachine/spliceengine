@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.impl.sql.catalog.ViewInfoProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
@@ -49,7 +51,7 @@ import java.util.List;
  * @version 0.2
  */
 
-public abstract	class CatalogRowFactory
+public abstract	class CatalogRowFactory implements ViewInfoProvider
 {
 	///////////////////////////////////////////////////////////////////////////
 	//
@@ -356,6 +358,7 @@ public abstract	class CatalogRowFactory
 		return indexColumnPositions[indexNumber];
 	}
 
+	@Override
 	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
 		return null;
 	}
@@ -370,5 +373,16 @@ public abstract	class CatalogRowFactory
 
 	public String getCatalogVersion() throws StandardException {
 		return heapConglomerate > 0 ? dd.getCatalogVersion(heapConglomerate) : null;
+	}
+
+
+	public static ColumnDescriptor getCD(TableDescriptor view, UUID viewId, String conglomeratenumber, int i, int jdbcType, boolean isNullable) {
+		return new ColumnDescriptor(conglomeratenumber, i, i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType, isNullable),
+				null, null, view, viewId, 0, 0, 0);
+	}
+
+	public static ColumnDescriptor getCD(TableDescriptor view, UUID viewId, String conglomeratename, int i, int jdbcType, boolean isNullable, int maxLength) {
+		return new ColumnDescriptor(conglomeratename, i, i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType, isNullable, maxLength),
+				null, null, view, viewId, 0, 0, 0);
 	}
 }

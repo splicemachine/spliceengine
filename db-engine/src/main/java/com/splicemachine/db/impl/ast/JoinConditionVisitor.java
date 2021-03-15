@@ -104,6 +104,12 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     @Override
+    public RowResultSetNode visit(RowResultSetNode node) throws StandardException {
+        initializeMap(node);
+        return node;
+    }
+
+    @Override
     public JoinNode visit(JoinNode j) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug(String.format("visit joinNode=%s",j));

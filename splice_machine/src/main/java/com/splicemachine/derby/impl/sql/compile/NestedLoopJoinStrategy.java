@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -28,8 +30,11 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
+    private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
 
     public NestedLoopJoinStrategy(){
     }
@@ -74,7 +79,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         if(predList!=null && basePredicates!=null){
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor(), true);
+            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath(), true);
         }
 
         return basePredicates;
@@ -191,7 +196,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
              * the table then storeRestrictionList should not have any
              * IN-list probing predicates.  Make sure that's the case.
              */
-            if(!genInListVals){
+            if(!genInListVals && !innerTable.hasIndexPrefixIterator()){
                 Predicate pred;
                 for(int i=storeRestrictionList.size()-1;i>=0;i--){
                     pred=(Predicate)storeRestrictionList.getOptPredicate(i);
@@ -276,6 +281,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
 
+        double nljOnSparkPenalty = getNljOnSparkPenalty(innerTable, predList, innerCost, outerCost, optimizer);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
@@ -284,9 +290,69 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
+        joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+    }
+
+    // Nested loop join is most useful if it can be used to
+    // derive an index point-lookup predicate, otherwise it can be
+    // very slow on Spark.
+    // NOTE: The following description of the behavior is
+    //       enabled if session property olapAlwaysPenalizeNLJ
+    //       is false, or not set:
+    // Detect when no join predicates are present that have
+    // both a start key and a stop key.  If none are present,
+    // return a large cost penalty so we'll avoid such joins.
+    private double getNljOnSparkPenalty(Optimizable table,
+                                        OptimizablePredicateList predList,
+                                        CostEstimate innerCost,
+                                        CostEstimate outerCost,
+                                        Optimizer optimizer) {
+        double retval = 0.0d;
+        if (!optimizer.isForSpark() || optimizer.isMemPlatform())
+            return retval;
+        if (table.getCurrentAccessPath().isHintedJoinStrategy())
+            return retval;
+        if (isSingleTableScan(optimizer))
+            return retval;
+        double multiplier = innerCost.getFromBaseTableRows();
+        if (multiplier < 1d)
+            multiplier = 1d;
+        QueryTreeNode queryTreeNode = (QueryTreeNode) table;
+        LanguageConnectionContext lcc = queryTreeNode.getLanguageConnectionContext();
+        Boolean olapAlwaysPenalizeNLJ = (Boolean)
+            lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+
+        if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
+            if (!isBaseTable(table))
+                return NLJ_ON_SPARK_PENALTY * multiplier;
+            if (hasJoinPredicateWithIndexKeyLookup(predList))
+                return retval;
+        }
+        return NLJ_ON_SPARK_PENALTY * multiplier;
+    }
+
+    private boolean isSingleTableScan(Optimizer optimizer) {
+        return optimizer.getJoinPosition() == 0   &&
+               optimizer.getJoinType() < INNERJOIN;
+    }
+
+    private boolean isBaseTable(Optimizable table) {
+        return table instanceof FromBaseTable;
+    }
+
+    private boolean hasJoinPredicateWithIndexKeyLookup(OptimizablePredicateList predList) {
+        if (predList != null) {
+            for (int i = 0; i < predList.size(); i++) {
+                Predicate p = (Predicate) predList.getOptPredicate(i);
+                if (p.getReferencedSet().cardinality() > 1 &&
+                    p.isStartKey() && p.isStopKey())
+                    return true;
+            }
+        }
+        return false;
     }
 
     /**

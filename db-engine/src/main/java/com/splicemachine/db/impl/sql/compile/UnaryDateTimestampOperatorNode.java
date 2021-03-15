@@ -38,10 +38,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -105,7 +102,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         boolean operandIsNumber=false;
 
         bindOperand(fromList,subqueryList,aggregateVector);
-        DataTypeDescriptor operandType=operand.getTypeServices();
+        DataTypeDescriptor operandType=getOperand().getTypeServices();
         switch(operandType.getJDBCTypeId()){
             case Types.BIGINT:
             case Types.INTEGER:
@@ -143,9 +140,9 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
                 invalidOperandType();
         }
 
-        if(operand instanceof ConstantNode){
+        if(getOperand() instanceof ConstantNode){
             DataValueFactory dvf=getLanguageConnectionContext().getDataValueFactory();
-            DataValueDescriptor sourceValue=((ConstantNode)operand).getValue();
+            DataValueDescriptor sourceValue=((ConstantNode)getOperand()).getValue();
             DataValueDescriptor destValue=null;
             if(sourceValue.isNull()){
                 destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
@@ -160,13 +157,18 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         }
 
         if(isIdentity)
-            return operand;
+            return getOperand();
         return this;
     } // end of bindUnaryOperator
 
     private void invalidOperandType() throws StandardException{
         throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                 getOperatorString(),getOperand().getTypeServices().getSQLstring());
+    }
+
+    void bindParameter() throws StandardException
+    {
+        getOperand().setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true));
     }
 
     /**
@@ -181,15 +183,15 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
                                    MethodBuilder mb)
             throws StandardException{
         acb.pushDataValueFactory(mb);
-        operand.generateExpression(acb,mb);
+        getOperand().generateExpression(acb,mb);
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,methodName,getTypeCompiler().interfaceName(),1);
     } // end of generateExpression
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        double lowerCost = getOperandCost();
-        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double lowerCost = super.getBaseOperationCost();
+        double localCost = SIMPLE_OP_COST * (getOperand() == null ? 1.0 : 2.0);
         double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         return lowerCost + localCost + callCost;
     }

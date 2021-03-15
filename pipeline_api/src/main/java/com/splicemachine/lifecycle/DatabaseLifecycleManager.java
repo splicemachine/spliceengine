@@ -245,7 +245,7 @@ public class DatabaseLifecycleManager{
                     try{
                         service.start();
                     }catch(Exception e){
-                        LOG.error("Error during during startup of service "+ service+":",e);
+                        LOG.error("Error during startup of service "+ service+":",e);
                         state.set(State.STARTUP_FAILED);
                         new Shutdown().run();//cleanly shut down services
                         return false;
@@ -263,7 +263,7 @@ public class DatabaseLifecycleManager{
                 try{
                     service.registerJMX(jmxServer);
                 }catch(Exception e){
-                    LOG.error("Error during during JMX registration of service "+ service+":",e);
+                    LOG.error("Error during JMX registration of service "+ service+":",e);
                     state.set(State.STARTUP_FAILED);
                     new Shutdown().run();//cleanly shut down services
                     return false;

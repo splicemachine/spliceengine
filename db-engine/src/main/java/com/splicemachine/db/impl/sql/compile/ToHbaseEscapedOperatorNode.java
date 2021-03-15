@@ -57,7 +57,7 @@ public final class ToHbaseEscapedOperatorNode extends UnaryOperatorNode {
 
         bindOperand(fromList, subqueryList, aggregateVector);
 
-        TypeId operandType = operand.getTypeId();
+        TypeId operandType = getOperand().getTypeId();
         switch (operandType.getJDBCTypeId())
         {
             case Types.CHAR:
@@ -76,7 +76,7 @@ public final class ToHbaseEscapedOperatorNode extends UnaryOperatorNode {
         // The return type is VARCHAR
         TypeId varcharTypeId = TypeId.getBuiltInTypeId(Types.VARCHAR);
         assert varcharTypeId != null;
-        setType(new DataTypeDescriptor(varcharTypeId, operand.getTypeServices().isNullable()));
+        setType(new DataTypeDescriptor(varcharTypeId, getOperand().getTypeServices().isNullable()));
         setOperator("to_hbase_escaped");
         setMethodName("ToHbaseEscaped");
         return this;
@@ -84,7 +84,7 @@ public final class ToHbaseEscapedOperatorNode extends UnaryOperatorNode {
 
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.upCast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.RowIdUtil, "toHBaseEscaped", ClassName.StringDataValue, 1);
     }

@@ -40,11 +40,14 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Export Node
@@ -55,7 +58,7 @@ import java.util.Objects;
  */
 public class ExportNode extends DMLStatementNode {
 
-    private static final int EXPECTED_ARGUMENT_COUNT = 8;
+    private static final int EXPECTED_ARGUMENT_COUNT = 10;
     public static final int DEFAULT_INT_VALUE = Integer.MIN_VALUE;
 
     private StatementNode node;
@@ -68,6 +71,8 @@ public class ExportNode extends DMLStatementNode {
     private String quoteCharacter;
     private String quoteMode;
     private String format;
+    private String floatingPointNotation;
+    private String timestampFormat;
 
     @Override
     int activationKind() {
@@ -95,6 +100,24 @@ public class ExportNode extends DMLStatementNode {
         this.quoteCharacter = stringValue(argsList.get(5));
         this.quoteMode = stringValue(argsList.get(6));
         this.format = stringValue(argsList.get(7));
+        this.floatingPointNotation = stringValue(argsList.get(8));
+        this.timestampFormat = stringValue(argsList.get(9));
+
+        if (isBlank(floatingPointNotation)) {
+            switch (getCompilerContext().getFloatingPointNotation()) {
+                case FloatingPointDataType.PLAIN:
+                    floatingPointNotation = "plain";
+                    break;
+                case FloatingPointDataType.NORMALIZED:
+                    floatingPointNotation = "normalized";
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (isBlank(timestampFormat)) {
+            timestampFormat = getCompilerContext().getTimestampFormat();
+        }
     }
 
     @Override
@@ -123,11 +146,13 @@ public class ExportNode extends DMLStatementNode {
         mb.push(quoteCharacter);
         mb.push(quoteMode);
         mb.push(format);
+        mb.push(floatingPointNotation);
+        mb.push(timestampFormat);
 
         /* Save result description of source node for use in export formatting. */
         mb.push(acb.addItem(node.makeResultDescription()));
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 12);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 14);
     }
 
     @Override

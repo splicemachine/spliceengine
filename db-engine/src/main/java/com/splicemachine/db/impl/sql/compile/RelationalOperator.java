@@ -229,7 +229,7 @@ public interface RelationalOperator
 	 *
 	 */
 	void generateAbsoluteColumnId(MethodBuilder mb,
-										Optimizable optTable);
+								  Optimizable optTable) throws StandardException;
 
 	/**
 	 * Generate the relative column id for the ColumnReference that appears on one
@@ -242,7 +242,7 @@ public interface RelationalOperator
 	 *
 	 */
 	void generateRelativeColumnId(MethodBuilder mb,
-										Optimizable optTable);
+								  Optimizable optTable) throws StandardException;
 
 	/**
 	 * Generate the comparison operator for this RelationalOperator.

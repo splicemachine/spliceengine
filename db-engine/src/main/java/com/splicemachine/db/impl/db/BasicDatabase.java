@@ -78,10 +78,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * The Database interface provides control over the physical database
@@ -307,7 +304,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         // push a database shutdown context
         // we also need to push a language connection context.
         LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema,
+                null, null, null, -1, sessionProperties);
 
         // push the context that defines our class factory
         pushClassFactoryContext(cm, lcf.getClassFactory());
@@ -890,5 +888,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
             // reenable class loading from this jar
             util.notifyLoader(true);
         }
+    }
+
+    @Override
+    public AccessFactory getAccessFactory() {
+        return af;
     }
 }

@@ -327,8 +327,11 @@ public class OperatorToString {
                     // Spark by default counts weeks starting on Sunday.
                     if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    } else if (functionName.equals("WEEKDAY")) {
-                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                    } else if (functionName.equals("WEEKDAY") || functionName.equals("DAYOFWEEK_ISO")) {
+                        if( getSparkVersion().getMajorVersionNumber() >= 3 )
+                            return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
+                        else
+                            return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
                     } else if (functionName.equals("WEEKDAYNAME")) {
                         return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
                     } else {
@@ -490,6 +493,12 @@ public class OperatorToString {
                         throwNotImplementedError();
                     return format("concat(%s, %s) ", leftOperandString,
                                                      rightOperandString);
+                }
+                else if (operand instanceof PosStrOperatorNode) {
+                    if (vars.buildExpressionTree)
+                        throwNotImplementedError();
+                    return format("position(%s, %s) ", rightOperandString,
+                                                     leftOperandString);
                 }
                 else if (operand instanceof TruncateOperatorNode) {
                     if (vars.buildExpressionTree)
@@ -671,7 +680,7 @@ public class OperatorToString {
                     if (rightOp != null)
                         throwNotImplementedError();
                     else {
-                        String likeString =  format("(%s %s %s) ", opToString2(top.getReceiver(), vars), top.getOperator(),
+                        String likeString =  format("(%s %s %s) ", opToString2(top.getReceiver(), vars), top.getOperatorString(),
                         opToString2(top.getLeftOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return likeString;
@@ -679,36 +688,39 @@ public class OperatorToString {
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
                     vars.relationalOpDepth.increment();
-                    if (top.getOperator().equals("LOCATE") ||
-                        top.getOperator().equals("replace") ||
-                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
-
+                    if (top.getOperatorString().equals("LOCATE") || top.getOperatorString().equals("replace")) {
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+                        String retval = format("%s(%s, %s, %s) ", top.getOperatorString(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
-                    } else if (top.getOperator().equals("substring")) {
-                        assert top.getRightOperand() == null;
+                    } else if (top.getOperatorString().equals("substring")) {
                         vars.relationalOpDepth.decrement();
-                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
-                                opToString2(top.getLeftOperand(), vars));
+                        String retval = format("%s(%s, %s %s)",
+                                top.getOperatorString(),
+                                opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars),
+                                top.getRightOperand() == null ? "" : ", " + opToString2(top.getRightOperand(), vars));
+                        if (top.getRightOperand() != null) {
+                            retval = format("RPAD(%s, %s, ' ')",
+                                    retval,
+                                    opToString2(top.getRightOperand(), vars));
+                        }
                         vars.relationalOpDepth.decrement();
                         return retval;
-
-                    } else if (top.getOperator().equals("trim")) {
+                    } else if (top.getOperatorString().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();
                         String retval;
                         if (top.isLeading())
-                            retval = format("%s(LEADING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(LEADING %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else if (top.isTrailing())
-                            retval = format("%s(TRAILING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(TRAILING %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else
-                            retval = format("%s(BOTH %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(BOTH %s FROM %s) ",  top.getOperatorString(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
 
                         vars.relationalOpDepth.decrement();
@@ -720,7 +732,7 @@ public class OperatorToString {
                 else
                     throwNotImplementedError();
             }
-            return format("%s(%s, %s%s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+            return format("%s(%s, %s%s) ", top.getOperatorString(), opToString2(top.getReceiver(), vars),
                           opToString2(top.getLeftOperand(), vars), rightOp == null ? "" : ", " + opToString2(rightOp, vars));
         }
         else if (operand instanceof ArrayConstantNode) {

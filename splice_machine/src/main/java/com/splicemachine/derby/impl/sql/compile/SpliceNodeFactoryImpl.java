@@ -214,9 +214,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.GROUP_BY_COLUMN:
                 return C_NodeNames.GROUP_BY_COLUMN_NAME;
 
-            case C_NodeTypes.JAVA_TO_SQL_VALUE_NODE:
-                return C_NodeNames.JAVA_TO_SQL_VALUE_NODE_NAME;
-
             case C_NodeTypes.FROM_LIST:
                 return C_NodeNames.FROM_LIST_NAME;
 
@@ -247,14 +244,8 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.COALESCE_FUNCTION_NODE:
                 return C_NodeNames.COALESCE_FUNCTION_NODE_NAME;
 
-            case C_NodeTypes.DECIMAL_FUNCTION_NODE:
-                return C_NodeNames.DECIMAL_FUNCTION_NODE_NAME;
-
             case C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE:
                 return C_NodeNames.SCALAR_MIN_MAX_FUNCTION_NODE_NAME;
-
-            case C_NodeTypes.CONCATENATION_OPERATOR_NODE:
-                return C_NodeNames.CONCATENATION_OPERATOR_NODE_NAME;
 
             case C_NodeTypes.LIKE_OPERATOR_NODE:
                 return C_NodeNames.LIKE_OPERATOR_NODE_NAME;
@@ -313,6 +304,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.USERTYPE_CONSTANT_NODE:
                 return C_NodeNames.USERTYPE_CONSTANT_NODE_NAME;
 
+            case C_NodeTypes.POSSTR_OPERATOR_NODE:
+                return C_NodeNames.POSSTR_STRING_OPERATOR_NODE_NAME;
+
             case C_NodeTypes.PREDICATE:
                 return C_NodeNames.PREDICATE_NAME;
 
@@ -333,9 +327,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.STATIC_CLASS_FIELD_REFERENCE_NODE:
                 return C_NodeNames.STATIC_CLASS_FIELD_REFERENCE_NODE_NAME;
-
-            case C_NodeTypes.STATIC_METHOD_CALL_NODE:
-                return C_NodeNames.STATIC_METHOD_CALL_NODE_NAME;
 
             case C_NodeTypes.EXTRACT_OPERATOR_NODE:
                 return C_NodeNames.EXTRACT_OPERATOR_NODE_NAME;
@@ -371,20 +362,11 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.DROP_COLUMN_NODE:
                 return C_NodeNames.MODIFY_COLUMN_NODE_NAME;
 
-            case C_NodeTypes.NON_STATIC_METHOD_CALL_NODE:
-                return C_NodeNames.NON_STATIC_METHOD_CALL_NODE_NAME;
-
             case C_NodeTypes.CURRENT_OF_NODE:
                 return C_NodeNames.CURRENT_OF_NODE_NAME;
 
             case C_NodeTypes.DEFAULT_NODE:
                 return C_NodeNames.DEFAULT_NODE_NAME;
-
-            case C_NodeTypes.DELETE_NODE:
-                return C_NodeNames.DELETE_NODE_NAME;
-
-            case C_NodeTypes.UPDATE_NODE:
-                return C_NodeNames.UPDATE_NODE_NAME;
 
             case C_NodeTypes.ORDER_BY_COLUMN:
                 return C_NodeNames.ORDER_BY_COLUMN_NAME;
@@ -536,9 +518,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.SQL_BOOLEAN_CONSTANT_NODE:
                 return C_NodeNames.SQL_BOOLEAN_CONSTANT_NODE_NAME;
 
-            case C_NodeTypes.DROP_ALIAS_NODE:
-                return C_NodeNames.DROP_ALIAS_NODE_NAME;
-
             case C_NodeTypes.TEST_CONSTRAINT_NODE:
                 return C_NodeNames.TEST_CONSTRAINT_NODE_NAME;
 
@@ -567,6 +546,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.XML_EXISTS_OPERATOR_NODE:
             case C_NodeTypes.XML_QUERY_OPERATOR_NODE:
             case C_NodeTypes.REPEAT_OPERATOR_NODE:
+            case C_NodeTypes.MULTIPLY_ALT_FUNCTION_NODE:
                 return C_NodeNames.BINARY_OPERATOR_NODE_NAME;
 
             case C_NodeTypes.GRANT_NODE:
@@ -606,9 +586,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.ROW_COUNT_NODE:
                 return C_NodeNames.ROW_COUNT_NODE_NAME;
-
-            case C_NodeTypes.DENSERANK_FUNCTION_NODE:
-                return C_NodeNames.DENSE_RANK_FUNCTION_NAME;
 
             case C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE:
                 return C_NodeNames.FIRST_LAST_VALUE_FUNCTION_NAME;
@@ -670,9 +647,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE:
                 return C_NodeNames.EMPTY_DEFAULT_CONSTANT_NODE;
 
-            case C_NodeTypes.TIME_SPAN_NODE:
-                return C_NodeNames.TIME_SPAN_NODE_NAME;
-
             case C_NodeTypes.STATEMENT_LIST_NODE:
                 return C_NodeNames.STATEMENT_LIST_NODE_NAME;
 
@@ -681,9 +655,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.TO_HBASE_ESCAPED_NODE:
                 return C_NodeNames.TO_HBASE_ESCAPED_NODE_NAME;
-
-            case C_NodeTypes.TYPEOF_OPERATOR_NODE:
-                return C_NodeNames.TYPEOF_OPERATOR_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
             // THEM TO tools/jar/DBMSnodes.properties

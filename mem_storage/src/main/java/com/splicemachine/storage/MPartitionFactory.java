@@ -27,7 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -118,6 +120,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             final MPartition p=new MPartition(name,name);
             partitionMap.put(name,p);
             return p;
+        }
+
+        @Override
+        public Future<Partition> createAsync() throws IOException {
+            return CompletableFuture.completedFuture(create());
         }
     }
 
@@ -252,18 +259,23 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+        public void setCatalogVersion(String conglomerate, String version) throws IOException {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
 
         @Override
-        public String getCatalogVersion(long conglomerateNumber) throws StandardException {
-            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        public String getCatalogVersion(String conglomerate) throws StandardException {
+            return null;
         }
 
         @Override
         public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
+
+        @Override
+        public int getTableCount() throws IOException {
+            return partitionMap.size();
         }
     }
 }

@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -51,5 +52,6 @@ public interface PartitionCreator{
     PartitionCreator withCatalogVersion(String version);
 
     Partition create() throws IOException;
+    Future<Partition> createAsync() throws IOException;
 
 }

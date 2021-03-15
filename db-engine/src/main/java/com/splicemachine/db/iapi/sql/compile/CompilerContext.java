@@ -44,10 +44,13 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
+import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
+import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -183,12 +186,17 @@ public interface CompilerContext extends Context
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
-    int DEFAULT_TIMESTAMP_PRECISION = 9;
+    String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
+    String DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice";
+    int DEFAULT_FLOATING_POINT_NOTATION = FloatingPointDataType.PLAIN;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
+    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
+
+    boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -725,11 +733,23 @@ public interface CompilerContext extends Context
 
     void setCurrentTimestampPrecision(int newValue);
 
-    void setTimestampPrecision(int newValue);
-
     int getCurrentTimestampPrecision();
 
-    int getTimestampPrecision();
+    void setTimestampFormat(String timestampFormat);
+
+    void setSecondFunctionCompatibilityMode(String mode);
+
+    void setFloatingPointNotation(int floatingPointNotation);
+
+    void setCursorUntypedExpressionType(DataTypeDescriptor type);
+
+    DataTypeDescriptor getCursorUntypedExpressionType();
+
+    String getTimestampFormat();
+
+    String getSecondFunctionCompatibilityMode();
+
+    int getFloatingPointNotation();
 
     int getNextOJLevel();
 
@@ -749,7 +769,15 @@ public interface CompilerContext extends Context
 
     boolean getDisablePerParallelTaskJoinCosting();
 
+    void setDisablePrefixIteratorMode(boolean newValue);
+
+    boolean getDisablePrefixIteratorMode();
+
     void setVarcharDB2CompatibilityMode(boolean newValue);
 
     boolean getVarcharDB2CompatibilityMode();
+
+    boolean compilingTrigger();
+
+    void setCompilingTrigger(boolean newVal);
 }

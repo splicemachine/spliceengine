@@ -33,9 +33,6 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Stream;
-
-import static splice.com.google.common.collect.Iterables.toArray;
 
 /**
  * @author Scott Fines
@@ -182,7 +179,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listRecursive() {
+        public FileInfo[] listFilesRecursive() {
             if( !exists() ) return new FileInfo[] {};
             if( !isDirectory() ) return new FileInfo[] { this };
             try {
@@ -195,6 +192,18 @@ public class HNIOFileSystem extends DistributedFileSystem{
                 res[i] = new HFileInfo(rootFileStatusList.get(i));
             }
             return res;
+        }
+
+        @Override
+        public FileInfo[] listDir() throws IOException {
+            if( !exists() ) return new FileInfo[] {};
+            if( !isDirectory() ) return new FileInfo[] { this };
+            List<FileInfo> res = new ArrayList<>();
+            RemoteIterator<LocatedFileStatus> iterator = fs.listLocatedStatus(path);
+            while (iterator.hasNext()) {
+                res.add( new HFileInfo(iterator.next()) );
+            }
+            return res.toArray(new FileInfo[res.size()]);
         }
 
         // these two methods are to avoid having to re-calculate the list of files in the directory
@@ -250,7 +259,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long fileCount(){
+        public long recursiveFileCount(){
             if( !exists() ) return 0;
             return getContentSummary().getFileCount();
         }
@@ -261,29 +270,23 @@ public class HNIOFileSystem extends DistributedFileSystem{
         private List<FileStatus> rootFileStatusFlat;
 
         @Override
-        public boolean isEmptyDirectory() {
+        public boolean isEmptyDirectory() throws IOException {
             if( !exists() ) return false;
             if( !isDirectory() ) return false;
-            try {
-                List<? extends FileStatus> files;
-                if(rootFileStatusList != null )
-                    files = rootFileStatusList;
-                else
-                {
-                    if( rootFileStatusFlat == null )
-                        rootFileStatusFlat = Arrays.asList(fs.listStatus(path));
-                    files = rootFileStatusFlat;
-                }
-                for (FileStatus s : files ) {
-                    if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
-                    return false;
-                }
-                return true;
-            } catch( Exception e ) {
-                // this shouldn't happen, as we already check if it exists.
-                LOG.error("Unexpected error listing directory", e);
+            List<? extends FileStatus> files;
+            if(rootFileStatusList != null )
+                files = rootFileStatusList;
+            else
+            {
+                if( rootFileStatusFlat == null )
+                    rootFileStatusFlat = Arrays.asList(fs.listStatus(path));
+                files = rootFileStatusFlat;
+            }
+            for (FileStatus s : files ) {
+                if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
                 return false;
             }
+            return true;
         }
 
         @Override
@@ -293,7 +296,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long size(){
+        public long recursiveSize(){
             if( !exists() ) return 0;
             return getContentSummary().getLength();
         }
@@ -317,6 +320,22 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
+        public String getPermissionStr() {
+            return fileStatus.getPermission().toString();
+        }
+
+        @Override
+        public long getModificationTime()
+        {
+
+            return fileStatus.getModificationTime();
+        }
+        @Override
+        public long size(){
+            return fileStatus.getLen();
+        }
+
+        @Override
         public boolean isWritable(){
             if( !exists() ) return false;
             return fileStatus.getPermission().getUserAction().implies(FsAction.WRITE);
@@ -329,7 +348,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
             if( !isDirectory() ) {
                 // this is slow for directories (needs recursive scan), so just do for files
-                sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(this.size()));
+                sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(this.recursiveSize()));
                 // Not important to display here, but keep it around in case.
                 // For import we only care about the actual file size, not space consumed.
                 // if (this.spaceConsumed() != this.size())

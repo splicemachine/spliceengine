@@ -207,7 +207,6 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-//    @Ignore("SPLICE-966")
     public void testWithContainingOrderBy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select i, i+20 as i_2 from t10 where i<3 order by i) select * from abc");
         String expectedResult = "I | I_2 |\n" +
@@ -218,7 +217,6 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-979")
     public void testWithContainingTop() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select TOP i from t10 where i<3 order by i) select * from abc");
         String expectedResult = "I |\n" +
@@ -228,7 +226,6 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-980")
     public void testWithContainingLimit() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select i from t10 where i<4 order by i OFFSET 2 rows fetch first row only ) select * from abc");
         String expectedResult = "I |\n" +
@@ -238,7 +235,6 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-1026")
     public void testInsertContainingWith() throws Exception {
         methodWatcher.executeUpdate("insert into t11 with abc as (select * from t10 order by i) select * from abc");
         ResultSet rs = methodWatcher.executeQuery("select * from t11");
@@ -293,5 +289,16 @@ public class WithStatementIT extends SpliceUnitTest {
         t2.start();
         t1.join();
         t2.join();
+    }
+
+    @Test
+    public void testWithViewColumnNames() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("with abc (x, y) as " +
+                "(select i, i+20 as i_2 from t10 where i<3 order by i) select y, x from abc");
+        String expectedResult = "Y | X |\n" +
+                "--------\n" +
+                "21 | 1 |\n" +
+                "22 | 2 |";
+        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 }

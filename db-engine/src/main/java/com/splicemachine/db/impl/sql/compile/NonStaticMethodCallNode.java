@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 
@@ -73,11 +74,11 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	 * @param receiver		A JavaValueNode representing the receiving object
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-							Object methodName,
-							Object receiver)
+	public NonStaticMethodCallNode(Object methodName, Object receiver, ContextManager cm)
 			throws StandardException
 	{
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.NON_STATIC_METHOD_CALL_NODE);
 		super.init(methodName);
 
 		/*
@@ -185,8 +186,10 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	}
 
 	/**
-	 * Categorize this predicate.  Initially, this means
-	 * building a bit map of the referenced tables for each predicate.
+     * Categorize this predicate.  Initially, this means
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
 	 * If the source of this ColumnReference (at the next underlying level) 
 	 * is not a ColumnReference or a VirtualColumnNode then this predicate
 	 * will not be pushed down.
@@ -201,6 +204,8 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	 * RESOLVE - revisit this issue once we have views.
 	 *
 	 * @param referencedTabs	JBitSet with bit map of referenced FromTables
+	 * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
 	 * @param simplePredsOnly	Whether or not to consider method
 	 *							calls, field references and conditional nodes
 	 *							when building bit map
@@ -209,7 +214,7 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	 *						or a VirtualColumnNode.
 	 * @exception StandardException			Thrown on error
 	 */
-	public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+	public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
 		throws StandardException
 	{
 		/* We stop here when only considering simple predicates
@@ -223,11 +228,11 @@ public class NonStaticMethodCallNode extends MethodCallNode
 
 		boolean pushable = true;
 
-		pushable = pushable && super.categorize(referencedTabs, simplePredsOnly);
+		pushable = pushable && super.categorize(referencedTabs, referencedColumns, simplePredsOnly);
 
 		if (receiver != null)
 		{
-			pushable = pushable && receiver.categorize(referencedTabs, simplePredsOnly);
+			pushable = pushable && receiver.categorize(referencedTabs, referencedColumns, simplePredsOnly);
 		}
 
 		return pushable;

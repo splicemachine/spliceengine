@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -47,6 +46,10 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.FloatingPointDataType;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -55,16 +58,19 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -108,6 +114,10 @@ public class GenericStatement implements Statement{
         }
     }
 
+    public String getStatementText() {
+        return statementTextTrimed;
+    }
+
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
         /*
         ** Note: don't reset state since this might be
@@ -136,7 +146,8 @@ public class GenericStatement implements Statement{
         boolean recompile=false;
         try{
             return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
-        } catch(StandardException se){
+        } catch(Throwable t){
+            StandardException se = StandardException.getOrWrap(t);
             // There is a chance that we didn't see the invalidation
             // request from a DDL operation in another thread because
             // the statement wasn't registered as a dependent until
@@ -247,26 +258,6 @@ public class GenericStatement implements Statement{
         return 0;
     }
 
-    private boolean isExplainStatement(){
-
-        String s=statementText.trim().toUpperCase();
-        if(!s.contains("EXPLAIN")){
-            // If the statement does not contain keyword explain, this is not an explain statement
-            return false;
-        }
-
-        // Strip off all comments before keyword explain
-        while(!s.isEmpty() && s.startsWith("--")){
-            int index=s.indexOf('\n');
-            if(index==-1){
-                index=s.length();
-            }
-            s=s.substring(index+1).trim();
-        }
-
-        return s.startsWith("EXPLAIN");
-    }
-
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -293,7 +284,6 @@ public class GenericStatement implements Statement{
          * 4:   generateTime
          */
         long[] timestamps = new long[5];
-        Timestamp beginTimestamp=null;
         StatementContext statementContext=null;
 
         // verify it isn't already prepared...
@@ -309,12 +299,6 @@ public class GenericStatement implements Statement{
             lcc.setOptimizerTraceOutput(getSource()+"\n");
 
         timestamps[0]=getCurrentTimeMillis(lcc);
-        /* beginTimestamp only meaningful if beginTime is meaningful.
-         * beginTime is meaningful if STATISTICS TIMING is ON.
-         */
-        if(timestamps[0]!=0){
-            beginTimestamp=new Timestamp(timestamps[0]);
-        }
 
         /** set the prepare Isolaton from the LanguageConnectionContext now as
          * we need to consider it in caching decisions
@@ -420,7 +404,7 @@ public class GenericStatement implements Statement{
                 preparedStmt.setActivationClass(null);
             }
         }
-
+        CompilerContext cc = null;
         try{
             /*
             ** For stored prepared statements, we want all
@@ -442,268 +426,20 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            CompilerContext cc = null;
-            if (boundAndOptimizedStatement != null)
+            if (boundAndOptimizedStatement != null) {
                 cc = boundAndOptimizedStatement.getCompilerContext();
-            else {
-                cc = lcc.pushCompilerContext(compilationSchema);
-
-                if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
-                    cc.setScanIsolationLevel(prepareIsolationLevel);
-                }
-
-                // Look for stored statements that are in a system schema
-                // and with a match compilation schema. If so, allow them
-                // to compile using internal SQL constructs.
-                if (internalSQL ||
-                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
-                    cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
-                }
-
-                /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
-                String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
-                Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
-                Boolean selectivityEstimationIncludingSkewedDefault = Boolean.parseBoolean(selectivityEstimationString);
-
-                cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
-
-                /* check if the optimization to do projection pruning is enabled or not */
-                String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc,
-                Property.PROJECTION_PRUNING_DISABLED);
-                // if database property is not set, treat it as false
-                Boolean projectionPruningOptimizationDisabled = false;
-                try {
-                    if (projectionPruningOptimizationString != null)
-                        projectionPruningOptimizationDisabled = Boolean.parseBoolean(projectionPruningOptimizationString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
-
-                // User can specify the max length of multicolumn IN list the optimizer may build for
-                // use as a probe predicate.  Single-column IN lists can be combined up until the point
-                // where adding in the next IN predicate would push us over the limit.
-                String maxMulticolumnProbeValuesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_MULTICOLUMN_PROBE_VALUES);
-                int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
-                try {
-                    if (maxMulticolumnProbeValuesString != null)
-                        maxMulticolumnProbeValues = Integer.parseInt(maxMulticolumnProbeValuesString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to an int, don't throw an error,
-                    // just use the default setting.
-                }
-                if (maxMulticolumnProbeValues > MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE)
-                    maxMulticolumnProbeValues = MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
-                cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
-
-                String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
-                boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
-                try {
-                    if (multicolumnInlistProbeOnSparkEnabledString != null)
-                        multicolumnInlistProbeOnSparkEnabled = Boolean.parseBoolean(multicolumnInlistProbeOnSparkEnabledString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
-
-                String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
-                boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
-                try {
-                    if (convertMultiColumnDNFPredicatesToInListString != null)
-                        convertMultiColumnDNFPredicatesToInList = Boolean.parseBoolean(convertMultiColumnDNFPredicatesToInListString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
-
-                String disablePredicateSimplificationString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION);
-                boolean disablePredicateSimplification = CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
-                try {
-                    if (disablePredicateSimplificationString != null)
-                        disablePredicateSimplification =
-                        Boolean.parseBoolean(disablePredicateSimplificationString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setDisablePredicateSimplification(disablePredicateSimplification);
-
-                String nativeSparkAggregationModeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
-                CompilerContext.NativeSparkModeType nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
-                try {
-                    if (nativeSparkAggregationModeString != null) {
-                        nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
-                        switch (nativeSparkAggregationModeString) {
-                            case "on":
-                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
-                                break;
-                            case "off":
-                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
-                                break;
-                            case "forced":
-                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
-                                break;
-                            default:
-                                // use default value
-                                break;
-                        }
-                    }
-                } catch (Exception e) {
-                    // If the property value failed to get decoded to a valid value, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setNativeSparkAggregationMode(nativeSparkAggregationMode);
-
-                String allowOverflowSensitiveNativeSparkExpressionsString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS);
-                boolean allowOverflowSensitiveNativeSparkExpressions = CompilerContext.DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
-                try {
-                    if (allowOverflowSensitiveNativeSparkExpressionsString != null)
-                        allowOverflowSensitiveNativeSparkExpressions =
-                        Boolean.parseBoolean(allowOverflowSensitiveNativeSparkExpressionsString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
-
-                String newMergeJoinString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
-                CompilerContext.NewMergeJoinExecutionType newMergeJoin =
-                CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
-                try {
-                    if (newMergeJoinString != null) {
-                        newMergeJoinString = newMergeJoinString.toLowerCase();
-                        if (newMergeJoinString.equals("on"))
-                            newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
-                        else if (newMergeJoinString.equals("off"))
-                            newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
-                        else if (newMergeJoinString.equals("forced"))
-                            newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
-                    }
-                } catch (Exception e) {
-                    // If the property value failed to get decoded to a valid value, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setNewMergeJoin(newMergeJoin);
-
-                String disablePerParallelTaskJoinCostingString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
-                boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
-                try {
-                    if (disablePerParallelTaskJoinCostingString != null)
-                        disablePerParallelTaskJoinCosting =
-                        Boolean.parseBoolean(disablePerParallelTaskJoinCostingString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
-
-                String currentTimestampPrecisionString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
-                int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
-                try {
-                    if (currentTimestampPrecisionString != null)
-                        currentTimestampPrecision = Integer.parseInt(currentTimestampPrecisionString);
-                    if (currentTimestampPrecision < 0)
-                        currentTimestampPrecision = 0;
-                    if (currentTimestampPrecision > 9)
-                        currentTimestampPrecision = 9;
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setCurrentTimestampPrecision(currentTimestampPrecision);
-
-                String timestampPrecisionString =
-                        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_PRECISION);
-                int timestampPrecision = CompilerContext.DEFAULT_TIMESTAMP_PRECISION;
-                try {
-                    if (timestampPrecisionString != null)
-                        timestampPrecision = Integer.parseInt(timestampPrecisionString);
-                    if (timestampPrecision < Limits.MIN_TIMESTAMP_PRECISION)
-                        timestampPrecision = Limits.MIN_TIMESTAMP_PRECISION;
-                    if (timestampPrecision > Limits.MAX_TIMESTAMP_PRECISION)
-                        timestampPrecision = Limits.MAX_TIMESTAMP_PRECISION;
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setTimestampPrecision(timestampPrecision);
-
-                String outerJoinFlatteningDisabledString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);
-                boolean outerJoinFlatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
-                try {
-                    if (outerJoinFlatteningDisabledString != null)
-                        outerJoinFlatteningDisabled = Boolean.parseBoolean(outerJoinFlatteningDisabledString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setOuterJoinFlatteningDisabled(outerJoinFlatteningDisabled);
-
-                if (!cc.isSparkVersionInitialized()) {
-                    // If splice.spark.version is manually set, use it...
-                    String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
-                    SparkVersion sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
-
-                    // ... otherwise pick up the splice compile-time version of spark.
-                    if (sparkVersion.isUnknown()) {
-                        spliceSparkVersionString = System.getProperty(SPLICE_SPARK_COMPILE_VERSION);
-                        sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
-                        if (sparkVersion.isUnknown())
-                            sparkVersion = CompilerContext.DEFAULT_SPLICE_SPARK_VERSION;
-                    }
-                    cc.setSparkVersion(sparkVersion);
-                }
-
-                String ssqFlatteningForUpdateDisabledString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SSQ_FLATTENING_FOR_UPDATE_DISABLED);
-                boolean ssqFlatteningForUpdateDisabled = CompilerContext.DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED;
-                try {
-                    if (ssqFlatteningForUpdateDisabledString != null)
-                        ssqFlatteningForUpdateDisabled =
-                        Boolean.parseBoolean(ssqFlatteningForUpdateDisabledString);
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
-
-                String varcharDB2CompatibilityModeString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
-                boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
-                try {
-                    if (varcharDB2CompatibilityModeString != null)
-                        varcharDB2CompatibilityMode =
-                        Boolean.parseBoolean(varcharDB2CompatibilityModeString);
-                    if (varcharDB2CompatibilityMode) {
-                        CharTypeCompiler charTC = getCurrentCharTypeCompiler(lcc);
-                        if (charTC != null) {
-                            charTC.setDB2VarcharCompatibilityMode(varcharDB2CompatibilityMode);
-                            lcc.setDB2VarcharCompatibilityModeNeedsReset(true, charTC);
-                        }
-                    }
-
-                } catch (Exception e) {
-                    // If the property value failed to convert to a boolean, don't throw an error,
-                    // just use the default setting.
-                }
-                cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
+            } else {
+                cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,boundAndOptimizedStatement);
-        }catch(StandardException se){
+            if (internalSQL)
+                cc.setCompilingTrigger(true);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
+        } catch (Throwable e) {
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-
-            throw se;
-        }finally{
+            throw StandardException.getOrWrap(e);
+        }
+        finally{
             synchronized(preparedStmt){
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
@@ -716,6 +452,8 @@ public class GenericStatement implements Statement{
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
             else
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
+            if (cc != null)
+                cc.setCompilingTrigger(false);
         }
 
         lcc.commitNestedTransaction();
@@ -724,6 +462,378 @@ public class GenericStatement implements Statement{
             lcc.popStatementContext(statementContext,null);
 
         return preparedStmt;
+    }
+
+    private CompilerContext pushCompilerContext(LanguageConnectionContext lcc,
+                                                boolean internalSQL,
+                                                SchemaDescriptor spsSchema) throws StandardException {
+        CompilerContext cc = lcc.pushCompilerContext(compilationSchema);
+
+        if (prepareIsolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) {
+            cc.setScanIsolationLevel(prepareIsolationLevel);
+        }
+
+        // Look for stored statements that are in a system schema
+        // and with a match compilation schema. If so, allow them
+        // to compile using internal SQL constructs.
+        if (internalSQL ||
+                (spsSchema != null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))) {
+            cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
+        }
+
+        setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
+        setProjectionPruningEnabled(lcc, cc);
+        setMaxMulticolumnProbeValues(lcc, cc);
+        setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
+        setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
+        setDisablePredicateSimplification(lcc, cc);
+        setNativeSparkAggregationMode(lcc, cc);
+        setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
+        setNewMergeJoin(lcc, cc);
+        setDisableParallelTaskJoinCosting(lcc, cc);
+        setCurrentTimestampPrecision(lcc, cc);
+        setTimestampFormat(lcc, cc);
+        setSecondFunctionCompatibilityMode(lcc, cc);
+        setFloatingPointNotation(lcc, cc);
+        setOuterJoinFlatteningDisabled(lcc, cc);
+        setCursorUntypedExpressionType(lcc, cc);
+
+        if (!cc.isSparkVersionInitialized()) {
+            setSparkVersion(cc);
+        }
+
+        setSSQFlatteningForUpdateDisabled(lcc, cc);
+        setVarcharDB2CompatibilityMode(lcc, cc);
+        return cc;
+    }
+
+    private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String varcharDB2CompatibilityModeString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+        try {
+            if (varcharDB2CompatibilityModeString != null)
+                varcharDB2CompatibilityMode =
+                Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+            if (varcharDB2CompatibilityMode) {
+                CharTypeCompiler charTC = getCurrentCharTypeCompiler(lcc);
+                if (charTC != null) {
+                    charTC.setDB2VarcharCompatibilityMode(varcharDB2CompatibilityMode);
+                    lcc.setDB2VarcharCompatibilityModeNeedsReset(true, charTC);
+                }
+            }
+
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
+    }
+
+    private void setSSQFlatteningForUpdateDisabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String ssqFlatteningForUpdateDisabledString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SSQ_FLATTENING_FOR_UPDATE_DISABLED);
+        boolean ssqFlatteningForUpdateDisabled = CompilerContext.DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED;
+        try {
+            if (ssqFlatteningForUpdateDisabledString != null)
+                ssqFlatteningForUpdateDisabled =
+                Boolean.parseBoolean(ssqFlatteningForUpdateDisabledString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
+    }
+
+    private void setSparkVersion(CompilerContext cc) {
+        // If splice.spark.version is manually set, use it...
+        String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
+        SparkVersion sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+
+        // ... otherwise pick up the splice compile-time version of spark.
+        if (sparkVersion.isUnknown()) {
+            spliceSparkVersionString = System.getProperty(SPLICE_SPARK_COMPILE_VERSION);
+            sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+            if (sparkVersion.isUnknown())
+                sparkVersion = CompilerContext.DEFAULT_SPLICE_SPARK_VERSION;
+        }
+        cc.setSparkVersion(sparkVersion);
+    }
+
+    private void setOuterJoinFlatteningDisabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String outerJoinFlatteningDisabledString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);
+        boolean outerJoinFlatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
+        try {
+            if (outerJoinFlatteningDisabledString != null)
+                outerJoinFlatteningDisabled = Boolean.parseBoolean(outerJoinFlatteningDisabledString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setOuterJoinFlatteningDisabled(outerJoinFlatteningDisabled);
+    }
+
+    private void setSelectivityEstimationIncludingSkewedDefault(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
+        String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
+        Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
+        Boolean selectivityEstimationIncludingSkewedDefault = Boolean.parseBoolean(selectivityEstimationString);
+
+        cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
+    }
+
+    private void setProjectionPruningEnabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        /* check if the optimization to do projection pruning is enabled or not */
+        String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+        Property.PROJECTION_PRUNING_DISABLED);
+        // if database property is not set, treat it as false
+        Boolean projectionPruningOptimizationDisabled = false;
+        try {
+            if (projectionPruningOptimizationString != null)
+                projectionPruningOptimizationDisabled = Boolean.parseBoolean(projectionPruningOptimizationString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    }
+
+    private void setMaxMulticolumnProbeValues(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        // User can specify the max length of multicolumn IN list the optimizer may build for
+        // use as a probe predicate.  Single-column IN lists can be combined up until the point
+        // where adding in the next IN predicate would push us over the limit.
+        String maxMulticolumnProbeValuesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_MULTICOLUMN_PROBE_VALUES);
+        int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+        try {
+            if (maxMulticolumnProbeValuesString != null)
+                maxMulticolumnProbeValues = Integer.parseInt(maxMulticolumnProbeValuesString);
+        } catch (Exception e) {
+            // If the property value failed to convert to an int, don't throw an error,
+            // just use the default setting.
+        }
+        if (maxMulticolumnProbeValues > MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE)
+            maxMulticolumnProbeValues = MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
+        cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
+    }
+
+    private void setMulticolumnInlistProbeOnSparkEnabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
+        boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+        try {
+            if (multicolumnInlistProbeOnSparkEnabledString != null)
+                multicolumnInlistProbeOnSparkEnabled = Boolean.parseBoolean(multicolumnInlistProbeOnSparkEnabledString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
+    }
+
+    private void setConvertMultiColumnDNFPredicatesToInList(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
+        boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+        try {
+            if (convertMultiColumnDNFPredicatesToInListString != null)
+                convertMultiColumnDNFPredicatesToInList = Boolean.parseBoolean(convertMultiColumnDNFPredicatesToInListString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
+    }
+
+    private void setDisablePredicateSimplification(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePredicateSimplificationString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION);
+        boolean disablePredicateSimplification = CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+        try {
+            if (disablePredicateSimplificationString != null)
+                disablePredicateSimplification =
+                Boolean.parseBoolean(disablePredicateSimplificationString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePredicateSimplification(disablePredicateSimplification);
+    }
+
+    private void setNativeSparkAggregationMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String nativeSparkAggregationModeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
+        CompilerContext.NativeSparkModeType nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+        try {
+            if (nativeSparkAggregationModeString != null) {
+                nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
+                switch (nativeSparkAggregationModeString) {
+                    case "on":
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+                        break;
+                    case "off":
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+                        break;
+                    case "forced":
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                        break;
+                    default:
+                        // use default value
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            // If the property value failed to get decoded to a valid value, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setNativeSparkAggregationMode(nativeSparkAggregationMode);
+    }
+
+    private void setAllowOverflowSensitiveNativeSparkExpressions(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String allowOverflowSensitiveNativeSparkExpressionsString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS);
+        boolean allowOverflowSensitiveNativeSparkExpressions = CompilerContext.DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+        try {
+            if (allowOverflowSensitiveNativeSparkExpressionsString != null)
+                allowOverflowSensitiveNativeSparkExpressions =
+                Boolean.parseBoolean(allowOverflowSensitiveNativeSparkExpressionsString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
+    }
+
+    private void setNewMergeJoin(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String newMergeJoinString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
+        CompilerContext.NewMergeJoinExecutionType newMergeJoin =
+        CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
+        try {
+            if (newMergeJoinString != null) {
+                newMergeJoinString = newMergeJoinString.toLowerCase();
+                if (newMergeJoinString.equals("on"))
+                    newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
+                else if (newMergeJoinString.equals("off"))
+                    newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
+                else if (newMergeJoinString.equals("forced"))
+                    newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
+            }
+        } catch (Exception e) {
+            // If the property value failed to get decoded to a valid value, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setNewMergeJoin(newMergeJoin);
+    }
+
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePrefixIteratorModeString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
+        boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        try {
+            if (disablePrefixIteratorModeString != null)
+                disablePrefixIteratorMode =
+                Boolean.parseBoolean(disablePrefixIteratorModeString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
+    private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePerParallelTaskJoinCostingString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
+        boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+        try {
+            if (disablePerParallelTaskJoinCostingString != null)
+                disablePerParallelTaskJoinCosting =
+                Boolean.parseBoolean(disablePerParallelTaskJoinCostingString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
+    }
+
+    private void setCurrentTimestampPrecision(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String currentTimestampPrecisionString =
+        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
+        int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+        try {
+            if (currentTimestampPrecisionString != null)
+                currentTimestampPrecision = Integer.parseInt(currentTimestampPrecisionString);
+            if (currentTimestampPrecision < 0)
+                currentTimestampPrecision = 0;
+            if (currentTimestampPrecision > 9)
+                currentTimestampPrecision = 9;
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setCurrentTimestampPrecision(currentTimestampPrecision);
+    }
+
+    private void setTimestampFormat(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String timestampFormatString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_FORMAT);
+        if(timestampFormatString == null)
+            cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
+        else {
+            try {
+                // the following code checks if the timestampFormatString is valid
+                // DB-10968 we shouldn't even allow setting this to the wrong value
+                SQLTimestamp.getFormatLength(timestampFormatString);
+            } catch(Exception e)
+            {
+                timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
+            }
+            cc.setTimestampFormat(timestampFormatString);
+        }
+    }
+
+    private void setCursorUntypedExpressionType(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String type = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CURSOR_UNTYPED_EXPRESSION_TYPE);
+        if(type != null && "varchar".equals(type.toLowerCase())) {
+            cc.setCursorUntypedExpressionType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 254));
+        } else {
+            cc.setCursorUntypedExpressionType(null);
+        }
+    }
+
+    private void setSecondFunctionCompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String mode =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE);
+        if (mode == null) {
+            cc.setSecondFunctionCompatibilityMode(CompilerContext.DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE);
+        } else {
+            switch (mode.toLowerCase()) {
+                case "db2":
+                    cc.setSecondFunctionCompatibilityMode(mode);
+                    break;
+                case "splice":
+                default:
+                    cc.setSecondFunctionCompatibilityMode(CompilerContext.DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE);
+                    break;
+            }
+        }
+
+    }
+
+    private void setFloatingPointNotation(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String floatingPointNotationString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.FLOATING_POINT_NOTATION);
+        if(floatingPointNotationString == null) {
+            cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
+        } else {
+            switch (floatingPointNotationString.toLowerCase()) {
+                case "plain":
+                    cc.setFloatingPointNotation(FloatingPointDataType.PLAIN);
+                    break;
+                case "normalized":
+                    cc.setFloatingPointNotation(FloatingPointDataType.NORMALIZED);
+                    break;
+                default:
+                    cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
+            }
+        }
     }
 
     /*
@@ -735,14 +845,15 @@ public class GenericStatement implements Statement{
      * 3. optimize: Perform cost-based optimization
      * 4. generate: Generate the actual byte code to be executed
      */
-    private void fourPhasePrepare(LanguageConnectionContext lcc,
-                                  Object[] paramDefaults,
-                                  long[] timestamps,
-                                  Timestamp beginTimestamp,
-                                  boolean foundInCache,
-                                  CompilerContext cc,
-                                  StatementNode boundAndOptimizedStatement) throws StandardException{
-        lcc.logStartCompiling(getSource());
+    private StatementNode fourPhasePrepare(LanguageConnectionContext lcc,
+                                           Object[] paramDefaults,
+                                           long[] timestamps,
+                                           boolean foundInCache,
+                                           CompilerContext cc,
+                                           StatementNode boundAndOptimizedStatement,
+                                           boolean cacheMe,
+                                           boolean forExplain) throws StandardException{
+       lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
@@ -757,8 +868,7 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-
-                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
+                bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
                 lcc.beginNestedTransaction(true);
@@ -773,19 +883,79 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            if(!forExplain) {
+                generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
+            }
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
-        } catch (StandardException e) {
-            lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
-            throw e;
-        }  finally{ // for block introduced by pushCompilerContext()
+            return qt;
+        } catch (Throwable e) {
+            StandardException se = StandardException.getOrWrap(e);
+            lcc.logErrorCompiling(getSource(), se, System.nanoTime() - startTime);
+            throw se;
+        }
+        finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
+            lcc.setHasJoinStrategyHint(false);
             if (boundAndOptimizedStatement == null)
                 lcc.popCompilerContext(cc);
         }
+    }
+
+    private void handleExplainNode(LanguageConnectionContext lcc,
+                                   CompilerContext cc,
+                                   StatementNode statementNode,
+                                   boolean cacheMe) throws StandardException {
+        if (!(statementNode instanceof ExplainNode) || ((ExplainNode)statementNode).isSparkExplain()) {
+            return;
+        }
+
+        ExplainNode explainNode = (ExplainNode)statementNode;
+
+        if(explainNode.getExplainedStatementStart() == -1) {
+            return;
+        }
+
+        String explained = statementText.substring(explainNode.getExplainedStatementStart() + 1).trim();
+
+        GenericStatement queryNode = new GenericStatement(compilationSchema,explained, isForReadOnly /*this could be incorrect with updatableCursors*/, lcc);
+        queryNode.sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
+
+        if(cacheMe) {
+            // similar to ANALYSE statement, EXPLAIN statement will
+            // force invalidate the currently cached statement if it exists
+            // the assumption here is when running EXPLAIN, the user expects
+            // the plan to correspond to what the system currently thinks is
+            // the best plan, retrieving it from the cache instead could be
+            // misleading to say the least.
+            lcc.removeStatement(queryNode);
+
+            // add the statement to the statement cache
+            lcc.lookupStatement(queryNode);
+        }
+
+        // proceed to optimize and generate code for it
+        StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
+
+        // plug back the statement in the EXPLAIN plan, so we can proceed
+        // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
+        // will bypass the underlying node since it is already optimized
+        // and the workflow continues as usual with code generation and
+        // execution returning the expected output of EXPLAIN.
+        // by doing this we achieve two goals:
+        // 1. we cache exactly the same execution plan that EXPLAIN
+        //    reports back to the user.
+        // 2. we only optimize the underlying plan once, guaranteeing
+        //    a what-you-see-is-what-you-get next time we attempt to
+        //    run the same statement (as long as we don't run something
+        //    that invalidates the cache inbetween such as ANALYSE or
+        //    SYSCS_EMPTY_STATEMENT_CACHE.
+        explainNode.setOptimizedPlanRoot(optimizedPlan);
+
+        // calling bind will create new nested transaction.
+        lcc.commitNestedTransaction();
     }
 
     private StatementNode parse(LanguageConnectionContext lcc,
@@ -793,6 +963,10 @@ public class GenericStatement implements Statement{
                                 long[] timestamps,
                                 CompilerContext cc) throws StandardException{
         Parser p=cc.getParser();
+
+        if(preparedStmt == null) {
+            preparedStmt = (GenericStorablePreparedStatement)lcc.lookupStatement(this);
+        }
 
         cc.setCurrentDependent(preparedStmt);
 
@@ -814,14 +988,17 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary) throws StandardException{
-
+                                 DataDictionary dataDictionary,
+                                 CompilerContext cc,
+                                 boolean cacheMe) throws StandardException{
+        // start a nested transaction -- all locks acquired by bind
+        // and optimize will be released when we end the nested
+        // transaction.
+        lcc.beginNestedTransaction(true);
         try{
-            // start a nested transaction -- all locks acquired by bind
-            // and optimize will be released when we end the nested
-            // transaction.
-            lcc.beginNestedTransaction(true);
             dumpParseTree(lcc,qt,false);
+
+            handleExplainNode(lcc, cc, qt, cacheMe);
 
             qt.bindStatement();
             timestamps[2]=getCurrentTimeMillis(lcc);
@@ -832,48 +1009,8 @@ public class GenericStatement implements Statement{
 
             dumpBoundTree(lcc,qt);
 
-            //Derby424 - In order to avoid caching select statements referencing
-            // any SESSION schema objects (including statements referencing views
-            // in SESSION schema), we need to do the SESSION schema object check
-            // here.
-            //a specific eg for statement referencing a view in SESSION schema
-            //CREATE TABLE t28A (c28 int)
-            //INSERT INTO t28A VALUES (280),(281)
-            //CREATE VIEW SESSION.t28v1 as select * from t28A
-            //SELECT * from SESSION.t28v1 should show contents of view and we
-            // should not cache this statement because a user can later define
-            // a global temporary table with the same name as the view name.
-            //Following demonstrates that
-            //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
-            //     logged
-            //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
-            //SELECT * from SESSION.t28v1 should show contents of global temporary
-            //table and not the view.  Since this select statement was not cached
-            // earlier, it will be compiled again and will go to global temporary
-            // table to fetch data. This plan will not be cached either because
-            // select statement is using SESSION schema object.
-            //
-            //Following if statement makes sure that if the statement is
-            // referencing SESSION schema objects, then we do not want to cache it.
-            // We will remove the entry that was made into the cache for
-            //this statement at the beginning of the compile phase.
-            //The reason we do this check here rather than later in the compile
-            // phase is because for a view, later on, we loose the information that
-            // it was referencing SESSION schema because the reference
-            //view gets replaced with the actual view definition. Right after
-            // binding, we still have the information on the view and that is why
-            // we do the check here.
-            if(preparedStmt.referencesSessionSchema(qt) || qt.referencesTemporaryTable()){
-                if(foundInCache)
-                    ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-            }
-            /*
-             * If we have an explain statement, then we should remove it from the
-             * cache to prevent future readers from fetching it
-             */
-            if(foundInCache && qt instanceof ExplainNode){
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-            }
+            maintainCacheEntry(lcc, qt, foundInCache);
+
             qt.optimizeStatement();
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
@@ -881,13 +1018,64 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-        }catch(StandardException se){
+        }catch(Throwable t){
             lcc.commitNestedTransaction();
-            throw se;
+            throw StandardException.getOrWrap(t);
         }
     }
 
-    public Timestamp generate(LanguageConnectionContext lcc,
+    public void maintainCacheEntry(LanguageConnectionContext lcc,
+                                   StatementNode statementNode,
+                                   boolean foundInCache) throws StandardException {
+        //Derby424 - In order to avoid caching select statements referencing
+        // any SESSION schema objects (including statements referencing views
+        // in SESSION schema), we need to do the SESSION schema object check
+        // here.
+        //a specific eg for statement referencing a view in SESSION schema
+        //CREATE TABLE t28A (c28 int)
+        //INSERT INTO t28A VALUES (280),(281)
+        //CREATE VIEW SESSION.t28v1 as select * from t28A
+        //SELECT * from SESSION.t28v1 should show contents of view and we
+        // should not cache this statement because a user can later define
+        // a global temporary table with the same name as the view name.
+        //Following demonstrates that
+        //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
+        //     logged
+        //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
+        //SELECT * from SESSION.t28v1 should show contents of global temporary
+        //table and not the view.  Since this select statement was not cached
+        // earlier, it will be compiled again and will go to global temporary
+        // table to fetch data. This plan will not be cached either because
+        // select statement is using SESSION schema object.
+        //
+        //Following if statement makes sure that if the statement is
+        // referencing SESSION schema objects, then we do not want to cache it.
+        // We will remove the entry that was made into the cache for
+        //this statement at the beginning of the compile phase.
+        //The reason we do this check here rather than later in the compile
+        // phase is because for a view, later on, we loose the information that
+        // it was referencing SESSION schema because the reference
+        //view gets replaced with the actual view definition. Right after
+        // binding, we still have the information on the view and that is why
+        // we do the check here.
+        if (preparedStmt.referencesSessionSchema(statementNode) || statementNode.referencesTemporaryTable()) {
+            if (foundInCache)
+                lcc.removeStatement(this);
+        }
+        /*
+         * If we have EXPLAIN statement, then we should remove it from the
+         * cache to prevent future readers from fetching it
+         */
+        if (foundInCache && statementNode instanceof ExplainNode) {
+            lcc.removeStatement(this);
+        }
+    }
+
+    /**
+     * Performs code generation for `qt`.
+     * @return the time code generation took in milliseconds.
+     */
+    private Timestamp generate(LanguageConnectionContext lcc,
                                long[] timestamps,
                                CompilerContext cc,
                                StatementNode qt,
@@ -938,7 +1126,7 @@ public class GenericStatement implements Statement{
             preparedStmt.completeCompile(qt);
             preparedStmt.setCompileTimeWarnings(cc.getWarnings());
 
-        }catch(StandardException e){    // hold it, throw it
+        }catch(StandardException e){
             lcc.commitNestedTransaction();
             throw e;
         }

@@ -79,6 +79,8 @@ public interface ExceptionSeverity
 	 * cause the system to shut down.
 	 */
 	int SYSTEM_SEVERITY = 50000;
+
+	int DB2_NO_ROW_FOUND_SEVERITY = 100;
 }
 
 

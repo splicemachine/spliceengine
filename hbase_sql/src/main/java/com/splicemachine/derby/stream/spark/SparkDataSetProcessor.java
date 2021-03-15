@@ -435,10 +435,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                                          StructType partitionColumns) throws StandardException {
         StructType schema = null;
         StructType partition_schema = null;
+        String[] foundFiles = null;
 
         Configuration conf = HConfiguration.unwrapDelegate();
         // normalize rootPath string
         rootPath = new Path(rootPath).toString();
+        String originalRootPath = rootPath;
         try {
             if (!mergeSchema) {
                 // get one file out of the directory tree
@@ -453,33 +455,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             try {
                 Dataset dataset = null;
                 String mergeSchemaOption = mergeSchema ? "true" : "false";
-                if (storedAs != null) {
-                    if (storedAs.toLowerCase().equals("p")) {
-                        dataset = SpliceSpark.getSession()
-                                .read()
-                                .option("mergeSchema", mergeSchemaOption)
-                                .parquet(rootPath);
-                    } else if (storedAs.toLowerCase().equals("a")) {
-                        // spark does not support schema merging for avro
-                        dataset = SpliceSpark.getSession()
-                                .read()
-                                .option("ignoreExtension", false)
-                                .format("com.databricks.spark.avro")
-                                .load(rootPath);
-                    } else if (storedAs.toLowerCase().equals("o")) {
-                        // spark does not support schema merging for orc
-                        dataset = SpliceSpark.getSession()
-                                .read()
-                                .orc(rootPath);
-                    } else if (storedAs.toLowerCase().equals("t")) {
-                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(rootPath);
-                    } else {
-                        throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
-                    }
-                    //dataset.printSchema();
-                    schema = dataset.schema();
+                DataFrameReader dfr = SpliceSpark.getSession().read();
+                if (storedAs == null) {
+                    dataset = dfr.option("mergeSchema", mergeSchemaOption).load(rootPath);
                 }
+                else if (storedAs.toLowerCase().equals("p")) {
+                    dataset = dfr.option("mergeSchema", mergeSchemaOption).parquet(rootPath);
+                } else if (storedAs.toLowerCase().equals("a")) {
+                    // spark does not support schema merging for avro
+                    dataset = dfr.option("ignoreExtension", false).format("com.databricks.spark.avro").load(rootPath);
+                } else if (storedAs.toLowerCase().equals("o")) {
+                    // spark does not support schema merging for orc
+                    dataset = dfr.orc(rootPath);
+                } else if (storedAs.toLowerCase().equals("t")) {
+                    // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                    dataset = dfr.options(getCsvOptions(csvOptions)).csv(rootPath);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
+                }
+                //dataset.printSchema();
+                schema = dataset.schema();
+                foundFiles = dataset.inputFiles();
             } catch (Exception e) {
                 handleExceptionInferSchema(e, rootPath);
             }
@@ -487,7 +483,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
 
-        return new GetSchemaExternalResult(partition_schema, schema);
+        return new GetSchemaExternalResult(originalRootPath, partition_schema, schema, foundFiles);
     }
 
     /**

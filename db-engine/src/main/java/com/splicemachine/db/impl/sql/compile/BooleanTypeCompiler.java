@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -114,7 +115,7 @@ public class BooleanTypeCompiler extends BaseTypeCompiler
 	/**
 	 * @see TypeCompiler#getCastToCharWidth
 	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
 		return TypeCompiler.BOOLEAN_MAXWIDTH_AS_CHAR;
 	}

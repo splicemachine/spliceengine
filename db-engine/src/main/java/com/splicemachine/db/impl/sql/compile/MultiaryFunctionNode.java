@@ -341,8 +341,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }
@@ -356,8 +355,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }
@@ -389,10 +387,10 @@ public abstract class MultiaryFunctionNode extends ValueNode
     /**
      * Categorize this predicate.
      *
-     * @see ValueNode#categorize(JBitSet, boolean)
+     * @see ValueNode#categorize(JBitSet, ReferencedColumnsMap, boolean)
      */
     @Override
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         if (simplePredsOnly)
@@ -400,7 +398,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
             return false;
         }
 
-        return argumentsList.categorize(referencedTabs, simplePredsOnly);
+        return argumentsList.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**

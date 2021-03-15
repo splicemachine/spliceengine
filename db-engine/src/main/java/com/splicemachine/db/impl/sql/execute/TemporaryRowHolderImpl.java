@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.sql.execute.TemporaryRowHolder;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;

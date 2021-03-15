@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.hadoop.hbase.exceptions.TimeoutIOException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -62,7 +63,9 @@ public class HLock implements Lock{
         try{
             delegate = region.getRowLock(key); // Null Lock Delegate means not run...
             return delegate!=null;
-        }catch(IOException e){
+        } catch(TimeoutIOException te) {
+            throw new RuntimeException(te);
+        } catch(IOException e){
             return false;
         }
     }

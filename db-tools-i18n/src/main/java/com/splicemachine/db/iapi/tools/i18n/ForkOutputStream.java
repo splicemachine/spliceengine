@@ -40,6 +40,11 @@ public class ForkOutputStream extends OutputStream {
     private FileOutputStream r;
     private boolean writeToOut;
 
+    public ForkOutputStream(OutputStream l, FileOutputStream r){
+        this.l = l;
+        this.r = r;
+        writeToOut = true;
+    }
     public ForkOutputStream(FileOutputStream r){
         this.l = System.out;
         this.r = r;

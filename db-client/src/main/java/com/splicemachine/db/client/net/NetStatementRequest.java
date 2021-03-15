@@ -795,6 +795,11 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                                 (protocolTypesAndLengths[i][1] >> 8) & 0xff, // described precision not actual
                                 protocolTypesAndLengths[i][1] & 0xff); // described scale, not actual
                         break;
+                    case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                        writeBigDecimal((java.math.BigDecimal) inputs[i],
+                                        (protocolTypesAndLengths[i][1] >> 8) & 0xff, // described precision not actual
+                                        protocolTypesAndLengths[i][1] & 0xff); // described scale, not actual
+                        break;
                     case DRDAConstants.DRDA_TYPE_NDATE:
                         // The value may be a Date if it comes from one of the
                         // methods that don't specify the calendar, or a

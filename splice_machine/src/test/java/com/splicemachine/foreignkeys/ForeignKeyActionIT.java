@@ -14,13 +14,16 @@
 
 package com.splicemachine.foreignkeys;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.UsesLocalFS;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
@@ -294,6 +297,7 @@ public class ForeignKeyActionIT {
     }
 
     @Test
+    @Category(UsesLocalFS.class)
     public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
             createDatabaseObjects3(s);
@@ -458,6 +462,21 @@ public class ForeignKeyActionIT {
             shouldContain("SNC", new int[][]{{42,42,42}});
             shouldContain("SNGC1", new int[][]{{42,42,42}});
             shouldContain("SNGC2", new int[][]{{42,42,42}});
+        }
+    }
+
+    @Test
+    public void onDeleteSetNullIsSpecifiedOnNotNullableColumnsFailsProperly() throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table NNFPP(col1 int primary key, col2 int)");
+            try{
+                s.executeUpdate("create table NNFPC(col1 int, col2 int, col3 int not null references NNFPP(col1) on delete set null)");
+                fail("expected query to fail with error: SET NULL cannot be specified because FOREIGN KEY  cannot contain null values.");
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+                SQLException sqlException = (SQLException)e;
+                Assert.assertEquals(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL, sqlException.getSQLState());
+            }
         }
     }
 

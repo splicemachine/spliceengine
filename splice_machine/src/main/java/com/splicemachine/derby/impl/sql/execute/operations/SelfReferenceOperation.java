@@ -102,16 +102,6 @@ public class SelfReferenceOperation extends SpliceBaseOperation {
         return recursiveUnionReference;
     }
 
-    @Override
-    public void open() throws StandardException {
-        super.open();
-    }
-
-    @Override
-    public void close() throws StandardException {
-        super.close();
-    }
-
     public ExecRow getRow() throws StandardException{
         if(rowMethod!=null){
             currentRow=rowMethod.invoke();

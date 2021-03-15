@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -274,8 +273,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @return    The TypeId from this ValueNode.  This
      *        may be null if the node isn't bound yet.
      */
-    public TypeId getTypeId() throws StandardException
-    {
+    public TypeId getTypeId() {
         DataTypeDescriptor dtd = getTypeServices();
         if (dtd != null)
             return dtd.getTypeId();
@@ -460,10 +458,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
                                     this,
                                     getContextManager());
 
-        ValueNode jtsvn = (ValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                    stjvn,
-                                    getContextManager());
+        ValueNode jtsvn = new JavaToSQLValueNode(stjvn, getContextManager());
         DataTypeDescriptor  resultType;
         if ( (getTypeServices() != null) && getTypeId().userType() ) { resultType = getTypeServices(); }
         else { resultType = DataTypeDescriptor.getSQLDataTypeDescriptor(stjvn.getJavaTypeName()); }
@@ -706,7 +701,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -721,6 +718,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -730,7 +729,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @exception StandardException            Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         return true;
@@ -906,8 +905,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException        Thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // The default is VARIANT
         return Qualifier.VARIANT;
     }
@@ -1454,8 +1452,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @throws StandardException
      */
-    protected abstract boolean isEquivalent(ValueNode other)
-        throws StandardException;
+    protected abstract boolean isEquivalent(ValueNode other) throws StandardException
+    ;
 
     @Override
     public boolean equals(Object o) {
@@ -1463,7 +1461,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         boolean result;
 
         if(o instanceof ValueNode){
-
             try{
                 result = isEquivalent((ValueNode) o);
             }catch (StandardException e){
@@ -1473,7 +1470,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         }else{
 
             result = super.equals(o);
-
         }
 
         return result;

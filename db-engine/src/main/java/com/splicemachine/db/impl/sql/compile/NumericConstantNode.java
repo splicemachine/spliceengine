@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -39,10 +40,17 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.types.*;
 
+import java.awt.event.ContainerEvent;
 import java.sql.Types;
 
 public final class NumericConstantNode extends ConstantNode
 {
+    public NumericConstantNode() {}
+    public NumericConstantNode(ContextManager cm, int nodeType, Object arg1) throws StandardException {
+        setContextManager(cm);
+        setNodeType(nodeType);
+        init(arg1);
+    }
     /**
      * Initializer for a typed null node
      *

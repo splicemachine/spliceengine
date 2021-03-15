@@ -211,7 +211,7 @@ abstract class JavaValueNode extends QueryTreeNode implements ParentNode
      *
      * @exception StandardException        Thrown on error
      */
-    abstract public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    abstract public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException;
 
     /**

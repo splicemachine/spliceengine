@@ -279,7 +279,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
             // Register HFiles for incremental backup
             String filePath =  resultFile != null?resultFile.getPath().toString():null;
             SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
-            if (!BackupUtils.isSpliceTable(namespace, tableName))
+            if (!BackupUtils.isSpliceTable(namespace))
                 return;
 
             BackupUtils.captureIncrementalChanges(conf, region, fs, rootDir, backupDir,
@@ -294,7 +294,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
     public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
 
         try {
-            if (!BackupUtils.isSpliceTable(namespace, tableName)||
+            if (!BackupUtils.isSpliceTable(namespace)||
                     !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir)) {
                 return;
             }
@@ -313,7 +313,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
     public void postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> stagingFamilyPaths, Map<byte[], List<Path>> finalPaths) throws IOException {
 
         try {
-            if (!BackupUtils.isSpliceTable(namespace, tableName) ||
+            if (!BackupUtils.isSpliceTable(namespace) ||
                     !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir))
                 return;
 

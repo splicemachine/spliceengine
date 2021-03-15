@@ -108,6 +108,52 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
                         row(5,5,5)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE LP_TKASBANK (\n" +
+                        " \"CHKDSITE\" VARCHAR(10)\n" +
+                        ",\"CHNOTRANSKB\" VARCHAR(24)\n" +
+                        ",\"DATGLTRANS\" DATE\n" +
+                        ",\"CHNOBUKTITRANSFER\" VARCHAR(24)\n" +
+                        ",\"CHKDTRANSAKSIKAS\" VARCHAR(5)\n" +
+                        ")")
+                .withInsert("insert into LP_TKASBANK values (?,?,?,?,?)")
+                .withRows(rows(
+                        row("xx", "yy", "2020-01-01", "woo", "lah"),
+                        row("aa", "bb", "2020-02-02", "foo", "bar")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE ZZLP_TKASBANKH (\n" +
+                        " \"CHKDSITE\" VARCHAR(10)\n" +
+                        ",\"CHNOTRANSKB\" VARCHAR(24)\n" +
+                        ",\"DATGLTRANS\" DATE\n" +
+                        ",\"DATGLTEXTFILE\" DATE\n" +
+                        ",\"LOCANCEL\" SMALLINT\n" +
+                        ")")
+                .withInsert("insert into ZZLP_TKASBANKH values (?,?,?,?,?)")
+                .withRows(rows(
+                        row("xx", "yy", "2020-01-01", "2020-01-01", 0),
+                        row("xx", "yy", "2020-01-01", "2020-01-01", 1),
+                        row("aa", "bb", "2020-02-02", "2020-02-02", 0),
+                        row("aa", "bb", "2020-02-02", "2020-02-02", 1)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE ZZLP_TKASBANKD (\n" +
+                        " \"CHKDSITE\" VARCHAR(10)\n" +
+                        ",\"CHNOTRANSKB\" VARCHAR(24)\n" +
+                        ",\"CHNOBUKTITRANSFER\" VARCHAR(24)\n" +
+                        ",\"CHKDTRANSAKSIKAS\" VARCHAR(5)\n" +
+                        ",\"DATGLTEXTFILE\" DATE\n" +
+                        ",\"LOCANCEL\" SMALLINT\n" +
+                        ")")
+                .withInsert("insert into ZZLP_TKASBANKD values (?,?,?,?,?,?)")
+                .withRows(rows(
+                        row("xx", "yy", "woo", "lah", "2020-03-01", 1),
+                        row("xx", "yy", "woo", "lah", "2020-01-01", 0),
+                        row("aa", "bb", "foo", "bar", "2020-02-02", 1)))
+                .create();
+
         conn.createStatement().executeQuery(format(
                 "CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s','T1', 3, 100, 1)",
                 schemaName));
@@ -407,7 +453,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
         rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3000"},
                 new String[]{"BroadcastJoin", "outputRows=1000", "preds=[(A2[6:2] = A4[6:1])]"},
-                new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = T2.A2[4:1])]"},
+                new String[]{"TableScan[T2", "scannedRows=10000,outputRows=10000", "preds=[(A1[1:1] = T2.A2[4:1])]"},
                 new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
                 new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
                 new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
@@ -625,5 +671,45 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    // DB-11152
+    @Test
+    public void testEnumeratingNLJNoErrorOnScopedPredsFourLevelsofNesting() throws Exception {
+        String sqlText = format("select a.* FROM --splice-properties joinOrder=fixed\n" +
+                "  lp_tkasbank a\n" +
+                "WHERE EXISTS\n" +
+                "(\n" +
+                "    SELECT b.*\n" +
+                "    FROM\n" +
+                "    (\n" +
+                "        SELECT\n" +
+                "            d.chKdSite,\n" +
+                "            c.chNoTransKB,\n" +
+                "            c.daTglTrans,\n" +
+                "            d.chNoBuktiTransfer,\n" +
+                "            d.chKdTransaksiKas\n" +
+                "        FROM\n" +
+                "        (\n" +
+                "            SELECT x.* FROM\n" +
+                "            (SELECT * FROM zzLP_tkasbankh WHERE locancel = 1) x --splice-properties joinStrategy=nestedloop\n" +
+                "            INNER JOIN\n" +
+                "            (SELECT chkdsite,chnotranskb,datgltrans FROM LP_tkasbank) h --splice-properties joinStrategy=nestedloop\n" +
+                "            on x.chkdsite = h.chkdsite and x.chNoTransKB = h.chNoTransKB and x.daTglTrans = h.daTglTrans\n" +
+                "        ) c --splice-properties joinStrategy=nestedloop\n" +
+                "        INNER JOIN zzLP_tkasbankd d --splice-properties joinStrategy=nestedloop\n" +
+                "        on c.chkdsite=d.chkdsite and c.chNoTransKB=d.chNoTransKB and c.datgltextfile = d.datgltextfile\n" +
+                "        WHERE d.locancel = 1\n" +
+                "    ) b --splice-properties joinStrategy=nestedloop, useSpark=%s\n" +
+                "    WHERE a.chkdsite = b.chkdsite and a.chnotranskb = b.chnotranskb and a.datgltrans = b.datgltrans\n" +
+                "      and a.chnobuktitransfer = b.chnobuktitransfer and a.chkdtransaksikas = b.chkdtransaksikas\n" +
+                ")", useSpark);
+
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected = "CHKDSITE | CHNOTRANSKB |DATGLTRANS | CHNOBUKTITRANSFER |CHKDTRANSAKSIKAS |\n" +
+                    "--------------------------------------------------------------------------\n" +
+                    "   aa    |     bb      |2020-02-02 |        foo        |       bar       |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 }

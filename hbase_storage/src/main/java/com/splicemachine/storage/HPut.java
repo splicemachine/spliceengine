@@ -14,6 +14,8 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.si.impl.HOperationFactory;
 import org.apache.hadoop.hbase.client.Durability;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
@@ -109,8 +111,8 @@ public class HPut implements HMutation,DataPut{
     }
 
     @Override
-    public void skipWAL() {
-        put.setDurability(Durability.SKIP_WAL);
+    public void setDurability(com.splicemachine.access.api.Durability durability) {
+        put.setDurability(HOperationFactory.toHBaseDurability(durability));
     }
 
     @Override

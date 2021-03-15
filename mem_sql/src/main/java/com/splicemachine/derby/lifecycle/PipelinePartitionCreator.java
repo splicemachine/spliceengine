@@ -29,6 +29,8 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -132,6 +134,11 @@ public class PipelinePartitionCreator implements PartitionCreator{
             throw new IOException(e);
         }
         return p;
+    }
+
+    @Override
+    public Future<Partition> createAsync() throws IOException {
+        return CompletableFuture.completedFuture(create());
     }
 }
 

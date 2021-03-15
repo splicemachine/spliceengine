@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 
 /**
  * NumberDataType is the superclass for all exact and approximate 
@@ -636,7 +638,5 @@ public abstract class NumberDataType extends DataType
         result.setValue(sb.toString());
         return result;
     }
-
-
 }
 

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.clearspring.analytics.util.Lists;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -21,13 +22,13 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -39,6 +40,7 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -57,6 +59,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -64,13 +67,11 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Function;
 
 import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
@@ -101,6 +102,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
     private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
 
+    public static final SystemViewDefinitions viewDefinitions = new SystemViewDefinitions();
+
     @Override
     public SystemProcedureGenerator getSystemProcedures(){
         return new SpliceSystemProcedures(this);
@@ -129,27 +132,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
 
             row=fkkeysRF.makeRow(fkDescriptor,null);
-
-            /*
-             * Now we need to bump the reference count of the constraint that this FK references
-             */
-            ReferencedKeyConstraintDescriptor refDescriptor=fkDescriptor.getReferencedConstraint();
-            refDescriptor.incrementReferenceCount();
-            int[] colsToSet=new int[1];
-            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-            /* Have to update the reference count in a nested transaction here because the SYSCONSTRAINTS row we are
-             * updating (a primary key constraint or unique index constraint) may have been created in the same
-             * statement as the FK (create table for self referencing FK, for example). In that case the KeyValue for
-             * that constraint row will have the same rowKey AND timestamp. Updating here with the same ts would REPLACE
-             * the entire row with just the updated reference count column, corrupting the row (DB-3345). */
-            TransactionController transactionController=tc.startNestedUserTransaction(false,true);
-            try{
-                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,transactionController);
-            }finally{
-                transactionController.commit();
-                transactionController.destroy();
-            }
 
         }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getNonCoreTI(SYSPRIMARYKEYS_CATALOG_NUM);
@@ -250,13 +232,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
-        if (catalogNum < NUM_CORE)
-            ti=coreInfo[catalogNum];
-        else
-            ti=getNonCoreTI(catalogNum);
-        CatalogRowFactory crf=ti.getCatalogRowFactory();
 
-        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view, viewId).get(viewIndex);
+
+        ColumnDescriptor[] tableViewCds=null;
+        ViewInfoProvider crf = null;
+        if (catalogNum < NUM_CORE) {
+            ti = coreInfo[catalogNum];
+            crf=ti.getCatalogRowFactory();
+        } else if(catalogNum < NUM_NONCORE) {
+            ti = getNonCoreTI(catalogNum);
+            crf=ti.getCatalogRowFactory();
+        } else {
+            crf = getTransientViewColumns(catalogNum);
+        }
+        tableViewCds = crf.getViewColumns(view, viewId).get(viewIndex);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -268,7 +257,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " is created!");
     }
 
-    private String getSchemaViewSQL() {
+    String getSchemaViewSQL() {
         SConfiguration configuration=SIDriver.driver().getConfiguration();
         String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
         String schemaViewSQL;
@@ -289,87 +278,71 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, tc);
         }
 
-        //create AllRoles view
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        createOneSystemView(tc, SYSROLES_CATALOG_NUM, "SYSALLROLES", 0, sysVWSchema, SYSROLESRowFactory.ALLROLES_VIEW_SQL);
-
-        // create sysschemasview
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, getSchemaViewSQL());
-
-        // create conglomeratesInSchemas view
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
-
-        // create systablesView
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLESVIEW", 0, sysVWSchema, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
-
-
-        // create syscolumnsView
-        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSALLROLES");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATEINSCHEMAS");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
 
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 
     public void createTableColumnViewInSysIBM(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-
-        /**
-         * handle syscolumns in sysibm
-         */
-        // check the existence of syscolumns view in sysibm
-        TableDescriptor td = getTableDescriptor("SYSCOLUMNS", sysIBMSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
-
-        /**
-         * handle systables in sysibm
-         */
-        td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
-
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
-
-        SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
     }
 
     public void createKeyColumnUseViewInSysIBM(TransactionController tc) throws StandardException {
-        TableDescriptor td = getTableDescriptor("SYSKEYCOLUSE", sysIBMSchemaDesc, tc);
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSKEYCOLUSE");
+    }
 
-        // drop it if it exists
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
+    public void createIndexColumnUseViewInSysCat(TransactionController tc) throws StandardException {
+        String viewName = "INDEXCOLUSE";
+        createOrUpdateSystemView(tc, "SYSCAT", viewName);
 
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        // create an synonym SYSIBM.SYSINDEXCOLUSE for SYSCAT.INDEXCOLUSE
+        String synonymName = "SYSINDEXCOLUSE";
+        TableDescriptor synonymTD = getTableDescriptor(synonymName, sysIBMSchemaDesc, tc);
+        if (synonymTD == null)
+        {
+            // To prevent any possible deadlocks with SYSTABLES, we insert a row into
+            // SYSTABLES also for synonyms. This also ensures tables/views/synonyms share
+            // same namespace
+            DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+            TableDescriptor td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
+                    TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null,null,false,false,null);
+            addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            // Create a new alias descriptor with a UUID filled in.
+            UUID synonymID = getUUIDFactory().createUUID();
+            AliasDescriptor ads = new AliasDescriptor(this, synonymID,
+                    synonymName,
+                    sysIBMSchemaDesc.getUUID(),
+                    null,
+                    AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR,
+                    AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR,
+                    true,
+                    new SynonymAliasInfo(sysCatSchemaDesc.getSchemaName(), viewName),
+                    null);
+            addDescriptor(ads, null, DataDictionary.SYSALIASES_CATALOG_NUM,
+                    false, tc, false);
+
+            SpliceLogUtils.info(LOG, "SYSIBM." + synonymName + " is created as an alias of SYSCAT." + viewName + "!");
         }
+    }
 
-        // add new view deifnition
-        createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
+    public void createReferencesViewInSysCat(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSCAT", "REFERENCES");
+    }
 
-        SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+    public void createSysIndexesViewInSysIBM(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSIBM", "SYSINDEXES");
+    }
+
+    // SYSCAT.COLUMNS view must be created after SYSIBM.SYSCOLUMNS because it's defined on top of SYSCOLUMNS view
+    public void createColumnsViewInSysCat(TransactionController tc) throws StandardException {
+        createOrUpdateSystemView(tc, "SYSCAT", "COLUMNS");
     }
 
     private TabInfoImpl getNaturalNumbersTable() throws StandardException{
@@ -393,7 +366,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl table=getNaturalNumbersTable();
-        addTableIfAbsent(tc,systemSchema,table,null, null);
+        String catalogVersion = DataDictionary.catalogVersions.get(SYSNATURALNUMBERS_CATALOG_NUM);
+        addTableIfAbsent(tc,systemSchema,table,null, catalogVersion);
 
         populateSYSNATURALNUMBERS(tc);
     }
@@ -403,20 +377,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
-        if (td != null) {
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropTableDescriptor(td, sd, tc);
+        if (td == null) {
+            createNaturalNumbersTable(tc);
         }
-
-        createNaturalNumbersTable(tc);
-    }
-
-    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
-        if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
-        }
-        initSystemIndexVariables(ibmConnectionTable);
-        return ibmConnectionTable;
     }
 
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
@@ -426,86 +389,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
         }
 
-        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
-        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
-
-        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL");
+        createOrUpdateSystemView(tc, "SYSIBMADM", "SNAPAPPL_INFO");
+        createOrUpdateSystemView(tc, "SYSIBMADM", "APPLICATIONS");
 
         SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
-    }
-
-    private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
-        tc.elevate("dictionary");
-
-        /**
-         * handle syscolumns in sysibm or sysvw
-         */
-        // check the existence of syscolumns view in sysibm or sysvw
-        TableDescriptor td = getTableDescriptor(tableName, schemaDescriptor, tc);
-
-        Boolean needUpdate = true;
-        // drop it if it exists
-        if (td != null) {
-            ColumnDescriptor cd = td.getColumnDescriptor(SYSCOLUMNSRowFactory.DEFAULT_COLUMN);
-            if (cd != null)
-                needUpdate = false;
-        }
-
-        if (needUpdate) {
-            if (td != null) {
-                ViewDescriptor vd = getViewDescriptor(td);
-                // drop the view deifnition
-                dropAllColumnDescriptors(td.getUUID(), tc);
-                dropViewDescriptor(vd, tc);
-                dropTableDescriptor(td, schemaDescriptor, tc);
-            }
-
-            // add new view deifnition
-            createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, tableName, viewIndex, schemaDescriptor, viewDef);
-
-            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", tableName, schemaDescriptor.getSchemaName()));
-        }
-    }
-
-
-    public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
-        updateColumnViewInSys(tc, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
-    }
-
-    public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
-        updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
-    }
-
-    public void addBaseTableSchemaColumnToTableViewInSysibm(TransactionController tc) throws StandardException {
-        tc.elevate("dictionary");
-
-        TableDescriptor td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
-
-        Boolean needUpdate = true;
-        if (td != null) {
-            ColumnDescriptor cd = td.getColumnDescriptor("BASE_SCHEMA");
-            if (cd != null)
-                needUpdate = false;
-        }
-
-        if (needUpdate) {
-            if (td != null) {
-                ViewDescriptor vd = getViewDescriptor(td);
-                // drop the view deifnition
-                dropAllColumnDescriptors(td.getUUID(), tc);
-                dropViewDescriptor(vd, tc);
-                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
-            }
-
-            // add new view deifnition
-            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM, 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
-
-            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", "SYSTABLES", sysIBMSchemaDesc.getSchemaName()));
-        }
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -524,8 +412,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         // create tablestats view in sysvw schema
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-        createOneSystemView(tc, SYSTABLESTATS_CATALOG_NUM, "SYSTABLESTATISTICS", 0, sysVWSchema, SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL );
-
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESTATISTICS");
 
         // drop table descriptor corresponding to the columnstats view
         td = getTableDescriptor("SYSCOLUMNSTATISTICS", sd, tc);
@@ -538,7 +425,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             dropTableDescriptor(td, sd, tc);
         }
         // create columnstats view in sysvw schema
-        createOneSystemView(tc, SYSCOLUMNSTATS_CATALOG_NUM, "SYSCOLUMNSTATISTICS", 0, sysVWSchema, SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL );
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSTATISTICS");
 
         SpliceLogUtils.info(LOG, "move stats views to the sysvw schema");
     }
@@ -646,8 +533,21 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createKeyColumnUseViewInSysIBM(tc);
 
         createTablesAndViewsInSysIBMADM(tc);
-        
+
         createAliasToTableSystemView(tc);
+
+        createIndexColumnUseViewInSysCat(tc);
+
+        createReferencesViewInSysCat(tc);
+
+        createSysIndexesViewInSysIBM(tc);
+
+        // don't pull this call before createTableColumnViewInSysIBM()
+        createColumnsViewInSysCat(tc);
+
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATESVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSDEPENDSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
     }
 
     @Override
@@ -655,13 +555,23 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return new SpliceSystemAggregatorGenerator(this);
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     protected void loadDictionaryTables(TransactionController tc,
                                         Properties startParams) throws StandardException{
+        Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
+        if (catalogVersion.getSprintVersionNumber() < BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+            BaseDataDictionary.READ_NEW_FORMAT = false;
+            BaseDataDictionary.WRITE_NEW_FORMAT = false;
+        }
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
+
+        //upgrade may change SPLICE_DATA_DICTIONARY_VERSION
+        catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
+        startParams.setProperty("catalogVersion", catalogVersion.toString());
     }
 
     /**
@@ -709,6 +619,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             ((SpliceTransaction)txnManager.getRawTransaction()).elevate(Bytes.toBytes("boot"));
             if(spliceSoftwareVersion!=null){
                 txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
+                startParams.setProperty("catalogVersion", spliceSoftwareVersion.toString());
             }
         }
 
@@ -750,7 +661,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private SpliceSequence getSpliceSequence(String sequenceUUIDstring, boolean useBatch)
-        throws StandardException {
+            throws StandardException {
         try{
             if(sequenceRowLocationBytesMap==null){
                 sequenceRowLocationBytesMap=new ConcurrentLinkedHashMap.Builder<String, byte[]>()
@@ -851,149 +762,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
-            tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            scripts.runUpgrades(catalogVersion);
+            tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION, spliceSoftwareVersion,true);
             tc.commit();
         }
     }
 
-    public void upgradeSystablesFor260(TransactionController tc) throws StandardException {
-        addNewColumToSystables(tc);
-    }
-
-    private void addNewColumToSystables(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
-        if (cd == null)
-        {
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence() + 1);
-            // add the table descriptor with new name
-            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
-
-            DataValueDescriptor storableDV = getDataValueFactory().getNullBoolean(null);
-            int colNumber = td.getNumberOfColumns() + 1;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BOOLEAN));
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-            UUID uuid = getUUIDFactory().createUUID();
-            ColumnDescriptor columnDescriptor = new ColumnDescriptor(
-                    SYSTABLESRowFactory.PURGE_DELETED_ROWS,
-                    colNumber,
-                    colNumber,
-                    dtd,
-                    new SQLBoolean(false),
-                    null,
-                    td,
-                    uuid,
-                    0,
-                    0,
-                    td.getColumnSequence());
-
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-
-            // now add the column to the tables column descriptor list.
-            td.getColumnDescriptorList().add(columnDescriptor);
-
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-            SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", SYSTABLESRowFactory.PURGE_DELETED_ROWS);
-        }
-    }
-
-    public void upgradeSysStatsTableFor260(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSTABLESTATISTICSRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("SAMPLEFRACTION");
-        if (cd == null) {
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence()+1);
-            // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-
-            DataValueDescriptor storableDV;
-            int colNumber;
-            DataTypeDescriptor dtd;
-            ColumnDescriptor columnDescriptor;
-            UUID uuid = getUUIDFactory().createUUID();
-
-            /**
-             *  Add the column NUMPARTITIONS
-             */
-            if (td.getColumnDescriptor("NUMPARTITIONS") == null) {
-                storableDV = getDataValueFactory().getNullLong(null);
-                colNumber = SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS;
-                dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BIGINT));
-                tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-                columnDescriptor = new ColumnDescriptor("NUMPARTITIONS",9,9,dtd,new SQLLongint(1),null,td,uuid,0,0,8);
-
-                addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
-                // now add the column to the tables column descriptor list.
-                td.getColumnDescriptorList().add(columnDescriptor);
-                updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-            }
-            /**
-             * Add the column STATSTYPE
-             */
-            storableDV = getDataValueFactory().getNullInteger(null);
-            colNumber = SYSTABLESTATISTICSRowFactory.STATSTYPE;
-            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.INTEGER));
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-            columnDescriptor =  new ColumnDescriptor("STATSTYPE",10,10,dtd,new SQLInteger(0),null,td,uuid,0,0, 9);
-
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-            td.getColumnDescriptorList().add(columnDescriptor);
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-
-            /**
-             * Add the column SAMPLEFRACTION
-             */
-            storableDV = getDataValueFactory().getNullDouble(null);
-            colNumber = SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION;
-            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.DOUBLE));
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-            columnDescriptor =  new ColumnDescriptor("SAMPLEFRACTION",11,11,dtd,new SQLDouble(0),null,td,uuid,0,0,10);
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-            td.getColumnDescriptorList().add(columnDescriptor);
-
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-            SpliceLogUtils.info(LOG, "SYS.SYSTABLESTATS upgraded: added columns: NUMPARTITIONS, STATSTYPE, SAMPLEFRACTION.");
-
-            updateSysTableStatsView(tc);
-        }
-    }
-
-    private void updateSysTableStatsView(TransactionController tc) throws StandardException{
-        //drop table descriptor corresponding to the tablestats view and add
-        SchemaDescriptor sd=getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor("SYSTABLESTATISTICS", sd, tc);
-        dropTableDescriptor(td, sd, tc);
-        td.setColumnSequence(td.getColumnSequence()+1);
-        // add the table descriptor with new name
-        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-
-        // add the two newly added columns statType and sampleFraction
-        ColumnDescriptor columnDescriptor = new ColumnDescriptor("STATS_TYPE",10,10,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER),null,null,td,td.getUUID(),0,0,9);
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-        td.getColumnDescriptorList().add(columnDescriptor);
-
-        columnDescriptor = new ColumnDescriptor("SAMPLE_FRACTION",11,11,DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.DOUBLE)),null,null,td,td.getUUID(),0,0,10);
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-        td.getColumnDescriptorList().add(columnDescriptor);
-
-        ViewDescriptor vd=getViewDescriptor(td);
-        dropViewDescriptor(vd, tc);
-        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-        vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
-                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
-        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS with two more columns: STATSTYPE, SAMPLEFRACTION.");
-    }
 
     private boolean needToUpgrade(Splice_DD_Version catalogVersion){
 
@@ -1161,7 +936,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException {
         Manager manager = EngineDriver.driver().manager();
-            return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;
+        return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;
     }
 
     /**
@@ -1187,266 +962,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
-    public void upgradeSysSchemaPermsForModifySchemaPrivilege(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSSCHEMAPERMSRowFactory.SCHEMANAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("MODIFYPRIV");
-        if (cd == null) {
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence()+1);
-            // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-
-            ColumnDescriptor columnDescriptor;
-            UUID uuid = getUUIDFactory().createUUID();
-
-            /**
-             *  Add the column MODIFYPRIV
-             */
-            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
-            int colNumber = td.getNumberOfColumns() + 1;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-            columnDescriptor = new ColumnDescriptor(SYSSCHEMAPERMSRowFactory.MODIFYPRIV_COL_NAME,colNumber,
-                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
-
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
-            // now add the column to the tables column descriptor list.
-            td.getColumnDescriptorList().add(columnDescriptor);
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-
-            SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: MODIFYPRIV.");
-        }
-    }
-
-    public void upgradeSysRolesWithDefaultRoleColumn(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSROLESRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("DEFAULTROLE");
-
-        // column already exists, no upgrade needed
-        if (cd != null)
-            return;
-
-        /**
-         * LOGIC below add the new column DEFAULTROLE to SYSROLES
-         */
-        tc.elevate("dictionary");
-        dropTableDescriptor(td, sd, tc);
-        td.setColumnSequence(td.getColumnSequence()+1);
-        // add the table descriptor with new name
-        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-
-        ColumnDescriptor columnDescriptor;
-        UUID uuid = getUUIDFactory().createUUID();
-
-        /**
-         *  Add the column DEFAULTROLE
-         */
-        DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
-        int colNumber = td.getNumberOfColumns() + 1;
-        DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
-        tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-        columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
-                colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
-
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
-        // now add the column to the tables column descriptor list.
-        td.getColumnDescriptorList().add(columnDescriptor);
-        updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-
-        /**
-         * LOGIC below create and populuate index on (GRANTEE, DEFAULTROLE)
-         */
-        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-        TabInfoImpl ti = getNonCoreTIByNumber(SYSROLES_CATALOG_NUM);
-        {
-            ConglomerateDescriptor[] cds=td.getConglomerateDescriptors();
-
-			/* Init the heap conglomerate here */
-            for(ConglomerateDescriptor conglomerateDescriptor : cds){
-
-                if(!conglomerateDescriptor.isIndex()){
-                    ti.setHeapConglomerate(conglomerateDescriptor.getConglomerateNumber());
-                    break;
-                }
-            }
-        }
-        ConglomerateDescriptor cgd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, ti, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, ti.getHeapConglomerate());
-        addDescriptor(cgd,sd,SYSCONGLOMERATES_CATALOG_NUM,false,tc,false);
-
-        /* purge td dictionary cache as it may have the sysrole td without the new index info */
-        dataDictionaryCache.clearNameTdCache();
-        dataDictionaryCache.clearOidTdCache();
-
-        // scan the sysroles table
-        SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
-        ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
-                ti.getHeapConglomerate(),      // conglomerate to open
-                false,                          // don't hold open across commit
-                0,                              // for read
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,               // all fields as objects
-                null, // start position - first row
-                0,                          // startSearchOperation - none
-                null,              // scanQualifier,
-                null, // stop position -through last row
-                0);                          // stopSearchOperation - none
-
-        int batch = 1024;
-        ExecRow[] rowList = new ExecRow[batch];
-        RowLocation[] rowLocationList = new RowLocation[batch];
-
-        try{
-            int i = 0;
-            while(scanController.fetchNext(outRow.getRowArray())){
-                rowList[i%batch] = outRow.getClone();
-                rowLocationList[i%batch] = scanController.newRowLocationTemplate();
-                scanController.fetchLocation(rowLocationList[i%batch]);
-                i++;
-                if (i % batch == 0) {
-                    ti.insertIndexRowListImpl(rowList, rowLocationList, tc, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, batch);
-                }
-            }
-            // insert last batch
-            if (i % batch > 0)
-                ti.insertIndexRowListImpl(rowList, rowLocationList, tc, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, i%batch);
-        }finally{
-            scanController.close();
-        }
-
-        // reset TI for sysroles in NonCoreTI array, as we only used the 4th index here, so inforamtion about the other
-        // 3 indexes is not fully populated. This TI should not be reused for future operations
-        clearNoncoreTable(SYSROLES_CATALOG_NUM-NUM_CORE);
-        SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE; added index on (GRANTEE, DEFAULTROLE)");
-    }
-
-    // remove rows in sysroutineperms whose aliasid are no longer valid
-    public void cleanSysRoutinePerms(TransactionController tc) throws StandardException {
-        // scan the sysroutineperms table
-        TabInfoImpl ti = getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
-        SYSROUTINEPERMSRowFactory rf=(SYSROUTINEPERMSRowFactory)ti.getCatalogRowFactory();
-        ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
-                ti.getHeapConglomerate(),      // conglomerate to open
-                false,                          // don't hold open across commit
-                0,                              // for read
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,               // all fields as objects
-                null, // start position - first row
-                0,                          // startSearchOperation - none
-                null,              // scanQualifier,
-                null, // stop position -through last row
-                0);                          // stopSearchOperation - none
-
-        List<RoutinePermsDescriptor> listToDelete = new ArrayList<>();
-
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
-                String aliasUUIDString = outRow.getColumn(SYSROUTINEPERMSRowFactory.ALIASID_COL_NUM).getString();
-                UUID aliasUUID = getUUIDFactory().recreateUUID(aliasUUIDString);
-                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor)rf.buildDescriptor(outRow, null, this);
-                // we have looked up the sysaliases table when building the permsDescriptor above,
-                // if the aliasid does not exist, routineName is null
-                String ad = permsDescriptor.getRoutineName();
-                if (ad == null) {
-                    listToDelete.add(permsDescriptor);
-                }
-            }
-        }finally{
-            scanController.close();
-        }
-
-        // delete the obselete rows
-        for (RoutinePermsDescriptor permsDescriptor: listToDelete) {
-            addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
-        }
-        
-        SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
-    }
-
-    public void removeFKDependencyOnPrivileges(TransactionController tc) throws StandardException {
-        // scan the sysdepends table
-        TabInfoImpl ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
-        SYSDEPENDSRowFactory rf=(SYSDEPENDSRowFactory)ti.getCatalogRowFactory();
-        ExecRow outRow = rf.makeEmptyRow();
-        ScanController scanController=tc.openScan(
-                ti.getHeapConglomerate(),      // conglomerate to open
-                false,                          // don't hold open across commit
-                0,                              // for read
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,               // all fields as objects
-                null, // start position - first row
-                0,                          // startSearchOperation - none
-                null,              // scanQualifier,
-                null, // stop position -through last row
-                0);                          // stopSearchOperation - none
-
-        List<RowLocation> rowsToDelete = new ArrayList<>();
-
-        try{
-            while(scanController.fetchNext(outRow.getRowArray())){
-                RowLocation rowLocation = scanController.newRowLocationTemplate();
-                scanController.fetchLocation(rowLocation);
-                DependencyDescriptor dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null, this);
-                // check if the dependencyDescriptors are the ones that we want
-                DependableFinder finder = dependencyDescriptor.getDependentFinder();
-                if (finder == null)
-                    continue;
-                String dependentObjectType = finder.getSQLObjectType();
-                if (dependentObjectType == null || !dependentObjectType.equals(Dependable.CONSTRAINT))
-                    continue;
-
-                Dependent tempD = (Dependent) finder.getDependable(this, dependencyDescriptor.getUUID());
-                if (tempD == null || !(tempD instanceof ForeignKeyConstraintDescriptor))
-                    continue;
-
-                // is the provider a role definition, or a permission descriptor
-                finder = dependencyDescriptor.getProviderFinder();
-                String objectType = finder == null? "":finder.getSQLObjectType();
-                if (objectType.equals(Dependable.ROLE_GRANT) ||
-                    objectType.equals(Dependable.SCHEMA_PERMISSION) ||
-                    objectType.equals(Dependable.TABLE_PERMISSION) ||
-                    objectType.equals(Dependable.COLUMNS_PERMISSION)) {
-                        rowsToDelete.add(rowLocation);
-                }
-            }
-        }finally{
-            scanController.close();
-        }
-
-        // delete the unwanted dependency rows
-        for (RowLocation rowLocation: rowsToDelete) {
-            ti.deleteRowBasedOnRowLocation(tc, rowLocation, true, null);
-        }
-
-        SpliceLogUtils.info(LOG,
-                "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
-    }
-
     public int upgradeTablePriorities(TransactionController tc) throws Exception {
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
         ArrayList<String> toUpgrade = new ArrayList<>();
         Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
-                {
-                    toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
-                    for( int j = 0; j < info.getNumberOfIndexes(); j++ )
-                        toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
-                    return null;
-                };
+        {
+            toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
+            for( int j = 0; j < info.getNumberOfIndexes(); j++ )
+                toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+            return null;
+        };
         for (int i = 0; i < coreInfo.length; ++i) {
             assert coreInfo[i] != null;
             addTabInfo.apply(coreInfo[i]);
         }
         for (int i = 0; i < NUM_NONCORE; ++i) {
             // noncoreInfo[x] will be null otherwise
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
             addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
         }
 
@@ -1454,43 +989,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             toUpgrade.add(s);
         }
         toUpgrade.add("16"); // splice:16 core table
-        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+        toUpgrade.add(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
 
         return admin.upgradeTablePrioritiesFromList(toUpgrade);
-    }
-
-    public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("USEEXTRAPOLATION");
-        if (cd == null) {
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence()+1);
-            // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-
-            ColumnDescriptor columnDescriptor;
-            UUID uuid = getUUIDFactory().createUUID();
-
-            /**
-             *  Add the column USEEXTRAPOLATION
-             */
-            DataValueDescriptor storableDV = getDataValueFactory().getNullByte(null);
-            int colNumber = SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TINYINT);
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-            columnDescriptor = new ColumnDescriptor("USEEXTRAPOLATION",colNumber,
-                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
-
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
-            // now add the column to the tables column descriptor list.
-            td.getColumnDescriptorList().add(columnDescriptor);
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-
-            SpliceLogUtils.info(LOG, "SYS.SYSCOLUMNS upgraded: added column: USEEXTRAPOLATION.");
-        }
     }
 
     public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
@@ -1650,25 +1151,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
 
         // check sysschemasview
-        TableDescriptor td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
-        String schemaViewSQL = getSchemaViewSQL();
-
-        if (td != null) {
-            ViewDescriptor vd = getViewDescriptor(td);
-            boolean needUpdate = !vd.getViewText().equals(schemaViewSQL);
-
-            // view definition matches the setting, no update needed
-            if (!needUpdate) return;
-
-            // drop the view deifnition
-            dropAllColumnDescriptors(td.getUUID(), tc);
-            dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysVWSchema, tc);
-
-        }
-
-        // add new view deifnition
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, schemaViewSQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
 
         // we need to re-generate the metadataSPS due to the definition change of sysschemasview
         updateMetadataSPSes(tc);
@@ -1677,30 +1160,31 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + metadataRestrictionEnabled);
     }
 
-    public void updateSystemViewForSysConglomerates(TransactionController tc) throws StandardException {
+    public void createOrUpdateSystemView(TransactionController tc, SchemaDescriptor viewSchema, int catalogNum, String viewName, int viewIndex, String viewSql) throws StandardException {
         tc.elevate("dictionary");
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        // check sysconglomerateinschemas view
-        TableDescriptor td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysVWSchema, tc);
+        TableDescriptor td = getTableDescriptor(viewName, viewSchema, tc);
         if (td != null) {
             ViewDescriptor vd = getViewDescriptor(td);
-            boolean needUpdate = !vd.getViewText().equals(SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+            boolean needUpdate = !vd.getViewText().equals(viewSql);
 
             // view definition matches the setting, no update needed
-            if (!needUpdate) return;
+            if (!needUpdate)
+                return;
 
-            // drop the view deifnition
+            // drop the view definition
             dropAllColumnDescriptors(td.getUUID(), tc);
             dropViewDescriptor(vd, tc);
-            dropTableDescriptor(td, sysVWSchema, tc);
-
+            dropTableDescriptor(td, viewSchema, tc);
         }
 
-        // add new view deifnition
-        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+        // add new view definition
+        createOneSystemView(tc, catalogNum, viewName, viewIndex, viewSchema, viewSql);
 
-        SpliceLogUtils.info(LOG, "SYSVW.SYSCONGLOMERATEINSCHEMAS is updated!");
+        SpliceLogUtils.info(LOG, String.format("%s.%s is updated!", viewSchema.getSchemaName(), viewName));
+    }
+
+    public void createOrUpdateSystemView(TransactionController tc, String schemaName, String viewName) throws StandardException {
+        viewDefinitions.createOrUpdateView(tc, this, schemaName, viewName);
     }
 
     public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
@@ -1711,23 +1195,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return;
         }
 
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
-
-        // create systablepermsView
-        createOneSystemView(tc, SYSTABLEPERMS_CATALOG_NUM, "SYSTABLEPERMSVIEW", 0, sysVWSchema, SYSTABLEPERMSRowFactory.SYSTABLEPERMS_VIEW_SQL);
-
-        // create sysschemapermsView
-        createOneSystemView(tc, SYSSCHEMAPERMS_CATALOG_NUM, "SYSSCHEMAPERMSVIEW", 0, sysVWSchema, SYSSCHEMAPERMSRowFactory.SYSSCHEMAPERMS_VIEW_SQL);
-
-        // create syscolpermsView
-        createOneSystemView(tc, SYSCOLPERMS_CATALOG_NUM, "SYSCOLPERMSVIEW", 0, sysVWSchema, SYSCOLPERMSRowFactory.SYSCOLPERMS_VIEW_SQL);
-
-        // create sysroutinepermsView
-        createOneSystemView(tc, SYSROUTINEPERMS_CATALOG_NUM, "SYSROUTINEPERMSVIEW", 0, sysVWSchema, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL);
-
-        // create syspermsView
-        createOneSystemView(tc, SYSPERMS_CATALOG_NUM, "SYSPERMSVIEW", 0, sysVWSchema, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL);
-
+        createOrUpdateSystemView(tc, "SYSVW", "SYSTABLEPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMAPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSCOLPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSROUTINEPERMSVIEW");
+        createOrUpdateSystemView(tc, "SYSVW", "SYSPERMSVIEW");
 
         SpliceLogUtils.info(LOG, "System Views for permission tables created in SYSVW!");
     }
@@ -1756,7 +1228,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
 
         // create sysaliastotableview
-        createOneSystemView(tc, SYSALIASES_CATALOG_NUM, "SYSALIASTOTABLEVIEW", 0, sysVWSchema, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL);
+        createOrUpdateSystemView(tc, "SYSVW", "SYSALIASTOTABLEVIEW");
 
         SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
     }
@@ -1764,13 +1236,21 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void addCatalogVersion(TransactionController tc) throws StandardException{
         for (int i = 0; i < coreInfo.length; ++i) {
             long conglomerateId = coreInfo[i].getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i));
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
-            long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
-
+            TabInfoImpl tabInfo = getNonCoreTI(i + NUM_CORE);
+            if(tabInfo == null) {
+                continue;
+            }
+            long conglomerateId = tabInfo.getHeapConglomerate();
+            if (conglomerateId > 0) {
+                tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i + NUM_CORE));
+            }
+            else {
+                SpliceLogUtils.warn(LOG, "Cannot set catalog version for table number %d", i);
+            }
         }
     }
 
@@ -1807,15 +1287,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
             // now upgrade the views if necessary
-            TableDescriptor td1 = getTableDescriptor(SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, sysViewSchemaDesc, tc);
-            if (td1 != null) {
-                ViewDescriptor vd1 = getViewDescriptor(td1);
-                dropAllColumnDescriptors(td1.getUUID(), tc);
-                dropViewDescriptor(vd1, tc);
-                dropTableDescriptor(td1, sysViewSchemaDesc, tc);
-            }
-            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, 0,
-                    sysViewSchemaDesc, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
+            createOrUpdateSystemView(tc, "SYSVW", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME);
+
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
@@ -1844,37 +1317,36 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     false,
                     false);
             /* Scan the entire heap */
-            ScanController sc=
-                    tc.openScan(
-                            ti.getHeapConglomerate(),
-                            false,
-                            TransactionController.OPENMODE_FORUPDATE,
-                            TransactionController.MODE_TABLE,
-                            TransactionController.ISOLATION_REPEATABLE_READ,
-                            columnToReadSet,
-                            null,
-                            ScanController.NA,
-                            scanQualifier,
-                            null,
-                            ScanController.NA);
+            try (ScanController sc=
+                         tc.openScan(
+                                 ti.getHeapConglomerate(),
+                                 false,
+                                 TransactionController.OPENMODE_FORUPDATE,
+                                 TransactionController.MODE_TABLE,
+                                 TransactionController.ISOLATION_REPEATABLE_READ,
+                                 columnToReadSet,
+                                 null,
+                                 ScanController.NA,
+                                 scanQualifier,
+                                 null,
+                                 ScanController.NA)) {
 
-            while(sc.fetchNext(rowTemplate)){
-                /* Replace the column in the table */
-                for (int i=0; i<rowTemplate.length; i++) {
-                    if (i+1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
-                        replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
-                    else
-                        replaceRow[i] = rowTemplate[i].cloneValue(false);
+                while (sc.fetchNext(rowTemplate)) {
+                    /* Replace the column in the table */
+                    for (int i = 0; i < rowTemplate.length; i++) {
+                        if (i + 1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
+                            replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
+                        else
+                            replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    }
+                    sc.replace(replaceRow, columnToUpdateSet);
                 }
-                sc.replace(replaceRow,columnToUpdateSet);
             }
-            sc.close();
         }
     }
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
-        faultInTabInfo(ti);
 
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
@@ -1890,7 +1362,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc = tc.openScan(
+        try (ScanController sc = tc.openScan(
                 ti.getHeapConglomerate(),
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
@@ -1901,19 +1373,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 ScanController.NA,
                 null,
                 null,
-                ScanController.NA);
+                ScanController.NA)) {
 
-        while (sc.fetchNext(rowTemplate)) {
-            for (int i = 0; i < rowTemplate.length; i++) {
-                replaceRow[i] = rowTemplate[i].cloneValue(false);
-                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
-                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
-                    replaceRow[i] = new SQLLongvarchar("NULL");
+            while (sc.fetchNext(rowTemplate)) {
+                for (int i = 0; i < rowTemplate.length; i++) {
+                    replaceRow[i] = rowTemplate[i].cloneValue(false);
+                    /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                    if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                        replaceRow[i] = new SQLLongvarchar("NULL");
+                    }
                 }
+                sc.replace(replaceRow, columnToUpdateSet);
             }
-            sc.replace(replaceRow, columnToUpdateSet);
         }
-        sc.close();
     }
 
     @Override
@@ -1924,5 +1396,177 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public boolean useTxnAwareCache() {
         return !SpliceClient.isRegionServer;
+    }
+
+
+    public void rewriteDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+
+        CatalogRowFactory rf=ti.getCatalogRowFactory();
+        ExecRow outRow;
+        TransactionController tc;
+        TupleDescriptor td=null;
+
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+
+        outRow=rf.makeEmptyRow();
+
+        /*
+         ** Table scan
+         */
+        try (ScanController scanController=tc.openScan(
+                cloned_conglomerate,    // conglomerate to open
+                false,                        // don't hold open across commit
+                0,                            // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,        // start position - first rowSpliceDataDictionary
+                0,                    // startSearchOperation - none
+                null,        // scanQualifier,
+                null,        // stop position - through last row
+                0)) {                  // stopSearchOperation - none
+
+            final int batchSize = 100;
+            List<TupleDescriptor> descriptors = Lists.newArrayList();
+            int count = 0;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                td = rf.buildDescriptor(outRow, null, this);
+                count++;
+                descriptors.add(td);
+                if (count % batchSize == 0) {
+                    addDescriptors(descriptors, catalogNum, tc);
+                    descriptors.clear();
+                }
+            }
+
+            if (descriptors.size() > 0) {
+                addDescriptors(descriptors, catalogNum, tc);
+                descriptors.clear();
+            }
+        }
+    }
+
+
+    private void addDescriptors(List<TupleDescriptor> descriptors,
+                                int catalogNum,
+                                TransactionController tc) throws StandardException{
+        TupleDescriptor[] descriptorsArray = new TupleDescriptor[descriptors.size()];
+        descriptorsArray = descriptors.toArray(descriptorsArray);
+        addDescriptorArray(descriptorsArray, null, catalogNum, true, tc);
+    }
+
+    public static final List<Integer> serdeUpgradedTables = Collections.unmodifiableList(Arrays.asList(
+            SYSDEPENDS_CATALOG_NUM,
+            SYSALIASES_CATALOG_NUM,
+            SYSCHECKS_CATALOG_NUM,
+            SYSSTATEMENTS_CATALOG_NUM,
+            SYSTRIGGERS_CATALOG_NUM,
+            SYSCOLPERMS_CATALOG_NUM,
+            SYSSEQUENCES_CATALOG_NUM,
+            SYSCOLUMNSTATS_CATALOG_NUM,
+            SYSCONGLOMERATES_CATALOG_NUM,
+            SYSCOLUMNS_CATALOG_NUM));
+
+    public void upgradeDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
+
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            SpliceLogUtils.info(LOG, "Upgrading descriptors for %d", serdeUpgradedTables.get(i));
+            int catalogNum = serdeUpgradedTables.get(i);
+            // snapshot the table
+            snapshotTable(tc, catalogNum);
+            TabInfoImpl ti = getTableInfo(catalogNum);
+            long conglomerate = ti.getHeapConglomerate();
+            // clone the base table
+            String snapshotName = conglomerate + "_snapshot";
+            long cloned_conglomerate = conglomerate + 1;
+            tc.cloneSnapshot(snapshotName, Long.toString(cloned_conglomerate));
+            SpliceLogUtils.info(LOG,"Cloning snapshot %s to conglomerate %d",
+                    snapshotName, cloned_conglomerate);
+            // truncate the table and rewrite using cloned base table
+            truncateTable(tc, catalogNum);
+            SpliceLogUtils.info(LOG,"Truncated conglomerate %d", conglomerate);
+            rewriteDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            SpliceLogUtils.info(LOG,"Finished upgrading catalogNum %d, conglomerate %d",
+                    catalogNum, conglomerate);
+        }
+    }
+
+    public void rollbackDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            int catalogNum = serdeUpgradedTables.get(i);
+            TabInfoImpl ti = getTableInfo(catalogNum);
+            long conglomerate = ti.getHeapConglomerate();
+            String snapshotName = conglomerate + "_snapshot";
+
+            if (snapshots.contains(snapshotName)) {
+                tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
+                int n = ti.getNumberOfIndexes();
+                for (int j = 0; j < n; ++j) {
+                    conglomerate = ti.getIndexConglomerate(j);
+                    snapshotName = conglomerate + "_snapshot";
+                    if (snapshots.contains(snapshotName)) {
+                        tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
+                    }
+                }
+                SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables.get(i));
+            }
+        }
+    }
+
+    private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        String snapshotName = conglomerate + "_snapshot";
+        tc.snapshot(snapshotName, Long.toString(conglomerate));
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            snapshotName = conglomerate + "_snapshot";
+            tc.snapshot(snapshotName, Long.toString(conglomerate));
+        }
+    }
+
+    private void truncateTable(TransactionController tc, int catalogNum) throws StandardException{
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        tc.truncate(Long.toString(conglomerate));
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            tc.truncate(Long.toString(conglomerate));
+        }
+    }
+
+    public void cleanupSerdeUpgrade(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
+            deleteSnapshot(tc, serdeUpgradedTables.get(i), snapshots);
+        }
+    }
+
+    private void deleteSnapshot(TransactionController tc, int catalogNum, Set<String> snapshots) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
+        long conglomerate = ti.getHeapConglomerate();
+        String snapshotName = conglomerate + "_snapshot";
+        if (snapshots.contains(snapshotName)) {
+            tc.deleteSnapshot(snapshotName);
+        }
+        int n = ti.getNumberOfIndexes();
+        for (int i = 0; i < n; ++i) {
+            conglomerate = ti.getIndexConglomerate(i);
+            snapshotName = conglomerate + "_snapshot";
+            if (snapshots.contains(snapshotName)) {
+                tc.deleteSnapshot(snapshotName);
+            }
+        }
+    }
+
+    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        return ti;
     }
 }

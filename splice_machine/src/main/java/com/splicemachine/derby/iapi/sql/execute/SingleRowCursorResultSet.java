@@ -15,6 +15,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
@@ -47,6 +48,11 @@ public class SingleRowCursorResultSet implements CursorResultSet {
     @Override
     public ExecRow getCurrentRow() throws StandardException {
         return row;
+    }
+
+    @Override
+    public ExecRow getCurrentBaseRow() {
+        return null;
     }
 
     @Override

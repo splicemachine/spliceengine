@@ -84,6 +84,10 @@ public class Splice_DD_Version extends DD_Version {
         return patchVersionNumber;
     }
 
+    public int getSprintVersionNumber() {
+        return sprintVersionNumber;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVersionNumber);
@@ -117,4 +121,9 @@ public class Splice_DD_Version extends DD_Version {
         return majorVersionNumber * 10000000000l + minorVersionNumber * 10000000l + patchVersionNumber * 10000l + sprintVersionNumber;
     }
 
+    static public int compare(Splice_DD_Version version1,Splice_DD_Version version2){
+        long v1=version1.toLong();
+        long v2=version2.toLong();
+        return Long.compare(v1, v2);
+    }
 }

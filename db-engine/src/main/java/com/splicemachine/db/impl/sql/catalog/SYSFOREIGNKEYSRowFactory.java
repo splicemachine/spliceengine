@@ -40,9 +40,18 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSFOREIGNKEYS row.
@@ -258,6 +267,49 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
             };
 	}
 
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+		List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+
+		// SYSCAT.REFERENCES
+		// https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001057.html
+		cdsl.add(
+			new ColumnDescriptor[]{
+				new ColumnDescriptor("CONSTNAME",1,1,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABSCHEMA",2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABNAME",3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFKEYNAME",4,4,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFTABSCHEMA",5,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("REFTABNAME",6,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLCOUNT",7,7,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("DELETERULE",8,8,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("UPDATERULE",9,9,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("FK_COLNAMES",10,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("PK_COLNAMES",11,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 640),
+						null,null,view,viewId,0,0,0),
+			});
+		return cdsl;
+	}
 
 	int getRefActionAsInt(String raRuleString)
 	{
@@ -283,7 +335,7 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			if (SanityManager.DEBUG)
 			{
 				SanityManager.THROWASSERT("Invalid  value '"
-										  +raRuleString+ "' for a referetial Action");
+										  +raRuleString+ "' for a referential Action");
 			}
 		}
 		return raRule ;
@@ -315,12 +367,19 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			if (SanityManager.DEBUG)
 			{
 				SanityManager.THROWASSERT("Invalid  value '"
-							+raRule+ "' for a referetial Action");
+							+raRule+ "' for a referential Action");
 			}
 
 		}
 		return raRuleString ;
 	}
 
-
+	public static String SYSCAT_REFERENCES_VIEW_SQL;
+	static {
+		try (InputStream view_def = SYSFOREIGNKEYSRowFactory.class.getResourceAsStream("/com/splicemachine/db/impl/sql/catalog/syscat_references_view.sql")) {
+			SYSCAT_REFERENCES_VIEW_SQL = IOUtils.toString(view_def, StandardCharsets.UTF_8);
+		} catch (IOException ioe) {
+			throw new RuntimeException(ioe.getMessage());
+		}
+	}
 }

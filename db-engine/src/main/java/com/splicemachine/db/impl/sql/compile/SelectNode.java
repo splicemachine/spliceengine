@@ -157,6 +157,19 @@ public class SelectNode extends ResultSetNode{
             costEstimate=optimizer.newCostEstimate();
         return costEstimate;
     }
+    public SelectNode() {}
+
+    public SelectNode(ResultColumnList selectList,
+               Object aggregateVector,
+               FromList fromList,
+               ValueNode whereClause,
+               GroupByList groupByList,
+               ValueNode havingClause,
+               WindowList windowDefinitionList, ContextManager cm) throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SELECT_NODE);
+        this.init(selectList, aggregateVector, fromList, whereClause, groupByList, havingClause, windowDefinitionList);
+    }
 
     public void init(Object selectList,
                      Object aggregateVector,

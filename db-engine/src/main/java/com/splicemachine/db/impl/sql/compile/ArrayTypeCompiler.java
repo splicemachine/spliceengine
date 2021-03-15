@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -104,7 +105,7 @@ public class ArrayTypeCompiler extends BaseTypeCompiler
         /**
          * @see TypeCompiler#getCastToCharWidth
          */
-        public int getCastToCharWidth(DataTypeDescriptor dts)
+        public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
         {
                 return dts.getMaximumWidth();
         }

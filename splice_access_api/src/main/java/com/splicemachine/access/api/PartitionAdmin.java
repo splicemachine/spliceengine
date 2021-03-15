@@ -21,6 +21,7 @@ import com.splicemachine.storage.PartitionServer;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -56,6 +57,10 @@ public interface PartitionAdmin extends AutoCloseable{
 
     void deleteSnapshot(String snapshotName) throws IOException;
 
+    default Set<String> listSnapshots() throws IOException {
+        throw new RuntimeException("Not implemented");
+    }
+
     void restoreSnapshot(String snapshotName) throws IOException;
 
     void disableTable(String tableName) throws IOException;
@@ -80,9 +85,9 @@ public interface PartitionAdmin extends AutoCloseable{
 
     boolean replicationEnabled(String tableName) throws IOException;
 
-    void setCatalogVersion(long conglomerateNumber, String version) throws IOException;
+    void setCatalogVersion(String conglomerate, String version) throws IOException;
 
-    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+    String getCatalogVersion(String conglomerate) throws StandardException;
 
     /**
      * Upgrade Script to update HBase Tables Priorities so that System tables are loaded with higher priorities
@@ -91,4 +96,18 @@ public interface PartitionAdmin extends AutoCloseable{
      */
 
     int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception;
+
+    int getTableCount() throws IOException;
+
+    default void createSITable(String tableName) throws StandardException {
+        throw new RuntimeException("Not implemented");
+    }
+
+    default void cloneSnapshot(String snapshotName, String tableName) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported");
+    }
+
+    default void truncate(String tableName) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported");
+    }
 }

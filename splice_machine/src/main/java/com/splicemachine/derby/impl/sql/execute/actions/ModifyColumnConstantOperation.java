@@ -64,7 +64,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      * @param tableName              Name of table.
      * @param tableId                UUID of table
      * @param columnInfo             Information on all the columns in the table.
-     * @param constraintActions      ConstraintConstantAction[] for constraints
+     * @param constraintActions      ConstantAction[] for constraints
      * @param lockGranularity        The lock granularity.
      * @param behavior               drop behavior for dropping column
      * @param indexNameForStatistics Will name the index whose statistics
@@ -1187,8 +1187,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    FOR EACH ROW
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
-            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, null)
-                                             : trd.getActionSPS(lcc, index, null);
+            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, activation)
+                                             : trd.getActionSPS(lcc, activation, index);
             int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
             java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,
@@ -1230,7 +1230,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             pa = newCC.getParser();
             StatementNode stmtnode = (StatementNode) pa.parseStatement(newText);
             // need a current dependent for bind
-            newCC.setCurrentDependent(sps.getPreparedStatement());
+            newCC.setCurrentDependent(sps.getPreparedStatement(true, lcc));
             stmtnode.bindStatement();
 
         } catch (StandardException se) {
@@ -1405,7 +1405,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     public static int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
         int numRows = 0;
 
-        ScanController sc = tc.openScan(td.getHeapConglomerateId(),
+        try (ScanController sc = tc.openScan(td.getHeapConglomerateId(),
                                         false,    // hold
                                         0,        // open read only
                                         TransactionController.MODE_TABLE,
@@ -1415,16 +1415,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                         ScanController.GE,      // startSearchOperation
                                         null, // scanQualifier
                                         null, //stop position - through last row
-                                        ScanController.GT);     // stopSearchOperation
+                                        ScanController.GT)) {   // stopSearchOperation
 
-        while (sc.next()) {
-            numRows++;
-            // We're only interested in whether the table has 0, 1 or > 1 rows
-            if (numRows == 2) {
-                break;
+            while (sc.next()) {
+                numRows++;
+                // We're only interested in whether the table has 0, 1 or > 1 rows
+                if (numRows == 2) {
+                    break;
+                }
             }
         }
-        sc.close();
 
         return numRows;
     }

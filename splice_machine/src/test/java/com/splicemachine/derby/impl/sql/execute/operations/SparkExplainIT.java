@@ -833,7 +833,7 @@ public class SparkExplainIT extends SpliceUnitTest {
                 "        t1 --splice-properties useSpark=true\n" +
                 "        inner join big on 1=1";
         // expecting broadcast on the right side and BIG table is on the left side
-        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight, Cross", ":- Scan ExistingRDD[]", "-> TableScan[BIG("};
+        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight, Cross", "Scan ExistingRDD[]", "-> TableScan[BIG("};
         rowContainsQuery(new int[]{5, 6, 7}, sqlText, methodWatcher, expectedList2);
     }
 

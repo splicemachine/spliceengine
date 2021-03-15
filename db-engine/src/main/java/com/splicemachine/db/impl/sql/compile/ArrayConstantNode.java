@@ -346,12 +346,12 @@ public class ArrayConstantNode extends ValueNode {
     /**
      * Categorize this predicate.
      *
-     * @see ValueNode#categorize(JBitSet, boolean)
+     * @see ValueNode#categorize(JBitSet, ReferencedColumnsMap, boolean)
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
             throws StandardException
     {
-        return argumentsList.categorize(referencedTabs, simplePredsOnly);
+        return argumentsList.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**

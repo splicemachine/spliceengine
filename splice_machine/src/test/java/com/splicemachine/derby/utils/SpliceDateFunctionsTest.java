@@ -3,17 +3,11 @@
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
@@ -23,6 +17,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -472,5 +467,87 @@ public class SpliceDateFunctionsTest {
         assertEquals("2013-03-23 19:45:00.987654", SpliceDateFunctions.TO_TIMESTAMP("20130323194500987654","YYYYMMDDHHMMSSNNNNNN").toString());
         // IBM/SAP format (TIMESTAMP_F)
         assertEquals("2013-03-23 19:45:00.987654", SpliceDateFunctions.TO_TIMESTAMP("130323194500987654","YYMMDDHHMMSSNNNNNN").toString());
+    }
+
+    @Test
+    public void testCurrentTimezoneDB2Conversion() throws Exception {
+        CurrentDatetime cut = new CurrentDatetime();
+        Assert.assertEquals(new BigDecimal(30000), cut.getCurrentTimezone(Duration.ofHours(3)));
+        Assert.assertEquals(new BigDecimal(-53000), cut.getCurrentTimezone(Duration.ofMinutes(-5*60 - 30)));
+        Assert.assertEquals(new BigDecimal(53000), cut.getCurrentTimezone(Duration.ofMinutes(5*60 + 30)));
+        Assert.assertEquals(new BigDecimal(153143), cut.getCurrentTimezone(Duration.ofSeconds(15*60*60 + 31*60 + 43)));
+        Assert.assertEquals(new BigDecimal(-153143), cut.getCurrentTimezone(Duration.ofSeconds(-15*60*60 - 31*60 - 43)));
+    }
+
+    static CurrentDatetime cut = new CurrentDatetime();
+
+    private static BigDecimal tzOffset(Duration offset) {
+        return cut.getCurrentTimezone(offset);
+    }
+
+    private static Timestamp ts(String timestamp) throws SQLException {
+        return SpliceDateFunctions.TO_TIMESTAMP(timestamp);
+    }
+
+    private static Time t(String time) throws SQLException {
+        return SpliceDateFunctions.TO_TIME(time);
+    }
+
+    @Test
+    public void testCurrentTimezoneArithmeticWithTimestamp() throws Exception {
+        // ADD
+        Timestamp result = SpliceDateFunctions.TIMEZONE_ADD(ts("2020-01-21 14:53:27.123"), tzOffset(Duration.ofHours(3)));
+        Assert.assertEquals(ts("2020-01-21 17:53:27.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(ts("2020-01-21 14:53:27.123"), tzOffset(Duration.ofMinutes(-5*60 - 30)));
+        Assert.assertEquals(ts("2020-01-21 09:23:27.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(ts("2020-01-21 04:13:03.123"), tzOffset(Duration.ofSeconds(15*60*60 + 31*60 + 43)));
+        Assert.assertEquals(ts("2020-01-21 19:44:46.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(ts("2020-01-21 19:44:46.123"), tzOffset(Duration.ofSeconds(-15*60*60 - 31*60 - 43)));
+        Assert.assertEquals(ts("2020-01-21 04:13:03.123"), result);
+
+        // SUBTRACT
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(ts("2020-01-21 17:53:27.123"), tzOffset(Duration.ofHours(3)));
+        Assert.assertEquals(ts("2020-01-21 14:53:27.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(ts("2020-01-21 09:23:27.123"), tzOffset(Duration.ofMinutes(-5*60 - 30)));
+        Assert.assertEquals(ts("2020-01-21 14:53:27.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(ts("2020-01-21 19:44:46.123"), tzOffset(Duration.ofSeconds(15*60*60 + 31*60 + 43)));
+        Assert.assertEquals(ts("2020-01-21 04:13:03.123"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(ts("2020-01-21 04:13:03.123"), tzOffset(Duration.ofSeconds(-15*60*60 - 31*60 - 43)));
+        Assert.assertEquals(ts("2020-01-21 19:44:46.123"), result);
+    }
+
+    @Test
+    public void testCurrentTimezoneArithmeticWithTime() throws Exception {
+        // ADD
+        Time result = SpliceDateFunctions.TIMEZONE_ADD(t("14:53:27"), tzOffset(Duration.ofHours(3)));
+        Assert.assertEquals(t("17:53:27"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(t("14:53:27"), tzOffset(Duration.ofMinutes(-5*60 - 30)));
+        Assert.assertEquals(t("09:23:27"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(t("04:13:03"), tzOffset(Duration.ofSeconds(15*60*60 + 31*60 + 43)));
+        Assert.assertEquals(t("19:44:46"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_ADD(t("19:44:46"), tzOffset(Duration.ofSeconds(-15*60*60 - 31*60 - 43)));
+        Assert.assertEquals(t("04:13:03"), result);
+
+        // SUBTRACT
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(t("17:53:27"), tzOffset(Duration.ofHours(3)));
+        Assert.assertEquals(t("14:53:27"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(t("09:23:27"), tzOffset(Duration.ofMinutes(-5*60 - 30)));
+        Assert.assertEquals(t("14:53:27"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(t("19:44:46"), tzOffset(Duration.ofSeconds(15*60*60 + 31*60 + 43)));
+        Assert.assertEquals(t("04:13:03"), result);
+
+        result = SpliceDateFunctions.TIMEZONE_SUBTRACT(t("04:13:03"), tzOffset(Duration.ofSeconds(-15*60*60 - 31*60 - 43)));
+        Assert.assertEquals(t("19:44:46"), result);
     }
 }

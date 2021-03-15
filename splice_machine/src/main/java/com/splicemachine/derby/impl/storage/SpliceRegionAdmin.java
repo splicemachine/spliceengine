@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -39,8 +38,9 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.stream.function.FileFunction;
-import com.splicemachine.derby.stream.function.MutableCSVTokenizer;
+import com.splicemachine.derby.stream.function.csv.CsvParserConfig;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
+import com.splicemachine.derby.stream.function.csv.MutableCSVTokenizer;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -782,8 +782,14 @@ public class SpliceRegionAdmin {
 
         boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false, quotedEmptyIsNull,
+        boolean preserveLineEndings = PropertyUtil.getCachedDatabaseBoolean(
+                lcc, Property.PRESERVE_LINE_ENDINGS);
+
+        CsvParserConfig config = new CsvParserConfig(preference)
+                .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader, config,
                 EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
+
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();

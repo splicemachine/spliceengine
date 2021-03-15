@@ -202,11 +202,11 @@ public class ArrayOperatorNode extends ValueNode {
     /**
      * Categorize this predicate.
      *
-     * @see ValueNode#categorize(JBitSet, boolean)
+     * @see ValueNode#categorize(JBitSet, ReferencedColumnsMap, boolean)
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
             throws StandardException {
-        return operand.categorize(referencedTabs, simplePredsOnly);
+        return operand.categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -113,7 +114,7 @@ public class LOBTypeCompiler extends BaseTypeCompiler
         /**
          * @see TypeCompiler#getCastToCharWidth
          */
-        public int getCastToCharWidth(DataTypeDescriptor dts)
+        public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
         {
                 return dts.getMaximumWidth();
         }

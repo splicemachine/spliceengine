@@ -31,12 +31,15 @@
 
 package com.splicemachine.db.iapi.error;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is a refactoring wrapper around the common ExceptionSeverity class
  * and may be removed at some point in the future.
  *
  * See com.splicemachine.db.common.error.ExceptionSeverity
  */
+@SuppressFBWarnings(value="NM_SAME_SIMPLE_NAME_AS_INTERFACE")
 public interface ExceptionSeverity 
     extends com.splicemachine.db.shared.common.error.ExceptionSeverity
 {

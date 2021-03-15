@@ -85,6 +85,7 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean initialFileInput;
     private boolean firstRun = true;
     private LocalizedOutput out = null;
+    private LocalizedOutput outBackup = null;
     private Hashtable ignoreErrors;
     private boolean doSpool = false;
     private boolean omitHeader = false;
@@ -157,12 +158,16 @@ public class utilMain implements java.security.PrivilegedAction {
             commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
+        initOptions();
+    }
 
+    void initOptions() {
         /* Start with connection/user 0 */
         currCE = 0;
         fileInput = false;
         initialFileInput = false;
         firstRun = true;
+        omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
     /**
@@ -208,24 +213,19 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    /**
-     * run ij over the specified input, sending output to the
-     * specified output. Any prior input and output will be lost.
-     *
-     * @param in  source for input to ij
-     * @param out sink for output from ij
-     */
-    public void go(LocalizedInput[] in, LocalizedOutput out)
-            throws ijFatalException {
-        this.out = out;
-
-        ijParser.setConnection(connEnv[currCE], (numConnections > 1));
+    public void goStart(LocalizedInput[] in)
+    {
         fileInput = initialFileInput = (!in[currCE].isStandardInput());
-
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
+        runScriptGuts();
+    }
 
+    public void init(LocalizedOutput out)
+    {
+        this.out = out;
+        ijParser.setConnection(connEnv[currCE], (numConnections > 1));
         if (firstRun) {
             for (int i = connEnv.length - 1; i >= 0; i--) { // print out any initial warnings...
                 Connection c = connEnv[i].getConnection();
@@ -237,9 +237,21 @@ public class utilMain implements java.security.PrivilegedAction {
 
             supportIJProperties(connEnv[currCE]);
         }
-        runScriptGuts();
+    }
+    /**
+     * run ij over the specified input, sending output to the
+     * specified output. Any prior input and output will be lost.
+     *
+     * @param in  source for input to ij
+     * @param out sink for output from ij
+     */
+    public void go(LocalizedInput[] in, LocalizedOutput out)
+            throws ijFatalException {
+        init(out);
+        goStart(in);
         cleanupGo(in);
     }
+
 
     /**
      * Support to run a script. Performs minimal setup
@@ -308,9 +320,10 @@ public class utilMain implements java.security.PrivilegedAction {
                 if (doSpool) {
                     assert out.getOutputStream() instanceof ForkOutputStream;
                     ForkOutputStream fos = (ForkOutputStream) (out.getOutputStream());
-                    fos.setWriteToOut(false); // do not write the command twice to std output
+                    if(!fileInput)
+                        fos.setWriteToOut(false); // do not write the command twice to std output
                     try {
-                        out.println(command + ";");
+                        out.println(command + terminator);
                         out.flush();
                     } finally {
                         fos.setWriteToOut(true);
@@ -338,7 +351,7 @@ public class utilMain implements java.security.PrivilegedAction {
                     long endTime;
 
                     if (fileInput && !doSpool) {
-                        out.println(command + ";");
+                        out.println(command + terminator);
                         out.flush();
                     }
 
@@ -409,7 +422,7 @@ public class utilMain implements java.security.PrivilegedAction {
      *
      * @param in
      */
-    private void cleanupGo(LocalizedInput[] in) {
+    public void cleanupGo(LocalizedInput[] in) {
 
         // we need to close all sessions when done; otherwise we have
         // a problem when a single VM runs successive IJ threads
@@ -660,7 +673,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @throws ijException  if the cursor isn't scrollable
      * @throws SQLException if a database error occurs
      */
-    private void checkScrollableCursor(ResultSet rs, String operation)
+    static private void checkScrollableCursor(ResultSet rs, String operation)
             throws ijException, SQLException {
         if (rs.getType() == ResultSet.TYPE_FORWARD_ONLY) {
             throw ijException.forwardOnlyCursor(operation);
@@ -677,7 +690,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (absolute() not supported pre-JDBC2.0)
      */
-    ijResult absolute(ResultSet rs, int row)
+    static ijResult absolute(ResultSet rs, int row)
             throws SQLException {
         checkScrollableCursor(rs, "ABSOLUTE");
         // 0 is an *VALID* value for row
@@ -694,7 +707,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (relative() not supported pre-JDBC2.0)
      */
-    ijResult relative(ResultSet rs, int row)
+    static ijResult relative(ResultSet rs, int row)
             throws SQLException {
         checkScrollableCursor(rs, "RELATIVE");
         return new ijRowResult(rs, rs.relative(row));
@@ -709,7 +722,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (beforeFirst() not supported pre-JDBC2.0)
      */
-    ijResult beforeFirst(ResultSet rs)
+    static ijResult beforeFirst(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "BEFORE FIRST");
         rs.beforeFirst();
@@ -725,7 +738,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (first() not supported pre-JDBC2.0)
      */
-    ijResult first(ResultSet rs)
+    static ijResult first(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "FIRST");
         return new ijRowResult(rs, rs.first());
@@ -740,7 +753,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (afterLast() not supported pre-JDBC2.0)
      */
-    ijResult afterLast(ResultSet rs)
+    static ijResult afterLast(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "AFTER LAST");
         rs.afterLast();
@@ -756,7 +769,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (last() not supported pre-JDBC2.0)
      */
-    ijResult last(ResultSet rs)
+    static ijResult last(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "LAST");
         return new ijRowResult(rs, rs.last());
@@ -771,7 +784,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (previous() not supported pre-JDBC2.0)
      */
-    ijResult previous(ResultSet rs)
+    static ijResult previous(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "PREVIOUS");
         return new ijRowResult(rs, rs.previous());
@@ -785,7 +798,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * @exception SQLException thrown on error.
      * (getRow() not supported pre-JDBC2.0)
      */
-    int getCurrentRowNumber(ResultSet rs)
+    static int getCurrentRowNumber(ResultSet rs)
             throws SQLException {
         checkScrollableCursor(rs, "GETCURRENTROWNUMBER");
         return rs.getRow();
@@ -809,8 +822,8 @@ public class utilMain implements java.security.PrivilegedAction {
                 out.println(langUtil.getTextMessage("IJ_SpoolError", path));
                 return;
             }
-            this.out.close();
-            this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
+            this.outBackup = this.out;
+            this.out = new LocalizedOutput(new ForkOutputStream(this.out.getOutputStream(), new FileOutputStream(f)));
             doSpool = true;
         } catch (IOException e) {
             out.println(langUtil.getTextMessage("IJ_SpoolError", path));
@@ -824,7 +837,7 @@ public class utilMain implements java.security.PrivilegedAction {
             doSpool = false;
             this.out.flush();
             this.out.close();
-            this.out = new LocalizedOutput(System.out);
+            this.out = this.outBackup;
         }
     }
 

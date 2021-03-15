@@ -179,15 +179,14 @@ public class DataDescriptorGenerator
                         UUID        constraintId,
                         UUID        indexId,
                         SchemaDescriptor schemaDesc,
-                        boolean isEnabled,
-                        int referenceCount
+                        boolean isEnabled
                         )
     {
         return new ReferencedKeyConstraintDescriptor(DataDictionary.UNIQUE_CONSTRAINT,
             dataDictionary, table, constraintName,
                 deferrable, initiallyDeferred,
                 referencedColumns, constraintId,
-                indexId, schemaDesc, isEnabled, referenceCount);
+                indexId, schemaDesc, isEnabled);
     }
 
     /**
@@ -202,15 +201,14 @@ public class DataDescriptorGenerator
                         UUID        constraintId,
                         UUID indexId,
                         SchemaDescriptor schemaDesc,
-                        boolean isEnabled,
-                        int referenceCount
+                        boolean isEnabled
                         )
     {
         return new ReferencedKeyConstraintDescriptor(DataDictionary.PRIMARYKEY_CONSTRAINT,
             dataDictionary, table, constraintName,
                 deferrable, initiallyDeferred,
                 referencedColumns, constraintId,
-                indexId, schemaDesc, isEnabled, referenceCount);
+                indexId, schemaDesc, isEnabled);
     }
 
     /**
@@ -358,7 +356,7 @@ public class DataDescriptorGenerator
      * @param isEnabled    is this trigger enabled or disabled
      * @param td        the table upon which this trigger is defined
      * @param whenSPSId    the sps id for the when clause (may be null)
-     * @param actionSPSId    the spsid for the trigger action (may be null)
+     * @param actionSPSIdList    the spsids for the trigger actions (may be null)
      * @param creationTimestamp    when was this trigger created?
      * @param referencedCols    what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction    what columns does the trigger

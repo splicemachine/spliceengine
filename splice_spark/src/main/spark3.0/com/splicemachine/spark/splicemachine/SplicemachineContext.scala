@@ -71,6 +71,21 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
+  
+  // Check url validity, throws exception during instantiation if url is invalid
+  try {
+    if( url.isEmpty ) throw new Exception("JDBC Url is an empty string.")
+    JdbcUtils.createConnectionFactory(new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+    )))()
+  } catch {
+    case e: Exception => throw new Exception(
+      "Problem connecting to the DB. Verify that the input JDBC Url is correct."
+      + "\n"
+      + e.toString
+    )
+  }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
@@ -89,7 +104,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val dbProperties = new Properties
     dbProperties.put("useSpark", "true")
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
-    maker.createNew(dbProperties)
+    maker.createNew(
+      if( url.contains("/") ) {  // url = jdbc:splice://localhost:1527/splicedb;user=userid;password=pwd
+        val urlparts = url.split("/")
+        urlparts(0) + urlparts(urlparts.length - 1)  // jdbc:splice:splicedb;user=userid;password=pwd
+      } else
+        url ,
+      dbProperties
+    )
   }
 
   /**
@@ -526,6 +548,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Upsert data into the table (schema.table) from a DataFrame.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
+    * 
+    * If triggers fail when calling upsert, use the mergeInto function instead.
     *
     * @param dataFrame input data
     * @param schemaTableName output table
@@ -543,6 +567,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Upsert data into the table (schema.table) from an RDD.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
+    *
+    * If triggers fail when calling upsert, use the mergeInto function instead.
     *
     * @param rdd input data
     * @param schema
@@ -640,6 +666,75 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
+
+  /**
+   * Rows in dataFrame whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in dataFrame whose primary key is in schemaTableName will be used to update the table.
+   *  
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param dataFrame
+   * @param schemaTableName
+   */
+  def mergeInto(dataFrame: DataFrame, schemaTableName: String): Unit =
+    mergeInto(dataFrame.rdd, dataFrame.schema, schemaTableName)
+
+  /** 
+   * Rows in rdd whose primary key is not in schemaTableName will be inserted into the table;
+   *  rows in rdd whose primary key is in schemaTableName will be used to update the table.
+   *
+   * This implementation differs from upsert in a way that allows triggers to work.
+   *
+   * @param rdd
+   * @param schema
+   * @param schemaTableName
+   */
+  def mergeInto(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString( columnInfo(schemaTableName), schema )
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
+    
+    val jdbcOptions = new JdbcOptionsInWrite(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
+    if (keys.length == 0)
+      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform MergeInto")
+    
+    val insColumnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val selColumnList = s"SpliceRDDVTI.${SpliceJDBCUtil.listColumns(schema.fieldNames).replaceAll(",",",SpliceRDDVTI.")}"
+    val schemaStr = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val joinClause = keys.map( k => s"target.$k = SpliceRDDVTI.$k" ).mkString(" and ")  // " a.pk0 = b.pk0 and a.pk1 = b.pk1 and ..."
+    val insertText = "insert into " + schemaTableName + " (" + insColumnList + ") select " + selColumnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaStr + ") left join " + schemaTableName + " as target on " +
+      joinClause + " where target."+ keys(0) + " is null"
+    
+    val prunedFields = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
+    val updColumnList = SpliceJDBCUtil.listColumns(prunedFields)
+    val updateText = "update " + schemaTableName + " " +
+      "set (" + updColumnList + ") = (" +
+      "select " + updColumnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SDVTI (" + tableSchemaStr + ") where "
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
+    val combinedUpdText = updateText + whereClause + ")"
+    
+    executeUpd(combinedUpdText)   // update
+    executeUpd(insertText)        // insert
+  }
+  
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)

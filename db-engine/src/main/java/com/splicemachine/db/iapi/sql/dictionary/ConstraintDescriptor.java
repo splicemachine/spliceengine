@@ -281,8 +281,7 @@ public abstract class ConstraintDescriptor
 	 *
 	 * @return false
 	 */
-	public boolean isReferenced()
-	{
+	public boolean isReferenced() throws StandardException {
 		return false;
 	}
 
@@ -293,8 +292,7 @@ public abstract class ConstraintDescriptor
 	 *
 	 * @return the number of fks
 	 */
-	public int getReferenceCount()
-	{
+	public int getReferenceCount() throws StandardException {
 		return 0;
 	}
 
@@ -308,7 +306,7 @@ public abstract class ConstraintDescriptor
 	 *
 	 * @return true/false
 	 */
-	public abstract boolean needsToFire(int stmtType, int[] modifiedCols);
+	public abstract boolean needsToFire(int stmtType, int[] modifiedCols) throws StandardException;
 
 	/**
 	 * Get the table descriptor upon which this constraint

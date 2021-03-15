@@ -32,7 +32,6 @@ import java.sql.SQLException;
  */
 public class SpliceIteratorVTI implements DatasetProvider, VTICosting {
 
-    private OperationContext operationContext;
     private DataSet dataSet;
 
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
@@ -50,13 +49,8 @@ public class SpliceIteratorVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
-        throw new SQLException("not supported");
-    }
-
-    @Override
     public OperationContext getOperationContext() {
-        return operationContext;
+        return null;
     }
 
     @Override

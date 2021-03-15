@@ -44,7 +44,6 @@ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_INLI
  *
  */
 public class InListSelectivity extends AbstractSelectivityHolder {
-    private final Predicate p;
     private final StoreCostController storeCost;
     private final double selectivityFactor;
     private final int[] colNo;
@@ -55,7 +54,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
                              QualifierPhase phase, double selectivityFactor)
         throws StandardException
     {
-        super(keyColumns != null, getLeftItemColumnPosition(p, 0, keyColumns), phase);
+        super(keyColumns != null, getLeftItemColumnPosition(p, 0, keyColumns), phase, p);
 
         int numLeftItems = p.getSourceInList().leftOperandList.size();
         colNo = new int[numLeftItems];

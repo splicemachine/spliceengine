@@ -191,6 +191,34 @@ public class NullPredicateIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testNotWithNullInInList_1() throws Exception {
+        String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
+                                      "where a not in (cast(null as int), 5)", useSpark);
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testNotWithNullInInList_2() throws Exception {
+        String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
+                                      "where cast(null as int) not in (3, 5)", useSpark);
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
     public void testNullInJoinCondition() throws Exception {
         String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
                 " inner join T on cast(null as boolean)", useSpark);
@@ -202,5 +230,56 @@ public class NullPredicateIT extends SpliceUnitTest {
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+    }
+
+    @Test
+    public void testNotWithNullInJoinCondition() throws Exception {
+        String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
+                                      " inner join T on not cast(null as boolean)", useSpark);
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testInListWithNullInJoinCondition() throws Exception {
+        String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
+                                      " inner join T on cast(null as boolean) in (42)", useSpark);
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testNotWithInListWithNullInJoinCondition() throws Exception {
+        String query = format("select count(*) from T --SPLICE-PROPERTIES useSpark=%s\n" +
+                                      " inner join T on cast(null as boolean) not in (42)", useSpark);
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test // DB-11605
+    public void testNullInCaseWhen() throws Exception {
+        String res = "A | B  |\n" +
+                "---------\n" +
+                " 1 |aaa |";
+        methodWatcher.assertStrResult(res, "select * from t where case when a < 0 then null else 2 end > 0", false);
+        methodWatcher.assertStrResult(res, "select * from t where case when a > 0 then 2 else null end > 0", false);
     }
 }

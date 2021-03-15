@@ -224,8 +224,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0    // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;
@@ -241,8 +240,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 constraintId,
                                 indexId,
                                 sd,
-                                enabled,
-                                0    // referenceCount
+                                enabled
                                 );
                 dd.addConstraintDescriptor(conDesc, tc);
                 break;
@@ -302,11 +300,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				if ( (! forCreateTable) &&
 					 dd.activeConstraint( conDesc ) )
 				{
-					validateFKConstraint(tc,
-										 dd,
-										 (ForeignKeyConstraintDescriptor)conDesc,
+					validateFKConstraint(
+                            (ForeignKeyConstraintDescriptor)conDesc,
 										 referencedConstraint,
-										 ((CreateIndexConstantOperation)indexAction).getIndexTemplateRow(), lcc);
+                            lcc);
 				}
 
 				/* Create stored dependency on the referenced constraint */

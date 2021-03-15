@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -133,7 +134,7 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
 	/**
 	 * @see TypeCompiler#getCastToCharWidth
 	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
 		// This is the maximum maximum width for user types
 		return -1;

@@ -31,29 +31,33 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
-
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-
-import com.splicemachine.db.iapi.util.JBitSet;
-
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.vti.CompileTimeSchema;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA;
+import static java.sql.ResultSetMetaData.columnNullable;
 
 /**
  * A NewInvocationNode represents a new object() invocation.
@@ -312,7 +316,9 @@ public class NewInvocationNode extends MethodCallNode
 
     /**
      * Categorize this predicate.  Initially, this means
-     * building a bit map of the referenced tables for each predicate.
+     * building a bit map of the referenced tables for each predicate,
+     * and a mapping from table number to the column numbers
+     * from that table present in the predicate.
      * If the source of this ColumnReference (at the next underlying level)
      * is not a ColumnReference or a VirtualColumnNode then this predicate
      * will not be pushed down.
@@ -327,6 +333,8 @@ public class NewInvocationNode extends MethodCallNode
      * RESOLVE - revisit this issue once we have views.
      *
      * @param referencedTabs    JBitSet with bit map of referenced FromTables
+     * @param referencedColumns  An object which maps tableNumber to the columns
+     *                           from that table which are present in the predicate.
      * @param simplePredsOnly    Whether or not to consider method
      *                            calls, field references and conditional nodes
      *                            when building bit map
@@ -335,7 +343,7 @@ public class NewInvocationNode extends MethodCallNode
      *                        or a VirtualColumnNode.
      * @exception StandardException        Thrown on error
      */
-    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
         throws StandardException
     {
         /* We stop here when only considering simple predicates
@@ -349,7 +357,7 @@ public class NewInvocationNode extends MethodCallNode
 
         boolean pushable = true;
 
-        pushable = pushable && super.categorize(referencedTabs, simplePredsOnly);
+        pushable = pushable && super.categorize(referencedTabs, referencedColumns, simplePredsOnly);
 
         return pushable;
     }
@@ -477,5 +485,52 @@ public class NewInvocationNode extends MethodCallNode
               mb.getField(objectFieldLF);
             mb.completeConditional();
         }
+    }
+
+    public TypeDescriptor getTypeDescriptor() throws StandardException {
+        if(getJavaClassName() != null) {
+            ClassInspector inspector = getClassFactory().getClassInspector();
+            if(inspector.assignableTo(getJavaClassName(), CompileTimeSchema.class.getName())) {
+                try {
+                    Class clazz;
+                    clazz = inspector.getClass(getJavaClassName());
+                    Method getMetaData = null;
+                    try {
+                        getMetaData = clazz.getDeclaredMethod("getMetaData");
+                    } catch (NoSuchMethodException exception) { // class doesn't define its own static version of this method, report error.
+                        throw StandardException.newException(LANG_VTI_DOES_NO_COMPILE_TIME_SCHEMA, clazz.getSimpleName());
+                    }
+
+                    ResultSetMetaData metadata = (ResultSetMetaData)getMetaData.invoke(null, (Object[]) null);
+                    return toTypeDescriptor(metadata);
+                } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | SQLException e) {
+                    throw StandardException.plainWrapException(e);
+                }
+            }
+        }
+        return null;
+    }
+
+    private TypeDescriptor toTypeDescriptor(ResultSetMetaData metadata) throws SQLException {
+        if(metadata == null || metadata.getColumnCount() == 0) {
+            return null;
+        }
+        int colCount = metadata.getColumnCount();
+        String[] names = new String[colCount];
+        TypeDescriptor[] types = new TypeDescriptor[colCount];
+        if(SanityManager.DEBUG) { // just be sure column names are unique
+            Set<String> uniqueNames = new HashSet<>();
+            for(int i = 0; i < colCount; ++i) {
+                uniqueNames.add(metadata.getColumnName(i+1));
+            }
+            SanityManager.ASSERT(uniqueNames.size() == colCount, "some columns in VTI ResultSet share the same name");
+        }
+        for(int i = 0; i < colCount; ++i) {
+            names[i] = metadata.getColumnName(i+1);
+            types[i] = new TypeDescriptorImpl(TypeId.getBuiltInTypeId(metadata.getColumnTypeName(i+1)).getBaseTypeId(),
+                                              metadata.getPrecision(i+1), metadata.getScale(i+1),
+                                              metadata.isNullable(i+1) == columnNullable, metadata.getColumnDisplaySize(i+1));
+       }
+        return DataTypeDescriptor.getRowMultiSet(names, types);
     }
 }

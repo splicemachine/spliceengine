@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -335,9 +336,16 @@ public class CreateIndexNode extends DDLStatementNode
                         Predicates.instanceOf(TernaryOperatorNode.class)
                 ));
 
+        List<ValueNode> validIndexExprs = new ArrayList<>();
         for (int i = 0; i < expressionList.size(); i++) {
             IndexExpression ie = expressionList.elementAt(i);
             ie.expression.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
+
+            for (ValueNode vie : validIndexExprs) {
+                if (vie.semanticallyEquals(ie.expression)) {
+                    throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX, ie.exprText.trim());
+                }
+            }
 
             // check invalid nodes
             ie.expression.accept(restrictionVisitor);
@@ -370,6 +378,8 @@ public class CreateIndexNode extends DDLStatementNode
                 throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
             }
             indexColumnTypes[i] = dtd;
+
+            validIndexExprs.add(ie.expression);
         }
     }
 
@@ -441,7 +451,7 @@ public class CreateIndexNode extends DDLStatementNode
 
                 properties.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
 
             }
         }

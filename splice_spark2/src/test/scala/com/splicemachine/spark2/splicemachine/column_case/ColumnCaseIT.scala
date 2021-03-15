@@ -230,7 +230,11 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
+    checkTestRow("Upsert as Update")
+  }
+
+  def checkTestRow(testId: String): Unit =
+    org.junit.Assert.assertEquals(s"$testId Failed!",
       testRow.mkString(", "),
       executeQuery(
         s"select * from $internalTN",
@@ -243,7 +247,6 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
         }
       ).asInstanceOf[String]
     )
-  }
 
   test("Test Upsert as Insert") {
     dropInternalTable
@@ -251,19 +254,25 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.upsert(internalTNDF, internalTN)
 
-    org.junit.Assert.assertEquals("Upsert Failed!",
-      testRow.mkString(", "),
-      executeQuery(
-        s"select * from $internalTN",
-        rs => {
-          rs.next
-          List(
-            rs.getInt(1),
-            rs.getInt(2)
-          ).mkString(", ")
-        }
-      ).asInstanceOf[String]
-    )
+    checkTestRow("Upsert as Insert")
+  }
+
+  test("Test MergeInto as Update") {
+    dropInternalTable
+    insertInternalRows(1)
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Update")
+  }
+
+  test("Test MergeInto as Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.mergeInto(internalTNDF, internalTN)
+
+    checkTestRow("MergeInto as Insert")
   }
 
   test("Test Inserting Null") {

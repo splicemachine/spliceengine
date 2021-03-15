@@ -15,13 +15,18 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode;
 import com.splicemachine.pipeline.ErrorState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
 import splice.com.google.common.collect.ImmutableMap;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -61,6 +66,60 @@ public class SpliceDateFunctions {
         if (source == null || numOfYears == null) return null;
         DateTime dt = new DateTime(source);
         return new Date(dt.plusYears(numOfYears).getMillis());
+    }
+
+    public static Timestamp TIMEZONE_SUBTRACT(Timestamp leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        Timestamp result = new Timestamp(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, true));
+        result.setNanos(leftOperand.getNanos());
+        return result;
+    }
+
+    public static Time TIMEZONE_SUBTRACT(Time leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        return new Time(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, true));
+    }
+
+    public static Timestamp TIMEZONE_ADD(Timestamp leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        return TIMEZONE_ARITHMETIC(leftOperand, timezoneDiffNode, false);
+    }
+
+    public static Time TIMEZONE_ADD(Time leftOperand, BigDecimal timezoneDiffNode) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        return new Time(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, false));
+    }
+
+    private static Timestamp TIMEZONE_ARITHMETIC(Timestamp leftOperand, BigDecimal timezoneDiffNode, boolean subtract) throws StandardException {
+        if (leftOperand == null) {
+            return null;
+        }
+        Timestamp result = new Timestamp(TIMEZONE_ARITHMETIC(leftOperand.getTime(), timezoneDiffNode, false));
+        result.setNanos(leftOperand.getNanos());
+        return result;
+    }
+
+    private static long TIMEZONE_ARITHMETIC(long time, BigDecimal timezoneDiffNode, boolean subtract) throws StandardException {
+        long timezoneDiff = timezoneDiffNode.longValue();
+        boolean isNegative = timezoneDiff < 0;
+        timezoneDiff = Math.abs(timezoneDiff);
+        long timezoneDiffSeconds = timezoneDiff % 100;
+        timezoneDiff /= 100;
+        timezoneDiffSeconds += (timezoneDiff % 100) * 60;
+        timezoneDiff /= 100;
+        timezoneDiffSeconds += (timezoneDiff % 100) * 3600;
+        if (isNegative) {
+            timezoneDiffSeconds *= -1;
+        }
+        if(subtract) {
+            timezoneDiffSeconds *= -1;
+        }
+        return time + timezoneDiffSeconds * 1000;
     }
 
     /**

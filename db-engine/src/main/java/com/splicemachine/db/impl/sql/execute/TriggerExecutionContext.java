@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -47,14 +48,17 @@ import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import com.splicemachine.tools.EmbedConnectionMaker2;
 import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -88,6 +92,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private String[] changedColNames;
     private String statementText;
     protected ConnectionContext cc;
+    private LanguageConnectionContext lcc;
     private UUID targetTableId;
     private String targetTableName;
     private ExecRow triggeringRow;
@@ -100,10 +105,11 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private long conglomId;
 
     protected CursorResultSet  triggeringResultSet;
-    private ManagedCache<UUID, SPSDescriptor> spsCache = null;
     private boolean fromSparkExecution;
     private TemporaryRowHolder temporaryRowHolder;
     private SPSDescriptor fromTableDmlSpsDescriptor;
+    private boolean hasGeneratedColumn;  // Does the trigger table have a generated column?
+
 
     /*
     ** Used to track all the result sets we have given out to
@@ -126,6 +132,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      */
     private Map<String, Long> aiHT;
 
+
     public TriggerExecutionContext() {}
 
     /**
@@ -138,7 +145,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @param targetTableName the name of the table upon which the trigger fired
      * @param aiCounters      A list of AutoincrementCounters to keep state of the ai columns in this insert trigger.
      */
-    public TriggerExecutionContext(ConnectionContext cc,
+    public TriggerExecutionContext(LanguageConnectionContext lcc,
                                    String statementText,
                                    int[] changedColIds,
                                    String[] changedColNames,
@@ -157,19 +164,11 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.aiCounters = aiCounters;
         this.heapList = heapList;
         this.resultSetVector = new Vector<>();
-        this.cc = cc;
+        this.lcc = lcc;
 
         this.fromSparkExecution = fromSparkExecution;
         this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
-        // Only use the local cache for spark execution, or if we have a temporary
-        // trigger created for execution of a FROM FINAL TABLE clause, which
-        // does not store its SPS in the data dictionary, so needs to use
-        // a ManagedCache.
-        if (fromSparkExecution || fromTableDmlSpsDescriptor != null) {
-            this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
-            if (fromTableDmlSpsDescriptor != null)
-                spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
-        }
+
         if (SanityManager.DEBUG) {
             if ((changedColIds == null) != (changedColNames == null)) {
                 SanityManager.THROWASSERT("bad changed cols, " +
@@ -181,85 +180,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                         "different number of changed col ids vs names");
             }
         }
-    }
-    // Push a LanguageConnectionContext into
-    // the task's ContextManager, if needed.  Return true if the push was done.
-    public static boolean
-    pushLanguageConnectionContextToCM(LanguageConnectionContext newLCC, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (newLCC != null) {
-                if (newLCC != currentLCC) {
-                    cm.pushContext(newLCC);
-                    lccPushed = true;
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (newLCC != null) {
-                lccPushed = true;
-                cm.pushContext(newLCC);
-            }
-        }
-        return lccPushed;
-    }
-
-    // Push the LanguageConnectionContext from the Activation into
-    // the task's ContextManager, if needed.  Return true if the push was done.
-    public static boolean
-    pushLanguageConnectionContextFromActivation(Activation activation, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != currentLCC) {
-                    cm.pushContext(lcc);
-                    lccPushed = true;
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                lccPushed = true;
-                cm.pushContext(activation.getLanguageConnectionContext());
-            }
-        }
-        return lccPushed;
-    }
-
-    // Push the TriggerExecutionContext from the Activation into
-    // the task's current LCC.  Return true if a new LCC was
-    // was pushed to the task's ContextManager.
-    public static boolean
-    pushTriggerExecutionContextFromActivation(Activation activation, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != currentLCC &&
-                    lcc.getTriggerExecutionContext() != null) {
-                    if (currentLCC.getTriggerExecutionContext() != null)
-                        currentLCC.popTriggerExecutionContext(currentLCC.getTriggerExecutionContext());
-                    currentLCC.pushTriggerExecutionContext(lcc.getTriggerExecutionContext());
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                lccPushed = true;
-                cm.pushContext(activation.getLanguageConnectionContext());
-            }
-        }
-        return lccPushed;
     }
 
     public boolean currentTriggerHasReferencingClause() {
@@ -325,7 +245,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             rs.open();
         triggeringRow = rs.getCurrentRow();
         try {
-            if (triggerd.isRowTrigger())
+            if (triggerd != null && triggerd.isRowTrigger())
                 rs.close();
         } catch (StandardException e) {
             // ignore - close quietly.
@@ -463,8 +383,29 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         return false;
     }
 
+    private void initConnectionContext() throws StandardException {
+        ConnectionContext existingContext = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+        if (existingContext == null) {
+            try {
+                Properties dbProperties = new Properties();
+                dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true");
+                Connection connection = new EmbedConnectionMaker2().createNew(dbProperties);
+                Context newContext = ((EmbedConnection) connection).getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+                lcc.getContextManager().pushContext(newContext);
+                existingContext = (ConnectionContext)newContext;
+            } catch (SQLException e) {
+                throw StandardException.plainWrapException(e);
+            }
+        }
+        cc = existingContext;
+    }
+
     public void setConnectionContext(ConnectionContext cc) {
         this.cc = cc;
+    }
+
+    public void setLanguageConnectionContext(LanguageConnectionContext lcc) {
+        this.lcc = lcc;
     }
 
     /**
@@ -489,6 +430,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
 			 * at multiple places independently in trigger action.  This is a bug found
 			 * during the fix of beetle 4373.
 			 */
+			initConnectionContext();
 			CursorResultSet ars = triggeringResultSet;
 			if (ars instanceof TemporaryRowHolderResultSet)
 				ars = (CursorResultSet) ((TemporaryRowHolderResultSet) ars).clone();
@@ -648,10 +590,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeBoolean(hasFromTableDmlSpsDescriptor);
         if (hasFromTableDmlSpsDescriptor)
             out.writeObject(fromTableDmlSpsDescriptor);
-        boolean hasSpsCache = spsCache != null;
-        out.writeBoolean(hasSpsCache);
-        if (hasSpsCache)
-            out.writeObject(spsCache);
+        out.writeBoolean(hasGeneratedColumn);
     }
 
     @Override
@@ -686,14 +625,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         boolean hasFromTableDmlSpsDescriptor = in.readBoolean();
         if (hasFromTableDmlSpsDescriptor)
             fromTableDmlSpsDescriptor = (SPSDescriptor) in.readObject();
-        boolean hasSpsCache = in.readBoolean();
-        if (hasSpsCache)
-            spsCache = (ManagedCache<UUID, SPSDescriptor> ) in.readObject();
-        else if (fromSparkExecution || hasFromTableDmlSpsDescriptor) {
-            spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
-            if (hasFromTableDmlSpsDescriptor)
-                spsCache.put(fromTableDmlSpsDescriptor.getUUID(), fromTableDmlSpsDescriptor);
-        }
+        hasGeneratedColumn = in.readBoolean();
     }
 
     /**
@@ -832,18 +764,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         }
     }
 
-    public SPSDescriptor getSPSDescriptor(UUID uuid) {
-        return spsCache.getIfPresent(uuid);
-    }
-
-    public void setSPSDescriptor(SPSDescriptor desc) {
-        spsCache.put(desc.getUUID(), desc);
-    }
-
-    public ManagedCache<UUID, SPSDescriptor> getSpsCache() {
-        return spsCache;
-    }
-
     public TemporaryRowHolder getTemporaryRowHolder() {
         return temporaryRowHolder;
     }
@@ -858,5 +778,23 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggerd == null)
             return "";
         return triggerd.getName();
+    }
+
+    public void setHasGeneratedColumn() {
+        hasGeneratedColumn = true;
+    }
+
+    public boolean hasGeneratedColumn() {
+        return hasGeneratedColumn;
+    }
+
+    public boolean needsTemporaryConglomerate() {
+        // TODO:  Can we detect when a DML statement and associated
+        //        triggers needs no temporary conglomerate?
+        //        The persisted Dataset may not always be accessible,
+        //        for example in a nested loop join iterator,
+        //        so currently we still need it.
+        return true;
+        //return hasGeneratedColumn || !fromSparkExecution;
     }
 }

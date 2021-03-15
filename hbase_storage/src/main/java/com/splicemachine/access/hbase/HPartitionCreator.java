@@ -22,31 +22,38 @@ import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+import org.apache.log4j.Logger;
+import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author Scott Fines
  *         Date: 12/28/15
  */
 public class HPartitionCreator implements PartitionCreator{
+    private static final Logger LOG = Logger.getLogger(HPartitionCreator.class);
+
     private TableDescriptorBuilder descriptorBuilder;
     private TableName tableName;
     private final Connection connection;
-    private final HColumnDescriptor userDataFamilyDescriptor;
+    private final ColumnFamilyDescriptor userDataFamilyDescriptor;
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache partitionInfoCache;
     private byte[][] splitKeys;
 
-    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
+    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory, Connection connection, Clock clock,
+                             ColumnFamilyDescriptor userDataFamilyDescriptor, PartitionInfoCache partitionInfoCache){
         this.connection = connection;
         this.userDataFamilyDescriptor = userDataFamilyDescriptor;
         this.tableInfoFactory = tableInfoFactory;
@@ -119,19 +126,54 @@ public class HPartitionCreator implements PartitionCreator{
 
     @Override
     public Partition create() throws IOException{
+        try {
+            return createAsync().get();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public Future<Partition> createAsync() throws IOException {
         assert descriptorBuilder!=null: "No table to create!";
         descriptorBuilder.setColumnFamily(userDataFamilyDescriptor);
         TableDescriptor descriptor = descriptorBuilder.build();
         try(Admin admin = connection.getAdmin()){
-            if (splitKeys == null) {
-                admin.createTable(descriptor);
-            }
-            else {
-                admin.createTable(descriptor, splitKeys);
-            }
+            Future<Void> future = admin.createTableAsync(descriptor, splitKeys);
+            Partition result = new ClientPartition(connection,tableName,connection.getTable(tableName),clock,partitionInfoCache);
+            return new Future<Partition>() {
+                @Override
+                public boolean cancel(boolean mayInterruptIfRunning) {
+                    return future.cancel(mayInterruptIfRunning);
+                }
 
+                @Override
+                public boolean isCancelled() {
+                    return future.isCancelled();
+                }
+
+                @Override
+                public boolean isDone() {
+                    return future.isDone();
+                }
+
+                @Override
+                public Partition get() throws InterruptedException, ExecutionException {
+                    try {
+                        future.get(admin.getOperationTimeout()*10, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return result;
+                }
+
+                @Override
+                public Partition get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                    future.get(timeout, unit);
+                    return result;
+                }
+            };
         }
-        return new ClientPartition(connection,tableName,connection.getTable(tableName),clock,partitionInfoCache);
     }
 
     @Override

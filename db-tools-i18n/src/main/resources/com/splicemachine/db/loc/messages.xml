@@ -831,6 +831,12 @@ Guide.
             <text>Unknown character encoding '{0}'.</text>
             <arg>typeName</arg>
           </msg>
+
+            <msg>
+                <name>22022</name>
+                <text>Invalid pad parameter to TRANSLATE: '{0}' is not of length 1.</text>
+                <arg>pad</arg>
+            </msg>
             <msg>
                 <name>22025</name>
                 <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.</text>
@@ -909,6 +915,11 @@ Guide.
             <msg>
                 <name>22030</name>
                 <text>Field position must be greater than zero.</text>
+            </msg>
+
+            <msg>
+                <name>22031</name>
+                <text>Invalid timezone arithmetic operation.</text>
             </msg>
 
 
@@ -1516,6 +1527,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42816</name>
+                <text>A datetime value or duration in an expression is invalid.</text>
+            </msg>
+
+            <msg>
                 <name>42818</name>
                 <text>Comparisons between '{0}' and '{1}' are not supported. Types must be comparable. String types must also have matching collation. If collation does not match, a possible solution is to cast operands to force them to the default collation (e.g. SELECT tablename FROM sys.systables WHERE CAST(tablename AS VARCHAR(128)) = 'T1')</text>
                 <arg>type</arg>
@@ -2104,6 +2120,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42X67</name>
+                <text>Invalid UPDATE statement syntax.</text>
+            </msg>
+
+            <msg>
                 <name>42X68</name>
                 <text>No field '{0}' was found belonging to class '{1}'.  It may be that the field exists, but it is not public, or that the class does not exist or is not public.</text>
                 <arg>fieldName</arg>
@@ -2452,6 +2473,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y06</name>
+                <text>Session parameter CurrentFunctionPath is set with following schemas '{0}', the schema '{1}' does not exist</text>
+                <arg>schemas</arg>
+                <arg>schemaName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y07</name>
                 <text>Schema '{0}' does not exist</text>
                 <arg>schemaNamet</arg>
@@ -2667,7 +2695,11 @@ Guide.
                 <text>Properties list for table '{0}' may contain values for index or for constraint but not both.</text>
                 <arg>tableName</arg>
             </msg>
-
+            <msg>
+                <name>42Y51</name>
+                <text>The hint minPlanTimeout should be non-negative long and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42Y52</name>
                 <text>The hint skipStats needs (true/false) and does not support '{0}'.</text>
@@ -3060,6 +3092,12 @@ Guide.
             <msg>
                 <name>42Z79</name>
                 <text>Unable to determine the parameter type for XMLPARSE; try using a CAST.</text>
+            </msg>
+
+            <msg>
+                <name>42Z89</name>
+                <text>VTI '{0}' does not does not implement compile-time schema</text>
+                <arg>vti</arg>
             </msg>
 
             <msg>
@@ -4970,7 +5008,12 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <msg>
                 <name>XIE14.S</name>
                 <text>Unsupported quote mode: {0}</text>
-                <arg>compression</arg>
+                <arg>quote_mode</arg>
+            </msg>
+            <msg>
+                <name>XIE15.S</name>
+                <text>Unsupported floating point notation: {0}</text>
+                <arg>notation</arg>
             </msg>
         <msg>
                 <name>XIE0S.S</name>

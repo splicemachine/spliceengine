@@ -60,9 +60,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -70,6 +68,7 @@ import java.net.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -106,6 +105,7 @@ public class OlapServerSubmitter implements Runnable {
     private String amKeytabFileName = null;
     private Thread keepAlive;
     private OlapMessage.KeepAlive keepAlivePrototype;
+    private volatile boolean restarted = false;
 
     private Configuration conf;
 
@@ -154,8 +154,9 @@ public class OlapServerSubmitter implements Runnable {
             for (int i = 0; i<maxAttempts; ++i) {
                 try {
                     ApplicationId appId = findApplication(yarnClient);
-                    if (appId == null) {
+                    if (appId == null || restarted) {
                         appId = submitApplication(yarnClient, memory, memoryOverhead, olapPort, cpuCores, sparkYarnQueue, yarnQueue);
+                        restarted = false;
                     }
 
                     String appName = appId.toString();
@@ -199,7 +200,8 @@ public class OlapServerSubmitter implements Runnable {
 
                     ApplicationReport appReport = yarnClient.getApplicationReport(appId);
                     YarnApplicationState appState = appReport.getYarnApplicationState();
-                    while (appState != YarnApplicationState.FINISHED &&
+                    boolean watcherSet = false;
+                    while (!restarted && appState != YarnApplicationState.FINISHED &&
                             appState != YarnApplicationState.KILLED &&
                             appState != YarnApplicationState.FAILED &&
                             !stop) {
@@ -208,6 +210,17 @@ public class OlapServerSubmitter implements Runnable {
                         appState = appReport.getYarnApplicationState();
                         if (!appState.equals(YarnApplicationState.RUNNING)) {
                             reportDiagnostics("YARN state for application is " + appState +". Not enough YARN resources?");
+                        }
+
+                        if (!watcherSet && appState.equals(YarnApplicationState.RUNNING)) {
+                            // Register a watcher for olap server restart
+                            String path = HConfiguration.getConfiguration().getSpliceRootPath()
+                                    + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_RESTART_PATH;
+                            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+
+                            rzk.getData(path, new RestartWatcher(), null);
+                            SpliceLogUtils.info(LOG, "register a restart watcher...");
+                            watcherSet = true;
                         }
                     }
                     reportDiagnostics(appReport.getDiagnostics());
@@ -501,21 +514,6 @@ public class OlapServerSubmitter implements Runnable {
                     }
             );
 
-            // clear leader election znodes
-            try {
-                ZkUtils.recursiveDelete(masterPath + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH + "/" + queueName);
-            } catch (Exception e) {
-                KeeperException ke = null;
-                if (e instanceof KeeperException) {
-                    ke = (KeeperException) e;
-                } else if (e.getCause() instanceof KeeperException) {
-                    ke = (KeeperException) e.getCause();
-                }
-                if (ke != null && ke.code().equals(NONODE)) {
-                    // ignore, it just got deleted
-                }
-                else throw new RuntimeException(e);
-            }
         } catch (Exception e) {
             LOG.error("Couldn't clear OlapServer zookeeper node due to unexpected exception", e);
             throw e;
@@ -746,5 +744,24 @@ public class OlapServerSubmitter implements Runnable {
             qualifiedURI = localURI;
         }
         return new Path(qualifiedURI);
+    }
+
+    class RestartWatcher implements Watcher {
+        @Override
+        public void process(WatchedEvent watchedEvent) {
+            try {
+                if (watchedEvent.getType().equals(Event.EventType.NodeDataChanged)) {
+                    SpliceLogUtils.info(LOG, "Node data has changed");
+                    restarted = true;
+                }
+                // Set the watcher again
+                String root = HConfiguration.getConfiguration().getSpliceRootPath()
+                        + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_RESTART_PATH;
+                RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+                rzk.getData(root, new RestartWatcher(), null);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

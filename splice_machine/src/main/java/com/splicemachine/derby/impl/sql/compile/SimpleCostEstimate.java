@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
@@ -35,7 +36,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private boolean isAntiJoin;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
-    private int numPartitions;
+    private int numPartitions = 1;
     private int parallelism = 1;
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;
@@ -61,6 +62,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private Optimizer optimizer;
     private boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private boolean disablePerParallelTaskJoinCostingSet = false;
+	private FirstColumnOfIndexStats firstColumnStats;
 
     public SimpleCostEstimate(){ }
 
@@ -111,6 +113,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.isAntiJoin = other.isAntiJoin();
         this.localCost = other.localCost();
         this.remoteCost = other.remoteCost();
+        this.firstColumnStats = other.getFirstColumnStats();
         this.numPartitions =other.partitionCount();
         this.parallelism = other.getParallelism();
         this.optimizer = other.getOptimizer();
@@ -251,7 +254,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",parallelism="+getParallelism()+
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
-                ",singleRow="+isSingleRow()+")";
+                ",singleRow="+isSingleRow()+
+                 ",firstColumnStats="+firstColumnStats;
     }
 
     @Override public void setRowCount(double outerRows){
@@ -261,6 +265,14 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
     @Override public void setNumPartitions(int numPartitions){
         this.numPartitions = numPartitions; }
+
+    @Override public void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats) {
+        this.firstColumnStats = firstColumnStats;
+    }
+
+    @Override public FirstColumnOfIndexStats getFirstColumnStats() {
+        return firstColumnStats;
+    }
 
     @Override public void setParallelism(int numparallelTasks) {
         parallelism = numparallelTasks;
@@ -300,7 +312,7 @@ public class SimpleCostEstimate implements CostEstimate{
         return Math.round(numRows);
     }
     @Override public void setEstimatedCost(double cost){ this.localCost = cost; }
-    @Override public void setLocalCost(double remoteCost){ this.localCost = remoteCost; }
+    @Override public void setLocalCost(double localCost){ this.localCost = localCost; }
 
     @Override
     public void setEstimatedRowCount(long count){
@@ -344,6 +356,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
         clone.setDisablePerParallelTaskJoinCostingSet(disablePerParallelTaskJoinCostingSet);
         clone.setOptimizer(optimizer);
+        clone.setFirstColumnStats(firstColumnStats);
         return clone;
     }
 

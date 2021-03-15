@@ -14,27 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
-
-import com.splicemachine.primitives.Bytes;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import scala.Predef;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.*;
 
 public class AlterTableConstantOperationIT extends SpliceUnitTest {
@@ -629,39 +618,45 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         Assert.assertEquals("incorrect count found",count,1);
     }
 
-    private void addColumnNotNullWithDefault(String tableName, String column) throws Exception {
-        methodWatcher.executeUpdate(String.format("alter table %s.%s add column %s not null with default", SCHEMA, tableName, column));
+    private void addColumnNotNullWithDefault(String tableName, String columnName, String columnType, boolean nullable, boolean setDefaultSeparately) throws Exception {
+        if (setDefaultSeparately) {
+            methodWatcher.executeUpdate(String.format("alter table %s.%s add column %s %s %s", SCHEMA, tableName, columnName, columnType, nullable ? "" : "not null"));
+            methodWatcher.executeUpdate(String.format("alter table %s.%s alter column %s set default", SCHEMA, tableName, columnName));
+        } else {
+            methodWatcher.executeUpdate(String.format("alter table %s.%s add column %s %s %s with default", SCHEMA, tableName, columnName, columnType, nullable ? "" : "not null"));
+        }
     }
 
-    private void testAlterAddColumnWithEmptyDefault(boolean insertBeforeAlter, String tableName) throws Exception {
+    private void testAlterAddColumnWithEmptyDefault(boolean insertBeforeAlter, String tableName, boolean nullable, boolean setDefaultSeparately) throws Exception {
+        methodWatcher.executeUpdate(String.format("drop table %s.%s if exists", SCHEMA, tableName));
         methodWatcher.executeUpdate(String.format("create table %s.%s (col int not null)", SCHEMA, tableName));
         if (insertBeforeAlter) {
             methodWatcher.executeUpdate(String.format("insert into %s.%s (col) values 0", SCHEMA, tableName));
         }
-        addColumnNotNullWithDefault(tableName, "a boolean");
-        addColumnNotNullWithDefault(tableName, "b char(5)");
-        addColumnNotNullWithDefault(tableName, "c decimal(15,2)");
-        addColumnNotNullWithDefault(tableName, "d double");
-        addColumnNotNullWithDefault(tableName, "e int");
-        addColumnNotNullWithDefault(tableName, "f bigint");
-        addColumnNotNullWithDefault(tableName, "g long varchar");
-        addColumnNotNullWithDefault(tableName, "h real");
-        addColumnNotNullWithDefault(tableName, "i smallint");
-        addColumnNotNullWithDefault(tableName, "j tinyint");
-        addColumnNotNullWithDefault(tableName, "k varchar(5)");
-        addColumnNotNullWithDefault(tableName, "l float");
-        addColumnNotNullWithDefault(tableName, "m numeric");
-        addColumnNotNullWithDefault(tableName, "n date");
-        addColumnNotNullWithDefault(tableName, "n_fixed date not null");
-        addColumnNotNullWithDefault(tableName, "o time");
-        addColumnNotNullWithDefault(tableName, "o_fixed time not null");
-        addColumnNotNullWithDefault(tableName, "p timestamp");
-        addColumnNotNullWithDefault(tableName, "p_fixed timestamp not null");
-        addColumnNotNullWithDefault(tableName, "q char(5) for bit data");
-        addColumnNotNullWithDefault(tableName, "r long varchar for bit data");
-        addColumnNotNullWithDefault(tableName, "s blob");
-        addColumnNotNullWithDefault(tableName, "t clob");
-        addColumnNotNullWithDefault(tableName, "u varchar(5) for bit data");
+        addColumnNotNullWithDefault(tableName, "a",       "boolean", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "b",       "char(5)", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "c",       "decimal(15,2)", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "d",       "double", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "e",       "int", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "f",       "bigint", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "g",       "long varchar", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "h",       "real", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "i",       "smallint", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "j",       "tinyint", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "k",       "varchar(5)", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "l",       "float", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "m",       "numeric", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "n",       "date", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "n_fixed", "date", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "o",       "time", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "o_fixed", "time", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "p",       "timestamp", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "p_fixed", "timestamp", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "q",       "char(5) for bit data", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "r",       "long varchar for bit data", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "s",       "blob", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "t",       "clob", nullable, setDefaultSeparately);
+        addColumnNotNullWithDefault(tableName, "u",       "varchar(5) for bit data", nullable, setDefaultSeparately);
 
         if (!insertBeforeAlter) {
             methodWatcher.executeUpdate(String.format(
@@ -699,13 +694,19 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     @Test
     public void testAlterAddColumnInEmptyTableWithEmptyDefault() throws Exception {
         String tableName = "test_alter_add_column_in_empty_table_with_empty_default";
-        testAlterAddColumnWithEmptyDefault(false, tableName);
+        testAlterAddColumnWithEmptyDefault(false, tableName, false, false);
     }
 
     @Test
     public void testAlterAddColumnInFilledTableWithEmptyDefault() throws Exception {
         String tableName = "test_alter_add_column_in_filled_table_with_empty_default";
-        testAlterAddColumnWithEmptyDefault(true, tableName);
+        testAlterAddColumnWithEmptyDefault(true, tableName, false, false);
+    }
+
+    @Test
+    public void testAlterAddColumnInEmptyTableThenSetAnEmptyDefault() throws Exception {
+        String tableName = "test_alter_add_column_in_empty_table_then_set_an_empty_default";
+        testAlterAddColumnWithEmptyDefault(false, tableName, true, true);
     }
 
     private void assertSqlFails(String sql, String expectedException, String tableName) {
@@ -720,5 +721,4 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             throw new RuntimeException(e);
         }
     }
-
 }

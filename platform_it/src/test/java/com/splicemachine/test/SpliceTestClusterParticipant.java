@@ -41,6 +41,7 @@ public class SpliceTestClusterParticipant {
     private final String hbaseTargetDirectory;
     private final int memberNumber;
     private final boolean secure;
+    private final String durability;
 
     /**
      * MAIN:
@@ -50,8 +51,12 @@ public class SpliceTestClusterParticipant {
      */
     public static void main(String[] args) throws Exception {
         SpliceTestClusterParticipant spliceTestPlatform;
-        if (args.length == 3) {
-            spliceTestPlatform = new SpliceTestClusterParticipant(args[0], Integer.parseInt(args[1]), Boolean.parseBoolean(args[2]));
+        if (args.length >= 3) {
+            String durability = "ASYNC";
+            if (args.length > 3) {
+                durability = args[3];
+            }
+            spliceTestPlatform = new SpliceTestClusterParticipant(args[0], Integer.parseInt(args[1]), Boolean.parseBoolean(args[2]), durability);
             spliceTestPlatform.start();
         } else {
             System.out.println("usage: SpliceTestClusterParticipant [hbase dir] [member number]");
@@ -59,10 +64,11 @@ public class SpliceTestClusterParticipant {
         }
     }
 
-    public SpliceTestClusterParticipant(String hbaseTargetDirectory, int memberNumber, boolean secure) {
+    public SpliceTestClusterParticipant(String hbaseTargetDirectory, int memberNumber, boolean secure, String durability) {
         this.hbaseTargetDirectory = hbaseTargetDirectory;
         this.memberNumber = memberNumber;
         this.secure = secure;
+        this.durability = durability;
     }
 
     private void start() throws Exception {
@@ -79,7 +85,8 @@ public class SpliceTestClusterParticipant {
                 derbyPort,
                 false,
                 null,
-                secure
+                secure,
+                durability
         );
 
         String keytab = hbaseTargetDirectory+"/splice.keytab";

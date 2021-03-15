@@ -31,12 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -162,7 +159,7 @@ public final class CharTypeCompiler extends BaseTypeCompiler
         /**
          * @see TypeCompiler#getCastToCharWidth
          */
-        public int getCastToCharWidth(DataTypeDescriptor dts)
+        public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
         {
                 return dts.getMaximumWidth();
         }

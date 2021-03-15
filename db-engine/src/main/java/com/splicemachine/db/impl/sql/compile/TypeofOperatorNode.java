@@ -19,7 +19,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
@@ -27,6 +29,8 @@ import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,8 +39,11 @@ import java.util.List;
 @SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TypeofOperatorNode extends UnaryOperatorNode {
 
-    public void init(Object operand) {
-        this.operand = (ValueNode)operand;
+    public TypeofOperatorNode(ValueNode operand, ContextManager cm)
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.TYPEOF_OPERATOR_NODE);
+        this.operands = new ArrayList<>(Collections.singletonList(operand));
     }
 
     /**
@@ -58,7 +65,7 @@ public class TypeofOperatorNode extends UnaryOperatorNode {
     @Override
     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
         {
-            mb.push(operand.getTypeServices().toString());
+            mb.push(getOperand().getTypeServices().toString());
 
             acb.generateDataValue(mb, getTypeCompiler(),
                     getTypeServices().getCollationType(), (LocalField) null);

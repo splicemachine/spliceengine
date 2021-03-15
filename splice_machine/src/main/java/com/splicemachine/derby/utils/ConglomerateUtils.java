@@ -23,8 +23,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.ServiceLoader;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Preconditions;
 
@@ -70,11 +75,27 @@ public class ConglomerateUtils{
      * @return an instance of {@code T} which contains the conglomerate information.
      */
     public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,TxnView txn) throws StandardException{
+
+        try {
+            PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
+            if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+            }
+            else {
+                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+            }
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,TxnView txn, String tableName) throws StandardException{
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
         SIDriver driver=SIDriver.driver();
-        try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.getConglomerateTableNameBytes())){
+        try(Partition partition=driver.getTableFactory().getTable(Bytes.toBytes(tableName))){
             DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
             get.returnAllVersions();
             get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
@@ -211,7 +232,7 @@ public class ConglomerateUtils{
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
+    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,TxnView txn) throws StandardException{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
                 null,null,null,null,
                 -1,null, Conglomerate.Priority.NORMAL);
@@ -224,11 +245,16 @@ public class ConglomerateUtils{
                                           String tableDisplayName,
                                           String indexDisplayName,
                                           byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate), txn,
-                schemaDisplayName, tableDisplayName,indexDisplayName,null,-1,splitKeys, priority);
+        try {
+            createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate), txn,
+                    schemaDisplayName, tableDisplayName,indexDisplayName,null,-1,splitKeys, priority)
+            .get();
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
+        }
     }
 
-    public static void createConglomerate(boolean isExternal, long conglomId,
+    public static Future createConglomerate(boolean isExternal, long conglomId,
                                           Conglomerate conglomerate,
                                           TxnView txn,
                                           String schemaDisplayName,
@@ -238,7 +264,7 @@ public class ConglomerateUtils{
                                           long partitionSize,
                                           byte[][] splitKeys,
                                           Conglomerate.Priority priority) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
+        return createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
                 schemaDisplayName, tableDisplayName,indexDisplayName,catalogVersion,partitionSize, splitKeys, priority);
     }
 
@@ -260,7 +286,7 @@ public class ConglomerateUtils{
      * @param priority
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(
+    public static Future createConglomerate(
             boolean isExternal,
             String tableName,
             long conglomId,
@@ -276,9 +302,9 @@ public class ConglomerateUtils{
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
-        EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
+        Future result = null;
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
                 PartitionCreator partitionCreator = admin.newPartition()
@@ -290,30 +316,45 @@ public class ConglomerateUtils{
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
                 if (splitKeys != null && splitKeys.length > 0)
                     partitionCreator = partitionCreator.withSplitKeys(splitKeys);
-                partitionCreator.create();
+                result = partitionCreator.createAsync();
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
             }
         }
 
-        try(Partition table=tableFactory.getTable(SQLConfiguration.getConglomerateTableNameBytes())){
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        try {
+            PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
+            if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+
+                writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, txn, conglomId, conglomData);
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+
+        return result != null ? result : CompletableFuture.completedFuture(null);
+    }
+
+    private static void writeConglomerateTable(String tableName,
+                                               TxnView txn,
+                                               long conglomId,
+                                               byte[] conglomData) throws StandardException{
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try(Partition table=tableFactory.getTable(Bytes.toBytes(tableName))){
             DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
             BitSet fields=new BitSet();
             fields.set(0);
-            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-            table.put(put);
-        }
-        catch(Exception e){
+            try (EntryEncoder entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null)) {
+                entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                table.put(put);
+            }
+        }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
-        }finally{
-            if(entryEncoder!=null)
-                entryEncoder.close();
         }
-
     }
-
     /**
      * Update a conglomerate.
      *
@@ -321,23 +362,17 @@ public class ConglomerateUtils{
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void updateConglomerate(Conglomerate conglomerate,Txn txn) throws StandardException{
-        String tableName=Long.toString(conglomerate.getContainerid());
-        SpliceLogUtils.debug(LOG,"updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
-        EntryEncoder entryEncoder=null;
-        SIDriver driver=SIDriver.driver();
-        try(Partition table=driver.getTableFactory().getTable(SQLConfiguration.getConglomerateTableNameBytes())){
-            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
-            BitSet setFields=new BitSet();
-            setFields.set(0);
-            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-            table.put(put);
-        }catch(Exception e){
-            SpliceLogUtils.logAndThrow(LOG,"update Conglomerate Failed",Exceptions.parseException(e));
-        }finally{
-            if(entryEncoder!=null)
-                entryEncoder.close();
+        long conglomId = conglomerate.getContainerid();
+        byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
+        SpliceLogUtils.debug(LOG,"updating table {%d} in hbase with serialized data {%s}",conglomId,conglomerate);
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        try {
+            PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
+            if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+                writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, txn, conglomId, conglomData);
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 

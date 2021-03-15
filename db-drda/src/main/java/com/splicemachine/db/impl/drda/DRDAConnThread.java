@@ -4974,6 +4974,7 @@ class DRDAConnThread extends Thread {
                 break;
             }
             case DRDAConstants.DRDA_TYPE_NDECIMAL:
+            case DRDAConstants.DRDA_TYPE_NDECFLOAT:
             {
                 int precision = (paramLenNumBytes >> 8) & 0xff;
                 int scale = paramLenNumBytes & 0xff;
@@ -6323,7 +6324,7 @@ class DRDAConnThread extends Thread {
         // sub-class of SQLWarning.
         if (e instanceof SQLWarning &&
                 !SQLState.LANG_STRING_TRUNCATION.equals(e.getSQLState())) {
-            sqlcode = ExceptionSeverity.WARNING_SEVERITY;
+            sqlcode = e.getErrorCode() != ExceptionSeverity.NO_APPLICABLE_SEVERITY ? e.getErrorCode() : ExceptionSeverity.WARNING_SEVERITY;
         } else {
             // Get the SQLCODE for exceptions. Note that this call will always
             // return -1, so the real error code will be lost.

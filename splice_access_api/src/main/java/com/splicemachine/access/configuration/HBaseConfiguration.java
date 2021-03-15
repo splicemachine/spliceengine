@@ -14,10 +14,9 @@
 
 package com.splicemachine.access.configuration;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.splicemachine.primitives.Bytes;
@@ -85,11 +84,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String OLAP_SERVER_PATH = "/olapServer";
 
     /**
-     * The Path in zookeeper for olap server leader election.
-     */
-    public static final String OLAP_SERVER_LEADER_ELECTION_PATH = "/leaderElection";
-
-    /**
      * The Path in zookeeper for olap server queues.
      */
     public static final String OLAP_SERVER_QUEUE_PATH = "/queues";
@@ -103,6 +97,11 @@ public class HBaseConfiguration implements ConfigurationDefault {
      * The Path in zookeeper for olap server diagnostics.
      */
     public static final String OLAP_SERVER_DIAGNOSTICS_PATH = "/diagnostics";
+
+    /**
+     * The Path in zookeeper for olap server restart.
+     */
+    public static final String OLAP_SERVER_RESTART_PATH = "/restart";
 
     /**
      * The Path in zookeeper for coordinating concurrent HMasters booting up
@@ -133,9 +132,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SERVERS_PATH = "/servers";
 
     /**
-     * Path in ZooKeeper for registering the number or spark nodes
+     * Path in ZooKeeper for registering maxExecutorCores
      */
-    public static final String SPARK_NUM_NODES_PATH = "/sparkNumNodes";
+    public static final String MAX_EXECUTOR_CORES = "/maxExecutorCores";
 
 
     public static final String DDL_PATH="/ddl";
@@ -251,10 +250,27 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final String CONGLOMERATE_SI_TABLE_NAME = "SPLICE_CONGLOMERATE_SI";
+    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
+
+    public static final ImmutableMap<String, String> catalogVersions;
+
+    static {
+        Map<String, String> m = new HashMap<>();
+        m.put(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.SEQUENCE_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.IGNORE_TXN_TABLE_NAME, "2");
+        catalogVersions = ImmutableMap.copyOf(m);
+    }
 
     public static final String[] internalTablesArr = {
-            TRANSACTION_TABLE, TENTATIVE_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME,
-            DROPPED_CONGLOMERATES_TABLE_NAME, MASTER_SNAPSHOTS_TABLE_NAME, REPLICA_REPLICATION_PROGRESS_TABLE_NAME
+            TRANSACTION_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME, CONGLOMERATE_TABLE_NAME,
+            CONGLOMERATE_SI_TABLE_NAME, DROPPED_CONGLOMERATES_TABLE_NAME, MASTER_SNAPSHOTS_TABLE_NAME,
+            REPLICA_REPLICATION_PROGRESS_TABLE_NAME
     };
 
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");

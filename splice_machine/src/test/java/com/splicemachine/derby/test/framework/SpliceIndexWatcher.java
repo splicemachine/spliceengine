@@ -66,7 +66,6 @@ public class SpliceIndexWatcher extends TestWatcher {
 
     @Override
     public void starting(Description description) {
-        LOG.trace("Starting");
         Connection connection = null;
         PreparedStatement statement = null;
         Statement statement2 = null;
@@ -100,7 +99,6 @@ public class SpliceIndexWatcher extends TestWatcher {
     }
     @Override
     public void finished(Description description) {
-        LOG.trace("finished");
 //        executeDrop(SpliceNetConnection.indexSchemaName,indexName);
     }
 
@@ -165,6 +163,10 @@ public class SpliceIndexWatcher extends TestWatcher {
             LOG.error("error Dropping "+e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    public String getIndexName() {
+        return indexName;
     }
 
     public void drop() {

@@ -38,11 +38,13 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -103,6 +105,7 @@ final public class GenericActivationHolder implements Activation
     private final LanguageConnectionContext lcc;
 
     private boolean isSubStatement = false;
+    private boolean isRowTrigger = false;
 
     /**
      * Constructor for an ActivationHolder
@@ -872,8 +875,17 @@ final public class GenericActivationHolder implements Activation
 	public boolean isSubStatement() { return isSubStatement; }
 
 	@Override
-        public void setSubStatement(boolean newValue) {
+    public void setSubStatement(boolean newValue) {
 	    isSubStatement = newValue;
 	    ac.setSubStatement(newValue);
+	}
+
+	@Override
+	public boolean isRowTrigger() { return isRowTrigger; }
+
+	@Override
+    public void setIsRowTrigger(boolean newValue) {
+	    isRowTrigger = newValue;
+	    ac.setIsRowTrigger(newValue);
 	}
 }

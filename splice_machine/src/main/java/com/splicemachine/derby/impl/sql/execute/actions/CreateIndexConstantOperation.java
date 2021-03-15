@@ -49,7 +49,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -876,10 +876,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * so that we can reuse the wrappers during an external
              * sort.
              */
-            conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
+            Conglomerate conglomerate = tc.createConglomerateAsync(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
                     splitKeys, Conglomerate.Priority.NORMAL);
+            conglomerate.awaitCreation();
+            conglomId = conglomerate.getContainerid();
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table
@@ -887,15 +889,17 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 admin.enableTableReplication(Long.toString(conglomId));
             }
 
-            ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
+            try (ConglomerateController indexController = tc.openConglomerate(
+                    conglomId, false, 0,
+                    TransactionController.MODE_TABLE,
+                    TransactionController.ISOLATION_SERIALIZABLE)) {
 
-            // Check to make sure that the conglomerate can be used as an index
-            if ( ! indexController.isKeyed()) {
-                indexController.close();
-                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+                // Check to make sure that the conglomerate can be used as an index
+                if (!indexController.isKeyed()) {
+                    throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName, indexType);
+                }
             }
-            indexController.close();
-            long indexCId=createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
+            createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
             // dump split keys
             if (splitKeys!= null && splitKeys.length > 0) {
                 List<Tuple2<Long, byte[][]>> cutPointsList = Lists.newArrayList();
@@ -948,8 +952,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+            boolean oneLineRecord = false;
+            boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull), true);
+                    null, timeFormat, dateFormat, timestampFormat, oneLineRecord, operationContext,
+                    quotedEmptyIsNull, preserveLineEndings), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

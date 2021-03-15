@@ -161,7 +161,7 @@ check_hbase_ready()
 	for host in ${regionserver_hosts[@]} ; do
 		echo -e "\nWaiting (up to" $timeout "seconds) for Splice Machine startup on ${host}"
 		local count; count=0
-		until ssh -t ${ssh_opts} ${ssh_user}@${host} "grep \"hbase.SpliceDriver: Ready to accept JDBC connections\" /var/log/hbase/*regionserver*"; do 
+		until ssh -t ${ssh_opts} ${ssh_user}@${host} "grep \"Ready to accept JDBC connections\" /var/log/hbase/*regionserver*"; do 
 			echo -e "waited ${count} seconds..."
 			sleep 5
 			count=$(( $count+5 ))

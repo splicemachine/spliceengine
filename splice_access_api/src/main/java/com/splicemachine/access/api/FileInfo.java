@@ -14,6 +14,8 @@
 
 package com.splicemachine.access.api;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 1/11/16
@@ -27,7 +29,7 @@ public interface FileInfo{
     boolean isDirectory();
 
     /** returns true if isDirectory() and (directory is empty or only contains one file _SUCCESS) */
-    boolean isEmptyDirectory();
+    boolean isEmptyDirectory() throws IOException;
 
     /**
      * @return the number of files in the directory, or 1 if this is a file.
@@ -35,7 +37,7 @@ public interface FileInfo{
      * since requiring a full recursive listdir
      * If just need to check for empty directory, use {@link #isEmptyDirectory()}
      */
-    long fileCount();
+    long recursiveFileCount() throws IOException;
 
 
     /**
@@ -43,33 +45,37 @@ public interface FileInfo{
      * Depends on the file system. For HDFS, this would return
      * not the current size of the file but rather
      * current size * replication factor. For a local system,
-     * it would return the same value as {@link #size()},
+     * it would return the same value as {@link #recursiveSize()},
      * the actual current size of the file.
      * Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
      */
-    long spaceConsumed();
+    long spaceConsumed() throws IOException;
 
     /**
      * list recursively all files
      */
-    FileInfo[] listRecursive();
+    FileInfo[] listFilesRecursive();
+    FileInfo[] listDir() throws IOException;
 
     /**
      *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
      */
-    long size();
+    long recursiveSize() throws IOException;
 
     boolean isReadable();
 
     String getUser();
-
     String getGroup();
 
     boolean isWritable();
 
-    String toSummary();
+    String toSummary() throws IOException;
 
     boolean exists();
+
+    String getPermissionStr() throws IOException;
+    long getModificationTime();
+    long size() throws IOException;
 }

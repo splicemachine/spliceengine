@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 
@@ -51,11 +53,13 @@ public class TimeSpanNode extends ValueNode
     private int unit;
     private ValueNode value;
 
-    public void init(
+    public TimeSpanNode(
             Object value,
-            Object unit)
+            Object unit, ContextManager cm)
             throws StandardException
     {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.TIME_SPAN_NODE);
         this.unit = (int) unit;
         this.value = (ValueNode) value;
         switch (this.unit) {

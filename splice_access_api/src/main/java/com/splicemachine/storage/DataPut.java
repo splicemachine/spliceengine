@@ -14,6 +14,9 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.Durability;
+import com.splicemachine.access.configuration.SIConfigurations;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -38,5 +41,5 @@ public interface DataPut extends DataMutation{
 
     void addCell(DataCell kv);
 
-    void skipWAL();
+    void setDurability(Durability durability);
 }
