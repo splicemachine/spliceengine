@@ -340,6 +340,23 @@ public class SelectivityIT extends SpliceUnitTest {
         spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T5', false)",
                 spliceSchemaWatcher.schemaName));
+
+        new TableCreator(conn)
+                .withCreate("create table t6 (a6 int, b6 int)")
+                .withInsert("insert into t6 values(?, ?)")
+                .create();
+
+        for (int i = 1; i <= 20; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t6 values(%1$d, %1$d)", i));
+        }
+        for (int i = 0; i < 80; i++) {
+            spliceClassWatcher.executeUpdate("insert into t6 values(0, 21)");
+        }
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T6', false)",
+                spliceSchemaWatcher.schemaName));
+
         conn.commit();
     }
 
@@ -854,6 +871,26 @@ public class SelectivityIT extends SpliceUnitTest {
                                               "and a.a = c.a and a.a = d.a and a.a = e.a " +
                                               "and b.a = d.a and b.a = e.a and c.a = e.a","outputRows=10,",methodWatcher);
 
+    }
+
+    @Test
+    public void testSkewedNotEqualValueFallIntoRange() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 < 3 and a6 <> 0", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 2, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 <> 0 and a6 <= 2", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 2, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where b6 > 15 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 5, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where b6 >= 15 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 6, rowCount, 0.0);
+
+        // same as before because we cannot assume any relations between values in column a6 and b6
+        // 0.2 * sqrt(0.2) = 0.89
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 >= 0 and b6 <= 21 and a6 <> 0 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 9, rowCount, 0.0);
     }
 
 }
