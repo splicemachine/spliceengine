@@ -1493,9 +1493,9 @@ public class BinaryRelationalOperatorNode
              *    the selectivity of this predicate on optTable, i.e., inner table of the join. We should use only
              *    the side that matches optTable.
              */
-            boolean leftFromBaseTable = leftOperand.getTableNumber() == optTable.getTableNumber() &&
+            boolean leftFromBaseTable = getLeftOperand().getTableNumber() == optTable.getTableNumber() &&
                     cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
-            boolean rightFromBaseTable = rightOperand.getTableNumber() == optTable.getTableNumber() &&
+            boolean rightFromBaseTable = getRightOperand().getTableNumber() == optTable.getTableNumber() &&
                     cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             if (leftFromBaseTable && rightFromBaseTable) {
                 return Math.max(((ColumnReference) getLeftOperand()).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) getRightOperand()).columnReferenceEqualityPredicateSelectivity());
