@@ -423,4 +423,10 @@ public interface Optimizer{
     int getJoinPosition();
 
     default boolean isMemPlatform() { return false; };
+
+    CostEstimate getNewCostEstimate(double theCost, double theRowCount, double theSingleScanRowCount);
+
+    OptimizablePredicateList getPredicateList();
+
+    Optimizable getOuterTable();
 }

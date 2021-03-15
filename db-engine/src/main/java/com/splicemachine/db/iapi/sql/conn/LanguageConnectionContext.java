@@ -1573,4 +1573,14 @@ public interface LanguageConnectionContext extends Context {
      * @note this method has side effects.
      */
     PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
+
+    /**
+     * Get value of session-hinted joinStrategy
+     * @return value of joinStrategy
+     */
+    String getHintedJoinStrategy();
+
+    boolean isInUnionedIndexScan();
+
+    void setInUnionedIndexScan(boolean inUnionedIndexScan);
 }

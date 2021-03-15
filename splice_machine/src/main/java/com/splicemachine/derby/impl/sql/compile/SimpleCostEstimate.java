@@ -98,6 +98,7 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public void setCost(double cost,double rowCount,double singleScanRowCount,int numPartitions,int parallelism){
         this.localCost = cost;
+        this.remoteCost = 0.0d;
         this.numRows = rowCount > 1 ? rowCount : 1;
         this.singleScanRowCount = singleScanRowCount;
         this.numPartitions = numPartitions;

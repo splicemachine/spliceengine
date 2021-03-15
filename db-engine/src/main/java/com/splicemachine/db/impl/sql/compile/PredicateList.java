@@ -714,6 +714,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
         }
+        if (relop instanceof BinaryRelationalOperatorNode) {
+            BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+            if (brelop.hasRowId()) {
+                pred.markRowId();
+                return -1;
+            }
+        }
         /*
         ** Skip over it if there is no index column on one side of the
         ** operand.
@@ -727,13 +734,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
              * restrictions.  That "revert" operation happens in
              * the generateExpression() method of BinaryOperatorNode.
              */
-            if (relop instanceof BinaryRelationalOperatorNode) {
-                BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
-                if (brelop.hasRowId()) {
-                    pred.markRowId();
-                    return -1;
-                }
-            }
             return null;
         }
         return indexPosition;
@@ -909,6 +909,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                        boolean considerJoinPredicateAsKey,
                                        boolean rewriteList) throws StandardException{
 
+        // Remove the predicate which enabled unioned index scan so
+        // it is not applied a second time.
+        if (pushPreds) {
+            Predicate uisPredicate = accessPath.getUisPredicate();
+            if (uisPredicate != null)
+                removeOptPredicate(uisPredicate);
+            accessPath.setUisPredicate(null);
+        }
+
         ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
         boolean primaryKey=false;
         int[] baseColumnPositions=null;
@@ -923,6 +932,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int varcharRangeKeyPos = Integer.MAX_VALUE;
         if (getLanguageConnectionContext().isPredicateUsageForIndexOrPkAccessDisabled())
             return;
+
         // If pushPreds or rewriteList is true, the accessPath is trulyTheBestAccessPath
         // and tells us whether IndexPrefixIteratorMode was picked during
         // costing.  Repeat the same decision when pushing predicates.
@@ -973,6 +983,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ** if the row still qualifies (there is a new method in ScanController
         ** for this.
         */
+        Predicate[] preds = null;
 
         /* Is a heap scan or a non-matching index scan on a covering index? */
         if(!rowIdScan && ((cd==null) || (!cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan))){
@@ -992,7 +1003,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             ** delete while looping and then delete them
             ** in reverse order after completing the loop.
             */
-            Predicate[] preds=new Predicate[size];
+            preds=new Predicate[size];
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
 
@@ -1075,6 +1086,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         TreeMap<Integer, Predicate> inlistPreds = new TreeMap<>();
         List<Predicate> predicates=new ArrayList<>();
+        int k = 0;
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
 
@@ -1565,6 +1577,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
              * otherwise we may match on (2, 0, 3).
              */
             if((!isIn) &&    // store can never treat "in" as qualifier
+               !thisPred.isRowId()  &&
                     ((!thisPredMarked) || (seenNonEquals && thisIndexPosition!=firstNonEqualsPosition))){
                 thisPred.markQualifier();
             }
@@ -3843,13 +3856,18 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             //     2nd OR predicate -> qual[2][0.. number of OR terms]
             //     ...
             //
-            int and_idx=1;
+            int and_idx=0;
 
             // The remaining qualifiers must all be OR predicates, which
             // are pushed slightly differently than the leading AND qualifiers.
 
-            for(int index=qualNum;index<size;index++,and_idx++){
+            for(int index=qualNum;index<size;index++){
                 Predicate pred=elementAt(index);
+
+                if (!pred.isQualifier())
+                    continue;
+
+                and_idx++;
 
                 if(SanityManager.DEBUG){
                     SanityManager.ASSERT(pred.isOrList());
@@ -5029,5 +5047,33 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
         return result;
     }
+
+    public OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath) throws StandardException {  // msirek-temp
+        if (size() == 0)
+            return null;
+        for (int i = 0; i < size(); i++) {
+            OptimizablePredicate pred = getOptPredicate(i);
+            if (pred.isIndexEnablingORedPredicate(optTable, accessPath))
+                return pred;
+        }
+        return null;
+    }
+
+    public OptimizablePredicateList convertToDNF() {
+        if (size() != 1)
+            return null;
+        Predicate pred = (Predicate) getOptPredicate(0);
+        AndNode andNode = pred.getAndNode();
+        if (andNode == null)
+            return null;
+        else {
+
+        }
+        return null;
+    }
+
+//    private OperatorNode processOperator(OperatorNode op) {
+//
+//    }  // msirek-temp
 
 }

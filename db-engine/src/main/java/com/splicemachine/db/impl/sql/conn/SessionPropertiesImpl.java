@@ -132,6 +132,18 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean favorIndexPrefixIteration = Boolean.parseBoolean(valString);
                 properties[FAVORINDEXPREFIXITERATION.getId()] = favorIndexPrefixIteration;
                 break;
+            case JOINSTRATEGY:
+                String joinStrategy = StringUtil.SQLToUpperCase(valString);
+                switch (joinStrategy) {
+                    case "CROSS":
+                    case "NESTEDLOOP":
+                    case "MERGE":
+                    case "SORTMERGE":
+                    case "BROADCAST":
+                        properties[JOINSTRATEGY.getId()] = joinStrategy;
+                        break;
+                }
+                break;
             default:
                 assert false;
         }

@@ -366,4 +366,8 @@ public class VirtualColumnNode extends ValueNode
     public int getColumnId() {
         return columnId;
     }
+
+    public boolean immutable() {
+        return (getSourceResultSet() != null && getSourceResultSet().skipBindAndOptimize);
+    }
 }

@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -50,6 +51,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
@@ -57,6 +59,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 import static java.lang.String.format;
 
 /**
@@ -703,7 +706,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * be non-empty.  Multiple calls to modify the access path can
          * occur when there is a non-flattenable FromSubquery (or view).
          */
-        if(accessPathModified){
+        if(accessPathModified || skipBindAndOptimize){ // msirek-temp
             return this;
         }
 
@@ -1122,6 +1125,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         childResult=childResult.preprocess(numTables,gbl,fromList);
 
         /* Build the referenced table map */
@@ -1729,8 +1734,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(cloneMapItem);
         mb.push(resultColumns.reusableResult());
         mb.push(doesProjection);
-        mb.push(costEstimate.rowCount());
-        mb.push(costEstimate.getEstimatedCost());
+        mb.push(getCostEstimate().rowCount());
+        mb.push(getCostEstimate().getEstimatedCost());
         mb.push(printExplainInformationForActivation());
 
         String filterPred = OperatorToString.opToSparkString(restriction);
@@ -2022,8 +2027,32 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return childResult.makeConstantAction();
     }
 
+    private void assignResultSetNumber(int resultSetNumber,
+                                       ResultSetNode replacementResultSet) throws StandardException{
+        // only set if currently unset
+        if(this.resultSetNumber==-1){
+            // this.resultSetNumber=resultSetNumber;  // msirek-temp
+            setChildResult(replacementResultSet);
+            ResultColumnList replacementResultColumns = replacementResultSet.getResultColumns();
+            this.resultSetNumber = getCompilerContext().getNextResultSetNumber();
+            resultColumns.setResultSetNumber(resultSetNumber);
+//            if (replacementResultColumns.size() != resultColumns.size())
+//                throw StandardException.newException(LANG_INTERNAL_ERROR,
+//                     "Incorrectly built result columns for unioned index scan.");  // msirek-temp
+
+            updateResultColumnExpressions(replacementResultColumns);
+        }
+    }
+
     @Override
     public void assignResultSetNumber() throws StandardException{
+//        if (childResult instanceof FromBaseTable) {
+//            FromBaseTable baseTable = (FromBaseTable) childResult;
+//            baseTable.setUnionIndexScanResultSetNumber();
+//            int uisResultSetNumber = baseTable.getUnionIndexScanResultSetNumber();
+//            if (uisResultSetNumber >= 1)
+//                assignResultSetNumber(uisResultSetNumber, baseTable.getUnionIndexScanResultSet());
+//        }  // msirek-temp
         super.assignResultSetNumber();
 
         /* Set the point of attachment in all subqueries attached
@@ -2056,16 +2085,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(")");
         return sb.toString();
     }
-    @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
         if (!nopProjectRestrict()) {
-            setDepth(depth);
-            tree.add(this);
+            addNodeToExplainTree(tree, this, depth);
+//            if (skipExplainOfChildNodes())
+//                return;  // msirek-temp
+
             // look for subqueries in projection and restrictions, print if any
             for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
                 sub.buildTree(tree,depth+1);
 
             childResult.buildTree(tree, depth+1);
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            if (lcc.isInUnionedIndexScan())
+                setSkipExplainOfChildNodes(true);
         }
         else {
             childResult.buildTree(tree, depth);
@@ -2164,5 +2197,23 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             return false;
         FromTable child = (FromTable) childResult;
         return child.isTargetTable();
+    }
+
+    public void setSkipBindAndOptimize(boolean skipBindAndOptimize) {
+        this.skipBindAndOptimize = skipBindAndOptimize;
+    }
+
+    @Override
+    public String getExposedName() throws StandardException {
+        return correlationName;
+    }
+
+    @Override
+    protected void recordUisAccessPath(AccessPath ap) {
+        super.recordUisAccessPath(ap);
+        if (childResult instanceof FromTable) {
+            FromTable childFromTable = (FromTable)childResult;
+            childFromTable.recordUisAccessPath(ap);
+        }
     }
 }

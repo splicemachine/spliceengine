@@ -36,7 +36,11 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
+
+import java.util.List;
 
 /**
  * OptimizablePredicateList provides services for optimizing a table in a query.
@@ -388,4 +392,25 @@ public interface OptimizablePredicateList {
 	 * @return
 	 */
 	void countScanFlags();
+
+	/**
+	 *
+	 * Test if this predicate list contains a potential unioned index scan access path,
+	 * and return the predicate which enables that scan.
+	 * If accessPath is non-null, only test the index or primary key specified, otherwise
+	 * test each conglomerate defined for the base table.
+	 *
+	 * @return
+	 */
+	OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath) throws StandardException;
+
+	/**
+	 *
+	 * Convert a predicate list to Disjunctive Normal Form.
+	 *
+	 * @return The predicate list is DNF form, or null if conversion
+	 *         was not possible or exceeded the node conversion limit.
+	 */
+	OptimizablePredicateList convertToDNF();  // msirek-temp
+
 }

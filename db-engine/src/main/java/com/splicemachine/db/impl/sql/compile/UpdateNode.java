@@ -581,6 +581,7 @@ public final class UpdateNode extends DMLModStatementNode
             rowLocationNode = (ValueNode) getNodeFactory().getNode(
                                         C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
                                         getContextManager());
+            rowLocationNode.bindExpression(null, null, null);
         }
         else
         {
