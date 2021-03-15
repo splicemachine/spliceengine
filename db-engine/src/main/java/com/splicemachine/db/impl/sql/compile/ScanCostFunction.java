@@ -759,6 +759,15 @@ public class ScanCostFunction{
                 columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
+                for(SelectivityHolder sh: columnHolder){
+                    if (sh.isRangeSelectivity()) {
+                        RangeSelectivity rq = (RangeSelectivity) sh;
+                        boolean combined = combineNEAndRange(scc, value, rq, forIndexExpr, colNum);
+                        if (combined) {
+                            break OP_SWITCH;
+                        }
+                    }
+                }
                 columnHolder.add(new NotEqualsSelectivity(scc, forIndexExpr, colNum, phase, value, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
@@ -778,7 +787,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -791,7 +800,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -804,7 +813,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc, null, value, true, true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -817,11 +826,65 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc, null, value, true, false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");
          }
         return true;
+    }
+
+    /* Handle cases where NE value falls into a range as a boundary value and this boundary value is highly skewed.
+     * Example:
+     * A column that has values [0, 0, 0, ...(80 0s), 1, 2, 3, ... , 20]. Among 100 values, there are 80 zeros.
+     * Consider predicates "COL < 3 AND COL <> 0" and we don't combine NE and range predicates.
+     * sel(COL <> 0) = 0.2, sel(COL < 3) = 0.82, sel_total = 0.2 * sqrt(0.82) = 0.18.
+     * Actually, if NE value is highly skewed, other predicates do not matter that much because the NE predicate is
+     * too selective and dominates the estimation. Suppose it's (COL <> 0 AND COL < 18), we see that total
+     * selectivity is 0.198 and it's not a big difference to 0.18. However, the former case returns 2 rows, while
+     * the latter returns 17 rows. In reality, this could be a big difference in the number of estimated rows.
+     *
+     * Note that in case of open ranges (start / stop == null), this procedure could under estimates when statistics
+     * are outdated over time when min/max are different.
+     */
+    private boolean combineNEAndRange(StoreCostController scc, DataValueDescriptor neValue, RangeSelectivity rsHolder,
+                                      boolean forIndexExpr, int colNum) throws StandardException {
+        boolean combined = false;
+        if (rsHolder.includeStart) {
+            if (rsHolder.start != null && neValue.compare(rsHolder.start) == 0) {
+                rsHolder.includeStart = false;
+                combined = true;
+            } else if (rsHolder.start == null && neValue.compare(scc.minValue(forIndexExpr, colNum)) == 0) {
+                rsHolder.start = neValue;
+                rsHolder.includeStart = false;
+                combined = true;
+            }
+        }
+        if (rsHolder.includeStop) {
+            if (rsHolder.stop != null && neValue.compare(rsHolder.stop) == 0) {
+                rsHolder.includeStop = false;
+                combined = true;
+            } else if (rsHolder.stop == null && neValue.compare(scc.maxValue(forIndexExpr, colNum)) == 0) {
+                rsHolder.stop = neValue;
+                rsHolder.includeStop = false;
+                combined = true;
+            }
+        }
+        return combined;
+    }
+
+    private void combineNEAndRange(List<SelectivityHolder> columnHolders, RangeSelectivity rsHolder) throws StandardException {
+        List<SelectivityHolder> toRemove = new ArrayList<>();
+        for (SelectivityHolder sh : columnHolders) {
+            if (sh instanceof NotEqualsSelectivity) {
+                NotEqualsSelectivity neq = (NotEqualsSelectivity) sh;
+                boolean combined = combineNEAndRange(scc, neq.value, rsHolder, rsHolder.useExprIndexStats, rsHolder.colNum);
+                if (combined) {
+                    toRemove.add(sh);
+                }
+            }
+        }
+        columnHolders.removeAll(toRemove);
+        columnHolders.add(rsHolder);
     }
 }
