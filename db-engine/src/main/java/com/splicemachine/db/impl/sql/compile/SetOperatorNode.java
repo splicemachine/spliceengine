@@ -580,6 +580,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam)
                     throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
@@ -592,6 +594,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
             throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam, bindRightOnly);
 
         /* Now we build our RCL */

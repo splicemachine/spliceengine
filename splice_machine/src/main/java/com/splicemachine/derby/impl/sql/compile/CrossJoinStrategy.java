@@ -193,6 +193,11 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (innerTable.indexFriendlyJoinsOnly())
+            return false;
+
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
 
         // cross join strategy cannot be applied to the very left table as it is not a join but just a scan
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d)) {

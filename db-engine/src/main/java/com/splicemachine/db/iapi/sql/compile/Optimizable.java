@@ -470,4 +470,21 @@ public interface Optimizable {
      * the first index column.
      */
     default boolean indexPrefixIteratorAllowed(AccessPath accessPath) { return false; }
+
+    /**
+     * If true, this optimizable must be the outer table of a join, and
+     * join plans which use it as the inner table will not be feasible.
+     * For a given binary join, the optimizer will only select an optimizable
+     * marked as outerTableOnly as the outer table of the join.
+     */
+    default boolean outerTableOnly() { return false; }
+
+    /**
+     * If true, when this optimizable is joined as the inner table,
+     * only index-friendly join strategies may be used:
+     *     Merge join or Nested Loop join.
+     * Index friendly means that join predicates involving primary
+     * key or index column can be used to limit the scan.
+     */
+    default boolean indexFriendlyJoinsOnly() { return false; }
 }

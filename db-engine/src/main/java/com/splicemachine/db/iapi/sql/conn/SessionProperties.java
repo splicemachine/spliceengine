@@ -60,7 +60,8 @@ public interface SessionProperties {
         DISABLEPREDSFORINDEXORPKACCESSPATH(16),
         ALWAYSALLOWINDEXPREFIXITERATION(17),
         OLAPALWAYSPENALIZENLJ(18),
-        FAVORINDEXPREFIXITERATION(19);
+        FAVORINDEXPREFIXITERATION(19),
+        JOINSTRATEGY(20);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -94,7 +95,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration, joinStrategy");
         }
 
         String valString = pair.getSecond();

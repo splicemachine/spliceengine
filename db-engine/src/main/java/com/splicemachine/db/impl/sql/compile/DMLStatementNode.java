@@ -43,6 +43,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Predicates;
 
 import java.util.*;
@@ -231,6 +232,7 @@ public abstract class DMLStatementNode extends StatementNode {
 
         if (shouldRunSpark(resultSet)) {
             cnv = new CollectNodesVisitor(FromTable.class);
+            cnv.skipBranchesAlreadyBoundAndOptimized();
             resultSet.accept(cnv);
             for (Object obj : cnv.getList()) {
                 FromTable ft = (FromTable) obj;
@@ -514,9 +516,8 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
         if (resultSet != null)
             resultSet.buildTree(tree, depth + 1);
     }

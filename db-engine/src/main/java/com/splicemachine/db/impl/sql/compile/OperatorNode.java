@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -500,5 +501,15 @@ public abstract class OperatorNode extends ValueNode
             mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.StringDataValue,
                     "setIgnoreTrailingWhitespacesInVarcharComparison", "void", 1);
         }
+    }
+
+    public void copy(OperatorNode other) throws StandardException
+    {
+        super.copy(other);
+        this.operator = other.operator;
+        this.methodName = other.methodName;
+        this.operands = new ArrayList<>(other.operands);
+        this.interfaceTypes = new ArrayList<>(other.interfaceTypes);
+        this.resultInterfaceType = other.resultInterfaceType;
     }
 }

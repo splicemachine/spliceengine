@@ -2223,5 +2223,26 @@ public class ResultColumn extends ValueNode
         }
         return this;
     }
+
+    private static boolean immutableVirtualColumn(ResultColumn rc) {
+        if (rc == null)
+            return false;
+        if (rc.getExpression() instanceof VirtualColumnNode) {
+            VirtualColumnNode vc = (VirtualColumnNode)rc.getExpression();
+            return vc.immutable();
+        }
+        return false;
+    }
+
+    public boolean sourceResultSetForbidsColumnRemoval() {
+        if (immutableVirtualColumn(this))
+            return true;
+        if (!(getExpression() instanceof ColumnReference))
+            return false;
+        ColumnReference columnReference = (ColumnReference)getExpression();
+        if (columnReference.getSource() instanceof ResultColumn)
+            return immutableVirtualColumn(columnReference.getSource());
+        return false;
+    }
 }
 

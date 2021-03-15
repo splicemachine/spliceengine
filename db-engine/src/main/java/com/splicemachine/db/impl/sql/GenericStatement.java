@@ -76,6 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_DERIVED_CNF_PREDICATES_MAX_VALUE;
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
 import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
@@ -484,6 +485,7 @@ public class GenericStatement implements Statement{
         setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
         setProjectionPruningEnabled(lcc, cc);
         setMaxMulticolumnProbeValues(lcc, cc);
+        setMaxDerivedCNFPredicates(lcc, cc);
         setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
         setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
         setDisablePredicateSimplification(lcc, cc);
@@ -491,6 +493,9 @@ public class GenericStatement implements Statement{
         setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
         setNewMergeJoin(lcc, cc);
         setDisableParallelTaskJoinCosting(lcc, cc);
+        setDisablePrefixIteratorMode(lcc, cc);
+        setDisableUnionedIndexScans(lcc, cc);
+        setfavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
@@ -597,6 +602,24 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    }
+
+    private void setMaxDerivedCNFPredicates(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        // User can specify the max length of multicolumn IN list the optimizer may build for
+        // use as a probe predicate.  Single-column IN lists can be combined up until the point
+        // where adding in the next IN predicate would push us over the limit.
+        String maxDerivedCNFPredicatesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_DERIVED_CNF_PREDICATES);
+        int maxDerivedCNFPredicates = CompilerContext.DEFAULT_MAX_DERIVED_CNF_PREDICATES;
+        try {
+            if (maxDerivedCNFPredicatesString != null)
+                maxDerivedCNFPredicates = Integer.parseInt(maxDerivedCNFPredicatesString);
+        } catch (Exception e) {
+            // If the property value failed to convert to an int, don't throw an error,
+            // just use the default setting.
+        }
+        if (maxDerivedCNFPredicates > MAX_DERIVED_CNF_PREDICATES_MAX_VALUE)
+            maxDerivedCNFPredicates = MAX_DERIVED_CNF_PREDICATES_MAX_VALUE;
+        cc.setMaxDerivedCNFPredicates(maxDerivedCNFPredicates);
     }
 
     private void setMaxMulticolumnProbeValues(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -736,6 +759,36 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
+    private void setDisableUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disableUnionedIndexScansString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_UNIONED_INDEX_SCANS);
+        boolean disableUnionedIndexScans = CompilerContext.DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
+        try {
+            if (disableUnionedIndexScansString != null)
+                disableUnionedIndexScans =
+                Boolean.parseBoolean(disableUnionedIndexScansString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisableUnionedIndexScans(disableUnionedIndexScans);
+    }
+
+    private void setfavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String favorUnionedIndexScansString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.FAVOR_UNIONED_INDEX_SCANS);
+        boolean favorUnionedIndexScans = CompilerContext.DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
+        try {
+            if (favorUnionedIndexScansString != null)
+                favorUnionedIndexScans =
+                Boolean.parseBoolean(favorUnionedIndexScansString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setFavorUnionedIndexScans(favorUnionedIndexScans);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

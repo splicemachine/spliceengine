@@ -368,6 +368,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
+    private boolean inUnionedIndexScan;
 
     /* constructor */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
@@ -488,6 +489,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
             setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_JOIN_STRATEGY, SessionProperties.PROPERTYNAME.JOINSTRATEGY);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -4272,5 +4274,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public long getActiveStateTxId() {
         return activeStateTxId;
     }
+
+    @Override
+    public String getHintedJoinStrategy() {
+        return (String) sessionProperties.getProperty(
+            SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+    }
+
+    @Override
+    public boolean isInUnionedIndexScan() {
+        return inUnionedIndexScan;
+    }
+
+    @Override
+    public void setInUnionedIndexScan(boolean inUnionedIndexScan) {
+        this.inUnionedIndexScan = inUnionedIndexScan;
+    }
+
 
 }

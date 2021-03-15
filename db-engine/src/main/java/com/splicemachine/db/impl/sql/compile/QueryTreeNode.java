@@ -69,6 +69,8 @@ import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.base.Strings;
 
@@ -120,6 +122,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     private ContextManager cm;
     private LanguageConnectionContext lcc;
     private GenericConstantActionFactory constantActionFactory;
+    private boolean skipExplainOfChildNodes;
 
     /**
      * Format a node that has been converted to a String for printing
@@ -1746,7 +1749,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         throw StandardException.newException(sqlState,fragmentType);
     }
 
-    protected void setDepth(int depth) {
+    public void setDepth(int depth) {
         this.depth = depth;
     }
 
@@ -1768,9 +1771,8 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
     private static final String spaces="  ";
 
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
     }
 
     public String printExplainInformation(boolean printHeader, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
@@ -2100,5 +2102,57 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
     protected void addSPSPropertyDependency(final Node node) throws StandardException {
         SPSPropertyRegistry.checkAndAddDependency(node, getCompilerContext());
+    }
+
+    /**
+     * Return whether or not this expression tree is cloneable.
+     *
+     * @return boolean    Whether or not this expression tree is cloneable.
+     */
+    public boolean isCloneable()
+    {
+        return false;
+    }
+
+    /**
+     * Return a clone of this node.
+     *
+     * @return ValueNode    A clone of this node.
+     *
+     * @exception StandardException            Thrown on error
+     */
+    public ValueNode getClone() throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(false,
+                "getClone() not expected to be called for " +
+                getClass().getName());
+        }
+        return null;
+    }
+
+    public void copy(OperatorNode other) throws StandardException
+    {
+        // this.depth = other.depth;  // msirek-temp
+        this.isPrivilegeCollectionRequired = other.isPrivilegeCollectionRequired;
+        this.beginOffset = other.getBeginOffset();
+        this.endOffset = other.getEndOffset();
+        this.nodeType = other.getNodeType();
+        this.cm = other.getContextManager();
+        this.lcc = other.getLanguageConnectionContext();
+        this.constantActionFactory = other.getGenericConstantActionFactory();
+    }
+
+    public boolean skipExplainOfChildNodes() {
+        return skipExplainOfChildNodes;
+    }
+
+    public void setSkipExplainOfChildNodes (boolean skipExplainOfChildNodes) {
+        this.skipExplainOfChildNodes = skipExplainOfChildNodes;
+    }
+
+    protected void addNodeToExplainTree(Collection<Pair<QueryTreeNode,Integer>> tree, QueryTreeNode node, int depth) {
+        tree.add(new ImmutablePair<QueryTreeNode, Integer>(node, depth));
     }
 }

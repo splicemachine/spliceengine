@@ -177,6 +177,8 @@ public interface CompilerContext extends Context
     int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int DEFAULT_MAX_DERIVED_CNF_PREDICATES = 100;
+    int MAX_DERIVED_CNF_PREDICATES_MAX_VALUE = 10000;
     int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 5000;
     int MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE = 15000;
     boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
@@ -193,7 +195,9 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
-    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
+    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION = false;
+    boolean DEFAULT_DISABLE_UNIONED_INDEX_SCANS = false;
+    boolean DEFAULT_FAVOR_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
@@ -701,6 +705,10 @@ public interface CompilerContext extends Context
 
     void setProjectionPruningEnabled(boolean onOff);
 
+    int getMaxDerivedCNFPredicates();
+
+    void setMaxDerivedCNFPredicates(int newValue);
+
     int getMaxMulticolumnProbeValues();
 
     void setMaxMulticolumnProbeValues(int newValue);
@@ -772,6 +780,14 @@ public interface CompilerContext extends Context
     void setDisablePrefixIteratorMode(boolean newValue);
 
     boolean getDisablePrefixIteratorMode();
+
+    void setDisableUnionedIndexScans(boolean newValue);
+
+    boolean getDisableUnionedIndexScans();
+
+    void setFavorUnionedIndexScans(boolean newValue);
+
+    boolean getFavorUnionedIndexScans();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 

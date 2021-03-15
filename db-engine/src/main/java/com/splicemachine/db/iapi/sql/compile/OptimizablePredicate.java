@@ -37,7 +37,10 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+
+import java.util.List;
 
 /**
  * OptimizablePredicate provides services for optimizing predicates in a query.
@@ -83,6 +86,9 @@ public interface OptimizablePredicate
 
 	/** Is this predicate a stop key? */
 	boolean isStopKey();
+
+	/** Is this predicate a start or stop key? */
+	boolean isKey();
 
 	/**
 	 * Tell the predicate that it is to be used as a qualifier in an index
@@ -189,4 +195,8 @@ public interface OptimizablePredicate
 	void markFullJoinPredicate(boolean isForFullJoin);
 
 	boolean isFullJoinPredicate();
+
+	boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath) throws StandardException;
+
+	List<OptimizablePredicateList> separateOredPredicates() throws StandardException;
 }

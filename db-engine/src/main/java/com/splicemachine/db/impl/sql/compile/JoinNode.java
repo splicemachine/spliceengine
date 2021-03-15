@@ -190,6 +190,8 @@ public class JoinNode extends TableOperatorNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
+        if (skipBindAndOptimize)
+            return costEstimate;
         optimizer.tracer().trace(OptimizerFlag.CALLING_ON_JOIN_NODE,0,0,0.0,null);
 
         // It's possible that a call to optimize the left/right will cause
@@ -534,6 +536,14 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
+        if (skipBindAndOptimize) {
+            if (getTableName() != null &&
+                getTableName().getTableName() != null &&
+                getTableName().getTableName().equals(columnReference.getTableName()))
+                return resultColumns.getResultColumn(columnReference.getColumnName(), true);
+            else
+                return null;
+        }
         /* Get the logical left and right sides of the join.
          * (For RIGHT OUTER JOIN, the left is the right
          * and the right is the left and the JOIN is the NIOJ).
@@ -627,6 +637,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindExpressions(fromListParam);
 
         // Now that both the left and the right side of the join have been
@@ -648,6 +660,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public void bindResultColumns(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         /* Now we build our RCL */
@@ -696,6 +710,8 @@ public class JoinNode extends TableOperatorNode{
                                   ResultColumnList targetColumnList,
                                   DMLStatementNode statement,
                                   FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(targetTableDescriptor,targetVTI,targetColumnList,statement,fromListParam);
 
         /* Now we build our RCL */
@@ -737,6 +753,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList);
@@ -765,6 +783,8 @@ public class JoinNode extends TableOperatorNode{
                                       FromList outerFromList,
                                       SubqueryList outerSubqueryList,
                                       PredicateList outerPredicateList) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         /* Put the expression trees in conjunctive normal form.
          * NOTE - This needs to occur before we preprocess the subqueries
          * because the subquery transformations assume that any subquery operator
