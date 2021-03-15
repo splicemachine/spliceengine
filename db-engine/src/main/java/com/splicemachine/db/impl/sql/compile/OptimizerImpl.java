@@ -950,22 +950,57 @@ public class OptimizerImpl implements Optimizer{
         CostEstimate bestCostEstimate=bestAccessPath.getCostEstimate();
         if(!hasNextPermutation && bestCostEstimate!=null){
             /*
-            ** Add the cost of the current optimizable to the total cost.
-            ** The total cost is the sum of all the costs, but the total
-            ** number of rows is the number of rows returned by the innermost
-            ** optimizable.
-            */
-            addCost(bestCostEstimate,currentCost);
-            // store accumulated cost in curOpt
-            curOpt.setAccumulatedCost(currentCost);
-
+             * Add the cost of the current optimizable to the total cost.
+             * The total cost is the sum of all the costs, but the total
+             * number of rows is the number of rows returned by the innermost
+             * optimizable.
+             * DB-11238 note
+             * It seems that the best sort-avoidance cost of curOpt is estimated
+             * using the best outer access path, which is not necessarily the best
+             * outer sort avoidance access path. For this reason, we use currentCost
+             * when calculating the addend cost. Otherwise we might get negative
+             * numbers.
+             */
             if(curOpt.considerSortAvoidancePath() && requiredRowOrdering!=null){
                 /* Add the cost for the sort avoidance path, if there is one */
-                bestCostEstimate=curOpt.getBestSortAvoidancePath().getCostEstimate();
+                CostEstimate bestCostEstimateSortAvoidance = curOpt.getBestSortAvoidancePath().getCostEstimate();
 
-                addCost(bestCostEstimate,currentSortAvoidanceCost);
+                CostEstimate addend = getAddendCost(bestCostEstimateSortAvoidance, currentCost);
+                addCost(addend, currentSortAvoidanceCost);
+                /* DB-11622 note
+                 * For join position 0, bestCostEstimate is just the scan cost of
+                 * optimizable 0 because there is no join yet. For a scan cost,
+                 * localCost = localCostPerParallelTask * parallelism. However,
+                 * For join position > 0, bestCostEstimates are join costs and
+                 * are always per parallel task cost. To make cost accumulation
+                 * consistent, we make currentCost and currentSortAvoidanceCost
+                 * always per parallel task costs.
+                 */
+                if (joinPosition == 0) {
+                    currentSortAvoidanceCost.setLocalCost(currentSortAvoidanceCost.getLocalCostPerParallelTask());
+                }
                 curOpt.setAccumulatedCostForSortAvoidancePlan(currentSortAvoidanceCost);
             }
+
+            /* DB-11238 note
+             * Previous logic here seems to assume that bestCostEstimate is the cost
+             * for only current join. It's not accumulative, hence the need to track
+             * accumulative cost. However, cost functions of all join strategies
+             * include a term of outerCost.getLocalCostPerParallelTask(). If we
+             * simply add bestCostEstimate to currentCost, this part will be added
+             * again and again. This is a severe problem especially when there is
+             * only one task. In that case, accumulative cost is not
+             * cost1+cost2+cost3+... but cost1+(cost1+cost2)+(cost1+cost2+cost3) + ...
+             * One consequence is that join orders starting with a relatively high
+             * cost get "short circuited".
+             */
+            CostEstimate addend = getAddendCost(bestCostEstimate, currentCost);
+            addCost(addend, currentCost);
+            if (joinPosition == 0) {
+                currentCost.setLocalCost(currentCost.getLocalCostPerParallelTask());
+            }
+            // store accumulated cost in curOpt
+            curOpt.setAccumulatedCost(currentCost);
 
             if(optimizerTrace){
                 tracer.trace(OptimizerFlag.TOTAL_COST_NON_SA_PLAN,0,0,0.0);
@@ -1143,12 +1178,18 @@ public class OptimizerImpl implements Optimizer{
         }
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
+        boolean isJoinTypeSaved = false;
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0) {
                 savedJoinType = outerCost.getJoinType();
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
+                isJoinTypeSaved = true;
+            } else if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN && fromTable.getOuterJoinLevel() == 0) {
+                savedJoinType = outerCost.getJoinType();
+                outerCost.setJoinType(JoinNode.INNERJOIN);
+                isJoinTypeSaved = true;
             }
         }
 
@@ -1167,24 +1208,22 @@ public class OptimizerImpl implements Optimizer{
         /* reset the OuterJoin flag so that we can cost correctly if the outer optimizable later joins with
            other optimizable through inner join
          */
-        if (optimizable instanceof FromTable) {
-            FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0)
-                outerCost.setJoinType(savedJoinType);
+        if (optimizable instanceof FromTable && isJoinTypeSaved) {
+            outerCost.setJoinType(savedJoinType);
         }
     }
 
     @Override
     public void costOptimizable(Optimizable optimizable,
                                 TableDescriptor td,
-                                ConglomerateDescriptor cd,
+                                AccessPath accessPath,
                                 OptimizablePredicateList predList,
                                 CostEstimate outerCost) throws StandardException{
         /*
         ** Don't consider non-feasible join strategies.
         */
         if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
-            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,accessPath.getJoinStrategy());
             return;
         }
 
@@ -1199,9 +1238,9 @@ public class OptimizerImpl implements Optimizer{
         //     predList.classify(optimizable, cd);
 
         if(ruleBasedOptimization){
-            ruleBasedCostOptimizable(optimizable,cd,predList,outerCost);
+            ruleBasedCostOptimizable(optimizable,accessPath,predList,outerCost);
         }else{
-            costBasedCostOptimizable(optimizable,cd,predList,outerCost);
+            costBasedCostOptimizable(optimizable,accessPath,predList,outerCost);
         }
     }
 
@@ -1640,10 +1679,21 @@ public class OptimizerImpl implements Optimizer{
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
+        destCost.setFirstColumnStats(addend.getFirstColumnStats());
         destCost.setNumPartitions(addend.partitionCount());
         destCost.setParallelism(addend.getParallelism());
         destCost.setOpenCost(addend.getOpenCost());
         destCost.setCloseCost(addend.getCloseCost());
+    }
+
+    private CostEstimate getAddendCost(CostEstimate bestCostEstimate, CostEstimate currentCost) {
+        CostEstimate addend = bestCostEstimate.cloneMe();
+        double outerLocalCostPerParallelTask = currentCost.getLocalCostPerParallelTask();
+        double currentJoinCost = bestCostEstimate.getLocalCost() - outerLocalCostPerParallelTask;
+        double currentJoinCostPerParallelTask = bestCostEstimate.getLocalCostPerParallelTask() - outerLocalCostPerParallelTask;
+        addend.setLocalCost(currentJoinCost > 0 ? currentJoinCost : 0);
+        addend.setLocalCostPerParallelTask(currentJoinCostPerParallelTask > 0 ? currentJoinCostPerParallelTask : 0);
+        return addend;
     }
 
     private RowOrdering newRowOrdering(){
@@ -2347,9 +2397,11 @@ public class OptimizerImpl implements Optimizer{
      * order, and the cost information is copied to the query plan.
      */
     private void ruleBasedCostOptimizable(Optimizable optimizable,
-                                          ConglomerateDescriptor cd,
+                                          AccessPath currentAccessPath,
                                           OptimizablePredicateList predList,
                                           CostEstimate outerCost) throws StandardException{
+        ConglomerateDescriptor cd = currentAccessPath.getConglomerateDescriptor();
+
         /* CHOOSE BEST CONGLOMERATE HERE */
         ConglomerateDescriptor bestConglomerateDescriptor;
         AccessPath bestAp=optimizable.getBestAccessPath();
@@ -2368,7 +2420,7 @@ public class OptimizerImpl implements Optimizer{
         ** If there is more than one conglomerate descriptor
         ** choose any index that is potentially useful.
         */
-        if(predList!=null && predList.useful(optimizable,cd)){
+        if(predList!=null && predList.useful(optimizable,currentAccessPath)){
             /*
             ** Do not let a non-covering matching index scan supplant a
             ** covering matching index scan.
@@ -2380,7 +2432,9 @@ public class OptimizerImpl implements Optimizer{
                 bestAp.setNonMatchingIndexScan(false);
                 bestAp.setCoveringIndexScan(newCoveringIndex);
 
-                bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                bestAp.setLockMode(currentAccessPath.getLockMode());
+                bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
                 optimizable.rememberJoinStrategyAsBest(bestAp);
             }
@@ -2398,7 +2452,9 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setNonMatchingIndexScan(true);
             bestAp.setCoveringIndexScan(true);
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
             return;
@@ -2413,7 +2469,9 @@ public class OptimizerImpl implements Optimizer{
 
             bestAp.setConglomerateDescriptor(cd);
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
 
@@ -2442,7 +2500,9 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setCoveringIndexScan(false);
             bestAp.setNonMatchingIndexScan(cd.isIndex());
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
         }
@@ -2456,9 +2516,10 @@ public class OptimizerImpl implements Optimizer{
      * of using the best ConglomerateDescriptor so far.
      */
     private void costBasedCostOptimizable(Optimizable optimizable,
-                                          ConglomerateDescriptor cd,
+                                          AccessPath currentAccessPath,
                                           OptimizablePredicateList predList,
                                           CostEstimate outerCost) throws StandardException{
+        ConglomerateDescriptor cd = currentAccessPath.getConglomerateDescriptor();
         CostEstimate estimatedCost = estimateTotalCost(predList, cd, outerCost, optimizable);
 
         // Before considering the cost, make sure we set the optimizable's
@@ -2468,7 +2529,7 @@ public class OptimizerImpl implements Optimizer{
         // not then we'll have to revert back to whatever the best plan is.
         // That check is performed in getNextDecoratedPermutation() of
         // this class.
-        optimizable.getCurrentAccessPath().setCostEstimate(estimatedCost);
+        currentAccessPath.setCostEstimate(estimatedCost);
 
         /* Pick the cheapest cost for this particular optimizable. */
         AccessPath ap=optimizable.getBestAccessPath();
@@ -2482,15 +2543,18 @@ public class OptimizerImpl implements Optimizer{
                 ap.setConglomerateDescriptor(cd);
                 ap.setCostEstimate(estimatedCost);
                 ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
-                ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
+                ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             /*
             ** It's a non-matching index scan either if there is no
             ** predicate list, or nothing in the predicate list is useful
             ** for limiting the scan.
             */
-                ap.setNonMatchingIndexScan((cd == null) || (predList == null) || (!(predList.useful(optimizable, cd))));
-                ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                ap.setNonMatchingIndexScan((cd == null) || (predList == null) ||
+                                           (!(predList.useful(optimizable, currentAccessPath))));
+                ap.setLockMode(currentAccessPath.getLockMode());
                 optimizable.rememberJoinStrategyAsBest(ap);
             }
         }
@@ -2526,15 +2590,17 @@ public class OptimizerImpl implements Optimizer{
                             ap.setCostEstimate(estimatedCost);
                             ap.setCoveringIndexScan(
                                     optimizable.isCoveringIndex(cd));
-                            ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
+                            ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                            ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                            ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
                         /*
                         ** It's a non-matching index scan either if there is no
                         ** predicate list, or nothing in the predicate list is
                         ** useful for limiting the scan.
                         */
-                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, cd))));
-                            ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, currentAccessPath))));
+                            ap.setLockMode(currentAccessPath.getLockMode());
                             optimizable.rememberJoinStrategyAsBest(ap);
                             optimizable.rememberSortAvoidancePath();
 

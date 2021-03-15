@@ -14,6 +14,13 @@
 
 package com.splicemachine.olap;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import splice.com.google.common.net.HostAndPort;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
@@ -95,6 +102,23 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             HostAndPort hap = hostProvider.olapServerHost(queue);
             LOG.info("Connecting to " + hap);
 
+            try{
+                String root = HConfiguration.getConfiguration().getSpliceRootPath();
+                String queueRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
+                ZkUtils.getChildren(queueRoot, new Watcher() {
+                    @Override
+                    public void process(WatchedEvent watchedEvent) {
+                        if (watchedEvent.getType().equals(Event.EventType.NodeChildrenChanged)) {
+                            SpliceLogUtils.warn(LOG, "A new OLAP server was launched. Disconnecting...");
+                            connected = false;
+                        }
+                    }
+                });
+            } catch (IOException e) {
+                // This could happen for UT when no zookeeper quorum is available
+                SpliceLogUtils.warn(LOG, "Zookeeper is not available", e);
+            }
+
             InetSocketAddress socketAddr = new InetSocketAddress(hap.getHostText(), hap.getPort());
             Bootstrap bootstrap = new Bootstrap();
             NioEventLoopGroup group = new NioEventLoopGroup(5,
@@ -160,8 +184,14 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
     @Override
     public void shutdown(){
-        channelPool.close(); //disconnect everything
-        executorService.shutdown();
+        connected = false;
+        if (channelPool != null) {
+            channelPool.close(); //disconnect everything
+        }
+        if (executorService != null) {
+            executorService.shutdown();
+        }
+
     }
 
 

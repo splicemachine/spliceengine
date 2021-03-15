@@ -31,12 +31,14 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -49,6 +51,8 @@ import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityModeStatic;
 
 /**
  * This node type represents a ? parameter.
@@ -177,14 +181,21 @@ public class ParameterNode extends ValueNode
 
     public void setType(DataTypeDescriptor descriptor) throws StandardException
     {
+        boolean isDB2CompatibilityMode =
+            descriptor.getTypeId().getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID ?
+                getDB2CompatibilityModeStatic() : false;
+
         /* Make sure the type is nullable. */
 
         /*
          ** Generate a new descriptor with all the same properties as
          ** the given one, except that it is nullable.
          */
-        descriptor = descriptor.getNullabilityType(true);
-
+        if (isDB2CompatibilityMode) {
+            descriptor = new DataTypeDescriptor(descriptor, true, true);
+        }
+        else
+            descriptor = descriptor.getNullabilityType(true);
 
         if (userParameterTypes != null)
             userParameterTypes[parameterNumber] = descriptor;
@@ -275,8 +286,7 @@ public class ParameterNode extends ValueNode
      * @return    The variant type for the underlying expression.
      */
     @Override
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // Parameters are invariant for the life of the query
         return orderableVariantType;
     }
@@ -404,8 +414,7 @@ public class ParameterNode extends ValueNode
         mb.cast(getTypeCompiler().interfaceName());
     } // End of generateExpression
 
-    public TypeId getTypeId() throws StandardException
-    {
+    public TypeId getTypeId() {
         return (returnOutputParameter != null) ?
             returnOutputParameter.getTypeId() : super.getTypeId();
     }
@@ -527,8 +536,7 @@ public class ParameterNode extends ValueNode
     /**
      * @inheritDoc
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         return this == o;
     }
 

@@ -34,4 +34,10 @@ public interface DDLWatchChecker{
     void notifyProcessed(Collection<Pair<DDLChange,String>> processedChanges) throws IOException;
 
     void killDDLTransaction(String key);
+
+    default void assignDDLDemarcationPoint(long txnId) throws Exception{}
+
+    default long initDemarcationPoint() throws IOException {
+        return 0;
+    }
 }

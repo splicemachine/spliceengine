@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.util.Properties;
+import java.util.Set;
 
 /**
 
@@ -1076,7 +1077,7 @@ public interface TransactionController
                     get row column[qualifier[and_clause][or_clause].getColumnId()];
 
                 boolean or_qualifies = 
-                row_col.compare(qualifier[i].getOperator,
+                row_col.compare(qualifier[i].getOperatorString,
                 <blockquote><pre>
                 key,
                 qualifier[i].getOrderedNulls,
@@ -1702,9 +1703,19 @@ public interface TransactionController
 
     boolean isElevated();
 
-    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+    String getCatalogVersion(String conglomerateNumber) throws StandardException;
 
-    void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
+    void setCatalogVersion(String conglomerateNumber, String version) throws StandardException;
+
+    void truncate(String conglomerateNumber) throws StandardException;
+
+    void snapshot(String snapshotName, String tableName) throws StandardException;
+
+	Set<String> listSnapshots() throws StandardException;
+
+	void cloneSnapshot(String snapshotName, String tableName) throws StandardException;
+
+	void deleteSnapshot(String snapshotName) throws StandardException;
 
 	long getActiveStateTxId();
 
@@ -1717,4 +1728,6 @@ public interface TransactionController
      *
      **/
 	void closeMe(ScanController scan);
+
+	void rewritePropertyConglomerate() throws StandardException;
 }

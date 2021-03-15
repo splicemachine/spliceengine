@@ -34,6 +34,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -47,7 +48,7 @@ import org.apache.log4j.Logger;
 
 public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, ExecRowWritable> {
 
-    protected static Logger LOG = Logger.getLogger(RecordWriter.class);
+    protected static final Logger LOG = Logger.getLogger(RecordWriter.class);
 	protected Configuration conf;
     protected TxnView parentTxn;
     protected SMSQLUtil util;
@@ -126,6 +127,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         return new ControlDataSet(new SingletonIterator(value.get()));
     }
 
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "tableName could be null again after calling conf.get")
     private void init() {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s", conf);

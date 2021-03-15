@@ -15,9 +15,9 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import splice.com.google.common.base.Function;
-import splice.com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
@@ -41,12 +41,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.scheduler.*;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerJobStart;
+import org.apache.spark.scheduler.SparkListenerTaskEnd;
+import org.apache.spark.scheduler.StageInfo;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
 import scala.collection.JavaConverters;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -205,17 +211,59 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(OperationContext context) {
+    public DataSet<V> distinct(OperationContext context) throws StandardException {
         return distinct("Remove Duplicates", false, context, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+    public DataSet<V> limit(int numRows, OperationContext context) {
+        Dataset<Row> result = dataset.limit(numRows);
+        return new NativeSparkDataSet<>(result, context);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
+        String varcharDB2CompatibilityModeString =
+                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            Dataset<Row> result = dataset.distinct();
+            // Do not replace string columns using rtrimmed columns but add them as extra columns.
+            // After distinct, for each group, we need to return a row originally in that group, not
+            // a row with rtrimmed values.
+            List<String> compColNames = new ArrayList<>();
+            List<String> extraColNames = new ArrayList<>();
+            List<Column> extraColumns = new ArrayList<>();
+            if (varcharDB2CompatibilityMode) {
+                List<String> strColNames = new ArrayList<>();
+                Tuple2<String, String>[] colTypes = dataset.dtypes();
+                for (Tuple2<String, String> colType : colTypes) {
+                    if (colType._2().equals("StringType")) {
+                        strColNames.add(colType._1());
+                    } else {
+                        compColNames.add(colType._1());
+                    }
+                }
+                for (String colName : strColNames) {
+                    String newColName = colName+"_rtrimmed";
+                    compColNames.add(newColName);
+                    extraColNames.add(newColName);
+                    extraColumns.add(rtrim(col(colName)));
+                }
+                dataset = NativeSparkUtils.withColumns(extraColNames, extraColumns, dataset);
+            }
 
+            Dataset<Row> result;
+            if (compColNames.isEmpty()) {
+                result = dataset.distinct();
+            } else {
+                result = dataset.dropDuplicates(compColNames.toArray(new String[0]));
+            }
+            if (!extraColNames.isEmpty()) {
+                result = result.drop(extraColNames.toArray(new String[0]));
+            }
             return new NativeSparkDataSet<>(result, context);
         } finally {
             if (pushScope) context.popScope();
@@ -885,6 +933,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) {
         try {
+            String varcharDB2CompatibilityModeString =
+                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(),
+                                                       Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
             if (rightDataSet instanceof NativeSparkDataSet) {
@@ -897,12 +950,48 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Column expr = null;
             int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
+
+            List<String> extraColNamesLeft = new ArrayList<>();
+            List<Column> extraColumnsLeft = new ArrayList<>();
+            List<String> extraColNamesRight = new ArrayList<>();
+            List<Column> extraColumnsRight = new ArrayList<>();
             if ( leftJoinKeys!=null || rightJoinKeys!=null ) {
                 assert rightJoinKeys != null && leftJoinKeys != null && rightJoinKeys.length == leftJoinKeys.length : "Join Keys Have Issues";
+
+                Tuple2<String, String>[] leftColTypes = leftDF.dtypes();
+                Tuple2<String, String>[] rightColTypes = rightDF.dtypes();
+                String leftColNames[] = new String[rightJoinKeys.length];
+                String rightColNames[] = new String[rightJoinKeys.length];
+                boolean leftAdded = false;
+                boolean rightAdded = false;
+                // Add new rtrimmed join key columns for string types
+                // if using DB2 compatibility mode.
                 for (int i = 0; i < rightJoinKeys.length; i++) {
-                    Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
-                            .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
+                    leftColNames[i] = ValueRow.getNamedColumn(leftJoinKeys[i]);
+                    if (varcharDB2CompatibilityMode && leftColTypes[leftJoinKeys[i]]._2().equals("StringType")) {
+                        extraColumnsLeft.add(rtrim(col(leftColNames[i])));
+                        leftColNames[i] = leftColNames[i] + "_rtrimmed";
+                        extraColNamesLeft.add(leftColNames[i]);
+                        leftAdded = true;
+                    }
+                    rightColNames[i] = ValueRow.getNamedColumn(rightJoinKeys[i]);
+                    if (varcharDB2CompatibilityMode && rightColTypes[rightJoinKeys[i]]._2().equals("StringType")) {
+                        extraColumnsRight.add(rtrim(col(rightColNames[i])));
+                        rightColNames[i] = rightColNames[i] + "_rtrimmed";
+                        extraColNamesRight.add(rightColNames[i]);
+                        rightAdded = true;
+                    }
+                }
+                if (leftAdded)
+                    leftDF = NativeSparkUtils.withColumns(extraColNamesLeft, extraColumnsLeft, leftDF);
+                if (rightAdded)
+                    rightDF = NativeSparkUtils.withColumns(extraColNamesRight, extraColumnsRight, rightDF);
+
+                for (int i = 0; i < rightJoinKeys.length; i++) {
+                    Column joinEquality = (leftDF.col(leftColNames[i]).equalTo(rightDF.col(rightColNames[i])));
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
+                    leftDF = leftDF.filter(leftColNames[i] + " IS NOT NULL");
+                    rightDF = rightDF.filter(rightColNames[i] + " IS NOT NULL");
                 }
             }
             Dataset<Row> joinedDF;
@@ -921,6 +1010,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             if (expr != null) {
                 joinedDF = joinedDF.filter(expr);
             }
+            if (!extraColNamesLeft.isEmpty())
+                joinedDF = joinedDF.drop(extraColNamesLeft.toArray(new String[0]));
+            if (!extraColNamesRight.isEmpty())
+                joinedDF = joinedDF.drop(extraColNamesRight.toArray(new String[0]));
+
             DataSet joinedSet = new NativeSparkDataSet(joinedDF, context);
             NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
             SpliceOperation op = context.getOperation();

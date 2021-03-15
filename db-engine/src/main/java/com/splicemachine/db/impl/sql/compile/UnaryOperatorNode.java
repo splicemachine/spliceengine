@@ -51,6 +51,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -64,9 +66,6 @@ import java.util.List;
 
 public class UnaryOperatorNode extends OperatorNode
 {
-    String	operator;
-    String	methodName;
-
     /**
      * Operator type, only valid for XMLPARSE and XMLSERIALIZE.
      */
@@ -74,11 +73,6 @@ public class UnaryOperatorNode extends OperatorNode
 
     String		resultInterfaceType;
     String		receiverInterfaceType;
-
-    /**
-     * WARNING: operand may be NULL for COUNT(*).
-     */
-    ValueNode	operand;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -142,7 +136,7 @@ public class UnaryOperatorNode extends OperatorNode
      * are reset and valid only for the current access path.
      * They should not be used beyond cost estimation.
      */
-    protected ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
+    ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
 
     // 0-based index column position
     protected int operandMatchIndexExprColumnPosition = -1;
@@ -166,7 +160,7 @@ public class UnaryOperatorNode extends OperatorNode
             Object		operatorOrOpType,
             Object		methodNameOrAddedArgs)
     {
-        this.operand = (ValueNode) operand;
+        operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         if (operatorOrOpType instanceof String)  {
             // then 2nd and 3rd params are operator and methodName,
             // respectively.
@@ -201,7 +195,13 @@ public class UnaryOperatorNode extends OperatorNode
      */
     public void init(Object	operand)
     {
-        this.operand = (ValueNode) operand;
+        this.operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
+        this.operatorType = -1;
+    }
+
+    public void init()
+    {
+        this.operands = new ArrayList<>(Collections.singletonList(null));
         this.operatorType = -1;
     }
 
@@ -217,16 +217,6 @@ public class UnaryOperatorNode extends OperatorNode
     }
 
     /**
-     * Get the operator of this unary operator.
-     *
-     * @return	The operator of this unary operator.
-     */
-    public String getOperatorString()
-    {
-        return operator;
-    }
-
-    /**
      * Set the methodName.
      *
      * @param methodName	The methodName.
@@ -238,60 +228,13 @@ public class UnaryOperatorNode extends OperatorNode
     }
 
     /**
-     * Convert this object to a String.  See comments in QueryTreeNode.java
-     * for how this should be done for tree printing.
-     *
-     * @return		This object as a String
-     */
-
-    public String toString()
-    {
-        if (SanityManager.DEBUG)
-        {
-            return "operator: " + operator + "\n" +
-                    "methodName: " + methodName + "\n" +
-                    super.toString();
-        }
-        else
-        {
-            return "";
-        }
-    }
-
-    /**
-     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-     * how tree printing is supposed to work.
-     *
-     * @param depth		The depth of this node in the tree
-     */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
-            super.printSubNodes(depth);
-
-            if (operand != null)
-            {
-                printLabel(depth, "operand: ");
-                operand.treePrint(depth + 1);
-            }
-        }
-    }
-
-    @Override
-    public boolean checkCRLevel(int level){
-        return operand.checkCRLevel(level);
-    }
-
-    /**
      * Get the operand of this unary operator.
      *
      * @return	The operand of this unary operator.
      */
     public ValueNode getOperand()
     {
-        return operand;
+        return operands.get(0);
     }
 
     /**
@@ -356,26 +299,26 @@ public class UnaryOperatorNode extends OperatorNode
     protected void bindOperand(FromList fromList,
                                SubqueryList subqueryList,
                                List<AggregateNode>	aggregateVector) throws StandardException {
-        operand = operand.bindExpression(fromList, subqueryList, aggregateVector);
+        bindOperands(fromList, subqueryList, aggregateVector);
 
-        if (operand.requiresTypeFromContext()) {
+        if (getOperand().requiresTypeFromContext()) {
             bindParameter();
             // If not bound yet then just return.
             // The node type will be set by either
             // this class' bindExpression() or a by
             // a node that contains this expression.
-            if (operand.getTypeServices() == null)
+            if (getOperand().getTypeServices() == null)
                 return;
         }
 
         /* If the operand is not a built-in type, then generate a bound conversion
          * tree to a built-in type.
          */
-        if (! (operand instanceof UntypedNullConstantNode) &&
-                operand.getTypeId().userType() &&
+        if (! (getOperand() instanceof UntypedNullConstantNode) &&
+                getOperand().getTypeId().userType() &&
                 ! (this instanceof IsNullNode))
         {
-            operand = operand.genSQLJavaSQLTree();
+            setOperand(getOperand().genSQLJavaSQLTree());
         }
     }
 
@@ -389,7 +332,7 @@ public class UnaryOperatorNode extends OperatorNode
     {
         // Check the type of the operand - this function is allowed only on
         // string value (char) types.
-        TypeId operandType = operand.getTypeId();
+        TypeId operandType = getOperand().getTypeId();
         if (operandType != null) {
             switch (operandType.getJDBCTypeId())
             {
@@ -425,7 +368,7 @@ public class UnaryOperatorNode extends OperatorNode
 
         // Check the type of the operand - this function is allowed only on
         // the XML type.
-        operandType = operand.getTypeId();
+        operandType = getOperand().getTypeId();
         if ((operandType != null) && !operandType.isXMLTypeId())
         {
             throw StandardException.newException(
@@ -479,7 +422,7 @@ public class UnaryOperatorNode extends OperatorNode
         /*
          ** Check the type of the operand
          */
-        operandType=operand.getTypeId();
+        operandType=getOperand().getTypeId();
 
         jdbcType=operandType.getJDBCTypeId();
 
@@ -496,16 +439,11 @@ public class UnaryOperatorNode extends OperatorNode
                     TypeId.getBuiltInTypeId(Types.DECIMAL),
                     31,
                     6,
-                    operand.getTypeServices() != null?operand.getTypeServices().isNullable():true,
+                    getOperand().getTypeServices() != null?getOperand().getTypeServices().isNullable():true,
                     DataTypeUtilities.computeMaxWidth(31, 6));
 
-            operand=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    operand,
-                    dataTypeDescriptor,
-                    getContextManager());
-            ((CastNode)operand).bindCastNodeOnly();
-            operandType = operand.getTypeId();
+            castOperandAndBindCast(dataTypeDescriptor);
+            operandType = getOperand().getTypeId();
             jdbcType = operandType.getJDBCTypeId();
         }
         int resultLength;
@@ -525,44 +463,15 @@ public class UnaryOperatorNode extends OperatorNode
             case Types.DOUBLE:
             case Types.REAL:
             case Types.FLOAT:
-                resultLength = operand.getTypeServices().getPrecision();
+                resultLength = getOperand().getTypeServices().getPrecision();
                 break;
             default:
                 resultLength = 19;
         }
 
         setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR),
-                operand.getTypeServices() != null? operand.getTypeServices().isNullable(): true,
+                getOperand().getTypeServices() != null? getOperand().getTypeServices().isNullable(): true,
                 resultLength));
-    }
-    /**
-     * Preprocess an expression tree.  We do a number of transformations
-     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
-     * subquery flattening.
-     * NOTE: This is done before the outer ResultSetNode is preprocessed.
-     *
-     * @param	numTables			Number of tables in the DML Statement
-     * @param	outerFromList		FromList from outer query block
-     * @param	outerSubqueryList	SubqueryList from outer query block
-     * @param	outerPredicateList	PredicateList from outer query block
-     *
-     * @return		The modified expression
-     *
-     * @exception StandardException		Thrown on error
-     */
-    public ValueNode preprocess(int numTables,
-                                FromList outerFromList,
-                                SubqueryList outerSubqueryList,
-                                PredicateList outerPredicateList)
-            throws StandardException
-    {
-        if (operand != null)
-        {
-            operand = operand.preprocess(numTables,
-                    outerFromList, outerSubqueryList,
-                    outerPredicateList);
-        }
-        return this;
     }
 
     /**
@@ -598,41 +507,7 @@ public class UnaryOperatorNode extends OperatorNode
     public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
             throws StandardException
     {
-        return operand != null && operand.categorize(referencedTabs, referencedColumns, simplePredsOnly);
-    }
-
-    /**
-     * Remap all ColumnReferences in this tree to be clones of the
-     * underlying expression.
-     *
-     * @return ValueNode			The remapped expression tree.
-     *
-     * @exception StandardException			Thrown on error
-     */
-    public ValueNode remapColumnReferencesToExpressions()
-            throws StandardException
-    {
-        if (operand != null)
-        {
-            operand = operand.remapColumnReferencesToExpressions();
-        }
-        return this;
-    }
-
-    /**
-     * Return whether or not this expression tree represents a constant expression.
-     *
-     * @return	Whether or not this expression tree represents a constant expression.
-     */
-    public boolean isConstantExpression()
-    {
-        return (operand == null) || operand.isConstantExpression();
-    }
-
-    /** @see ValueNode#constantExpression */
-    public boolean constantExpression(PredicateList whereClause)
-    {
-        return (operand == null) || operand.constantExpression(whereClause);
+        return getOperand() != null && getOperand().categorize(referencedTabs, referencedColumns, simplePredsOnly);
     }
 
     /**
@@ -687,12 +562,12 @@ public class UnaryOperatorNode extends OperatorNode
             throw StandardException.newException(
                     SQLState.LANG_ATTEMPT_TO_BIND_XML);
         }
-        else if (operand.getTypeServices() == null)
+        else if (getOperand().getTypeServices() == null)
         {
             if (operatorType == DIGITS_OP)
             {
                 // for parameter, if we don't know the type, assume it is CHAR
-                operand.setType(
+                getOperand().setType(
                         new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR),true));
                 return;
             }
@@ -726,7 +601,7 @@ public class UnaryOperatorNode extends OperatorNode
         boolean needField = !getTypeId().isBooleanTypeId();
 
         String receiverType = getReceiverInterfaceName();
-        operand.generateExpression(acb, mb);
+        getOperand().generateExpression(acb, mb);
         mb.cast(receiverType);
 
         if (needField) {
@@ -777,52 +652,14 @@ public class UnaryOperatorNode extends OperatorNode
     public String getReceiverInterfaceName() throws StandardException {
         if (SanityManager.DEBUG)
         {
-            SanityManager.ASSERT(operand!=null,
+            SanityManager.ASSERT(getOperand()!=null,
                     "cannot get interface without operand");
         }
 
         if (operatorType != -1)
             return receiverInterfaceType;
 
-        return operand.getTypeCompiler().interfaceName();
-    }
-
-    /**
-     * Return the variant type for the underlying expression.
-     * The variant type can be:
-     *		VARIANT				- variant within a scan
-     *							  (method calls and non-static field access)
-     *		SCAN_INVARIANT		- invariant within a scan
-     *							  (column references from outer tables)
-     *		QUERY_INVARIANT		- invariant within the life of a query
-     *							  (constant expressions)
-     *		CONSTANT			- immutable
-     *
-     * @return	The variant type for the underlying expression.
-     * @exception StandardException	thrown on error
-     */
-    protected int getOrderableVariantType() throws StandardException
-    {
-        /*
-         ** If we have nothing in the operator, then
-         ** it must be constant.
-         */
-        return (operand != null) ?
-                operand.getOrderableVariantType() :
-                Qualifier.CONSTANT;
-    }
-
-    /**
-     * Accept the visitor for all visitable children of this node.
-     *
-     * @param v the visitor
-     */
-    @Override
-    public void acceptChildren(Visitor v) throws StandardException {
-        super.acceptChildren(v);
-        if (operand != null) {
-            operand = (ValueNode)operand.accept(v, this);
-        }
+        return getOperand().getTypeCompiler().interfaceName();
     }
 
     /**
@@ -888,76 +725,16 @@ public class UnaryOperatorNode extends OperatorNode
         return 2;
     }
 
-    /**
-     * @throws StandardException
-     * {@inheritDoc}
-     */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
-        if (isSameNodeType(o))
-        {
-            UnaryOperatorNode other = (UnaryOperatorNode)o;
-            return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
-                    // the first condition in the || covers the case when both operands are null.
-                    ((operand == other.operand)|| ((operand != null) && operand.isEquivalent(other.operand))));
-        }
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
-        if (isSameNodeType(o)) {
-            UnaryOperatorNode other = (UnaryOperatorNode) o;
-            return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
-                    // the first condition in the || covers the case when both operands are null.
-                    ((operand == other.operand) || ((operand != null) && operand.isSemanticallyEquivalent(other.operand))));
-        }
-        return false;
-    }
 
     public int hashCode() {
         int result = getBaseHashCode();
         result = 31 * result + (operator == null ? 0 : operator.hashCode());
-        result = 31 * result + (operand == null ? 0 : operand.hashCode());
+        result = 31 * result + (getOperand() == null ? 0 : getOperand().hashCode());
         return result;
     }
 
-    public List<? extends QueryTreeNode> getChildren() {
-        if (operand != null) {
-            return Collections.singletonList(operand);
-        } else {
-            return Collections.EMPTY_LIST;
-        }
-    }
-
-    @Override
-    public QueryTreeNode getChild(int index) {
-        assert operand != null && index == 0;
-        return operand;
-        }
-
-    @Override
-    public void setChild(int index, QueryTreeNode newValue) {
-        assert operand != null && index == 0;
-        operand = (ValueNode) newValue;
-    }
-
-    @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        return operand.nonZeroCardinality(numberOfRows);
-    }
-
     public void setOperand(ValueNode operand) {
-        this.operand = operand;
-    }
-
-    @Override
-    public boolean isConstantOrParameterTreeNode() {
-        // for count(*), operand is null
-        return operand != null && operand.isConstantOrParameterTreeNode();
+        operands.set(0, operand);
     }
 
     public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc) {
@@ -966,9 +743,7 @@ public class UnaryOperatorNode extends OperatorNode
         this.operandMatchIndexExprConglomDesc = conglomDesc;
     }
 
-    public double getBaseOperationCost() throws StandardException { return getOperandCost(); }
-
-    protected double getOperandCost() throws StandardException {
-        return operand == null ? 0.0 : operand.getBaseOperationCost();
+    public void castOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(0, type);
     }
 }

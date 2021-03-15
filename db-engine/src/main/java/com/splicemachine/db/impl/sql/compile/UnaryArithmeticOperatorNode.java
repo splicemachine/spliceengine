@@ -95,25 +95,25 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      * @see ValueNode#requiresTypeFromContext
      */
     public boolean requiresTypeFromContext() {
-        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.requiresTypeFromContext();
+        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && getOperand().requiresTypeFromContext();
     }
 
     /**
      * A +? or a -? is considered a parameter.
      */
     public boolean isParameterNode() {
-        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.isParameterNode();
+        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && getOperand().isParameterNode();
     }
 
     @Override
     public boolean isKnownConstant(boolean considerParameters) {
-        return considerParameters && requiresTypeFromContext() && operand.isKnownConstant(true);
+        return considerParameters && requiresTypeFromContext() && getOperand().isKnownConstant(true);
     }
 
     @Override
     public DataValueDescriptor getKnownConstantValue() {
         if (requiresTypeFromContext()) {
-            return operand.getKnownConstantValue();
+            return getOperand().getKnownConstantValue();
         }
         return null;
     }
@@ -122,7 +122,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     @Override
     ValueNode evaluateConstantExpressions() throws StandardException {
         if(operatorType == UNARY_MINUS || operatorType == UNARY_PLUS) {
-            return (operand instanceof UntypedNullConstantNode) ? operand : this;
+            return (getOperand() instanceof UntypedNullConstantNode) ? getOperand() : this;
         }
         return this;
     }
@@ -141,7 +141,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
 
     void bindParameter() throws StandardException{
         if(operatorType==SQRT || operatorType==ABSOLUTE){
-            operand.setType(
+            getOperand().setType(
                     new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DOUBLE),true));
             return;
         }
@@ -170,8 +170,8 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException{
         //Return with no binding, if the type of unary minus/plus parameter is not set yet.
-        if(operand.requiresTypeFromContext() && ((operatorType==UNARY_PLUS || operatorType==UNARY_MINUS))
-                && operand.getTypeServices()==null)
+        if(getOperand().requiresTypeFromContext() && ((operatorType==UNARY_PLUS || operatorType==UNARY_MINUS))
+                && getOperand().getTypeServices()==null)
             return this;
 
         bindOperand(fromList,subqueryList,
@@ -180,12 +180,12 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
         if(operatorType==SQRT || operatorType==ABSOLUTE){
             bindSQRTABS();
         }else if(operatorType==UNARY_PLUS || operatorType==UNARY_MINUS){
-            checkOperandIsNumeric(operand.getTypeId());
+            checkOperandIsNumeric(getOperand().getTypeId());
         }
         /*
 		** The result type of a +, -, SQRT, ABS is the same as its operand.
 		*/
-        super.setType(operand.getTypeServices());
+        super.setType(getOperand().getTypeServices());
         return this;
     }
 
@@ -215,7 +215,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
             throws StandardException{
 		/* Unary + doesn't do anything.  Just return the operand */
         if(operatorType==UNARY_PLUS)
-            operand.generateExpression(acb,mb);
+            getOperand().generateExpression(acb,mb);
         else
             super.generateExpression(acb,mb);
     }
@@ -233,14 +233,14 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
 		/*
 		** Check the type of the operand 
 		*/
-        operandType=operand.getTypeId();
+        operandType=getOperand().getTypeId();
 
 		/*
 	 	 * If the operand is not a build-in type, generate a bound conversion
 		 * tree to build-in types.
 		 */
         if(operandType.userType()){
-            operand=operand.genSQLJavaSQLTree();
+            setOperand(getOperand().genSQLJavaSQLTree());
         }
 		/* DB2 doesn't cast string types to numeric types for numeric functions  */
 
@@ -254,12 +254,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
 
 		/* For SQRT, if operand is not a DOUBLE, convert it to DOUBLE */
         if(operatorType==SQRT && jdbcType!=Types.DOUBLE){
-            operand=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    operand,
-                    new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DOUBLE),true),
-                    getContextManager());
-            ((CastNode)operand).bindCastNodeOnly();
+            castOperandAndBindCast(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DOUBLE),true));
         }
     }
 
@@ -270,15 +265,15 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      * the type of the parameter
      */
     public void setType(DataTypeDescriptor descriptor) throws StandardException{
-        if(operand.requiresTypeFromContext() && operand.getTypeServices()==null){
+        if(getOperand().requiresTypeFromContext() && getOperand().getTypeServices()==null){
             checkOperandIsNumeric(descriptor.getTypeId());
-            operand.setType(descriptor);
+            getOperand().setType(descriptor);
         }
         super.setType(descriptor);
     }
 
     @Override
     public double getBaseOperationCost() throws StandardException {
-        return getOperandCost() + SIMPLE_OP_COST;
+        return super.getBaseOperationCost() + SIMPLE_OP_COST;
     }
 }

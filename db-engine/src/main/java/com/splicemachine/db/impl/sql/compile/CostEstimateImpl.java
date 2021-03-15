@@ -114,6 +114,11 @@ public class CostEstimateImpl implements CostEstimate {
     @Override public void setNumPartitions(int numPartitions) {  }
 
     //no-op
+    @Override public void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats) {  }
+
+    @Override public FirstColumnOfIndexStats getFirstColumnStats() { return null; }
+
+    //no-op
     @Override public void setParallelism(int numparallelTasks) {  }
 
     @Override public int getParallelism() { return 1; }

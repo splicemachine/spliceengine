@@ -154,6 +154,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                 assert false;
         }
 
+        addSPSPropertyDependency();
+
         return this;
     }
 
@@ -169,8 +171,7 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
      *
      * @return The variant type for the underlying expression.
      */
-    protected int getOrderableVariantType()
-    {
+    protected int getOrderableVariantType() throws StandardException {
         // CurrentDate, Time, Timestamp are invariant for the life of the query
         return Qualifier.QUERY_INVARIANT;
     }
@@ -227,8 +228,7 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             CurrentDatetimeOperatorNode other = (CurrentDatetimeOperatorNode)o;

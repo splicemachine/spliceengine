@@ -48,115 +48,119 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public class TimestampTypeCompiler extends BaseTypeCompiler
 {
-	/* TypeCompiler methods */	
-	/**
-	 * User types are convertible to other user types only if
-	 * (for now) they are the same type and are being used to
-	 * implement some JDBC type.  This is sufficient for
-	 * date/time types; it may be generalized later for e.g.
-	 * comparison of any user type with one of its subtypes.
-	 *
-	 * @see TypeCompiler#convertible 
-	 *
-	 */
-	public boolean convertible(TypeId otherType, 
-							   boolean forDataTypeFunction)
-	{
-		if (otherType.isStringTypeId()&& 
-			(!otherType.isLongConcatableTypeId()))
-		{
-			return true;
-		}
-		
-		int otherJDBCTypeId = otherType.getJDBCTypeId();
+    /* TypeCompiler methods */
+    /**
+     * User types are convertible to other user types only if
+     * (for now) they are the same type and are being used to
+     * implement some JDBC type.  This is sufficient for
+     * date/time types; it may be generalized later for e.g.
+     * comparison of any user type with one of its subtypes.
+     *
+     * @see TypeCompiler#convertible
+     *
+     */
+    public boolean convertible(TypeId otherType,
+                               boolean forDataTypeFunction)
+    {
+        if (otherType.isStringTypeId()&&
+            (!otherType.isLongConcatableTypeId()))
+        {
+            return true;
+        }
 
-		/*
-		** At this point, we have only date/time.  If
-		** same type, convert always ok.
-		*/
-		if (otherJDBCTypeId == Types.TIMESTAMP)
-		{
-			return true;
-		}
+        int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-		/*
-		** Otherwise, we can convert timestamp to
-		** date or time only.
-		*/
-		return ((otherJDBCTypeId == Types.DATE) ||
-				(otherJDBCTypeId == Types.TIME));
-	}
+        /*
+        ** At this point, we have only date/time.  If
+        ** same type, convert always ok.
+        */
+        if (otherJDBCTypeId == Types.TIMESTAMP)
+        {
+            return true;
+        }
+
+        /*
+        ** Otherwise, we can convert timestamp to
+        ** date or time only.
+        */
+        return ((otherJDBCTypeId == Types.DATE) ||
+                (otherJDBCTypeId == Types.TIME));
+    }
 
         /**
          * Tell whether this type (timestamp) is compatible with the given type.
          *
          * @param otherType     The TypeId of the other type.
          */
-	public boolean compatible(TypeId otherType)
-	{
-		if (otherType.isStringTypeId() &&
-			(!otherType.isLongConcatableTypeId()))
-		{
-			return true;
-		}
+    public boolean compatible(TypeId otherType)
+    {
+        if (otherType.isStringTypeId() &&
+            (!otherType.isLongConcatableTypeId()))
+        {
+            return true;
+        }
 
-		/*
-		** Both are timestamp datatypes and hence compatible.
-		*/
-		return (getStoredFormatIdFromTypeId() ==
-				otherType.getTypeFormatId());
-	}
+        /*
+        ** Both are timestamp datatypes and hence compatible.
+        */
+        return (getStoredFormatIdFromTypeId() ==
+                otherType.getTypeFormatId());
+    }
 
-	/**
-	 * User types are storable into other user types that they
-	 * are assignable to. The other type must be a subclass of
-	 * this type, or implement this type as one of its interfaces.
-	 *
-	 * Built-in types are also storable into user types when the built-in
-	 * type's corresponding Java type is assignable to the user type.
-	 *
-	 * @param otherType the type of the instance to store into this type.
-	 * @param cf		A ClassFactory
-	 * @return true if otherType is storable into this type, else false.
-	 */
-	public boolean storable(TypeId otherType, ClassFactory cf) {
+    /**
+     * User types are storable into other user types that they
+     * are assignable to. The other type must be a subclass of
+     * this type, or implement this type as one of its interfaces.
+     *
+     * Built-in types are also storable into user types when the built-in
+     * type's corresponding Java type is assignable to the user type.
+     *
+     * @param otherType the type of the instance to store into this type.
+     * @param cf        A ClassFactory
+     * @return true if otherType is storable into this type, else false.
+     */
+    public boolean storable(TypeId otherType, ClassFactory cf) {
         int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-        return otherJDBCTypeId == Types.TIMESTAMP || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Timestamp");
+        return otherJDBCTypeId == Types.TIMESTAMP ||
+                otherJDBCTypeId == Types.CHAR ||
+                otherJDBCTypeId == Types.VARCHAR ||
+                otherJDBCTypeId == Types.LONGVARCHAR ||
+                cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Timestamp");
 
     }
 
-	/** @see TypeCompiler#interfaceName */
-	public String interfaceName()
-	{
-		return ClassName.DateTimeDataValue;
-	}
-			
-	/**
-	 * @see TypeCompiler#getCorrespondingPrimitiveTypeName
-	 */
+    /** @see TypeCompiler#interfaceName */
+    public String interfaceName()
+    {
+        return ClassName.DateTimeDataValue;
+    }
 
-	public String getCorrespondingPrimitiveTypeName()
-	{
-		return "java.sql.Timestamp";
-	}
+    /**
+     * @see TypeCompiler#getCorrespondingPrimitiveTypeName
+     */
 
-	/**
-	 * @see TypeCompiler#getCastToCharWidth
-	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
-	{
-		return SQLTimestamp.getFormatLength(compilerContext.getTimestampFormat());
-	}
+    public String getCorrespondingPrimitiveTypeName()
+    {
+        return "java.sql.Timestamp";
+    }
 
-	public double estimatedMemoryUsage(DataTypeDescriptor dtd)
-	{
-		return 12.0;
-	}
-	String nullMethodName()
-	{
-		return "getNullTimestamp";
-	}
+    /**
+     * @see TypeCompiler#getCastToCharWidth
+     */
+    public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
+    {
+        return SQLTimestamp.getFormatLength(compilerContext.getTimestampFormat());
+    }
+
+    public double estimatedMemoryUsage(DataTypeDescriptor dtd)
+    {
+        return 12.0;
+    }
+    String nullMethodName()
+    {
+        return "getNullTimestamp";
+    }
 
     @Override
     public DataTypeDescriptor resolveArithmeticOperation(DataTypeDescriptor leftType, DataTypeDescriptor rightType, String operator) throws StandardException {

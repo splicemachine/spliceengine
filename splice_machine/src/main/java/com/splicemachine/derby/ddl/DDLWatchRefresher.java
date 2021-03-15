@@ -56,7 +56,6 @@ public class DDLWatchRefresher{
     private final SqlExceptionFactory exceptionFactory;
     private final TxnSupplier txnSupplier;
 
-
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
                              SqlExceptionFactory exceptionFactory,
@@ -72,12 +71,70 @@ public class DDLWatchRefresher{
         ddlDemarcationPoint = new AtomicReference<>();
     }
 
+    public void initDemarcationPoint() {
+        try {
+            long demarcationPoint = watchChecker.initDemarcationPoint();
+            if (demarcationPoint > 0) {
+                TxnView txn = new LazyTxnView(demarcationPoint,txnSupplier,exceptionFactory);
+                DDLFilter ddlFilter = txController.newDDLFilter(txn);
+                ddlDemarcationPoint.set(ddlFilter);
+            }
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     public Collection<DDLChange> tentativeDDLChanges(){
         return tentativeDDLS.values();
     }
 
     public int numCurrentDDLChanges(){
         return currChangeCount.get();
+    }
+
+    public void clearFinishedChange(String changeId, Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+        Collection<String> ongoingDDLChangeIds = null;
+        try {
+            ongoingDDLChangeIds = watchChecker.getCurrentChangeIds();
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+        clearFinishedChange(ongoingDDLChangeIds, changeId, ddlListeners);
+    }
+
+    private void clearFinishedChange(Collection<String> children,
+                                     String entry,
+                                     Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+        /*
+         * Remove DDL change which is known to be finished.
+         *
+         * This is to avoid processing a DDL change twice.
+         *
+         */
+        if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
+            LOG.info("Removing change with id " + entry);
+            changeTimeouts.remove(entry);
+            currentDDLChanges.remove(entry);
+            int currentCount = currChangeCount.decrementAndGet();
+            DDLChange ddlChange = tentativeDDLS.remove(entry);
+            if(ddlChange!=null){
+                /*
+                 * If the change isn't in tentativeDDLs, then it's already been processed, and we don't
+                 * have to worry about it here.
+                 */
+                assignDDLDemarcationPoint(ddlChange);
+                // notify access manager
+                for(DDLWatcher.DDLListener listener : ddlListeners){
+                    listener.changeSuccessful(entry,ddlChange);
+                }
+            }
+            if (currentCount == 0) {
+                for (DDLWatcher.DDLListener listener : ddlListeners)
+                    listener.finishGlobalChange();
+            }
+        }
+
     }
 
     public boolean refreshDDL(Set<DDLWatcher.DDLListener> callbacks) throws IOException{
@@ -174,6 +231,8 @@ public class DDLWatchRefresher{
         if (LOG.isTraceEnabled())
             LOG.trace("processPreCommitChanges -> " + ddlChange);
         currChangeCount.incrementAndGet();
+        // TODO: Keep currentDDLChanges up-to-date.
+        //currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
             listener.startChange(ddlChange);
@@ -189,6 +248,8 @@ public class DDLWatchRefresher{
          */
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
+            // TODO: check for the key..
+            // if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
             if(!children.contains(entry)){
                 LOG.info("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
@@ -224,8 +285,9 @@ public class DDLWatchRefresher{
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
                 ddlDemarcationPoint.set(ddlFilter);
+                watchChecker.assignDDLDemarcationPoint(ddlChange.getTxnId());
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.error("Couldn't create ddlFilter", e);
         }
 

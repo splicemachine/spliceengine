@@ -57,7 +57,7 @@ import com.splicemachine.db.iapi.error.StandardException;
   {
       compare_result = 
       row[(qualifier.getColumnId())].compare(
-        qualifier.getOperator(), 
+        qualifier.getOperatorString(),
         qualifier.getOrderable(),
         qualifier.getOrderedNulls(), 
         qualifier.getUnknownRV()) 

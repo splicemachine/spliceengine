@@ -64,7 +64,7 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
             throw StandardException.newException(SQLState.LANG_MISSING_FIRST_LAST_VALUE_ARG);
         }
         super.init(arg3, arg1, Boolean.FALSE, arg5, arg2, arg4);
-        setType(this.operand.getTypeServices());
+        setType(this.getOperand().getTypeServices());
     }
 
     @Override
@@ -74,12 +74,12 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
 
     @Override
     public List<ValueNode> getOperands() {
-        return (operand != null ? Lists.newArrayList(operand) : Collections.EMPTY_LIST);
+        return (getOperand() != null ? Lists.newArrayList(getOperand()) : Collections.EMPTY_LIST);
     }
 
     @Override
     public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
-        this.operand = newVal;
+        setOperand(newVal);
     }
 
     @Override

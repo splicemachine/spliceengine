@@ -16,7 +16,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -35,6 +37,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 6/19/13
  */
+@Category(SerialTest.class) // Not run in parallel since it is changing global DB configs
 public class PreparedStatementIT extends SpliceUnitTest {
     private static final String CLASS_NAME = PreparedStatementIT.class.getSimpleName().toUpperCase();
 
@@ -396,21 +399,29 @@ public class PreparedStatementIT extends SpliceUnitTest {
         testReturnRowCount(ps, 0);
     }
 
-    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
-        PreparedStatement ps = conn.prepareStatement(sqlText);
-        if (arg instanceof String) {
-            ps.setString(1, (String) arg);
-        } else if (arg instanceof Integer) {
-            ps.setInt(1, (Integer) arg);
-        } else if (arg instanceof Double) {
-            ps.setDouble(1, (Double) arg);
-        } else if (arg instanceof BigDecimal) {
-            ps.setBigDecimal(1, (BigDecimal) arg);
-        }
+    void testParamsHelper(String sqlText, Object[] args, String expected) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(sqlText)) {
+            for (int i = 0; i < args.length; ++i) {
+                Object arg = args[i];
+                if (arg instanceof String) {
+                    ps.setString(i + 1, (String) arg);
+                } else if (arg instanceof Integer) {
+                    ps.setInt(i + 1, (Integer) arg);
+                } else if (arg instanceof Double) {
+                    ps.setDouble(i + 1, (Double) arg);
+                } else if (arg instanceof BigDecimal) {
+                    ps.setBigDecimal(i + 1, (BigDecimal) arg);
+                }
+            }
 
-        try(ResultSet rs = ps.executeQuery()) {
-            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
         }
+    }
+
+    void testOneParamHelper(String sqlText, Object arg, String expected) throws Exception {
+        testParamsHelper(sqlText, new Object[]{arg}, expected);
     }
 
     @Test
@@ -468,6 +479,11 @@ public class PreparedStatementIT extends SpliceUnitTest {
                 "----\n" +
                 " 3 |";
         testOneParamHelper("select second(?) from sysibm.sysdummy1", "01:02:03", expected);
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testOneParamHelper("select days(?) from sysibm.sysdummy1", "0001-01-01", expected);
     }
 
     @Test
@@ -504,6 +520,109 @@ public class PreparedStatementIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals("42816", e.getSQLState());
             Assert.assertTrue(e.getMessage().contains("A datetime value or duration in an expression is invalid"));
+        }
+    }
+
+    @Test
+    public void testParameterInSelectOfUnion() throws Exception {
+        testOneParamHelper("select ? from sysibm.sysdummy1 union select 1 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 order by 1", 2,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |");
+
+        testOneParamHelper("select ? from sysibm.sysdummy1 union select 2 from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 2 |\n" +
+                        " 3 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 3 |\n" +
+                        " 4 |");
+        testOneParamHelper("select 1 from sysibm.sysdummy1 union select 2 from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 order by 1", 4,
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |\n" +
+                        " 4 |");
+
+        try (PreparedStatement ignored = conn.prepareStatement("select ? from sysibm.sysdummy1 union select ? from sysibm.sysdummy1")) {
+            Assert.fail("Expect failure due to parameter in date/time expression.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Y10", e.getSQLState());
+        }
+
+        testParamsHelper("select ? from sysibm.sysdummy1 union select ? from sysibm.sysdummy1 union select 3 from sysibm.sysdummy1 order by 1",
+                new Object[] {1, 2},
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |\n" +
+                        " 3 |");
+
+        testOneParamHelper("select 1, 'a' from sysibm.sysdummy1 union select 4, ? from sysibm.sysdummy1 order by 1", "a",
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 1 | a |\n" +
+                        " 4 | a |");
+
+        testParamsHelper("select ?, 'a' from sysibm.sysdummy1 union select 4, ? from sysibm.sysdummy1 order by 1", new Object[]{5, "b"},
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 4 | b |\n" +
+                        " 5 | a |");
+
+        testParamsHelper("select 1, 'a' from sysibm.sysdummy1 union select ?, ? from sysibm.sysdummy1 order by 1", new Object[]{5, "b"},
+                "1 | 2 |\n" +
+                        "--------\n" +
+                        " 1 | a |\n" +
+                        " 5 | b |");
+
+    }
+
+
+    @Test
+    public void testPreparedStatementStoreLongVarcharInTimestamp() throws Exception {
+        String tableName = "DB_11313";
+        methodWatcher.executeUpdate(String.format("drop table %s.%s if exists",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("create table %s.%s (t timestamp)",
+                tableSchema.schemaName, tableName));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values (current timestamp)",
+                tableSchema.schemaName, tableName));
+
+        try (PreparedStatement ps = methodWatcher.prepareStatement(format("update %s.%s set t = ? || '-00.00.00.654321'", tableSchema.schemaName, tableName))) {
+            ps.setString(1, "2222-01-01");
+            ps.execute();
+        }
+
+        testQueryContains(format("select * from %s.%s", tableSchema.schemaName, tableName), "2222-01-01 00:00:00.654321", methodWatcher, false);
+    }
+
+    @Test
+    public void testCursorUntypedExpressionType() throws Exception {
+        String sql = "select ?";
+        try (PreparedStatement ignored = conn.prepareStatement(sql)) {
+            Assert.fail("Expect failure due parameter unknown type.");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X34", e.getSQLState());
+        }
+        try {
+            methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', 'varchar')");
+            testOneParamHelper(sql, "abc", "1  |\n" +
+                    "-----\n" +
+                    "abc |");
+        } finally {
+            methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', null)");
         }
     }
 }

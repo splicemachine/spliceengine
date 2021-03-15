@@ -161,8 +161,7 @@ public class CurrentRowLocationNode extends ValueNode
     }
 
     @Override
-    protected boolean isEquivalent(ValueNode o)
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         return this == o;
     }
 

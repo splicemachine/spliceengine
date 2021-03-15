@@ -341,8 +341,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }
@@ -356,8 +355,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
             return false;
         }

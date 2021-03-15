@@ -271,6 +271,13 @@ public interface StoredFormatIds {
      */
     int VARCHAR_TYPE_ID =
             (MIN_ID_2 + 13);
+
+    /**
+     *  A special type id only for internal use, never exposed
+     *  in ColumnDescriptors decribing table schemas.
+     */
+    int VARCHAR_DB2_COMPATIBLE_TYPE_ID =
+            (MIN_ID_2 + 12);
     
     /**
         class com.splicemachine.db.iapi.types.VarcharTypeId

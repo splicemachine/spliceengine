@@ -470,14 +470,14 @@ public abstract class AuthenticationServiceBase
 		if ( key.startsWith(Property.USER_PROPERTY_PREFIX) ) { return true; }
 
         String      stringValue = (String) value;
-        boolean     settingToNativeLocal = Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL.equals( stringValue );
+        boolean     settingToNativeLocal = PropertyHelper.AUTHENTICATION_PROVIDER_NATIVE_LOCAL.equals( stringValue );
         
         if ( Property.AUTHENTICATION_PROVIDER_PARAMETER.equals( key ) )
         {
             // NATIVE + LOCAL is the only value of this property which can be persisted
             if (
                 ( stringValue != null ) &&
-                ( stringValue.startsWith( Property.AUTHENTICATION_PROVIDER_NATIVE ) )&&
+                ( stringValue.startsWith( PropertyHelper.AUTHENTICATION_PROVIDER_NATIVE ) )&&
                 !settingToNativeLocal
                 )
             {
@@ -486,7 +486,7 @@ public abstract class AuthenticationServiceBase
 
             // once set to NATIVE authentication, you can't change it
             String  oldValue = (String) p.get( Property.AUTHENTICATION_PROVIDER_PARAMETER );
-            if ( (oldValue != null) && oldValue.startsWith( Property.AUTHENTICATION_PROVIDER_NATIVE ) )
+            if ( (oldValue != null) && oldValue.startsWith( PropertyHelper.AUTHENTICATION_PROVIDER_NATIVE ) )
             {
                 throw StandardException.newException( SQLState.PROPERTY_CANT_UNDO_NATIVE );
             }
@@ -507,21 +507,21 @@ public abstract class AuthenticationServiceBase
             }
         }
 
-        if ( Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME.equals( key ) )
+        if ( PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME.equals( key ) )
         {
             if ( parsePasswordLifetime( stringValue ) == null )
             {
                 throw StandardException.newException
-                    ( SQLState.BAD_PASSWORD_LIFETIME, Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME );
+                    ( SQLState.BAD_PASSWORD_LIFETIME, PropertyHelper.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME );
             }
         }
         
-        if ( Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD.equals( key ) )
+        if ( PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD.equals( key ) )
         {
             if ( parsePasswordThreshold( stringValue ) == null )
             {
                 throw StandardException.newException
-                    ( SQLState.BAD_PASSWORD_LIFETIME, Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD );
+                    ( SQLState.BAD_PASSWORD_LIFETIME, PropertyHelper.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD );
             }
         }
         
@@ -577,7 +577,7 @@ public abstract class AuthenticationServiceBase
 			(String)p.get(Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
 		if ((authService != null) &&
-			 (StringUtil.SQLEqualsIgnoreCase(authService, Property.AUTHENTICATION_PROVIDER_LDAP)))
+			 (StringUtil.SQLEqualsIgnoreCase(authService, PropertyHelper.AUTHENTICATION_PROVIDER_LDAP)))
 			return null;
 
 		// Ok, we can hash this password in the db

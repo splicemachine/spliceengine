@@ -13,6 +13,10 @@
  */
 package com.splicemachine.db.impl.sql.catalog;
 
+import splice.com.google.common.cache.Cache;
+
+import java.util.Map;
+
 /**
  *
  * A second IFace for functions needed generic K and V values. JMX will not allow for types such as K and V
@@ -21,6 +25,8 @@ package com.splicemachine.db.impl.sql.catalog;
 
 public interface GenericManagedCacheIFace <K, V> {
     void put(K var1, V var2);
+    void putAll(ManagedCache<? extends K, ? extends V> var1);
     V getIfPresent(K k);
     void invalidate(K k);
+    Cache<K, V> getManagedCache();
 }
