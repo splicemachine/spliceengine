@@ -248,9 +248,10 @@ public class RSUtils {
     /**
      * CAUTION: This method modifies the FromBaseTable parameter.
      */
+    // Makes a list of non-key predicates.
     public static PredicateList getPreds(FromBaseTable t) throws StandardException {
         PredicateList pl = new PredicateList();
-        t.pullOptPredicates(pl);
+        t.pullNonKeyPredicates(pl);
         for (int i = 0, s = pl.size(); i < s; i++) {
             OptimizablePredicate p = pl.getOptPredicate(i);
             t.pushOptPredicate(p);
@@ -258,7 +259,28 @@ public class RSUtils {
         PredicateList storeRestrictionList = t.storeRestrictionList;
         for (int i = 0; i < storeRestrictionList.size(); ++i) {
             OptimizablePredicate pred = storeRestrictionList.getOptPredicate(i);
-            if (!contains(pl, pred)) {
+            if (!pred.isKey() && !contains(pl, pred)) {
+                pl.addOptPredicate(pred);
+            }
+        }
+        return pl;
+    }
+
+    /**
+     * CAUTION: This method modifies the FromBaseTable parameter.
+     */
+    // Makes a list of key predicates, that allow scanning a subset of rows in the table.
+    public static PredicateList getKeyPreds(FromBaseTable t) throws StandardException {
+        PredicateList pl = new PredicateList();
+        t.pullKeyPredicates(pl);
+        for (int i = 0, s = pl.size(); i < s; i++) {
+            OptimizablePredicate p = pl.getOptPredicate(i);
+            t.pushOptPredicate(p);
+        }
+        PredicateList storeRestrictionList = t.storeRestrictionList;
+        for (int i = 0; i < storeRestrictionList.size(); ++i) {
+            OptimizablePredicate pred = storeRestrictionList.getOptPredicate(i);
+            if (pred.isKey() && !contains(pl, pred)) {
                 pl.addOptPredicate(pred);
             }
         }

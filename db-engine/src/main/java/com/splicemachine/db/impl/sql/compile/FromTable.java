@@ -50,6 +50,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * A FromTable represents a table in the FROM clause of a DML statement.
@@ -60,7 +61,9 @@ import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
  * @see ProjectRestrictNode
  */
 public abstract class FromTable extends ResultSetNode implements Optimizable{
+    static final String INDEX_PROPERTY_NAME = "index";
     Properties tableProperties;
+    String     userSpecifiedIndexName = null;
     String correlationName;
     TableName corrTableName;
     int tableNumber;
@@ -136,6 +139,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     PredicateList postJoinPredicates;
 
     protected boolean hasJoinPredicatePushedDownFromOuter = false;
+
+    protected boolean outerTableOnly = false;
+
+    protected boolean indexFriendlyJoinsOnly = false;
+
     /**
      * Initializer for a table in a FROM list.
      *
@@ -149,6 +157,17 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         tableNumber=-1;
         bestPlanMap=null;
         outerJoinLevel = 0;
+        String sessionHintedJoinStrategy =
+            getLanguageConnectionContext().getHintedJoinStrategy();
+        if (sessionHintedJoinStrategy != null) {
+            if (this.tableProperties == null)
+                this.tableProperties = new Properties();
+            // Set joinStrategy hint from session property only if it's
+            // not explicitly set for this table.
+            if (this.tableProperties.getProperty("joinstrategy") == null) {
+                this.tableProperties.setProperty("joinstrategy", sessionHintedJoinStrategy);
+            }
+        }
     }
 
     /**
@@ -156,6 +175,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     public String getCorrelationName(){
         return correlationName;
+    }
+
+    public void setCorrelationName(String correlationName) {
+        this.correlationName = correlationName;
     }
 
     /*
@@ -338,6 +361,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         JoinStrategy joinStrategy=currentAccessPath.getJoinStrategy();
         ap.setJoinStrategy(joinStrategy);
         ap.setHintedJoinStrategy(currentAccessPath.isHintedJoinStrategy());
+        ap.setUisPredicate(currentAccessPath.getUisPredicate());
+        ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
+        ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
+        ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
         if (joinStrategy.getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST)
             ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
         else
@@ -404,6 +431,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     @Override
     public void setProperties(Properties tableProperties){
         this.tableProperties=tableProperties;
+        userSpecifiedIndexName = null;
     }
 
     @Override
@@ -533,6 +561,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         // We found a best plan in our map, so load it into this Optimizable's
         // trulyTheBestAccessPath field.
         bestPath.copy(ap);
+        recordUisAccessPath(bestPath);
     }
 
     @Override
@@ -576,6 +605,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         }
 
         getTrulyTheBestAccessPath().copy(bestPath);
+        recordUisAccessPath(bestPath);
 
         // Since we just set trulyTheBestAccessPath for the current
         // join order of the received optimizer, take note of what
@@ -653,6 +683,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         currentAccessPath.setHintedJoinStrategy(false);
         currentAccessPath.setMissingHashKeyOK(false);
         currentAccessPath.setNumUnusedLeadingIndexFields(0);
+        currentAccessPath.setUisPredicate(null);
+        currentAccessPath.setUisRowIdPredicate(null);
+        currentAccessPath.setUnionOfIndexes(null);
+        currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
     }
 
     @Override
@@ -808,6 +842,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     @Override
     public void initAccessPaths(Optimizer optimizer){
+        if (skipBindAndOptimize)
+            return;
         if(currentAccessPath==null){
             currentAccessPath=optimizer.newAccessPath();
         }
@@ -824,6 +860,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     @Override
     public void resetAccessPaths() {
+        if (skipBindAndOptimize)
+            return;
         currentAccessPath = null;
         bestAccessPath = null;
         bestSortAvoidancePath = null;
@@ -888,7 +926,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     protected void setCostEstimate(CostEstimate newCostEstimate){
         costEstimate=getCostEstimate();
-
+        if (costEstimate == null) {
+            costEstimate = newCostEstimate.cloneMe();
+            return;
+        }
         costEstimate.setCost(newCostEstimate);
     }
 
@@ -1200,6 +1241,52 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         resultColumns.markUpdatableByCursor(updateColumns);
     }
 
+    // A special-purpose copy routine that only copies relevant descriptive
+    // information about a table, and not instance-specific information.
+    @Override
+    protected void shallowCopy(ResultSetNode otherResultSet) throws StandardException {
+        super.shallowCopy(otherResultSet);
+        if (!(otherResultSet instanceof FromTable))
+            return;
+
+        FromTable other = (FromTable) otherResultSet;
+
+        tableProperties = other.tableProperties;
+        userSpecifiedIndexName = null;
+        correlationName = other.correlationName;
+        corrTableName   = other.corrTableName;
+
+        joinStrategyNumber          = other.joinStrategyNumber;
+        userSpecifiedJoinStrategy   = other.userSpecifiedJoinStrategy;
+        dataSetProcessorType        = other.dataSetProcessorType;
+        sparkExecutionType          = other.sparkExecutionType;
+        considerSortAvoidancePath   = other.considerSortAvoidancePath();
+        origTableName               = other.origTableName;
+
+        /* Skip these fields, as they cannot be shared between distinct objects:
+            tableNumber              = other.tableNumber;    // Don't want to bind to same exact relation
+            level                    = other.level;          // ...or level.
+            hashKeyColumns           = other.hashKeyColumns; // Determined later.
+            currentAccessPath        = other.currentAccessPath;
+            bestAccessPath           = other.bestAccessPath;
+            bestSortAvoidancePath    = other.bestSortAvoidancePath;
+            trulyTheBestAccessPath   = other.trulyTheBestAccessPath;
+            existsTable              = other.existsTable;
+            isNotExists              = other.isNotExists;
+            matchRowId               = other.matchRowId;
+            dependencyMap            = other.dependencyMap;
+            fromSSQ                  = other.fromSSQ;
+            outerJoinLevel           = other.outerJoinLevel;
+            hasJoinPredicatePushedDownFromOuter = other.hasJoinPredicatePushedDownFromOuter;
+
+            protected CostEstimate bestCostEstimate;
+            protected CostEstimate accumulatedCost;
+            protected CostEstimate accumulatedCostForSortAvoidancePlan;
+            private Map<Object,AccessPath> bestPlanMap;
+            PredicateList postJoinPredicates;
+        */
+    }
+
     /**
      * Flatten this FromTable into the outer query block. The steps in
      * flattening are:
@@ -1495,5 +1582,43 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     @Override
     public void setHasJoinPredicatePushedDownFromOuter(boolean value) {
         hasJoinPredicatePushedDownFromOuter = value;
+    }
+
+    @Override
+    public boolean outerTableOnly() {
+        return outerTableOnly;
+    }
+
+    public void setOuterTableOnly(boolean outerTableOnly) {
+        this.outerTableOnly = outerTableOnly;
+    }
+
+    @Override
+    public boolean indexFriendlyJoinsOnly() { return indexFriendlyJoinsOnly; }
+
+    public void setIndexFriendlyJoinsOnly(boolean indexFriendlyJoinsOnly) {
+        this.indexFriendlyJoinsOnly = indexFriendlyJoinsOnly;
+    }
+
+    // Currently only FromBaseTable can record a Unioned Index Scans access path.
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {
+
+    }
+
+    // Update the source of each result column with the result column
+    // from a Unioned Index Scans access path.
+    protected void updateResultColumnExpressions(ResultColumnList replacementResultColumns) throws StandardException {
+        for (int i = 0; i < resultColumns.size(); i++) {
+            ResultColumn targetRC = resultColumns.elementAt(i);
+            if (targetRC.getExpression() instanceof CurrentRowLocationNode)
+                continue;
+            // Are the columns out of order for some reason?
+            if (!targetRC.getName().equals(replacementResultColumns.elementAt(i).getName()))
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Incorrectly built result columns for unioned index scan.");
+            ValueNode replacementExpression =
+              replacementResultColumns.elementAt(i).getExpression();
+            targetRC.setExpression(replacementExpression);
+        }
     }
 }

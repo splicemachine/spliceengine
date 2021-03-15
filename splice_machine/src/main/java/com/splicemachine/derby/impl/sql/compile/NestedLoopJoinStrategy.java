@@ -34,7 +34,7 @@ import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
-    private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
+    private static final double NLJ_ON_SPARK_PENALTY = 1e15;
 
     public NestedLoopJoinStrategy(){
     }
@@ -46,6 +46,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException{
+
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
+
         /* Nested loop is feasible, except in the corner case
          * where innerTable is a VTI that cannot be materialized
          * (because it has a join column as a parameter) and
