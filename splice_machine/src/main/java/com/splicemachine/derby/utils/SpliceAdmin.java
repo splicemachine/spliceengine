@@ -49,7 +49,6 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
-import com.splicemachine.db.impl.sql.execute.SPSProperty;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -96,10 +95,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static com.splicemachine.db.iapi.sql.StatementType.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
 /**
@@ -115,6 +112,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public interface ConsumeWithException<T, T2, E extends Throwable> {
         void accept(T t, T2 t2) throws E;
     }
+    @FunctionalInterface
+    public interface ConsumeWithException3<T, T2, T3, E extends Throwable> {
+        void accept(T t, T2 t2, T3 t3) throws E;
+    }
 
     public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
         List<HostAndPort> servers;
@@ -129,6 +130,31 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 function.accept(server, connection);
             }
         }
+    }
+
+    public static void executeOnAllServers(String sql) throws SQLException {
+
+        executeOnAllServers((hostAndPort, connection) -> execute(connection, sql));
+    }
+
+    public static void executeOnAllServers(String sql,
+                                           ConsumeWithException3<HostAndPort, Connection, ResultSet, SQLException> function)
+            throws SQLException {
+
+        executeOnAllServers( (hostAndPort, connection) -> {
+            if(function == null)
+                execute(connection, sql);
+            else {
+                try (Statement stmt = connection.createStatement()) {
+
+                    try (ResultSet rs = stmt.executeQuery(sql)) {
+                        function.accept(hostAndPort, connection, rs);
+                    }
+                }
+            }
+        });
+
+
     }
 
     public static void execute(Connection connection, String sql) throws SQLException {
@@ -169,11 +195,14 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
 
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        String loggerLevel=logging.getLoggerLevel(loggerName);
-        sb.append(String.format("('%s')",loggerLevel));
-        sb.append(") foo (logLevel)");
-        resultSet[0]=executeStatement(sb);
+        String loggerLevel = logging.getLoggerLevel(loggerName);
+
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("LOGLEVEL", 15);
+        res.newRow();
+        col.set(loggerLevel);
+
+        resultSet[0] = res.getResultSet();
     }
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
@@ -197,7 +226,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     String statement = rs.getString(1);
                     maxLength = Math.max(maxLength, statement.length());
                     Timestamp timestamp = rs.getTimestamp(2);
-                    statements.add(new Pair<String, Timestamp>(statement, timestamp));
+                    statements.add(new Pair<>(statement, timestamp));
                 }
             }
             serverNameLength = Math.max(serverNameLength, server.toString().length());
@@ -213,11 +242,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 resultHelper.newRow();
                 col1.set(serverToStatement.getKey());
                 col2.set(pair.getFirst());
-                try {
-                    col3.set(new DateTime(pair.getSecond()));
-                } catch (StandardException se) {
-                    throw PublicAPI.wrapStandardException(se);
-                }
+                col3.set(new DateTime(pair.getSecond()));
             }
         }
         resultSet[0] = resultHelper.getResultSet();
@@ -236,21 +261,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         ResultHelper resultHelper = new ResultHelper();
-        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("CACHED_STATEMENT", Math.max(result.stream()
-                                                                                                .map(Pair::getFirst)
-                                                                                                .max(Comparator.comparingInt(String::length))
-                                                                                                .orElse("")
-                                                                                                .length(), 20));
+        int col1len = Math.max(result.stream().map(Pair::getFirst)
+                .max(Comparator.comparingInt(String::length)).orElse("").length(), 20);
+        ResultHelper.VarcharColumn col1 = resultHelper.addVarchar("CACHED_STATEMENT", col1len);
         ResultHelper.TimestampColumn col2 = resultHelper.addTimestamp("ADDITION_TIMESTAMP", 30);
 
         for(Pair<String, Timestamp> cachedStatement : result) {
             resultHelper.newRow();
             col1.set(cachedStatement.getFirst());
-            try {
-                col2.set(new DateTime(cachedStatement.getSecond()));
-            } catch (StandardException se) {
-                throw PublicAPI.wrapStandardException(se);
-            }
+            col2.set(new DateTime(cachedStatement.getSecond()));
         }
         resultSet[0] = resultHelper.getResultSet();
     }
@@ -270,26 +289,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
             };
         });
 
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("LOG_LEVEL", 120);
+
         List<ExecRow> rows = new ArrayList<>();
         for (String logger : loggerLevels) {
-            ExecRow row = new ValueRow(1);
-            row.setColumn(1, new SQLVarchar(logger));
-            rows.add(row);
+            res.newRow();
+            col.set(logger);
         }
 
-        GenericColumnDescriptor[] descriptors = {
-                new GenericColumnDescriptor("LOG_LEVEL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-        };
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
 
@@ -303,115 +312,76 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
 
-        StringBuilder sb=new StringBuilder("select * from (values ");
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("SPLICELOGGER", 100);
+
         HashSet<String> loggerNames = new HashSet<>();
         loggerNames.addAll(logging.getLoggerNames());
-
         ArrayList<String> loggers = new ArrayList<>(loggerNames);
         Collections.sort(loggers);
         for(String logger : loggers){
-            sb.append(String.format("('%s')",logger));
-            sb.append(", ");
+            res.newRow();
+            col.set(logger);
         }
-        if(sb.charAt(sb.length()-2)==','){
-            sb.setLength(sb.length()-2);
-        }
-        sb.append(") foo (spliceLogger)");
-        resultSet[0]=executeStatement(sb);
+
+        resultSet[0] = res.getResultSet();
+
     }
 
     public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException{
         Set<String> loggers = new HashSet<>();
 
-        executeOnAllServers( (hostAndPort, connection) -> {
-            try (Statement stmt = connection.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
+        executeOnAllServers( "call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()", (hostAndPort, connection, rs) -> {
                     while (rs.next()) {
                         loggers.add(rs.getString(1));
                     }
-                }
-            }
-        });
+            });
+
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("SPLICE_LOGGER", 100);
 
         ArrayList<String> loggerNames = new ArrayList<>(loggers);
         Collections.sort(loggerNames);
 
         List<ExecRow> rows = new ArrayList<>();
         for (String logger : loggerNames) {
-            ExecRow row = new ValueRow(1);
-            row.setColumn(1, new SQLVarchar(logger));
-            rows.add(row);
+            res.newRow();
+            col.set(logger);
         }
 
-        GenericColumnDescriptor[] descriptors = {
-                new GenericColumnDescriptor("SPLICE_LOGGER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-        };
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_ACTIVE_SERVERS(ResultSet[] resultSet) throws SQLException{
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i=0;
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname  = res.addVarchar("HOSTNAME", 40);
+        ResultHelper.BigintColumn  colPort      = res.addBigint("PORT", 8);
+        ResultHelper.BigintColumn  colTimestamp = res.addBigint("STARTCODE", 9);
+
         for(PartitionServer serverName : getLoad()){
-            if(i!=0){
-                sb.append(", ");
-            }
-            sb.append(String.format("('%s',%d,%d)",
-                    serverName.getHostname(),
-                    serverName.getPort(),
-                    serverName.getStartupTimestamp()));
-            i++;
+            res.newRow();
+            colHostname.set( serverName.getHostname() );
+            colPort.set( serverName.getPort() );
+            colTimestamp.set( serverName.getStartupTimestamp() );
         }
-        sb.append(") foo (hostname, port, startcode)");
-        resultSet[0]=executeStatement(sb);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{
-        List<ExecRow> rows = new ArrayList<>();
-        executeOnAllServers( (hostAndPort, connection) -> {
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()")) {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname   = res.addVarchar("HOSTNAME", 120);
+        ResultHelper.VarcharColumn colRelease    = res.addVarchar("RELEASE", 40);
+        ResultHelper.VarcharColumn colVersion    = res.addVarchar("IMPLEMENTATION_VERSION", 40);
+        ResultHelper.VarcharColumn colBuildTime  = res.addVarchar("BUILD_TIME", 40);
+        ResultHelper.VarcharColumn colUrl        = res.addVarchar("URL", 120);
+
+        executeOnAllServers( "call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()", (hostAndPort, connection, rs) -> {
                         while (rs.next()) {
-                            ExecRow row = new ValueRow(5);
-
-                            row.setColumn(1, new SQLVarchar(rs.getString(1)));
-                            row.setColumn(2, new SQLVarchar(rs.getString(2)));
-                            row.setColumn(3, new SQLVarchar(rs.getString(3)));
-                            row.setColumn(4, new SQLVarchar(rs.getString(4)));
-                            row.setColumn(5, new SQLVarchar(rs.getString(5)));
-                            rows.add(row);
+                            res.newRowFromResultSet(rs);
                         }
-                    }
-                }
-            });
+                });
 
-        GenericColumnDescriptor[] descriptors = {
-                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("RELEASE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("IMPLEMENTATION_VERSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("BUILD_TIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("URL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-        };
-
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_VERSION_INFO_LOCAL(final ResultSet[] resultSet) throws SQLException{
@@ -683,58 +653,34 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet) throws SQLException{
         Collection<PartitionServer> load=getLoad();
 
-        ExecRow template=new ValueRow(6);
-        template.setRowArray(new DataValueDescriptor[]{
-                new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
-                new SQLLongint(),new SQLLongint(),new SQLReal()
-        });
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHost              = res.addVarchar("host", 30);
+        ResultHelper.BigintColumn  colRegionCount       = res.addBigint("regionCount", 9);
+        ResultHelper.BigintColumn  colStoreFileSize     = res.addBigint("storeFileSize", 9);
+        ResultHelper.BigintColumn  colWriteRequestCount = res.addBigint("writeRequestCount", 9);
+        ResultHelper.BigintColumn  colReadRequestCount  = res.addBigint("readRequestCount", 9);
+        ResultHelper.BigintColumn  colTotalRequestCount = res.addBigint("totalRequestCount", 9);
+
         int i=0;
         List<ExecRow> rows=new ArrayList<>(load.size());
         for(PartitionServer ps:load){
-            template.resetRowArray();
-            DataValueDescriptor[] dvds=template.getRowArray();
-            try{
+            try {
                 PartitionServerLoad psLoad = ps.getLoad();
-                int idx=0;
-                dvds[idx++].setValue(ps.getHostname());
+                colHost.set(ps.getHostname());
                 Set<PartitionLoad> partitionLoads=psLoad.getPartitionLoads();
-                long storeFileSize = 0L;
-                for(PartitionLoad pLoad:partitionLoads){
-                    storeFileSize+=pLoad.getStorefileSize();
-                }
-                dvds[idx++].setValue(partitionLoads.size());
-                dvds[idx++].setValue(storeFileSize);
-                dvds[idx++].setValue(psLoad.totalWriteRequests());
-                dvds[idx++].setValue(psLoad.totalReadRequests());
-                dvds[idx++].setValue(psLoad.totalRequests());
+                colRegionCount.set(partitionLoads.size());
+                long storeFileSize = partitionLoads.stream()
+                        .map( PartitionLoad::getStorefileSize ).reduce(Long::sum).get();
+                colStoreFileSize.set(storeFileSize);
+                colWriteRequestCount.set(psLoad.totalWriteRequests());
+                colReadRequestCount.set(psLoad.totalReadRequests());
+                colTotalRequestCount.set(psLoad.totalRequests());
 
-            }catch(StandardException se){
-                throw PublicAPI.wrapStandardException(se);
             }catch(Exception e){
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
-            rows.add(template.getClone());
-            i++;
         }
-        ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[6];
-        int idx=0;
-        columnInfo[idx++]=new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-        columnInfo[idx++]=new GenericColumnDescriptor("regionCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("storeFileSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("writeRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("readRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("totalRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        EmbedConnection defaultConn=(EmbedConnection)BaseAdminProcedures.getDefaultConn();
-        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap=new IteratorNoPutResultSet(rows,columnInfo,lastActivation);
-        try{
-            resultsToWrap.openCore();
-        }catch(StandardException e){
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers=new EmbedResultSet40(defaultConn,resultsToWrap,false,null,true);
-
-        resultSet[0]=ers;
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException{
@@ -1431,7 +1377,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
-        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()") );
+        executeOnAllServers("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
     }
 
     public static void SYSCS_GET_TABLE_COUNT(ResultSet[] resultSets) throws StandardException, SQLException{
@@ -1487,7 +1433,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE() throws SQLException{
-        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()") );
+        executeOnAllServers("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()");
     }
 
     private static Collection<PartitionServer> getLoad() throws SQLException{
@@ -1962,25 +1908,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
-        long id = getOldestActiveTransaction();
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        List<ExecRow> rows = new ArrayList<>(1);
-        ExecRow row = new ValueRow(1);
-        row.setColumn(1, new SQLLongint(id));
-        GenericColumnDescriptor[] descriptor = new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
-        };
-        rows.add(row);
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptor, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        ResultHelper res = new ResultHelper();
+        ResultHelper.BigintColumn col = res.addBigint("transactoinId", 10);
+        res.newRow();
+        col.set(getOldestActiveTransaction());
+        resultSet[0] = res.getResultSet();
     }
 
     private static List<ExecRow> getRunningOperations() throws SQLException {
@@ -2472,342 +2404,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void INVALIDATE_GLOBAL_DICTIONARY_CACHE() throws Exception {
-        executeOnAllServers( (s, con) -> execute(con, "call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()") );
-    }
-
-    @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
-    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException, StandardException
-    {
-        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
-        resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
-    }
-
-    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK) throws SQLException {
-        Connection connection = getDefaultConn();
-        schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = EngineUtils.validateTable(tableName);
-        List<String> ddls = Lists.newArrayList();
-        try {
-            TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
-
-            String tableTypeString = "";
-            StringBuilder extTblString = new StringBuilder();
-
-            ColumnDescriptorList cdl = td.getColumnDescriptorList();
-            //Process external table definition
-            if (td.isExternal()) {
-                tableTypeString = "EXTERNAL ";
-
-                List<ColumnDescriptor> partitionColumns = cdl.stream()
-                        .filter(columnDescriptor -> columnDescriptor.getPartitionPosition() > -1)
-                        .sorted(Comparator.comparing(ColumnDescriptor::getPartitionPosition))
-                        .collect(Collectors.toList());
-
-                String tmpStr;
-                tmpStr = td.getCompression();
-                if (tmpStr != null && !tmpStr.equals("none"))
-                    extTblString.append("\nCOMPRESSED WITH " + tmpStr);
-
-                // Partitioned Columns
-                boolean firstCol = true;
-                for (ColumnDescriptor col: partitionColumns) {
-                    extTblString.append(firstCol ? "\nPARTITIONED BY (\"" + col.getColumnName()+"\"" : ",\"" + col.getColumnName()+"\"");
-                    firstCol = false;
-                }
-
-                if (!firstCol)
-                    extTblString.append(")");
-
-                // Row Format
-                if (td.getDelimited() != null || td.getLines() != null) {
-                    extTblString.append("\nROW FORMAT DELIMITED");
-                    if ((tmpStr = td.getDelimited()) != null)
-                        extTblString.append(" FIELDS TERMINATED BY '" + tmpStr + "'");
-                    if ((tmpStr = td.getEscaped()) != null)
-                        extTblString.append(" ESCAPED BY '" + tmpStr + "'");
-                    if ((tmpStr = td.getLines()) != null)
-                        extTblString.append(" LINES TERMINATED BY '" + tmpStr + "'");
-                }
-                // Storage type
-                if ((tmpStr = td.getStoredAs()) != null) {
-                    extTblString.append("\nSTORED AS ");
-                    switch (tmpStr) {
-                        case "T":
-                            extTblString.append("TEXTFILE");
-                            break;
-                        case "P":
-                            extTblString.append("PARQUET");
-                            break;
-                        case "A":
-                            extTblString.append("AVRO");
-                            break;
-                        case "O":
-                            extTblString.append("ORC");
-                            break;
-                        default:
-                            throw new SQLException("Invalid stored format");
-                    }
-                }
-                // Location
-                if ((tmpStr = td.getLocation()) != null) {
-                    extTblString.append("\nLOCATION '" + tmpStr + "'");
-                }
-            }//End External Table
-            else if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
-                //Target table is a View
-                throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" + schemaName + "\".\"" + tableName + "\"");
-            } else if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
-                //Target table is a system table
-                throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
-            } else if (td.getTableType() == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
-                tableTypeString = "LOCAL TEMPORARY ";
-            }
-
-            // Get column list, and write DDL for each column.
-            StringBuilder colStringBuilder = new StringBuilder("");
-            String createColString = "";
-
-            boolean firstCol = true;
-            cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
-            for (ColumnDescriptor col: cdl) {
-                createColString = createColumn(col);
-                colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
-                firstCol = false;
-            }
-
-
-            colStringBuilder.append(createConstraint(td, schemaName, tableName, separateFK));
-
-            String DDL = "CREATE " + tableTypeString + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-            String extStr = extTblString.toString();
-            if (extStr.length() > 0)
-                DDL += extStr;
-
-            ddls.add(DDL);
-
-            if (separateFK) {
-                List<String> fks = getForeignKeyConstraints(td, schemaName, tableName);
-                ddls.addAll(fks);
-            }
-            return ddls;
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-    }
-
-    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
-    {
-        StringBuffer colDef = new StringBuffer();
-
-        colDef.append("\"" + columnDescriptor.getColumnName() + "\"");
-        colDef.append(" ");
-        String colType = (new UserType(columnDescriptor.getType().getCatalogType())).toString();
-        colDef.append(colType);
-
-        Object defaultSerializable;
-        if(columnDescriptor.getDefaultInfo() != null) {
-            defaultSerializable = columnDescriptor.getDefaultInfo();
-        }else{
-            defaultSerializable = columnDescriptor.getDefaultValue();
-        }
-        String defaultText = defaultSerializable == null? null:defaultSerializable.toString();
-
-        if (!reinstateAutoIncrement(columnDescriptor, colDef) &&
-                            defaultText != null) {
-            if (defaultText.startsWith("GENERATED ALWAYS AS")) {
-                colDef.append(" ");
-            } else {
-                colDef.append(" DEFAULT ");
-            }
-            colDef.append(defaultText);
-        }
-
-        return colDef.toString();
-    }
-
-    private static List<String> getForeignKeyConstraints(TableDescriptor td,
-                                                         String schemaName,
-                                                         String tableName) throws SQLException, StandardException {
-
-        List<String> fks = Lists.newArrayList();
-        Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
-                .stream()
-                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
-
-        ConstraintDescriptorList constraintDescriptorList = td.getDataDictionary().getConstraintDescriptors(td);
-        for (ConstraintDescriptor cd: constraintDescriptorList) {
-            int type = cd.getConstraintType();
-            if (type == DataDictionary.FOREIGNKEY_CONSTRAINT) {
-                StringBuffer fkKeys = new StringBuffer();
-                int[] keyColumns = cd.getKeyColumns();
-                String fkName = cd.getConstraintName();
-                ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) cd;
-                ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
-                TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
-                int[] referencedKeyColumns = referencedCd.getKeyColumns();
-                String refTblName = referencedTableDescriptor.getQualifiedName();
-                ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
-                Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
-                        .stream()
-                        .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
-
-                int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
-                int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
-
-                List<String> referencedColNames = new LinkedList<>();
-                List<String> fkColNames = new LinkedList<>();
-                for (int index = 0; index < keyColumns.length; index++) {
-                    fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
-                    referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
-                }
-                String s = String.format("ALTER TABLE \"%s\".\"%s\" ADD ", schemaName, tableName);
-                fkKeys.append(s + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
-                fks.add(fkKeys.toString() + "\n");
-            }
-        }
-        return fks;
-    }
-        @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
-    private static String createConstraint(TableDescriptor td, String schemaName, String tableName, boolean separateFK) throws SQLException, StandardException {
-        Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
-                .stream()
-                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
-        ConstraintDescriptorList constraintDescriptorList = td.getDataDictionary().getConstraintDescriptors(td);
-
-        StringBuffer chkStr = new StringBuffer();
-        StringBuffer uniqueStr = new StringBuffer();
-        StringBuffer priKeys = new StringBuffer();
-        StringBuffer fkKeys = new StringBuffer();
-        for (ConstraintDescriptor cd: constraintDescriptorList) {
-            switch (cd.getConstraintType()) {
-                //Check
-                case DataDictionary.CHECK_CONSTRAINT:
-                    if (!cd.isEnabled())
-                        break;
-
-                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText());
-                    break;
-                case DataDictionary.PRIMARYKEY_CONSTRAINT:
-                    int[] keyColumns = cd.getKeyColumns();
-                    boolean pkFirstCol = true;
-                    for (int index=0; index<keyColumns.length; index ++) {
-                        String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
-                        priKeys.append(pkFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " PRIMARY KEY(\"" + colName + "\"": ",\"" + colName + "\"");
-                        pkFirstCol = false;
-                    }
-                    if (!pkFirstCol)
-                        priKeys.append(")");
-                    break;
-                case DataDictionary.UNIQUE_CONSTRAINT:
-                    if (!cd.isEnabled())
-                        break;
-                    keyColumns = cd.getKeyColumns();
-                    boolean uniqueFirstCol = true;
-                    for (int index=0; index<keyColumns.length; index ++) {
-                        String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
-                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
-                        uniqueFirstCol = false;
-                    }
-                    if (!uniqueFirstCol)
-                        uniqueStr.append(")");
-                    break;
-                case DataDictionary.FOREIGNKEY_CONSTRAINT:
-                    if (!separateFK) {
-                        keyColumns = cd.getKeyColumns();
-                        String fkName = cd.getConstraintName();
-                        ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) cd;
-                        ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
-                        TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
-                        int[] referencedKeyColumns = referencedCd.getKeyColumns();
-                        String refTblName = referencedTableDescriptor.getQualifiedName();
-                        ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
-                        Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
-                                .stream()
-                                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
-
-                        int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
-                        int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
-
-                        List<String> referencedColNames = new LinkedList<>();
-                        List<String> fkColNames = new LinkedList<>();
-                        for (int index = 0; index < keyColumns.length; index++) {
-                            fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
-                            referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
-                        }
-                        fkKeys.append(", " + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return  chkStr.toString() + uniqueStr.toString() + priKeys.toString() + fkKeys.toString();
-    }
-
-    private static String buildColumnsFromList(List<String> cols)
-    {
-        StringBuffer sb = new StringBuffer("(");
-        boolean firstCol = true;
-        for (String c : cols) {
-            sb.append(firstCol ? "" : ",");
-            sb.append(c);
-            firstCol = false;
-        }
-        sb.append(")");
-        return sb.toString();
-    }
-
-    private static String buildForeignKeyConstraint(String fkName, String refTblName, List<String> pkCols, List<String> fkCols,
-                                                    int updateRule, int deleteRule) throws SQLException
-    {
-        StringBuffer fkStr = new StringBuffer("CONSTRAINT " + fkName + " FOREIGN KEY " + buildColumnsFromList(fkCols));
-        fkStr.append(" REFERENCES " + refTblName + buildColumnsFromList(pkCols));
-
-        fkStr.append(" ON UPDATE ");
-        switch (updateRule) {
-            case RA_RESTRICT:
-                fkStr.append("RESTRICT");
-                break;
-            case RA_NOACTION:
-                fkStr.append("NO ACTION");
-                break;
-            default:  // shouldn't happen
-                throw new SQLException("INTERNAL ERROR: unexpected 'on-update' action: " + updateRule);
-        }
-        fkStr.append(" ON DELETE ");
-        switch (deleteRule) {
-            case RA_RESTRICT:
-                fkStr.append("RESTRICT");
-                break;
-            case RA_NOACTION:
-                fkStr.append("NO ACTION");
-                break;
-            case RA_CASCADE:
-                fkStr.append("CASCADE");
-                break;
-            case RA_SETNULL:
-                fkStr.append("SET NULL");
-                break;
-            default:  // shouldn't happen
-                throw new SQLException("INTERNAL ERROR: unexpected 'on-delete' action: " + deleteRule);
-        }
-        return fkStr.toString();
-    }
-
-    public static boolean reinstateAutoIncrement(ColumnDescriptor columnDescriptor, StringBuffer colDef) throws SQLException {
-        if (columnDescriptor.getAutoincInc() != 0) {
-            colDef.append(" GENERATED ");
-            colDef.append(columnDescriptor.getDefaultInfo() == null ?
-                    "ALWAYS " : "BY DEFAULT ");
-            colDef.append("AS IDENTITY (START WITH ");
-            colDef.append(columnDescriptor.getAutoincStart());
-            colDef.append(", INCREMENT BY ");
-            colDef.append(columnDescriptor.getAutoincInc());
-            colDef.append(")");
-            return true;
-        }
-        return false;
+        executeOnAllServers("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
     }
 
     /**

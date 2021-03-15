@@ -1481,7 +1481,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(1)
                 .varchar("schemaName", 128)
                 .varchar("tableName", 128)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(SpliceAdminShow.class.getCanonicalName())
                 .build();
         procedures.add(showCreateTable);
 
