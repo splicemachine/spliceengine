@@ -31,6 +31,7 @@
 
 package	com.splicemachine.db.iapi.sql.compile;
 
+import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
@@ -116,4 +117,10 @@ public interface Visitor
 	 * @return true/false
 	 */
 	boolean skipChildren(Visitable node) throws StandardException;
+
+	/**
+	 * Return the low-level Visitor instead of the wrapper class
+	 * in case this is an ASTVisitor.
+	 */
+	default ISpliceVisitor getBaseVisitor() { return null; }
 }	
