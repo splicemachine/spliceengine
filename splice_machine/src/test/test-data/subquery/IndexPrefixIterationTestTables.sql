@@ -17,6 +17,26 @@ create table t11 (a1 bigint,
                  g1 bigint,
                  h1 timestamp, primary key(a1, b1, c1, d1, e1, f1, g1, h1));
 
+CREATE TABLE Table1 (
+COL1 CHAR(36) NOT NULL
+,COL2 CHAR(5) NOT NULL DEFAULT ''
+,COL3 TIMESTAMP NOT NULL
+,COL4 CHAR(1) NOT NULL DEFAULT ''
+,COL5 CHAR(1) NOT NULL DEFAULT ''
+,COL6 TIMESTAMP NOT NULL
+,COL7 CHAR(8) NOT NULL DEFAULT ''
+,COL8 CHAR(36) NOT NULL
+,COL9 CHAR(36) NOT NULL
+,COL10 VARCHAR(3560) NOT NULL DEFAULT ''
+, CONSTRAINT MY_PK PRIMARY KEY("COL1")
+);
+
+create index Table1_Idx1 on Table1 (COL2, COL5, COL3, COL8, COL9);
+
+insert into Table1 values ('a', 'ABCDE', timestamp('2010-12-31 15:59:59.3211111'), 'b', 'c', timestamp('1969-12-31 15:59:59.000001'), 'd', 'e', 'f', 'g');
+
+analyze table Table1;
+
 insert into t1 values(1,1,1,1,1,1,1, timestamp('2018-12-31 15:59:59.3211111'));
 insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.3211111'));
 insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.9999999'));
