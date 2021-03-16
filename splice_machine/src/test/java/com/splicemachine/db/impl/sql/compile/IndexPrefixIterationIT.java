@@ -302,5 +302,34 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testIndexLookupNoNPE() throws Exception {
+        if (isMemPlatform && useSpark)
+            return;
+        String expected =
+        "COL1 |           COL3            |COL9 |COL8 | COL10 |\n" +
+        "------------------------------------------------------\n" +
+        "  a  |2010-12-31 15:59:59.321111 |  f  |  e  |   g   |";
 
+        String query = format("SELECT DP.COL1,\n" +
+                              "       DP.COL3,\n" +
+                              "       DP.COL9,\n" +
+                              "       DP.COL8,\n" +
+                              "       DP.COL10\n" +
+                              "FROM --splice-properties joinOrder=fixed\n" +
+                              "       Table1 DP --splice-properties index=Table1_Idx1\n" +
+                              "WHERE\n" +
+                              "       DP.COL2 = 'ABCDE'\n" +
+                              "   AND DP.COL5 ^= 'J'\n" +
+                              "   AND DP.COL3 < '2011-11-01'\n" +
+                              "                    || '-00.00.00.000000'\n" +
+                              "ORDER BY DP.COL1", useSpark);
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=true");
+        List<String> containedStrings = Arrays.asList("IndexLookup");
+        List<String> notContainedStrings = Arrays.asList("IndexPrefixIteratorMode");
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=false");
+    }
 }
