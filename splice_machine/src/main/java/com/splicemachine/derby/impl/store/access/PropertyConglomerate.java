@@ -725,7 +725,7 @@ public class PropertyConglomerate {
             }
         }
 
-        tc.snapshot(propertiesConglomId + "_snapshot", Long.toString(propertiesConglomId));
+        tc.snapshot(propertiesConglomId + "_upgrade", Long.toString(propertiesConglomId));
         tc.truncate(Long.toString(propertiesConglomId));
 
         try (ConglomerateController cc =
@@ -735,11 +735,22 @@ public class PropertyConglomerate {
                              TransactionController.OPENMODE_FORUPDATE,
                              TransactionController.MODE_TABLE,
                              TransactionController.ISOLATION_SERIALIZABLE)) {
+
             for (DataValueDescriptor[] row : rows) {
                 ExecRow vRow = new ValueRow();
                 vRow.setRowArray(row);
                 cc.insert(vRow);
             }
+        }
+    }
+
+    public void recoverPropertyConglomerateIfNecessary(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+        String snapshotName = propertiesConglomId + "_upgrade";
+        if (snapshots.contains(snapshotName)) {
+            tc.truncate(Long.toString(propertiesConglomId));
+            tc.cloneSnapshot(snapshotName, Long.toString(propertiesConglomId));
+            tc.deleteSnapshot(snapshotName);
         }
     }
 }
