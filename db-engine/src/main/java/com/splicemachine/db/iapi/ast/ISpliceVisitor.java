@@ -49,11 +49,11 @@ public interface ISpliceVisitor {
     boolean stopTraversal();
     boolean skipChildren(Visitable node);
 
-	/**
-	 * Return the low-level Visitor instead of the wrapper class
-	 * in case this is an ASTVisitor.
-	 */
-	default ISpliceVisitor getVisitor() { return this; }
+    /**
+     * Return the low-level Visitor instead of the wrapper class
+     * in case this is an ASTVisitor.
+     */
+    default ISpliceVisitor getVisitor() { return this; }
 
     Visitable defaultVisit(Visitable node) throws StandardException;
 
