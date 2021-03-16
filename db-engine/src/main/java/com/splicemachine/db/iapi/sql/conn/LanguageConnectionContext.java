@@ -1513,6 +1513,8 @@ public interface LanguageConnectionContext extends Context {
 
     boolean alwaysAllowIndexPrefixIteration();
 
+    boolean favorIndexPrefixIteration();
+
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;
 
