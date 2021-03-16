@@ -61,7 +61,7 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSVW", "SYSROUTINEPERMSVIEW"), new ViewInfo(DataDictionary.SYSROUTINEPERMS_CATALOG_NUM, 0, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSPERMSVIEW"), new ViewInfo(DataDictionary.SYSPERMS_CATALOG_NUM, 0, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSALIASTOTABLEVIEW"), new ViewInfo(DataDictionary.SYSALIASES_CATALOG_NUM, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL));
-        views.put(new Pair<>("SYSVW", "SYSALIASTOTABLEVIEW"), new ViewInfo(DataDictionary.SYSALIASES_CATALOG_NUM, SYSALIASESRowFactory.SYSALIASESVIEW_SQL));
+        views.put(new Pair<>("SYSVW", "SYSALIASESVIEW"), new ViewInfo(DataDictionary.SYSALIASES_CATALOG_NUM, SYSALIASESRowFactory.SYSALIASESVIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSCONGLOMERATESVIEW"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSVW_SYSCONGLOMERATES_SQL));
         views.put(new Pair<>("SYSVW", "SYSDEPENDSVIEW"), new ViewInfo(DataDictionary.SYSDEPENDS_CATALOG_NUM, SYSDEPENDSRowFactory.SYSVW_SYSDEPENDS_SQL));
         views.put(new Pair<>("SYSVW", "SYSSEQUENCESVIEW"), new ViewInfo(DataDictionary.SYSSEQUENCES_CATALOG_NUM, SYSSEQUENCESRowFactory.SYSVW_SYSSEQUENCESVIEW_SQL));

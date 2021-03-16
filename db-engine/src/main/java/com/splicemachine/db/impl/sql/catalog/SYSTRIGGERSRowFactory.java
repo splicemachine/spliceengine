@@ -549,7 +549,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 getCD(view, viewId, "OLDREFERENCINGNAME",    16, Types.VARCHAR, true, 128),
                 getCD(view, viewId, "NEWREFERENCINGNAME",    17, Types.VARCHAR, true, 128),
                 getCD(view, viewId, "WHENCLAUSETEXT",        18, Types.LONGVARCHAR, true),
-                getCD(view, viewId, "TRIGGERDEFINITIONLIST", 19, Types.VARCHAR, true, 64),
+                getCD(view, viewId, "TRIGGERDEFINITIONLIST", 19, Types.LONGVARCHAR, true),
                 getCD(view, viewId, "ACTIONSTMTIDLIST",      20, Types.VARCHAR, true, 64),
         };
     }
@@ -574,7 +574,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                     "OLDREFERENCINGNAME,\n" +
                     "NEWREFERENCINGNAME,\n" +
                     "WHENCLAUSETEXT,\n" +
-                    "cast(TRIGGERDEFINITIONLIST AS VARCHAR(64)) AS TRIGGERDEFINITIONLIST,\n" +
+                    "cast(TRIGGERDEFINITIONLIST AS LONG VARCHAR) AS TRIGGERDEFINITIONLIST,\n" +
                     "cast(ACTIONSTMTIDLIST AS VARCHAR(64)) AS ACTIONSTMTIDLIST\n" +
                     "FROM sys.SYSTRIGGERS");
 }

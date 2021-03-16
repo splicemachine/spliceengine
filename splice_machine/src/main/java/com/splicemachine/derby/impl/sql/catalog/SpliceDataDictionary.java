@@ -278,7 +278,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOrUpdateSystemView(tc, "SYSVW", "SYSCONGLOMERATEINSCHEMAS");
         createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESVIEW");
         createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
-        createOrUpdateSystemView(tc, "SYSVW", "SYSTRIGGERSVIEW");
 
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }

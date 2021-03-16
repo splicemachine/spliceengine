@@ -134,7 +134,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
                 "ALIASTYPE,\n" +
                 "NAMESPACE,\n" +
                 "SYSTEMALIAS,\n" +
-                "cast(ALIASINFO AS VARCHAR(32)) AS ALIASINFO,\n" +
+                "cast(ALIASINFO AS LONG VARCHAR) AS ALIASINFO,\n" +
                 "SPECIFICNAME\n" +
                 "FROM SYS.SYSALIASES");
 
@@ -146,9 +146,9 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
                 getCD(view, viewId, "JAVACLASSNAME", 4, Types.LONGVARCHAR, false),
                 getCD(view, viewId, "ALIASTYPE",     5, Types.CHAR, false, 1),
                 getCD(view, viewId, "NAMESPACE",     6, Types.CHAR, false, 1),
-                getCD(view, viewId, "SYSTEMALIAS",   7, Types.BOOLEAN, false, 1),
-                getCD(view, viewId, "ALIASINFO",     8, Types.VARCHAR, true, 1),
-                getCD(view, viewId, "SPECIFICNAME",  9, Types.VARCHAR, false, 36)
+                getCD(view, viewId, "SYSTEMALIAS",   7, Types.BOOLEAN, false),
+                getCD(view, viewId, "ALIASINFO",     8, Types.LONGVARCHAR, true),
+                getCD(view, viewId, "SPECIFICNAME",  9, Types.VARCHAR, false, 128)
         };
     }
 
@@ -412,7 +412,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getUUIDColumn(ALIASID, false),
                 SystemColumnImpl.getIdentifierColumn(ALIAS, false),
                 SystemColumnImpl.getUUIDColumn(SCHEMAID, true),
-                SystemColumnImpl.getColumn(JAVACLASSNAME, java.sql.Types.LONGVARCHAR, false, Integer.MAX_VALUE),
+                SystemColumnImpl.getColumn(JAVACLASSNAME, java.sql.Types.LONGVARCHAR, true, Integer.MAX_VALUE),
                 SystemColumnImpl.getIndicatorColumn(ALIASTYPE),
                 SystemColumnImpl.getIndicatorColumn(NAMESPACE),
                 SystemColumnImpl.getColumn(SYSTEMALIAS, Types.BOOLEAN, false),
