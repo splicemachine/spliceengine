@@ -25,8 +25,6 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -36,11 +34,9 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
-import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -59,7 +55,6 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -74,7 +69,6 @@ import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
 
-import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -1479,7 +1473,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             TabInfoImpl ti = getTableInfo(catalogNum);
             long conglomerate = ti.getHeapConglomerate();
             // clone the base table
-            String snapshotName = conglomerate + "_snapshot";
+            String snapshotName = conglomerate + "_upgrade";
             long cloned_conglomerate = conglomerate + 1;
             tc.cloneSnapshot(snapshotName, Long.toString(cloned_conglomerate));
             SpliceLogUtils.info(LOG,"Cloning snapshot %s to conglomerate %d",
@@ -1493,39 +1487,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    public void rollbackDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
-        Set<String> snapshots = tc.listSnapshots();
-
-        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
-            int catalogNum = serdeUpgradedTables.get(i);
-            TabInfoImpl ti = getTableInfo(catalogNum);
-            long conglomerate = ti.getHeapConglomerate();
-            String snapshotName = conglomerate + "_snapshot";
-
-            if (snapshots.contains(snapshotName)) {
-                tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
-                int n = ti.getNumberOfIndexes();
-                for (int j = 0; j < n; ++j) {
-                    conglomerate = ti.getIndexConglomerate(j);
-                    snapshotName = conglomerate + "_snapshot";
-                    if (snapshots.contains(snapshotName)) {
-                        tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
-                    }
-                }
-                SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables.get(i));
-            }
-        }
-    }
-
     private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {
         TabInfoImpl ti = getTableInfo(catalogNum);
         long conglomerate = ti.getHeapConglomerate();
-        String snapshotName = conglomerate + "_snapshot";
+        String snapshotName = conglomerate + "_upgrade";
         tc.snapshot(snapshotName, Long.toString(conglomerate));
         int n = ti.getNumberOfIndexes();
         for (int i = 0; i < n; ++i) {
             conglomerate = ti.getIndexConglomerate(i);
-            snapshotName = conglomerate + "_snapshot";
+            snapshotName = conglomerate + "_upgrade";
             tc.snapshot(snapshotName, Long.toString(conglomerate));
         }
     }
@@ -1538,30 +1508,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         for (int i = 0; i < n; ++i) {
             conglomerate = ti.getIndexConglomerate(i);
             tc.truncate(Long.toString(conglomerate));
-        }
-    }
-
-    public void cleanupSerdeUpgrade(TransactionController tc) throws StandardException {
-        Set<String> snapshots = tc.listSnapshots();
-        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
-            deleteSnapshot(tc, serdeUpgradedTables.get(i), snapshots);
-        }
-    }
-
-    private void deleteSnapshot(TransactionController tc, int catalogNum, Set<String> snapshots) throws StandardException {
-        TabInfoImpl ti = getTableInfo(catalogNum);
-        long conglomerate = ti.getHeapConglomerate();
-        String snapshotName = conglomerate + "_snapshot";
-        if (snapshots.contains(snapshotName)) {
-            tc.deleteSnapshot(snapshotName);
-        }
-        int n = ti.getNumberOfIndexes();
-        for (int i = 0; i < n; ++i) {
-            conglomerate = ti.getIndexConglomerate(i);
-            snapshotName = conglomerate + "_snapshot";
-            if (snapshots.contains(snapshotName)) {
-                tc.deleteSnapshot(snapshotName);
-            }
         }
     }
 
