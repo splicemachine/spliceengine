@@ -1684,4 +1684,6 @@ conglomerates are removed.
 	void closeMe(ScanController scan);
 
 	void rewritePropertyConglomerate() throws StandardException;
+
+	void recoverPropertyConglomerateIfNecessary() throws StandardException;
 }
