@@ -100,7 +100,7 @@ public class SpliceCatalogUpgradeScriptsTest {
         Assert.assertEquals( 0, SpliceCatalogUpgradeScripts.getScriptsToUpgrade(list,
                 new Splice_DD_Version(null, 4,0,0, 0)).size() );
 
-        SpliceCatalogUpgradeScripts.runAllScripts(list);
+        SpliceCatalogUpgradeScripts.runAllScripts(list, null, null);
         Assert.assertEquals(4, counter[0]);
     }
 

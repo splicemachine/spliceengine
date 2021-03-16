@@ -499,7 +499,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }else{
                 // Get the ids for non-core tables
                 loadDictionaryTables(bootingTC,startParams);
-
+                BaseDataDictionary.READ_NEW_FORMAT = true;
+                BaseDataDictionary.WRITE_NEW_FORMAT= true;
                 String sqlAuth=PropertyUtil.getDatabaseProperty(bootingTC,
                         Property.SQL_AUTHORIZATION_PROPERTY);
 

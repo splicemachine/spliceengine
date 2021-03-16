@@ -1730,4 +1730,6 @@ public interface TransactionController
 	void closeMe(ScanController scan);
 
 	void rewritePropertyConglomerate() throws StandardException;
+
+	void recoverPropertyConglomerateIfNecessary() throws StandardException;
 }
