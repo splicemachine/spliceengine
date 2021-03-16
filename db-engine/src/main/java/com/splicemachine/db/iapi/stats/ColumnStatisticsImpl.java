@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
-import org.apache.datasketches.memory.Memory;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.memory.WritableMemory;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -167,11 +166,11 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         nullCount = columnStatistics.getNullCount();
         dvd = ProtobufUtils.fromProtobuf(columnStatistics.getDvd());
         byte[] quantiles = columnStatistics.getQuantilesSketch().toByteArray();
-        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(Memory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
+        quantilesSketch = org.apache.datasketches.quantiles.ItemsSketch.getInstance(WritableMemory.wrap(quantiles), dvd, new DVDArrayOfItemsSerDe(dvd));
         byte[] frequencies = columnStatistics.getFrequenciesSketch().toByteArray();
-        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(Memory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
+        frequenciesSketch = org.apache.datasketches.frequencies.ItemsSketch.getInstance(WritableMemory.wrap(frequencies), new DVDArrayOfItemsSerDe(dvd));
         byte[] thetaSketchBytes = columnStatistics.getThetaSketch().toByteArray();
-        thetaSketch = Sketches.wrapSketch(Memory.wrap(thetaSketchBytes)); // Sketch.heapify(thetaMem);
+        thetaSketch = Sketches.wrapSketch(WritableMemory.wrap(thetaSketchBytes));
     }
 
     protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
