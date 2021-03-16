@@ -909,6 +909,9 @@ public class FromBaseTable extends FromTable {
         // the first index column not used by any useful predicates
         // versus scanning all rows in the conglomerate.
         // Choose the cheapest of the two access paths.
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        if (lcc.favorIndexPrefixIteration())
+            return finalCostEstimate;
         if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
             finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
             AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);

@@ -1567,6 +1567,12 @@ public interface Property {
     String CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION = "alwaysAllowIndexPrefixIteration";
 
     /**
+     * If true, causes the optimizer to choose IndexPrefixIteratorMode for a given
+     * index, if it is legal.
+     */
+    String CONNECTION_FAVOR_INDEX_PREFIX_ITERATION = "favorIndexPrefixIteration";
+
+    /**
      * If true, disable IndexPrefixIteratorMode access paths.  All index or primary key access
      * that uses a start key or stop key must then specify the first column of the index
      * in an equality of IN list predicate.

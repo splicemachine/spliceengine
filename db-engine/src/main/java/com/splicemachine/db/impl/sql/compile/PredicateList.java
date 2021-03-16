@@ -1425,6 +1425,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int numColsInStopPred = 1;
 
         currentStartPosition += firstColumnIdx;
+        currentStopPosition += firstColumnIdx;
         for(int i=0;i<usefulCount;i++){
             Predicate thisPred=usefulPredicates[i];
             int thisIndexPosition=thisPred.getIndexPosition();
@@ -1451,6 +1452,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     ** more predicates as start predicates.
                     */
                     if (indexPrefixIterationAllowed &&
+                        !rowIdScan                  &&
+                        currentStartPosition == (firstColumnIdx - 1) &&
                         (!thisPred.isHashableJoinPredicate() || considerJoinPredicateAsKey) &&
                          (thisIndexPosition-currentStartPosition) == numColsInStartPred + 1) {
                         accessPath.setNumUnusedLeadingIndexFields(1);
@@ -1503,6 +1506,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     ** more predicates as start predicates.
                     */
                     if (indexPrefixIterationAllowed &&
+                        !rowIdScan                  &&
+                        currentStopPosition == (firstColumnIdx - 1) &&
                         (!thisPred.isHashableJoinPredicate() || considerJoinPredicateAsKey) &&
                          (thisIndexPosition-currentStopPosition) == numColsInStopPred + 1) {
                         accessPath.setNumUnusedLeadingIndexFields(1);
