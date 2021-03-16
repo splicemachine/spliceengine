@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.sql.compile.*;
 
 /**
@@ -47,6 +48,12 @@ public interface ISpliceVisitor {
     boolean isPostOrder();
     boolean stopTraversal();
     boolean skipChildren(Visitable node);
+
+	/**
+	 * Return the low-level Visitor instead of the wrapper class
+	 * in case this is an ASTVisitor.
+	 */
+	default ISpliceVisitor getVisitor() { return this; }
 
     Visitable defaultVisit(Visitable node) throws StandardException;
 

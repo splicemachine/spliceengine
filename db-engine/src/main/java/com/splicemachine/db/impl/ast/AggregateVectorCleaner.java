@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2021 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -37,46 +37,18 @@ import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.Collection;
 
-public class AndOrReplacementVisitor extends AbstractSpliceVisitor {
+public class AggregateVectorCleaner extends AbstractSpliceVisitor {
 
-    private ValueNode nodeToReplace;
     private Collection<AggregateNode> aggregateVector;
 
-    public AndOrReplacementVisitor(ValueNode nodeToReplace, Collection<AggregateNode> aggregateVector){
-        this.nodeToReplace = nodeToReplace;
+    public AggregateVectorCleaner(Collection<AggregateNode> aggregateVector){
         this.aggregateVector = aggregateVector;
     }
 
     @Override
-    public Visitable visit(OrNode node) throws StandardException {
-       return visitBinaryOperator(node);
-    }
-
-    @Override
-    public Visitable visit(AndNode node) throws StandardException {
-        return visitBinaryOperator(node);
-    }
-
-    private Visitable visitBinaryOperator(BinaryOperatorNode bon) throws StandardException {
-
-        Visitable replacementNode = null;
-
-        if(nodeToReplace.equals(bon.getLeftOperand())){
-            replacementNode = bon.getRightOperand();
-            if (aggregateVector != null) {
-                AggregateVectorCleaner vectorCleaner = new AggregateVectorCleaner(aggregateVector);
-                bon.getLeftOperand().accept(new SpliceDerbyVisitorAdapter(vectorCleaner));
-            }
-        }else if(nodeToReplace.equals(bon.getRightOperand())){
-            replacementNode = bon.getLeftOperand();
-            if (aggregateVector != null) {
-                AggregateVectorCleaner vectorCleaner = new AggregateVectorCleaner(aggregateVector);
-                bon.getRightOperand().accept(new SpliceDerbyVisitorAdapter(vectorCleaner));
-            }
-        }else{
-            replacementNode = bon;
-        }
-
-        return replacementNode;
+    public Visitable defaultVisit(Visitable node) throws StandardException {
+        if (node instanceof AggregateNode)
+            aggregateVector.remove(node);
+        return node;
     }
 }
