@@ -119,9 +119,9 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
 
     private ColumnDescriptor[] getSYSALIAS_TO_TABLE_VIEW_SQL(TableDescriptor view, UUID viewId) {
         return new ColumnDescriptor[]{
-                getCD(view, viewId, "SCHEMANAME", Types.VARCHAR, 1, false, 128),
-                getCD(view, viewId, "ALIAS", Types.VARCHAR, 2, false, 128),
-                getCD(view, viewId, "BASETABLE", Types.VARCHAR, 3, false, 256)
+                getCD(view, viewId, "SCHEMANAME", 1, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "ALIAS",      2, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "BASETABLE",  3, Types.VARCHAR, false, 256)
         };
     }
 
