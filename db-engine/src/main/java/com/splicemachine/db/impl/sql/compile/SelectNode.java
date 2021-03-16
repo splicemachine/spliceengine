@@ -2157,13 +2157,7 @@ public class SelectNode extends ResultSetNode{
             fromList=(FromList)fromList.accept(v, this);
         }
         if(whereClause!=null){
-            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
-                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(whereAggregates);
-
             whereClause=(ValueNode)whereClause.accept(v, this);
-
-            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
-                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(null);
         }
         if(wherePredicates!=null){
             wherePredicates=(PredicateList)wherePredicates.accept(v, this);
