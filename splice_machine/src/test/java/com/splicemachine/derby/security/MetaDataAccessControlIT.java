@@ -226,13 +226,13 @@ public class MetaDataAccessControlIT {
     @Test
     public void testShowTableWithAccessControl() throws Exception {
         ResultSet rs = user1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        /* expected 16 tables: 15 sysvw views, and 2 user tables t1, and t2, and 1 alias AS1 */
-        assertEquals("Expected to have 16 tables", 18, resultSetSize(rs));
+        /* expected 20 tables: 17 sysvw views, and 2 user tables t1, and t2, and 1 alias AS1 */
+        assertEquals("Expected to have 20 tables", 20, resultSetSize(rs));
         rs.close();
 
-        /* expected just 15 sysvw views */
+        /* expected just 17 sysvw views */
         rs = user2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        assertEquals("Expected to have 13 tables", 15, resultSetSize(rs));
+        assertEquals("Expected to have 17 tables", 17, resultSetSize(rs));
         rs.close();
 
     }

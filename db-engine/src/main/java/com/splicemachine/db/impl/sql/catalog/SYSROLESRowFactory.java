@@ -325,6 +325,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         });
         return cdsl;
     }
+
     /*
     public static final String ALLROLES_VIEW_SQL = "" +
             "create recursive view sysallroles as \n" +

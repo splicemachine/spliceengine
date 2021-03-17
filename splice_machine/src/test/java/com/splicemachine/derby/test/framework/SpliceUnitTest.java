@@ -483,6 +483,68 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testPreparedQuery(String sqlText, SpliceWatcher methodWatcher,
+                                     String expected, List<Integer> paramList) throws Exception {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+
+            try(ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+        }
+    }
+
+    protected void testExplainContains(String sqlText,
+                                       SpliceWatcher methodWatcher,
+                                       List<String> containedStrings,
+                                       List<String> notContainedStrings) throws Exception {
+        String explainQuery = "explain " + sqlText;
+        try (ResultSet rs = methodWatcher.executeQuery(explainQuery)){
+            String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (containedStrings != null)
+                for (String containedString : containedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                        explainText.contains(containedString));
+                }
+            if (notContainedStrings != null)
+                for (String notContainedString : notContainedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                        !explainText.contains(notContainedString));
+                }
+        }
+    }
+
+    protected void testParameterizedExplainContains(String sqlText,
+                                     SpliceWatcher methodWatcher,
+                                     List<String> containedStrings,
+                                     List<String> notContainedStrings,
+                                     List<Integer> paramList) throws Exception {
+
+        String explainQuery = "explain " + sqlText;
+        try(PreparedStatement ps = methodWatcher.prepareStatement(explainQuery)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+            try(ResultSet rs = ps.executeQuery()) {
+                String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                if (containedStrings != null)
+                    for (String containedString : containedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                            explainText.contains(containedString));
+                    }
+                if (notContainedStrings != null)
+                    for (String notContainedString : notContainedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                            !explainText.contains(notContainedString));
+                    }
+            }
+        }
+    }
+
     protected void testQueryDoesNotContain(String sqlText, String containedString,
                                            SpliceWatcher methodWatcher,
                                            boolean caseInsensitive) throws Exception {
@@ -1138,13 +1200,14 @@ public class SpliceUnitTest {
                 Thread.sleep(1000);
                 oldest1 = oldest2;
             }
+            String oldestMsg = "Oldest txn: " + oldest1;
             if (failOnError) {
-                Assert.fail(name + " failed to close all transactions.");
+                Assert.fail(name + " failed to close all transactions. " + oldestMsg);
             } else {
                 // if you see this error, this is a hint that something might be left open, especially if you see
                 // multiple of these messages. turn failOnError=true and check tests one by one.
                 LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
-                        "tests running in parallel.");
+                        "tests running in parallel. " + oldestMsg);
             }
         } catch( SQLException e)
         {
@@ -1266,5 +1329,44 @@ public class SpliceUnitTest {
         consumer.accept(false, false);
         consumer.accept(true, false);
         consumer.accept(true, true);
+    }
+
+
+
+    /**
+     * matching regexp with multiple lines by splitting the input string and the result string and
+     * comparing individually
+     * @param in the input multiline string
+     * @param expectedOutRegex the multiline string that is used to match the input
+     */
+    public static void matchMultipleLines(String in, String expectedOutRegex) {
+        String[] o2 = in.split("\n");
+        String[] ex2 = expectedOutRegex.split("\n");
+        Assert.assertEquals(in + "\n---\n" + expectedOutRegex, o2.length, ex2.length);
+        for(int i =0; i<o2.length; i++) {
+            Assert.assertTrue("\n" + o2[i] + "\n--------------\ndoesn't match\n--------------\n" + ex2[i], o2[i].matches(ex2[i]));
+        }
+    }
+
+    /**
+     * creates a regexp where all characters are escaped and § is mapped to .*, so that
+     * when we have a result with a variable result like with a conglomerate id
+     * | 347893 | MY_TABLE |
+     * we can use
+     * |§| MY_TABLE |
+     * to match the result
+     * @param asteriskFilter
+     * @return escaped regexp String, and § mapped to .*
+     */
+    public static String escapeRegexp(String asteriskFilter)
+    {
+        String filter = asteriskFilter;
+        String toEscape[] = {"\\", "<", "(", "[", "{", "^", "=", "$", "*", "!", "|", "]", "}", ")", "+", ".", ">", "?"};
+        for(String s : toEscape) {
+            filter = filter.replace(s, "\\" + s);
+        }
+
+        filter = filter.replace("§", ".*");
+        return filter;
     }
 }

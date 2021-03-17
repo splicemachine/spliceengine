@@ -14,19 +14,29 @@
 
 package com.splicemachine.test;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.protobuf.RpcCallback;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 /**
  * Test utilities requiring HBase
@@ -101,4 +111,61 @@ public class HBaseTestUtils {
         return setBlock(onOff, CallType.POST_SPLIT);
     }
 
+    public static void compact(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Compacting " + tableName);
+        admin.compact(tableName);
+        logger.trace("Compacted " + tableName);
+    }
+
+    public static void majorCompact(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Major compacting " + tableName);
+        admin.majorCompact(tableName);
+        logger.trace("Compacted " + tableName);
+    }
+
+    public static void move(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Preparing region move");
+        Collection<ServerName> servers = admin.getClusterStatus().getServers();
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+            List<HRegionLocation> locations = connection.getRegionLocator(tableName).getAllRegionLocations();
+            int r = new Random().nextInt(locations.size());
+            HRegionLocation location = locations.get(r);
+            location.getServerName().getServerName();
+            ServerName pick = null;
+            for (ServerName sn : servers) {
+                if (!sn.equals(location.getServerName())) {
+                    pick = sn;
+                    break;
+                }
+            }
+            if (pick != null) {
+                logger.trace("Moving region");
+                admin.move(location.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(pick.getServerName()));
+            }
+        }
+    }
+
+    public static void split(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Splitting " + tableName);
+        admin.split(tableName);
+        logger.trace("Split " + tableName);
+    }
+
+    public static void flush(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Flushing " + tableName);
+        admin.flush(tableName);
+        logger.trace("Flushed " + tableName);
+    }
+
+    public static void disable(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Disabling " + tableName);
+        admin.disableTable(tableName);
+        logger.trace("Disabled " + tableName);
+    }
+
+    public static void enable(Admin admin, TableName tableName, Logger logger) throws IOException {
+        logger.trace("Enabling " + tableName);
+        admin.enableTable(tableName);
+        logger.trace("Enabled " + tableName);
+    }
 }

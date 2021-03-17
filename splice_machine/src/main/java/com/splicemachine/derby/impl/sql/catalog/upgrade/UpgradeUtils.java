@@ -19,12 +19,16 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -34,9 +38,7 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class UpgradeUtils {
@@ -88,17 +90,25 @@ public class UpgradeUtils {
         SIDriver driver = SIDriver.driver();
         String snapshotName =  tableName + "_snapshot";
         PartitionAdmin admin = null;
+        String backupTableName = tableName + "_backup";
         try {
+            // Make a copy of conglomerate table
             admin = SIDriver.driver().getTableFactory().getAdmin();
             admin.snapshot(snapshotName, tableName);
-            Map<String, Conglomerate> conglomerates = new HashMap<>();
+            admin.cloneSnapshot(snapshotName, backupTableName);
+            admin.truncate(tableName);
+
             EntryDecoder entryDecoder=new EntryDecoder();
             TxnView txn = ((SpliceTransactionManager)tc).getActiveStateTxn();
             BitSet fields=new BitSet();
             fields.set(0);
             EntryEncoder entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
-            try (Partition table = driver.getTableFactory().getTable(tableName)) {
-                try (DataScanner scanner = table.openScanner(driver.baseOperationFactory().newScan())) {
+            final int batchSize = 100;
+            List<DataPut> puts = Lists.newArrayList();
+            int count = 0;
+            try (Partition src = driver.getTableFactory().getTable(backupTableName);
+                 Partition dest = driver.getTableFactory().getTable(tableName)) {
+                try (DataScanner scanner = src.openScanner(driver.baseOperationFactory().newScan())) {
                     while (true) {
                         List<DataCell> cells = scanner.next(0);
                         if (cells.isEmpty())
@@ -112,30 +122,39 @@ public class UpgradeUtils {
                                 MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                                 byte[] nextRaw = decoder.decodeNextBytesUnsorted();
                                 Conglomerate conglomerate =  DerbyBytesUtil.fromBytesUnsafe(nextRaw);
-                                conglomerates.put(Bytes.toHex(key), conglomerate);
+
+                                // Serialize in new format
+                                DataPut put = driver.getOperationFactory().newDataPut(txn, key);
+                                byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
+                                MultiFieldEncoder encoder = entryEncoder.getEntryEncoder();
+                                encoder.reset();
+                                encoder.encodeNextUnsorted(conglomData);
+                                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                                puts.add(put);
+                                count++;
+                                // batch write to conglomerate table
+                                if (count % batchSize == 0) {
+                                    DataPut[] toWrite = new DataPut[puts.size()];
+                                    toWrite = puts.toArray(toWrite);
+                                    dest.writeBatch(toWrite);
+                                    puts.clear();
+                                }
                             }
                         }
                     }
                 }
-            }
-            admin.truncate(tableName);
-            try (Partition table = driver.getTableFactory().getTable(tableName)) {
-                for (Map.Entry<String, Conglomerate> entry : conglomerates.entrySet()) {
-                    byte[] key = Bytes.fromHex(entry.getKey());
-                    Conglomerate conglomerate = entry.getValue();
-                    DataPut put = driver.getOperationFactory().newDataPut(txn, key);
-                    byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
-                    MultiFieldEncoder encoder = entryEncoder.getEntryEncoder();
-                    encoder.reset();
-                    encoder.encodeNextUnsorted(conglomData);
-                    put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-                    table.put(put);
+                if (puts.size() > 0) {
+                    DataPut[] toWrite = new DataPut[puts.size()];
+                    toWrite = puts.toArray(toWrite);
+                    dest.writeBatch(toWrite);
+                    puts.clear();
                 }
             }
 
             String oldVersion = admin.getCatalogVersion(tableName);
             String newVersion = HBaseConfiguration.catalogVersions.get(tableName);
             admin.setCatalogVersion(tableName, newVersion);
+            SpliceLogUtils.info(LOG, "Finished upgrading table %s", tableName);
             SpliceLogUtils.info(LOG, "upgrade catalog version of %s from %s to %s",
                     tableName, oldVersion, newVersion);
         }
@@ -153,6 +172,7 @@ public class UpgradeUtils {
             if (snapshots.contains(snapshotName)) {
                 admin.deleteTable(tableName);
                 admin.cloneSnapshot(snapshotName, tableName);
+                SpliceLogUtils.info(LOG, "Roll back serialization changes to %s", tableName);
             }
         }
     }
@@ -163,6 +183,42 @@ public class UpgradeUtils {
         for (String snapshotName : snapshotNames) {
             if (snapshots.contains(snapshotName)) {
                 admin.deleteSnapshot(snapshotName);
+                SpliceLogUtils.info(LOG, "Delete snapshot %s", snapshotName);
+            }
+        }
+    }
+
+    public static void cloneConglomerate(SpliceDataDictionary sdd, TransactionController tc) throws StandardException{
+        for (int i = 0; i < SpliceDataDictionary.serdeUpgradedTables.size(); ++i) {
+            SpliceLogUtils.info(LOG, "Cloning conglomerate for %d",
+                    SpliceDataDictionary.serdeUpgradedTables.get(i));
+
+            TabInfoImpl ti = sdd.getTableInfo(SpliceDataDictionary.serdeUpgradedTables.get(i));
+            long conglomerate = ti.getHeapConglomerate();
+            long cloned_conglomerate = conglomerate + 1;
+            TxnView txnView = ((SpliceTransactionManager)tc).getActiveStateTxn();
+            SpliceConglomerate c = ConglomerateUtils.readConglomerate(conglomerate, HBaseConglomerate.class, txnView);
+            c.setId(cloned_conglomerate);
+            ConglomerateUtils.createConglomerate(false, cloned_conglomerate, c, txnView);
+        }
+    }
+
+    public static void dropClonedConglomerate(SpliceDataDictionary sdd,
+                                              TransactionController tc) throws StandardException{
+        for (int i = 0; i < SpliceDataDictionary.serdeUpgradedTables.size(); ++i) {
+            TabInfoImpl ti = sdd.getTableInfo(SpliceDataDictionary.serdeUpgradedTables.get(i));
+            long conglomerate = ti.getHeapConglomerate();
+            long cloned_conglomerate = conglomerate + 1;
+            try {
+                PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                if (admin.tableExists(Long.toString(cloned_conglomerate))) {
+                    admin.deleteTable(Long.toString(cloned_conglomerate));
+                    SpliceLogUtils.info(LOG, "Dropped cloned conglomerate %d for catalogNum %d",
+                            cloned_conglomerate,
+                            SpliceDataDictionary.serdeUpgradedTables.get(i));
+                }
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
             }
         }
     }

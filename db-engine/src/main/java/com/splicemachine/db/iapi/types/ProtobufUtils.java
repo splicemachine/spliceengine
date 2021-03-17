@@ -10,8 +10,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.*;
-import com.splicemachine.db.impl.sql.execute.FKInfo;
-import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
@@ -362,6 +361,22 @@ public class ProtobufUtils {
             case BaseTypeIdImpl:
             default:
                 return new BaseTypeIdImpl(baseTypeId);
+        }
+    }
+
+    public static SumAggregator toSumAggregator(CatalogMessage.SystemAggregator ag) throws IOException, ClassNotFoundException {
+        CatalogMessage.SystemAggregator.Type t = ag.getType();
+        switch (t) {
+            case SumAggregator:
+                return new SumAggregator(ag);
+            case DecimalBufferedSumAggregator:
+                return new DecimalBufferedSumAggregator(ag);
+            case DoubleBufferedSumAggregator:
+                return new DoubleBufferedSumAggregator(ag);
+            case LongBufferedSumAggregator:
+                return new LongBufferedSumAggregator(ag);
+            default:
+                throw new RuntimeException("Unexpected type " + t);
         }
     }
 }

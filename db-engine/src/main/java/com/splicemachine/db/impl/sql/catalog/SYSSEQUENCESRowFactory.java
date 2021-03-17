@@ -40,13 +40,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -319,58 +314,43 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIndicatorColumn("CYCLEOPTION")
         };
     }
-
     public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
-        cdsl.add(
-                new ColumnDescriptor[]{
-                        new ColumnDescriptor("SEQUENCEID", 1, 1,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("SEQUENCENAME", 2, 2,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("SCHEMAID", 3, 3,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("CURRENTVALUE",4,4,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
-                                null,null,view,viewId,0,0,0),
-                        new ColumnDescriptor("STARTVALUE",5,5,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
-                                null,null,view,viewId,0,0,0),
-                        new ColumnDescriptor("MINIMUMVALUE",6,6,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
-                                null,null,view,viewId,0,0,0),
-                        new ColumnDescriptor("MAXIMUMVALUE",7,7,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
-                                null,null,view,viewId,0,0,0),
-                        new ColumnDescriptor("INCREMENT",8,8,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
-                                null,null,view,viewId,0,0,0),
-                        new ColumnDescriptor("CYCLEOPTION", 9, 9,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  1),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("SCHEMANAME"               ,10,10,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                                null,null,view,viewId,0,0,0),
-                });
+        assert cdsl.size() == SYSVW_SYSSEQUENCESVIEW_SQL.getFirst();
+        cdsl.add( getSYSVW_SYSSEQUENCESVIEW_SQL_ColumnDescriptor(view, viewId) );
         return cdsl;
     }
 
-    public static final String SYSSEQUENCES_VIEW_SQL = "create view syssequencesView as \n" +
-            "SELECT " +
-            "   SEQ.SEQUENCEID," +
-            "   SEQ.SEQUENCENAME," +
-            "   SEQ.SCHEMAID," +
-            "   SEQ.CURRENTVALUE," +
-            "   SEQ.STARTVALUE," +
-            "   SEQ.MINIMUMVALUE," +
-            "   SEQ.MAXIMUMVALUE," +
-            "   SEQ.INCREMENT," +
-            "   SEQ.CYCLEOPTION," +
-            "   SCH.SCHEMANAME " +
-            "FROM SYS.SYSSEQUENCES AS SEQ, SYSVW.SYSSCHEMASVIEW AS SCH " +
-            "WHERE SEQ.SCHEMAID = SCH.SCHEMAID";
+    final public static Pair<Integer, String> SYSVW_SYSSEQUENCESVIEW_SQL = new Pair<>(0,
+                    "create view SYSSEQUENCESVIEW as SELECT " +
+                    "SEQUENCEID,\n" +
+                    "SEQUENCENAME,\n" +
+                    "SEQ.SCHEMAID,\n" +
+                    "cast(SEQUENCEDATATYPE as CHAR(32)) AS SEQUENCEDATATYPE,\n" +
+                    "CURRENTVALUE,\n" +
+                    "STARTVALUE,\n" +
+                    "MINIMUMVALUE,\n" +
+                    "MAXIMUMVALUE,\n" +
+                    "INCREMENT,\n" +
+                    "CYCLEOPTION\n" +
+                    "FROM sys.SYSSEQUENCES AS SEQ, SYSVW.SYSSCHEMASVIEW AS SCH\n" +
+                    "WHERE SEQ.SCHEMAID = SCH.SCHEMAID" );
+
+    private ColumnDescriptor[] getSYSVW_SYSSEQUENCESVIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "SEQUENCEID",       1,  Types.CHAR,    false, 72),
+                getCD(view, viewId, "SEQUENCENAME",     2,  Types.VARCHAR, false, 256),
+                getCD(view, viewId, "SCHEMAID",         3,  Types.CHAR,    false, 72),
+                getCD(view, viewId, "SEQUENCEDATATYPE", 4,  Types.CHAR,    false, 64),
+                getCD(view, viewId, "CURRENTVALUE",     5,  Types.BIGINT,  true),
+                getCD(view, viewId, "STARTVALUE",       6,  Types.BIGINT,  false),
+                getCD(view, viewId, "MINIMUMVALUE",     7,  Types.BIGINT,  false),
+                getCD(view, viewId, "MAXIMUMVALUE",     8,  Types.BIGINT,  false),
+                getCD(view, viewId, "INCREMENT",        9,  Types.BIGINT,  false),
+                getCD(view, viewId, "CYCLEOPTION",      10, Types.CHAR,    false, 2)
+        };
+    }
+
 }
 

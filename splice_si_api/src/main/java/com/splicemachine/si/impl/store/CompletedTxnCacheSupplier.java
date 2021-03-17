@@ -24,6 +24,7 @@ import com.splicemachine.si.impl.txn.RolledBackTxn;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * TxnSupplier which caches transaction which have "Completed"--i.e. which have entered the COMMITTED or ROLLEDBACK
@@ -35,8 +36,8 @@ import java.io.IOException;
  *         Date: 6/18/14
  */
 public class CompletedTxnCacheSupplier implements TxnSupplier{
-    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private TxnView[] cache;
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private final TxnSupplier delegate;
     private Hash32 hashFunction;
 
@@ -131,5 +132,10 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
     @Override
     public TaskId getTaskId(long txnId) throws IOException {
         return delegate.getTaskId(txnId);
+    }
+
+    @Override
+    public void invalidate() {
+        Arrays.fill(cache, null);
     }
 }
