@@ -60,7 +60,7 @@ public class FlushDeadlockWhenRegionInClosingStateIT extends SpliceUnitTest {
             /*
              * Disabling SYS.SYSTABLES will trigger a flush as part of closing the region and will end up in a bad state
              * if we do not account for the region closing in SpliceDefaultFlusher
-             * See DB-11639
+             * See DB-11693
              */
             HBaseTestUtils.disable(admin, TableName.valueOf("splice:" + conglomerates[0]), LOG);
             HBaseTestUtils.enable(admin, TableName.valueOf("splice:" + conglomerates[0]), LOG);
