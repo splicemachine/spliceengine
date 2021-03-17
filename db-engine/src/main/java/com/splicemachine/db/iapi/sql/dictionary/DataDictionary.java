@@ -599,7 +599,7 @@ public interface DataDictionary{
      * @param tc     Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropAllPermsByGrantee(String authid,TransactionController tc) throws StandardException;
+    void dropAllPermsByGrantee(String authid, UUID dbId, TransactionController tc) throws StandardException;
 
 
     /**

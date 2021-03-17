@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import javax.xml.validation.Schema;
+
 /**
  * This class describes rows in the SYS.SYSROUTINEPERMS system table, which keeps track of the routine
  * (procedure and function) permissions that have been granted but not revoked.
@@ -79,8 +81,8 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
      * This constructor just sets up the key fields of a RoutinePermsDescriptor.
      */
     public RoutinePermsDescriptor(DataDictionary dd,
-								  String grantee,
-								  String grantor, TransactionController tc) throws StandardException
+                                  String grantee,
+                                  String grantor, TransactionController tc) throws StandardException
     {
         this( dd, grantee, grantor, (UUID) null, tc);
     }
@@ -130,13 +132,18 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
         return super.keyHashCode() + routineUUID.hashCode();
     }
 
+    @Override
+    public SchemaDescriptor getSchemaDescriptor() throws StandardException {
+        UUID sd = getDataDictionary().getAliasDescriptor(routineUUID, null).getSchemaUUID();
+        return getDataDictionary().getSchemaDescriptor(sd, null);
+    }
+
     /**
      * @see PermissionsDescriptor#checkOwner
      */
     public boolean checkOwner(String authorizationId) throws StandardException
     {
-        UUID sd = getDataDictionary().getAliasDescriptor(routineUUID, null).getSchemaUUID();
-        return getDataDictionary().getSchemaDescriptor(sd, null).getAuthorizationId().equals(authorizationId);
+        return getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
     }
 
     //////////////////////////////////////////////

@@ -319,4 +319,31 @@ public class MultiDatabaseIT extends SpliceUnitTest {
             testQuery(sql, expected, spliceDbConn);
         }
     }
+
+    @Test
+    public void testDropRolePrivilegeCollision() throws Exception {
+        String name = "testDropRolePrivilegeCollision".toUpperCase();
+        otherDbConn.execute("create schema %s_schema", name);
+        otherDbConn.execute("create role %s_role", name);
+        otherDbConn.execute("grant all privileges on schema %s_schema to %s_role", name, name);
+
+        otherDbOwnerNotSpliceConn.execute("create schema %s_schema", name);
+        otherDbOwnerNotSpliceConn.execute("create role %s_role", name);
+        otherDbOwnerNotSpliceConn.execute("grant all privileges on schema %s_schema to %s_role", name, name);
+
+        testQuery(format("select grantor, grantee from sys.sysschemaperms where grantee = '%s_ROLE' order by grantor", name),
+                "GRANTOR     |              GRANTEE               |\n" +
+                        "-------------------------------------------------------\n" +
+                        "MULTIDATABASEIT2 |TESTDROPROLEPRIVILEGECOLLISION_ROLE |\n" +
+                        "     SPLICE      |TESTDROPROLEPRIVILEGECOLLISION_ROLE |",
+                spliceDbConn);
+
+        otherDbOwnerNotSpliceConn.execute("drop role %s_role", name);
+
+        testQuery(format("select grantor, grantee from sys.sysschemaperms where grantee = '%s_ROLE' order by grantor", name),
+                "GRANTOR |              GRANTEE               |\n" +
+                        "-----------------------------------------------\n" +
+                        " SPLICE  |TESTDROPROLEPRIVILEGECOLLISION_ROLE |",
+                spliceDbConn);
+    }
 }
