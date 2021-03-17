@@ -192,20 +192,24 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = res.getResultSet();
     }
 
-    public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{
-        ResultHelper res = new ResultHelper();
-        ResultHelper.VarcharColumn colHostname   = res.addVarchar("HOSTNAME", 120);
-        ResultHelper.VarcharColumn colRelease    = res.addVarchar("RELEASE", 40);
-        ResultHelper.VarcharColumn colVersion    = res.addVarchar("IMPLEMENTATION_VERSION", 40);
-        ResultHelper.VarcharColumn colBuildTime  = res.addVarchar("BUILD_TIME", 40);
-        ResultHelper.VarcharColumn colUrl        = res.addVarchar("URL", 120);
+    static class VersionInfoResult extends ResultHelper {
+        public VarcharColumn colHostname, colRelease, colVersion, colBuildTime, colUrl;
+        public VersionInfoResult() {
+            colHostname   = addVarchar("HOSTNAME", 120);
+            colRelease    = addVarchar("RELEASE", 40);
+            colVersion    = addVarchar("IMPLEMENTATION_VERSION", 40);
+            colBuildTime  = addVarchar("BUILD_TIME", 40);
+            colUrl        = addVarchar("URL", 120);
+        }
+    }
 
+    public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{
+        VersionInfoResult res = new VersionInfoResult();
         executeOnAllServers( "call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()", (hostAndPort, connection, rs) -> {
                         while (rs.next()) {
                             res.newRowFromResultSet(rs);
                         }
                 });
-
         resultSet[0] = res.getResultSet();
     }
 
@@ -223,15 +227,14 @@ public class SpliceAdmin extends BaseAdminProcedures {
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
 
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        sb.append(String.format("('%s','%s','%s','%s','%s')",
-                hostname + ":" + port,
-                version.getRelease(),
-                version.getImplementationVersion(),
-                version.getBuildTime(),
-                version.getURL()));
-        sb.append(") foo (hostname, release, implementationVersion, buildTime, url)");
-        resultSet[0]=executeStatement(sb);
+        VersionInfoResult res = new VersionInfoResult();
+        res.newRow();
+        res.colHostname .set(hostname + ":" + port);
+        res.colRelease  .set(version.getRelease());
+        res.colVersion  .set(version.getImplementationVersion());
+        res.colBuildTime.set(version.getBuildTime());
+        res.colUrl      .set(version.getURL());
+        resultSet[0] = res.getResultSet();
     }
 
     private static final ResultColumnDescriptor[] EXEC_SERVICE_COLUMNS= {
@@ -483,15 +486,15 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper.BigintColumn  colTotalRequestCount = res.addBigint("totalRequestCount", 9);
 
         int i=0;
-        List<ExecRow> rows=new ArrayList<>(load.size());
-        for(PartitionServer ps:load){
+        for (PartitionServer ps : load) {
             try {
+                res.newRow();
                 PartitionServerLoad psLoad = ps.getLoad();
                 colHost.set(ps.getHostname());
                 Set<PartitionLoad> partitionLoads=psLoad.getPartitionLoads();
                 colRegionCount.set(partitionLoads.size());
                 long storeFileSize = partitionLoads.stream()
-                        .map( PartitionLoad::getStorefileSize ).reduce(Long::sum).get();
+                        .map(PartitionLoad::getStorefileSize).reduce(Long::sum).get();
                 colStoreFileSize.set(storeFileSize);
                 colWriteRequestCount.set(psLoad.totalWriteRequests());
                 colReadRequestCount.set(psLoad.totalReadRequests());
@@ -505,25 +508,22 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException{
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i=0;
-        Collection<PartitionServer> servers=getLoad();
-        boolean isFirst=true;
-        for(PartitionServer server : servers){
-            if(!isFirst) sb=sb.append(",");
-            else isFirst=false;
-            try{
-                sb=sb.append("('").append(server.getHostname()).append("'")
-                        .append(",").append(server.getPort())
-                        .append(",").append(server.getLoad().totalRequests())
-                        .append(")");
-            }catch(IOException e){
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname      = res.addVarchar("hostname", 20);
+        ResultHelper.BigintColumn  colPort          = res.addBigint("port", 9);
+        ResultHelper.BigintColumn  colTotalRequests = res.addBigint("totalRequests", 9);
+        for(PartitionServer server : getLoad()){
+            try {
+                res.newRow();
+                colHostname.set(server.getHostname());
+                colPort.set(server.getPort());
+                colTotalRequests.set(server.getLoad().totalRequests());
+            } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
 
         }
-        sb.append(") foo (hostname, port, totalRequests)");
-        resultSet[0]=SpliceAdmin.executeStatement(sb);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws SQLException{

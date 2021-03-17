@@ -39,6 +39,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.net.HostAndPort;
 
 /**
@@ -116,6 +117,7 @@ public abstract class BaseAdminProcedures {
      * 
      * @param connections
      */
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     protected static void close(List<Pair<String, JMXConnector>> connections) {
         if (connections != null) {
             for (Pair<String, JMXConnector> connectorPair : connections) {
@@ -163,21 +165,6 @@ public abstract class BaseAdminProcedures {
         throw Util.noCurrentConnection();
     }
 
-    public static ResultSet executeStatement(StringBuilder sb) throws SQLException {
-        ResultSet result = null;
-        Connection connection = getDefaultConn();
-        try {
-            PreparedStatement ps = connection.prepareStatement(sb.toString());
-            result = ps.executeQuery();
-        } catch (SQLException e) {
-            connection.rollback();
-            throw new SQLException(sb.toString(), e);
-        } finally {
-            connection.close();
-        }
-        return result;
-    }
-
     protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
         ExecRow template = new ValueRow(columns.length);
         try {
@@ -216,32 +203,22 @@ public abstract class BaseAdminProcedures {
         }
     }
 
-    public static void executeOnAllServers(String sql) throws SQLException {
-
-        executeOnAllServers((hostAndPort, connection) -> execute(connection, sql));
-    }
-
     public static void executeOnAllServers(String sql,
                                            ConsumeWithException3<HostAndPort, Connection, ResultSet, SQLException> function)
             throws SQLException {
 
         executeOnAllServers( (hostAndPort, connection) -> {
-            if(function == null)
-                execute(connection, sql);
-            else {
-                try (Statement stmt = connection.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
 
-                    try (ResultSet rs = stmt.executeQuery(sql)) {
-                        function.accept(hostAndPort, connection, rs);
-                    }
+                try (ResultSet rs = stmt.executeQuery(sql)) {
+                    function.accept(hostAndPort, connection, rs);
                 }
             }
         });
     }
 
-    public static void execute(Connection connection, String sql) throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
-        }
+    public static void executeOnAllServers(String sql) throws SQLException {
+
+        executeOnAllServers(sql, (server, hostAndPort, connection) -> {} );
     }
 }

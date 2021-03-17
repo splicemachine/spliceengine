@@ -171,7 +171,6 @@ public class LoggingProcedures extends BaseAdminProcedures {
         ArrayList<String> loggerNames = new ArrayList<>(loggers);
         Collections.sort(loggerNames);
 
-        List<ExecRow> rows = new ArrayList<>();
         for (String logger : loggerNames) {
             res.newRow();
             col.set(logger);
