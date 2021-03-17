@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -406,6 +407,7 @@ public class CastNode extends ValueNode
      *            char            boolean
      *            char            date/time/ts
      *            char            non-decimal numeric
+     *            char            char/varchar
      *
      * @param destJDBCTypeId    The destination JDBC TypeId
      *
@@ -511,6 +513,36 @@ public class CastNode extends ValueNode
                         C_NodeTypes.DOUBLE_CONSTANT_NODE,
                         doubleValue,
                         getContextManager());
+            case Types.CHAR:
+                {
+                    int targetWidth = getTypeServices().getMaximumWidth();
+                    int sourceWidth = castOperand.getTypeServices().getMaximumWidth();
+                    if (targetWidth == sourceWidth) {
+                        return castOperand;
+                    } else if (targetWidth > sourceWidth) {
+                        return (ValueNode) getNodeFactory().getNode(
+                                C_NodeTypes.CHAR_CONSTANT_NODE,
+                                charValue + StringUtils.repeat(' ', targetWidth - sourceWidth),
+                                targetWidth,
+                                getContextManager());
+                    }
+                    // Truncating the string needs to send a SQLWarning but it should be put in ResultSet.
+                    // Leave it for now.
+                }
+                break;
+            case Types.VARCHAR:
+            case Types.LONGNVARCHAR:
+                {
+                    int targetWidth = getTypeServices().getMaximumWidth();
+                    int sourceWidth = castOperand.getTypeServices().getMaximumWidth();
+                    if (targetWidth >= sourceWidth) {
+                        castOperand.setType(getTypeServices());
+                        return castOperand;
+                    }
+                    // Truncating the string needs to send a SQLWarning but it should be put in ResultSet.
+                    // Leave it for now.
+                }
+                break;
         }
 
         return retNode;
