@@ -370,6 +370,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean compilingStoredPreparedStatement;
 
     /* constructor */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
         ContextManager cm,
         TransactionController tranCtrl,
@@ -486,6 +487,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
             setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -498,6 +500,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (disableNestedLoopJoinPredicatePushDown != null &&
                 disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
+
+            String disablePredsForIndexOrPkAccessPath = connectionProperties.getProperty(Property.CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH);
+            if (disablePredsForIndexOrPkAccessPath != null &&
+                    disablePredsForIndexOrPkAccessPath.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH, "TRUE".toString());
+            }
+            String alwaysAllowIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION);
+            if (alwaysAllowIndexPrefixIteration != null &&
+                    alwaysAllowIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
+            }
+            String favorIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_FAVOR_INDEX_PREFIX_ITERATION);
+            if (favorIndexPrefixIteration != null &&
+                    favorIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
@@ -3794,6 +3812,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void leaveRestoreMode(){
+        this.restoreMode=false;
+    }
+
+    @Override
     public void setTriggerStack(TriggerExecutionStack triggerStack) {
         if (this.triggerStack != null) {
             SanityManager.THROWASSERT("LCC already has a trigger stack.");
@@ -4072,6 +4095,36 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return nljPredicatePushDownDisabled;
+    }
+
+    @Override
+    public boolean isPredicateUsageForIndexOrPkAccessDisabled() {
+        Boolean disablePredsForIndexOrPkAccessPath = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH);
+        if (disablePredsForIndexOrPkAccessPath != null) {
+            return disablePredsForIndexOrPkAccessPath;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean alwaysAllowIndexPrefixIteration() {
+        Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
+        if (alwaysAllowIndexPrefixIteration != null) {
+            return alwaysAllowIndexPrefixIteration;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean favorIndexPrefixIteration() {
+        Boolean favorIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION);
+        if (favorIndexPrefixIteration != null) {
+            return favorIndexPrefixIteration;
+        }
+
+        return false;
     }
 
     @Override

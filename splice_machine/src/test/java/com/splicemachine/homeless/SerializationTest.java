@@ -14,12 +14,15 @@ import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.spark.sql.types.StructField;
 import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.*;
@@ -28,6 +31,12 @@ import java.util.Arrays;
 
 public class SerializationTest {
     KryoPool kryoPool = SpliceKryoRegistry.getInstance();
+
+    @BeforeClass
+    public static void init() {
+        BaseDataDictionary.READ_NEW_FORMAT = false;
+        BaseDataDictionary.WRITE_NEW_FORMAT = false;
+    }
 
     byte[] serializeKryo(Object o, int size) throws IOException {
         Output out = new Output(size);
@@ -241,30 +250,30 @@ public class SerializationTest {
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
         Assert.assertEquals(TypeDescriptorImpl.serialVersionUID, -366780836777876368l);
 
-        testSerdeTypeDescriptorImpl( 0, -1294251152, 1527676321,
+        testSerdeTypeDescriptorImpl( 0, 1632867878, 1527676321,
                 (TypeDescriptorImpl)CustomResultColumnDescriptor.sampleDTD1().getCatalogType() );
-        testSerdeTypeDescriptorImpl( 1, 93735511, -1051578936,
+        testSerdeTypeDescriptorImpl( 1, -401935666, -1051578936,
                 (TypeDescriptorImpl)CustomResultColumnDescriptor.sampleDTD2().getCatalogType() );
-        testSerdeTypeDescriptorImpl( 2, 1507648294, 1680325579,
+        testSerdeTypeDescriptorImpl( 2, 461323613, 1680325579,
                 new TypeDescriptorImpl(
                         new BaseTypeIdImpl(StoredFormatIds.CLOB_TYPE_ID_IMPL),
                         7, 0, // CLOB doesn't have scale
                         false, 8, 3) );
 
-        testSerdeTypeDescriptorImpl( 3, 1422889666, 718303979,
+        testSerdeTypeDescriptorImpl( 3, 55041400, 718303979,
                 new TypeDescriptorImpl(new DecimalTypeIdImpl(true),
                         4, 2,false, 3) );
 
-        testSerdeTypeDescriptorImpl( 4, -1099254617, -1257734010,
+        testSerdeTypeDescriptorImpl( 4, 1499050555, -1257734010,
                 new TypeDescriptorImpl(new UserDefinedTypeIdImpl("a", "b", "c"),
                         3, 2,false, 3) );
 
-        testSerdeTypeDescriptorImpl( 5, -2075709103, 586328168,
+        testSerdeTypeDescriptorImpl( 5, -261646406, 586328168,
                 new TypeDescriptorImpl(
                         new BaseTypeIdImpl(StoredFormatIds.VARCHAR_TYPE_ID_IMPL),
                         0, 0, true, 32, 3) );
 
-        testSerdeTypeDescriptorImpl( 6, 2143857202, 1226312723,
+        testSerdeTypeDescriptorImpl( 6, -332625021, 1226312723,
                 new TypeDescriptorImpl(
                         new RowMultiSetImpl(new String[]{"a", "b"},
                                 new TypeDescriptor[] {TypeDescriptor.INTEGER, TypeDescriptor.DOUBLE} ),
@@ -273,7 +282,7 @@ public class SerializationTest {
         TypeDescriptorImpl t = new TypeDescriptorImpl(new BaseTypeIdImpl(StoredFormatIds.ARRAY_TYPE_ID_IMPL),
                 0, 0, true, 32, 3);
         t.setChildren( new TypeDescriptor[] {TypeDescriptor.INTEGER, TypeDescriptor.DOUBLE} );
-        testSerdeTypeDescriptorImpl( 7, -1832431411, 1939197093, t );
+        testSerdeTypeDescriptorImpl( 7, -1015081738, 1939197093, t );
     }
 
     @Test
@@ -285,9 +294,9 @@ public class SerializationTest {
 
         // do NOT change value these unless you have an upgrade script, see DB-10566/DB-10665
         Assert.assertEquals(1527676321, Arrays.hashCode(kryo));
-        Assert.assertEquals(-1191620066, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(-1651386200, Arrays.hashCode(stream.toByteArray()));
         Assert.assertEquals(td.serialVersionUID, -366780836777876368l);
-        Assert.assertEquals(-1294251152, writeObjHash(td));
+        Assert.assertEquals(1632867878, writeObjHash(td));
 
         TypeDescriptorImpl td2 = new TypeDescriptorImpl();
         deserialize(stream, td2);
@@ -300,12 +309,12 @@ public class SerializationTest {
         ByteArrayOutputStream stream = serialize(dtd1);
         byte[] kryo = serializeKryo(dtd1, 1000);
         testSerDe(dtd1, 1000);
-
+        
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
         Assert.assertEquals(-363698866, Arrays.hashCode(kryo));
-        Assert.assertEquals(1174013790, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(1665200532, Arrays.hashCode(stream.toByteArray()));
 //        Assert.assertEquals(804804029538241393l, dtd1.serialVersionUID);
-        Assert.assertEquals(1987503899, writeObjHash(dtd1));
+        Assert.assertEquals(34423717, writeObjHash(dtd1));
 
         DataTypeDescriptor dtd2 = new DataTypeDescriptor();
         deserialize(stream, dtd2);
@@ -321,9 +330,9 @@ public class SerializationTest {
 
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
         Assert.assertEquals(1354337419, Arrays.hashCode(kryo));
-        Assert.assertEquals(479938529, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(87838571, Arrays.hashCode(stream.toByteArray()));
         Assert.assertEquals( -7718734896813275598l, gcd1.serialVersionUID);
-        Assert.assertEquals(-115757262, writeObjHash(gcd1));
+        Assert.assertEquals(614045928, writeObjHash(gcd1));
 
         GenericColumnDescriptor gcd2 = new GenericColumnDescriptor();
         deserialize(stream, gcd2);
@@ -344,9 +353,9 @@ public class SerializationTest {
 
         // do NOT change these values unless you have an upgrade script, see DB-10566/DB-10665
         Assert.assertEquals(-831967788, Arrays.hashCode(kryo));
-        Assert.assertEquals(-975576838, Arrays.hashCode(stream.toByteArray()));
+        Assert.assertEquals(15577122, Arrays.hashCode(stream.toByteArray()));
         Assert.assertEquals(1, grd.serialVersionUID);
-        Assert.assertEquals(-489472844, writeObjHash(grd));
+        Assert.assertEquals(171528844, writeObjHash(grd));
 
         GenericResultDescription grd2 = new GenericResultDescription();
         deserialize(stream, grd2);

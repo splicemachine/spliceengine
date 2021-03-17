@@ -31,6 +31,8 @@ public interface BackupManager{
 
     void restoreDatabase(String directory,long backupId, boolean sync, boolean validate, String timestamp, long txnId)throws StandardException;
 
+    void rollbackDatabase(long from, long to)throws StandardException;
+
     void removeBackup(List<Long> backupIds) throws StandardException;
 
     BackupJobStatus[] getRunningBackups() throws StandardException;

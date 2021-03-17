@@ -182,8 +182,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
         else if (overflowToConglomThreshold == 0) {
             try {
-                createConglomerate(execRowDefinition);
-                conglomCreated = true;
+                if (tec.needsTemporaryConglomerate())
+                    createConglomerate(execRowDefinition);
                 tec.setExecRowDefinition(execRowDefinition);
                 tec.setTableVersion(tableVersion);
                 tec.setConglomId(this.CID);
@@ -409,6 +409,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         numRowsIn++;
+        if (!tec.needsTemporaryConglomerate())
+            return;
         if (!conglomCreated) {
             createConglomerate(inputRow);
         }
@@ -528,6 +530,14 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     public void decrementLastArraySlot() { lastArraySlot--; }
     public int getState() { return state; }
     public void setState(int state) { this.state = state; }
+
+    public void setTriggerExecutionContext(TriggerExecutionContext tec) {
+        this.tec = tec;
+    }
+
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        return tec;
+    }
 }
 
 

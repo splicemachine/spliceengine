@@ -46,8 +46,10 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -56,6 +58,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -67,6 +70,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -142,7 +146,8 @@ public class GenericStatement implements Statement{
         boolean recompile=false;
         try{
             return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
-        } catch(StandardException se){
+        } catch(Throwable t){
+            StandardException se = StandardException.getOrWrap(t);
             // There is a chance that we didn't see the invalidation
             // request from a DDL operation in another thread because
             // the statement wasn't registered as a dependent until
@@ -429,12 +434,12 @@ public class GenericStatement implements Statement{
             if (internalSQL)
                 cc.setCompilingTrigger(true);
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
-        }catch(StandardException se){
+        } catch (Throwable e) {
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-
-            throw se;
-        }finally{
+            throw StandardException.getOrWrap(e);
+        }
+        finally{
             synchronized(preparedStmt){
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
@@ -491,6 +496,7 @@ public class GenericStatement implements Statement{
         setSecondFunctionCompatibilityMode(lcc, cc);
         setFloatingPointNotation(lcc, cc);
         setOuterJoinFlatteningDisabled(lcc, cc);
+        setCursorUntypedExpressionType(lcc, cc);
 
         if (!cc.isSparkVersionInitialized()) {
             setSparkVersion(cc);
@@ -717,6 +723,21 @@ public class GenericStatement implements Statement{
         cc.setNewMergeJoin(newMergeJoin);
     }
 
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePrefixIteratorModeString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
+        boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        try {
+            if (disablePrefixIteratorModeString != null)
+                disablePrefixIteratorMode =
+                Boolean.parseBoolean(disablePrefixIteratorModeString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String disablePerParallelTaskJoinCostingString =
         PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
@@ -765,6 +786,15 @@ public class GenericStatement implements Statement{
                 timestampFormatString = CompilerContext.DEFAULT_TIMESTAMP_FORMAT;
             }
             cc.setTimestampFormat(timestampFormatString);
+        }
+    }
+
+    private void setCursorUntypedExpressionType(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String type = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CURSOR_UNTYPED_EXPRESSION_TYPE);
+        if(type != null && "varchar".equals(type.toLowerCase())) {
+            cc.setCursorUntypedExpressionType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 254));
+        } else {
+            cc.setCursorUntypedExpressionType(null);
         }
     }
 
@@ -838,7 +868,6 @@ public class GenericStatement implements Statement{
                  */
 
                 DataDictionary dataDictionary = lcc.getDataDictionary();
-
                 bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary, cc, cacheMe);
             }
             else {
@@ -862,10 +891,12 @@ public class GenericStatement implements Statement{
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
             return qt;
-        } catch (StandardException e) {
-            lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
-            throw e;
-        }  finally{ // for block introduced by pushCompilerContext()
+        } catch (Throwable e) {
+            StandardException se = StandardException.getOrWrap(e);
+            lcc.logErrorCompiling(getSource(), se, System.nanoTime() - startTime);
+            throw se;
+        }
+        finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
             lcc.setHasJoinStrategyHint(false);
             if (boundAndOptimizedStatement == null)
@@ -987,9 +1018,9 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-        }catch(StandardException se){
+        }catch(Throwable t){
             lcc.commitNestedTransaction();
-            throw se;
+            throw StandardException.getOrWrap(t);
         }
     }
 

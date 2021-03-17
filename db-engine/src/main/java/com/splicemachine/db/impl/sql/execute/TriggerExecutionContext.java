@@ -108,6 +108,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private boolean fromSparkExecution;
     private TemporaryRowHolder temporaryRowHolder;
     private SPSDescriptor fromTableDmlSpsDescriptor;
+    private boolean hasGeneratedColumn;  // Does the trigger table have a generated column?
+
 
     /*
     ** Used to track all the result sets we have given out to
@@ -178,85 +180,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                         "different number of changed col ids vs names");
             }
         }
-    }
-    // Push a LanguageConnectionContext into
-    // the task's ContextManager, if needed.  Return true if the push was done.
-    public static boolean
-    pushLanguageConnectionContextToCM(LanguageConnectionContext newLCC, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (newLCC != null) {
-                if (newLCC != currentLCC) {
-                    cm.pushContext(newLCC);
-                    lccPushed = true;
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (newLCC != null) {
-                lccPushed = true;
-                cm.pushContext(newLCC);
-            }
-        }
-        return lccPushed;
-    }
-
-    // Push the LanguageConnectionContext from the Activation into
-    // the task's ContextManager, if needed.  Return true if the push was done.
-    public static boolean
-    pushLanguageConnectionContextFromActivation(Activation activation, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != currentLCC) {
-                    cm.pushContext(lcc);
-                    lccPushed = true;
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                lccPushed = true;
-                cm.pushContext(activation.getLanguageConnectionContext());
-            }
-        }
-        return lccPushed;
-    }
-
-    // Push the TriggerExecutionContext from the Activation into
-    // the task's current LCC.  Return true if a new LCC was
-    // was pushed to the task's ContextManager.
-    public static boolean
-    pushTriggerExecutionContextFromActivation(Activation activation, ContextManager cm)
-                                                               throws StandardException  {
-        boolean lccPushed = false;
-        try {
-            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != currentLCC &&
-                    lcc.getTriggerExecutionContext() != null) {
-                    if (currentLCC.getTriggerExecutionContext() != null)
-                        currentLCC.popTriggerExecutionContext(currentLCC.getTriggerExecutionContext());
-                    currentLCC.pushTriggerExecutionContext(lcc.getTriggerExecutionContext());
-                }
-            }
-        } catch (SQLException e) {
-            // If the current LCC is not available in the context,
-            // push it now.
-            if (activation != null && activation.getLanguageConnectionContext() != null) {
-                lccPushed = true;
-                cm.pushContext(activation.getLanguageConnectionContext());
-            }
-        }
-        return lccPushed;
     }
 
     public boolean currentTriggerHasReferencingClause() {
@@ -667,6 +590,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeBoolean(hasFromTableDmlSpsDescriptor);
         if (hasFromTableDmlSpsDescriptor)
             out.writeObject(fromTableDmlSpsDescriptor);
+        out.writeBoolean(hasGeneratedColumn);
     }
 
     @Override
@@ -701,6 +625,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         boolean hasFromTableDmlSpsDescriptor = in.readBoolean();
         if (hasFromTableDmlSpsDescriptor)
             fromTableDmlSpsDescriptor = (SPSDescriptor) in.readObject();
+        hasGeneratedColumn = in.readBoolean();
     }
 
     /**
@@ -853,5 +778,23 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggerd == null)
             return "";
         return triggerd.getName();
+    }
+
+    public void setHasGeneratedColumn() {
+        hasGeneratedColumn = true;
+    }
+
+    public boolean hasGeneratedColumn() {
+        return hasGeneratedColumn;
+    }
+
+    public boolean needsTemporaryConglomerate() {
+        // TODO:  Can we detect when a DML statement and associated
+        //        triggers needs no temporary conglomerate?
+        //        The persisted Dataset may not always be accessible,
+        //        for example in a nested loop join iterator,
+        //        so currently we still need it.
+        return true;
+        //return hasGeneratedColumn || !fromSparkExecution;
     }
 }

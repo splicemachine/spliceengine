@@ -56,7 +56,11 @@ public interface SessionProperties {
         DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
         USE_NATIVE_SPARK(13),
         MINPLANTIMEOUT(14),
-        CURRENTFUNCTIONPATH(15);
+        CURRENTFUNCTIONPATH(15),
+        DISABLEPREDSFORINDEXORPKACCESSPATH(16),
+        ALWAYSALLOWINDEXPREFIXITERATION(17),
+        OLAPALWAYSPENALIZENLJ(18),
+        FAVORINDEXPREFIXITERATION(19);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -90,7 +94,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration");
         }
 
         String valString = pair.getSecond();
@@ -103,6 +107,10 @@ public interface SessionProperties {
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
             case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
             case USE_NATIVE_SPARK:
+            case OLAPALWAYSPENALIZENLJ:
+            case DISABLEPREDSFORINDEXORPKACCESSPATH:
+            case ALWAYSALLOWINDEXPREFIXITERATION:
+            case FAVORINDEXPREFIXITERATION:
                 try {
                     Boolean.parseBoolean(valString);
                 } catch (Exception e) {
