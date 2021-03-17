@@ -406,9 +406,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
     }
 
     /** this is used to mark exceptions that are from failed rows (throwExceptionFromFailedRows)
-     * (in contast to pipeline exceptions)
+     * (in contrast to pipeline exceptions)
      */
     static class ResultException extends Exception {
+        private static final long serialVersionUID = -2760877671295303958L;
         Exception exception;
         ResultException(Exception exception) {
             this.exception = exception;
