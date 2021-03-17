@@ -938,7 +938,10 @@ public class GenericStatement implements Statement{
 
         // proceed to optimize and generate code for it
         StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
-
+        // mark the CC as in use so we use a new CC for the explain plan code generation.
+        if(!cc.getInUse()) {
+            cc.setInUse(true);
+        }
         // plug back the statement in the EXPLAIN plan, so we can proceed
         // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
         // will bypass the underlying node since it is already optimized
