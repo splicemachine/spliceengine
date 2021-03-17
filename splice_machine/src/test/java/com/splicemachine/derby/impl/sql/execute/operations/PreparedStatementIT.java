@@ -625,4 +625,20 @@ public class PreparedStatementIT extends SpliceUnitTest {
             methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', null)");
         }
     }
+
+    @Test
+    public void testParameterInWithClause() throws Exception {
+        testOneParamHelper(
+                "with cte as (select n from sys.sysnaturalnumbers where n = ?) select * from sys.sysnaturalnumbers where N = (select n from cte)",
+                42,
+                "N |\n" +
+                        "----\n" +
+                        "42 |");
+        testOneParamHelper(
+                "with cte as (select ? + 4 as L) select * from cte",
+                42,
+                "L |\n" +
+                        "----\n" +
+                        "46 |");
+    }
 }
