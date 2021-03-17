@@ -68,9 +68,7 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
 
     @Override
     public String toString() {
-        String s = delegates == null ? "none" :
-                delegates.stream().map(Objects::toString).collect(Collectors.joining(","));
         return "ChainConstraintChecker{" +
-                "delegates = " + s + '}';
+                "delegates = " + (delegates == null ? "none" : delegates.toString()) + '}';
     }
 }

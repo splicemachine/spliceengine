@@ -137,7 +137,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     @Override
     public String toString() {
         return "ForeignKeyParentInterceptWriteHandler { parentTableName = " + parentTableName
-                + " referencingIndexConglomerateIds = " + Utils.listToString(referencingIndexConglomerateIds)
-                + " constraintInfos = " + Utils.listToString(constraintInfos)  + "}";
+                + " referencingIndexConglomerateIds = " + referencingIndexConglomerateIds.toString()
+                + " constraintInfos = " + constraintInfos.toString()  + "}";
     }
 }

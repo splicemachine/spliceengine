@@ -27,6 +27,7 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.WriteConflict;
 import org.apache.log4j.Logger;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -140,6 +141,6 @@ public abstract class RoutingWriteHandler implements WriteHandler {
 
     @Override
     public String toString() {
-        return "RoutingWriteHandler { destination = " + Arrays.toString(destination) + " keepState = " + keepState + "}";
+        return "RoutingWriteHandler { destination = " + Bytes.toStringBinary(destination) + " keepState = " + keepState + "}";
     }
 }

@@ -31,11 +31,4 @@ public class Utils {
                 .replace("_", escapeCharacter + "_")
                 .replace("%", escapeCharacter + "%");
     }
-
-    public static <T> String listToString(List<T> list) {
-        if(list == null )
-            return "null";
-        else
-            return list.stream().map(Object::toString).collect(Collectors.joining(", "));
-    }
 }

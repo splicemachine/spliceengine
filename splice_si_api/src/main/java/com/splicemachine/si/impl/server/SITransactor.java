@@ -208,12 +208,6 @@ public class SITransactor implements Transactor{
                     SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE;
             supplier = new ActiveTxnCacheSupplier(txnSupplier, initialSize, maxSize);
         }
-        // todo: maybe checkConflictsForKvBatch should return a ArrayList of objects with
-        // int index
-        // LongHashSet conflictingChildren
-        // DataPut data
-        //@SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[size];
-
 
         ConflictRollForward conflictRollForward = new ConflictRollForward(opFactory, supplier);
         try{
@@ -240,11 +234,10 @@ public class SITransactor implements Transactor{
             Iterator<MutationStatus> status=table.writeBatch(toWrite);
 
             //convert the status back into the larger array
-            //for(IntObjectCursor<DataPut> write : writes){
             for(MutationToRun mutationToRun : mutationsToRun) {
                 if(!status.hasNext())
                     throw new IllegalStateException("Programmer Error: incorrect length for returned status");
-                finalStatus[mutationToRun.index] = status.next().getClone(); //TODO -sf- is clone needed here? //todo
+                finalStatus[mutationToRun.index] = status.next().getClone(); //TODO -sf- is clone needed here?
                 //resolve child conflicts
                 try{
                     resolveChildConflicts(table, mutationToRun.data, mutationToRun.conflictingChildren);
