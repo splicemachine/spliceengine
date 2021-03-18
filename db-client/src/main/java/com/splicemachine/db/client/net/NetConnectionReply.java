@@ -36,6 +36,9 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class NetConnectionReply extends Reply
         implements ConnectionReplyInterface {
@@ -981,7 +984,7 @@ public class NetConnectionReply extends Reply
         agent_.accumulateChainBreakingReadExceptionAndThrow(
             new DisconnectException(agent_,
                 new ClientMessageId(SQLState.DRDA_CONNECTION_TERMINATED),
-                msgutil_.getTextMessage(MessageId.CONN_DRDA_RDBNACRM)));            
+                msgutil_.getTextMessage(MessageId.CONN_DRDA_RDBNACRM)));
     }
 
     // RDB Not Found Reply Message indicates that the target
@@ -2084,6 +2087,11 @@ public class NetConnectionReply extends Reply
                 peekCP = peekCodePoint();
             }
 
+            if (peekCP == CodePoint.PLGINLST) {
+                foundInPass = true;
+                peekCP = parsePLGINLST(netConnection);
+            }
+
             if (!foundInPass) {
                 doPrmnsprmSemantics(peekCP);
             }
@@ -2103,6 +2111,30 @@ public class NetConnectionReply extends Reply
         } else {
             netConnection.netAgent_.switchToEbcdicMgr();
         }
+    }
+
+    private int parsePLGINLST(NetConnection netConnection) throws DisconnectException {
+        parseLengthAndMatchCodePoint(CodePoint.PLGINLST);
+        pushLengthOnCollectionStack();
+        int peekCP = peekCodePoint();
+        if (peekCP == CodePoint.PLGINCNT) {
+            parseLengthAndMatchCodePoint(CodePoint.PLGINCNT);
+            int pluginListCount = readUnsignedShort();
+            List<String> pluginNames = new ArrayList<>(pluginListCount);
+            for (int i = 0; i < pluginListCount; i++) {
+                parseLengthAndMatchCodePoint(CodePoint.PLGINLSE);
+                parseLengthAndMatchCodePoint(CodePoint.PLGINNM);
+                pluginNames.add(readString());
+            }
+            peekCP = peekCodePoint();
+            popCollectionStack();
+            if (!pluginNames.contains(netConnection.authenticator.toUpperCase())) {
+                doSyntaxrmSemantics(CodePoint.SYNERRCD_REQ_OBJ_NOT_FOUND);
+            }
+        } else {
+            doSyntaxrmSemantics(CodePoint.SYNERRCD_REQ_OBJ_NOT_FOUND);
+        }
+        return peekCP;
     }
 
     // Called by all the NET*Reply classes.
