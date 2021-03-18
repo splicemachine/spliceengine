@@ -38,6 +38,7 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * Class that represents a call to the RANK() window function.
@@ -57,7 +58,7 @@ public final class RankFunctionNode extends WindowFunctionNode  {
         // the columns with which to create the ranking function node.
         List<OrderedColumn> orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
         if (orderByList == null || orderByList.isEmpty()) {
-            SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "RANK requires an ORDER BY clause");
         }
 
         super.init(orderByList.get(0).getColumnExpression(), arg1, Boolean.FALSE, "RANK", arg2);
