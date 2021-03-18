@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,7 +13,7 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.sql.{Connection, ResultSetMetaData}
+import java.sql.{Connection, ResultSetMetaData, Savepoint}
 import java.util.Properties
 
 import org.apache.spark.api.java.JavaRDD
@@ -112,6 +112,8 @@ object Options {
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
 
+  @transient lazy private[this] val connectionManager = new ConnectionManager(url)
+
   private[this] val kafkaServers = options.getOrElse(KafkaOptions.KAFKA_SERVERS, "localhost:9092")
   println(s"Splice Kafka: $kafkaServers")
 
@@ -167,7 +169,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   // Check url validity, throws exception during instantiation if url is invalid
   try {
     if( options(JDBCOptions.JDBC_URL).isEmpty ) throw new Exception("JDBC Url is an empty string.")
-    getConnection()
+    val con = getConnection()
+    close(con)
   } catch {
     case e: Exception => throw new Exception(
       "Problem connecting to the DB. Verify that the input JDBC Url is correct."
@@ -205,6 +208,22 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def columnNamesCaseSensitive(caseSensitive: Boolean): Unit =
     splicemachine.columnNamesCaseSensitive(caseSensitive)
 
+  def setAutoCommitOn(): Unit = connectionManager.setAutoCommitOn
+  def setAutoCommitOff(): Unit = connectionManager.setAutoCommitOff
+  
+  /** true if AutoCommit is on. */
+  def autoCommitting(): Boolean = connectionManager.autoCommitting
+  
+  /** true if AutoCommit is off. */
+  def transactional(): Boolean = connectionManager.transactional
+  
+  def commit(): Unit = connectionManager.commit
+  def rollback(): Unit = connectionManager.rollback
+  def rollback(savepoint: Savepoint): Unit = connectionManager.rollback(savepoint)
+  def setSavepoint(): Savepoint = connectionManager.setSavepoint()
+  def setSavepoint(name: String): Savepoint = connectionManager.setSavepoint(name)
+  def releaseSavepoint(savepoint: Savepoint): Unit = connectionManager.releaseSavepoint(savepoint)
+
   /**
     *
     * Determine whether a table exists (uses JDBC).
@@ -212,10 +231,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     * @return true if the table exists, false otherwise
     */
-  def tableExists(schemaTableName: String): Boolean =
-    SpliceJDBCUtil.retrieveTableInfo(
-      getJdbcOptionsInWrite( schemaTableName )
-    ).nonEmpty
+  def tableExists(schemaTableName: String): Boolean = {
+    val con = getConnection
+    try {
+      SpliceJDBCUtil.retrieveTableInfo(
+        schemaTableName, con
+      ).nonEmpty
+    } finally {
+      close(con)
+    }
+  }
 
   /**
     * Determine whether a table exists given the schema name and table name.
@@ -246,11 +271,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def dropTable(schemaTableName: String): Unit = {
-    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
+    val (conn, jdbcOptionsInWrite) = connectionManager.getConnection(schemaTableName)
     try {
       JdbcUtils.dropTable(conn, jdbcOptionsInWrite.table, jdbcOptionsInWrite)
     } finally {
-      conn.close()
+      close(conn)
     }
   }
 
@@ -267,7 +292,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   structType: StructType,
                   keys: Seq[String] = Seq(),
                   createTableOptions: String = ""): Unit = {
-    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
+    val (conn, jdbcOptionsInWrite) = connectionManager.getConnection(schemaTableName)
     val statement = conn.createStatement
     try {
       val actSchemaString = schemaString(structType, jdbcOptionsInWrite.url)
@@ -281,29 +306,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.executeUpdate(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
-  private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
-    new JdbcOptionsInWrite( Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
-    ))
-
   /**
    * Get JDBC connection
    */
-  def getConnection(): Connection = getConnection("placeholder")._1
+  def getConnection(): Connection = connectionManager.getConnection("placeholder")._1
 
-  /**
-   * Get JDBC connection
-   */
-  private[this] def getConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = {
-    val jdbcOptionsInWrite = getJdbcOptionsInWrite( schemaTableName )
-    val conn = JdbcUtils.createConnectionFactory( jdbcOptionsInWrite )()
-    (conn, jdbcOptionsInWrite)
-  }
+  def close(con: Connection): Unit = connectionManager.close(con)
 
   /**
     *
@@ -318,7 +330,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.executeUpdate(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -335,7 +347,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.execute(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -406,7 +418,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.execute()
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -881,17 +893,28 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   }
 
-  def primaryKeys(schemaTableName: String): Array[String] =
-    SpliceJDBCUtil.retrievePrimaryKeys(
-      getJdbcOptionsInWrite( schemaTableName)
-    )
-  
+  def primaryKeys(schemaTableName: String): Array[String] = {
+    val con = getConnection
+    try {
+      SpliceJDBCUtil.retrievePrimaryKeys(
+        schemaTableName, con
+      )
+    } finally {
+      close(con)
+    }
+  }
+
   def columnInfo(schemaTableName: String): Array[Seq[String]] = {
-    val info = SpliceJDBCUtil.retrieveColumnInfo(
-      getJdbcOptionsInWrite( schemaTableName )
-    )
-    if( info.nonEmpty ) { info }
-    else{ throw new Exception(s"No column metadata found for $schemaTableName") }
+    val con = getConnection
+    try {
+      val info = SpliceJDBCUtil.retrieveColumnInfo(
+        schemaTableName, con
+      )
+      if( info.nonEmpty ) { info }
+      else{ throw new Exception(s"No column metadata found for $schemaTableName") }
+    } finally {
+      close(con)
+    }
   }
 
   /**
@@ -1125,7 +1148,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
     ))
-    val schemaJdbcOpt = JdbcUtils.getSchemaOption(getConnection(), options)
+    val con = getConnection
+    val schemaJdbcOpt = try {
+      JdbcUtils.getSchemaOption(con, options)
+    } finally {
+      close(con)
+    }
 
     if( schemaJdbcOpt.isEmpty ) {
       if   ( tableExists(schemaTableName) ) { JDBCRDD.resolveTable( options ) }  // resolveTable should throw a descriptive exception
@@ -1153,7 +1181,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
   
   private[this] def getSchemaOfQuery(query: String): StructType = {
-    val stmt = getConnection.prepareStatement(query)
+    val con = getConnection
+    val stmt = con.prepareStatement(query)
     try {
       val meta = stmt.getMetaData() // might be jdbc driver dependent
       val colNames = for (c <- 1 to meta.getColumnCount) yield meta.getColumnLabel(c)
@@ -1175,6 +1204,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       StructType(fields)
     } finally {
       stmt.close
+      close(con)
     }
   }
 
