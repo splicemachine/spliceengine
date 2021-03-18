@@ -286,7 +286,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
-        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount);
+        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
@@ -367,15 +367,53 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
      */
 
     public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
-                                                         double numOfJoinedRows) {
+                                                         double numOfJoinedRows, boolean useSparkCostFormula) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        return outerCost.getLocalCostPerParallelTask() +
-               Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
-                * (innerCost.getLocalCostPerParallelTask() + innerCost.getRemoteCost()) +
-               joiningRowCost / outerCost.getParallelism();
+        // Using nested loop join on spark is bad in general because we may incur thousands
+        // or millions of RPC calls to HBase, depending on the number of rows accessed
+        // in the outer table, which may saturate the network.
+
+        // If we divide inner table probe costs by outerCost.getParallelism(), as the number
+        // of partitions goes up, the cost of the join, according to the cost formula,
+        // goes down, making nested loop join appear cheap on spark.
+        // But is it really that cheap?
+        // We have multiple spark tasks simultaneously sending RPC requests
+        // in parallel (not just between tasks, but also in multiple threads within a task).
+        // Saying that as partition count goes up, the costs go down implies that we have
+        // infinite network bandwidth, which is not the case.
+        // We therefore adopt a cost model which assumes all RPC requests go through the
+        // same network pipeline, and remove the division of the inner table row lookup cost by the
+        // number of partitions.
+
+        // This change only applies to the spark path (for now) to avoid any possible
+        // performance regression in OLTP query plans.
+        // Perhaps this can be made the new formula for both spark and control
+        // after more testing to validate it.
+
+        // A possible better join strategy for OLAP queries, which still makes use of
+        // the primary key or index on the inner table, could be to sort the outer
+        // table on the join key and then perform a merge join with the inner table.
+
+        /* DB-11662 note
+         * The explanation above makes sense, but it seems that not taking innerLocalCost per
+         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
+         * strategies, especially when the inner table scan cost is very high.
+         */
+        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
+        if (useSparkCostFormula)
+            return outerCost.getLocalCostPerParallelTask() +
+                   (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * innerCost.getLocalCostPerParallelTask()) +
+                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
+                    joiningRowCost / outerCost.getParallelism();
+        else
+            return outerCost.getLocalCostPerParallelTask() +
+                   Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
+                   joiningRowCost / outerCost.getParallelism();
     }
 
     /**
