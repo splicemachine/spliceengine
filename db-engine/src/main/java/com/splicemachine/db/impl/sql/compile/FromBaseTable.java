@@ -1015,6 +1015,8 @@ public class FromBaseTable extends FromTable {
                 rowTemplate,         // this is a correct row template for all cases
                 scanColumnList,      // meaningless in case of index on expressions
                 indexLookupList,
+                getLanguageConnectionContext().getOptimizerFactory().getIndexBatchSize(),
+                getLanguageConnectionContext().getOptimizerFactory().getIndexLookupBlocks(),
                 forUpdate(),
                 dataSetProcessorType.isOlap(),
                 usedNoStatsColumnIds);
