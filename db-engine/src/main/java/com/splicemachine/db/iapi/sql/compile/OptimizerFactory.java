@@ -103,4 +103,8 @@ public interface OptimizerFactory {
 	int getMaxMemoryPerTable();
 
 	long getDetermineSparkRowThreshold();
+
+	int getIndexBatchSize();
+
+	int getIndexLookupBlocks();
 }

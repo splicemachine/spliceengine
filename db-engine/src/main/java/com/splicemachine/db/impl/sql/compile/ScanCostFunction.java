@@ -67,7 +67,8 @@ import java.util.*;
 public class ScanCostFunction{
     public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
 
-    private static final int OLTP_INDEXLOOKUP_LATENCY_FACTOR = 10;
+    private static final int OLTP_INDEXLOOKUP_COST_PER_ROW = 40;
+    private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 80;
 
     private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
@@ -97,6 +98,14 @@ public class ScanCostFunction{
 
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
+
+    // when index lookup is needed, the maximum number of rows that can be fired as a batch
+    // controled by splice.index.batchSize, default value in SQLConfiguration
+    private final int indexBatchSize;
+
+    // when index lookup is needed, the maximum number of batches that can be fired concurrently
+    // controled by splice.index.numConcurrentLookups, default value in SQLConfiguration
+    private final int indexLookupBlocks;
 
     // will be used shortly
     private final boolean forUpdate;
@@ -137,7 +146,12 @@ public class ScanCostFunction{
      * @param scanCost
      * @param resultColumns
      * @param scanRowTemplate
+     * @param baseColumnsInScan
+     * @param baseColumnsInLookup
+     * @param indexBatchSize
+     * @param indexLookupBlocks
      * @param forUpdate
+     * @param isOlap
      * @param usedNoStatsColumnIds
      */
     public ScanCostFunction(Optimizable baseTable,
@@ -148,6 +162,8 @@ public class ScanCostFunction{
                             DataValueDescriptor[] scanRowTemplate,
                             BitSet baseColumnsInScan,
                             BitSet baseColumnsInLookup,
+                            int indexBatchSize,
+                            int indexLookupBlocks,
                             boolean forUpdate,
                             boolean isOlap,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
@@ -162,6 +178,8 @@ public class ScanCostFunction{
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
+        this.indexBatchSize = indexBatchSize;
+        this.indexLookupBlocks = indexLookupBlocks;
         this.forUpdate = forUpdate;
         this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
@@ -541,10 +559,12 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            double lookupCostPerRow = isOlap ? (openLatency+closeLatency) : ((openLatency+closeLatency) / OLTP_INDEXLOOKUP_LATENCY_FACTOR);
-            lookupCost = totalRowCount*filterBaseTableSelectivity*lookupCostPerRow;
-            scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
-            scanCost.setIndexLookupCost(lookupCost+baseCost);
+            double numLookupRows = totalRowCount * filterBaseTableSelectivity;
+            double numLookupBatches = Math.max(numLookupRows / indexBatchSize, 1);
+            double batchCost = Math.min(numLookupRows, indexBatchSize) * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            lookupCost = batchCost * Math.max(numLookupBatches / indexLookupBlocks, 1);
+            scanCost.setIndexLookupRows(Math.round(numLookupRows));
+            scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
@@ -607,6 +627,10 @@ public class ScanCostFunction{
             scanCost.getProjectionRows(), scanCost.getProjectionCost(),
             scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
         }
+    }
+
+    private double getIndexLookupCostPerRow() {
+        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
     }
 
     /**
