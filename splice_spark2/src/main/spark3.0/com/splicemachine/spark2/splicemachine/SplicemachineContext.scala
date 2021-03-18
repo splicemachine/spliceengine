@@ -105,7 +105,7 @@ object Options {
   *                KafkaOptions.KAFKA_TOPIC_PARTITIONS, Options.USE_FLOW_MARKERS
   */
 @SerialVersionUID(20200517302L)
-@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","NP_LOAD_OF_KNOWN_NULL_VALUE","EI_EXPOSE_REP2","SE_BAD_FIELD"), justification = "These fields usually are not null|These fields usually are not null|The nonKeys value is needed and is used read-only|The meta and itrRow objects are not used in serialization")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","NP_LOAD_OF_KNOWN_NULL_VALUE","EI_EXPOSE_REP2","SE_BAD_FIELD","SE_TRANSIENT_FIELD_NOT_RESTORED"), justification = "These fields usually are not null|These fields usually are not null|The nonKeys value is needed and is used read-only|The meta and itrRow objects are not used in serialization|connectionManager is not needed in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
 
