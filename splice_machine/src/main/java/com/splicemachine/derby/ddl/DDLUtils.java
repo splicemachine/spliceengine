@@ -443,7 +443,6 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
-                LanguageConnectionContext lcc = transactionResource.getLcc();
                 DDLMessage.UpdateSchemaOwner uso = change.getUpdateSchemaOwner();
                 DataDictionaryCache cache = dd.getDataDictionaryCache();
                 // remove corresponding schema cache entry

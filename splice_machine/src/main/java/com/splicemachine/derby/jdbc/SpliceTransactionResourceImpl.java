@@ -62,7 +62,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected String ipAddress;
     private boolean prepared = false;
 
-    public SpliceTransactionResourceImpl() throws SQLException{ // XXX(arnaud multidb) Remove this one and properly pass the right DB
+    public SpliceTransactionResourceImpl() throws SQLException{
         this(DatabaseDescriptor.STD_DB_NAME);
     }
 

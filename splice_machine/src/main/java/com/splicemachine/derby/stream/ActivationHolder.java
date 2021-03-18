@@ -145,11 +145,11 @@ public class ActivationHolder implements Externalizable {
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
             boolean needToSet = txnResource == null;
+            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             if (needToSet)
-                txnResource = new SpliceTransactionResourceImpl();
+                txnResource = new SpliceTransactionResourceImpl(lcc.getCurrentDatabaseName(getActivation()));
             else
                 txnResource.close();
-            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             txnResource.marshallTransaction(txn,
                                             lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
                                             lcc.getLocalSpsCache(),
@@ -271,7 +271,7 @@ public class ActivationHolder implements Externalizable {
                 txnResource.close();
             }
 
-            txnResource = new SpliceTransactionResourceImpl();
+            txnResource = new SpliceTransactionResourceImpl(); // XXX(arnaud multidb)
             txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles,
                                             initialDefaultSchemaDescriptor, activeStateTxId);
             impl.set(txnResource);
