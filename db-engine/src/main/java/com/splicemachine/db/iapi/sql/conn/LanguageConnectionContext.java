@@ -1427,6 +1427,7 @@ public interface LanguageConnectionContext extends Context {
      */
     void enterRestoreMode();
 
+    void leaveRestoreMode();
     /**
      * Set a trigger execution context (TEC) stack on this LCC.<br/>
      * Used to serialize TECs across serialization boundaries.
@@ -1578,6 +1579,12 @@ public interface LanguageConnectionContext extends Context {
     boolean compilingStoredPreparedStatement();
 
     void setCompilingStoredPreparedStatement(boolean newValue);
+
+    boolean isPredicateUsageForIndexOrPkAccessDisabled();
+
+    boolean alwaysAllowIndexPrefixIteration();
+
+    boolean favorIndexPrefixIteration();
 
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;

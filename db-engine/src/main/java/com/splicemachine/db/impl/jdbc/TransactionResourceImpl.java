@@ -366,7 +366,9 @@ public final class TransactionResourceImpl
     {
         try {
             // Session temp tables are cleaned up
-            lcc.resetFromPool();
+            if (lcc != null) {
+                lcc.resetFromPool();
+            }
         } catch (StandardException e) {
             // log but don't throw, closing
             Util.logSQLException(e);

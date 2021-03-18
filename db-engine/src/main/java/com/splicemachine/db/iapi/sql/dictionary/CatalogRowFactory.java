@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.impl.sql.catalog.ViewInfoProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -373,5 +374,16 @@ public abstract	class CatalogRowFactory implements ViewInfoProvider
 
 	public String getCatalogVersion() throws StandardException {
 		return heapConglomerate > 0 ? dd.getCatalogVersion(heapConglomerate) : null;
+	}
+
+
+	public static ColumnDescriptor getCD(TableDescriptor view, UUID viewId, String conglomeratenumber, int i, int jdbcType, boolean isNullable) {
+		return new ColumnDescriptor(conglomeratenumber, i, i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType, isNullable),
+				null, null, view, viewId, 0, 0, 0);
+	}
+
+	public static ColumnDescriptor getCD(TableDescriptor view, UUID viewId, String conglomeratename, int i, int jdbcType, boolean isNullable, int maxLength) {
+		return new ColumnDescriptor(conglomeratename, i, i, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType, isNullable, maxLength),
+				null, null, view, viewId, 0, 0, 0);
 	}
 }

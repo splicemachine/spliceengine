@@ -86,6 +86,9 @@ public class SpliceCatalogUpgradeScripts{
         // these upgrades would fail
         addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
 
+        // DB-10193: Multidatabase support has to be executed first, because it adds a new core table SYS.SYSDATABASES
+        addUpgradeScript(baseVersion4, 2005, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX(arnaud, multidb) change version here
+
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
         addUpgradeScript(baseVersion1, 1917, new UpgradeScriptForMultiTenancy(sdd,tc));
@@ -117,10 +120,11 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForTableColumnViewInSYSIBM(sdd, tc));
         addUpgradeScript(baseVersion4, 2001, new UpgradeScriptToAddColumnsViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2001, new UpgradeScriptForChangingGetKeyColumnPosition(sdd, tc));
+        addUpgradeScript(baseVersion4, 2001, UpgradeScriptForViews.changingGetKeyColumnPosition(sdd, tc));
         addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
         addUpgradeScript(baseVersion4, 2004, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
-        addUpgradeScript(baseVersion4, 2005, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX(arnaud, multidb) change version here
+        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.fixSYSCOLPERMSVIEW(sdd, tc));
+        addUpgradeScript(baseVersion4, 2004, UpgradeScriptForViews.addViewsDB11267(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 

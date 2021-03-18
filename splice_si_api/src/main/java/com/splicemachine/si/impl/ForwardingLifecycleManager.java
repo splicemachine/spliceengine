@@ -109,6 +109,11 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public void leaveRestoreMode() {
+        lifecycleManager.leaveRestoreMode();
+    }
+
+    @Override
     public boolean isRestoreMode() {
         return lifecycleManager.isRestoreMode();
     }

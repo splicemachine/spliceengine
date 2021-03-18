@@ -725,6 +725,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
         }
     }
 
+    public void setUnknownParameterType(DataTypeDescriptor type) throws StandardException {
+        if (resultColumns!= null) {
+            resultColumns.setUnknownParameterType(type);
+        }
+    }
+
     /**
      * Check for (and reject) XML values directly under the ResultColumns.
      * This is done for SELECT/VALUES statements.  We reject values

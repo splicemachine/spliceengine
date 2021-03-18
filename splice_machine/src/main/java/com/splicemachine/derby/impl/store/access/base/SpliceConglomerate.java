@@ -138,6 +138,10 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return containerId;
     }
 
+    public void setId(long containerId){
+       this.containerId = containerId;
+    }
+
     public boolean[] getAscDescInfo(){
         return null;
     }
