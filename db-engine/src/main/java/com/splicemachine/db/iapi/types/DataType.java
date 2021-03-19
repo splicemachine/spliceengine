@@ -39,7 +39,7 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.joda.time.DateTime;
 
@@ -1379,8 +1379,8 @@ public abstract class DataType extends NullValueData implements DataValueDescrip
      * https://datasketches.apache.org/docs/Quantiles/QuantilesAccuracy.html .
      */
     @Override
-    public com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
-        return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(256,this);
+    public org.apache.datasketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
+        return org.apache.datasketches.quantiles.ItemsSketch.getInstance(256,this);
     }
 
     /* Bigger maxMapSize leads to better accuracy. Reference:
@@ -1390,9 +1390,9 @@ public abstract class DataType extends NullValueData implements DataValueDescrip
      * Also, currentMapSize is capped at maxMapSize.
      */
     @Override
-    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
+    public org.apache.datasketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
 
-        return new com.yahoo.sketches.frequencies.ItemsSketch(8192);
+        return new org.apache.datasketches.frequencies.ItemsSketch(8192);
     }
 
     /* Bigger nomEntries leads to better accuracy. Reference:
@@ -1403,7 +1403,7 @@ public abstract class DataType extends NullValueData implements DataValueDescrip
      */
     @Override
     public UpdateSketch getThetaSketch() throws StandardException {
-        return UpdateSketch.builder().build(256);
+        return UpdateSketch.builder().setNominalEntries(256).build();
     }
 
 
