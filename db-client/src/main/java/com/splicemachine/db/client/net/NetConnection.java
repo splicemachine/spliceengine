@@ -26,7 +26,6 @@ package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.ClientDatabaseMetaData;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.client.am.*;
@@ -957,16 +956,27 @@ public class NetConnection extends ClientConnection {
     }
 
     private void flowSecurityCheck(int securityMechanism,
-                                               String user,
-                                               String password,
-                                               byte[] encryptedUserid,
-                                               byte[] encryptedPassword) throws SqlException {
+                                   String user,
+                                   String password,
+                                   byte[] encryptedUserid,
+                                   byte[] encryptedPassword) throws SqlException {
+        flowSecurityCheck(securityMechanism, user, password, encryptedUserid, encryptedPassword, null);
+    }
+
+    private void flowSecurityCheck(int securityMechanism,
+                                   String user,
+                                   String password,
+                                   byte[] encryptedUserid,
+                                   byte[] encryptedPassword,
+                                   String pluginName
+                                   ) throws SqlException {
         agent_.beginWriteChainOutsideUOW();
         writeSecurityCheck(securityMechanism,
                 user,
                 password,
                 encryptedUserid,
-                encryptedPassword);
+                encryptedPassword,
+                pluginName);
         agent_.flowOutsideUOW();
         readSecurityCheck();
         agent_.endReadChain();
@@ -1034,12 +1044,22 @@ public class NetConnection extends ClientConnection {
                                                 String password,
                                                 byte[] encryptedUserid,
                                                 byte[] encryptedPassword) throws SqlException {
+        writeSecurityCheck(securityMechanism, user, password, encryptedUserid, encryptedPassword, null);
+    }
+
+    private void writeSecurityCheck(int securityMechanism,
+                                    String user,
+                                    String password,
+                                    byte[] encryptedUserid,
+                                    byte[] encryptedPassword,
+                                    String pluginName) throws SqlException {
         netAgent_.netConnectionRequest_.writeSecurityCheck(securityMechanism,
                 databaseName_,
                 user,
                 password,
                 encryptedUserid,
-                encryptedPassword);
+                encryptedPassword,
+                pluginName);
     }
 
     private void writeAccessRdb() throws SqlException {
@@ -2175,8 +2195,9 @@ public class NetConnection extends ClientConnection {
         flowSecurityCheck(targetSecmec_, //securityMechanism
                 user_,
                 null,
-                (authenticator + "|" + token).getBytes(), //encryptedUserid
-                null); //encryptedPassword
+                token.getBytes(), //jwt
+                null, //encryptedPassword
+                authenticator);
         flowAccessRdb();
     }
 }

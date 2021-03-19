@@ -877,8 +877,16 @@ class CodePoint
 	
 	// XID count
 	static final int XIDCNT = 0x1906;
-	
-	
+
+
+	// Security Plug-in
+	static final int PLGINLSE = 0x1910;
+	static final int PLGINLST = 0x191E;
+	static final int PLGINNM = 0x191C;
+	static final int PLGINCNT = 0x190F;
+
+	static final String SUPPORTED_PLUGINS[] = {"SPLICE_JWT_PUB","OKTA_OAUTH","SPLICE_OAUTH"};
+
 	//-----------------------Manager code points --------------------------
 
 	protected static int [] MGR_CODEPOINTS = {

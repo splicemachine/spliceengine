@@ -83,13 +83,15 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
                             String userid,
                             String password,
                             byte[] encryptedUserid,
-                            byte[] encryptedPassword) throws SqlException {
+                            byte[] encryptedPassword,
+                            String pluginName) throws SqlException {
         buildSECCHK(securityMechanism,
                 databaseName,
                 userid,
                 password,
                 encryptedUserid,
-                encryptedPassword);
+                encryptedPassword,
+                pluginName);
     }
 
     void writeAccessDatabase(String rdbnam,
@@ -316,7 +318,8 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
                      String user,
                      String password,
                      byte[] sectkn,
-                     byte[] sectkn2) throws SqlException {
+                     byte[] sectkn2,
+                     String pluginName) throws SqlException {
         createCommand();
         markLengthBytes(CodePoint.SECCHK);
 
@@ -339,6 +342,9 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
         }
         if (sectkn2 != null) {
             buildSECTKN(sectkn2);
+        }
+        if (pluginName != null) {
+            buildPLGINNM(pluginName);
         }
         updateLengthBytes();
 
@@ -625,6 +631,11 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
             writeScalar1Byte(CodePoint.RDBALWUPD, CodePoint.FALSE);
         }
     }
+
+    private void buildPLGINNM(String name) throws SqlException {
+        writeScalarString(CodePoint.PLGINNM, name);
+    }
+
 
 }
 
