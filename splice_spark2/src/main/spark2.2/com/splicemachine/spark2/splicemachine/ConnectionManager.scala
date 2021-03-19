@@ -72,7 +72,7 @@ class ConnectionManager(url: String) extends Serializable {
   def rollback(savepoint: Savepoint): Unit = if( transactional ) {
     con.get.rollback(savepoint)
   } else {
-    throwNontransactionException(s"rollback to savepoint ${savepoint.getSavepointName}")
+    throwNontransactionException(s"rollback to savepoint")
   }
 
   def setSavepoint(): Savepoint = if( transactional ) {
@@ -92,7 +92,7 @@ class ConnectionManager(url: String) extends Serializable {
   def releaseSavepoint(savepoint: Savepoint): Unit = if( transactional ) {
     con.get.releaseSavepoint(savepoint)
   } else {
-    throwNontransactionException(s"releaseSavepoint ${savepoint.getSavepointName}")
+    throwNontransactionException(s"releaseSavepoint")
   }
   
   private def throwNontransactionException(op: String): Unit = throw new Exception(s"AutoCommit is on. Cannot $op")
