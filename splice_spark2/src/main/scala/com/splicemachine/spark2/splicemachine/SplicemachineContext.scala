@@ -16,6 +16,18 @@ package com.splicemachine.spark2.splicemachine
 import java.sql.{Connection, ResultSetMetaData, Savepoint}
 import java.util.Properties
 
+import com.splicemachine.db.iapi.types.{DataType => _, _}
+import com.splicemachine.db.impl.sql.execute.ValueRow
+import com.splicemachine.derby.impl.kryo.KryoSerialization
+import com.splicemachine.derby.stream.spark.KafkaReadFunction
+import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine
+import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
+import org.apache.log4j.Logger
+import org.apache.spark.TaskContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -23,24 +35,10 @@ import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
-import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint, SQLVarchar}
-import com.splicemachine.db.impl.sql.execute.ValueRow
-import com.splicemachine.derby.impl.kryo.KryoSerialization
-import com.splicemachine.derby.stream.spark.KafkaReadFunction
-import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
-import com.splicemachine.spark2.splicemachine
-import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
-import org.apache.log4j.Logger
-import org.apache.spark.TaskContext
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
-@SerialVersionUID(20200517301L)
+@SerialVersionUID(20200517241L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
@@ -52,7 +50,7 @@ object KafkaOptions {
 }
 
 object SplicemachineContext {
-  @SerialVersionUID(20200922301L)
+  @SerialVersionUID(20200922241L)
   class RowForKafka(
       topicName: String,
       partition: Int,
@@ -104,7 +102,7 @@ object Options {
   *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT,
   *                KafkaOptions.KAFKA_TOPIC_PARTITIONS, Options.USE_FLOW_MARKERS
   */
-@SerialVersionUID(20200517302L)
+@SerialVersionUID(20200517242L)
 @SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","NP_LOAD_OF_KNOWN_NULL_VALUE","EI_EXPOSE_REP2","SE_BAD_FIELD","SE_TRANSIENT_FIELD_NOT_RESTORED"), justification = "These fields usually are not null|These fields usually are not null|The nonKeys value is needed and is used read-only|The meta and itrRow objects are not used in serialization|connectionManager is not needed in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
@@ -267,14 +265,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * @param schemaTableName
     */
-  def dropTable(schemaTableName: String): Unit = {
-    val (conn, jdbcOptionsInWrite) = connectionManager.getConnection(schemaTableName)
-    try {
-      JdbcUtils.dropTable(conn, jdbcOptionsInWrite.table, jdbcOptionsInWrite)
-    } finally {
-      close(conn)
-    }
-  }
+  def dropTable(schemaTableName: String): Unit = executeUpdate(s"DROP TABLE $schemaTableName")
 
   /**
     *
@@ -289,10 +280,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   structType: StructType,
                   keys: Seq[String] = Seq(),
                   createTableOptions: String = ""): Unit = {
-    val (conn, jdbcOptionsInWrite) = connectionManager.getConnection(schemaTableName)
+    val conn = connectionManager.getConnection()
     val statement = conn.createStatement
     try {
-      val actSchemaString = schemaString(structType, jdbcOptionsInWrite.url)
+      val actSchemaString = schemaString(structType, url)
 
       val primaryKeyString = if( keys.isEmpty ) {""}
       else {
@@ -310,7 +301,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
    * Get JDBC connection
    */
-  def getConnection(): Connection = connectionManager.getConnection("placeholder")._1
+  def getConnection(): Connection = connectionManager.getConnection
 
   def close(con: Connection): Unit = connectionManager.close(con)
 
@@ -1241,7 +1232,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
 
   private[this] def export(dataFrame: DataFrame, exportCmd: String): Unit = if( dataFrame.rdd.getNumPartitions > 0 ) {
-    if( dataFrame.isEmpty ) {
+    if( dataFrame.count < 1 ) {  // dataFrame.isEmpty supported in Spark2.4
       throw new IllegalArgumentException( "Dataframe is empty." )
     }
 
