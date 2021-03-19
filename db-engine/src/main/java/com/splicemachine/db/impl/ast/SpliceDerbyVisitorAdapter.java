@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import org.apache.log4j.Logger;
 import splice.com.google.common.cache.Cache;
@@ -136,4 +137,7 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     public boolean skipChildren(Visitable node) throws StandardException {
         return v.skipChildren(node);
     }
+
+    @Override
+    public ISpliceVisitor getBaseVisitor() { return v.getVisitor(); }
 }
