@@ -15,33 +15,29 @@ package com.splicemachine.spark2.splicemachine
 
 import java.sql.{Connection, Savepoint}
 
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcOptionsInWrite, JdbcUtils}
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 
 @SerialVersionUID(20210317241L)
 class ConnectionManager(url: String) extends Serializable {
   
   private var con: Option[Connection] = None
   
-  private def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
-    new JdbcOptionsInWrite( Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
-    ))
-
   def autoCommitting(): Boolean = con.isEmpty
   def transactional(): Boolean = ! autoCommitting
 
-  def getConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = if( autoCommitting ) {
-    createConnection(schemaTableName)
+  def getConnection(): Connection = if( autoCommitting ) {
+    createConnection()
   } else {
-    (con.get, getJdbcOptionsInWrite(schemaTableName))
+    con.get
   }
   
-  private def createConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = {
-    val jdbcOptionsInWrite = getJdbcOptionsInWrite( schemaTableName )
-    val conn = JdbcUtils.createConnectionFactory( jdbcOptionsInWrite )()
-    (conn, jdbcOptionsInWrite)
-  }
+  private def createConnection(): Connection =
+    JdbcUtils.createConnectionFactory(
+      new JDBCOptions( Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+      ))
+    )()
   
   def close(conToClose: Connection): Unit = if( autoCommitting ) { conToClose.close }
   
@@ -52,7 +48,7 @@ class ConnectionManager(url: String) extends Serializable {
   }
   
   def setAutoCommitOff(): Unit = if( autoCommitting ) {
-    val c = createConnection("placeholder")._1
+    val c = createConnection()
     c.setAutoCommit(false)
     con = Some(c)
   }
