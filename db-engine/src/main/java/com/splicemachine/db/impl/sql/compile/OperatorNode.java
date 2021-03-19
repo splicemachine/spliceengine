@@ -454,12 +454,21 @@ public abstract class OperatorNode extends ValueNode
     }
 
     public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(operandIndex, type, false);
+    }
+
+    public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type, boolean implicit) throws StandardException {
         operands.set(operandIndex,
                 (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.CAST_NODE,
                         operands.get(operandIndex),
                         type,
                         getContextManager()));
+        if (implicit) {
+            // DERBY-2910 - Match current schema collation for implicit cast as we do for
+            // explicit casts per SQL Spec 6.12 (10)
+            operands.get(operandIndex).setCollationUsingCompilationSchema();
+        }
         ((CastNode) operands.get(operandIndex)).bindCastNodeOnly();
     }
 

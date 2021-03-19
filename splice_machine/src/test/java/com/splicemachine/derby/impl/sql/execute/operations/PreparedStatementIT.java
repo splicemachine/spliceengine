@@ -625,4 +625,31 @@ public class PreparedStatementIT extends SpliceUnitTest {
             methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.bind.cursorUntypedExpressionType', null)");
         }
     }
+
+    @Test
+    public void testConcatUnknownParameters() throws Exception {
+        testParamsHelper("select ? || ?",
+                new Object[] {"abc", "def"},
+                "1   |\n" +
+                        "--------\n" +
+                        "abcdef |");
+
+        testParamsHelper("select ? || ? = ? || ?",
+                new Object[] {"abc", "def", "abc", "def"},
+                "1  |\n" +
+                        "------\n" +
+                        "true |");
+
+        testParamsHelper("select varchar('abc' || 'def') = ? || ?",
+                new Object[] {"abc", "def"},
+                "1  |\n" +
+                        "------\n" +
+                        "true |");
+
+        testParamsHelper("select char('abc' || 'def') = ? || ?",
+                new Object[] {"abc", "def"},
+                "1  |\n" +
+                        "------\n" +
+                        "true |");
+    }
 }
