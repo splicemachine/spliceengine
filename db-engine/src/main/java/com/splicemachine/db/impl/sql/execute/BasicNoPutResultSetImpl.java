@@ -1000,30 +1000,6 @@ implements NoPutResultSet
 		return false;
 	}
 
-    /**
-     * Checks whether the currently executing statement has been cancelled.
-     * This is done by checking the statement's allocated StatementContext
-     * object.
-     *
-     * @see StatementContext
-     */
-	public void checkCancellationFlag()
-        throws
-            StandardException
-	{
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
-        StatementContext localStatementContext = lcc.getStatementContext();
-        if (localStatementContext == null) {
-            return;
-        }
-
-		InterruptStatus.throwIf(lcc);
-
-        if (localStatementContext.isCancelled()) {
-            throw StandardException.newException(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT);
-        }
-    }
-
 	public final void addWarning(SQLWarning w) {
 
 		if (isTopResultSet) {
