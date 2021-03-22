@@ -39,6 +39,8 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
 
     public boolean[] nullable_;
 
+    public boolean jdbcDb2CompatibleMode = false;
+
     // All of the following state data comes from the SQLDA reply.
 
     //Data from SQLDHGRP
@@ -302,13 +304,17 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
                 return 22;
             case Types.DECIMAL:
             case java.sql.Types.NUMERIC:
-                // There are 3 possible cases with respect to finding the correct max width for DECIMAL type.
-                // 1. If scale = 0, only sign should be added to precision.
-                // 2. scale = precision, 3 should be added to precision for sign, decimal and an additional char '0'.
-                // 3. precision > scale > 0, 2 should be added to precision for sign and decimal.
-                int scale = getScale(column);
-                int precision = getPrecision(column);
-                return (scale == 0) ? (precision + 1) : ((scale == precision) ? (precision + 3) : (precision + 2));
+                if (jdbcDb2CompatibleMode) {
+                    return getPrecision(column) + 2;
+                } else {
+                    // There are 3 possible cases with respect to finding the correct max width for DECIMAL type.
+                    // 1. If scale = 0, only sign should be added to precision.
+                    // 2. scale = precision, 3 should be added to precision for sign, decimal and an additional char '0'.
+                    // 3. precision > scale > 0, 2 should be added to precision for sign and decimal.
+                    int scale = getScale(column);
+                    int precision = getPrecision(column);
+                    return (scale == 0) ? (precision + 1) : ((scale == precision) ? (precision + 3) : (precision + 2));
+                }
             case Types.DECFLOAT:
                 return 36;
             case Types.CHAR:
@@ -853,6 +859,10 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
 
     public boolean columnIsNotInUnicode(int index) {
         return (sqlCcsid_[index] != 1208);
+    }
+
+    public void setJdbcDb2CompatibleMode(boolean value) {
+        jdbcDb2CompatibleMode = value;
     }
 
 }

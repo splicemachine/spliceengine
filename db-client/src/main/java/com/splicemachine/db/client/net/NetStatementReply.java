@@ -40,6 +40,7 @@ import com.splicemachine.db.client.am.Utils;
 import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.client.am.ClientMessageId;
+import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.reference.MessageId;
 
@@ -134,6 +135,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                 netSqlca = parseSQLDARD(columnMetaData, true); // true means to skip the rest of SQLDARD bytes
             } else {
                 columnMetaData = ClientDriver.getFactory().newColumnMetaData(netAgent_.logWriter_);
+                columnMetaData.setJdbcDb2CompatibleMode(Boolean.parseBoolean(netAgent_.netConnection_.properties_.getProperty(Attribute.JDBC_DB2_COMPATIBLE_MODE)));
                 netSqlca = parseSQLDARD(columnMetaData, false); // false means do not skip SQLDARD bytes.
             }
 
