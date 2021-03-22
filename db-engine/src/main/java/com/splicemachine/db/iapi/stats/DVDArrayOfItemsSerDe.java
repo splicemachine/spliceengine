@@ -31,8 +31,8 @@
 package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.yahoo.sketches.ArrayOfItemsSerDe;
-import com.yahoo.memory.Memory;
+import org.apache.datasketches.ArrayOfItemsSerDe;
+import org.apache.datasketches.memory.Memory;
 import splice.com.google.common.io.Closeables;
 import java.io.*;
 
