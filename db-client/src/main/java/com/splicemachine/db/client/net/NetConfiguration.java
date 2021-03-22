@@ -176,11 +176,8 @@ public class NetConfiguration {
     public static final int SECMEC_KERSEC = 0x0B;
 
     // The Plug-in Security Mechanism specifies that an external authentication mechanism is to be
-    // used to carry out the authentication.
+    // used to carry out the authentication. It's used for the token authentication.
     public static final int SECMEC_PLGIN = 0x0F;
-
-    // Indicates Token authentication via Plug-in Security Mechanism.
-    public static final int SECMEC_TOKEN = SECMEC_PLGIN;
 
     // list of security mechanisms supported by this driver
     static final int[] SECMGR_SECMECS = {NetConfiguration.SECMEC_EUSRIDPWD,
@@ -191,7 +188,7 @@ public class NetConfiguration {
                                          NetConfiguration.SECMEC_EUSRPWDDTA,
                                          NetConfiguration.SECMEC_USRSSBPWD,
                                          NetConfiguration.SECMEC_KERSEC,
-                                         NetConfiguration.SECMEC_TOKEN};
+                                         NetConfiguration.SECMEC_PLGIN};
 
 
     // IEEE ASCII constant.
