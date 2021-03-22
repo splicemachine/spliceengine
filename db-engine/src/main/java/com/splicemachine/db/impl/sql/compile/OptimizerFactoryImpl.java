@@ -52,7 +52,6 @@ import java.util.Properties;
 public class OptimizerFactoryImpl
 	implements ModuleControl, OptimizerFactory {
 
-	protected String optimizerId = null;
 	protected boolean ruleBasedOptimization = false;
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
