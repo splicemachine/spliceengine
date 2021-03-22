@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Abstract ResultSet for for operations that return rows but
@@ -65,6 +66,7 @@ import com.splicemachine.db.iapi.util.InterruptStatus;
  * with its methods being public for exposure by its subtypes.
  * <p>
  */
+@SuppressFBWarnings("UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD")
 abstract class BasicNoPutResultSetImpl
 implements NoPutResultSet
 {
@@ -97,6 +99,7 @@ implements NoPutResultSet
 
 	// Set in the constructor and not modified
 	protected final Activation	    activation;
+	@SuppressFBWarnings("SS_SHOULD_BE_STATIC")
 	private final boolean				statisticsTimingOn = false;
 
 	ResultDescription resultDescription;
@@ -118,6 +121,7 @@ implements NoPutResultSet
 	 *	@param	optimizerEstimatedCost		The optimizer's estimated cost for
 	 *										this result set
 	 */
+	@SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
 	BasicNoPutResultSetImpl(ResultDescription resultDescription,
 							Activation activation,
 							double optimizerEstimatedRowCount,
@@ -457,7 +461,6 @@ implements NoPutResultSet
 	 */
 	public final ExecRow	getNextRow() throws StandardException 
 	{
-		LanguageConnectionContext lcc = getLanguageConnectionContext();
 		if ( ! isOpen ) {
 			throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN, NEXT);
 		}
