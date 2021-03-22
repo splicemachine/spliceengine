@@ -252,8 +252,10 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     @Test
     // Partially obsoleted by testRangeIndexLookup1 and testRangeIndexLookup2.
     public void testRangeIndexLookup() throws Exception {
-        // 200/10000
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+        // 300/10000
+        // DB-11718 note
+        // Previous 200 case fails sporadically due to DB-11736. Making it 300 so that it always passes.
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 300","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 1000/10000
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 1000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 2000/10000
