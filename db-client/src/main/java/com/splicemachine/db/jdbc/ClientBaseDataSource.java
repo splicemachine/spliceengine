@@ -332,7 +332,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
         }
 
         if (properties.containsKey(Attribute.USER_TOKEN)) {
-            return (short) NetConfiguration.SECMEC_TOKEN;
+            return (short) NetConfiguration.SECMEC_PLGIN;
         }
 
         String securityMechanismString =

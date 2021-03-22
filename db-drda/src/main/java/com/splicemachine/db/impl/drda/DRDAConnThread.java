@@ -1557,7 +1557,7 @@ class DRDAConnThread extends Thread {
             p.put(Attribute.DRDA_KERSEC_AUTHENTICATED, Boolean.toString(gssContext.isEstablished()));
         }
 
-        if (database.securityMechanism == CodePoint.SECMEC_TOKEN) {
+        if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
             p.put(Attribute.DRDA_SECMEC,
                     String.valueOf(database.securityMechanism));
             String tokenValue = new String(database.secTokenIn);
@@ -2042,7 +2042,7 @@ class DRDAConnThread extends Thread {
                         // no need of decryptionManager
                         if (securityMechanism != CodePoint.SECMEC_USRIDPWD &&
                                 securityMechanism != CodePoint.SECMEC_USRIDONL &&
-                                securityMechanism != CodePoint.SECMEC_TOKEN)
+                                securityMechanism != CodePoint.SECMEC_PLGIN)
                         {
                             if (securityMechanism == CodePoint.SECMEC_KERSEC) {
 
@@ -3177,13 +3177,7 @@ class DRDAConnThread extends Thread {
         }
 
         if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
-            writer.startDdm(CodePoint.PLGINLST);
-            writer.writeScalar2Bytes(CodePoint.PLGINCNT, CodePoint.SUPPORTED_PLUGINS.length);
-            for (int i=0; i < CodePoint.SUPPORTED_PLUGINS.length; i++) {
-                writer.startDdm(CodePoint.PLGINLSE);
-                writer.writeScalarString(CodePoint.PLGINNM, CodePoint.SUPPORTED_PLUGINS[i]);
-                writer.endDdm();
-            }
+            writePLGINLST();
         }
 
         writer.endDdmAndDss();
@@ -3196,6 +3190,25 @@ class DRDAConnThread extends Thread {
 
         finalizeChain();
     }
+
+    /**
+     * Write Security Plug-in List to ACCSEC Reply - ACCSECRD
+     * Instance Variables
+     *  PLGINLST - Security Plug-in List
+     *  PLGINCNT - Security Plug-in List Count
+     *  PLGINLSE - Security Plug-in List Entry
+     *  PLGINNM - Security Plug-in Name
+     */
+    private void writePLGINLST() {
+        writer.startDdm(CodePoint.PLGINLST);
+        writer.writeScalar2Bytes(CodePoint.PLGINCNT, CodePoint.SUPPORTED_PLUGINS.length);
+        for (int i=0; i < CodePoint.SUPPORTED_PLUGINS.length; i++) {
+            writer.startDdm(CodePoint.PLGINLSE);
+            writer.writeScalarString(CodePoint.PLGINNM, CodePoint.SUPPORTED_PLUGINS[i]);
+            writer.endDdm();
+        }
+    }
+
 
     /**
      * Parse security check
@@ -3270,7 +3283,7 @@ class DRDAConnThread extends Thread {
                         (database.securityMechanism !=
                                         CodePoint.SECMEC_KERSEC) &&
                         (database.securityMechanism !=
-                                        CodePoint.SECMEC_TOKEN))
+                                        CodePoint.SECMEC_PLGIN))
                     {
                         securityCheckCode = CodePoint.SECCHKCD_SECTKNMISSING_OR_INVALID;
                         reader.skipBytes();
@@ -3337,9 +3350,11 @@ class DRDAConnThread extends Thread {
                                     database.passwordSubstitute.length);
                         }
                     }
-                    else if (database.securityMechanism == CodePoint.SECMEC_TOKEN) {
+                    else if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
                         database.secTokenIn = reader.readBytes();
                         database.secTokenOut = database.secTokenIn;
+                        if (SanityManager.DEBUG)
+                            trace(String.format("**plug-in security mechanism, authentication token is: %s", new String(database.secTokenIn)));
                     }
                     else {
                         try {
@@ -3412,6 +3427,8 @@ class DRDAConnThread extends Thread {
                     break;
                 case CodePoint.PLGINNM:
                     database.pluginName = reader.readString();
+                    if (SanityManager.DEBUG)
+                        trace(String.format("**plug-in security mechanism, plugin name is: %s", database.pluginName));
                     break;
                 default:
                     invalidCodePoint(codePoint);

@@ -78,20 +78,33 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
         buildACCSEC(securityMechanism, databaseName, publicKey);
     }
 
+    /**
+     * Builds SECCHK
+     *
+     * @param securityMechanism
+     * @param databaseName
+     * @param userid
+     * @param password
+     * @param encryptedUserid
+     * @param encryptedPassword
+     * @param securityPluginName This parameter is used to indicate the plug-in module to be used if the security mechanism is PLGIN.
+     *                           For the token authentication, the authenticator property is used as security plug-in name.
+     * @throws SqlException
+     */
     void writeSecurityCheck(int securityMechanism,
                             String databaseName,
                             String userid,
                             String password,
                             byte[] encryptedUserid,
                             byte[] encryptedPassword,
-                            String pluginName) throws SqlException {
+                            String securityPluginName) throws SqlException {
         buildSECCHK(securityMechanism,
                 databaseName,
                 userid,
                 password,
                 encryptedUserid,
                 encryptedPassword,
-                pluginName);
+                securityPluginName);
     }
 
     void writeAccessDatabase(String rdbnam,
@@ -319,7 +332,7 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
                      String password,
                      byte[] sectkn,
                      byte[] sectkn2,
-                     String pluginName) throws SqlException {
+                     String securityPluginName) throws SqlException {
         createCommand();
         markLengthBytes(CodePoint.SECCHK);
 
@@ -343,8 +356,8 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
         if (sectkn2 != null) {
             buildSECTKN(sectkn2);
         }
-        if (pluginName != null) {
-            buildPLGINNM(pluginName);
+        if (securityPluginName != null) {
+            buildPLGINNM(securityPluginName);
         }
         updateLengthBytes();
 
@@ -516,7 +529,7 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
 
     private void buildSECTKN(byte[] sectkn) throws SqlException {
         if (sectkn.length > NetConfiguration.SECTKN_MAXSIZE) {
-            throw new SqlException(netAgent_.logWriter_, 
+            throw new SqlException(netAgent_.logWriter_,
                 new ClientMessageId(SQLState.NET_SECTKN_TOO_LONG));
         }
         writeScalarBytes(CodePoint.SECTKN, sectkn);

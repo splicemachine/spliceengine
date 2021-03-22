@@ -2129,9 +2129,15 @@ public class NetConnectionReply extends Reply
             peekCP = peekCodePoint();
             popCollectionStack();
             if (!pluginNames.contains(netConnection.authenticator.toUpperCase())) {
+                if (agent_.loggingEnabled()) {
+                    agent_.logWriter_.traceEntry(this, "parsePLGINLST", netConnection.authenticator, pluginNames.toString());
+                }
                 doSyntaxrmSemantics(CodePoint.SYNERRCD_REQ_OBJ_NOT_FOUND);
             }
         } else {
+            if (agent_.loggingEnabled()) {
+                agent_.logWriter_.traceEntry(this, "parsePLGINLST", peekCP);
+            }
             doSyntaxrmSemantics(CodePoint.SYNERRCD_REQ_OBJ_NOT_FOUND);
         }
         return peekCP;

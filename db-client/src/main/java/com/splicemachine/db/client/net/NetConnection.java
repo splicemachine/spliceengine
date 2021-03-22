@@ -470,7 +470,7 @@ public class NetConnection extends ClientConnection {
             case NetConfiguration.SECMEC_KERSEC: // Kerberos
                 flowKERSECconnect();
                 break;
-            case NetConfiguration.SECMEC_TOKEN: // Token
+            case NetConfiguration.SECMEC_PLGIN: // Plug-in, Token authentication
                 checkUser(user_);
                 flowUSRIDTokenconnect(authenticator, token);
                 break;
@@ -1052,14 +1052,14 @@ public class NetConnection extends ClientConnection {
                                     String password,
                                     byte[] encryptedUserid,
                                     byte[] encryptedPassword,
-                                    String pluginName) throws SqlException {
+                                    String securityPluginName) throws SqlException {
         netAgent_.netConnectionRequest_.writeSecurityCheck(securityMechanism,
                 databaseName_,
                 user,
                 password,
                 encryptedUserid,
                 encryptedPassword,
-                pluginName);
+                securityPluginName);
     }
 
     private void writeAccessRdb() throws SqlException {
@@ -2189,8 +2189,15 @@ public class NetConnection extends ClientConnection {
     }
 
     @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-11046")
+
+    /**
+     * Executes token authentication flow.
+     *
+     * The JWT token is passed via encryptedPassword method flowSecurityCheck parameter.
+     * The property 'authenticator' is used as Security Plug-In name, which must be supported on the target server.
+     */
     private void flowUSRIDTokenconnect(String authenticator, String token) throws SqlException {
-        flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_TOKEN,
+        flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_PLGIN,
                 null); // publicKey
         flowSecurityCheck(targetSecmec_, //securityMechanism
                 user_,

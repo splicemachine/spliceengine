@@ -750,8 +750,7 @@ class CodePoint
 	static final int SECMEC_EUSRIDPWD = 9;  // Encrpyted userid and password
 	static final int SECMEC_EUSRIDNWPWD = 10;  // Encrpyted userid and password
 	static final int SECMEC_KERSEC = 11;  // Kerberos authentication
-	static final int SECMEC_PLGIN = 15;  // The Plug-in Security Mechanism
-	static final int SECMEC_TOKEN = SECMEC_PLGIN;  // Token authentication via Plug-in Security Mechanism
+	static final int SECMEC_PLGIN = 15;  // The Plug-in Security Mechanism, used for token authentication
 
 	//---------------------Security Check Codes ---------------------------
 	static final int SECCHKCD_OK = 0;		// Security info correct and acceptable
@@ -879,12 +878,18 @@ class CodePoint
 	static final int XIDCNT = 0x1906;
 
 
-	// Security Plug-in
-	static final int PLGINLSE = 0x1910;
-	static final int PLGINLST = 0x191E;
-	static final int PLGINNM = 0x191C;
+	// Security Plug-in Codepoints.
+	// PLGINCNT: Security Plug-in List Count (int32 count)
 	static final int PLGINCNT = 0x190F;
-
+	// PLGINNM: Security Plug-in Name (string name)
+	static final int PLGINNM = 0x191C;
+	// PLGINLSE: Security Plug-in List Entry contains information for one security plug-in in the
+	// security plug-in list PLGINLST. (PLGINNM, [PLGINPPL])
+	static final int PLGINLSE = 0x1910;
+	// PLGINLST: Security Plug-in List identifies the current set of authentication plug-in modules
+	// supported by the target server. (PLGINCNT, count x (PLGINLSE) )
+	static final int PLGINLST = 0x191E;
+	// The Security Plug-in names, supported by the target server.
 	static final String SUPPORTED_PLUGINS[] = {"SPLICE_JWT_PUB","OKTA_OAUTH","SPLICE_OAUTH"};
 
 	//-----------------------Manager code points --------------------------
