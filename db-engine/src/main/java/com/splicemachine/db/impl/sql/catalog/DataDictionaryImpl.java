@@ -763,7 +763,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return desc;
     }
 
-    // XXX(arnaud multidb) make that DB specific?
+    // TODO(arnaud multidb) make this DB specific? DB-10257. Only used in SYSSCHEMASRowFactory via SchemaFilterVTI for Ranger
     public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
         List<SchemaDescriptor> lists =new ArrayList<>();
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
@@ -4187,7 +4187,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    // XXX(arnaud multidb) make that DB specific?
     public List getAllSPSDescriptors() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
 
@@ -4222,7 +4221,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return the list of descriptors
      * @throws StandardException Thrown on failure
      */
-    // XXX(arnaud multidb) make that DB specific?
     private ConstraintDescriptorList getAllConstraintDescriptors() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSCONSTRAINTS_CATALOG_NUM);
 
@@ -4242,7 +4240,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return the list of descriptors
      * @throws StandardException Thrown on failure
      */
-    // XXX(arnaud multidb) make that DB specific?
     private GenericDescriptorList getAllTriggerDescriptors() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSTRIGGERS_CATALOG_NUM);
 
