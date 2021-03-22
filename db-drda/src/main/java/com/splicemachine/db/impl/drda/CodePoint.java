@@ -889,7 +889,7 @@ class CodePoint
 	// PLGINLST: Security Plug-in List identifies the current set of authentication plug-in modules
 	// supported by the target server. (PLGINCNT, count x (PLGINLSE) )
 	static final int PLGINLST = 0x191E;
-	// The Security Plug-in names, supported by the target server.
+	// The Security Plug-in names, supported by the target server. These values are used as a value of authenticator property on the client side.
 	static final String SUPPORTED_PLUGINS[] = {"SPLICE_JWT_PUB","OKTA_OAUTH","SPLICE_OAUTH"};
 
 	//-----------------------Manager code points --------------------------
