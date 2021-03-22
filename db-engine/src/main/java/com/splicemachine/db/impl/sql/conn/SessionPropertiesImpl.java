@@ -128,6 +128,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
                 properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
                 break;
+            case FAVORINDEXPREFIXITERATION:
+                boolean favorIndexPrefixIteration = Boolean.parseBoolean(valString);
+                properties[FAVORINDEXPREFIXITERATION.getId()] = favorIndexPrefixIteration;
+                break;
             default:
                 assert false;
         }

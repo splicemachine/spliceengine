@@ -39,7 +39,7 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import org.apache.datasketches.theta.UpdateSketch;
+import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.joda.time.DateTime;
 
@@ -1382,18 +1382,18 @@ public abstract class DataType extends NullValueData implements DataValueDescrip
      * @throws StandardException
      */
     @Override
-    public org.apache.datasketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
-        return org.apache.datasketches.quantiles.ItemsSketch.getInstance(256,this);
+    public com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
+        return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(256,this);
     }
 
     @Override
-    public org.apache.datasketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-        return new org.apache.datasketches.frequencies.ItemsSketch(256);
+    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
+        return new com.yahoo.sketches.frequencies.ItemsSketch(256);
     }
 
     @Override
     public UpdateSketch getThetaSketch() throws StandardException {
-        return UpdateSketch.builder().setNominalEntries(256).build();
+        return UpdateSketch.builder().build(256);
     }
 
 

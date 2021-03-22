@@ -138,148 +138,60 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
          * the other parameter, with maximum length for that type.
          */
 
-        if (getLeftOperand().requiresTypeFromContext()) {
-            if (getRightOperand().requiresTypeFromContext()) {
-                throw StandardException.newException(
-                        SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS, operator);
-            }
-
-            TypeId leftType;
-
-            /*
-             * * A ? on the left gets its type from the right. There are eight *
-             * legal types for the concatenation operator: CHAR, VARCHAR, * LONG
-             * VARCHAR, CLOB, BIT, BIT VARYING, LONG BIT VARYING, and BLOB. * If
-             * the right type is BLOB, set the parameter type to BLOB with max
-             * length. * If the right type is one of the other bit types, set
-             * the parameter type to * BIT VARYING with maximum length. * * If
-             * the right type is CLOB, set parameter type to CLOB with max
-             * length. * If the right type is anything else, set it to VARCHAR
-             * with * maximum length. We count on the resolveConcatOperation
-             * method to * catch an illegal type. * * NOTE: When I added the
-             * long types, I could have changed the * resulting parameter types
-             * to LONG VARCHAR and LONG BIT VARYING, * but they were already
-             * VARCHAR and BIT VARYING, and it wasn't * clear to me what effect
-             * it would have to change it. - Jeff
-             */
-            if (getRightOperand().getTypeId().isBitTypeId()) {
-                if (getRightOperand().getTypeId().isBlobTypeId())
-                    leftType = TypeId.getBuiltInTypeId(Types.BLOB);
-                else
-                    leftType = TypeId.getBuiltInTypeId(Types.VARBINARY);
-            } else {
-                if (getRightOperand().getTypeId().isClobTypeId())
-                    leftType = TypeId.getBuiltInTypeId(Types.CLOB);
-                else
-                    leftType = TypeId.getBuiltInTypeId(Types.VARCHAR);
-            }
-
-            getLeftOperand().setType(new DataTypeDescriptor(leftType, true));
-            if (getRightOperand().getTypeId().isStringTypeId()) {
-                //collation of ? operand should be picked from the context
-                getLeftOperand().setCollationInfo(getRightOperand().getTypeServices());
-            }
-        }
-
         /*
-         * Is there a ? parameter on the right?
+         * In case of ? || ?, both operands should be varchars
          */
-        if (getRightOperand().requiresTypeFromContext()) {
-            TypeId rightType;
-
-            /*
-             * * A ? on the right gets its type from the left. There are eight *
-             * legal types for the concatenation operator: CHAR, VARCHAR, * LONG
-             * VARCHAR, CLOB, BIT, BIT VARYING, LONG BIT VARYING, and BLOB. * If
-             * the left type is BLOB, set the parameter type to BLOB with max
-             * length. * If the left type is one of the other bit types, set the
-             * parameter type to * BIT VARYING with maximum length. * * If the
-             * left type is CLOB, set parameter type to CLOB with max length. *
-             * If the left type is anything else, set it to VARCHAR with *
-             * maximum length. We count on the resolveConcatOperation method to *
-             * catch an illegal type. * * NOTE: When I added the long types, I
-             * could have changed the * resulting parameter types to LONG
-             * VARCHAR and LONG BIT VARYING, * but they were already VARCHAR and
-             * BIT VARYING, and it wasn't * clear to me what effect it would
-             * have to change it. - Jeff
-             */
-            if (getLeftOperand().getTypeId().isBitTypeId()) {
-                if (getLeftOperand().getTypeId().isBlobTypeId())
-                    rightType = TypeId.getBuiltInTypeId(Types.BLOB);
-                else
-                    rightType = TypeId.getBuiltInTypeId(Types.VARBINARY);
-            } else {
-                if (getLeftOperand().getTypeId().isClobTypeId())
-                    rightType = TypeId.getBuiltInTypeId(Types.CLOB);
-                else
-                    rightType = TypeId.getBuiltInTypeId(Types.VARCHAR);
-            }
-            getRightOperand().setType(new DataTypeDescriptor(rightType, true));
-            if (getLeftOperand().getTypeId().isStringTypeId()) {
-                //collation of ? operand should be picked from the context
-                getRightOperand().setCollationInfo(getLeftOperand().getTypeServices());
+        if (getLeftOperand().requiresTypeFromContext() && getRightOperand().requiresTypeFromContext()) {
+            getLeftOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+            getRightOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+        } else {
+            int requiresType = -1;
+            if (getLeftOperand().requiresTypeFromContext())
+                requiresType = 0;
+            else if (getRightOperand().requiresTypeFromContext())
+                requiresType = 1;
+            if (requiresType != -1) {
+                TypeId type;
+                int known = (requiresType + 1) % 2;
+                /*
+                 * * A ? on one operand gets its type from the other operand
+                 */
+                if (operands.get(known).getTypeId().isBitTypeId()) {
+                    if (operands.get(known).getTypeId().isBlobTypeId())
+                        type = TypeId.getBuiltInTypeId(Types.BLOB);
+                    else
+                        type = TypeId.getBuiltInTypeId(Types.VARBINARY);
+                } else {
+                    if (operands.get(known).getTypeId().isClobTypeId())
+                        type = TypeId.getBuiltInTypeId(Types.CLOB);
+                    else
+                        type = TypeId.getBuiltInTypeId(Types.VARCHAR);
+                }
+                assert type != null;
+                operands.get(requiresType).setType(new DataTypeDescriptor(type, true));
+                if (operands.get(known).getTypeId().isStringTypeId()) {
+                    //collation of ? operand should be picked from the context
+                    operands.get(requiresType).setCollationInfo(operands.get(known).getTypeServices());
+                }
             }
         }
 
-        /*
-         * If the left operand is not a built-in type, then generate a bound
-         * conversion tree to a built-in type.
-         */
-        if (getLeftOperand().getTypeId().userType()) {
-            setLeftOperand(getLeftOperand().genSQLJavaSQLTree());
-        }
-
-        /*
-         * If the right operand is not a built-in type, then generate a bound
-         * conversion tree to a built-in type.
-         */
-        if (getRightOperand().getTypeId().userType()) {
-            setRightOperand(getRightOperand().genSQLJavaSQLTree());
-        }
+        genSQLJavaSQLTree();
 
         /*
          * If either the left or right operands are non-string, non-bit types,
          * then we generate an implicit cast to VARCHAR.
          */
-        TypeCompiler tc = getLeftOperand().getTypeCompiler();
-        if (!(getLeftOperand().getTypeId().isStringTypeId() || getLeftOperand()
-                .getTypeId().isBitTypeId())) {
-            int leftWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
-                             tc.getCastToCharWidth(getLeftOperand().getTypeServices(), getCompilerContext());
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-                    Types.VARCHAR, true, leftWidth);
+        for (int i = 0; i < operands.size(); ++i) {
+            TypeCompiler tc = operands.get(i).getTypeCompiler();
+            if (!(operands.get(i).getTypeId().isStringTypeId() ||
+                    operands.get(i).getTypeId().isBitTypeId())) {
+                int width = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
+                        tc.getCastToCharWidth(operands.get(i).getTypeServices(), getCompilerContext());
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, width);
 
-            setLeftOperand((ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getLeftOperand(),
-                    dtd,
-                    getContextManager()));
-
-            // DERBY-2910 - Match current schema collation for implicit cast as we do for
-            // explicit casts per SQL Spec 6.12 (10)
-            getLeftOperand().setCollationUsingCompilationSchema();
-
-            ((CastNode) getLeftOperand()).bindCastNodeOnly();
-        }
-        tc = getRightOperand().getTypeCompiler();
-        if (!(getRightOperand().getTypeId().isStringTypeId() || getRightOperand()
-                .getTypeId().isBitTypeId())) {
-            int rightWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
-                             tc.getCastToCharWidth(getRightOperand().getTypeServices(), getCompilerContext());
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-                    Types.VARCHAR, true, rightWidth);
-
-            setRightOperand((ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    getRightOperand(),
-                    dtd,
-                    getContextManager()));
-
-            // DERBY-2910 - Match current schema collation for implicit cast as we do for
-            // explicit casts per SQL Spec 6.12 (10)
-            getRightOperand().setCollationUsingCompilationSchema();
-
-            ((CastNode) getRightOperand()).bindCastNodeOnly();
+                castOperandAndBindCast(i, dtd, true);
+            }
         }
 
         /*
@@ -287,7 +199,6 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
          * convention, the left operand gets to decide the result type * of a
          * binary operator.
          */
-        tc = getLeftOperand().getTypeCompiler();
         setType(resolveConcatOperation(getLeftOperand().getTypeServices(),
                 getRightOperand().getTypeServices()));
 
@@ -313,7 +224,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
          * that both operands have the same interface type, which is a safe *
          * assumption for the concatenation operator.
          */
-        this.setLeftRightInterfaceType(tc.interfaceName());
+        this.setLeftRightInterfaceType(getLeftOperand().getTypeCompiler().interfaceName());
 
         // Finally, fold constants so that for example LIKE optimization is
         // able to take advantage of concatenated literals like 'ab' || '%'.
