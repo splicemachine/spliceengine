@@ -286,14 +286,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
     }
 
     // Nested loop join is most useful if it can be used to
@@ -397,23 +397,19 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        /* DB-11662 note
-         * The explanation above makes sense, but it seems that not taking innerLocalCost per
-         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
-         * strategies, especially when the inner table scan cost is very high.
-         */
+        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
         double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
         if (useSparkCostFormula)
             return outerCost.getLocalCostPerParallelTask() +
-                   (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
-                    * innerCost.getLocalCostPerParallelTask()) +
-                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
-                    joiningRowCost / outerCost.getParallelism();
+                   ((outerCost.rowCount()/outerCost.getParallelism())
+                    * innerLocalCost) +
+            ((outerCost.rowCount())*(innerRemoteCost))
+                    + joiningRowCost/outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
-                   Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
-                    * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
-                   joiningRowCost / outerCost.getParallelism();
+                   (outerCost.rowCount()/outerCost.getParallelism())
+                    * (innerCost.localCost()+innerCost.getRemoteCost()) +
+                   joiningRowCost/outerCost.getParallelism();
     }
 
     /**

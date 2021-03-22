@@ -47,8 +47,8 @@ import java.text.RuleBasedCollator;
 import java.lang.reflect.Method;
 import java.util.List;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -74,6 +74,7 @@ import org.apache.spark.sql.types.StructField;
  */
 @SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class XML extends DataType implements XMLDataValue, StreamStorable {
+
     // Id for this implementation.  Should be unique
     // across all XML type implementations.
     protected static final short UTF8_IMPL_ID = 0;

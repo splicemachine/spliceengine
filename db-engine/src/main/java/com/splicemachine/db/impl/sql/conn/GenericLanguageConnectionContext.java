@@ -512,6 +512,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     alwaysAllowIndexPrefixIteration.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
             }
+            String favorIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_FAVOR_INDEX_PREFIX_ITERATION);
+            if (favorIndexPrefixIteration != null &&
+                    favorIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
+            }
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
@@ -4107,6 +4112,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
         if (alwaysAllowIndexPrefixIteration != null) {
             return alwaysAllowIndexPrefixIteration;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean favorIndexPrefixIteration() {
+        Boolean favorIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION);
+        if (favorIndexPrefixIteration != null) {
+            return favorIndexPrefixIteration;
         }
 
         return false;

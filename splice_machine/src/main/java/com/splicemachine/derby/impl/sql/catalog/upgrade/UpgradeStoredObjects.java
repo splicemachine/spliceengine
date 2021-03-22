@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -37,6 +38,18 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         try {
+            Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SpliceDataDictionary.SPLICE_DATA_DICTIONARY_VERSION);
+            String s[] = catalogVersion.toString().split("\\.");
+            if (s.length > 3) {
+                int sprintNumber = Integer.parseInt(s[3]);
+                int minorVersionNumber = Integer.parseInt(s[1]);
+                if (minorVersionNumber == 1 && sprintNumber >= BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+                    // if serialization has already changed on 3.1 branch, skip this upgrade
+                    SpliceLogUtils.info(LOG, "Skipping data dictionary serialization upgrade for %s",
+                            catalogVersion.toString());
+                    return;
+                }
+            }
             SpliceLogUtils.info(LOG, "Start upgrading data dictionary serialization format.");
             // Make a copy of system tables that are to be upgrade. The original table will be truncated. We will
             // read from the copy in old serde format and write to original table in new format. Indexes will be
