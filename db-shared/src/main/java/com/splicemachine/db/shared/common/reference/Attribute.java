@@ -294,6 +294,12 @@ public interface Attribute {
     */
     String SSL_ATTR = "ssl";
 
+    /**
+     * Attribute name to set JDBC work in DB2 compatible mode.
+     * Client driver attribute.
+     */
+    String JDBC_DB2_COMPATIBLE_MODE = "jdbcDb2CompatibleMode";
+
 }
 
 

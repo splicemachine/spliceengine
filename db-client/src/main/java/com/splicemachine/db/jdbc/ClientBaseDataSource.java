@@ -1217,4 +1217,8 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     public static String getClientKeytab(Properties properties) {
         return properties.getProperty(Attribute.CLIENT_KERBEROS_KEYTAB);
     }
+
+    public static boolean getJdbcDb2CompatibleMode(Properties properties) {
+        return Boolean.parseBoolean(properties.getProperty(Attribute.JDBC_DB2_COMPATIBLE_MODE));
+    }
 }
