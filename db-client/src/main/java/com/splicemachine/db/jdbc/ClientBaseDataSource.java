@@ -1229,4 +1229,8 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     public static String getUserTokenAuthenticator(Properties properties) {
         return properties.getProperty(Attribute.USER_TOKEN_AUTHENTICATOR);
     }
+  
+    public static boolean getJdbcDb2CompatibleMode(Properties properties) {
+        return Boolean.parseBoolean(properties.getProperty(Attribute.JDBC_DB2_COMPATIBLE_MODE));
+    }
 }

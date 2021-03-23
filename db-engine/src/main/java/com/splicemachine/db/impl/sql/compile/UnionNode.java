@@ -739,13 +739,4 @@ public class UnionNode extends SetOperatorNode{
     public void setViewDescreiptor(TableDescriptor viewDescreiptor) {
         this.viewDescriptor = viewDescreiptor;
     }
-
-    @Override
-    public void setLevel(int level){
-        super.setLevel(level);
-        if (leftResultSet instanceof FromTable)
-            ((FromTable)leftResultSet).setLevel(level);
-        if (rightResultSet instanceof FromTable)
-            ((FromTable)rightResultSet).setLevel(level);
-    }
 }

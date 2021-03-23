@@ -299,4 +299,6 @@ public interface StatementContext extends Context {
     boolean hasXPlainTableOrProcedure();
 
     void registerExpirable(Expirable expirable, Thread thread);
+
+    long getTimeoutMillis();
 }

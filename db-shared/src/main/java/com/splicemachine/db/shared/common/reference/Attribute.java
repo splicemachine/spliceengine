@@ -303,6 +303,12 @@ public interface Attribute {
      * JWT authenticator, implies security mechanism = TOKEN
      */
     String USER_TOKEN_AUTHENTICATOR = "authenticator";
+  
+    /**
+     * Attribute name to set JDBC work in DB2 compatible mode.
+     * Client driver attribute.
+     */
+    String JDBC_DB2_COMPATIBLE_MODE = "jdbcDb2CompatibleMode";
 
 }
 

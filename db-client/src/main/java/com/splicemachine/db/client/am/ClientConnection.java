@@ -74,6 +74,7 @@ public abstract class ClientConnection
     protected final String user_;
     public boolean retrieveMessageText_;
     protected boolean jdbcReadOnly_;
+    protected boolean jdbcDb2CompatibleMode_ = false;
     /**
      * Holdabilty for created statements.
      * Only access through the holdability method
@@ -340,6 +341,7 @@ public abstract class ClientConnection
 
         token = ClientDataSource.getUserToken(properties);
         authenticator =  ClientDataSource.getUserTokenAuthenticator(properties);
+        jdbcDb2CompatibleMode_ = ClientDataSource.getJdbcDb2CompatibleMode(properties);
 
         agent_ = newAgent_(logWriter,
                 loginTimeout_,
@@ -1299,6 +1301,21 @@ public abstract class ClientConnection
                 agent_.logWriter_.traceExit(this, "isReadOnly", jdbcReadOnly_);
             }
             return false;
+        }
+        catch ( SqlException se )
+        {
+            throw se.getSQLException();
+        }
+    }
+
+    public boolean isDB2Compatible() throws SQLException {
+        try
+        {
+            checkForClosedConnection();
+            if (agent_.loggingEnabled()) {
+                agent_.logWriter_.traceExit(this, "isDB2Compatible", jdbcDb2CompatibleMode_);
+            }
+            return jdbcDb2CompatibleMode_;
         }
         catch ( SqlException se )
         {
