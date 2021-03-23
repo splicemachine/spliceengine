@@ -6283,24 +6283,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
-        String dbId = spliceDbDesc.getUUID().toString();
-        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, aid, tc);
+    public void updateSystemSchemaAuthorization(UUID dbId, String aid,TransactionController tc) throws StandardException{
+        if (dbId.equals(spliceDbDesc.getUUID())) {
+            String dbIdString = dbId.toString();
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(dbId, SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME, aid, tc);
-        updateSchemaAuth(dbId, SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
+        } else {
+            updateSchemaAuth(dbId.toString(), SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
+        }
 
         // now reset our understanding of who owns the database
-        resetSpliceDbOwner(tc, spliceDbDesc.getUUID());
+        resetSpliceDbOwner(tc, dbId);
     }
 
     /**

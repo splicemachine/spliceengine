@@ -1789,7 +1789,7 @@ public class SystemProcedures{
              */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
-            dd.updateSystemSchemaAuthorization(aid,tc); // XXX(arnaud multidb this needs to be DB specific)
+            dd.updateSystemSchemaAuthorization(lcc.getCurrentDatabase().getUUID(), aid,tc);
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
         }

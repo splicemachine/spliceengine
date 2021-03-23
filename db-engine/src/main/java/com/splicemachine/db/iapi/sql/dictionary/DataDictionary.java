@@ -2232,7 +2232,7 @@ public interface DataDictionary{
      * @param tc  TransactionController to use
      * @throws StandardException Thrown on failure
      */
-    void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException;
+    void updateSystemSchemaAuthorization(UUID dbId, String aid,TransactionController tc) throws StandardException;
 
     DataDictionaryCache getDataDictionaryCache();
 
