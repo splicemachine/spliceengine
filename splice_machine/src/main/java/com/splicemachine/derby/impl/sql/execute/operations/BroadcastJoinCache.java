@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
+import org.apache.spark.TaskContext;
 import splice.com.google.common.cache.Cache;
 import splice.com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -43,7 +44,8 @@ public class BroadcastJoinCache{
         JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,
                                int[] innerHashKeys,
                                int[] outerHashKeys,
-                               ExecRow outerTemplateRow) throws Exception;
+                               ExecRow outerTemplateRow,
+                               TaskContext taskContext) throws Exception;
     }
 
     public BroadcastJoinCache(){
@@ -60,12 +62,13 @@ public class BroadcastJoinCache{
     }
 
     public JoinTable.Factory get(Long operationId,
-                         Callable<Stream<ExecRow>> loader,
-                         int[] rightHashKeys,
-                         int[] leftHashKeys,
-                         ExecRow leftTemplateRow) throws IOException, StandardException{
+                                 Callable<Stream<ExecRow>> loader,
+                                 int[] rightHashKeys,
+                                 int[] leftHashKeys,
+                                 ExecRow leftTemplateRow,
+                                 TaskContext taskContext) throws IOException, StandardException{
         try{
-            Loader callable=new Loader(operationId,tableLoader,rightHashKeys,leftHashKeys,leftTemplateRow,loader);
+            Loader callable=new Loader(operationId,tableLoader,rightHashKeys,leftHashKeys,leftTemplateRow,loader, taskContext);
             ReferenceCountingFactory joinTable=cache.get(operationId,callable);
             joinTable.refCount.incrementAndGet();
             return joinTable;
@@ -89,24 +92,27 @@ public class BroadcastJoinCache{
         private final Callable<Stream<ExecRow>> streamLoader;
 
         private final Long operationId;
+        private final TaskContext taskContext;
 
         public Loader(Long operationId,
                       JoinTableLoader loader,
                       int[] innerHashKeys,
                       int[] outerHashKeys,
                       ExecRow outerTemplateRow,
-                      Callable<Stream<ExecRow>> streamLoader){
+                      Callable<Stream<ExecRow>> streamLoader,
+                      TaskContext taskContext){
             this.loader=loader;
             this.operationId=operationId;
             this.innerHashKeys=innerHashKeys;
             this.outerHashKeys=outerHashKeys;
             this.outerTemplateRow=outerTemplateRow;
             this.streamLoader=streamLoader;
+            this.taskContext = taskContext;
         }
 
         @Override
         public ReferenceCountingFactory call() throws Exception {
-            JoinTable.Factory load=loader.load(streamLoader,innerHashKeys,outerHashKeys,outerTemplateRow);
+            JoinTable.Factory load=loader.load(streamLoader,innerHashKeys,outerHashKeys,outerTemplateRow,taskContext);
             return new ReferenceCountingFactory(load,operationId);
         }
     }
