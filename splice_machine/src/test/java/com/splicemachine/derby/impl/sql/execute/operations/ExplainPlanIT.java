@@ -512,7 +512,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* Q3: test join case */
         String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 27000, 854, 27, 1, 1, 1, 1};
-        String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
+        String join3[] = {"BroadcastJoin", "BroadcastJoin", "MergeSortJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from --splice-properties joinOrder=fixed\n" +
