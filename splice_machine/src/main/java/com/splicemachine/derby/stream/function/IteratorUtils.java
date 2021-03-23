@@ -30,4 +30,11 @@ public class IteratorUtils {
         } else
             return it;
     }
+
+    public static <E> Iterator<E> asInterruptibleIterator(TaskContext context, Iterator<E> it) {
+        if (context != null) {
+            return (Iterator<E>) JavaConverters.asJavaIteratorConverter(new InterruptibleIterator(context, JavaConverters.asScalaIteratorConverter(it).asScala())).asJava();
+        } else
+            return it;
+    }
 }
