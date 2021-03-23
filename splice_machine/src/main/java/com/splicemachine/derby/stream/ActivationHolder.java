@@ -271,7 +271,7 @@ public class ActivationHolder implements Externalizable {
                 txnResource.close();
             }
 
-            txnResource = new SpliceTransactionResourceImpl(); // XXX(arnaud multidb)
+            txnResource = new SpliceTransactionResourceImpl(databaseDescriptor.getDatabaseName());
             txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles,
                                             initialDefaultSchemaDescriptor, activeStateTxId);
             impl.set(txnResource);
