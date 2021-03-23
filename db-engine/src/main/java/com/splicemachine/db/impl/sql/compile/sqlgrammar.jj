@@ -13164,12 +13164,6 @@ void withClause(Vector parameterList) throws StandardException :
         {
             checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
             endToken = getToken(0);
-            /* Parameters not allowed in create view */
-            HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
-            queryExpression.accept(visitor);
-            if (visitor.hasNode()) {
-                throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_VIEWS);
-            }
             if (topNOut[0] != null) {
                 hasJDBClimitClause = true;
                 offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
@@ -13232,13 +13226,6 @@ viewDefinition(Token beginToken) throws StandardException :
     {
         checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
         endToken = getToken(0);
-        /* Parameters not allowed in create view */
-        HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
-        queryExpression.accept(visitor);
-        if (visitor.hasNode())
-        {
-            throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_VIEWS);
-        }
 
         if (topNOut[0] != null) {
             hasJDBClimitClause = true;

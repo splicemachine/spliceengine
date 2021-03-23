@@ -98,17 +98,24 @@ public class PackedTxnFilter implements TxnFilter, SIFilter{
         }
     }
 
-    public DataFilter.ReturnCode accumulate(DataCell data) throws IOException{
-        if(!accumulator.isFinished() && !excludeRow && accumulator.isInteresting(data)){
-            if(!accumulator.accumulateCell(data)){
-                excludeRow=true;
+    public DataFilter.ReturnCode accumulate(DataCell data) throws IOException {
+        boolean isFinished = accumulator.isFinished();
+        boolean isInteresting = accumulator.isInteresting(data);
+        // no need to proceed further investigating previous versions, we're done.
+        if (isFinished && !isInteresting) {
+            return DataFilter.ReturnCode.NEXT_ROW;
+        }
+        if (!isFinished && !excludeRow && isInteresting) {
+            if (!accumulator.accumulateCell(data)) {
+                excludeRow = true;
             }
         }
-        if(lastValidCell==null){
-            lastValidCell=data;
+        if (lastValidCell == null) {
+            lastValidCell = data;
             return DataFilter.ReturnCode.INCLUDE;
-        }else
+        } else {
             return DataFilter.ReturnCode.SKIP;
+        }
     }
 
     @Override

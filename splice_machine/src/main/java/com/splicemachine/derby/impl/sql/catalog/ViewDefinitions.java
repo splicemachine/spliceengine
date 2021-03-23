@@ -22,6 +22,7 @@ import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.utils.Pair;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 class SystemViewDefinitions {
@@ -46,7 +47,7 @@ class SystemViewDefinitions {
     Map<Pair<String, String>, ViewInfo> views;
 
     SystemViewDefinitions() {
-        this.views = new HashMap<>();
+        this.views = new LinkedHashMap<>();
         views.put(new Pair<>("SYSVW", "SYSALLROLES"), new ViewInfo(DataDictionary.SYSROLES_CATALOG_NUM, 0, SYSROLESRowFactory.ALLROLES_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSSCHEMASVIEW"), new ViewInfo(DataDictionary.SYSSCHEMAS_CATALOG_NUM, 0, null)); // sql determined at run time
         views.put(new Pair<>("SYSVW", "SYSCONGLOMERATEINSCHEMAS"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL));
@@ -88,4 +89,9 @@ class SystemViewDefinitions {
         dd.createOrUpdateSystemView(tc, schemaDesc, info.catalogNum, viewName, info.viewIndex, viewSql);
     }
 
+    void refreshAllSystemViews(TransactionController tc, SpliceDataDictionary dd) throws StandardException {
+        for (Pair<String, String> view: views.keySet()) {
+            createOrUpdateView(tc, dd, view.getFirst(), view.getSecond());
+        }
+    }
 }
