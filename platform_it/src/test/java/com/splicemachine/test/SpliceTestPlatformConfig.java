@@ -305,7 +305,7 @@ class SpliceTestPlatformConfig {
         // HFile
         //
         config.setInt("hfile.index.block.max.size", 16 * 1024); // 16KiB
-        config.setFloat("hfile.block.cache.size", 0.25f); // set block cache to 25% of heap
+        config.setFloat("hfile.block.cache.size", 0); // set block cache to 25% of heap
         config.setFloat("io.hfile.bloom.error.rate", (float) 0.005);
         config.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true); // hfile.block.bloom.cacheonwrite
         config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());

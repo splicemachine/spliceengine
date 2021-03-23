@@ -16,17 +16,19 @@
 package com.splicemachine.test;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
+
+import static org.junit.Assert.fail;
 
 public class Benchmark {
 
@@ -145,5 +147,29 @@ public class Benchmark {
             LOG.error("Interrupted while waiting for threads to finish", ie);
         }
         resetStats();
+    }
+
+    public static void rowContainsQuery(int[] levels, String query, Connection conn, String[]... contains) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            try (ResultSet resultSet = ps.executeQuery()) {
+                int i = 0;
+                int k = 0;
+                while (resultSet.next()) {
+                    i++;
+                    for (int level : levels) {
+                        if (level == i) {
+                            String resultString = resultSet.getString(1);
+                            for (String phrase : contains[k]) {
+                                Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                        + resultString, resultString.contains(phrase));
+                            }
+                            k++;
+                        }
+                    }
+                }
+                if (k < contains.length)
+                    fail("fail to match the given strings");
+            }
+        }
     }
 }
