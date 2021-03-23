@@ -36,11 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This Visitor finds the first ValueNode (which is typically an Or/And node and attempts
@@ -78,6 +74,7 @@ import java.util.Map;
 public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
 
     private boolean foundWhereClause = false;
+    private Collection<AggregateNode> aggregateVector;
 
     /**
      * Finds any node in the predicate part of the query tree that occurs more than once.
@@ -193,13 +190,22 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
 
             for (Map.Entry<ValueNode, Integer> me : m.entrySet()) {
                 if (foundInPath(me.getKey(), newNode)) {
-                    AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
+                    AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey(), aggregateVector);
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
                     newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             me.getKey(),
                             newNode,
                             ((ValueNode) node).getContextManager());
+                    if (aggregateVector != null) {
+                        CollectNodesVisitor cnv = new CollectNodesVisitor(AggregateNode.class);
+                        me.getKey().accept(cnv);
+                        List<AggregateNode> aggList = cnv.getList();
+                        for (AggregateNode aggNode : aggList) {
+                            if (!aggregateVector.contains(aggNode))
+                                aggregateVector.add(aggNode);
+                        }
+                    }
                 }
             }
             updatedNode = newNode;
@@ -262,5 +268,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         ValueNode rightChild = ((OrNode)node).getRightOperand();
 
         return numClauses(rightChild) + numClauses(leftChild);
+    }
+
+    public void setAggregateVector(Collection<AggregateNode> aggregateVector) {
+        this.aggregateVector = aggregateVector;
     }
 }

@@ -417,18 +417,30 @@ public class OlapServerMaster {
 
         try {
             Configuration yarnConf = HConfiguration.unwrapDelegate();
-            String yarnMemory = getYarnProperty("yarn.nodemanager.resource.memory-mb", yarnConf);
-            if (yarnMemory == null || "-1".equals(yarnMemory))
-                yarnMemory = getYarnProperty("yarn.scheduler.maximum-allocation-mb", yarnConf);
+            String containerMemory = getYarnProperty("yarn.nodemanager.resource.memory-mb", yarnConf);
+            if (containerMemory == null || "-1".equals(containerMemory))
+                containerMemory = getYarnProperty("yarn.scheduler.maximum-allocation-mb", yarnConf);
 
             SparkConf sparkConf = sparkContext.conf();
 
-            Integer numNodes = rmClient == null ? 4 : rmClient.getClusterNodeCount();
+            boolean isCloud = rmClient == null;
+            Integer numNodes = isCloud ? 1 : rmClient.getClusterNodeCount();
             if (numNodes < 1)
                 numNodes = 1;
 
+            if (isCloud) {
+                // No YARN on cloud.  Pods try to honor the memory size of the request.
+                containerMemory = getSparkProperty("spark.kubernetes.executor.request.memory", sparkConf);
+                try {
+                    // Cloud uses one executor per pod, so use this to derive the number of nodes.
+                    numNodes = Integer.valueOf(getSparkProperty("spark.executor.instances", sparkConf));
+                }
+                catch (NumberFormatException e) {
+                }
+            }
+
             int maxExecutorCores =
-                calculateMaxExecutorCores(yarnMemory,
+                calculateMaxExecutorCores(containerMemory,
                                           getSparkProperty("spark.dynamicAllocation.enabled", sparkConf),
                                           getSparkProperty("spark.executor.instances", sparkConf),
                                           getSparkProperty("spark.executor.cores", sparkConf),
@@ -488,7 +500,8 @@ public class OlapServerMaster {
         long memSize = 8192L*1024*1024, containerSize;
         if (memorySize != null) {
             try {
-                memSize = Long.parseLong(memorySize) * 1024 * 1024;
+                memSize =
+                    parseSizeString(memorySize, memSize, "m");
             }
             catch (NumberFormatException e) {
             }

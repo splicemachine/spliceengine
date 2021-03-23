@@ -74,6 +74,9 @@ public class Benchmark {
     }
 
     public static void reportStats() {
+        if (indexMap.isEmpty()) {
+            return;
+        }
         StringBuilder sb = new StringBuilder().append("Statistics:");
         for (Map.Entry<String, Integer> entry : indexMap.entrySet()) {
             int idx = entry.getValue();
@@ -104,14 +107,17 @@ public class Benchmark {
     public static void getInfo() throws Exception {
         try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
             try (Statement statement = connection.createStatement()) {
-
                 statement.execute("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
-                ResultSet rs = statement.getResultSet();
-                while (rs.next()) {
-                    String host = rs.getString(1);
-                    String release = rs.getString(2);
-                    LOG.info("HOST: " + host + "  SPLICE: " + release);
+                try (ResultSet rs = statement.getResultSet()) {
+                    while (rs.next()) {
+                        String host = rs.getString(1);
+                        String release = rs.getString(2);
+                        LOG.info("HOST: " + host + "  SPLICE: " + release);
+                    }
                 }
+            }
+            finally {
+                connection.rollback();
             }
         }
     }
