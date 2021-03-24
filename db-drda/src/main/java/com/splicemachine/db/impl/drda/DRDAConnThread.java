@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.ArrayList;
@@ -3354,7 +3355,7 @@ class DRDAConnThread extends Thread {
                         database.secTokenIn = reader.readBytes();
                         database.secTokenOut = database.secTokenIn;
                         if (SanityManager.DEBUG)
-                            trace(String.format("**plug-in security mechanism, authentication token is: %s", new String(database.secTokenIn)));
+                            trace(String.format("**plug-in security mechanism, authentication token is: %s", new String(database.secTokenIn, Charset.forName("UTF-8"))));
                     }
                     else {
                         try {
