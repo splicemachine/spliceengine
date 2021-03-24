@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.sql.DataSource;
 import java.security.MessageDigest;
@@ -78,7 +77,7 @@ import java.util.Properties;
  * </p>
  *
  */
-public class NativeAuthenticationServiceImpl
+public final class NativeAuthenticationServiceImpl
 	extends AuthenticationServiceBase implements UserAuthenticator
 {
     ///////////////////////////////////////////////////////////////////////////////////
@@ -384,7 +383,6 @@ public class NativeAuthenticationServiceImpl
      * Return true if the passed in service is the credentials database.
      * </p>
      */
-    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "DB-11046")
     private boolean isCredentialsService( String canonicalDatabaseName )
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
@@ -494,7 +492,6 @@ public class NativeAuthenticationServiceImpl
 	 * @param userPassword	The user's password used to connect to JBMS system
 	 * @param databaseName	The database which the user wants to connect to.
 	 */
-    @SuppressFBWarnings(value = {"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "RV_RETURN_VALUE_IGNORED"}, justification = "DB-11046")
 	private boolean	authenticateLocally
         (
          String userName,
