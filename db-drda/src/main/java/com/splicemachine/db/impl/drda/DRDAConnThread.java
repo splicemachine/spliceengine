@@ -3165,7 +3165,7 @@ class DRDAConnThread extends Thread {
         {
             // we need to send back the key if encryption is being used
             if (database.securityMechanism == CodePoint.SECMEC_EUSRIDPWD)
-                writer.writeScalarBytes(CodePoint.SECTKN, myPublicKey);
+                writer.writeScalarBytes(CodePoint.SECTKN, myPublicKey); ///
             else if (database.securityMechanism == CodePoint.SECMEC_USRSSBPWD)
                 writer.writeScalarBytes(CodePoint.SECTKN, myTargetSeed);
         }

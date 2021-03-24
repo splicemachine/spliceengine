@@ -986,7 +986,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Djava.io.tmpdir=${tmpDir}</argument>
-                                <argument>-Dsplice.authentication=NATIVE</argument>
+                                <argument>-Dsplice.authentication=TOKEN</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
