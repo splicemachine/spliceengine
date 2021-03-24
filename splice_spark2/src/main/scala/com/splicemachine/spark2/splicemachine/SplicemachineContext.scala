@@ -180,6 +180,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
       println(s"Cleaning up SplicemachineContext.")
       try {
+        connectionManager.shutdown
+      } catch {
+        case e: Throwable => ;
+      }
+      try {
         kafkaTopics.cleanup(60*1000)
       } catch {
         case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process

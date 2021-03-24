@@ -20,16 +20,12 @@ import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 @SerialVersionUID(20210317241L)
 class ConnectionManager(url: String) extends Serializable {
   
-  private var con: Option[Connection] = None
+  private val con: Connection = createConnection
   
-  def autoCommitting(): Boolean = con.isEmpty
+  def autoCommitting(): Boolean = con.getAutoCommit
   def transactional(): Boolean = ! autoCommitting
 
-  def getConnection(): Connection = if( autoCommitting ) {
-    createConnection()
-  } else {
-    con.get
-  }
+  def getConnection(): Connection = con
   
   private def createConnection(): Connection =
     JdbcUtils.createConnectionFactory(
@@ -39,54 +35,47 @@ class ConnectionManager(url: String) extends Serializable {
       ))
     )()
   
-  def close(conToClose: Connection): Unit = if( autoCommitting ) { conToClose.close }
+  def close(conToClose: Connection): Unit = {}
+  def shutdown(): Unit = con.close
   
-  def setAutoCommitOn(): Unit = if( ! autoCommitting ) {
-    con.get.setAutoCommit(true)
-    con.get.close
-    con = None
-  }
+  def setAutoCommitOn(): Unit = con.setAutoCommit(true)
   
-  def setAutoCommitOff(): Unit = if( autoCommitting ) {
-    val c = createConnection()
-    c.setAutoCommit(false)
-    con = Some(c)
-  }
+  def setAutoCommitOff(): Unit = con.setAutoCommit(false)
   
   def commit(): Unit = if( transactional ) {
-    con.get.commit
+    con.commit
   } else {
     throwNontransactionException("commit")
   }
   
   def rollback(): Unit = if( transactional ) {
-    con.get.rollback
+    con.rollback
   } else {
     throwNontransactionException("rollback")
   }
   
   def rollback(savepoint: Savepoint): Unit = if( transactional ) {
-    con.get.rollback(savepoint)
+    con.rollback(savepoint)
   } else {
     throwNontransactionException(s"rollback to savepoint")
   }
 
   def setSavepoint(): Savepoint = if( transactional ) {
-    con.get.setSavepoint
+    con.setSavepoint
   } else {
     throwNontransactionException("setSavepoint");
     null
   }
   
   def setSavepoint(name: String): Savepoint = if( transactional ) {
-    con.get.setSavepoint(name)
+    con.setSavepoint(name)
   } else {
     throwNontransactionException(s"setSavepoint $name");
     null
   }
   
   def releaseSavepoint(savepoint: Savepoint): Unit = if( transactional ) {
-    con.get.releaseSavepoint(savepoint)
+    con.releaseSavepoint(savepoint)
   } else {
     throwNontransactionException(s"releaseSavepoint")
   }
