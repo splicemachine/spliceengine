@@ -19,8 +19,8 @@ import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 
 @SerialVersionUID(20210317241L)
 class ConnectionManager(url: String) extends Serializable {
-  
-  private val con: Connection = createConnection
+
+  @transient lazy private val con: Connection = createConnection
   
   def autoCommitting(): Boolean = con.getAutoCommit
   def transactional(): Boolean = ! autoCommitting
