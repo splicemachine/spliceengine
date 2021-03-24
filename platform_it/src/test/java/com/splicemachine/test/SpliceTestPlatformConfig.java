@@ -374,6 +374,15 @@ class SpliceTestPlatformConfig {
         config.setBoolean("replication.source.eof.autorecovery", true);
         config.setBoolean("splice.replication.enabled", true);
 
+        // jwt
+        config.set("splice.jwtToken.jksKeystore.username","db_user"); // which value we would like to use as database username (here, use { ... "db_user": "igor" }
+        config.set("splice.jwtToken.jksKeystore.path", System.getProperty("user.home") +
+                "/spliceengine-ee/splice_auth/src/test/resources/com.splicemachine.db.impl.token/splice_database.jks");
+        config.set("splice.jwtToken.jksKeystore.password","admin2020");
+        config.set("splice.jwtToken.jksKeystore.alias","splice_database");
+        config.set("splice.jwtToken.jksKeystore.issuer","http://splicemachine.com/");
+
+
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();
     }
