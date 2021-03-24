@@ -24,7 +24,9 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -32,6 +34,7 @@ import java.io.IOException;
  * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
  */
 class IndexFactory implements LocalWriteFactory{
+    private static final Logger LOG = Logger.getLogger(IndexFactory.class);
     private DDLMessage.TentativeIndex tentativeIndex;
     private TxnView txn; // Null in the case of startup, populated in the case of DDL Change
     private long indexConglomerateId;
@@ -60,6 +63,10 @@ class IndexFactory implements LocalWriteFactory{
         IndexWriteHandler writeHandler = new IndexWriteHandler(keepState, expectedWrites, transformer);
         if (txn == null) {
             ctx.addLast(writeHandler);
+            if (LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "added an index handler for %d",
+                        tentativeIndex.getIndex().getConglomerate());
+            }
         } else {
             DDLFilter ddlFilter = SIDriver.driver().readController().newDDLFilter(txn);
             ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));

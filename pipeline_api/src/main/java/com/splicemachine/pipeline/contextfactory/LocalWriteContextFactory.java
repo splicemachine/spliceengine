@@ -224,6 +224,9 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             //add index handlers
             indexFactories.addFactories(context,true,expectedWrites);
 
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Added index write handler");
+            }
             ddlFactories.addFactories(context,true,expectedWrites);
 
             if( foreignKeyChecks ) {
@@ -240,11 +243,21 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
          * Any other state => return, because we don't need to perform this method.
          */
         if (!state.compareAndSet(State.READY_TO_START, State.STARTING)) {
-            if (state.get() != State.STARTING) return;
+            if (state.get() != State.STARTING) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.trace(LOG, "Not able to start 1, state = %s", state.get().toString());
+                }
+                return;
+            }
         }
 
         //someone else may have initialized this if so, we don't need to repeat, so return
-        if (state.get() != State.STARTING) return;
+        if (state.get() != State.STARTING) {
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Not able to start 2, state = %s", state.get().toString());
+            }
+            return;
+        }
 
         SpliceLogUtils.debug(LOG, "Setting up index for conglomerate %d", conglomId);
 
@@ -252,7 +265,12 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             throw new IndexNotSetUpException("Unable to initialize index management for table " + conglomId
                     + " within a sufficient time frame. Please wait a bit and try again");
         }
-        if(state.get()!=State.STARTING) return; //we got here in a weird way
+        if(state.get()!=State.STARTING) {
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Not able to start 3, state = %s", state.get().toString());
+            }
+            return; //we got here in a weird way
+        }
         try{
             factoryLoader.load(txn);
 
@@ -261,10 +279,19 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             fkGroup = factoryLoader.getForeignKeyFactories();
             constraintFactories = factoryLoader.getConstraintFactories();
             state.set(State.RUNNING);
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Changed state to RUNNING");
+            }
         }catch(IndexNotSetUpException inse){
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Changed state to READY_TO_START");
+            }
             state.set(State.READY_TO_START);
             throw inse;
         }catch(Exception e){
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.trace(LOG, "Changed state to FAILED_SETUP");
+            }
             state.set(State.FAILED_SETUP);
             throw e;
         }finally{

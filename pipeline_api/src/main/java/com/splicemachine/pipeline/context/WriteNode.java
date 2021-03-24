@@ -27,9 +27,11 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 public class WriteNode implements WriteContext {
-
+    private static final Logger LOG = Logger.getLogger(WriteNode.class);
     private WriteHandler handler;
     private WriteNode next;
     private PipelineWriteContext pipelineWriteContext;
@@ -47,6 +49,9 @@ public class WriteNode implements WriteContext {
     public void sendUpstream(KVPair mutation) {
         if (next != null) {
             next.handler.next(mutation, next);
+        }
+        else{
+            SpliceLogUtils.info(LOG, "No other writers in write pipeline");
         }
     }
 
