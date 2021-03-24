@@ -60,6 +60,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 /* can't import these due to name overlap:
 import java.sql.ResultSet;
@@ -395,6 +396,10 @@ public abstract class EmbedResultSet extends ConnectionChild
 				 * on an error.
 				 * (Cache the LanguageConnectionContext)
 				 */
+				if (theResults.isCancelled()) {
+					throw new CancellationException("Operation was cancelled");
+				}
+
                 StatementContext statementContext =
                     lcc.pushStatementContext(isAtomic, 
 					     concurrencyOfThisResultSet==java.sql.ResultSet.CONCUR_READ_ONLY, 

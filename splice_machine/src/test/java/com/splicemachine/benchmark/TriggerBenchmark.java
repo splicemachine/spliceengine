@@ -106,7 +106,8 @@ public class TriggerBenchmark extends Benchmark {
             for (;;) {
                 int newSize = curSize.getAndAdd(batchSize);
                 if (newSize >= size) break;
-                for (int i = newSize; i < newSize + batchSize; ++i) {
+                int maxi = Math.min(newSize + batchSize, size);
+                for (int i = newSize; i < maxi; ++i) {
                     insert1.setInt(1, i);
                     insert1.addBatch();
 
