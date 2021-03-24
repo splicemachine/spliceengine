@@ -294,16 +294,6 @@ public interface Attribute {
     */
     String SSL_ATTR = "ssl";
 
-    /**
-     * JWT, implies security mechanism = TOKEN
-     */
-    String USER_TOKEN = "token";
-
-    /**
-     * JWT authenticator, implies security mechanism = TOKEN
-     */
-    String USER_TOKEN_AUTHENTICATOR = "authenticator";
-
 }
 
 

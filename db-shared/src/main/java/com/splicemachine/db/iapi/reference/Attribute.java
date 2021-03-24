@@ -347,14 +347,4 @@ public interface Attribute {
 		territory for the newly created database. 
 	*/
 	String COLLATION = "collation";
-
-	/**
-	 * JWT authenticator, implies security mechanism = TOKEN
-	 */
-	String USER_TOKEN_AUTHENTICATOR = "authenticator";
-
-	/**
-	 * JWT, implies security mechanism = TOKEN
-	 */
-	String USER_TOKEN = "token";
 }
