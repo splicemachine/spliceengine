@@ -13,6 +13,8 @@
  */
 package com.splicemachine.spark2.splicemachine.transaction
 
+import java.sql.SQLException
+
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
@@ -46,6 +48,45 @@ class TransactionIT extends FunSuite with TestContext with Matchers {
     splicemachineContext.setAutoCommitOn
     org.junit.Assert.assertTrue( "3", splicemachineContext.autoCommitting )
     org.junit.Assert.assertFalse( "4", splicemachineContext.transactional )
+  }
+
+  test("Test Savepoint") {
+    truncateInternalTable
+    splicemachineContext.setAutoCommitOff
+
+    splicemachineContext.insert(internalTNDF, internalTN)
+    
+    val savepoint = splicemachineContext.setSavepoint
+
+    splicemachineContext.insert(df1, internalTN)
+    
+    splicemachineContext.rollback(savepoint)
+
+    org.junit.Assert.assertEquals( "1", tableData,
+      splicemachineContext.df(s"select * from $internalTN").first.mkString(",")
+    )
+    org.junit.Assert.assertEquals( "2", "", contentOf(internalTN) )
+
+    splicemachineContext.releaseSavepoint(savepoint)
+
+    var caught = false
+    try{
+      splicemachineContext.rollback(savepoint)
+    } catch {
+      case e: SQLException => caught = true
+    }
+    org.junit.Assert.assertTrue( "3", caught )
+
+    splicemachineContext.setAutoCommitOn
+  }
+  
+  test("Test Savepoint Name") {
+    splicemachineContext.setAutoCommitOff
+    val name = "name1"
+    val savepoint = splicemachineContext.setSavepoint(name)
+    org.junit.Assert.assertEquals( name , savepoint.getSavepointName )
+    splicemachineContext.releaseSavepoint(savepoint)
+    splicemachineContext.setAutoCommitOn
   }
   
   test("Test Insert Commit") {

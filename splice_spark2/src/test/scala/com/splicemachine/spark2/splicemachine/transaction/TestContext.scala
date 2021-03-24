@@ -27,8 +27,7 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
   var spark: SparkSession = _
   var splicemachineContext: SplicemachineContext = _
-  var internalTNDF: Dataset[Row] = _
-  var df300s: Dataset[Row] = _
+  var internalTNDF, df300s, df1: Dataset[Row] = _
   def table(): String = "transactionTable"
   val module = "splice_spark2"
   val schema = s"${module}_Transaction_schema"
@@ -82,6 +81,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     )
     df300s = dataframe(
       rdd( Seq( Row.fromSeq( List(0,300) ), Row.fromSeq( List(1,301) ) ) ),
+      allTypesSchema(true)
+    )
+    df1 = dataframe(
+      rdd( Seq( Row.fromSeq( List(1,111) ) ) ),
       allTypesSchema(true)
     )
   }
