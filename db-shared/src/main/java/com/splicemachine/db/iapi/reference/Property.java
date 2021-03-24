@@ -809,10 +809,6 @@ public interface Property {
     // These are the different built-in providers Derby supports
 
 
-    String AUTHENTICATION_PROVIDER_JWT_TOKEN =
-            "TOKEN";
-
-
     /*
      ** Log
      */

@@ -179,9 +179,6 @@ public abstract class ClientConnection
     public String principal;
     public String keytab;
 
-    public String token;
-    public String authenticator;
-
     java.util.Hashtable clientCursorNameCache_ = new java.util.Hashtable();
     public int commBufferSize_ = 32767;
 
@@ -339,8 +336,6 @@ public abstract class ClientConnection
         principal = ClientDataSource.getClientPrincipal(properties);
         keytab =  ClientDataSource.getClientKeytab(properties);
 
-        token = ClientDataSource.getUserToken(properties);
-        authenticator =  ClientDataSource.getUserTokenAuthenticator(properties);
         jdbcDb2CompatibleMode_ = ClientDataSource.getJdbcDb2CompatibleMode(properties);
 
         agent_ = newAgent_(logWriter,
