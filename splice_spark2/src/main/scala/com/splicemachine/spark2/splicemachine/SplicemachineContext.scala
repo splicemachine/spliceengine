@@ -165,6 +165,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   try {
     if( options(JDBCOptions.JDBC_URL).isEmpty ) throw new Exception("JDBC Url is an empty string.")
     val con = getConnection()
+    if( con == null ) { throw new Exception("Connection not created.") }
     close(con)
   } catch {
     case e: Exception => throw new Exception(
