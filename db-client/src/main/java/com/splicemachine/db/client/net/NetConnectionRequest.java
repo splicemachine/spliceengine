@@ -78,18 +78,33 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
         buildACCSEC(securityMechanism, databaseName, publicKey);
     }
 
+    /**
+     * Builds SECCHK
+     *
+     * @param securityMechanism
+     * @param databaseName
+     * @param userid
+     * @param password
+     * @param encryptedUserid
+     * @param encryptedPassword
+     * @param securityPluginName This parameter is used to indicate the plug-in module to be used if the security mechanism is PLGIN.
+     *                           For the token authentication, the authenticator property is used as security plug-in name.
+     * @throws SqlException
+     */
     void writeSecurityCheck(int securityMechanism,
                             String databaseName,
                             String userid,
                             String password,
                             byte[] encryptedUserid,
-                            byte[] encryptedPassword) throws SqlException {
+                            byte[] encryptedPassword,
+                            String securityPluginName) throws SqlException {
         buildSECCHK(securityMechanism,
                 databaseName,
                 userid,
                 password,
                 encryptedUserid,
-                encryptedPassword);
+                encryptedPassword,
+                securityPluginName);
     }
 
     void writeAccessDatabase(String rdbnam,
@@ -316,7 +331,8 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
                      String user,
                      String password,
                      byte[] sectkn,
-                     byte[] sectkn2) throws SqlException {
+                     byte[] sectkn2,
+                     String securityPluginName) throws SqlException {
         createCommand();
         markLengthBytes(CodePoint.SECCHK);
 
@@ -339,6 +355,9 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
         }
         if (sectkn2 != null) {
             buildSECTKN(sectkn2);
+        }
+        if (securityPluginName != null) {
+            buildPLGINNM(securityPluginName);
         }
         updateLengthBytes();
 
@@ -510,7 +529,7 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
 
     private void buildSECTKN(byte[] sectkn) throws SqlException {
         if (sectkn.length > NetConfiguration.SECTKN_MAXSIZE) {
-            throw new SqlException(netAgent_.logWriter_, 
+            throw new SqlException(netAgent_.logWriter_,
                 new ClientMessageId(SQLState.NET_SECTKN_TOO_LONG));
         }
         writeScalarBytes(CodePoint.SECTKN, sectkn);
@@ -625,6 +644,11 @@ public class NetConnectionRequest extends Request implements ConnectionRequestIn
             writeScalar1Byte(CodePoint.RDBALWUPD, CodePoint.FALSE);
         }
     }
+
+    private void buildPLGINNM(String name) throws SqlException {
+        writeScalarString(CodePoint.PLGINNM, name);
+    }
+
 
 }
 
