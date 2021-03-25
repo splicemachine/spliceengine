@@ -31,7 +31,8 @@ class ConnectionManager(url: String) extends Serializable {
     JdbcUtils.createConnectionFactory(
       new JDBCOptions( Map(
         JDBCOptions.JDBC_URL -> url,
-        JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+        JDBCOptions.JDBC_TABLE_NAME -> "placeholder",
+        JDBCOptions.JDBC_DRIVER_CLASS -> "com.splicemachine.db.jdbc.ClientDriver40"
       ))
     )()
   
