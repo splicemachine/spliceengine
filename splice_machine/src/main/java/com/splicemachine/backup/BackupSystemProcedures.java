@@ -657,4 +657,84 @@ public class BackupSystemProcedures {
         }
     }
 
+    public static void SYSCS_BACKUP_METADATA(String directory, ResultSet[] resultSets)
+            throws StandardException, SQLException {
+        try {
+            // Check directory
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.backupMetadata(directory);
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Metadata backup to %s", directory));
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+    public static void SYSCS_RESTORE_METADATA(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
+        IteratorNoPutResultSet inprs = null;
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            // Check for ongoing backup...
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if (backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
+                throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
+            }
+            backupManager.restoreMetadata(directory, backupId,  validate);
+
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+
+            Activation activation = lcc.getLastActivation();
+            SQLWarning warning = activation.getWarnings();
+            if (warning != null) {
+                while (warning != null) {
+                    template.getColumn(1).setValue(warning.getSQLState());
+                    template.getColumn(2).setValue(warning.getLocalizedMessage());
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+                template.getColumn(1).setValue("Found inconsistencies in backup");
+                template.getColumn(2).setValue("To force a restore, set valid to false");
+                rows.add(template.getClone());
+            } else {
+                template.getColumn(1).setValue("Restore completed");
+                template.getColumn(2).setValue("Database has to be rebooted");
+                rows.add(template.getClone());
+                LOG.info("Restore completed. Database reboot is required.");
+            }
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+
+        } catch (Throwable t) {
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            SpliceLogUtils.error(LOG, "Error recovering backup", t);
+
+        } finally {
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+        }
+    }
 }
