@@ -30,7 +30,6 @@ import com.splicemachine.db.client.net.ClientJDBCObjectFactoryImpl;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -86,7 +85,6 @@ public class ClientDriver implements java.sql.Driver {
     public ClientDriver() {
     }
 
-    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "DB-11046")
     public java.sql.Connection connect(String url,
                                        java.util.Properties properties) throws java.sql.SQLException {
         com.splicemachine.db.client.net.NetConnection conn;
@@ -187,8 +185,6 @@ public class ClientDriver implements java.sql.Driver {
             String key = (String) keys.nextElement();
             if (key.equals(Attribute.USERNAME_ATTR) ||
                     key.equals(Attribute.PASSWORD_ATTR) ||
-                    key.equals(Attribute.USER_TOKEN) ||
-                    key.equals(Attribute.USER_TOKEN_AUTHENTICATOR) ||
                     key.equals(Attribute.SSL_ATTR))
                 continue;
             longDatabase.append(";").append(key).append("=").append(augmentedProperties.getProperty(key));
@@ -207,7 +203,6 @@ public class ClientDriver implements java.sql.Driver {
         }
     }
 
-    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-11046")
     public java.sql.DriverPropertyInfo[] getPropertyInfo(String url,
                                                          java.util.Properties properties) throws java.sql.SQLException {
         java.sql.DriverPropertyInfo driverPropertyInfo[] = new java.sql.DriverPropertyInfo[2];
