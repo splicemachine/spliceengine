@@ -79,7 +79,7 @@ import java.util.Properties;
  * </p>
  *
  */
-public class NativeAuthenticationServiceImpl
+public final class NativeAuthenticationServiceImpl
 	extends AuthenticationServiceBase implements UserAuthenticator
 {
     ///////////////////////////////////////////////////////////////////////////////////
@@ -385,7 +385,6 @@ public class NativeAuthenticationServiceImpl
      * Return true if the passed in service is the credentials database.
      * </p>
      */
-    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "DB-11046")
     private boolean isCredentialsService( String canonicalDatabaseName )
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
