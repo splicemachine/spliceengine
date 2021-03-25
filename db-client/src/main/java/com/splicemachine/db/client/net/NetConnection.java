@@ -26,6 +26,7 @@ package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.CallableStatement;
+import com.splicemachine.db.client.am.ClientDatabaseMetaData;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.client.am.*;
@@ -470,11 +471,6 @@ public class NetConnection extends ClientConnection {
             case NetConfiguration.SECMEC_KERSEC: // Kerberos
                 flowKERSECconnect();
                 break;
-            case NetConfiguration.SECMEC_PLGIN: // Plug-in, Token authentication
-                checkUser(user_);
-                flowUSRIDTokenconnect(authenticator, token);
-                break;
-
             default:
                 throw new SqlException(agent_.logWriter_, 
                     new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
@@ -956,27 +952,16 @@ public class NetConnection extends ClientConnection {
     }
 
     private void flowSecurityCheck(int securityMechanism,
-                                   String user,
-                                   String password,
-                                   byte[] encryptedUserid,
-                                   byte[] encryptedPassword) throws SqlException {
-        flowSecurityCheck(securityMechanism, user, password, encryptedUserid, encryptedPassword, null);
-    }
-
-    private void flowSecurityCheck(int securityMechanism,
-                                   String user,
-                                   String password,
-                                   byte[] encryptedUserid,
-                                   byte[] encryptedPassword,
-                                   String pluginName
-                                   ) throws SqlException {
+                                               String user,
+                                               String password,
+                                               byte[] encryptedUserid,
+                                               byte[] encryptedPassword) throws SqlException {
         agent_.beginWriteChainOutsideUOW();
         writeSecurityCheck(securityMechanism,
                 user,
                 password,
                 encryptedUserid,
-                encryptedPassword,
-                pluginName);
+                encryptedPassword);
         agent_.flowOutsideUOW();
         readSecurityCheck();
         agent_.endReadChain();
@@ -1044,22 +1029,12 @@ public class NetConnection extends ClientConnection {
                                                 String password,
                                                 byte[] encryptedUserid,
                                                 byte[] encryptedPassword) throws SqlException {
-        writeSecurityCheck(securityMechanism, user, password, encryptedUserid, encryptedPassword, null);
-    }
-
-    private void writeSecurityCheck(int securityMechanism,
-                                    String user,
-                                    String password,
-                                    byte[] encryptedUserid,
-                                    byte[] encryptedPassword,
-                                    String securityPluginName) throws SqlException {
         netAgent_.netConnectionRequest_.writeSecurityCheck(securityMechanism,
                 databaseName_,
                 user,
                 password,
                 encryptedUserid,
-                encryptedPassword,
-                securityPluginName);
+                encryptedPassword);
     }
 
     private void writeAccessRdb() throws SqlException {
@@ -2186,26 +2161,6 @@ public class NetConnection extends ClientConnection {
 
     public void setServerPrincipal(String serverPrincipal) {
         this.serverPrincipal = serverPrincipal;
-    }
-
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-11046")
-
-    /**
-     * Executes token authentication flow.
-     *
-     * The JWT token is passed via encryptedPassword method flowSecurityCheck parameter.
-     * The property 'authenticator' is used as Security Plug-In name, which must be supported on the target server.
-     */
-    private void flowUSRIDTokenconnect(String authenticator, String token) throws SqlException {
-        flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_PLGIN,
-                null); // publicKey
-        flowSecurityCheck(targetSecmec_, //securityMechanism
-                user_,
-                null,
-                token.getBytes(), //jwt
-                null, //encryptedPassword
-                authenticator);
-        flowAccessRdb();
     }
 }
 

@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.ArrayList;
@@ -213,13 +212,13 @@ class DRDAConnThread extends Thread {
     // as part of SECMEC_USRSSBPWD security mechanism
     private byte[] myTargetSeed;
 
-    // Some byte[] constants that are frequently written into messages. It is more efficient to
-    // use these constants than to convert from a String each time
+    // Some byte[] constants that are frequently written into messages. It is more efficient to 
+    // use these constants than to convert from a String each time 
     // (This replaces the qryscraft_ and notQryscraft_ static exception objects.)
     private static final byte[] eod00000 = { '0', '0', '0', '0', '0' };
     private static final byte[] eod02000 = { '0', '2', '0', '0', '0' };
     private static final byte[] nullSQLState = { ' ', ' ', ' ', ' ', ' ' };
-    private static final byte[] errD4_D6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // 12x0
+    private static final byte[] errD4_D6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // 12x0 
     private static final byte[] warn0_warnA = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };  // 11x ' '
 
     private final static String AUTHENTICATION_PROVIDER_BUILTIN_CLASS =
@@ -402,7 +401,7 @@ class DRDAConnThread extends Thread {
                         session.clientSocket.close();
                     } catch (IOException ioe) {
                         // Ignore, we're in deeper trouble already.
-                    }
+                    } 
                 } finally {
                     // Rethrow the original error, ignore errors that happened
                     // when trying to close the socket to the client.
@@ -563,11 +562,11 @@ class DRDAConnThread extends Thread {
         markCommunicationsFailure(null,arg1,arg2,arg3, arg4);
 
     }
-
-
+        
+        
         /**
          * Indicate a communications failure. Log to db.log
-         *
+         * 
          * @param e  - Source exception that was thrown
          * @param arg1 - info about the communications failure
          * @param arg2 - info about the communications failure
@@ -580,7 +579,7 @@ class DRDAConnThread extends Thread {
                 String arg4) throws DRDAProtocolException
         {
             String dbname = null;
-
+   
             if (database != null)
             {
                 dbname = database.getDatabaseName();
@@ -589,7 +588,7 @@ class DRDAConnThread extends Thread {
                 println2Log(dbname,session.drdaID, e.getMessage());
                 server.consoleExceptionPrintTrace(e);
             }
-
+        
             Object[] oa = {arg1,arg2,arg3,arg4};
             throw DRDAProtocolException.newDisconnectException(this,oa);
         }
@@ -668,7 +667,7 @@ class DRDAConnThread extends Thread {
         throws DRDAProtocolException
     {
         CcsidManager currentManager = writer.getCurrentCcsidManager();
-
+        
         int len = currentManager.getByteLength(rdbnam);
         if (len < CodePoint.RDBNAM_LEN)
             len = CodePoint.RDBNAM_LEN;
@@ -1516,7 +1515,6 @@ class DRDAConnThread extends Thread {
      * @return security check code, 0 is O.K.
      * @exception DRDAProtocolException
      */
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-11046")
     private int getConnFromDatabaseName() throws DRDAProtocolException
     {
         Properties p = new Properties();
@@ -1556,14 +1554,6 @@ class DRDAConnThread extends Thread {
 
         if (database.securityMechanism == CodePoint.SECMEC_KERSEC) {
             p.put(Attribute.DRDA_KERSEC_AUTHENTICATED, Boolean.toString(gssContext.isEstablished()));
-        }
-
-        if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
-            p.put(Attribute.DRDA_SECMEC,
-                    String.valueOf(database.securityMechanism));
-            String tokenValue = new String(database.secTokenIn);
-            p.put(Attribute.USER_TOKEN_AUTHENTICATOR, database.pluginName);
-            p.put(Attribute.USER_TOKEN, tokenValue);
         }
 
         String ip = ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/","");
@@ -2016,17 +2006,17 @@ class DRDAConnThread extends Thread {
                     securityMechanism = reader.readNetworkShort();
                     if (SanityManager.DEBUG)
                         trace("parseACCSEC - Security mechanism = " + securityMechanism);
-
+                    
                     // if Property.DRDA_PROP_SECURITYMECHANISM has been set, then
                     // network server only accepts connections which use that
-                    // security mechanism. No other types of connections
+                    // security mechanism. No other types of connections 
                     // are accepted.
                     // Make check to see if this property has been set.
-                    // if set, and if the client requested security mechanism
-                    // is not the same, then return a security check code
-                    // that the server does not support/allow this security
+                    // if set, and if the client requested security mechanism 
+                    // is not the same, then return a security check code 
+                    // that the server does not support/allow this security 
                     // mechanism
-                    if ( (server.getSecurityMechanism() !=
+                    if ( (server.getSecurityMechanism() != 
                         NetworkServerControlImpl.INVALID_OR_NOTSET_SECURITYMECHANISM)
                             && securityMechanism != server.getSecurityMechanism())
                     {
@@ -2042,8 +2032,7 @@ class DRDAConnThread extends Thread {
                         // for plain text userid,password USRIDPWD, and USRIDONL
                         // no need of decryptionManager
                         if (securityMechanism != CodePoint.SECMEC_USRIDPWD &&
-                                securityMechanism != CodePoint.SECMEC_USRIDONL &&
-                                securityMechanism != CodePoint.SECMEC_PLGIN)
+                                securityMechanism != CodePoint.SECMEC_USRIDONL)
                         {
                             if (securityMechanism == CodePoint.SECMEC_KERSEC) {
 
@@ -2092,7 +2081,7 @@ class DRDAConnThread extends Thread {
                             }
                             // These are the only other mechanisms we understand
                             else if (((securityMechanism != CodePoint.SECMEC_EUSRIDPWD) ||
-                                 (securityMechanism == CodePoint.SECMEC_EUSRIDPWD &&
+                                 (securityMechanism == CodePoint.SECMEC_EUSRIDPWD && 
                                    !server.supportsEUSRIDPWD())
                                  ) &&
                                 (securityMechanism !=
@@ -2141,7 +2130,7 @@ class DRDAConnThread extends Thread {
                         initializeDatabase(dbname);
                     else
                     {
-                        // reset database for connection re-use
+                        // reset database for connection re-use 
                         // DERBY-3596
                         // If we are reusing resources for a new physical
                         // connection, reset the database object. If the client
@@ -2883,7 +2872,7 @@ class DRDAConnThread extends Thread {
             for (int i = start; i < numVars + start; i++)
             {
                 int drdaType = reader.readUnsignedByte();
-                if (!database.supportsLocator()) {
+                if (!database.supportsLocator()) { 
                     // ignore requests for locator when it is not supported
                     if ((drdaType >= DRDAConstants.DRDA_TYPE_LOBLOC)
                         && (drdaType <= DRDAConstants.DRDA_TYPE_NCLOBLOC)) {
@@ -3134,21 +3123,21 @@ class DRDAConnThread extends Thread {
         {
             // if server doesnt recognize or allow the client requested security mechanism,
             // then need to return the list of security mechanisms supported/allowed by the server
-
-            // check if server is set to accept connections from client at a certain
-            // security mechanism, if so send only the security mechanism  that the
+            
+            // check if server is set to accept connections from client at a certain 
+            // security mechanism, if so send only the security mechanism  that the 
             // server will accept, to the client
             if ( server.getSecurityMechanism() != NetworkServerControlImpl.INVALID_OR_NOTSET_SECURITYMECHANISM )
                 writer.writeScalar2Bytes(CodePoint.SECMEC, server.getSecurityMechanism());
             else
             {
-                // note: per the DDM manual , ACCSECRD response is of
-                // form SECMEC (value{value..})
-                // Need to fix the below to send a list of supported security
+                // note: per the DDM manual , ACCSECRD response is of 
+                // form SECMEC (value{value..})  
+                // Need to fix the below to send a list of supported security 
                 // mechanisms for value of one SECMEC codepoint (JIRA 926)
                 // these are the ones we know about
                 writer.writeScalar2Bytes(CodePoint.SECMEC, CodePoint.SECMEC_USRIDPWD);
-                // include EUSRIDPWD in the list of supported secmec only if
+                // include EUSRIDPWD in the list of supported secmec only if 
                 // server can truely support it in the jvm that is running in
                 if ( server.supportsEUSRIDPWD())
                     writer.writeScalar2Bytes(CodePoint.SECMEC, CodePoint.SECMEC_EUSRIDPWD);
@@ -3176,11 +3165,6 @@ class DRDAConnThread extends Thread {
             writer.startDdm(CodePoint.KERSECPPL);
             writer.writeString(user.getUserName());
         }
-
-        if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
-            writePLGINLST();
-        }
-
         writer.endDdmAndDss();
 
         if (securityCheckCode != 0) {
@@ -3191,25 +3175,6 @@ class DRDAConnThread extends Thread {
 
         finalizeChain();
     }
-
-    /**
-     * Write Security Plug-in List to ACCSEC Reply - ACCSECRD
-     * Instance Variables
-     *  PLGINLST - Security Plug-in List
-     *  PLGINCNT - Security Plug-in List Count
-     *  PLGINLSE - Security Plug-in List Entry
-     *  PLGINNM - Security Plug-in Name
-     */
-    private void writePLGINLST() {
-        writer.startDdm(CodePoint.PLGINLST);
-        writer.writeScalar2Bytes(CodePoint.PLGINCNT, CodePoint.SUPPORTED_PLUGINS.length);
-        for (int i=0; i < CodePoint.SUPPORTED_PLUGINS.length; i++) {
-            writer.startDdm(CodePoint.PLGINLSE);
-            writer.writeScalarString(CodePoint.PLGINNM, CodePoint.SUPPORTED_PLUGINS[i]);
-            writer.endDdm();
-        }
-    }
-
 
     /**
      * Parse security check
@@ -3247,7 +3212,6 @@ class DRDAConnThread extends Thread {
                     case CodePoint.NEWPASSWORD:
                     case CodePoint.USRID:
                     case CodePoint.RDBNAM:
-                    case CodePoint.PLGINNM:
                         reader.skipBytes();
                         break;
                     default:
@@ -3282,9 +3246,8 @@ class DRDAConnThread extends Thread {
                         (database.securityMechanism !=
                                         CodePoint.SECMEC_USRSSBPWD) &&
                         (database.securityMechanism !=
-                                        CodePoint.SECMEC_KERSEC) &&
-                        (database.securityMechanism !=
-                                        CodePoint.SECMEC_PLGIN))
+                                        CodePoint.SECMEC_KERSEC))
+
                     {
                         securityCheckCode = CodePoint.SECCHKCD_SECTKNMISSING_OR_INVALID;
                         reader.skipBytes();
@@ -3350,12 +3313,6 @@ class DRDAConnThread extends Thread {
                                     database.passwordSubstitute, 0,
                                     database.passwordSubstitute.length);
                         }
-                    }
-                    else if (database.securityMechanism == CodePoint.SECMEC_PLGIN) {
-                        database.secTokenIn = reader.readBytes();
-                        database.secTokenOut = database.secTokenIn;
-                        if (SanityManager.DEBUG)
-                            trace(String.format("**plug-in security mechanism, authentication token is: %s", new String(database.secTokenIn, Charset.forName("UTF-8"))));
                     }
                     else {
                         try {
@@ -3425,11 +3382,6 @@ class DRDAConnThread extends Thread {
                         // than database wide
                         initializeDatabase(dbname);
                     }
-                    break;
-                case CodePoint.PLGINNM:
-                    database.pluginName = reader.readString();
-                    if (SanityManager.DEBUG)
-                        trace(String.format("**plug-in security mechanism, plugin name is: %s", database.pluginName));
                     break;
                 default:
                     invalidCodePoint(codePoint);
