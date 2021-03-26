@@ -178,6 +178,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropCarTable
   }
 
+  test("Test Drop Table") {
+    if( ! splicemachineContext.tableExists(carSchemaTableName) ) {
+      createCarTable
+    }
+    org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    dropCarTable
+    org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
+  }
+
   test("Test Table Exists (One Param)") {
     createCarTable
     org.junit.Assert.assertTrue(
