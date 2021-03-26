@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -105,14 +106,51 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
                     , "c013800d-00d7-ddbe-c4e1-000a0a411400"    // SYSALIASES_INDEX2
                     , "c013800d-00d7-ddbe-34ae-000a0a411400"    // SYSALIASES_INDEX3
             };
-    public static String SYSALIAS_TO_TABLE_VIEW_SQL = "create view SYSALIASTOTABLEVIEW as \n" +
+
+    final public static Pair<Integer, String> SYSALIAS_TO_TABLE_VIEW_SQL = new Pair<>(0,
+            "create view SYSALIASTOTABLEVIEW as \n" +
             "SELECT S.SCHEMANAME, A.alias as ALIAS, cast(A.ALIASINFO as varchar(256)) as BASETABLE \n" +
             "FROM \n" +
             "SYS.SYSALIASES A, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
             "WHERE A.ALIASTYPE = 'S' AND \n" +
             "S.SCHEMAID = T.SCHEMAID AND \n" +
             "A.SCHEMAID = T.SCHEMAID AND \n" +
-            "A.ALIAS = T.TABLENAME";
+            "A.ALIAS = T.TABLENAME");
+
+    private ColumnDescriptor[] getSYSALIAS_TO_TABLE_VIEW_SQL(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "SCHEMANAME", 1, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "ALIAS",      2, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "BASETABLE",  3, Types.VARCHAR, false, 256)
+        };
+    }
+
+    final public static Pair<Integer, String> SYSALIASESVIEW_SQL = new Pair<>(1,
+            "CREATE VIEW SYSALIASESVIEW AS SELECT\n" +
+                "ALIASID,\n" +
+                "ALIAS,\n" +
+                "SCHEMAID,\n" +
+                "JAVACLASSNAME,\n" +
+                "ALIASTYPE,\n" +
+                "NAMESPACE,\n" +
+                "SYSTEMALIAS,\n" +
+                "cast(ALIASINFO AS LONG VARCHAR) AS ALIASINFO,\n" +
+                "SPECIFICNAME\n" +
+                "FROM SYS.SYSALIASES");
+
+    private ColumnDescriptor[] getSYSALIASESVIEW_SQL(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "ALIASID",       1, Types.CHAR, false, 36),
+                getCD(view, viewId, "ALIAS",         2, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "SCHEMAID",      3, Types.CHAR, true, 36),
+                getCD(view, viewId, "JAVACLASSNAME", 4, Types.LONGVARCHAR, false),
+                getCD(view, viewId, "ALIASTYPE",     5, Types.CHAR, false, 1),
+                getCD(view, viewId, "NAMESPACE",     6, Types.CHAR, false, 1),
+                getCD(view, viewId, "SYSTEMALIAS",   7, Types.BOOLEAN, false),
+                getCD(view, viewId, "ALIASINFO",     8, Types.LONGVARCHAR, true),
+                getCD(view, viewId, "SPECIFICNAME",  9, Types.VARCHAR, false, 128)
+        };
+    }
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -374,7 +412,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getUUIDColumn(ALIASID, false),
                 SystemColumnImpl.getIdentifierColumn(ALIAS, false),
                 SystemColumnImpl.getUUIDColumn(SCHEMAID, true),
-                SystemColumnImpl.getColumn(JAVACLASSNAME, java.sql.Types.LONGVARCHAR, false, Integer.MAX_VALUE),
+                SystemColumnImpl.getColumn(JAVACLASSNAME, java.sql.Types.LONGVARCHAR, true, Integer.MAX_VALUE),
                 SystemColumnImpl.getIndicatorColumn(ALIASTYPE),
                 SystemColumnImpl.getIndicatorColumn(NAMESPACE),
                 SystemColumnImpl.getColumn(SYSTEMALIAS, Types.BOOLEAN, false),
@@ -386,18 +424,10 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
     public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
 
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
-        cdsl.add(
-                new ColumnDescriptor[]{
-                        new ColumnDescriptor("SCHEMANAME", 1, 1,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("ALIAS", 2, 2,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                                null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("BASETABLE", 3, 3,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 256),
-                                null, null, view, viewId, 0, 0, 0)
-                });
+        assert SYSALIAS_TO_TABLE_VIEW_SQL.getFirst() == cdsl.size();
+        cdsl.add(getSYSALIAS_TO_TABLE_VIEW_SQL(view, viewId));
+        assert SYSALIASESVIEW_SQL.getFirst() == cdsl.size();
+        cdsl.add( getSYSALIASESVIEW_SQL(view, viewId) );
         return cdsl;
     }
 
