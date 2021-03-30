@@ -737,7 +737,6 @@ public class BackupSystemProcedures {
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
-            t.printStackTrace();
         }
     }
 
