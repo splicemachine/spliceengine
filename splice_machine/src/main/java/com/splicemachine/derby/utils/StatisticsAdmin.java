@@ -1120,10 +1120,17 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             tasks.add(new CreateStatisticTask(collectOps.get(i), mergeStats, dataDictionary, tc, displayPair));
         }
         try {
+            if (mergeStats) {
+                tc.setSavePoint("statistics", null);
+                tc.elevate("statistics");
+            }
             List<Future<Iterable>> results = SIDriver.driver().getExecutorService().invokeAll(tasks);
             for (Future<Iterable> result : results) {
                 List statisticResult = (List) StreamSupport.stream(result.get().spliterator(), false).collect(Collectors.toList());
                 statistics.addAll(statisticResult);
+            }
+            if (mergeStats) {
+                tc.releaseSavePoint("statistics", null);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -1238,9 +1245,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     private static Iterable getMergedStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) throws StandardException {
-        tc.setSavePoint("statistics", null);
-        tc.elevate("statistics");
-
         final Iterator iterator = new Iterator<ExecRow>() {
             private ExecRow nextRow;
             private boolean fetched = false;
@@ -1297,8 +1301,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             nextRow = input.getNextRowCore();
                         }
                     }
-                    if (!fetched)
-                        tc.releaseSavePoint("statistics", null);
                     return fetched;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
