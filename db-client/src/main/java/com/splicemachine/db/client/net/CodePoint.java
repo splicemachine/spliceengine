@@ -763,6 +763,17 @@ public class CodePoint {
     // XID count
     static final int XIDCNT = 0x1906;
 
+    // Security Plug-in Codepoints.
+    // PLGINCNT: Security Plug-in List Count (int32 count)
+    static final int PLGINCNT = 0x190F;
+    // PLGINNM: Security Plug-in Name (string name)
+    static final int PLGINNM = 0x191C;
+    // PLGINLSE: Security Plug-in List Entry contains information for one security plug-in in the
+    // security plug-in list PLGINLST. (PLGINNM, [PLGINPPL])
+    static final int PLGINLSE = 0x1910;
+    // PLGINLST: Security Plug-in List identifies the current set of authentication plug-in modules
+    // supported by the target server. (PLGINCNT, count x (PLGINLSE) )
+    static final int PLGINLST = 0x191E;
 
     // hide the default constructor
     private CodePoint() {

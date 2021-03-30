@@ -40,8 +40,10 @@ import com.splicemachine.db.client.am.Utils;
 import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.client.am.ClientMessageId;
+import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.reference.MessageId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class NetStatementReply extends NetPackageReply implements StatementReplyInterface {
     NetStatementReply(NetAgent netAgent, int bufferSize) {
@@ -85,7 +87,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
             buffer_ = longBufferForDecryption_;
             pos_ = longPosForDecryption_;
             count_ = longCountForDecryption_;
-            if (longBufferForDecryption_ != null && count_ > longBufferForDecryption_.length) {
+            if (count_ > longBufferForDecryption_.length) {
                 count_ = longBufferForDecryption_.length;
             }
             dssLength_ = 0;
@@ -134,6 +136,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                 netSqlca = parseSQLDARD(columnMetaData, true); // true means to skip the rest of SQLDARD bytes
             } else {
                 columnMetaData = ClientDriver.getFactory().newColumnMetaData(netAgent_.logWriter_);
+                columnMetaData.setJdbcDb2CompatibleMode(Boolean.parseBoolean(netAgent_.netConnection_.properties_.getProperty(Attribute.JDBC_DB2_COMPATIBLE_MODE)));
                 netSqlca = parseSQLDARD(columnMetaData, false); // false means do not skip SQLDARD bytes.
             }
 
@@ -191,6 +194,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     // Parse the reply for the Execute Immediate SQL Statement Command.
     // This method handles the parsing of all command replies and reply data
     // for the excsqlimm command.
+    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH", justification="intended")
     private void parseEXCSQLIMMreply(StatementCallbackInterface statement) throws DisconnectException {
         int peekCP = parseTypdefsOrMgrlvlovrs();
 
@@ -1549,6 +1553,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     //
     // Only called for generated secctions from a callable statement.
     //
+    @SuppressFBWarnings(value="DLS_DEAD_LOCAL_STORE", justification="intended")
     protected Object parsePKGNAMCSN(boolean skip) throws DisconnectException {
         parseLengthAndMatchCodePoint(CodePoint.PKGNAMCSN);
         if (skip) {
@@ -1597,7 +1602,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                     new DisconnectException(agent_,
                         new ClientMessageId(
                             SQLState.NET_SQLCDTA_INVALID_FOR_RDBNAM),
-                    new Integer(scldtaLen)));
+                            scldtaLen));
                 return null;
             }
             // read 2+scldtaLen number of bytes from the reply buffer into the pkgnamcsnBytes
@@ -1611,7 +1616,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
             if (scldtaLen < 18 || scldtaLen > 255) {
                 agent_.accumulateChainBreakingReadExceptionAndThrow(new DisconnectException(agent_,
                     new ClientMessageId(SQLState.NET_SQLCDTA_INVALID_FOR_RDBCOLID),
-                    new Integer(scldtaLen)));
+                        scldtaLen));
                 return null;
             }
             // read 2+scldtaLen number of bytes from the reply buffer into the pkgnamcsnBytes
@@ -1624,7 +1629,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
             if (scldtaLen < 18 || scldtaLen > 255) {
                 agent_.accumulateChainBreakingReadExceptionAndThrow(new DisconnectException(agent_,
                     new ClientMessageId(SQLState.NET_SQLCDTA_INVALID_FOR_PKGID),
-                    new Integer(scldtaLen)));
+                        scldtaLen));
                 return null; // To make compiler happy.
             }
             // read 2+scldtaLen number of bytes from the reply buffer into the pkgnamcsnBytes
@@ -1639,7 +1644,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
         } else {
             agent_.accumulateChainBreakingReadExceptionAndThrow(new DisconnectException(agent_,
                 new ClientMessageId(SQLState.NET_PGNAMCSN_INVALID_AT_SQLAM),
-                new Integer(ddmLength), new Integer(netAgent_.targetSqlam_)));
+                    ddmLength, netAgent_.targetSqlam_));
             return null;  // To make compiler happy.
         }
 
@@ -2182,6 +2187,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     //   SQLXSCHEMA_s; PROTOCOL TYPE VCS; ENVLID 0x32; Length Override 255
     //   SQLXNAME_m; PROTOCOL TYPE VCM; ENVLID 0x3E; Length Override 255
     //   SQLXNAME_s; PROTOCOL TYPE VCS; ENVLID 0x32; Length Override 255
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="might be a false-positive")
     private void parseSQLDXGRP(ColumnMetaData columnMetaData,
                                int column) throws DisconnectException {
         if (readFastUnsignedByte() == CodePoint.NULLDATA) {
@@ -2321,6 +2327,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     //   SQLRSNAME_m; PROTOCOL TYPE VCM; ENVLID 0x3E; Length Override 255
     //   SQLRSNAME_s; PROTOCOL TYPE VCS; ENVLID 0x32; Length Override 255
     //   SQLRSNUMROWS; PROTOCOL TYPE I4; ENVLID 0x02; Length Override 4
+    @SuppressFBWarnings(value="DLS_DEAD_LOCAL_STORE", justification="intended")
     private void parseSQLRSGRP(Section section) throws DisconnectException {
 
         int rsLocator = readInt();

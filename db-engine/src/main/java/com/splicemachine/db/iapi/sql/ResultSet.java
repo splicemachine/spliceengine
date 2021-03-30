@@ -379,4 +379,11 @@ public interface ResultSet
 	default UUID getUuid() { return null; }
 
 	default void registerCloseable(AutoCloseable closeable) throws StandardException { }
+
+	default void cancel(){}
+
+	default boolean isCancelled(){
+		return false;
+	};
+
 }
