@@ -18,6 +18,8 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -61,17 +63,15 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import splice.com.google.common.base.Function;
-import splice.com.google.common.collect.FluentIterable;
 import splice.com.google.common.collect.Lists;
 
-import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
 import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
@@ -1112,210 +1112,23 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                   final DataDictionary dataDictionary,
                                                   final TransactionController tc,
                                                   final HashMap<Long, Pair<String, String>> displayPair) throws StandardException {
-        // Schedule the first <maximumConcurrent> jobs
-        int maximumConcurrent = EngineDriver.driver().getConfiguration().getCollectSchemaStatisticsMaximumConcurrent();
-        for (int i = 0; i < maximumConcurrent && i < collectOps.size(); ++i) {
-            collectOps.get(i).openCore();
+
+        List<CreateStatisticTask> tasks = new ArrayList<>();
+        List statistics = new ArrayList();
+
+        for (int i = 0; i < collectOps.size(); i++) {
+            tasks.add(new CreateStatisticTask(collectOps.get(i), mergeStats, dataDictionary, tc, displayPair));
         }
-        // Handle the next jobs as we go: (One job returns -> one job can start), ensuring <maximumConcurrent> jobs at all time
-        Iterable<StatisticsOperation> movingExecutionWindow = () -> new Iterator<StatisticsOperation>() {
-            int i = 0;
-            @Override
-            public boolean hasNext() {
-                return i < collectOps.size();
+        try {
+            List<Future<Iterable>> results = SIDriver.driver().getExecutorService().invokeAll(tasks);
+            for (Future<Iterable> result : results) {
+                List statisticResult = (List) StreamSupport.stream(result.get().spliterator(), false).collect(Collectors.toList());
+                statistics.addAll(statisticResult);
             }
-
-            @Override
-            public StatisticsOperation next() {
-                if ((long)i + (long)maximumConcurrent < (long)collectOps.size()) {
-                    try {
-                        collectOps.get(i + maximumConcurrent).openCore();
-                    } catch (StandardException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                return collectOps.get(i++);
-            }
-        };
-        if (mergeStats) {
-            return FluentIterable.from(movingExecutionWindow).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
-                @Nullable
-                @Override
-                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
-                    try {
-                        // We have to create a new savepoint because we already returned from the opening of the result set
-                        // and derby released the prior savepoint for us. If we don't create one we'd end up inserting the
-                        // rows with the user transaction, and that's problematic especially if we had to remove existing
-                        // statistics, since those deletes would mask these new inserts.
-                        tc.setSavePoint("statistics", null);
-                        tc.elevate("statistics");
-                        final Iterator iterator = new Iterator<ExecRow>() {
-                            private ExecRow nextRow;
-                            private boolean fetched = false;
-                            // data structures to accumulate the partition stats
-                            private long conglomId = 0;
-                            private long rowCount = 0L;
-                            private long totalSize = 0;
-                            private int avgRowWidth = 0;
-                            private long numberOfPartitions = 0;
-                            private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
-                            private double sampleFraction = 0.0d;
-                            private final HashSet<Integer> skippedColIds = new HashSet<>();
-
-                            @Override
-                            @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
-                            public boolean hasNext() {
-                                try {
-                                    if (!fetched) {
-                                        nextRow = input.getNextRowCore();
-                                        while (nextRow != null) {
-                                            fetched = true;
-                                            if (nextRow.nColumns() == 2) {
-                                                int columnId = nextRow.getColumn(1).getInt();
-                                                ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
-                                                ObjectInputStream ois = new ObjectInputStream(bais);
-                                                // compose the entry for a given column
-                                                ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
-                                                try {
-                                                    dataDictionary.addColumnStatistics(statsRow, tc);
-                                                } catch (StandardException e) {
-                                                    // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
-                                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
-                                                        SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
-                                                                conglomId, columnId);
-                                                        skippedColIds.add(columnId);
-                                                    } else {
-                                                        throw e;
-                                                    }
-                                                } finally {
-                                                    bais.close();
-                                                }
-                                            } else {
-                                                // process tablestats row
-                                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
-                                                long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
-                                                rowCount = partitionRowCount;
-                                                totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
-                                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
-                                                // while collecting merged stats, we may use more splits for one region/partition, so the numberOfPartitions here is really the number of splits, not ncessarily the number of regions
-                                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
-                                                statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
-                                                sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
-                                            }
-                                            nextRow = input.getNextRowCore();
-                                        }
-                                    }
-                                    if (!fetched)
-                                        tc.releaseSavePoint("statistics", null);
-                                    return fetched;
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-
-                            @Override
-                            public ExecRow next() {
-                                try {
-                                    fetched = false;
-                                    // insert rows to dictionary tables, and return
-                                    ExecRow statsRow;
-                                    //change statsType to 2: merged full stats or 3: merged sample stats
-                                    if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
-                                        statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
-                                    else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
-                                        statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-                                    Pair<String, String> pair = displayPair.get(conglomId);
-                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
-                                    TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
-                                    ConglomerateDescriptor cd = null;
-                                    if (td == null) {
-                                        cd = dataDictionary.getConglomerateDescriptor(conglomId);
-                                        assert cd.getConglomerateName().equals(pair.getSecond());
-                                    }
-                                    // instead of using the numberOfPartitions which is really the number of splits for
-                                    // merged stats, directly fetch the number of regions
-                                    long numOfRegions = numberOfPartitions;
-                                    if (td != null) {
-                                        if (!td.isExternal()) {
-                                            numOfRegions = getNumOfPartitions(td.getBaseConglomerateDescriptor());
-                                        }
-                                    } else {
-                                        numOfRegions = getNumOfPartitions(cd);
-                                    }
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
-                                    dataDictionary.addTableStatistics(statsRow, tc);
-
-                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow, skippedColIds);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        };
-                        return () -> iterator;
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }).toList();
-        } else {
-            return FluentIterable.from(movingExecutionWindow).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
-                @Nullable
-                @Override
-                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
-                    try {
-                        final Iterator iterator = new Iterator<ExecRow>() {
-                            private ExecRow nextRow;
-                            private boolean fetched = false;
-                            private final HashSet<Integer> skippedColIds = new HashSet<>();
-                            @Override
-                            public boolean hasNext() {
-                                try {
-                                    if (!fetched) {
-                                        nextRow = input.getNextRowCore();
-                                        while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                            try {
-                                                dataDictionary.addColumnStatistics(nextRow, tc);
-                                            } catch (StandardException e) {
-                                                // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
-                                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
-                                                    int columnId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt();
-                                                    SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
-                                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
-                                                            columnId);
-                                                    skippedColIds.add(columnId);
-                                                } else {
-                                                    throw e;
-                                                }
-                                            }
-                                            nextRow = input.getNextRowCore();
-                                        }
-                                        fetched = true;
-                                    }
-                                    return nextRow != null;
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-
-                            @Override
-                            public ExecRow next() {
-                                try {
-                                    fetched = false;
-                                    dataDictionary.addTableStatistics(nextRow, tc);
-                                    Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
-                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow,skippedColIds);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        };
-                        return () -> iterator;
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }).toList();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+        return statistics;
     }
 
     private static long getNumOfPartitions(ConglomerateDescriptor cd) throws StandardException {
@@ -1376,5 +1189,213 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                              TransactionController tc) throws StandardException {
         dd.deleteColumnStatisticsByColumnId(conglomerateId, columnId, tc);
 
+    }
+
+    private static class OpenCoreTask implements Callable<StatisticsOperation> {
+
+        private StatisticsOperation statisticsOperation;
+
+        OpenCoreTask(StatisticsOperation statisticsOperation) {
+            this.statisticsOperation = statisticsOperation;
+        }
+
+        @Override
+        public StatisticsOperation call() throws Exception {
+            statisticsOperation.openCore();
+            return statisticsOperation;
+        }
+    }
+
+    private static class CreateStatisticTask implements Callable<Iterable> {
+
+        private StatisticsOperation statisticsOperation;
+        private boolean mergeStats;
+        private final DataDictionary dataDictionary;
+        private final TransactionController tc;
+        private final HashMap<Long, Pair<String, String>> displayPair;
+        private final ContextManager parent;
+
+        private CreateStatisticTask(StatisticsOperation statisticsOperation, boolean mergeStats, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair) {
+            this.statisticsOperation = statisticsOperation;
+            this.mergeStats = mergeStats;
+            this.dataDictionary = dataDictionary;
+            this.tc = tc;
+            this.displayPair = displayPair;
+            this.parent = ContextService.getService().getCurrentContextManager();
+        }
+
+        @Override
+        public Iterable call() throws Exception {
+            ContextManager cm = ContextService.getService().newContextManager(parent);
+            ContextService.getService().setCurrentContextManager(cm);
+            statisticsOperation.openCore();
+            if (mergeStats) {
+                return getMergedStatistic(dataDictionary, tc, displayPair, statisticsOperation);
+            } else {
+                return getStatistic(dataDictionary, tc, displayPair, statisticsOperation);
+            }
+        }
+    }
+
+    private static Iterable getMergedStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) throws StandardException {
+        tc.setSavePoint("statistics", null);
+        tc.elevate("statistics");
+
+        final Iterator iterator = new Iterator<ExecRow>() {
+            private ExecRow nextRow;
+            private boolean fetched = false;
+            // data structures to accumulate the partition stats
+            private long conglomId = 0;
+            private long rowCount = 0L;
+            private long totalSize = 0;
+            private int avgRowWidth = 0;
+            private long numberOfPartitions = 0;
+            private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
+            private double sampleFraction = 0.0d;
+            private final HashSet<Integer> skippedColIds = new HashSet<>();
+
+            @Override
+            @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
+            public boolean hasNext() {
+                try {
+                    if (!fetched) {
+                        nextRow = input.getNextRowCore();
+                        while (nextRow != null) {
+                            fetched = true;
+                            if (nextRow.nColumns() == 2) {
+                                int columnId = nextRow.getColumn(1).getInt();
+                                ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
+                                ObjectInputStream ois = new ObjectInputStream(bais);
+                                // compose the entry for a given column
+                                ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
+                                try {
+                                    dataDictionary.addColumnStatistics(statsRow, tc);
+                                } catch (StandardException e) {
+                                    // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                        SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                conglomId, columnId);
+                                        skippedColIds.add(columnId);
+                                    } else {
+                                        throw e;
+                                    }
+                                } finally {
+                                    bais.close();
+                                }
+                            } else {
+                                // process tablestats row
+                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
+                                long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
+                                rowCount = partitionRowCount;
+                                totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
+                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
+                                // while collecting merged stats, we may use more splits for one region/partition, so the numberOfPartitions here is really the number of splits, not ncessarily the number of regions
+                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
+                                statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
+                                sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
+                            }
+                            nextRow = input.getNextRowCore();
+                        }
+                    }
+                    if (!fetched)
+                        tc.releaseSavePoint("statistics", null);
+                    return fetched;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public ExecRow next() {
+                try {
+                    fetched = false;
+                    // insert rows to dictionary tables, and return
+                    ExecRow statsRow;
+                    //change statsType to 2: merged full stats or 3: merged sample stats
+                    if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
+                        statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
+                    else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
+                        statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+                    Pair<String, String> pair = displayPair.get(conglomId);
+                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                    TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
+                    ConglomerateDescriptor cd = null;
+                    if (td == null) {
+                        cd = dataDictionary.getConglomerateDescriptor(conglomId);
+                        assert cd.getConglomerateName().equals(pair.getSecond());
+                    }
+                    // instead of using the numberOfPartitions which is really the number of splits for
+                    // merged stats, directly fetch the number of regions
+                    long numOfRegions = numberOfPartitions;
+                    if (td != null) {
+                        if (!td.isExternal()) {
+                            numOfRegions = getNumOfPartitions(td.getBaseConglomerateDescriptor());
+                        }
+                    } else {
+                        numOfRegions = getNumOfPartitions(cd);
+                    }
+                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
+                    dataDictionary.addTableStatistics(statsRow, tc);
+
+                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow, skippedColIds);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        Iterable<Integer> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
+
+    }
+
+    private static Iterable getStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) throws StandardException {
+        final Iterator iterator = new Iterator<ExecRow>() {
+            private ExecRow nextRow;
+            private boolean fetched = false;
+            private final HashSet<Integer> skippedColIds = new HashSet<>();
+            @Override
+            public boolean hasNext() {
+                try {
+                    if (!fetched) {
+                        nextRow = input.getNextRowCore();
+                        while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
+                            try {
+                                dataDictionary.addColumnStatistics(nextRow, tc);
+                            } catch (StandardException e) {
+                                // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                    int columnId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt();
+                                    SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
+                                            columnId);
+                                    skippedColIds.add(columnId);
+                                } else {
+                                    throw e;
+                                }
+                            }
+                            nextRow = input.getNextRowCore();
+                        }
+                        fetched = true;
+                    }
+                    return nextRow != null;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public ExecRow next() {
+                try {
+                    fetched = false;
+                    dataDictionary.addTableStatistics(nextRow, tc);
+                    Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
+                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow,skippedColIds);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        Iterable<Integer> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
     }
 }
