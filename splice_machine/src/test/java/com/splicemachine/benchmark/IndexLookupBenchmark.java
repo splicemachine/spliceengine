@@ -42,19 +42,34 @@ public class IndexLookupBenchmark extends Benchmark {
     private static final String SCHEMA = IndexLookupBenchmark.class.getSimpleName();
     private static final String BASE_TABLE = "BASE_TABLE";
     private static final String BASE_TABLE_IDX = "BASE_TABLE_IDX";
-    private static final String SIDE_TABLE = "SIDE_TABLE";
     private static final int NUM_CONNECTIONS = 10;
     private static final int NUM_EXECS = 20;
     private static final int NUM_WARMUP_RUNS = 5;
 
+    private static final int TABLE_DEF = 0;
+    private static final int INDEX_DEF = 1;
+    private static final int INSERT_PARAM = 2;
+
+    private final int numTableColumns;
+    private final int numIndexColumns;
     private final int tableSize;
     private final boolean onOlap;
-    private final int batchSize;
 
-    public IndexLookupBenchmark(int tableSize, boolean onOlap) {
+    private final int batchSize;
+    private final String tableDefStr;
+    private final String indexDefStr;
+    private final String insertParamStr;
+
+    public IndexLookupBenchmark(int numTableColumns, int numIndexColumns, int tableSize, boolean onOlap) {
+        this.numTableColumns = Math.max(numTableColumns, 1);
+        this.numIndexColumns = Math.max(Math.min(numIndexColumns, numTableColumns), 1);
         this.tableSize = tableSize;
         this.onOlap = onOlap;
+
         this.batchSize = Math.min(tableSize, 1000);
+        this.tableDefStr = getColumnDef(this.numTableColumns, TABLE_DEF);
+        this.indexDefStr = getColumnDef(this.numIndexColumns, INDEX_DEF);
+        this.insertParamStr = getColumnDef(this.numTableColumns, INSERT_PARAM);
     }
 
     @ClassRule
@@ -77,10 +92,8 @@ public class IndexLookupBenchmark extends Benchmark {
         LOG.info("Create tables");
         testConnection = makeConnection();
         testStatement = testConnection.createStatement();
-        testStatement.execute("CREATE TABLE " + BASE_TABLE + " (col1 INTEGER NOT NULL, col2 INTEGER, col3 INTEGER, col4 INTEGER, col5 INTEGER)");
-        testStatement.execute("CREATE INDEX " + BASE_TABLE_IDX + " on " + BASE_TABLE + " (col1, col2)");
-
-        testStatement.execute("CREATE TABLE " + SIDE_TABLE + " (col1 INTEGER NOT NULL, col2 INTEGER, col3 INTEGER, col4 INTEGER, col5 INTEGER)");
+        testStatement.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
+        testStatement.execute("CREATE INDEX " + BASE_TABLE_IDX + " on " + BASE_TABLE + indexDefStr);
 
         curSize.set(0);
         runBenchmark(NUM_CONNECTIONS, () -> populateTables(tableSize));
@@ -95,7 +108,6 @@ public class IndexLookupBenchmark extends Benchmark {
     @After
     public void tearDown() throws Exception {
         testStatement.execute("DROP TABLE " + BASE_TABLE);
-        testStatement.execute("DROP TABLE " + SIDE_TABLE);
         testStatement.close();
         testConnection.close();
     }
@@ -109,16 +121,14 @@ public class IndexLookupBenchmark extends Benchmark {
 
     private void populateTables(int size) {
         try (Connection conn = makeConnection()) {
-            try (PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + BASE_TABLE + " VALUES (?,?,?,?,?)")) {
+            try (PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
                 for (; ; ) {
                     int newSize = curSize.getAndAdd(batchSize);
                     if (newSize >= size) break;
                     for (int i = newSize; i < newSize + batchSize; ++i) {
-                        insert1.setInt(1, i);
-                        insert1.setInt(2, i);
-                        insert1.setInt(3, i);
-                        insert1.setInt(4, i);
-                        insert1.setInt(5, i);
+                        for (int j = 1; j <= numTableColumns; ++j) {
+                            insert1.setInt(j, i);
+                        }
                         insert1.addBatch();
                     }
                     long start = System.currentTimeMillis();
@@ -140,6 +150,39 @@ public class IndexLookupBenchmark extends Benchmark {
         }
     }
 
+    private static String getColumnDef(int numColumns, int defStrType) {
+        StringBuilder sb = new StringBuilder();
+        if (defStrType == INSERT_PARAM) {
+            sb.append(" values ");
+        }
+        sb.append(" (");
+        for (int i = 0; i < numColumns; i++) {
+            if (i != 0) {
+                sb.append(", ");
+            }
+
+            switch (defStrType) {
+                case TABLE_DEF:
+                    sb.append("col_");
+                    sb.append(i);
+                    sb.append(" int");
+                    break;
+                case INDEX_DEF:
+                    sb.append("col_");
+                    sb.append(i);
+                    break;
+                case INSERT_PARAM:
+                    sb.append("?");
+                    break;
+                default:
+                    assert false : "unknown definition type";
+                    break;
+            }
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
     private static int getRowCount(ResultSet rs) throws SQLException {
         assertTrue(rs.next());
         return rs.getInt(1);
@@ -149,10 +192,10 @@ public class IndexLookupBenchmark extends Benchmark {
         String sqlText;
         String dataLabel;
         if (isIndexLookup) {
-            sqlText = String.format("select count(col3) from %s --splice-properties index=%s, useSpark=false", BASE_TABLE, BASE_TABLE_IDX);
+            sqlText = String.format("select count(col_%d) from %s --splice-properties index=%s, useSpark=%b", numIndexColumns, BASE_TABLE, BASE_TABLE_IDX, onOlap);
             dataLabel = INDEX_LOOKUP;
         } else {
-            sqlText = String.format("select count(col1) from %s --splice-properties index=%s, useSpark=false", BASE_TABLE, BASE_TABLE_IDX);
+            sqlText = String.format("select count(col_0) from %s --splice-properties index=%s, useSpark=%b", BASE_TABLE, BASE_TABLE_IDX, onOlap);
             dataLabel = INDEX_SCAN;
         }
         try (Connection conn = makeConnection()) {
@@ -193,34 +236,34 @@ public class IndexLookupBenchmark extends Benchmark {
     @Parameterized.Parameters
     public static Collection testParams() {
         return Arrays.asList(new Object[][] {
-                { 1000, false },
-                { 5000, false },
-                { 10000, false },
-                { 15000, false },
-                { 20000, false },
-                { 25000, false },
-                { 30000, false },
-                { 35000, false },
-                { 40000, false },
-                { 45000, false },
-                { 50000, false },
-                { 100000, false },
-                { 150000, false },
-                { 200000, false },
-                { 1000, true },
-                { 5000, true },
-                { 10000, true },
-                { 15000, true },
-                { 20000, true },
-                { 25000, true },
-                { 30000, true },
-                { 35000, true },
-                { 40000, true },
-                { 45000, true },
-                { 50000, true },
-                { 100000, true },
-                { 150000, true },
-                { 200000, true },
+                { 50, 2, 1000, false },
+                { 50, 2, 5000, false },
+                { 50, 2, 10000, false },
+                { 50, 2, 15000, false },
+                { 50, 2, 20000, false },
+                { 50, 2, 25000, false },
+                { 50, 2, 30000, false },
+                { 50, 2, 35000, false },
+                { 50, 2, 40000, false },
+                { 50, 2, 45000, false },
+                { 50, 2, 50000, false },
+                { 50, 2, 100000, false },
+                { 50, 2, 150000, false },
+                { 50, 2, 200000, false },
+                { 50, 2, 1000, true },
+                { 50, 2, 5000, true },
+                { 50, 2, 10000, true },
+                { 50, 2, 15000, true },
+                { 50, 2, 20000, true },
+                { 50, 2, 25000, true },
+                { 50, 2, 30000, true },
+                { 50, 2, 35000, true },
+                { 50, 2, 40000, true },
+                { 50, 2, 45000, true },
+                { 50, 2, 50000, true },
+                { 50, 2, 100000, true },
+                { 50, 2, 150000, true },
+                { 50, 2, 200000, true },
         });
     }
 
