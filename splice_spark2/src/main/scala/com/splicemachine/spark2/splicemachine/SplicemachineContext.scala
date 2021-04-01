@@ -464,6 +464,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schemaTableName
    * @param statusDirectory status directory where bad records file will be created
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
+   *                          
+   * @return Number of records inserted
    */
   def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(dataFrame.rdd, dataFrame.schema, schemaTableName, statusDirectory, badRecordsAllowed)
@@ -481,6 +483,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param statusDirectory status directory where bad records file will be created
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
    *
+   *
+   * @return Number of records inserted
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(rdd, schema, schemaTableName, Map("insertMode"->"INSERT","statusDirectory"->statusDirectory,"badRecordsAllowed"->badRecordsAllowed.toString) )
@@ -493,6 +497,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * @param dataFrame input data
     * @param schemaTableName output table
+    *
+    * @return Number of records inserted
     */
   def insert(dataFrame: DataFrame, schemaTableName: String): Long = insert(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
@@ -502,6 +508,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param rdd input data
    * @param schema
    * @param schemaTableName
+   *
+   * @return Number of records inserted
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Long = insert(rdd, schema, schemaTableName, Map[String,String]())
 
@@ -1060,9 +1068,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param dataFrame input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: java.util.Map[String, String]): Unit =
+                      options: java.util.Map[String, String]): Long =
     bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
@@ -1071,9 +1081,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param dataFrame input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit =
+                      options: scala.collection.mutable.Map[String, String]): Long =
     bulkImportHFile(dataFrame.rdd, dataFrame.schema, schemaTableName, options)
 
   /**
@@ -1082,9 +1094,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param rdd input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit = {
+                      options: scala.collection.mutable.Map[String, String]): Long = {
 
     if( ! options.contains("bulkImportDirectory") ) {
       throw new IllegalArgumentException("bulkImportDirectory cannot be null")
