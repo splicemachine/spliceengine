@@ -69,6 +69,7 @@ import static java.lang.String.format;
  */
 
 public class ProjectRestrictNode extends SingleChildResultSetNode{
+    public static final int STRING_MAX_LENGTH = 65535;
     /**
      * The ValueNode for the restriction to be evaluated here.
      */
@@ -1732,12 +1733,29 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(printExplainInformationForActivation());
 
         String filterPred = OperatorToString.opToSparkString(restriction);
-        mb.push(filterPred);
+        ProjectRestrictNode.generateFiltersArrayOnStack(acb, mb, filterPred);
 
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
         mb.push(subqueryText);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,18);
+    }
+
+    private static void generateFiltersArrayOnStack(ExpressionClassBuilder acb, MethodBuilder mb, String filterPred) {
+        String filters[] = filterPred.split("(?<=\\G.{" + STRING_MAX_LENGTH + "})");
+        String stringClassName = "java.lang.String";
+        LocalField arrayField = acb.newFieldDeclaration(
+                Modifier.PRIVATE, stringClassName + "[]");
+        mb.pushNewArray(stringClassName, filters.length);
+        mb.setField(arrayField);
+
+        for (int i = 0; i < filters.length; i++) {
+            mb.getField(arrayField);
+            mb.push(filters[i]);
+            mb.setArrayElement(i);
+        }
+
+        mb.getField(arrayField);
     }
 
     /**
