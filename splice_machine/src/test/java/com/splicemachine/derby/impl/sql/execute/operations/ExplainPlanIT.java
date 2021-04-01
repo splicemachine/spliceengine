@@ -329,7 +329,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             Assert.assertTrue("expect explain plan contains engine=OLTP", rs.getString(1).contains("engine=OLTP"));
         }
 
-        sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
+        sql = format("explain select * from %s.%s --SPLICE-PROPERTIES usedefaultrowcount=90000", CLASS_NAME, TABLE_NAME);
         try (ResultSet rs  = methodWatcher.executeQuery(sql)) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("expect explain plan contains engine=OLAP", rs.getString(1).contains("engine=OLAP"));
@@ -411,12 +411,12 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         // full table scan, we should go for spark path as all rows need to be accessed, even though the output row count
         // is small after applying the predicate
-        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000")) {
+        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 --splice-properties usedefaultrowcount=90000\n where b4=10000")) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
         }
 
-        // test join case, base table scan may not exceeds the rowcount limit of 20000, if the join result rowcount exceeds this
+        // test join case, base table scan may not exceeds the rowcount limit of 80000, if the join result rowcount exceeds this
         // limit, we still need to go for Spark path
         try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4>30000 and Y.a4 >30000 and X.b4=Y.b4")) {
             Assert.assertTrue(rs.next());
@@ -510,7 +510,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q3: test join case */
-        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        String engine3[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 1000000, 854, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
