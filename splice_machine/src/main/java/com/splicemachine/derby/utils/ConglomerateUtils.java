@@ -79,7 +79,11 @@ public class ConglomerateUtils{
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
-                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+                try {
+                    return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+                } catch (Exception e) {
+                    return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+                }
             }
             else {
                 return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
