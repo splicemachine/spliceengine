@@ -511,6 +511,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         TransactionController tc = af.getTransaction(
                 ContextService.getFactory().getCurrentContextManager());
 
+        // If a pre-2003 build failed to upgraded to a post-2003 build, property conglomerate may be in an
+        // inconsistent state. Restore it before trying to retrieve database properties.
+        tc.recoverPropertyConglomerateIfNecessary();
+
         String  upgradeID = null;
         UUID    databaseID;
 

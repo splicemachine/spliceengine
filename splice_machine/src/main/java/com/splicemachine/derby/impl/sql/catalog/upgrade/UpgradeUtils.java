@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -88,7 +89,7 @@ public class UpgradeUtils {
                                             String tableName) throws IOException {
 
         SIDriver driver = SIDriver.driver();
-        String snapshotName =  tableName + "_snapshot";
+        String snapshotName =  tableName + "_upgrade";
         PartitionAdmin admin = null;
         String backupTableName = tableName + "_backup";
         try {
@@ -168,22 +169,15 @@ public class UpgradeUtils {
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
         Set<String> snapshots = admin.listSnapshots();
         for (String tableName : tableNames) {
-            String snapshotName = tableName + "_snapshot";
+            String snapshotName = tableName + "_upgrade";
             if (snapshots.contains(snapshotName)) {
                 admin.deleteTable(tableName);
                 admin.cloneSnapshot(snapshotName, tableName);
                 SpliceLogUtils.info(LOG, "Roll back serialization changes to %s", tableName);
-            }
-        }
-    }
-
-    public static void deleteSnapshots(List<String> snapshotNames) throws IOException {
-        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        Set<String> snapshots = admin.listSnapshots();
-        for (String snapshotName : snapshotNames) {
-            if (snapshots.contains(snapshotName)) {
-                admin.deleteSnapshot(snapshotName);
-                SpliceLogUtils.info(LOG, "Delete snapshot %s", snapshotName);
+                if (tableName.contains("SPLICE_CONGLOMERATE")) {
+                    admin.setCatalogVersion(tableName, null);
+                    SpliceLogUtils.info(LOG, "Roll back catalog version to  to null");
+                }
             }
         }
     }
@@ -203,13 +197,56 @@ public class UpgradeUtils {
         }
     }
 
-    public static void dropClonedConglomerate(SpliceDataDictionary sdd,
-                                              TransactionController tc) throws StandardException{
-        for (int i = 0; i < SpliceDataDictionary.serdeUpgradedTables.size(); ++i) {
-            TabInfoImpl ti = sdd.getTableInfo(SpliceDataDictionary.serdeUpgradedTables.get(i));
-            long conglomerate = ti.getHeapConglomerate();
-            long cloned_conglomerate = conglomerate + 1;
-            try {
+    public static void recoverFromPreviousFailedUpgrade(SpliceDataDictionary sdd, TransactionController tc) throws StandardException {
+        SpliceLogUtils.info(LOG, "Recovering from possible failed previous upgrade...");
+        rollback(sdd, tc);
+        deleteSnapshots();
+        dropClonedConglomerate(sdd, tc);
+        SpliceLogUtils.info(LOG, "Finished recovering.");
+    }
+
+    public static void rollback(SpliceDataDictionary sdd, TransactionController tc) throws StandardException {
+        try {
+
+            List<String> tableNames = Lists.newArrayList();
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            Set<String> snapshots = admin.listSnapshots();
+            for (String snapshot : snapshots) {
+                if (snapshot.endsWith("_upgrade")) {
+                    int index = snapshot.lastIndexOf("_");
+                    String name = snapshot.substring(0, index);
+                    tableNames.add(name);
+                }
+            }
+            UpgradeUtils.rollBack(tableNames);
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
+    public static void deleteSnapshots() throws StandardException {
+        try {
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            Set<String> snapshots = admin.listSnapshots();
+            for (String snapshot : snapshots) {
+                if (snapshot.endsWith("_upgrade")) {
+                    admin.deleteSnapshot(snapshot);
+                }
+            }
+
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+
+    public static void dropClonedConglomerate(SpliceDataDictionary sdd, TransactionController tc) throws StandardException {
+        try {
+            for (int i = 0; i < SpliceDataDictionary.serdeUpgradedTables.size(); ++i) {
+                TabInfoImpl ti = sdd.getTableInfo(SpliceDataDictionary.serdeUpgradedTables.get(i));
+                long conglomerate = ti.getHeapConglomerate();
+                long cloned_conglomerate = conglomerate + 1;
+
                 PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
                 if (admin.tableExists(Long.toString(cloned_conglomerate))) {
                     admin.deleteTable(Long.toString(cloned_conglomerate));
@@ -217,9 +254,20 @@ public class UpgradeUtils {
                             cloned_conglomerate,
                             SpliceDataDictionary.serdeUpgradedTables.get(i));
                 }
-            } catch (IOException e) {
-                throw StandardException.plainWrapException(e);
             }
+            List<String> tableNames = Arrays.asList(
+                    HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME,
+                    HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            for (String tableName : tableNames) {
+                String backupTable = tableName + "_backup";
+                if (admin.tableExists(backupTable)) {
+                    admin.deleteTable(backupTable);
+                    SpliceLogUtils.info(LOG, "Dropped cloned table %s", backupTable);
+                }
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 }
