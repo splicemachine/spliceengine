@@ -456,7 +456,7 @@ public class SpliceDateFunctions {
     /**
      * Implements the to_char function
      */
-    public static String TO_CHAR(Date source, String format) throws SQLException {
+    public static String TO_CHAR(Date source, String format) throws StandardException {
         if (source == null || format == null) return null;
 
         try {
@@ -464,22 +464,19 @@ public class SpliceDateFunctions {
             return fmt.format(source);
         }
         catch (Exception e) {
-            if (e.getMessage().startsWith("pattern") ||
-                    e.getMessage().contains("could not be parsed"))
-                throw new SQLException("Error parsing datetime "+source+" Try using an" +
-                        " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
-            else {
-                // For errors not related to parsing, send the original message as it may
-                // contain additional information useful to the end user.
-                throw new SQLException(e.getMessage(), SQLState.LANG_DATE_SYNTAX_EXCEPTION);
-            }
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "datetime");
         }
 
     }
-    public static String TIMESTAMP_TO_CHAR(Timestamp stamp, String output) {
+    public static String TIMESTAMP_TO_CHAR(Timestamp stamp, String output) throws StandardException {
         if (stamp == null || output == null) return null;
-        SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
-        return fmt.format(stamp);
+        try {
+            SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
+            return fmt.format(stamp);
+        }
+        catch (Exception e) {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+        }
 
     }
     /**
