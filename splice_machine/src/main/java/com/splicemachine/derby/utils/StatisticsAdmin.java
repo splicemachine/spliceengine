@@ -1119,12 +1119,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         for (int i = 0; i < collectOps.size(); i++) {
             tasks.add(new CreateStatisticTask(collectOps.get(i), mergeStats, dataDictionary, tc, displayPair));
         }
+        List<Future<Iterable>> results = null;
         try {
             if (mergeStats) {
                 tc.setSavePoint("statistics", null);
                 tc.elevate("statistics");
             }
-            List<Future<Iterable>> results = SIDriver.driver().getExecutorService().invokeAll(tasks);
+            results = SIDriver.driver().getExecutorService().invokeAll(tasks);
             for (Future<Iterable> result : results) {
                 List statisticResult = (List) StreamSupport.stream(result.get().spliterator(), false).collect(Collectors.toList());
                 statistics.addAll(statisticResult);
@@ -1133,6 +1134,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 tc.releaseSavePoint("statistics", null);
             }
         } catch (Exception e) {
+            if (results != null) {
+                for (Future<Iterable> f : results) {
+                    f.cancel(true);
+                }
+            }
             throw new RuntimeException(e);
         }
         return statistics;
@@ -1198,21 +1204,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     }
 
-    private static class OpenCoreTask implements Callable<StatisticsOperation> {
-
-        private StatisticsOperation statisticsOperation;
-
-        OpenCoreTask(StatisticsOperation statisticsOperation) {
-            this.statisticsOperation = statisticsOperation;
-        }
-
-        @Override
-        public StatisticsOperation call() throws Exception {
-            statisticsOperation.openCore();
-            return statisticsOperation;
-        }
-    }
-
     private static class CreateStatisticTask implements Callable<Iterable> {
 
         private StatisticsOperation statisticsOperation;
@@ -1244,7 +1235,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    private static Iterable getMergedStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) throws StandardException {
+    private static Iterable getMergedStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) {
         final Iterator iterator = new Iterator<ExecRow>() {
             private ExecRow nextRow;
             private boolean fetched = false;
@@ -1350,7 +1341,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     }
 
-    private static Iterable getStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) throws StandardException {
+    private static Iterable getStatistic(final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long, Pair<String, String>> displayPair, StatisticsOperation input) {
         final Iterator iterator = new Iterator<ExecRow>() {
             private ExecRow nextRow;
             private boolean fetched = false;
