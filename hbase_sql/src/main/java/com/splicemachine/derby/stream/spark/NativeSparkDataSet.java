@@ -884,39 +884,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                         context.getOperation().getRightOperation().schema());
             }
 
-            if (isBroadcast) {
-                rightDF = broadcast(rightDF);
-            }
-            Column expr = null;
-            int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
-            int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
-            assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
-
-            SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
-            if (sparkJoinPred != null) {
-                java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
-                     (String s) -> { return ParserUtils.getDataTypeFromString(s); };
-                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
-            }
-            else {
-                for (int i = 0; i < rightJoinKeys.length; i++) {
-                    Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
-                    .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
-                    expr = i != 0 ? expr.and(joinEquality) : joinEquality;
-                }
-            }
+            Dataset<Row> joinedDF = getJoinedDataset(context, leftDF, rightDF, false, op.wasRightOuterJoin,
+                    null, isBroadcast, op.getSparkJoinPredicate(), joinType);
             DataSet joinedSet;
 
             if (op.wasRightOuterJoin) {
-                NativeSparkDataSet nds =
-                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
+                NativeSparkDataSet nds = new NativeSparkDataSet(joinedDF, context);
                 joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset,
                                                op.getRightOperation(), op.getLeftOperation());
             }
             else {
-                NativeSparkDataSet nds =
-                  new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
+                NativeSparkDataSet nds = new NativeSparkDataSet(joinedDF, context);
                 joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset,
                                                op.getLeftOperation(), op.getRightOperation());
@@ -928,74 +907,75 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    private Dataset<Row> getJoinedDataset(OperationContext context, Dataset<Row> leftDF, Dataset<Row> rightDF, boolean isCross, boolean wasRightOuter,
+                                          Broadcast crossBType, boolean isBroadcast, SparkExpressionNode sparkJoinPredicate,
+                                          JoinType joinType) throws StandardException {
+        Column filterExpr = null;
+        int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
+        int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Override
-    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) {
-        try {
-            String varcharDB2CompatibilityModeString =
+        String varcharDB2CompatibilityModeString =
                 PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(),
-                                                       Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
-            boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+                        Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
 
-            Dataset<Row> leftDF = dataset;
-            Dataset<Row> rightDF;
-            if (rightDataSet instanceof NativeSparkDataSet) {
-                rightDF = ((NativeSparkDataSet) rightDataSet).dataset;
-            } else {
-                rightDF = SpliceSpark.getSession().createDataFrame(
-                        ((SparkDataSet) rightDataSet).rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getRightOperation().schema());
-            }
-            Column expr = null;
-            int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
-            int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
+        List<String> extraColNamesLeft = new ArrayList<>();
+        List<Column> extraColumnsLeft = new ArrayList<>();
+        List<String> extraColNamesRight = new ArrayList<>();
+        List<Column> extraColumnsRight = new ArrayList<>();
+        if ( leftJoinKeys!=null || rightJoinKeys!=null ) {
+            assert rightJoinKeys != null && leftJoinKeys != null && rightJoinKeys.length == leftJoinKeys.length : "Join Keys Have Issues";
 
-            List<String> extraColNamesLeft = new ArrayList<>();
-            List<Column> extraColumnsLeft = new ArrayList<>();
-            List<String> extraColNamesRight = new ArrayList<>();
-            List<Column> extraColumnsRight = new ArrayList<>();
-            if ( leftJoinKeys!=null || rightJoinKeys!=null ) {
-                assert rightJoinKeys != null && leftJoinKeys != null && rightJoinKeys.length == leftJoinKeys.length : "Join Keys Have Issues";
-
-                Tuple2<String, String>[] leftColTypes = leftDF.dtypes();
-                Tuple2<String, String>[] rightColTypes = rightDF.dtypes();
-                String leftColNames[] = new String[rightJoinKeys.length];
-                String rightColNames[] = new String[rightJoinKeys.length];
-                boolean leftAdded = false;
-                boolean rightAdded = false;
-                // Add new rtrimmed join key columns for string types
-                // if using DB2 compatibility mode.
-                for (int i = 0; i < rightJoinKeys.length; i++) {
-                    leftColNames[i] = ValueRow.getNamedColumn(leftJoinKeys[i]);
-                    if (varcharDB2CompatibilityMode && leftColTypes[leftJoinKeys[i]]._2().equals("StringType")) {
-                        extraColumnsLeft.add(rtrim(col(leftColNames[i])));
-                        leftColNames[i] = leftColNames[i] + "_rtrimmed";
-                        extraColNamesLeft.add(leftColNames[i]);
-                        leftAdded = true;
-                    }
-                    rightColNames[i] = ValueRow.getNamedColumn(rightJoinKeys[i]);
-                    if (varcharDB2CompatibilityMode && rightColTypes[rightJoinKeys[i]]._2().equals("StringType")) {
-                        extraColumnsRight.add(rtrim(col(rightColNames[i])));
-                        rightColNames[i] = rightColNames[i] + "_rtrimmed";
-                        extraColNamesRight.add(rightColNames[i]);
-                        rightAdded = true;
-                    }
+            Tuple2<String, String>[] leftColTypes = leftDF.dtypes();
+            Tuple2<String, String>[] rightColTypes = rightDF.dtypes();
+            String leftColNames[] = new String[rightJoinKeys.length];
+            String rightColNames[] = new String[rightJoinKeys.length];
+            boolean leftAdded = false;
+            boolean rightAdded = false;
+            // Add new rtrimmed join key columns for string types
+            // if using DB2 compatibility mode.
+            for (int i = 0; i < rightJoinKeys.length; i++) {
+                leftColNames[i] = ValueRow.getNamedColumn(leftJoinKeys[i]);
+                if (varcharDB2CompatibilityMode && leftColTypes[leftJoinKeys[i]]._2().equals("StringType")) {
+                    extraColumnsLeft.add(rtrim(col(leftColNames[i])));
+                    leftColNames[i] = leftColNames[i] + "_rtrimmed";
+                    extraColNamesLeft.add(leftColNames[i]);
+                    leftAdded = true;
                 }
-                if (leftAdded)
-                    leftDF = NativeSparkUtils.withColumns(extraColNamesLeft, extraColumnsLeft, leftDF);
-                if (rightAdded)
-                    rightDF = NativeSparkUtils.withColumns(extraColNamesRight, extraColumnsRight, rightDF);
+                rightColNames[i] = ValueRow.getNamedColumn(rightJoinKeys[i]);
+                if (varcharDB2CompatibilityMode && rightColTypes[rightJoinKeys[i]]._2().equals("StringType")) {
+                    extraColumnsRight.add(rtrim(col(rightColNames[i])));
+                    rightColNames[i] = rightColNames[i] + "_rtrimmed";
+                    extraColNamesRight.add(rightColNames[i]);
+                    rightAdded = true;
+                }
+            }
+            if (leftAdded)
+                leftDF = NativeSparkUtils.withColumns(extraColNamesLeft, extraColumnsLeft, leftDF);
+            if (rightAdded)
+                rightDF = NativeSparkUtils.withColumns(extraColNamesRight, extraColumnsRight, rightDF);
 
+            if (!varcharDB2CompatibilityMode && sparkJoinPredicate != null) {
+                java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
+                        (String s) -> { return ParserUtils.getDataTypeFromString(s); };
+                filterExpr = sparkJoinPredicate.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
+            } else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {
                     Column joinEquality = (leftDF.col(leftColNames[i]).equalTo(rightDF.col(rightColNames[i])));
-                    expr = i != 0 ? expr.and(joinEquality) : joinEquality;
+                    filterExpr = i != 0 ? filterExpr.and(joinEquality) : joinEquality;
                     leftDF = leftDF.filter(leftColNames[i] + " IS NOT NULL");
                     rightDF = rightDF.filter(rightColNames[i] + " IS NOT NULL");
                 }
             }
-            Dataset<Row> joinedDF;
-            switch (type) {
+        }
+
+        if (isBroadcast) {
+            rightDF = broadcast(rightDF);
+        }
+
+        Dataset<Row> joinedDF = null;
+        if (isCross) {
+            switch (crossBType) {
                 case LEFT:
                     joinedDF = broadcast(leftDF).crossJoin(rightDF);
                     break;
@@ -1007,13 +987,38 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     joinedDF = leftDF.crossJoin(rightDF);
                     break;
             }
-            if (expr != null) {
-                joinedDF = joinedDF.filter(expr);
+            if (filterExpr != null) {
+                joinedDF = joinedDF.filter(filterExpr);
             }
-            if (!extraColNamesLeft.isEmpty())
-                joinedDF = joinedDF.drop(extraColNamesLeft.toArray(new String[0]));
-            if (!extraColNamesRight.isEmpty())
-                joinedDF = joinedDF.drop(extraColNamesRight.toArray(new String[0]));
+        } else if (wasRightOuter) {
+            joinedDF = rightDF.join(leftDF, filterExpr, JoinType.RIGHTOUTER.strategy());
+        } else {
+            joinedDF = leftDF.join(rightDF, filterExpr, joinType.strategy());
+        }
+        if (!extraColNamesLeft.isEmpty())
+            joinedDF = joinedDF.drop(extraColNamesLeft.toArray(new String[0]));
+        if (!extraColNamesRight.isEmpty())
+            joinedDF = joinedDF.drop(extraColNamesRight.toArray(new String[0]));
+
+        return joinedDF;
+    }
+
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) {
+        try {
+            Dataset<Row> leftDF = dataset;
+            Dataset<Row> rightDF;
+            if (rightDataSet instanceof NativeSparkDataSet) {
+                rightDF = ((NativeSparkDataSet) rightDataSet).dataset;
+            } else {
+                rightDF = SpliceSpark.getSession().createDataFrame(
+                        ((SparkDataSet) rightDataSet).rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getRightOperation().schema());
+            }
+            Dataset<Row> joinedDF = getJoinedDataset(context, leftDF, rightDF, true, false, type,
+                    false, null, null);
 
             DataSet joinedSet = new NativeSparkDataSet(joinedDF, context);
             NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;

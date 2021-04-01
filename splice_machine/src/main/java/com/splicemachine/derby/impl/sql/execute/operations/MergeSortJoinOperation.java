@@ -165,7 +165,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
         dsp.incrementOpDepth();
         boolean useNativeSparkJoin = (dsp.getType().equals(DataSetProcessor.Type.SPARK)   &&
-                                      !dsp.isSparkDB2CompatibilityMode()               &&
                                       (restriction == null || hasSparkJoinPredicate()) &&
                                       !rightFromSSQ && !containsUnsafeSQLRealComparison());
 
