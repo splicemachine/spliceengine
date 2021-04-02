@@ -345,7 +345,18 @@ public class DDLWatchRefresher{
         try {
             // If the transaction is older than the latest DDL operation (can't see it), bypass the cache
             DDLFilter filter = ddlDemarcationPoint.get();
-            return filter == null || filter.isVisibleBy(((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+            if (filter == null) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "filer is null, return true");
+                }
+                return true;
+            }
+            TxnView txnView = ((SpliceTransactionManager)xact_mgr).getActiveStateTxn();
+            boolean visible = filter.isVisibleBy(txnView);
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "txn =%d, visible = %s", txnView.getBeginTimestamp(), visible);
+            }
+            return visible;
         } catch (IOException e) {
             // Stay on the safe side, assume it's not visible
             return false;

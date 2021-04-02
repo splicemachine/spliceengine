@@ -219,7 +219,7 @@ public class DataDictionaryCache {
         if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
-            LOG.debug("nameTdCacheAdd " + tableKey + " : " + td);
+            LOG.debug("nameTdCacheAdd " + tableKey + " : " + td + " conglomerateId = " + td.getHeapConglomerateId());
         nameTdCache.put(tableKey,td);
         oidTdCache.put(td.getUUID(),td);
     }
@@ -227,7 +227,7 @@ public class DataDictionaryCache {
     public TableDescriptor nameTdCacheRemove(TableKey tableKey) throws StandardException {
         TableDescriptor td = nameTdCache.getIfPresent(tableKey);
         if (LOG.isDebugEnabled())
-            LOG.debug("nameTdCacheInvalidate " + tableKey + (td != null ? " found" : " null"));
+            LOG.debug("nameTdCacheInvalidate " + tableKey + (td != null ? " found" : " null") + "conglomerateId = " + td.getHeapConglomerateId());
         nameTdCache.invalidate(tableKey);
         return td;
     }
@@ -253,14 +253,14 @@ public class DataDictionaryCache {
         if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheAdd " + tableID + " : " + td);
+            LOG.debug("oidTdCacheAdd " + tableID + " : " + td + " conglomerateId = " + td.getHeapConglomerateId());
         oidTdCache.put(tableID,td);
     }
 
     public TableDescriptor oidTdCacheRemove(UUID tableID) throws StandardException {
         TableDescriptor td = oidTdCache.getIfPresent(tableID);
         if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheRemove " + tableID + (td != null ? " found" : " null"));
+            LOG.debug("oidTdCacheRemove " + tableID + (td != null ? " found" : " null") + " conglomerateId = " + td.getHeapConglomerateId());
         oidTdCache.invalidate(tableID);
         return td;
     }
