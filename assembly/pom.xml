@@ -129,7 +129,10 @@
             orc-protobuf,
             spark-avro_2.11,
             jython-standalone,
-            picocli
+            picocli,
+            jjwt-api,
+            jjwt-impl,
+            jjwt-jackson
         </commonArtifacts>
     </properties>
     <build>
