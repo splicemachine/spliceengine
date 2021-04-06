@@ -27,8 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertTrue;
@@ -207,9 +206,9 @@ public class IndexLookupBenchmark extends Benchmark {
                 }
 
                 if (isIndexLookup) {
-                    rowContainsQuery(new int[]{6}, "explain " + sqlText, conn, new String[]{"IndexLookup"});
+                    executeQueryAndMatchLines(conn, "explain " + sqlText, Collections.singletonMap(6, new String[]{"IndexLookup"}));
                 } else {
-                    rowContainsQuery(new int[]{6}, "explain " + sqlText, conn, new String[]{"IndexScan"});
+                    executeQueryAndMatchLines(conn, "explain " + sqlText, Collections.singletonMap(6, new String[]{"IndexScan"}));
                 }
 
                 for (int i = 0; i < numExec; ++i) {

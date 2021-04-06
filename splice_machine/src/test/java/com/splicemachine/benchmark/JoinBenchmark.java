@@ -29,6 +29,8 @@ import org.junit.runners.Parameterized;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertTrue;
@@ -200,7 +202,11 @@ public class JoinBenchmark extends Benchmark {
                         row6or7[0] = "preds=[(L.COL4[1:2] = R.COL4[2:1])]";
                     }
                 }
-                rowContainsQuery(expectedRows, "explain " + sqlText, conn, row6, row6or7, row8);
+                Map<Integer, String[]> matchLines = new HashMap<>(4);
+                matchLines.put(expectedRows[0], row6);
+                matchLines.put(expectedRows[1], row6or7);
+                matchLines.put(expectedRows[2], row8);
+                executeQueryAndMatchLines(conn, "explain " + sqlText, matchLines);
 
                 // warm-up runs
                 if (warmUp) {

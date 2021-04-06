@@ -149,17 +149,27 @@ public class Benchmark {
         resetStats();
     }
 
-    public static void rowContainsQuery(int[] levels, String query, Connection conn, String[]... contains) throws Exception {
+    /***
+     * Executes `query` using `conn` and verifies `matchLines` against the query's result set.
+     *
+     * @param matchLines a map of the expected String occurrence (s) in each
+     * line of the result set, e.g. { {1,['abc','def']}, {10, 'ghi'}} expects line 1
+     * contains 'abc' and 'def', and line 10 contains 'ghi'.
+     */
+    public static void executeQueryAndMatchLines(Connection conn,
+                                                 String query,
+                                                 Map<Integer,String[]> matchLines) throws Exception {
         try (PreparedStatement ps = conn.prepareStatement(query)) {
             try (ResultSet resultSet = ps.executeQuery()) {
                 int i = 0;
                 int k = 0;
                 while (resultSet.next()) {
                     i++;
-                    for (int level : levels) {
+                    for (Map.Entry<Integer, String[]> entry : matchLines.entrySet()) {
+                        int level = entry.getKey();
                         if (level == i) {
                             String resultString = resultSet.getString(1);
-                            for (String phrase : contains[k]) {
+                            for (String phrase : entry.getValue()) {
                                 Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
                                         + resultString, resultString.contains(phrase));
                             }
@@ -167,7 +177,7 @@ public class Benchmark {
                         }
                     }
                 }
-                if (k < contains.length)
+                if (k < matchLines.size())
                     fail("fail to match the given strings");
             }
         }
