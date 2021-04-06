@@ -1226,11 +1226,17 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         public Iterable call() throws Exception {
             ContextManager cm = ContextService.getService().newContextManager(parent);
             ContextService.getService().setCurrentContextManager(cm);
-            statisticsOperation.openCore();
-            if (mergeStats) {
-                return getMergedStatistic(dataDictionary, tc, displayPair, statisticsOperation);
-            } else {
-                return getStatistic(dataDictionary, tc, displayPair, statisticsOperation);
+            try {
+                statisticsOperation.openCore();
+                if (mergeStats) {
+                    return getMergedStatistic(dataDictionary, tc, displayPair, statisticsOperation);
+                } else {
+                    return getStatistic(dataDictionary, tc, displayPair, statisticsOperation);
+                }
+            }
+            finally {
+                ContextService.getService().resetCurrentContextManager(cm);
+                ContextService.getService().removeContextManager(cm);
             }
         }
     }
