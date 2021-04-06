@@ -103,6 +103,19 @@ public class FeatureStoreBenchmark extends Benchmark {
 
     private static TableConfig[] tableConfigs = { T1, T2, T3, T4, T5, T6, T7, T8, T9 };
 
+    /*
+     *    Tables are created according to the table configurations in <tableConfigs>,
+     *    which specify table names, the number of primary keys, columns and rows:
+     *
+     *    CREATE TABLE <tableName> (P1 INT NOT NULL, ..., C1 DOUBLE, C2 DOUBLE, ...)
+     *    [LOGICAL SPLITKEYS LOCATION '<fileName>']
+     *
+     *    Tables are automatically pre-split so that the size of each region does not
+     *    exceed 2 GB but there is at least one region per node.
+     *    Each table is populated with multiple concurrent connections doing INSERTs in batches
+     *    which are randomly shuffled to ensure even load on all cluster nodes.
+     */
+
     private static void createTables(int numHosts) throws Exception {
         try (Connection conn = makeConnection()) {
             try (Statement statement = conn.createStatement()) {
@@ -175,7 +188,7 @@ public class FeatureStoreBenchmark extends Benchmark {
 
                     // Populate table
                     taskId.set(0);
-                    batchId = new long[(int)(config.numRows / batchSize)];
+                    batchId = new long[(int)((config.numRows + batchSize - 1) / batchSize)];
                     for (int i = 0; i < batchId.length; ++i) {
                         batchId[i] = i;
                     }
@@ -261,6 +274,19 @@ public class FeatureStoreBenchmark extends Benchmark {
             abort = true;
         }
     }
+
+    /*
+     *    Benchmarks create a set of prebuilt queries that select from 1 to 9 of the feature set tables selecting 5 columns from each table.
+     *    In a table with 10 columns, select columns c2, c4, c6, c8, c10, with 100 columns: c20, c40, c60, c80, c100 and with 1000: c200, c400, c600, c800, c1000.
+     *
+     *    SELECT <tableName>.<columnName>, ...
+     *    FROM <tableName>, ...
+     *    WHERE (<tableName>.<primaryKey>, ...) = (<random value>, ...)
+     *
+     *    Prepared queries are run from multiple concurrent connections for the specified number of operations per connection.
+     *    Query results are read and hashed for possible validation (not implemented).
+     *    Query execution times are collected to compute statistics provided by the general framework.
+     */
 
     private static void runQueries(TableConfig[] configs) {
         try (Connection conn = makeConnection()) {
