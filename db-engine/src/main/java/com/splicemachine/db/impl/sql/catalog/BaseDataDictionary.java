@@ -59,12 +59,11 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
-	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
 
-	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
 	public static boolean READ_NEW_FORMAT = true;
 
-	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
 	public static boolean WRITE_NEW_FORMAT = true;
 
 	public static int SERDE_UPGRADE_SPRINT = 2004;

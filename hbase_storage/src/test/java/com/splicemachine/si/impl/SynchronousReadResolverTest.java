@@ -89,7 +89,7 @@ public class SynchronousReadResolverTest {
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(0x200l, Txn.ROOT_TRANSACTION, 0x200l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
+        SimpleTxnFilter filter = new SimpleTxnFilter(readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -135,7 +135,7 @@ public class SynchronousReadResolverTest {
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(0x300l, Txn.ROOT_TRANSACTION, 0x300l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
+        SimpleTxnFilter filter = new SimpleTxnFilter(readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -181,7 +181,7 @@ public class SynchronousReadResolverTest {
         childTxn.commit();
 
         Txn readTxn = tc.beginTransaction(); //a read-only transaction with SI semantics
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
+        SimpleTxnFilter filter = new SimpleTxnFilter(readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());

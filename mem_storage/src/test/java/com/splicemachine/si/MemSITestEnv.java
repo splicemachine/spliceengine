@@ -95,7 +95,7 @@ public class MemSITestEnv implements SITestEnv{
     public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
         try(PartitionAdmin pa = tableFactory.getAdmin()){
             pa.deleteTable(Bytes.toString(tableNameBytes));
-            pa.newPartition().withName(Bytes.toString(tableNameBytes)).create();
+            MPartition partition = (MPartition) pa.newPartition().withName(Bytes.toString(tableNameBytes)).create();
         }
     }
 
