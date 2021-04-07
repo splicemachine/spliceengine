@@ -125,10 +125,16 @@ public class SpliceCatalogUpgradeScripts{
         return scripts;
     }
 
-    public static void runAllScripts(List<VersionAndUpgrade> upgradeNeeded) throws StandardException {
+    public static void runAllScripts(List<VersionAndUpgrade> upgradeNeeded,
+                                     SpliceDataDictionary sdd,
+                                     TransactionController tc) throws StandardException {
         if( upgradeNeeded.size() == 0 ) {
             LOG.info("No upgrade needed.");
             return;
+        }
+        if (sdd != null) {
+            // Recover from previous failed upgrade from pre-2003 to post-2003 release
+            UpgradeUtils.recoverFromPreviousFailedUpgrade(sdd, tc);
         }
         LOG.info("Running " + upgradeNeeded.size() + " upgrade scripts:");
         for( VersionAndUpgrade el : upgradeNeeded ) {
@@ -150,7 +156,7 @@ public class SpliceCatalogUpgradeScripts{
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
         }
         try {
-            runAllScripts(getScriptsToUpgrade(scripts, currentVersion));
+            runAllScripts(getScriptsToUpgrade(scripts, currentVersion), sdd, tc);
         }
         catch (StandardException e) {
             if (UpgradeConglomerateTable.isTableCreated()) {
