@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -43,6 +44,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import javax.naming.Context;
 import java.util.Vector;
 
 /**
@@ -135,8 +137,27 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             cd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
         }
 
-        /* Look for equijoins in the predicate list */
-        hashKeyColumns = findHashKeyColumns(innerTable, cd, predList);
+        /* Exclude predicates that are not useful in probing hash table built from right table.
+         * Make sure the same logic applies here and in divideUpPredicateLists(). Otherwise,
+         * this routine could return a hash-based join strategy is feasible but later in
+         * modifying access paths, no hash columns is found.
+         */
+        if (predList != null && innerTable.isBaseTable()) {
+            JBitSet joinedTablesInCurrentQueryBlock = optimizer.getAssignedTableMap();
+            PredicateList predListCopy = new PredicateList();
+            PredicateList nljPreds = new PredicateList();
+            ContextManager cm = ((QueryTreeNode) innerTable).getContextManager();
+            predListCopy.setContextManager(cm);
+            nljPreds.setContextManager(cm);
+            predList.copyPredicatesToOtherList(predListCopy);
+            predListCopy.transferPredicates(nljPreds, innerTable.getReferencedTableMap(), innerTable, joinedTablesInCurrentQueryBlock);
+
+            /* Look for equijoins in the predicate list */
+            hashKeyColumns = findHashKeyColumns(innerTable, cd, predListCopy);
+        } else {
+            /* Look for equijoins in the predicate list */
+            hashKeyColumns = findHashKeyColumns(innerTable, cd, predList);
+        }
 
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
