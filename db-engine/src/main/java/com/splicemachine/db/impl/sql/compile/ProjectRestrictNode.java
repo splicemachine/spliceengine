@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.commons.lang3.StringUtils;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
@@ -1742,7 +1743,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     private static void generateFiltersArrayOnStack(ExpressionClassBuilder acb, MethodBuilder mb, String filterPred) {
-        String filters[] = filterPred.split("(?<=\\G.{" + STRING_MAX_LENGTH + "})");
+        String filters[];
+
+        if (StringUtils.isNotEmpty(filterPred)) {
+            filters = filterPred.split("(?<=\\G.{" + STRING_MAX_LENGTH + "})");
+        } else {
+            filters = new String[0];
+        }
+
         String stringClassName = "java.lang.String";
         LocalField arrayField = acb.newFieldDeclaration(
                 Modifier.PRIVATE, stringClassName + "[]");
