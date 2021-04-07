@@ -142,7 +142,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
          * this routine could return a hash-based join strategy is feasible but later in
          * modifying access paths, no hash columns is found.
          */
-        if (predList != null && innerTable.isBaseTable()) {
+        if (predList != null) {
             JBitSet joinedTablesInCurrentQueryBlock = optimizer.getAssignedTableMap();
             PredicateList predListCopy = new PredicateList();
             PredicateList nljPreds = new PredicateList();
@@ -155,8 +155,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             /* Look for equijoins in the predicate list */
             hashKeyColumns = findHashKeyColumns(innerTable, cd, predListCopy);
         } else {
-            /* Look for equijoins in the predicate list */
-            hashKeyColumns = findHashKeyColumns(innerTable, cd, predList);
+            hashKeyColumns = null;
         }
 
         if (SanityManager.DEBUG) {
