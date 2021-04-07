@@ -85,7 +85,7 @@ public class HashableJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testInfeasibleMergeSortJoin() throws Exception {
+    public void testInfeasibleHashableJoin() throws Exception {
         String sqlText = String.format("select D.c1, D.c2, G.c2 from D, G --splice-properties useSpark=%b\n " +
                 "where G.c2 = D.c2 and D.ts <= '2000-01-01' " +
                 "  and not (exists(select * from D_LZ, L " +
