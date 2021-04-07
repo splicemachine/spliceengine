@@ -76,7 +76,7 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     }
 
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+    public DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException{
         Get g = new Get(key);
         g.setMaxVersions(1);
 
