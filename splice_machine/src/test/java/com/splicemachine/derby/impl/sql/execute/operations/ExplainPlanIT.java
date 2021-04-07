@@ -466,7 +466,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q2: test the switch from table scan to index scan */
-        String engine2[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        String engine2[] = {"OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount2[] = {1000000, 27000, 854, 27, 1, 1, 1, 1};
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]))) {
@@ -510,9 +510,9 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q3: test join case */
-        String engine3[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        String engine3[] = {"OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 27000, 854, 27, 1, 1, 1, 1};
-        String join3[] = {"BroadcastJoin", "BroadcastJoin", "MergeSortJoin",
+        String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from --splice-properties joinOrder=fixed\n" +
