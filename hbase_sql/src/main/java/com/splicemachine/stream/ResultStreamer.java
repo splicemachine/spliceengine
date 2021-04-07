@@ -245,7 +245,10 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     }
                 }
             }
-            this.runningOnClient.await();
+            try {
+                this.runningOnClient.await(5, TimeUnit.MINUTES);
+            } catch (Exception e) {
+            }
             futureConnect.channel().closeFuture().sync();
 
             String result;
