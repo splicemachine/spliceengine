@@ -41,6 +41,7 @@ import java.io.IOException;
  */
 public final class DataInputUtil {
 
+    private static ThreadLocal<Boolean> readOldFormat = new ThreadLocal<>();
     /**
      * Skips requested number of bytes,
      * throws EOFException if there is too few bytes in the DataInput.
@@ -84,10 +85,19 @@ public final class DataInputUtil {
      * @return
      */
     public static boolean shouldReadOldFormat() {
-        return !BaseDataDictionary.READ_NEW_FORMAT;
+        return readOldFormat!= null && readOldFormat.get()!= null && readOldFormat.get()
+                || !BaseDataDictionary.READ_NEW_FORMAT;
     }
 
     public static boolean shouldWriteOldFormat() {
         return !BaseDataDictionary.WRITE_NEW_FORMAT;
+    }
+
+    public static void setReadOldFormat(Boolean b) {
+        readOldFormat.set(b);
+    }
+
+    public static void clearReadOldFormat() {
+        readOldFormat.remove();
     }
 }
