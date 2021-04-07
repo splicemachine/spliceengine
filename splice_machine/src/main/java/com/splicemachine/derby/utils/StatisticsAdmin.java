@@ -1180,7 +1180,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                     dataDictionary.addColumnStatistics(statsRow, tc);
                                                 } catch (StandardException e) {
                                                     // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
-                                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                    if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().contains("KeyValue size too large")) {
                                                         SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
                                                                 conglomId, columnId);
                                                         skippedColIds.add(columnId);
@@ -1277,7 +1277,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 dataDictionary.addColumnStatistics(nextRow, tc);
                                             } catch (StandardException e) {
                                                 // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
-                                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().contains("KeyValue size too large")) {
                                                     int columnId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt();
                                                     SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
                                                             nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
