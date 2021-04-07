@@ -55,7 +55,7 @@ public class SITransactionReadController implements TransactionReadController{
 
     @Override
     public TxnFilter newFilterState(ReadResolver readResolver,TxnView txn) throws IOException{
-        return new SimpleTxnFilter(null,txn,readResolver,txnSupplier);
+        return new SimpleTxnFilter(txn,readResolver,txnSupplier);
     }
 
     @Override
