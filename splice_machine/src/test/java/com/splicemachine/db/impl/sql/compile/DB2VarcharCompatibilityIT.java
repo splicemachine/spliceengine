@@ -36,6 +36,7 @@ import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -136,6 +137,13 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                         row(2, 1, 2, 3),
                         row(3, 1, 2, 3)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table VarbitTest(a varchar(32000) for bit data not null default X'')")
+                .withInsert("insert into VarbitTest values(?)")
+                .withRows(rows(row("abc".getBytes())))
+                .create();
+
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
@@ -628,6 +636,29 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     public void testDB_11570() throws Exception {
         try (TestConnection conn = methodWatcher.getOrCreateConnection()){
             checkBooleanExpression("'abcdefgh            '=strip(replace(TRANSLATE('abcdefgh            ',' ',X'00'),' ',''))", true, conn);
+        }
+    }
+
+    @Test
+    public void testVarbit() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkVarbitExpression("SUBSTR(a,37,2) from VarbitTest", new byte[]{32 /*space*/, 32}, conn);
+            checkVarbitExpression("SUBSTR(a,75,5) from VarbitTest", new byte[]{32, 32, 32, 32, 32}, conn);
+            checkVarbitExpression("a from VarbitTest", new byte[]{97 /*a*/, 98 /*b*/, 99 /*c*/}, conn);
+        }
+    }
+
+    @Test
+    public void testVarbitPreparedStatement() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            try(PreparedStatement ps = conn.prepareStatement("select SUBSTR(a,1,3) from VarbitTest where 1 = ?")) {
+                ps.setInt(1, 1);
+                try(ResultSet rs = ps.executeQuery()) {
+                    Assert.assertTrue(rs.next());
+                    Assert.assertArrayEquals(new byte[]{97 /*a*/, 98 /*b*/, 99 /*c*/}, rs.getBytes(1));
+                    Assert.assertFalse(rs.next());
+                }
+            }
         }
     }
 }
