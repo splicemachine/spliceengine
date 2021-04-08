@@ -294,7 +294,7 @@ public class SpliceDateFunctionsTest {
             SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format);
             Assert.fail("expected exception");
         } catch(StandardException e) {
-            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type datetime."));
+            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type timestamp."));
         }
     }
 
