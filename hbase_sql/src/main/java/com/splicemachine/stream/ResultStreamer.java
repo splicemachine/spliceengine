@@ -246,10 +246,16 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 }
             }
             try {
-                this.runningOnClient.await(5, TimeUnit.MINUTES);
+                this.runningOnClient.await(2, TimeUnit.MINUTES);
             } catch (Exception e) {
             }
-            futureConnect.channel().closeFuture().sync();
+            if (this.runningOnClient.getCount() > 0) {
+                this.runningOnClient.countDown();
+                futureConnect.channel().writeAndFlush(new StreamProtocol.RequestClose());
+                futureConnect.channel().closeFuture();
+            } else {
+                futureConnect.channel().closeFuture().sync();
+            }
 
             String result;
             if (consumed >= limit) {
