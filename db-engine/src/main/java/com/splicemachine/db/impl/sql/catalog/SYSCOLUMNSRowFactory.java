@@ -60,7 +60,7 @@ import java.util.List;
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     public static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    public static final int		SYSCOLUMNS_COLUMN_COUNT = 13;
+    public static final int		SYSCOLUMNS_COLUMN_COUNT = 14;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
@@ -79,6 +79,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     protected static final int		SYSCOLUMNS_COLLECTSTATS = 11;
     protected static final int		SYSCOLUMNS_PARTITION_POSITION = 12;
     public static final int         SYSCOLUMNS_USEEXTRAPOLATION = 13;
+    protected static final int      SYSCOLUMNS_SKETCHSIZE = 14;
 
 
     protected static final int		SYSCOLUMNS_INDEX1_ID = 0;
@@ -171,6 +172,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         //add useExtrapolation as a byte int instead of boolean to accommodate for future extension
         // currently, value 0 means extraploation is not allowed, non-zero means extrapolation is allowed
         byte    useExtrapolation = 0;
+        long    sketchSize = 0;
 
         if (td != null) {
             if (!(td instanceof ColumnDescriptor))
@@ -201,6 +203,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             collectStats = column.collectStatistics();
             partitionPosition = column.getPartitionPosition();
             useExtrapolation = column.getUseExtrapolation();
+            sketchSize = column.getSketchSize();
         }
 
 		/* Insert info into syscolumns */
@@ -213,7 +216,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 		    /* Build the row to insert  */
         row = getExecutionFactory().getValueRow(SYSCOLUMNS_COLUMN_COUNT);
         setRowColumns(row, colName, defaultID, tabID, colID, storageNumber, typeDesc, defaultSerializable, autoincStart,
-                autoincInc, autoincValue, partitionPosition, autoinc_create_or_modify_Start_Increment, collectStats, useExtrapolation);
+                autoincInc, autoincValue, partitionPosition, autoinc_create_or_modify_Start_Increment, collectStats, useExtrapolation, sketchSize);
 
         return row;
     }
@@ -222,7 +225,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                                      Integer storageNumber, TypeDescriptor typeDesc, Object defaultSerializable,
                                      long autoincStart, long autoincInc, long autoincValue, int partitionPosition,
                                      long autoinc_create_or_modify_Start_Increment, boolean collectStats,
-                                     byte useExtrapolation) {
+                                     byte useExtrapolation, long sketchSize) {
         /* 1st column is REFERENCEID (UUID - char(36)) */
         row.setColumn(SYSCOLUMNS_REFERENCEID, new SQLChar(tabID));
 
@@ -285,6 +288,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
         row.setColumn(SYSCOLUMNS_PARTITION_POSITION,new SQLInteger(partitionPosition));
         row.setColumn(SYSCOLUMNS_USEEXTRAPOLATION, new SQLTinyint(useExtrapolation));
+        row.setColumn(SYSCOLUMNS_SKETCHSIZE, new SQLLongint(sketchSize));
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -323,7 +327,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         UUID				defaultUUID = null;
         UUID				uuid;
         UUIDFactory			uuidFactory = getUUIDFactory();
-        long autoincStart, autoincInc, autoincValue;
+        long autoincStart, autoincInc, autoincValue, sketchSize;
 
 		    /*
 		     ** We're going to be getting the UUID for this sucka
@@ -414,6 +418,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         byte useExtrapolation = 0;
         if (useExtrapolationColumn != null && !useExtrapolationColumn.isNull())
             useExtrapolation = useExtrapolationColumn.getByte();
+        sketchSize = row.getColumn(SYSCOLUMNS_SKETCHSIZE).getLong();
 
         colDesc = new ColumnDescriptor(columnName, columnNumber,storageNumber,
                 dataTypeServices, defaultValue, defaultInfo, uuid,
@@ -456,7 +461,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("AUTOINCREMENTINC", Types.BIGINT, true),
                 SystemColumnImpl.getColumn("COLLECTSTATS", Types.BOOLEAN, true),
                 SystemColumnImpl.getColumn("PARTITIONPOSITION", Types.INTEGER, true),
-                SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true)
+                SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true),
+                SystemColumnImpl.getColumn("SKETCHSIZE", Types.BIGINT, true)
         };
     }
 
@@ -464,7 +470,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
         cdsl.add(
             new ColumnDescriptor[]{
-                new ColumnDescriptor("REFERENCEID",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                new ColumnDescriptor("REFERENCEID",1,1,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("COLUMNNAME"               ,2,2,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
@@ -507,6 +514,9 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                   null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("SCHEMANAME"               ,15,15,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("SKETCHSIZE"               ,8,8,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
                         null,null,view,viewId,0,0,0)
         });
 
@@ -580,6 +590,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "C.COLLECTSTATS, " +
             "C.PARTITIONPOSITION, " +
             "C.USEEXTRAPOLATION, " +
+            "C.SKETCHSIZE, " +
             "T.TABLENAME, " +
             "T.SCHEMANAME " +
             "FROM SYS.SYSCOLUMNS C, SYSVW.SYSTABLESVIEW T WHERE T.TABLEID = C.REFERENCEID";

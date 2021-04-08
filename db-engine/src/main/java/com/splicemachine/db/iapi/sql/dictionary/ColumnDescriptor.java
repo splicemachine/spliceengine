@@ -81,6 +81,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private boolean collectStatistics;
     private int partitionPosition = -1;
     private byte  useExtrapolation = 0;
+    private long sketchSize = 0;
     /* Used for Serde */
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
@@ -287,6 +288,8 @@ public final class ColumnDescriptor extends TupleDescriptor
     public byte getUseExtrapolation() {
         return useExtrapolation;
     }
+
+    public long getSketchSize() { return sketchSize; }
 
     public void setUseExtrapolation(byte useExtrapolation) {
         this.useExtrapolation = useExtrapolation;
