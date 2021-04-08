@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
@@ -177,4 +178,23 @@ public class ProcedureUnitTest {
         testProcedures(SpliceSystemProcedures.getSYSCSMProcedures());
     }
 
+    short getRoutineControl(List<Procedure> procedures, String name)
+    {
+        return procedures.stream().filter(p -> p.getName().equals(name)).findAny().get().getRoutineSqlControl();
+    }
+
+    @Test
+    public void testAllSysUtilProceduresExecutable()
+    {
+        List<Procedure> p = new ArrayList<>();
+        SpliceSystemProcedures.createSysUtilProcedures(p);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_GET_REGION_SERVER_CONFIG_INFO"), RoutineAliasInfo.NO_SQL);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_LOGGER_LEVEL"),              RoutineAliasInfo.NO_SQL);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_LOGGER_LEVEL_LOCAL"),        RoutineAliasInfo.NO_SQL);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_GET_GLOBAL_DATABASE_PROPERTY"),  RoutineAliasInfo.READS_SQL_DATA);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_GLOBAL_DATABASE_PROPERTY"),  RoutineAliasInfo.MODIFIES_SQL_DATA);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_RESTORE_DATABASE_OWNER"),        RoutineAliasInfo.NO_SQL);
+        Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_GLOBAL_DATABASE_PROPERTY"),  RoutineAliasInfo.MODIFIES_SQL_DATA);
+        testProcedures(p);
+    }
 }
