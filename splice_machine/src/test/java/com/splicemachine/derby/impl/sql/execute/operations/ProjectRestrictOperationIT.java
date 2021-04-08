@@ -32,8 +32,10 @@ import org.junit.runner.Description;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
@@ -459,5 +461,60 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
                         + "from d6363 order by a")));
     }
 
+    @Test
+    public void testLongStatement() throws Exception{
+        StringBuilder inClause = new StringBuilder();
+        inClause.append("'1','2'");
+        while (inClause.length() < 66000) {
+            inClause.append(",'" + UUID.randomUUID().toString() + "'");
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(format("select sa from %s where si in (%s)",this.getTableReference(TABLE_NAME), inClause.toString()));
+
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String sa = rs.getString(1);
+            results.add(sa);
+        }
+        Assert.assertEquals("Incorrect num rows returned!",2,results.size());
+    }
+
+    @Test
+    public void testLongPrepareStatement() throws Exception{
+        List<String> ids = new ArrayList<>();
+        ids.add("1");
+        ids.add("2");
+        int size = 0;
+        while(size < 66000) {
+            String newId = UUID.randomUUID().toString();
+            ids.add(newId);
+            size += newId.length();
+            size += 2;
+        }
+
+        StringBuilder query = new StringBuilder();
+        query.append(format("select * from %s where si in(",this.getTableReference(TABLE_NAME)));
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0)  {
+                query.append(",");
+            }
+            query.append("?");
+        }
+        query.append(")");
+
+        PreparedStatement s = methodWatcher.prepareStatement(query.toString());
+
+        for (int i = 0; i < ids.size(); i++) {
+            s.setString(i + 1, ids.get(i));
+        }
+
+        ResultSet rs = s.executeQuery();
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String sa = rs.getString(1);
+            results.add(sa);
+        }
+        Assert.assertEquals("Incorrect num rows returned!",2,results.size());
+    }
 
 }
