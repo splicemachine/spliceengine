@@ -221,6 +221,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.wal.provider" : "multiwal",
         "hbase.wal.regiongrouping.numgroups" : "16",
         "hbase.zookeeper.property.tickTime" : "6000",
+        "hbase.mirror.table.state.to.zookeeper" : "FALSE",
+        "hbase.migrate.table.state.from.zookeeper": "FALSE",
         "hfile.block.bloom.cacheonwrite" : "TRUE",
         "io.storefile.bloom.error.rate" : "0.005",
         "splice.authentication.native.algorithm" : "SHA-512",
