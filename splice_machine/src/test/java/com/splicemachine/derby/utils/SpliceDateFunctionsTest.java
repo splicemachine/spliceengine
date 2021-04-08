@@ -36,6 +36,7 @@ import java.util.TimeZone;
 
 import static com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE;
 import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.*;
 
 @Category(ArchitectureIndependent.class)
 public class SpliceDateFunctionsTest {
@@ -273,7 +274,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toCharInvalidFormat() throws ParseException, StandardException {
+    public void toCharInvalidFormat() throws ParseException {
         DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
         Date date = new Date(formatter.parse("2014/06/24").getTime());
         Calendar calendar = Calendar.getInstance();
@@ -285,21 +286,15 @@ public class SpliceDateFunctionsTest {
         try {
             SpliceDateFunctions.TO_CHAR(date, format);
             Assert.fail("expected exception");
-        } catch(Exception e) {
-            Assert.assertEquals("ERROR 22018: Invalid character string format for type datetime.\n" +
-                    "Splice Machine Release: null\n" +
-                    "Splice Machine Version Hash: null\n" +
-                    "Splice Machine Build Time: null", e.toString());
+        } catch(StandardException e) {
+            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type datetime."));
         }
 
         try {
             SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format);
             Assert.fail("expected exception");
-        } catch(Exception e) {
-            Assert.assertEquals("ERROR 22018: Invalid character string format for type timestamp.\n" +
-                    "Splice Machine Release: null\n" +
-                    "Splice Machine Version Hash: null\n" +
-                    "Splice Machine Build Time: null", e.toString());
+        } catch(StandardException e) {
+            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type datetime."));
         }
     }
 
