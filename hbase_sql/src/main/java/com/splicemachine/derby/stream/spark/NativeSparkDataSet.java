@@ -225,9 +225,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
-        String varcharDB2CompatibilityModeString =
-                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
-        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+                context.getActivation().getLanguageConnectionContext(),
+                Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             // Do not replace string columns using rtrimmed columns but add them as extra columns.
@@ -914,10 +914,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
         int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
 
-        String varcharDB2CompatibilityModeString =
-                PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(),
-                        Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
-        boolean varcharDB2CompatibilityMode = Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+                context.getActivation().getLanguageConnectionContext(),
+                Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
 
         List<String> extraColNamesLeft = new ArrayList<>();
         List<Column> extraColumnsLeft = new ArrayList<>();
@@ -956,9 +955,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 rightDF = NativeSparkUtils.withColumns(extraColNamesRight, extraColumnsRight, rightDF);
 
             if (!varcharDB2CompatibilityMode && sparkJoinPredicate != null) {
-                java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
-                        (String s) -> { return ParserUtils.getDataTypeFromString(s); };
-                filterExpr = sparkJoinPredicate.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
+                filterExpr = sparkJoinPredicate.getColumnExpression(leftDF, rightDF, ParserUtils::getDataTypeFromString);
             } else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {
                     Column joinEquality = (leftDF.col(leftColNames[i]).equalTo(rightDF.col(rightColNames[i])));
