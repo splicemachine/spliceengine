@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -210,6 +212,15 @@ public class MergeSortJoinOperation extends JoinOperation {
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTSEMI,false);
             else
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
+
+            // Adding a filter in this manner disables native spark execution,
+            // so only do it if required.
+            boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+                    operationContext.getActivation().getLanguageConnectionContext(),
+                    Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            if (restriction != null && (varcharDB2CompatibilityMode || sparkJoinPredicate == null)) {
+                joined = joined.filter(new JoinRestrictionPredicateFunction(operationContext));
+            }
         } else{
 
             PairDataSet<ExecRow, ExecRow> rightDataSet =
