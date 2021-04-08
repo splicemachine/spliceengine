@@ -97,8 +97,7 @@ public class UpgradeSystemProcedures {
             throw StandardException.newException(SQLState.INVALID_PARAMETER, "hbase.zookeeper.property.clientPort",
                     String.valueOf(port));
         }
-        String portAppend = ":" + port;
-        String hostAndPort = quorum.endsWith(portAppend) ? quorum : quorum + portAppend;
+        String hostAndPort = quorum + ":" + port;
         ZooKeeper zk = new ZooKeeper(hostAndPort, 120000, null);
 
         String path = SIDriver.driver().getConfiguration().getSpliceRootPath()
