@@ -67,8 +67,15 @@ import java.util.*;
 public class ScanCostFunction{
     public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
 
-    private static final int OLTP_INDEXLOOKUP_COST_PER_ROW = 40;
-    private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 80;
+    /* These values are based on the results of index lookup microbenchmark (DB-11737) performed
+     * on an EKS cluster with 4 OLTP + 4 OLAP pods.
+     * Next step is to make them tunable (maybe as configurable parameters in site.xml). These
+     * numbers can be used as defaults. In theory, they can be set based on results of running
+     * index lookup microbenchmark in target environment.
+     */
+    private static final int OLTP_INDEXLOOKUP_COST_PER_ROW = 125;
+    private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 18;
+    private static final int OLAP_INDEXLOOKUP_STARTUP_COST = 85000;
 
     private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
@@ -150,7 +157,7 @@ public class ScanCostFunction{
      * @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
      * @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
      * @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
-     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not.
+     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
      * @param isOlap  Whether estimating a cost for OLAP or not.
      * @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
@@ -433,7 +440,7 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
+            lookupCost = estimateIndexLookupCost(totalRowCount, scc.getOpenLatency(), scc.getCloseLatency());
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
@@ -560,10 +567,7 @@ public class ScanCostFunction{
             scanCost.setIndexLookupCost(-1.0d);
         } else {
             double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
-            double lookupBatchesCount = Math.max(lookupRowsCount / indexLookupBatchRowCount, 1);
-            double oneBatchCost = Math.min(lookupRowsCount, indexLookupBatchRowCount) * getIndexLookupCostPerRow() + openLatency + closeLatency;
-            double serialBatchesCount = Math.max(lookupBatchesCount / indexLookupConcurrentBatchesCount, 1);
-            lookupCost = oneBatchCost * serialBatchesCount;
+            lookupCost = estimateIndexLookupCost(lookupRowsCount, openLatency, closeLatency);
             scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
             scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
@@ -627,6 +631,32 @@ public class ScanCostFunction{
             scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
             scanCost.getProjectionRows(), scanCost.getProjectionCost(),
             scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
+        }
+    }
+
+    private double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
+        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
+            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
+                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
+        } else {
+            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
+            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
+            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
+            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
+
+            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
+            if (considerLastBatchSeparately) {
+                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
+                // batch, calculate the cost of last batch separately
+                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
+                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
+                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
+            } else {
+                // if the last serial batch group has at least one whole batch, take it as a complete serial step
+                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
+            }
         }
     }
 
