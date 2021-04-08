@@ -463,7 +463,7 @@ public class SpliceDateFunctions {
             SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
             return fmt.format(source);
         }
-        catch (Exception e) {
+        catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "datetime");
         }
 
@@ -474,7 +474,7 @@ public class SpliceDateFunctions {
             SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
             return fmt.format(stamp);
         }
-        catch (Exception e) {
+        catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
         }
 
