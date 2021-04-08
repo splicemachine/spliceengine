@@ -100,12 +100,12 @@ public class ScanCostFunction{
     private final HashSet<Integer> usedNoStatsColumnIds;
 
     // when index lookup is needed, the maximum number of rows that can be fired as a batch
-    // controled by splice.index.batchSize, default value in SQLConfiguration
-    private final int indexBatchSize;
+    // controlled by splice.index.batchSize, default value in SQLConfiguration
+    private final int indexLookupBatchRowCount;
 
     // when index lookup is needed, the maximum number of batches that can be fired concurrently
-    // controled by splice.index.numConcurrentLookups, default value in SQLConfiguration
-    private final int indexLookupBlocks;
+    // controlled by splice.index.numConcurrentLookups, default value in SQLConfiguration
+    private final int indexLookupConcurrentBatchesCount;
 
     // will be used shortly
     private final boolean forUpdate;
@@ -140,19 +140,19 @@ public class ScanCostFunction{
      *
      * </pre>
      *
-     * @param baseTable
-     * @param cd
-     * @param scc
-     * @param scanCost
-     * @param resultColumns
-     * @param scanRowTemplate
-     * @param baseColumnsInScan
-     * @param baseColumnsInLookup
-     * @param indexBatchSize
-     * @param indexLookupBlocks
-     * @param forUpdate
-     * @param isOlap
-     * @param usedNoStatsColumnIds
+     * @param baseTable  A base table on which a scan cost is going to be estimated.
+     * @param cd         A conglomerate descriptor of the base table to be considered.
+     * @param scc        A StoreCostController instance.
+     * @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
+     * @param resultColumns  The result columns of the base table.
+     * @param scanRowTemplate  The row template of the base table.
+     * @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
+     * @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
+     * @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
+     * @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
+     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not.
+     * @param isOlap  Whether estimating a cost for OLAP or not.
+     * @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
     public ScanCostFunction(Optimizable baseTable,
                             ConglomerateDescriptor cd,
@@ -162,8 +162,8 @@ public class ScanCostFunction{
                             DataValueDescriptor[] scanRowTemplate,
                             BitSet baseColumnsInScan,
                             BitSet baseColumnsInLookup,
-                            int indexBatchSize,
-                            int indexLookupBlocks,
+                            int indexLookupBatchRowCount,
+                            int indexLookupConcurrentBatchesCount,
                             boolean forUpdate,
                             boolean isOlap,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
@@ -178,8 +178,8 @@ public class ScanCostFunction{
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
-        this.indexBatchSize = indexBatchSize;
-        this.indexLookupBlocks = indexLookupBlocks;
+        this.indexLookupBatchRowCount = indexLookupBatchRowCount;
+        this.indexLookupConcurrentBatchesCount = indexLookupConcurrentBatchesCount;
         this.forUpdate = forUpdate;
         this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
@@ -559,11 +559,12 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            double numLookupRows = totalRowCount * filterBaseTableSelectivity;
-            double numLookupBatches = Math.max(numLookupRows / indexBatchSize, 1);
-            double batchCost = Math.min(numLookupRows, indexBatchSize) * getIndexLookupCostPerRow() + openLatency + closeLatency;
-            lookupCost = batchCost * Math.max(numLookupBatches / indexLookupBlocks, 1);
-            scanCost.setIndexLookupRows(Math.round(numLookupRows));
+            double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
+            double lookupBatchesCount = Math.max(lookupRowsCount / indexLookupBatchRowCount, 1);
+            double oneBatchCost = Math.min(lookupRowsCount, indexLookupBatchRowCount) * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(lookupBatchesCount / indexLookupConcurrentBatchesCount, 1);
+            lookupCost = oneBatchCost * serialBatchesCount;
+            scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
             scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;

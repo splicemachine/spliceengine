@@ -104,7 +104,19 @@ public interface OptimizerFactory {
 
 	long getDetermineSparkRowThreshold();
 
+	/**
+	 * The maximum number of rows for which index lookup operation can
+	 * be fired as a batch. Controlled by splice.index.batchSize,
+	 * default value in SQLConfiguration.
+	 * @return  splice.index.batchSize value
+	 */
 	int getIndexBatchSize();
 
+	/**
+	 * The maximum number of index lookup batches that can run
+	 * concurrently. Controlled by splice.index.numConcurrentLookups,
+	 * default value in SQLConfiguration.
+	 * @return splice.index.numConcurrentLookups value
+	 */
 	int getIndexLookupBlocks();
 }
