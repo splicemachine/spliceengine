@@ -916,6 +916,17 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if (uisPredicate != null)
                 removeOptPredicate(uisPredicate);
             accessPath.setUisPredicate(null);
+            Predicate uisRowIdPredicate = accessPath.getUisRowIdPredicate();
+            // Add the RowId = RowId join back to base table predicate.
+            if (uisRowIdPredicate != null) {  // msirek-temp
+                CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
+                cloneCRsVisitor.setCopySourceOfCR(true);
+                AndNode andNode = uisRowIdPredicate.getAndNode();
+                andNode = (AndNode)andNode.accept(cloneCRsVisitor);
+                uisRowIdPredicate.setAndNode(andNode);
+                addOptPredicate(uisRowIdPredicate);
+            }
+            accessPath.setUisRowIdPredicate(null);
         }
 
         ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
@@ -5048,32 +5059,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return result;
     }
 
-    public OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath) throws StandardException {  // msirek-temp
+    public OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException {  // msirek-temp
         if (size() == 0)
             return null;
         for (int i = 0; i < size(); i++) {
             OptimizablePredicate pred = getOptPredicate(i);
-            if (pred.isIndexEnablingORedPredicate(optTable, accessPath))
+            if (pred.isIndexEnablingORedPredicate(optTable, accessPath, optimizer))
                 return pred;
         }
         return null;
     }
-
-    public OptimizablePredicateList convertToDNF() {
-        if (size() != 1)
-            return null;
-        Predicate pred = (Predicate) getOptPredicate(0);
-        AndNode andNode = pred.getAndNode();
-        if (andNode == null)
-            return null;
-        else {
-
-        }
-        return null;
-    }
-
-//    private OperatorNode processOperator(OperatorNode op) {
-//
-//    }  // msirek-temp
 
 }

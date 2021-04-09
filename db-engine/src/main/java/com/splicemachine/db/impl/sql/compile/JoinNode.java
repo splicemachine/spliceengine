@@ -1971,7 +1971,7 @@ public class JoinNode extends TableOperatorNode{
         int numArgs=getNumJoinArguments();
 
         leftResultSet.generate(acb,mb); // arg 1
-        mb.push(leftResultSet.resultColumns.size()); // arg 2
+        mb.push(leftResultSet.getResultColumns().size()); // arg 2
 
         if(isNestedLoopOverHashableJoin()){
 
@@ -2007,7 +2007,7 @@ public class JoinNode extends TableOperatorNode{
         }
 
         rightResultSet.generate(acb,mb); // arg 3
-        mb.push(rightResultSet.resultColumns.size()); // arg 4
+        mb.push(rightResultSet.getResultColumns().size()); // arg 4
 
         if(rightResultSet instanceof Optimizable &&
                 (isHashableJoin(rightResultSet) || isCrossJoin())){
@@ -2323,8 +2323,8 @@ public class JoinNode extends TableOperatorNode{
         List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
 
         // clear the referenced fields for both source tables
-        leftResultSet.resultColumns.setColumnReferences(false, true);
-        rightResultSet.resultColumns.setColumnReferences(false, true);
+        leftResultSet.getResultColumns().setColumnReferences(false, true);
+        rightResultSet.getResultColumns().setColumnReferences(false, true);
 
         markReferencedResultColumns(refedcolmnList);
 

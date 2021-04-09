@@ -213,6 +213,18 @@ public interface AccessPath {
     Predicate getUisPredicate();
 
 	/**
+	 * Store in the access path the RowId predicate used to join back
+	 * to the base table for unioned index scan query plans.
+	 */
+    void setUisRowIdPredicate(Predicate uisPredicate);
+
+	/**
+	 * The RowId predicate used to join back
+	 * to the base table for unioned index scan query plans.
+	 */
+    Predicate getUisRowIdPredicate();
+
+	/**
 	 * The tree of UnionNodes that combines results of the OR'ed index scans,
 	 * for a unioned index scans access path.
 	 */

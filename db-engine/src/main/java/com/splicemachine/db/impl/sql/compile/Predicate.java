@@ -1646,7 +1646,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         JBitSet newJBitSet = new JBitSet(getReferencedSet().size());
         AndNode andNode = booleanExpression instanceof AndNode ?
                           (AndNode) booleanExpression :
-                          AndNode.newAndNode(booleanExpression);
+                          AndNode.newAndNode(booleanExpression, true);
         Predicate newPred =
             (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                                          andNode, newJBitSet, getContextManager());
@@ -1655,7 +1655,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     private boolean predicateEnablesKeyedIndexAccess(Predicate predicate,
                                                      FromBaseTable optTable,
-                                                     AccessPath accessPath) throws StandardException {
+                                                     AccessPath accessPath,
+                                                     Optimizer optimizer) throws StandardException {
         ConglomerateDescriptor[] conglomDescs;
         if (accessPath != null) {
             conglomDescs = new ConglomerateDescriptor[1];
@@ -1672,18 +1673,27 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         boolean foundKey = false;
         for (int i = 0; i < numConglomerates; i++) {
             tempAccessPath.setConglomerateDescriptor(conglomDescs[i]);
+            predicateList.categorize();
             predicateList.classify(optTable, tempAccessPath, true);
             foundKey = predicate.isKey();
             predicate.clearScanFlags();
-            if (foundKey)
-                break;
+            if (foundKey) {
+                FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
+                if (outerBaseTable == null) {
+                    break;
+                }
+                if (predicate.getReferencedSet().contains(outerBaseTable.getReferencedTableMap())) {
+                    break;
+                }
+                foundKey = false;
+            }
         }
         predicateList.removeOptPredicate(0);
         tempAccessPath.setConglomerateDescriptor(savedConglomerateDescriptor);
         return foundKey;
     }
 
-    public boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath) throws StandardException {  // msirek-temp
+    public boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException {  // msirek-temp
         if (andNode.getLeftOperand() instanceof OrNode) {
             OrNode orNode = (OrNode) andNode.getLeftOperand();
             if (orNode.getLeftOperand() instanceof AndNode ||
@@ -1694,13 +1704,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             while (node instanceof OrNode) {
                 tmpOrNode = (OrNode)node;
                 Predicate newPred = getNewPredicate(tmpOrNode.getLeftOperand());
-                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath))
+                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath, optimizer))
                     return false;
                 node = tmpOrNode.getRightOperand();
             }
             if (node instanceof BinaryRelationalOperatorNode) {
                 Predicate newPred = getNewPredicate(node);
-                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath))
+                if (!predicateEnablesKeyedIndexAccess(newPred, optTable, accessPath, optimizer))
                     return false;
             }
             else if (!(node instanceof BooleanConstantNode))

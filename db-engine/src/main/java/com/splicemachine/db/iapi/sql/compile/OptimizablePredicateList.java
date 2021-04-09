@@ -402,15 +402,6 @@ public interface OptimizablePredicateList {
 	 *
 	 * @return
 	 */
-	OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath) throws StandardException;
-
-	/**
-	 *
-	 * Convert a predicate list to Disjunctive Normal Form.
-	 *
-	 * @return The predicate list is DNF form, or null if conversion
-	 *         was not possible or exceeded the node conversion limit.
-	 */
-	OptimizablePredicateList convertToDNF();  // msirek-temp
+	OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
 
 }

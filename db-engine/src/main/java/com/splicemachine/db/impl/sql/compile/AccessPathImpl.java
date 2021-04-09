@@ -57,6 +57,7 @@ class AccessPathImpl implements AccessPath{
     private int numUnusedLeadingIndexFields;
     private boolean useDNF = false;
     private Predicate uisPredicate;
+    private Predicate uisRowIdPredicate;
     private FromTable unionOfIndexes = null;
     private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
 
@@ -118,6 +119,7 @@ class AccessPathImpl implements AccessPath{
         setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
         setNumUnusedLeadingIndexFields(copyFrom.getNumUnusedLeadingIndexFields());
         setUisPredicate(copyFrom.getUisPredicate());
+        setUisRowIdPredicate(copyFrom.getUisRowIdPredicate());
         setUnionOfIndexes(copyFrom.getUnionOfIndexes());
         setUisRowIdJoinBackToBaseTableResultSet(copyFrom.getUisRowIdJoinBackToBaseTableResultSet());
     }
@@ -197,9 +199,20 @@ class AccessPathImpl implements AccessPath{
     public void setUisPredicate(Predicate uisPredicate) {
         this.uisPredicate = uisPredicate;
     }
+
     @Override
     public Predicate getUisPredicate() {
         return uisPredicate;
+    }
+
+    @Override
+    public void setUisRowIdPredicate(Predicate uisRowIdPredicate) {
+        this.uisRowIdPredicate = uisRowIdPredicate;
+    }
+
+    @Override
+    public Predicate getUisRowIdPredicate() {
+        return uisRowIdPredicate;
     }
 
     @Override

@@ -53,6 +53,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
 
 public class CloneCRsVisitor implements Visitor
 {
+	private boolean copySourceOfCR = false;
+
 	public CloneCRsVisitor()
 	{
 	}
@@ -85,11 +87,17 @@ public class CloneCRsVisitor implements Visitor
 			if (isCR) {
 				ColumnReference cRef = (ColumnReference)clone;
 				cRef.markAsScoped();
+				if (copySourceOfCR)
+					cRef.setSource(cRef.getSource().cloneMe());
 			}
 			return clone;
 		}
 
 	    return node;
+	}
+
+	public void setCopySourceOfCR(boolean copySourceOfCR) {
+		this.copySourceOfCR = copySourceOfCR;
 	}
 
 	public boolean skipChildren(Visitable node) { return false; }

@@ -903,6 +903,9 @@ public class FromBaseTable extends FromTable {
         ap.setUisPredicate(null);
         bestAp.setUisPredicate(null);
         bestSortAp.setUisPredicate(null);
+        ap.setUisRowIdPredicate(null);
+        bestAp.setUisRowIdPredicate(null);
+        bestSortAp.setUisRowIdPredicate(null);
         ap.setUnionOfIndexes(null);
         bestAp.setUnionOfIndexes(null);
         bestSortAp.setUnionOfIndexes(null);
@@ -935,6 +938,7 @@ public class FromBaseTable extends FromTable {
     public int convertAbsoluteToRelativeColumnPosition(int absolutePosition){
         return mapAbsoluteToRelativeColumnPosition(absolutePosition);
     }
+
 
     private void bindAndOptimizeUnionedIndexScansPath(AccessPath uisAccessPath, Optimizer optimizer) throws StandardException {
         FromTable unionOfIndexes = uisAccessPath.getUnionOfIndexes();
@@ -981,6 +985,7 @@ public class FromBaseTable extends FromTable {
                                             null,  // derivedRCL
                                             (Properties) null,
                                             getContextManager());
+        fromSubquery.setOuterTableOnly(true);
         fromList.addFromTable(baseTable);
         fromList.addFromTable(fromSubquery);
 
@@ -1005,12 +1010,14 @@ public class FromBaseTable extends FromTable {
                         ridCol1,
                         getContextManager());
 
-        // Include all columns.
+        // Include all referenced columns.
         ResultColumnList    finalResultColumns = (ResultColumnList) nodeFactory.getNode(
                                     C_NodeTypes.RESULT_COLUMN_LIST,
                                     getContextManager());
 
         for (ResultColumn rc : resultColumns) {
+            if (!rc.isReferenced())
+                continue;
             ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
                                     C_NodeTypes.COLUMN_REFERENCE,
                                     rc.getName(),
@@ -1022,6 +1029,21 @@ public class FromBaseTable extends FromTable {
                     newCol,
                     getContextManager());
             finalResultColumns.addResultColumn(newRC);
+        }
+
+        ResultColumn baseRowId2RC = null;
+        if (unionOfIndexes.resultColumns.getResultColumn("BASEROWID2") != null) {  // msirek-temp
+            ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
+                                    C_NodeTypes.COLUMN_REFERENCE,
+                                    "BASEROWID2",
+                                    fromSubquery.getTableName(),
+                                    getContextManager());
+            baseRowId2RC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    "BASEROWID2",
+                    newCol,
+                    getContextManager());
+            finalResultColumns.addResultColumn(baseRowId2RC);  // msirek-temp
         }
 
         SelectNode selectNode = (SelectNode) nodeFactory.getNode(
@@ -1048,10 +1070,11 @@ public class FromBaseTable extends FromTable {
                 null,
                 getContextManager());
         stmt.bindStatement();  // msirek-temp
+
         walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
 
         stmt.optimizeStatement();  // msirek-temp
-        walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
+        // walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
 
         ResultSetNode uisRowIdJoinBackToBaseTableResultSet = stmt.getResultSetNode();
 
@@ -1061,6 +1084,14 @@ public class FromBaseTable extends FromTable {
             uisRowIdJoinBackToBaseTableResultSet = scrollInsensitiveResultSetNode.getChildResult();
         }
         ResultSetNode uisJoin = uisRowIdJoinBackToBaseTableResultSet;
+
+
+        if (baseRowId2RC != null) {  // msirek-temp
+            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn("BASEROWID2");
+            Predicate outerTableRowIdJoinPred =
+                buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
+            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
+        }
 
         // Traverse down to the JoinNode to verify it was built and set
         // up an access path for it.
@@ -1084,16 +1115,129 @@ public class FromBaseTable extends FromTable {
 
         uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
         uisAccessPath.setUisRowIdJoinBackToBaseTableResultSet(uisRowIdJoinBackToBaseTableResultSet);
-        if (getUnionIndexScanResultSet() != null)
-            throw StandardException.newException(LANG_INTERNAL_ERROR,
-                 "Attempting to build a unioned index scans access path on a table which has already committed one before.");
+//        if (getUnionIndexScanResultSet() != null)  // msirek-temp
+//            throw StandardException.newException(LANG_INTERNAL_ERROR,
+//                 "Attempting to build a unioned index scans access path on a table which has already committed one before.");
 
         // We don't want to bind or re-optimize this tree if
         // we re-use it again.
         unionOfIndexes.setSkipBindAndOptimize(true);
 
+        // But we do want the outer table to be optimized.
+        // Unset the flag in case we set it in buildUnionedScans,
+        // since we may have added it to the FromList of the above
+        // select statement, and did not want to rebind it.
+        FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
+        if (outerBaseTable != null)
+            outerBaseTable.setSkipBindAndOptimize(false);
+
         //this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;  // msirek-temp
+
         uisAccessPath.setCostEstimate(unionOfIndexes.getCostEstimate().cloneMe());
+    }
+
+    private Predicate buildRowIdPredWithOuterTable(Optimizer optimizer,
+                                                   ResultColumn baseRowId2RC,
+                                                   FromTable uisResultSet) throws StandardException {
+        if (optimizer.getJoinPosition() == 0)
+            return null;
+
+        FromList fromList = (FromList)optimizer.getOptimizableList();
+
+        FromTable outerTable = (FromTable) optimizer.getOuterTable();
+        FromTable outerProjectRestrict = outerTable;
+
+        // Traverse to the named table.  A FromTable is expected
+        // to be named in order to do proper binding.
+        SingleChildResultSetNode aboveResultSetNode = null;
+        while (outerTable instanceof SingleChildResultSetNode) {
+            aboveResultSetNode = (SingleChildResultSetNode) outerTable;
+            outerTable = (FromTable)aboveResultSetNode.getChildResult();
+        }
+        if (!(outerTable instanceof FromBaseTable))
+            return null;
+        FromBaseTable outerBaseTable = (FromBaseTable)outerTable;
+
+        NodeFactory nodeFactory = getNodeFactory();
+//        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
+//                                C_NodeTypes.COLUMN_REFERENCE,
+//                                "BASEROWID2",
+//                                this.getExposedTableName(),
+//                                getContextManager());  // msirek-temp
+        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                "BASEROWID2",
+                                uisResultSet.getTableName(),
+                                getContextManager());
+        ridCol1.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
+        ridCol1.setSource(baseRowId2RC);
+
+//        FromList innerFromList =(FromList)getNodeFactory().getNode(
+//                    C_NodeTypes.FROM_LIST,
+//                    getNodeFactory().doJoinOrderOptimization(),
+//                    getContextManager());
+//        innerFromList.addFromTable(uisResultSet);
+//        ridCol1 = (ColumnReference)innerFromList.bindColumnReference(ridCol1);
+
+        ColumnReference ridCol2 =
+        (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                "BASEROWID",
+                                outerBaseTable.getTableName(),
+                                getContextManager());
+        ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
+        ridCol2.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
+
+        // Set up the rowid = rowid predicate to join back to the base table.
+        BinaryRelationalOperatorNode whereClause =
+                (BinaryRelationalOperatorNode)
+                nodeFactory.getNode(
+                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        ridCol1,
+                        ridCol2,
+                        getContextManager());
+
+        whereClause.bindComparisonOperator();
+
+        AndNode andNode = AndNode.newAndNode(whereClause, false);
+
+        JBitSet newJBitSet=new JBitSet(getCompilerContext().getNumTables());
+        Predicate
+        newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                  andNode, newJBitSet, getContextManager());
+        newPred.setOuterJoinLevel(whereClause.getOuterJoinLevel());
+        if (aboveResultSetNode instanceof ProjectRestrictNode) {
+            ProjectRestrictNode prn = (ProjectRestrictNode)aboveResultSetNode;
+            if (prn.getResultColumns().getResultColumn("BASEROWID") == null) {
+//                ValueNode virtualColumn =(ValueNode)getNodeFactory().getNode(
+//                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
+//                    outerBaseTable,
+//                    outerBaseTable.getRowIdColumn(),
+//                    ReuseFactory.getInteger(prn.getResultColumns().size()+1),
+//                    getContextManager());
+//                ResultColumn rowIdResultColumn =
+//                    (ResultColumn)getNodeFactory().getNode(
+//                        C_NodeTypes.RESULT_COLUMN,
+//                        "BASEROWID",
+//                        virtualColumn,
+//                        getContextManager());  // msirek-temp
+
+                ResultColumn rowIdResultColumn = outerBaseTable.getRowIdColumn();
+                rowIdResultColumn.setVirtualColumnId(prn.getResultColumns().size()+1);
+                rowIdResultColumn.setReferenced();
+                rowIdResultColumn.markGenerated();
+                ridCol2.setSource(rowIdResultColumn);
+
+                //prn.setResultColumns(prn.getResultColumns().copyListAndObjects());  // msirek-temp
+                prn.getResultColumns().addResultColumn(rowIdResultColumn);
+                prn.assignResultSetNumber();  // msirek-temp
+            }
+        }
+        return newPred;
     }
 
     // In case we need to join the result to another table...
@@ -1126,9 +1270,11 @@ public class FromBaseTable extends FromTable {
             ResultColumnList replacementResultColumns = replacementResultSet.getResultColumns();
             this.resultSetNumber = getCompilerContext().getNextResultSetNumber();
             resultColumns.setResultSetNumber(resultSetNumber);
-//            if (replacementResultColumns.size() != resultColumns.size())  // msirek-temp
-//                throw StandardException.newException(LANG_INTERNAL_ERROR,
-//                     "Incorrectly built result columns for unioned index scan.");
+            // There may be an extra column reserved for the RowID.
+            if (replacementResultColumns.size() != resultColumns.size() &&
+                replacementResultColumns.size() != resultColumns.size() + 1)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Incorrectly built result columns for unioned index scan.");
 
 //            for (int i = 1; i <= resultColumns.size(); i++) {
 //                ValueNode replacementExpression = replacementResultColumns.getResultColumn(i).getExpression();
@@ -1140,7 +1286,7 @@ public class FromBaseTable extends FromTable {
 
     public void assignResultSetNumber() throws StandardException{
         int uisResultSetNumber = getUnionIndexScanResultSetNumber();
-        if (uisResultSetNumber > -1)
+        if (uisResultSetNumber > -1) // msirek-temp
             assignResultSetNumber(uisResultSetNumber, getUnionIndexScanResultSet());
 
         // only set if currently unset
@@ -1150,14 +1296,22 @@ public class FromBaseTable extends FromTable {
         }
     }
 
-    public int getUnionIndexScanResultSetNumber() {
+    public int getUnionIndexScanResultSetNumber() throws StandardException {
+        ResultSetNode uisRowIdJoinBackToBaseTableResultSet;
         if (trulyTheBestAccessPath != null &&
             trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null) {
-            return trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet().getResultSetNumber();
+            uisRowIdJoinBackToBaseTableResultSet =
+                trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet();
+            uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
+            return uisRowIdJoinBackToBaseTableResultSet.getResultSetNumber();
         }
         else if (bestAccessPath != null &&
-                 bestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
+                 bestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null) {
+            uisRowIdJoinBackToBaseTableResultSet =
+                bestAccessPath.getUisRowIdJoinBackToBaseTableResultSet();
+            uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
             return bestAccessPath.getUisRowIdJoinBackToBaseTableResultSet().getResultSetNumber();
+        }
         else
             return -1;
     }
@@ -1198,13 +1352,18 @@ public class FromBaseTable extends FromTable {
         // Unioned Index Scans currently not eligible for semijoin.
         // Build and cost the Unioned Index Scans access path.
         OptimizablePredicate uisPred =
-            isOneRowResultSet() || getCompilerContext().getDisableUnionedIndexScans() ? null :
+            (isOneRowResultSet() || getCompilerContext().getDisableUnionedIndexScans()) ? null :
             getUsefulPredicateForUnionedIndexScan(predList);
         if (uisPred != null) {
+            int predListOrigLength = predList.size();
             uisAccessPath =
                 buildUnionedScans(uisPred, optimizer);
             if (uisAccessPath != null)
                 bindAndOptimizeUnionedIndexScansPath(uisAccessPath, optimizer);
+            if (predListOrigLength != predList.size()) {
+                boolean doSomethingUseless = true;  // msirek-temp
+            }
+
         }
 
         finalCostEstimate = firstPassCostEstimate =
@@ -1218,6 +1377,7 @@ public class FromBaseTable extends FromTable {
         // Choose the cheapest of the two access paths.
         LanguageConnectionContext lcc = getLanguageConnectionContext();
         currentAccessPath.setUisPredicate(null);
+        currentAccessPath.setUisRowIdPredicate(null);
         currentAccessPath.setUnionOfIndexes(null);
         currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
 
@@ -1269,7 +1429,7 @@ public class FromBaseTable extends FromTable {
         // Only consider the unioned index scan path once per table,
         // on the first conglomerate, or on the current, user-specified one.
         boolean hintedIndex = getUserSpecifiedIndexName() != null;
-        if (conglomDescs[0] != currentAccessPath.getConglomerateDescriptor() &&
+        if (currentAccessPath.getConglomerateDescriptor().isIndex() &&
             !hintedIndex)
             return null;
         if (currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
@@ -1277,7 +1437,7 @@ public class FromBaseTable extends FromTable {
         if (predicateList == null)
             return null;
         AccessPath accessPath = hintedIndex ? currentAccessPath : null;
-        return predicateList.getUsefulPredicateForUnionedIndexScan(this, accessPath);
+        return predicateList.getUsefulPredicateForUnionedIndexScan(this, accessPath, currentAccessPath.getOptimizer());
     }
 
     // Generate a new AccessPath with its unionOfIndexes field populated
@@ -1293,6 +1453,10 @@ public class FromBaseTable extends FromTable {
 
         FromBaseTable baseTable;
         for (OptimizablePredicateList predList:predicateLists) {
+//            if (optimizer.getJoinPosition() == 0)
+//                baseTable = shallowClone();
+//            else
+//                baseTable = this;  // msirek-temp
             baseTable = shallowClone();
             baseTable.setIndexFriendlyJoinsOnly(true);  // msirek-temp
             if (predList.size() != 1)
@@ -1303,12 +1467,16 @@ public class FromBaseTable extends FromTable {
             AccessPath currentAccessPath = getCurrentAccessPath();
             JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
             currentJoinStrategy.getBasePredicates(predList, baseTable.baseTableRestrictionList, this);
-            if (combinedResults != null)
+            if (combinedResults != null) {
                 combinedResults = getUnionNode(combinedResults, baseTable, optimizer);
+                if (combinedResults == null)
+                    return null;
+            }
             else
                 combinedResults = baseTable;
         }
 
+        combinedResults.setOuterTableOnly(true);  // msirek-temp
         AccessPath uisAccessPath = new AccessPathImpl(optimizer);
         uisAccessPath.copy(currentAccessPath);
         uisAccessPath.setUisPredicate((Predicate)uisPred);
@@ -1353,6 +1521,24 @@ public class FromBaseTable extends FromTable {
         return newList;
     }
 
+    void addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
+        String columnName = "BASEROWID";
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                columnName,
+                                outerTable.getTableName(),
+                                getContextManager());
+        ResultColumn rowIdResultColumn =
+            (ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "BASEROWID2",
+                columnReference,
+                getContextManager());
+
+        resultColumnList.addResultColumn(rowIdResultColumn);
+    }
+
+
     ResultSetNode buildSelectNode(ResultSetNode source, Optimizer optimizer) throws StandardException {
         if (source instanceof UnionNode)
             return source;
@@ -1385,12 +1571,19 @@ public class FromBaseTable extends FromTable {
        }
        FromBaseTable innerTableCopy = ((FromBaseTable)source).shallowClone();  // msirek-temp
        innerTableCopy.setIndexFriendlyJoinsOnly(true);  // msirek-temp
+
        fromList.addFromTable(innerTableCopy);
+       ResultColumnList resultColumnList = singleRowIdColumnResultColumnList();
+
        // fromList.addFromTable((FromTable)source);  // msirek-temp
        if (pred.getReferencedSet().cardinality() > 1) {
            int joinPosition = optimizer.getJoinPosition();
            if (joinPosition > 0) {
                FromTable outerTable = (FromTable) optimizer.getOuterTable();
+               ProjectRestrictNode
+                   projectRestrict = outerTable instanceof ProjectRestrictNode ?
+                                     (ProjectRestrictNode) outerTable : null;
+
                // Traverse to the named table.  A FromTable is expected
                // to be named in order to do proper binding.
                while (outerTable instanceof SingleChildResultSetNode) {
@@ -1400,13 +1593,18 @@ public class FromBaseTable extends FromTable {
                    SingleChildResultSetNode resultSetNode = (SingleChildResultSetNode) outerTable;
                    outerTable = (FromTable)resultSetNode.getChildResult();
                }
+               FromBaseTable outerBaseTable = null;
+               ResultSetNode unionIndexScanResultSet = null;
                if (!(outerTable instanceof FromBaseTable)) {
-                   throw StandardException.newException(LANG_INTERNAL_ERROR,
-                    "Unexpected outer table source result set while processing unioned index scan.");
+                   if (outerTable.getCorrelationName() == null)
+                       throw StandardException.newException(LANG_INTERNAL_ERROR,
+                        "Unexpected outer table source result set while processing unioned index scan.");
                }
-               FromBaseTable outerBaseTable = (FromBaseTable) outerTable;
+               else {
+                   outerBaseTable = (FromBaseTable) outerTable;
+                   unionIndexScanResultSet = outerBaseTable.getUnionIndexScanResultSet();
+               }
                FromTable outerRelation;
-               ResultSetNode unionIndexScanResultSet = outerBaseTable.getUnionIndexScanResultSet();
                if (unionIndexScanResultSet != null) {
                    // We want the JoinNode...
 //                   while (unionIndexScanResultSet instanceof SingleChildResultSetNode)
@@ -1414,8 +1612,25 @@ public class FromBaseTable extends FromTable {
 //                           ((SingleChildResultSetNode)unionIndexScanResultSet).getChildResult();  // msirek-temp
                    outerRelation = (FromTable) unionIndexScanResultSet;
                }
-               else
-                   outerRelation = outerBaseTable.shallowClone();
+               else {
+//                   if (projectRestrict != null) {  // msirek-temp
+//                       outerRelation = projectRestrict;
+//                       if (outerBaseTable != null)
+//                           outerRelation.setCorrelationName(outerBaseTable.getCorrelationName());
+//                   }
+//                   else
+                   {
+                       outerRelation = outerBaseTable.shallowClone();  // msirek-temp
+//                       outerRelation = outerBaseTable;
+//                       outerRelation.setSkipBindAndOptimize(true);  // msirek-temp:  Do we need this?
+                       boolean noError =
+                           addPredsFromOuterRestrictionList(projectRestrict, whereClause);
+                       if (!noError)
+                           return null;  // msirek-temp
+
+                       addOuterTableRowIdToRCList(resultColumnList, outerRelation);  // msirek-temp
+                   }
+               }
 
                outerRelation.setOuterTableOnly(true); // msirek-temp
                // outerTableCopy.setOuterTableOnly(true);  // msirek-temp
@@ -1424,10 +1639,9 @@ public class FromBaseTable extends FromTable {
            }
        }
 
-
        SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
                             C_NodeTypes.SELECT_NODE,
-                            singleRowIdColumnResultColumnList(),
+                            resultColumnList,
                             null,
                             fromList,
                             whereClause,
@@ -1439,9 +1653,43 @@ public class FromBaseTable extends FromTable {
        return selectNode;
     }
 
+    private boolean addPredsFromOuterRestrictionList(ProjectRestrictNode projectRestrict, ValueNode whereClause) {
+       if (projectRestrict != null) {
+           PredicateList restrictionList = null;
+           restrictionList = projectRestrict.getRestrictionList();
+           if (restrictionList != null) {
+               CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
+               AndNode tempAnd = (AndNode)whereClause;
+   nextPred:   for(int i=0; i < restrictionList.size(); i++) {
+                   Predicate predicate = restrictionList.elementAt(i);
+                   AndNode andNodeToAdd = predicate.getAndNode();
+                   if (tempAnd == andNodeToAdd)
+                       continue nextPred;
+                   while (!tempAnd.getRightOperand().isBooleanTrue()) {
+                       tempAnd = (AndNode) tempAnd.getRightOperand();
+                       if (tempAnd == andNodeToAdd)
+                           continue nextPred;
+                   }
+                   try {
+                       andNodeToAdd = (AndNode)andNodeToAdd.accept(cloneCRsVisitor);
+                   }
+                   catch (StandardException e) {
+                       // If unable to clone all ColumnReferences, it is
+                       // unsafe to use this predicate tree.
+                       return false;
+                   }
+                   tempAnd.setRightOperand(andNodeToAdd);
+               }
+           }
+       }
+       return true;
+    }
+
     private FromTable getUnionNode(ResultSetNode leftSide, FromTable rightSide, Optimizer optimizer) throws StandardException {
        ResultSetNode leftTree = buildSelectNode(leftSide, optimizer);
        ResultSetNode rightTree = buildSelectNode(rightSide, optimizer);
+       if (leftTree == null || rightTree == null)
+           return null;
 
        return
         (FromTable) getNodeFactory().getNode(
@@ -1718,6 +1966,8 @@ public class FromBaseTable extends FromTable {
     @Override
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,
                                           FromList fromListParam)throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         TableDescriptor tableDescriptor=bindTableDescriptor();
 
         int tableType = tableDescriptor.getTableType();
@@ -4729,9 +4979,13 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    protected void recordUisAccessPath(AccessPath ap) {  // msirek-temp   Remove this function.
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {  // msirek-temp   Remove this function.
         super.recordUisAccessPath(ap);
         uisRowIdJoinBackToBaseTableResultSet = ap.getUisRowIdJoinBackToBaseTableResultSet();
+        if (uisRowIdJoinBackToBaseTableResultSet != null)
+            walkAST(getLanguageConnectionContext(),
+                    uisRowIdJoinBackToBaseTableResultSet,
+                    CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
     }
 
 }

@@ -50,6 +50,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * A FromTable represents a table in the FROM clause of a DML statement.
@@ -361,6 +362,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         ap.setJoinStrategy(joinStrategy);
         ap.setHintedJoinStrategy(currentAccessPath.isHintedJoinStrategy());
         ap.setUisPredicate(currentAccessPath.getUisPredicate());
+        ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
         ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
         ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
         if (joinStrategy.getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST)
@@ -682,6 +684,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         currentAccessPath.setMissingHashKeyOK(false);
         currentAccessPath.setNumUnusedLeadingIndexFields(0);
         currentAccessPath.setUisPredicate(null);
+        currentAccessPath.setUisRowIdPredicate(null);
         currentAccessPath.setUnionOfIndexes(null);
         currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
     }
@@ -1603,20 +1606,21 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     }
 
     // Currently only FromBaseTable can record a Unioned Index Scans access path.
-    protected void recordUisAccessPath(AccessPath ap) {
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {
 
     }
 
-    protected void updateResultColumnExpressions(ResultColumnList replacementResultColumns) {
+    // Update the source of each result column with the result column
+    // from a Unioned Index Scans access path.
+    protected void updateResultColumnExpressions(ResultColumnList replacementResultColumns) throws StandardException {
         for (int i = 0; i < resultColumns.size(); i++) {
             ResultColumn targetRC = resultColumns.elementAt(i);
-            // Avoid searching the replacementResultColumns list if we don't have to.
+            // Are the columns out of order for some reason?
+            if (!targetRC.getName().equals(replacementResultColumns.elementAt(i).getName()))
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Incorrectly built result columns for unioned index scan.");
             ValueNode replacementExpression =
-              (i >= replacementResultColumns.size() ||
-                !targetRC.getName().equals(replacementResultColumns.elementAt(i).getName())) ?
-              replacementResultColumns.getResultColumn(targetRC.getName()).getExpression() :
               replacementResultColumns.elementAt(i).getExpression();
-
             targetRC.setExpression(replacementExpression);
         }
     }
