@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.BitSetIterator;
 import com.google.protobuf.ByteString;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -94,6 +95,7 @@ public class IndexTransformer {
     private DDLMessage.Table table;
     private int [] mainColToIndexPosMap;  // 0-based
     private BitSet indexedCols;   // 0-based
+    private BitSet nonPkIndexedCols; // 0-based
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] indexRowSerializers;
@@ -120,6 +122,10 @@ public class IndexTransformer {
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
+        nonPkIndexedCols = (BitSet)indexedCols.clone();
+        for (int pos : table.getColumnOrderingList()) {
+            nonPkIndexedCols.clear(pos);
+        }
         mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
         if ( index.hasDefaultValues() && excludeDefaultValues) {
@@ -476,11 +482,13 @@ public class IndexTransformer {
         EntryDecoder newPutDecoder = new EntryDecoder();
         newPutDecoder.set(mutation.getValue());
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
-        for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
-            if (indexedColumns.get(i))
-                return true;
+        BitSetIterator iterator = nonPkIndexedCols.iterator();
+        int nextBit;
+        while((nextBit = iterator.nextSetBit()) != -1) {
+            if (!updateIndex.isSet(nextBit))
+                return false;
         }
-        return false;
+        return true;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {

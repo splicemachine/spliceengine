@@ -1525,11 +1525,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
             // TODO: Re-enable this code once UpdateOperation is
             //       properly trained to detect which indexes
             //       can skip the update.
-//            if ((updatedColumns != null) &&
-//                    (!updatedColumns.updateOverlaps(
-//                            cd.getIndexDescriptor().baseColumnPositions()))) {
-//                continue;
-//            }
+            if ((updatedColumns != null) &&
+                    (!updatedColumns.updateOverlaps(
+                            cd.getIndexDescriptor().baseColumnPositions()))) {
+                continue;
+            }
 
             if (conglomVector != null) {
                 int i;
