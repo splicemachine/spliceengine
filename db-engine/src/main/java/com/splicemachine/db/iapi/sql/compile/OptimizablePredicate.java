@@ -196,7 +196,7 @@ public interface OptimizablePredicate
 
 	boolean isFullJoinPredicate();
 
-	boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath) throws StandardException;
+	boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
 
 	List<OptimizablePredicateList> separateOredPredicates() throws StandardException;
 }

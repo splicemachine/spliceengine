@@ -1786,6 +1786,16 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             return false;
         }
 
+        // The source of a Unioned Index Scans result set may have a different number of columns
+        // projected than the base table.  Do not eliminate the projection for these cases because
+        // if we are the source of a JoinNode, the way joins build output rows requires the entire
+        // source row be copied into the merged row as-is.
+        FromBaseTable childBaseTable = childResult instanceof FromBaseTable ? (FromBaseTable) childResult : null;
+        if (childBaseTable != null && childBaseTable.getTrulyTheBestAccessPath() != null) {  // msirek-temp
+            if (childBaseTable.getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet() != null)
+                return false;
+        }
+
         ResultColumnList childColumns=childResult.getResultColumns();
         ResultColumnList PRNColumns=this.getResultColumns();
 
@@ -2209,11 +2219,18 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     @Override
-    protected void recordUisAccessPath(AccessPath ap) {
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {
         super.recordUisAccessPath(ap);
         if (childResult instanceof FromTable) {
             FromTable childFromTable = (FromTable)childResult;
             childFromTable.recordUisAccessPath(ap);
         }
+    }
+
+   @Override
+    public boolean skipBindAndOptimize() {
+        if (skipBindAndOptimize)
+            return true;
+        return childResult.skipBindAndOptimize();
     }
 }

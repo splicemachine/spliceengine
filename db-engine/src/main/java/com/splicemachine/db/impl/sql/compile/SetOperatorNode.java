@@ -1159,8 +1159,8 @@ abstract class SetOperatorNode extends TableOperatorNode
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn rc = resultColumns.elementAt(i);
             if (rc.isReferenced()) {
-                leftResultSet.resultColumns.elementAt(i).setReferenced();
-                rightResultSet.resultColumns.elementAt(i).setReferenced();
+                leftResultSet.getResultColumns().elementAt(i).setReferenced();
+                rightResultSet.getResultColumns().elementAt(i).setReferenced();
             }
         }
 

@@ -668,7 +668,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             AndNode firstAnd = null;
             AndNode newAndNode, currentAnd = null;
             for (OrNode orNode:disjuncts) {
-                newAndNode = newAndNode(orNode);
+                newAndNode = newAndNode(orNode, true);
                 if (firstAnd == null)
                     firstAnd = newAndNode;
                 else
@@ -814,5 +814,26 @@ public class OrNode extends BinaryLogicalOperatorNode {
             node = orNode.getRightOperand();
         }
         return firstNode;
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        return true;
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        ValueNode left = getLeftOperand();
+        ValueNode right = getRightOperand();
+        OrNode    orNode;
+        orNode = (OrNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.OR_NODE,
+                                                    left,
+                                                    right,
+                                                    left.getContextManager());
+        orNode.postBindFixup();
+        return orNode;
     }
 }

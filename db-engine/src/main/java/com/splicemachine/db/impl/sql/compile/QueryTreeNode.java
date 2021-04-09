@@ -594,7 +594,11 @@ public abstract class QueryTreeNode implements Node, Visitable{
         final Visitable ret = visitor.stopTraversal() ? this : visitor.visit(this, parent);
 
         if(!childrenFirst && !skipChildren && !visitor.stopTraversal()){
-            acceptChildren(visitor);
+            if (ret != null) {
+                ((QueryTreeNode)ret).acceptChildren(visitor);
+            }
+            else  // msirek-temp
+                acceptChildren(visitor);
         }
 
         return ret;

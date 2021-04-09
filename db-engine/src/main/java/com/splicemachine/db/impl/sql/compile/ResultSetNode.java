@@ -1813,6 +1813,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
         this.skipBindAndOptimize = skipBindAndOptimize;
     }
 
+    public boolean skipBindAndOptimize() {
+        return skipBindAndOptimize;
+    }
 //    public void setOptimizer(Optimizer optimizer) {
 //        this.optimizer = optimizer;
 //    }  // msirek-temp

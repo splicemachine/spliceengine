@@ -2411,6 +2411,7 @@ public class OptimizerImpl implements Optimizer{
                 bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
                 bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
+                bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
                 bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
                 bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
                 optimizable.rememberJoinStrategyAsBest(bestAp);
@@ -2433,6 +2434,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
             bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
+            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
             bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
             bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
             optimizable.rememberJoinStrategyAsBest(bestAp);
@@ -2452,6 +2454,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
             bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
+            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
             bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
             bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
             optimizable.rememberJoinStrategyAsBest(bestAp);
@@ -2485,6 +2488,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
             bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
+            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
             bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
             bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
             optimizable.rememberJoinStrategyAsBest(bestAp);
@@ -2530,6 +2534,7 @@ public class OptimizerImpl implements Optimizer{
                 ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
                 ap.setUisPredicate(currentAccessPath.getUisPredicate());
+                ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
                 ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
                 ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
 
@@ -2580,6 +2585,7 @@ public class OptimizerImpl implements Optimizer{
                             ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                             ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
                             ap.setUisPredicate(currentAccessPath.getUisPredicate());
+                            ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
                             ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
                             ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
 
@@ -2818,6 +2824,28 @@ public class OptimizerImpl implements Optimizer{
         int propJoinOrder = proposedJoinOrder[joinPosition-1];
         Optimizable thisOpt = optimizableList.getOptimizable(propJoinOrder);
         return thisOpt;
+    }
+
+    @Override
+    public FromBaseTable getOuterBaseTable() throws StandardException {
+       FromTable outerTable = (FromTable) getOuterTable();
+       if (outerTable == null)
+           return null;
+
+       // Traverse to the named table.  A FromTable is expected
+       // to be named in order to do proper binding.
+       while (outerTable instanceof SingleChildResultSetNode) {
+           if (outerTable.getTableName() != null)
+               break;
+
+           SingleChildResultSetNode resultSetNode = (SingleChildResultSetNode) outerTable;
+           outerTable = (FromTable)resultSetNode.getChildResult();
+       }
+       FromBaseTable outerBaseTable = null;
+       if (outerTable instanceof FromBaseTable) {
+           outerBaseTable = (FromBaseTable) outerTable;
+       }
+       return outerBaseTable;
     }
 
 }

@@ -204,6 +204,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setUisPredicate(null);
         bestAp.setUisPredicate(null);
         bestSortAp.setUisPredicate(null);
+        ap.setUisRowIdPredicate(null);
+        bestAp.setUisRowIdPredicate(null);
+        bestSortAp.setUisRowIdPredicate(null);
         ap.setUnionOfIndexes(null);
         bestAp.setUnionOfIndexes(null);
         bestSortAp.setUnionOfIndexes(null);

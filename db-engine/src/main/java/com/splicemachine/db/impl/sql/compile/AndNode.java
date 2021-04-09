@@ -282,7 +282,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
             lastAnd.setRightOperand(right);
         }
         else {
-            AndNode newAnd = newAndNode(lastAnd.getRightOperand());
+            AndNode newAnd = newAndNode(lastAnd.getRightOperand(), true);
             lastAnd.setRightOperand(newAnd);
             newAnd.setRightOperand(right);
         }
@@ -407,7 +407,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         return false;
     }
 
-    public static AndNode newAndNode(ValueNode left) throws StandardException {
+    public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
         ValueNode trueNode=(ValueNode)left.getNodeFactory().getNode(
                 C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                 Boolean.TRUE,
@@ -417,6 +417,28 @@ public class AndNode extends BinaryLogicalOperatorNode{
                                                     C_NodeTypes.AND_NODE,
                                                     left,
                                                     trueNode,
+                                                    left.getContextManager());
+        if (doPostBindFixup)
+            andNode.postBindFixup();
+        return andNode;
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        return true;
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        ValueNode left = getLeftOperand();
+        ValueNode right = getRightOperand();
+        AndNode    andNode;
+        andNode = (AndNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.AND_NODE,
+                                                    left,
+                                                    right,
                                                     left.getContextManager());
         andNode.postBindFixup();
         return andNode;
@@ -428,7 +450,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         AndNode firstNode = null;
         while (node instanceof AndNode) {
             AndNode andNode = (AndNode) node;
-            nextAndNode = newAndNode(andNode.getLeftOperand());
+            nextAndNode = newAndNode(andNode.getLeftOperand(), true);
             if (firstNode == null)
                 firstNode = nextAndNode;
             else
