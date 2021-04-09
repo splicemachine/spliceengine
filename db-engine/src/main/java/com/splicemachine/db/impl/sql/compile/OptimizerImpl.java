@@ -2495,30 +2495,28 @@ public class OptimizerImpl implements Optimizer{
         currentAccessPath.setCostEstimate(estimatedCost);
 
         /* Pick the cheapest cost for this particular optimizable. */
-        AccessPath ap=optimizable.getBestAccessPath();
-        CostEstimate bestCostEstimate=ap.getCostEstimate();
-
-        boolean memoryOK = checkPathMemoryUsage(optimizable, false);
 
         // only update the best access path if the current access path passes the memory limit check
+        boolean memoryOK = checkPathMemoryUsage(optimizable, false);
         if (memoryOK) {
-            if ((bestCostEstimate == null) || bestCostEstimate.isUninitialized() || (estimatedCost.compare(bestCostEstimate) < 0)) {
-                ap.setConglomerateDescriptor(cd);
-                ap.setCostEstimate(estimatedCost);
-                ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
-                ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
-                ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
-                ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+            AccessPath bestAccessPath = optimizable.getBestAccessPath();
+            if (isCurrentAccessPathBetter(currentAccessPath, bestAccessPath, optimizable, predList)) {
+                bestAccessPath.setConglomerateDescriptor(cd);
+                bestAccessPath.setCostEstimate(estimatedCost);
+                bestAccessPath.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
+                bestAccessPath.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                bestAccessPath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                bestAccessPath.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             /*
             ** It's a non-matching index scan either if there is no
             ** predicate list, or nothing in the predicate list is useful
             ** for limiting the scan.
             */
-                ap.setNonMatchingIndexScan((cd == null) || (predList == null) ||
+                bestAccessPath.setNonMatchingIndexScan((cd == null) || (predList == null) ||
                                            (!(predList.useful(optimizable, currentAccessPath))));
-                ap.setLockMode(currentAccessPath.getLockMode());
-                optimizable.rememberJoinStrategyAsBest(ap);
+                bestAccessPath.setLockMode(currentAccessPath.getLockMode());
+                optimizable.rememberJoinStrategyAsBest(bestAccessPath);
             }
         }
 
@@ -2539,32 +2537,28 @@ public class OptimizerImpl implements Optimizer{
                 */
                 if(requiredRowOrdering.sortRequired(currentRowOrdering, assignedTableMap, optimizableList)
                         ==RequiredRowOrdering.NOTHING_REQUIRED){
-                    ap=optimizable.getBestSortAvoidancePath();
-                    bestCostEstimate=ap.getCostEstimate();
 
                     memoryOK = checkPathMemoryUsage(optimizable, true);
 
                     /* Is this the cheapest sort-avoidance path? */
                     if (memoryOK) {
-                        if ((bestCostEstimate == null) ||
-                                bestCostEstimate.isUninitialized() ||
-                                (estimatedCost.compare(bestCostEstimate) < 0)) {
-                            ap.setConglomerateDescriptor(cd);
-                            ap.setCostEstimate(estimatedCost);
-                            ap.setCoveringIndexScan(
-                                    optimizable.isCoveringIndex(cd));
-                            ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
-                            ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
-                            ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+                        AccessPath bestSortAvoidancePath = optimizable.getBestSortAvoidancePath();
+                        if (isCurrentAccessPathBetter(currentAccessPath, bestSortAvoidancePath, optimizable, predList)) {
+                            bestSortAvoidancePath.setConglomerateDescriptor(cd);
+                            bestSortAvoidancePath.setCostEstimate(estimatedCost);
+                            bestSortAvoidancePath.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
+                            bestSortAvoidancePath.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                            bestSortAvoidancePath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                            bestSortAvoidancePath.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
                         /*
                         ** It's a non-matching index scan either if there is no
                         ** predicate list, or nothing in the predicate list is
                         ** useful for limiting the scan.
                         */
-                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, currentAccessPath))));
-                            ap.setLockMode(currentAccessPath.getLockMode());
-                            optimizable.rememberJoinStrategyAsBest(ap);
+                            bestSortAvoidancePath.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, currentAccessPath))));
+                            bestSortAvoidancePath.setLockMode(currentAccessPath.getLockMode());
+                            optimizable.rememberJoinStrategyAsBest(bestSortAvoidancePath);
                             optimizable.rememberSortAvoidancePath();
 
                         /*
@@ -2578,6 +2572,55 @@ public class OptimizerImpl implements Optimizer{
         }
     }
 
+    private static boolean isCurrentAccessPathBetter(AccessPath currentAccessPath, AccessPath bestAccessPath,
+                                                     Optimizable currOpt, OptimizablePredicateList predList) throws StandardException {
+        CostEstimate currentCost = currentAccessPath.getCostEstimate();
+        CostEstimate bestCost = bestAccessPath.getCostEstimate();
+
+        if ((bestCost == null) || bestCost.isUninitialized()) {
+            return true;
+        }
+
+        double compResult = currentCost.compare(bestCost);
+        if (compResult < 0) {
+            return true;
+        } else if (compResult == 0) {
+            // When current access path has the same cost as the best access path,
+            // choose the one that we know it works fine even with outdated statistics.
+            ConglomerateDescriptor currentCD = currentAccessPath.getConglomerateDescriptor();
+            if (currentCD.isIndex() || currentCD.isPrimaryKey()) {
+                // Note that we don't assert anything on best access path. Reason is
+                // that best access path can be an index scan without any start/stop
+                // keys, which could be as slow as full table scan or even worse if
+                // it's not covering. We need to make sure such an access path is not
+                // chosen as the best if we know a better access path exists.
+                // On the other hand, best access path could be a really good one and
+                // we replace it here. In that case, bottom line is that we know the
+                // current access path is not bad.
+                if (predList != null) {
+                    boolean isCurrentFullScan = true;
+                    for (int i = 0; i < predList.size(); ++i) {
+                        OptimizablePredicate pred = predList.getOptPredicate(i);
+                        if (pred.isStartKey() || pred.isStopKey()) {
+                            isCurrentFullScan = false;
+                            break;
+                        }
+                    }
+                    if (!isCurrentFullScan) {
+                        return true;
+                    }
+                }
+                // If current access path is a full scan over an index, select it
+                // only when the best access path is a full table scan and the index
+                // is covering. A covering index should still be better based on the
+                // assumption that an index typically has fewer columns.
+                ConglomerateDescriptor bestCD = bestAccessPath.getConglomerateDescriptor();
+                return !bestCD.isIndex() && !bestCD.isPrimaryKey() && currOpt.isCoveringIndex(currentCD);
+            }
+        }
+
+        return false;
+    }
 
     public boolean isSingleRow() {return singleRow;}
 

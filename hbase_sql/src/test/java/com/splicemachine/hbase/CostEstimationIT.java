@@ -152,6 +152,12 @@ public class CostEstimationIT extends SpliceUnitTest {
             multiple = multiple*2;
         }
 
+        new TableCreator(conn)
+                .withCreate("create table empty_table (a1 int, b1 int, c1 int)")
+                .withIndex("create index empty_idx1 on empty_table(c1,a1)")
+                .withIndex("create index empty_idx2 on empty_table(b1,a1)")
+                .create();
+
         try(PreparedStatement ps = spliceClassWatcher.getOrCreateConnection().
                 prepareStatement("analyze schema " + CLASS_NAME)) {
             ps.execute();
@@ -445,5 +451,13 @@ public class CostEstimationIT extends SpliceUnitTest {
                 new String[] {"IndexScan[IDX1_T111", "outputRows=40960"},
                 new String[] {"TableScan[T1", "outputRows=40"}
         );
+    }
+
+    // DB-11828
+    @Test
+    public void testPreferIndexAccessEqualCosts() throws Exception {
+        String sqlText = "explain select c1 from empty_table where b1 < 5";
+
+        rowContainsQuery(new int[]{4, 5}, sqlText, methodWatcher, "IndexLookup", "IndexScan[EMPTY_IDX2");
     }
 }
