@@ -1523,9 +1523,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
             // We must include all indexes in the update for now,
             // because the logic to determine which indexes need to
             // be updated is broken and needs a lot of rework.
-            // TODO: Re-enable this code once UpdateOperation is
-            //       properly trained to detect which indexes
-            //       can skip the update.
             if ((updatedColumns != null) &&
                     (!updatedColumns.updateOverlaps(
                             cd.getIndexDescriptor().baseColumnPositions()))) {
