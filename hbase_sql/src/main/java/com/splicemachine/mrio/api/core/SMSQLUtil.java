@@ -176,59 +176,54 @@ public class SMSQLUtil  {
      * */
     public String getTransactionID() throws SQLException {
         String trxId = "";
-        ResultSet resultSet = null;
-        try {
-            resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        try (Statement s = connect.createStatement();
+             ResultSet resultSet = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()"))
+        {
             while(resultSet.next()){
                 trxId = String.valueOf(resultSet.getLong(1));
             }
-        } finally {
-            if (resultSet != null)
-                resultSet.close();
         }
         return trxId;
     }
 
     public String getTransactionID(Connection conn) throws SQLException{
         String trxId = null;
-        ResultSet resultSet = null;
-        try {
-            resultSet = conn.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        try (Statement s = conn.createStatement();
+             ResultSet resultSet = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()"))
+        {
             while(resultSet.next()){
                 long txnID = resultSet.getLong(1);
                 trxId = String.valueOf(txnID);
             }
-        } finally {
-            if (resultSet != null)
-                resultSet.close();
+            return trxId;
         }
-        return trxId;
+
     }
 
     public long getChildTransactionID(Connection conn, long parentTxsID, String tableName) throws SQLException {
-        PreparedStatement ps = null;
         ResultSet rs = null;
         long childTxsID;
-        try {
-            ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?,?)");
+        try (PreparedStatement ps =
+                     conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?,?)") )
+        {
             ps.setLong(1, parentTxsID);
             ps.setString(2, tableName);
-            ResultSet rs3 = ps.executeQuery();
-            rs3.next();
-            childTxsID = rs3.getLong(1);
+            rs = ps.executeQuery();
+            rs.next();
+            childTxsID = rs.getLong(1);
         } finally {
             if (rs != null)
                 rs.close();
-            if (ps != null)
-                ps.close();
         }
         return childTxsID;
     }
 
     public void commitChildTransaction(Connection conn, long childTxnID) throws SQLException{
-        PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_COMMIT_CHILD_TRANSACTION(?)");
-        ps.setLong(1, childTxnID);
-        ps.execute();
+        try(PreparedStatement ps =
+                    conn.prepareStatement("call SYSCS_UTIL.SYSCS_COMMIT_CHILD_TRANSACTION(?)") ) {
+            ps.setLong(1, childTxnID);
+            ps.execute();
+        }
     }
 
 
@@ -481,19 +476,19 @@ public class SMSQLUtil  {
 
     public Activation getActivation(String sql, TxnView txnView) throws SQLException, StandardException{
 
-        PreparedStatement ps = connect.prepareStatement("call syscs_util.get_activation(?)");
-        ps.setString(1, sql);
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        byte[] activationHolderBytes = rs.getBytes(1);
-        try {
-            SpliceSpark.setupSpliceStaticComponents();
-        } catch (IOException ioe) {
-            StandardException.plainWrapException(ioe);
+        try(PreparedStatement ps = connect.prepareStatement("call syscs_util.get_activation(?)")) {
+            ps.setString(1, sql);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                byte[] activationHolderBytes = rs.getBytes(1);
+                SpliceSpark.setupSpliceStaticComponents();
+                ActivationHolder ah = (ActivationHolder) SerializationUtils.deserialize(activationHolderBytes);
+                ah.reinitialize(txnView);
+                return ah.getActivation();
+            } catch (IOException ioe) {
+                throw StandardException.plainWrapException(ioe);
+            }
         }
-        ActivationHolder ah = (ActivationHolder) SerializationUtils.deserialize(activationHolderBytes);
-        ah.reinitialize(txnView);
-        return ah.getActivation();
     }
 
 }

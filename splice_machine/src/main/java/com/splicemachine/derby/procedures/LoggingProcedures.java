@@ -120,7 +120,6 @@ public class LoggingProcedures extends BaseAdminProcedures {
         ResultHelper res = new ResultHelper();
         ResultHelper.VarcharColumn col = res.addVarchar("LOG_LEVEL", 120);
 
-        List<ExecRow> rows = new ArrayList<>();
         for (String logger : loggerLevels) {
             res.newRow();
             col.set(logger);
