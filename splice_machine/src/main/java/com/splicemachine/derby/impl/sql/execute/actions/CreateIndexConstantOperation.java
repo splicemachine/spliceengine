@@ -19,7 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -949,9 +949,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             boolean oneLineRecord = false;
             boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,

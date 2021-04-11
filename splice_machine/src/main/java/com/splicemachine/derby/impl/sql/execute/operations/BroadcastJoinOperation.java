@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -219,9 +219,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                 }
                 // Adding a filter in this manner disables native spark execution,
                 // so only do it if required.
-                boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+                boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedBoolean(
                         operationContext.getActivation().getLanguageConnectionContext(),
-                        Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                        GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
                 if (restriction != null && (varcharDB2CompatibilityMode || sparkJoinPredicate == null)) {
                     result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                 }

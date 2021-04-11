@@ -16,7 +16,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -225,9 +225,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
-        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedBoolean(
                 context.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             // Do not replace string columns using rtrimmed columns but add them as extra columns.
@@ -914,9 +914,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
         int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
 
-        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+        boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedBoolean(
                 context.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
 
         List<String> extraColNamesLeft = new ArrayList<>();
         List<Column> extraColumnsLeft = new ArrayList<>();

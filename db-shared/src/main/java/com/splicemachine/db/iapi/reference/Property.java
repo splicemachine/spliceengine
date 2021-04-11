@@ -1146,20 +1146,7 @@ public interface Property {
     String SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS =
             "splice.execution.allowOverflowSensitiveNativeSparkExpressions";
 
-    /**
-     * Fractional seconds precision of current_timestamp.
-     */
-    String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
-
-    /**
-     * Fractional seconds precision of timestamp.
-     */
-    String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
-
     String SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice.function.secondCompatibilityMode";
-
-    String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
-    String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
     String COUNT_RETURN_TYPE = "splice.bind.countReturnType";
 
@@ -1222,7 +1209,7 @@ public interface Property {
      * How many partitions to fetch in parallel from Spark. It can increase memory consumption on RegionServer if fetching
      * too much data
      */
-    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
+    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions"; // todo: what is the difference to splice.olapParallelPartitions?
 
     /**
      * Shuffle size to use for Spark shuffles. When dealing with big intermediate result sets it has to be larger, when
@@ -1238,24 +1225,6 @@ public interface Property {
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
 
     String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
-
-    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
-
-    String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
-
-    // if set to true, will treat "" as empty string in IMPORT_DATA
-    // if set to false or NULL, will treat "" as NULL in IMPORT_DATA
-    String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
-
-    String SPLICE_NEW_MERGE_JOIN =
-            "splice.execution.newMergeJoin";
-
-    /**
-     * If enabled, disable calculation of join costs as cost per parallel task
-     * and revert to using the old units: cost per partition (cost per region).
-     */
-    String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
-            "splice.optimizer.disablePerParallelTaskJoinCosting";
 
     /**
      * If true, causes evaluation of all predicates via a ProjectRestrict node.
@@ -1289,8 +1258,6 @@ public interface Property {
     String ENTERPRISE_KEY = "splicemachine.enterprise.key";
 
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
-
-    String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
 
     String COST_MODEL = "costModel";
 }

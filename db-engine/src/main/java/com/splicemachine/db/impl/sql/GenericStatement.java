@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -43,14 +44,12 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
-import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -59,7 +58,6 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -73,7 +71,6 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -511,8 +508,9 @@ public class GenericStatement implements Statement{
     }
 
     private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        // why not getCachedDatabaseBoolean ?
         String varcharDB2CompatibilityModeString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
         boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
         try {
             if (varcharDB2CompatibilityModeString != null)
@@ -706,17 +704,17 @@ public class GenericStatement implements Statement{
 
     private void setNewMergeJoin(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String newMergeJoinString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
+        PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_NEW_MERGE_JOIN);
         CompilerContext.NewMergeJoinExecutionType newMergeJoin =
         CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
         try {
             if (newMergeJoinString != null) {
                 newMergeJoinString = newMergeJoinString.toLowerCase();
-                if (newMergeJoinString.equals("on"))
+                if (newMergeJoinString.equalsIgnoreCase("on"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
-                else if (newMergeJoinString.equals("off"))
+                else if (newMergeJoinString.equalsIgnoreCase("off"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
-                else if (newMergeJoinString.equals("forced"))
+                else if (newMergeJoinString.equalsIgnoreCase("forced"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
             }
         } catch (Exception e) {
@@ -743,7 +741,7 @@ public class GenericStatement implements Statement{
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String disablePerParallelTaskJoinCostingString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
+        PropertyUtil.getCached(lcc, GlobalDBProperties.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
         boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
         try {
             if (disablePerParallelTaskJoinCostingString != null)
@@ -758,7 +756,7 @@ public class GenericStatement implements Statement{
 
     private void setCurrentTimestampPrecision(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String currentTimestampPrecisionString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
+                PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION);
         int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
         try {
             if (currentTimestampPrecisionString != null)
@@ -776,7 +774,7 @@ public class GenericStatement implements Statement{
 
     private void setTimestampFormat(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String timestampFormatString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_FORMAT);
+                PropertyUtil.getCachedDatabaseProperty(lcc, GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.getName() );
         if(timestampFormatString == null)
             cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
         else {
@@ -822,7 +820,7 @@ public class GenericStatement implements Statement{
 
     private void setFloatingPointNotation(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String floatingPointNotationString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.FLOATING_POINT_NOTATION);
+                PropertyUtil.getCached(lcc, GlobalDBProperties.FLOATING_POINT_NOTATION);
         if(floatingPointNotationString == null) {
             cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
         } else {

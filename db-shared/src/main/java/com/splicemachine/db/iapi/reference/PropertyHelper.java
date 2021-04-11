@@ -31,9 +31,8 @@
 
 package com.splicemachine.db.iapi.reference;
 
-import java.lang.reflect.Field;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class PropertyHelper {
     // These are the six possible values for collation type if the collation
@@ -137,17 +136,24 @@ public class PropertyHelper {
     public static final String READ_ONLY_ACCESS = "READONLYACCESS";
     public static final String FULL_ACCESS = "FULLACCESS";
 
-    public static Set<String> getAllProperties() {
-        Set<String> propertyList = new TreeSet<>();
-        // get configuration fields from class com.splicemachine.db.iapi.reference.Property
-        for (Field field : com.splicemachine.db.iapi.reference.Property.class.getFields()) {
-            try {
-                if(field.getType().equals(String.class))
-                    propertyList.add( ((String)field.get(null)) );
-            } catch (IllegalAccessException e) {
-                // continue
-            }
-        }
-        return propertyList;
+
+    public static Stream<String> getAllReferenceProperties() {
+        return Arrays.stream(com.splicemachine.db.iapi.reference.Property.class.getFields()).map(
+                field -> {
+                    if (!field.getType().equals(String.class)) return null;
+                    try {
+                        return ((String)field.get(null));
+                    } catch (IllegalAccessException e) {
+                        return null;
+                    }
+                } ).filter( f -> f != null );
+    }
+
+    // return all properties defined in reference.Property + (new) GlobalDBProperties
+    public static Stream<GlobalDBProperties.PropertyType> getAllProperties() {
+        Stream<GlobalDBProperties.PropertyType> s1 = PropertyHelper.getAllReferenceProperties()
+                .map(s -> new GlobalDBProperties.PropertyType(s, "", null));
+
+        return Stream.concat(s1, GlobalDBProperties.getAll());
     }
 }

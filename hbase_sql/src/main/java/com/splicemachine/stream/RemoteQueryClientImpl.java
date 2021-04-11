@@ -14,7 +14,7 @@
 
 package com.splicemachine.stream;
 
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
@@ -174,7 +174,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         else {
             try {
                 String globalPartitionsProperty = PropertyUtil.
-                        getCachedDatabaseProperty(lcc, Property.SPLICE_OLAP_PARALLEL_PARTITIONS);
+                        getCached(lcc, GlobalDBProperties.SPLICE_OLAP_PARALLEL_PARTITIONS);
                 if (globalPartitionsProperty != null) {
                     parallelPartitions = Integer.parseInt(globalPartitionsProperty);
                 }
