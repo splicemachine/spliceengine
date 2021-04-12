@@ -60,6 +60,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected DataValueDescriptor[] kdvds;
     protected int[] colPositionMap;
     protected FormatableBitSet heapList;
+    protected FormatableBitSet valuesList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
 
@@ -95,10 +96,17 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         // Get the DVDS for the primary keys...
         for(int i=0;i<columnOrdering.length;++i)
             kdvds[i]=LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
-        colPositionMap=new int[heapList.size()];
+        colPositionMap=new int[heapList.size()*2];
         // Map Column Positions for encoding
-        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++)
-            colPositionMap[i]=pos;
+        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++) {
+            colPositionMap[i] = pos;
+            colPositionMap[i+heapList.size()] = pos - heapList.getNumBitsSet();
+        }
+        valuesList = (FormatableBitSet) heapList.clone();
+        valuesList.grow(heapList.size()*2);
+        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
+            valuesList.set(i + heapList.size());
+        }
         // Check for PK Modifications...
         if(pkColumns!=null){
             for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
@@ -172,7 +180,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         //if we haven't modified any of our primary keys, then we can just change it directly
         DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
         if(!modifiedPrimaryKeys){
-            return new NonPkRowHash(colPositionMap,null,serializers,heapList);
+            return new NonPkRowHash(colPositionMap,null,serializers,valuesList);
         }
         ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
         return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
