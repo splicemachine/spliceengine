@@ -60,7 +60,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final Clock clock;
     private final MetricFactory metricFactory;
     private final Timer writeTimer;
-    private final Counter retryCounter;
     private final Counter globalErrorCounter;
     private final Counter rejectedCounter;
     private final Counter partialFailureCounter;
@@ -92,7 +91,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.rejectedCounter = metricFactory.newCounter();
         this.globalErrorCounter = metricFactory.newCounter();
         this.partialFailureCounter = metricFactory.newCounter();
-        this.retryCounter = metricFactory.newCounter();
         this.writeTimer = metricFactory.newTimer();
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.partitionFactory = partitionFactory;
@@ -165,7 +163,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         WriteAttemptContext ctx = new WriteAttemptContext();
         do{
             if (!first) {
-                retryCounter.increment();
+                stats.retryCounter.increment();
             }
             first = false;
             BulkWrites nextWrite=writesToPerform.removeFirst();
