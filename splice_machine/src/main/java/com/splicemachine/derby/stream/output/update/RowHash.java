@@ -29,13 +29,13 @@ import com.carrotsearch.hppc.BitSet;
 /*
 * Entity for encoding rows when primary keys have not been modified
 */
-public class NonPkRowHash extends EntryDataHash {
+public class RowHash extends EntryDataHash {
     private final FormatableBitSet finalHeapList;
 
-    public NonPkRowHash(int[] keyColumns,
-                        boolean[] keySortOrder,
-                        DescriptorSerializer[] serializers,
-                        FormatableBitSet finalHeapList) {
+    public RowHash(int[] keyColumns,
+                   boolean[] keySortOrder,
+                   DescriptorSerializer[] serializers,
+                   FormatableBitSet finalHeapList) {
         super(keyColumns, keySortOrder,serializers);
         this.finalHeapList = finalHeapList;
     }

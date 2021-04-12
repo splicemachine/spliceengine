@@ -14,8 +14,13 @@
 
 package com.splicemachine.pipeline.writehandler;
 
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
 
@@ -42,5 +47,4 @@ public interface WriteHandler {
      * throw exceptions.
      */
     void close(WriteContext ctx) throws IOException;
-
 }

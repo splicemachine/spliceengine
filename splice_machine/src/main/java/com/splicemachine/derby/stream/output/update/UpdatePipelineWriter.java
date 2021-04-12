@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -38,6 +37,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+import com.splicemachine.pipeline.writehandler.UpdateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -60,6 +60,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected DataValueDescriptor[] kdvds;
     protected int[] colPositionMap;
     protected FormatableBitSet heapList;
+    protected FormatableBitSet valuesList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
 
@@ -95,10 +96,12 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         // Get the DVDS for the primary keys...
         for(int i=0;i<columnOrdering.length;++i)
             kdvds[i]=LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
-        colPositionMap=new int[heapList.size()];
+        colPositionMap=new int[heapList.size()*2];
         // Map Column Positions for encoding
-        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++)
-            colPositionMap[i]=pos;
+        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++) {
+            colPositionMap[i] = pos;
+            colPositionMap[i+heapList.size()] = pos - heapList.getNumBitsSet();
+        }
         // Check for PK Modifications...
         if(pkColumns!=null){
             for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
@@ -107,6 +110,16 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                     break;
                 }
             }
+
+            // unset any pk columns
+            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
+                heapList.clear(pkCol+1);
+            }
+        }
+        valuesList = (FormatableBitSet) heapList.clone();
+        valuesList.grow(heapList.size()*2);
+        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
+            valuesList.set(i + heapList.size());
         }
         // Grab the final PK Columns
         if(pkCols!=null){
@@ -169,13 +182,8 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public DataHash getRowHash() throws StandardException{
-        //if we haven't modified any of our primary keys, then we can just change it directly
         DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        if(!modifiedPrimaryKeys){
-            return new NonPkRowHash(colPositionMap,null,serializers,heapList);
-        }
-        ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
-        return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
+        return new RowHash(colPositionMap,null,serializers,valuesList);
     }
 
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
@@ -194,6 +202,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                         if(!Bytes.equals(oldLocation,element.getRowKey())){
                             bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
+                            element = UpdateUtils.getBaseUpdateMutation(element);
                             element.setType(KVPair.Type.INSERT);
                         }else{
                             element.setType(KVPair.Type.UPDATE);

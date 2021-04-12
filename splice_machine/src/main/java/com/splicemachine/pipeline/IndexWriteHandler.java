@@ -17,14 +17,24 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.BitSetIterator;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
 
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
@@ -94,7 +104,8 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
-                    delete = deleteIndexRecord(mutation, ctx, false);
+                    delete = deleteIndexRecordFromUpdate(mutation, ctx);
+                    mutation = getBaseUpdateMutation(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modifies ignore...
@@ -111,6 +122,27 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case EMPTY_COLUMN:
             default:
                 throw new RuntimeException("Not Valid Execution Path");
+        }
+    }
+
+    private KVPair deleteIndexRecordFromUpdate(KVPair mutation, WriteContext ctx) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
+
+        try {
+            KVPair toTransform = deleteFromUpdate(mutation);
+
+            KVPair indexDelete = transformer.translate(toTransform);
+
+            if(keepState)
+                this.routedToBaseMutationMap.put(indexDelete,mutation);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
+
+            return indexDelete;
+        } catch (Exception e) {
+            fail(mutation,ctx,e);
+            return null;
         }
     }
 
