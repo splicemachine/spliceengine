@@ -484,27 +484,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(commitTxnProc);
 
-        /*
-         * Procedure to get the log level for the given logger
-         */
-        Procedure getLoggerLevel = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("loggerName", 128)
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggerLevel);
-
-        Procedure getLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("loggerName", 128)
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggerLevelLocal);
-
         // Logging-related procedures
         LoggingProcedures.addProcedures(procedures);
 

@@ -58,8 +58,8 @@ public class ProcedureUnitTest {
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {
-            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS:\n" +
-                            " public static void com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
+            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS:\n" +
+                            " public static void com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
                             "  parameter count doesn't match: expected 2, but actual 4\n",
                     e.getMessage());
         }
@@ -78,8 +78,8 @@ public class ProcedureUnitTest {
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {
-            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS:\n" +
-                            " public static void com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
+            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS:\n" +
+                            " public static void com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
                             "  parameter 1 has wrong type: expected type is INTEGER, but actual type is VARCHAR\n",
                     e.getMessage());
         }

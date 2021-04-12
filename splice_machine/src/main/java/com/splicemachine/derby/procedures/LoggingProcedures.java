@@ -58,6 +58,27 @@ public class LoggingProcedures extends BaseAdminProcedures {
                 .ownerClass(LoggingProcedures.class.getCanonicalName())
                 .build().debugCheck();
         procedures.add(getLoggersLocal);
+
+        /*
+         * Procedure to get the log level for the given logger
+         */
+        Procedure getLoggerLevel = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("loggerName", 128)
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .ownerClass(LoggingProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(getLoggerLevel);
+
+        Procedure getLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL_LOCAL")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("loggerName", 128)
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .ownerClass(LoggingProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(getLoggerLevelLocal);
     }
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
