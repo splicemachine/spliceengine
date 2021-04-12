@@ -12,6 +12,7 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,7 @@ public class ijCommands {
             return rs.getString(2);
         }
     }
+    Supplier<Connection> connectionSupplier;
 
     static public int[] parseVersion(String v) {
         Pattern r = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d)*\\.(\\d*)(-.*)?");

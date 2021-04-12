@@ -31,8 +31,9 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "DB-9450")
-public class Statement implements java.sql.Statement, StatementCallbackInterface{
+@SuppressFBWarnings(value = {"NM_SAME_SIMPLE_NAME_AS_INTERFACE", "UWF_NULL_FIELD"}, justification = "DB-9450")
+public class Statement implements java.sql.Statement, StatementCallbackInterface,
+        com.splicemachine.db.shared.common.sql.Utils.ProgressInterface {
 
     // JDBC 3 constant indicating that the current ResultSet object
     // should be closed when calling getMoreResults.
@@ -156,6 +157,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
     // The user has no control over the statement that owns a catalog query, and has no ability to close that statement.
     // We need a special member variable on our internal catalog query statements so that
     // when the catalog query is closed, the result set will know to close it's owning statement.
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
     boolean isCatalogQuery_ = false;
 
 
@@ -185,6 +187,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     // This is a cache of the attributes to be sent on prepare.
     // Think about caching the entire prepare DDM string for the re-prepares
+    @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
     public String cursorAttributesToSendOnPrepare_ = null;
 
     // The following members are for the exclusive use of prepared statements that require auto-generated keys to be returned
@@ -799,6 +802,31 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         }
     }
 
+    @Override
+    public String getProgress() {
+
+        byte[] token = connection_.getConnectionToken();
+        if (token == null) {
+            return ""; // no progress information available
+        }
+        String sql = "call SYSCS_UTIL.SYSCS_GET_PROGRESS(?, 1)";
+        InterruptionToken it = new InterruptionToken(token);
+        try (ClientConnection sideConnection = connection_.getSideConnection();
+             java.sql.PreparedStatement statement = sideConnection.prepareStatement(sql) ) {
+
+            statement.setString(1, it.getUuid() );
+            try (java.sql.ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getString(1).equals(it.getUuid()))
+                        return rs.getString(9);
+                }
+            }
+        } catch (Throwable t) {
+            return "";
+        }
+        return "";
+    }
+
     @SuppressFBWarnings(value = "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",justification = "DB-9451")
     public void cancel() throws SQLException {
         try
@@ -807,14 +835,14 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 agent_.logWriter_.traceEntry(this, "cancel");
             }
             checkForClosedStatement(); // Per jdbc spec (see java.sql.Statement.close() javadoc)
-            byte[] token = connection_.getInterruptToken();
+            byte[] token = connection_.getConnectionToken();
             if (token == null) {
                 throw new SqlException(agent_.logWriter_,
                         new ClientMessageId(SQLState.CANCEL_NOT_SUPPORTED_BY_SERVER));
             }
             InterruptionToken it = new InterruptionToken(token);
-            ClientConnection sideConnection = connection_.getSideConnection();
-            try (java.sql.Statement s = sideConnection.createStatement()) {
+            try (ClientConnection sideConnection = connection_.getSideConnection();
+                 java.sql.Statement s = sideConnection.createStatement()) {
                 s.execute("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION('" + it.toString() +"')");
             }
         }

@@ -186,7 +186,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         if (!isOlapServer()) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-            remoteQueryClient.submit();
+            remoteQueryClient.submit(getUuid());
             // Does Not Open Iterator by design, we want statistics
             // to batch up.
         } else {

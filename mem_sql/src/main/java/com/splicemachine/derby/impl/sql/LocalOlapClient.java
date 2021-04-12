@@ -28,6 +28,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.splicemachine.db.shared.ProgressInfo;
+
 /**
  * @author Scott Fines
  *         Date: 1/12/16
@@ -77,6 +79,7 @@ public class LocalOlapClient implements OlapClient{
     /*private helper stuff*/
     private static class Status implements OlapStatus{
         private OlapResult result;
+        private ProgressInfo progressInfo;
 
         @Override
         public State checkState(){
@@ -121,6 +124,17 @@ public class LocalOlapClient implements OlapClient{
         @Override
         public boolean wait(long time, TimeUnit unit) throws InterruptedException {
             return false;
+        }
+
+        @Override
+        public void setProgress(ProgressInfo progress) {
+            this.progressInfo = progress;
+        }
+
+        @Override
+        public String getProgressString()
+        {
+            return progressInfo == null ? "" : progressInfo.serializeToString();
         }
     }
 }

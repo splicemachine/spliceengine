@@ -52,6 +52,7 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
@@ -74,7 +75,6 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.logging.Logging;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -1698,30 +1698,14 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
-    private static final GenericColumnDescriptor[] runningOpsDescriptors = {
-            new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-            new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("ELAPSED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-    };
+    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException{
+        String sql = "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()";
+        resultSet[0] = getRunningOperations(sql, false, false ).getResultSet();
+    }
 
-    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException {
-        List<ExecRow> rows = getRunningOperations();
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    public static void SYSCS_GET_PROGRESS(String drdaToken, Integer getDRDA, final ResultSet[] resultSet) throws SQLException{
+        String sql = "call SYSCS_UTIL.SYSCS_GET_PROGRESS_LOCAL('" + drdaToken + "', '" + getDRDA + "')";
+        resultSet[0] = getRunningOperations(sql, getDRDA != 0, true).getResultSet();
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
@@ -1732,36 +1716,19 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = res.getResultSet();
     }
 
-    private static List<ExecRow> getRunningOperations() throws SQLException {
-        List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : getServers() ) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
-                        while (rs.next()) {
-                            ExecRow row = new ValueRow(9);
-
-                            if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
-                                // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
-                                continue;
-                            }
-
-                            row.setColumn(1, new SQLVarchar(rs.getString(1)));
-                            row.setColumn(2, new SQLVarchar(rs.getString(2)));
-                            row.setColumn(3, new SQLVarchar(rs.getString(3)));
-                            row.setColumn(4, new SQLInteger(rs.getInt(4)));
-                            row.setColumn(5, new SQLVarchar(rs.getString(5)));
-                            row.setColumn(6, new SQLVarchar(rs.getString(6)));
-                            row.setColumn(7, new SQLVarchar(rs.getString(7)));
-                            row.setColumn(8, new SQLVarchar(rs.getString(8)));
-                            row.setColumn(9, new SQLVarchar(rs.getString(9)));
-                            rows.add(row);
-                        }
+    private static ResultHelperRunningOps getRunningOperations(String sql, boolean drda, boolean progress) throws SQLException {
+        ResultHelperRunningOps res = new ResultHelperRunningOps(drda, progress);
+        executeOnAllServers(sql, (hostAndPort, connection, rs) -> {
+                while (rs.next()) {
+                    if (sql.equalsIgnoreCase(rs.getString(5))) {
+                        // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL
+                        // triggered by this stored procedure
+                        continue;
                     }
+                    res.newRowFromResultSet(rs);
                 }
-            }
-        }
-        return rows;
+            } );
+        return res;
     }
 
     public static String getCurrentUserId() throws SQLException {
@@ -1844,6 +1811,39 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
+        getRunningOperationsOrProgressLocal(null, resultSet, false, false);
+    }
+
+    public static void SYSCS_GET_PROGRESS_LOCAL(String drdaToken, Integer getDRDA, final ResultSet[] resultSet) throws SQLException{
+        getRunningOperationsOrProgressLocal(drdaToken, resultSet, getDRDA != 0, true);
+    }
+
+    static class ResultHelperRunningOps extends ResultHelper {
+        VarcharColumn colUuid;
+        VarcharColumn colUser;
+        VarcharColumn colHostname;
+        IntegerColumn colSession;
+        VarcharColumn colSql;
+        VarcharColumn colSubmitted;
+        VarcharColumn colElapsed;
+        VarcharColumn colEngine;
+        VarcharColumn ownerStateCol;
+
+        ResultHelperRunningOps(boolean drda, boolean progress) {
+            colUuid       = addVarchar(drda ? "DRDA_TOKEN" : "UUID", 40);
+            colUser       = addVarchar("USER", 40);
+            colHostname   = addVarchar("HOSTNAME", 40);
+            colSession    = addInteger("SESSION");
+            colSql        = addVarchar("SQL", 40);
+            colSubmitted  = addVarchar("SUBMITTED", 40);
+            colElapsed    = addVarchar("ELAPSED", 40);
+            colEngine     = addVarchar("ENGINE", 40);
+            ownerStateCol = progress ? addVarchar("STATE", 100) : addVarchar("OWNER", 100);
+        }
+    }
+
+    public static void getRunningOperationsOrProgressLocal(String drdaToken, final ResultSet[] resultSet,
+                                                           boolean drda, boolean progress) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
@@ -1852,42 +1852,44 @@ public class SpliceAdmin extends BaseAdminProcedures {
             userId = null;
         }
 
-        List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+        OperationManager om = EngineDriver.driver().getOperationManager();
+        // GET_PROGRESS needs DRDA UUID (rdbIntTkn / drda connection token), while GET_RUNNING_OPERATIONS needs
+        // our custom UUID.
+        List<Pair<String, RunningOperation>> operations;
+        if(drda)
+            operations = om.runningOperationsDRDA(userId, drdaToken);
+        else
+            operations = om.runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
         final String timeStampFormat = SQLTimestamp.defaultTimestampFormatString;
 
-        List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations)
+        ResultHelperRunningOps res = new ResultHelperRunningOps(drda, progress);
+
+        for (Pair<String, RunningOperation> pair : operations)
         {
-            UUID uuid = pair.getFirst();
+            String uuid = pair.getFirst();
             RunningOperation ro = pair.getSecond();
-            ExecRow row = new ValueRow(9);
             Activation activation = ro.getOperation().getActivation();
-            assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
-            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
+            assert activation.getPreparedStatement() != null : "Prepared Statement is null";
             ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
-            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
 
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
-            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
-            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
-            rows.add(row);
+            res.newRow();
+            res.colUuid     .set(uuid);
+            res.colUser     .set(activation.getLanguageConnectionContext().getCurrentUserId(activation));
+            res.colHostname .set(host_port);
+            res.colSession  .set(activation.getLanguageConnectionContext().getInstanceNumber());
+            res.colSql      .set(ps == null ? null : ps.getSource());
+            res.colSubmitted.set(new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime()));
+            res.colElapsed  .set(getElapsedTimeStr(ro.getSubmittedTime(), new Date()));
+            res.colEngine   .set(ro.getEngineName());
+            if(progress)
+                res.ownerStateCol.set(ro.getProgressString() == null ? "-" : ro.getProgressString()); // State
+            else
+                res.ownerStateCol.set(ro.getOperation().getScopeName()); // JOBTYPE
         }
-
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     private static String getElapsedTimeStr(Date begin, Date end)
@@ -1934,7 +1936,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
     public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException {
         ExecRow needle = null;
-        for (ExecRow row : getRunningOperations()) {
+        String sql = "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()";
+        for (ExecRow row : getRunningOperations(sql, false,false).getExecRows()) {
                 try {
                     if (row.getColumn(1).getString().equals(uuidString)) {
                         needle = row;
@@ -1961,8 +1964,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         }
     }
 
-    public static void SYSCS_KILL_DRDA_OPERATION_LOCAL(final String rdbIntTkn) throws SQLException{
-
+    static void killLocal(String id, boolean drda) throws SQLException {
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
@@ -1971,40 +1973,35 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
         boolean killed;
         try {
-            killed = EngineDriver.driver().getOperationManager().killDRDAOperation(rdbIntTkn, userId);
+            OperationManager om = EngineDriver.driver().getOperationManager();
+            if(drda) {
+                killed = om.killDRDAOperation(id, userId);
+            }
+            else {
+                UUID uuid;
+                try {
+                    uuid = UUID.fromString(id);
+                } catch (IllegalArgumentException e) {
+                    throw PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT,
+                            id, "SYSCS_KILL_OPERATION"));
+                }
+                killed = om.killOperation(uuid, userId);
+            }
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
 
         if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, rdbIntTkn));
+            throw PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, id));
+    }
+
+    public static void SYSCS_KILL_DRDA_OPERATION_LOCAL(final String rdbIntTkn) throws SQLException {
+        killLocal(rdbIntTkn, true);
     }
 
     public static void SYSCS_KILL_OPERATION_LOCAL(final String uuidString) throws SQLException{
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        String userId = lcc.getCurrentUserId(lastActivation);
-
-        UUID uuid;
-        try {
-            uuid = UUID.fromString(uuidString);
-        } catch (IllegalArgumentException e) {
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
-        }
-        boolean killed;
-        try {
-            killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-
-        if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
+        killLocal(uuidString, false);
     }
-
 
     public static void SYSCS_HDFS_OPERATION(final String path, final String operation, final ResultSet[] resultSet) throws SQLException {
         try {

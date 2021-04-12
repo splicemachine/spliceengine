@@ -329,6 +329,30 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(runningOperationsLocal);
 
+        /*
+         * Procedure to get a list of progress of running operations
+         */
+        Procedure getProgress = Procedure.newBuilder().name("SYSCS_GET_PROGRESS")
+                .numOutputParams(0)
+                .varchar("drdaTokenFilter",64)
+                .smallint("useDrdaToken")
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(getProgress);
+
+        /*
+         * Procedure to get a list of progress of running operations on the local server
+         */
+        Procedure getProgressLocal = Procedure.newBuilder().name("SYSCS_GET_PROGRESS_LOCAL")
+                .numOutputParams(0)
+                .varchar("drdaTokenFilter",64)
+                .smallint("useDrdaToken")
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(getProgressLocal);
+
 
         /*
          * Procedure to kill an executing operation

@@ -28,4 +28,8 @@ public class Utils {
                  .replace("_", escapeCharacter + "_")
                  .replace("%", escapeCharacter + "%");
     }
+
+    public interface ProgressInterface {
+        String getProgress();
+    }
 }
