@@ -32,6 +32,10 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
+
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
  *
@@ -126,30 +130,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
         try {
-            EntryDecoder rowDecoder = new EntryDecoder();
-            rowDecoder.set(mutation.getValue());
-            BitIndex index = rowDecoder.getCurrentIndex();
-            MultiFieldDecoder fieldDecoder = rowDecoder.getEntryDecoder();
-            int cardinality = index.cardinality();
-            for(int i=index.nextSetBit(0), c=0; c<cardinality/2; i=index.nextSetBit(i+1), c++){
-                rowDecoder.seekForward(fieldDecoder, i);
-            }
-            byte[] data = fieldDecoder.slice(fieldDecoder.length() - fieldDecoder.offset());
-            BitIndex resultIndex = BitIndexing.getBestIndex(
-                    halveSet(index.getFields()),
-                    halveSet(index.getScalarFields()),
-                    halveSet(index.getFloatFields()),
-                    halveSet(index.getDoubleFields()));
-            byte[] bitData = resultIndex.encode();
-            byte[] result = new byte[bitData.length+data.length+1];
-            System.arraycopy(bitData, 0, result, 0, bitData.length);
-            result[bitData.length] = 0;
-            System.arraycopy(data,0,result,bitData.length+1,data.length);
-
-            ByteSlice rowSlice = mutation.rowKeySlice();
-            KVPair toTransform = new KVPair(
-                    rowSlice.array(),rowSlice.offset(),rowSlice.length(),
-                    result,0,result.length,KVPair.Type.DELETE);
+            KVPair toTransform = deleteFromUpdate(mutation);
 
             KVPair indexDelete = transformer.translate(toTransform);
 
