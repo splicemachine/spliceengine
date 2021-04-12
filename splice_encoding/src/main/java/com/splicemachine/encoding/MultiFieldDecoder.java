@@ -339,6 +339,10 @@ public class MultiFieldDecoder {
         return currentOffset<offset+length;
     }
 
+    public int length() {
+        return length;
+    }
+
     public boolean nextIsNullDouble() {
         return !available() || check2ByteNull(Encoding.encodedNullDouble());
     }
