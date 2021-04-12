@@ -38,7 +38,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *         Created on: 5/1/13
  */
-public abstract class RoutingWriteHandler implements WriteHandler {
+public abstract class RoutingWriteHandler extends AbstractWriteHandler {
     private static final Logger LOG = Logger.getLogger(RoutingWriteHandler.class);
     private final byte[] destination;
     private boolean failed = false;
