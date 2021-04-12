@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import java.util.Date;
 import java.util.UUID;
 
+import com.splicemachine.db.shared.ProgressInfo;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -14,7 +15,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *  @time 01/29/2018
  */
 
-public class RunningOperation{
+public class RunningOperation {
 
     private final UUID uuid;
     private final String rdbIntTkn;
@@ -22,6 +23,7 @@ public class RunningOperation{
     private DataSetProcessor.Type engine = null;
     private SpliceOperation operation;
     private Thread thread;
+    private String progressStr;
 
     @SuppressFBWarnings("EI_EXPOSE_REP2") // mutable Date problem
     public RunningOperation(SpliceOperation operation,
@@ -74,5 +76,12 @@ public class RunningOperation{
         else {
             return (getEngine() == DataSetProcessor.Type.SPARK) ? "OLAP" : "OLTP";
         }
+    }
+
+    public void setProgressString(String progressStr) {
+        this.progressStr = progressStr;
+    }
+    public String getProgressString() {
+        return progressStr;
     }
 }

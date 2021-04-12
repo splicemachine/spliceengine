@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.procedures.external.GetSchemaExternalResult;
@@ -190,7 +191,7 @@ public interface DataSetProcessor {
      */
     GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
                                                   CsvOptions csvOptions, StructType nonPartitionColumns,
-                                                  StructType partitionColumns) throws StandardException;
+                                                  StructType partitionColumns, OlapStatus jobStatus) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because

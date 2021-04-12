@@ -149,9 +149,10 @@ public class NetConnection extends ClientConnection {
     // It is saved like the prddta in case it is needed for a connect reflow.
     public byte[] crrtkn_;
 
-    // RDB Interruption Token of the server sent to the client in the accrdb.
-    // It is saved like the prddta in case it is needed for a statement abort.
-    public byte[] rdbinttkn_;
+    // RDB Connection Token of the server sent to the client in the accrdb.
+    // It is saved like the prddta in case it is needed for a statement abort
+    // It is also used for getting the progress of the current connection
+    public byte[] rdbConnectionToken;
 
     // The Secmec used by the target.
     // It contains the negotiated security mechanism for the connection.
@@ -398,8 +399,8 @@ public class NetConnection extends ClientConnection {
     }
 
     @Override
-    public byte[] getInterruptToken() {
-        return rdbinttkn_;
+    public byte[] getConnectionToken() {
+        return rdbConnectionToken;
     }
 
     java.util.List getSpecialRegisters() {
@@ -1259,7 +1260,7 @@ public class NetConnection extends ClientConnection {
             crrtkn_ = crrtkn;
         }
         if (rdbinttknReceived) {
-            rdbinttkn_ = rdbinttkn;
+            rdbConnectionToken = rdbinttkn;
         }
 
         netAgent_.setSvrcod(svrcod);

@@ -64,6 +64,13 @@ public class ResultHelper {
         return c;
     }
 
+    public IntegerColumn addInteger(String name)
+    {
+        IntegerColumn c = new IntegerColumn();
+        c.add(name, 0);
+        return c;
+    }
+
     public BigintColumn addBigint(String name, int length)
     {
         BigintColumn c = new BigintColumn();
@@ -82,12 +89,12 @@ public class ResultHelper {
         return columns.size();
     }
 
-    public ResultColumnDescriptor[] getColumnDescriptorsArray() {
+    public GenericColumnDescriptor[] getColumnDescriptorsArray() {
         List<GenericColumnDescriptor> columnDescriptors = new ArrayList<>();
         for( Column column : columns ) {
             columnDescriptors.add(column.getGenericColumnDescriptor());
         }
-        return columnDescriptors.toArray(new ResultColumnDescriptor[columnDescriptors.size()]);
+        return columnDescriptors.toArray(new GenericColumnDescriptor[columnDescriptors.size()]);
     }
 
     public void newRow() throws SQLException {
@@ -272,6 +279,10 @@ public class ResultHelper {
         for( Column column : columns) {
             column.fromResultSet(rs);
         }
+    }
+
+    public List<ExecRow> getExecRows() {
+        return rows;
     }
 
     private List<ExecRow> rows = new ArrayList<>();

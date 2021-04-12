@@ -87,7 +87,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     @Override
-    public void submit() throws StandardException {
+    public void submit(UUID runningOperationUUID) throws StandardException {
         Activation activation = root.getActivation();
         ActivationHolder ah = new ActivationHolder(activation, root);
 
@@ -105,7 +105,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             HostAndPort hostAndPort = server.getHostAndPort();
             String host = hostAndPort.getHostText();
             int port = hostAndPort.getPort();
-            UUID uuid = streamListener.getUuid();
+            UUID streamListenerUuid = streamListener.getUuid();
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
@@ -121,8 +121,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
             int parallelPartitions = getParallelPartitions(lcc);
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), streamListenerUuid,
+                    host, port, session, userId, sql, streamingBatches, streamingBatchSize, parallelPartitions,
+                    shufflePartitionsProperty, runningOperationUUID);
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());

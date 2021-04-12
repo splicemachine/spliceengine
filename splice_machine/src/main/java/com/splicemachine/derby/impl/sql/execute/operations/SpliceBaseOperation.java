@@ -543,7 +543,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private void openDistributed() throws StandardException{
         isOpen = true;
         remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-        remoteQueryClient.submit();
+        remoteQueryClient.submit(getUuid());
         execRowIterator = Iterators.transform(remoteQueryClient.getIterator(), new Function<ExecRow, ExecRow>() {
             @Nullable
             @Override

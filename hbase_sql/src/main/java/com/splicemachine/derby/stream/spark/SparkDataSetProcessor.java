@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.stream.SparkProgressListener;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
@@ -38,7 +40,6 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -430,6 +431,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
+    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String rootPath, boolean mergeSchema,
+                                                         CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                         StructType partitionColumns, OlapStatus jobStatus) throws StandardException {
+        if( jobStatus == null )
+            return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
+        else {
+            try (SparkProgressListener counter = new SparkProgressListener(UUID.randomUUID().toString(), jobStatus)) {
+                return getExternalFileSchema(storedAs, rootPath, mergeSchema, csvOptions, nonPartitionColumns, partitionColumns);
+            }
+        }
+    }
+
     public GetSchemaExternalResult getExternalFileSchema(String storedAs, String rootPath, boolean mergeSchema,
                                                          CsvOptions csvOptions, StructType nonPartitionColumns,
                                                          StructType partitionColumns) throws StandardException {
