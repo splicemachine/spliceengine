@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
 import java.io.*;
 import java.sql.*;
@@ -91,6 +93,7 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean omitHeader = false;
     private String logFileName = null;
     private char terminator = StatementFinder.SEMICOLON;
+    private SignalHandler originalSigIntHandler;
 
     /**
      * Set up the test to run with 'numConnections' connections/users.
@@ -159,6 +162,19 @@ public class utilMain implements java.security.PrivilegedAction {
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
         initOptions();
+
+        addSigIntHandler(out);
+    }
+
+    private void addSigIntHandler(LocalizedOutput out) {
+        try {
+            Signal sigInt = new Signal("INT");
+            originalSigIntHandler = Signal.handle(sigInt, SignalHandler.SIG_DFL );
+            Signal.handle(sigInt, signal ->
+                    ijParser.cancelCurrentStatementOrExit(out, originalSigIntHandler, sigInt));
+        } catch(Throwable t) {
+            // INT Signal might be locked
+        }
     }
 
     void initOptions() {
