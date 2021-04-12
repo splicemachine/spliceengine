@@ -41,7 +41,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 4/30/13
  */
-public class PartitionWriteHandler implements WriteHandler {
+public class PartitionWriteHandler extends AbstractWriteHandler {
     static final Logger LOG = Logger.getLogger(PartitionWriteHandler.class);
     protected final TransactionalRegion region;
     protected List<KVPair> mutations = Lists.newArrayList();
@@ -72,11 +72,17 @@ public class PartitionWriteHandler implements WriteHandler {
         else if(!region.rowInRange(kvPair.rowKeySlice()))
             ctx.failed(kvPair, WriteResult.wrongRegion());
         else {
-            if (kvPair.getType() == KVPair.Type.CANCEL){
-                mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+            switch (kvPair.getType()) {
+                case CANCEL:
+                    mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+                    break;
+                case UPDATE:
+                    mutations.add(getBaseUpdateMutation(kvPair));
+                    break;
+                default:
+                    mutations.add(kvPair);
+                    break;
             }
-            else
-                mutations.add(kvPair);
             ctx.sendUpstream(kvPair);
         }
     }
