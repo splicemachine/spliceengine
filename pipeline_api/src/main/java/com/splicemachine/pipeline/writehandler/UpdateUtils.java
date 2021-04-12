@@ -9,9 +9,36 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
 
-public abstract class AbstractWriteHandler implements WriteHandler {
+public class UpdateUtils {
 
-    protected KVPair getBaseUpdateMutation(KVPair mutation) {
+    public static KVPair deleteFromUpdate(KVPair mutation) {
+        EntryDecoder rowDecoder = new EntryDecoder();
+        rowDecoder.set(mutation.getValue());
+        BitIndex index = rowDecoder.getCurrentIndex();
+        MultiFieldDecoder fieldDecoder = rowDecoder.getEntryDecoder();
+        int cardinality = index.cardinality();
+        for(int i=index.nextSetBit(0), c=0; c<cardinality/2; i=index.nextSetBit(i+1), c++){
+            rowDecoder.seekForward(fieldDecoder, i);
+        }
+        byte[] data = fieldDecoder.slice(fieldDecoder.length() - fieldDecoder.offset());
+        BitIndex resultIndex = BitIndexing.getBestIndex(
+                halveSet(index.getFields()),
+                halveSet(index.getScalarFields()),
+                halveSet(index.getFloatFields()),
+                halveSet(index.getDoubleFields()));
+        byte[] bitData = resultIndex.encode();
+        byte[] result = new byte[bitData.length+data.length+1];
+        System.arraycopy(bitData, 0, result, 0, bitData.length);
+        result[bitData.length] = 0;
+        System.arraycopy(data,0,result,bitData.length+1,data.length);
+
+        ByteSlice rowSlice = mutation.rowKeySlice();
+        return new KVPair(
+                rowSlice.array(),rowSlice.offset(),rowSlice.length(),
+                result,0,result.length,KVPair.Type.DELETE);
+    }
+
+    public static KVPair getBaseUpdateMutation(KVPair mutation) {
         EntryDecoder rowDecoder = new EntryDecoder();
         rowDecoder.set(mutation.getValue());
         BitIndex index = rowDecoder.getCurrentIndex();
@@ -40,7 +67,7 @@ public abstract class AbstractWriteHandler implements WriteHandler {
                 result,0,result.length,KVPair.Type.UPDATE);
     }
 
-    protected BitSet halveSet(BitSet bitSet) {
+    public static BitSet halveSet(BitSet bitSet) {
         BitSet result = new BitSet(bitSet.capacity()/2);
         long cardinality = bitSet.cardinality();
         BitSetIterator it = bitSet.iterator();
