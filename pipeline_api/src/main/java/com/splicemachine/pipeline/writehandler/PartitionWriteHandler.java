@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.writehandler;
 
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
@@ -37,16 +38,25 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+
 /**
  * @author Scott Fines
  *         Created on: 4/30/13
  */
-public class PartitionWriteHandler extends AbstractWriteHandler {
+public class PartitionWriteHandler implements WriteHandler {
     static final Logger LOG = Logger.getLogger(PartitionWriteHandler.class);
     protected final TransactionalRegion region;
     protected List<KVPair> mutations = Lists.newArrayList();
     protected ResettableCountDownLatch writeLatch;
     protected BatchConstraintChecker constraintChecker;
+
+    /*
+     * A Map from the modified KVPair (i.e. the actual update) to the
+     * original (i.e. the updated + old values) KVPair. This allows us to backtrack and identify the source for a given
+     * destination write.
+     */
+    protected final ObjectObjectHashMap<KVPair, KVPair> writeToOriginalMap= new ObjectObjectHashMap();
 
     public PartitionWriteHandler(TransactionalRegion region,
                                  ResettableCountDownLatch writeLatch,
@@ -72,17 +82,20 @@ public class PartitionWriteHandler extends AbstractWriteHandler {
         else if(!region.rowInRange(kvPair.rowKeySlice()))
             ctx.failed(kvPair, WriteResult.wrongRegion());
         else {
+            KVPair toWrite;
             switch (kvPair.getType()) {
                 case CANCEL:
-                    mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+                    toWrite = new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE);
                     break;
                 case UPDATE:
-                    mutations.add(getBaseUpdateMutation(kvPair));
+                    toWrite = getBaseUpdateMutation(kvPair);
                     break;
                 default:
-                    mutations.add(kvPair);
+                    toWrite = kvPair;
                     break;
             }
+            mutations.add(toWrite);
+            writeToOriginalMap.put(toWrite, kvPair);
             ctx.sendUpstream(kvPair);
         }
     }
@@ -126,23 +139,23 @@ public class PartitionWriteHandler extends AbstractWriteHandler {
             if(t instanceof WriteConflict){
                 WriteResult result=new WriteResult(Code.WRITE_CONFLICT,wce.getMessage());
                 for(KVPair mutation : filteredMutations){
-                    ctx.result(mutation,result);
+                    ctx.result(original(mutation),result);
                 }
             }else if(t instanceof NotServingPartitionException){
                 WriteResult result = WriteResult.notServingRegion();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             }else if(t instanceof RegionBusyException){
                 WriteResult result = WriteResult.regionTooBusy();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             }else if(t instanceof WrongPartitionException){
                 //this shouldn't happen, but just in case
                 WriteResult result = WriteResult.wrongRegion();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             } else{
                 /*
@@ -155,12 +168,16 @@ public class PartitionWriteHandler extends AbstractWriteHandler {
                 LOG.error("Unexpected exception", wce);
                 WriteResult result=WriteResult.failed(wce.getClass().getSimpleName()+":"+wce.getMessage());
                 for(KVPair mutation : filteredMutations){
-                    ctx.result(mutation,result);
+                    ctx.result(original(mutation),result);
                 }
             }
         } finally {
             filteredMutations.clear();
         }
+    }
+
+    private KVPair original(KVPair mutation) {
+        return writeToOriginalMap.get(mutation);
     }
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
@@ -191,19 +208,19 @@ public class PartitionWriteHandler extends AbstractWriteHandler {
             MutationStatus stat = statusIter.next();
             KVPair mutation = mutationIter.next();
             if(stat.isNotRun())
-                ctx.notRun(mutation);
+                ctx.notRun(original(mutation));
             else if(stat.isSuccess()){
-                ctx.success(mutation);
+                ctx.success(original(mutation));
             } else{
                 //assume it's a failure
                 //see if it's due to constraints, otherwise just pass it through
                 if (constraintChecker != null && constraintChecker.matches(stat)) {
-                    ctx.result(mutation, constraintChecker.asWriteResult(stat));
+                    ctx.result(original(mutation), constraintChecker.asWriteResult(stat));
                 }else if (stat.errorMessage().contains("Write conflict")) {
                     WriteResult conflict = new WriteResult(Code.WRITE_CONFLICT,stat.errorMessage());
-                    ctx.result(mutation, conflict);
+                    ctx.result(original(mutation), conflict);
                 }else {
-                    ctx.failed(mutation, WriteResult.failed(stat.errorMessage()));
+                    ctx.failed(original(mutation), WriteResult.failed(stat.errorMessage()));
                 }
                 failed++;
             }
