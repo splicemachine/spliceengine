@@ -38,6 +38,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+import com.splicemachine.pipeline.writehandler.UpdateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -183,7 +184,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             return new NonPkRowHash(colPositionMap,null,serializers,valuesList);
         }
         ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
-        return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
+        return new PkRowHash(finalPkColumns,null,valuesList,colPositionMap,resultSupplier,serializers);
     }
 
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
@@ -202,6 +203,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                         if(!Bytes.equals(oldLocation,element.getRowKey())){
                             bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
+                            element = UpdateUtils.getBaseUpdateMutation(element);
                             element.setType(KVPair.Type.INSERT);
                         }else{
                             element.setType(KVPair.Type.UPDATE);
