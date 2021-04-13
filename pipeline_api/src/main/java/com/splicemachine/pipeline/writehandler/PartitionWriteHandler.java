@@ -124,7 +124,7 @@ public class PartitionWriteHandler implements WriteHandler {
         Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
             @Override
             public boolean apply(KVPair input) {
-                return ctx.canRun(input);
+                return ctx.canRun(original(input));
             }
         });
         try {
