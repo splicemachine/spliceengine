@@ -793,6 +793,8 @@
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>com.splicemachine.kafka.TestKafkaCluster</argument>
                                 <argument>localhost:2181</argument>
+                                <argument>1</argument>
+                                <argument>${kafkaHost}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

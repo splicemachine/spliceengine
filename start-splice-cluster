@@ -142,7 +142,7 @@ function _wait_zookeeper
 function _start_kafka {
   KAFKALOG="${RUN_DIR}"/kafka.log
   echo "Starting Kafka. Log file is ${KAFKALOG}"
-  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+(MAVEN_OPTS="${MAVEN_OPTS} -DkafkaHost=${HOST_IP}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 }
 
 ##################################################################################
