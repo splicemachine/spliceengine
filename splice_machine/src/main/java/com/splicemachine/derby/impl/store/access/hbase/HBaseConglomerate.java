@@ -385,7 +385,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 opFactory = driver.getOperationFactory();
                 if (driver.isEngineStarted()) {
                     // In that case, the upgrade must have happened, so we must have version > 1
-                    // We can skip
                     useNew = true;
                 } else {
                     String version = getConglomerateVersion(driver);
