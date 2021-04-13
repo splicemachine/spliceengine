@@ -243,8 +243,8 @@ public class SpliceObserverInstructions implements Externalizable{
                 /*
                  * Push the StatementContext
                  */
-                StatementContext statementContext = activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
-                        statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
+                StatementContext statementContext = activation.getLanguageConnectionContext().pushStatementContext(
+                        statementAtomic,statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
                 statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
 
                 return activation;
