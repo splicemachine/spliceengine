@@ -134,26 +134,23 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                  * The SI module treats this as a delete (because there is no anti-tombstone record at that location),
                  * and thus the row goes missing from the index; the end result is a corrupted index.
                  *
-                 * DB-10765: The same thing happens for overlapping indices. Table A(I,J,K) with index AIJ on (I,J) and
-                 * AIJK on (I,J,K). For an update to K we need to update index AIJK, for that we populate the write with
-                 * values I,J,K (we need to reconstruct the full index row). Since the write contains values for (I,J)
-                 * in IndexTransformer we think we want to update index AIJ too, but in the end we write delete and insert
-                 * the same value.
-                 *
                  * To avoid this scenario, we check for whether the insert and the delete have the same row key. If
-                 * they do, we skip the write/delete altogether. Any WW conflict should also happen for the base row.
+                 * they do, then we hijack the previous KVPair(the deleteMutation), and change it into an update mutation
+                 * instead. That way, we still get the WWConflict detection, but we don't have an insert and a delete
+                 * competing for the row results.
                  */
-                deleteMutation = null;
+                deleteMutation.setValue(newIndex.getValue());
+                deleteMutation.setType(KVPair.Type.UPDATE);
                 add=false;
+            }
+            if(keepState) {
+                this.routedToBaseMutationMap.put(newIndex, mutation);
             }
             if (deleteMutation != null) {
                 indexBuffer.add(deleteMutation);
             }
             if(add) {
                 indexBuffer.add(newIndex);
-                if(keepState) {
-                    this.routedToBaseMutationMap.put(newIndex, mutation);
-                }
             }
         } catch (Exception e) {
             fail(mutation,ctx,e);
