@@ -377,24 +377,35 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public void readExternal(ObjectInput in) throws IOException {
 
         try {
-            String version = null;
             SIDriver driver = SIDriver.driver();
+            boolean useNew = false;
+
             if (driver != null) {
                 partitionFactory = driver.getTableFactory();
                 opFactory = driver.getOperationFactory();
-                PartitionAdmin admin = partitionFactory.getAdmin();
-                version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+                if (driver.isEngineStarted()) {
+                    // In that case, the upgrade must have happened, so we must have version > 1
+                    // We can skip
+                    useNew = true;
+                } else {
+                    String version = getConglomerateVersion(driver);
+                    useNew = (version != null && !version.equals("1"));
+                }
             }
 
-            if (version == null ||  version.equals("1")) {
-                readExternalOld(in);
-            }
-            else {
+            if (useNew) {
                 readExternalNew(in);
+            } else {
+                readExternalOld(in);
             }
         } catch (StandardException e) {
             throw new IOException(e);
         }
+    }
+
+    private String getConglomerateVersion(SIDriver driver) throws IOException, StandardException {
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        return admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
     }
 
 
