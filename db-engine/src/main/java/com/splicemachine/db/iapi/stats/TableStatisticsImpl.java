@@ -317,7 +317,11 @@ public class TableStatisticsImpl implements TableStatistics {
 
     @Override
     public <T extends Comparator<T>> double selectivityExcludingValueIfSkewed(T element, int positionNumber) {
-        return (double)(getEffectivePartitionStatistics().selectivityExcludingValueIfSkewed(element,positionNumber))/getEffectivePartitionStatistics().rowCount();
+        long rowCount = getEffectivePartitionStatistics().rowCount();
+        if (rowCount == 0) {
+            return 0;
+        }
+        return (double) (getEffectivePartitionStatistics().selectivityExcludingValueIfSkewed(element, positionNumber)) / rowCount;
     }
 
 }
