@@ -67,6 +67,8 @@ import org.apache.log4j.Logger;
 
 import java.sql.Types;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 /**
@@ -94,6 +96,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
     private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
+    private ConcurrentHashMap<Long, LongAdder> modifiedRowsCountMap = new ConcurrentHashMap<>();
 
     public static final SystemViewDefinitions viewDefinitions = new SystemViewDefinitions();
 
@@ -1436,5 +1439,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
         TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
         return ti;
+    }
+
+    public boolean updateModifiedRows(long heapConglom, long modifiedRowsCount) {
+        LongAdder count = modifiedRowsCountMap.computeIfAbsent(heapConglom, k -> new LongAdder());
+        count.add(modifiedRowsCount);
+        if (count.longValue() > 10) {
+            // XXX lock ?
+            count.reset();
+            return true;
+        }
+        return false;
     }
 }

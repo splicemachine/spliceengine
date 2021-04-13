@@ -14,20 +14,24 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -37,18 +41,24 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
@@ -63,6 +73,8 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.*;
 
@@ -79,7 +91,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     private static final Logger LOG=Logger.getLogger(DMLWriteOperation.class);
     protected SpliceOperation source;
     protected long heapConglom;
-    protected DataDictionary dd;
     protected TableDescriptor td;
     private boolean isScan=true;
     protected DMLWriteInfo writeInfo;
@@ -500,14 +511,62 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
          */
         computeModifiedRows();
-        if (getModifiedRows() == 0) {
-            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        long count = getModifiedRows();
+        if (count == 0) {
             String spliceDB2ErrorCompatible =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
             if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.compareToIgnoreCase("TRUE") == 0) {
                 SQLWarning warning = StandardException.newDB2CompatibleWarning(SQLState.LANG_NO_ROW_FOUND, ExceptionSeverity.DB2_NO_ROW_FOUND_SEVERITY);
                 activation.addWarning(warning);
             }
+        } else {
+            if (((SpliceDataDictionary) lcc.getDataDictionary()).updateModifiedRows(heapConglom, count)) {
+                updateTableStatistics(lcc);
+            }
+        }
+    }
+
+    //private void updateTableStatistics() throws StandardException {
+    //    try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+    //        Txn txn = SIDriver.driver().lifecycleManager().beginTransaction();
+    //        txn = txn.elevateToWritable(Bytes.toBytes("autostats"));
+    //        transactionResource.marshallTransaction(txn);
+
+    //        // Push internal connection to the current context manager
+    //        EmbedConnection internalConnection = (EmbedConnection) EngineDriver.driver().getInternalConnection();
+    //        new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
+
+    //        LanguageConnectionContext lcc = transactionResource.getLcc();
+    //        DataDictionary dd = lcc.getDataDictionary();
+    //        ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
+    //        UUID tableID = cd.getTableID();
+    //        TableDescriptor td = dd.getTableDescriptor(tableID);
+    //        String analyzeText = String.format("ANALYZE TABLE %s", td.getQualifiedName());
+    //        PreparedStatement ps = lcc.prepareInternalStatement(analyzeText);
+    //        Activation activation = ps.getActivation(lcc, false);
+    //        ((GenericStorablePreparedStatement)ps).setNeedsSavepoint(false);
+    //        activation.getLanguageConnectionContext().pushStatementContext(false, false, analyzeText, null, false, 0L);
+    //        activation.getLanguageConnectionContext().getStatementContext().setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
+    //        ResultSet rs = ps.execute(activation, 0);
+    //        rs.close();
+    //    } catch (SQLException | IOException e) {
+    //        throw StandardException.plainWrapException(e);
+    //    }
+    //}
+
+    private void updateTableStatistics(LanguageConnectionContext lcc) throws StandardException {
+        try {
+            DataDictionary dd = lcc.getDataDictionary();
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
+            UUID tableID = cd.getTableID();
+            TableDescriptor td = dd.getTableDescriptor(tableID);
+
+            StatementContext statementContext = lcc.pushStatementContext(false, false, "", null, false, 0L);
+            statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
+            StatisticsAdmin.COLLECT_TABLE_STATISTICS(td.getSchemaName(), td.getName(), false, new ResultSet[1]);
+        } catch (SQLException e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 
