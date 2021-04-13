@@ -38,10 +38,12 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
@@ -93,7 +95,6 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean omitHeader = false;
     private String logFileName = null;
     private char terminator = StatementFinder.SEMICOLON;
-    private SignalHandler originalSigIntHandler;
 
     /**
      * Set up the test to run with 'numConnections' connections/users.
@@ -163,17 +164,44 @@ public class utilMain implements java.security.PrivilegedAction {
         }
         initOptions();
 
-        addSigIntHandler(out);
+        // adding Ctrl+C to cancel queries
+        // to quit terminal, use 'quit;' or Ctrl+D (on Linux/Mac).
+        addSignalHandler( "INT", () -> ijParser.cancelCurrentStatement(out) );
     }
 
-    private void addSigIntHandler(LocalizedOutput out) {
+    /**
+     * This function will try to add a signal handler for the specified signalName (e.g. "INT" for Ctrl+C)
+     * We do this with reflection and a proxy class that we can gracefully handle newer systems that don't have
+     * sun.misc.Signal anymore. Also using try/catch to handle cases were applications aren't allowed to catch signals.
+     * @param signalName  Name of the Signal, e.g. INT (Ctrl+C), TERM or HUP for SIGINT, SIGTERM and SIGHUP
+     * @param f           the function to be called when we get the signal
+     * @return true if we could add the signal handler, false if we could not.
+     */
+    public static boolean addSignalHandler(String signalName, Runnable f) {
         try {
-            Signal sigInt = new Signal("INT");
-            originalSigIntHandler = Signal.handle(sigInt, SignalHandler.SIG_DFL );
-            Signal.handle(sigInt, signal ->
-                    ijParser.cancelCurrentStatementOrExit(out, originalSigIntHandler, sigInt));
+            // construct INT Signal
+            Class<?> cSignal = Class.forName("sun.misc.Signal");
+            Constructor SignalConstructor = cSignal.getConstructor(String.class);
+            Object signalInt = SignalConstructor.newInstance(signalName);
+
+            // construct SignalHandler
+            Class<?> cSignalHandler = Class.forName("sun.misc.SignalHandler");
+            InvocationHandler invocationHandler = new InvocationHandler() {
+                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                    f.run();
+                    return null;
+                }
+            };
+            Class<?> proxyClass = Proxy.getProxyClass(cSignal.getClassLoader(), cSignalHandler);
+            Constructor<?> proxyClassConstructor = proxyClass.getConstructor(InvocationHandler.class);
+            Object handler = proxyClassConstructor.newInstance(invocationHandler);
+
+            // call Signal.handle(sigInt, handler);
+            Method mSignal_handle = cSignal.getMethod("handle", cSignal, cSignalHandler);
+            mSignal_handle.invoke(null, signalInt, handler);
+            return true;
         } catch(Throwable t) {
-            // INT Signal might be locked
+            return false;
         }
     }
 

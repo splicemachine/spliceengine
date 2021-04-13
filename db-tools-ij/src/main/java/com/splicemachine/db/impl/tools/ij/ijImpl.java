@@ -4,8 +4,6 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -42,20 +40,15 @@ public class ijImpl extends ijCommands {
     Statement currentStatement = null;
     Object currentStatementLock = new Object();
 
-    public void cancelCurrentStatementOrExit(LocalizedOutput out,
-                                                SignalHandler originalSigIntHandler,
-                                                Signal sigInt) {
+    public void cancelCurrentStatement(LocalizedOutput out) {
         synchronized (currentStatementLock) {
             try {
-                if(currentStatement == null) {
-                    out.println("\nCTRL+C -> exit...\n");
-                    originalSigIntHandler.handle(sigInt);
-                }
-                else {
+                if(currentStatement != null)
+                {
                     out.println("\nCTRL+C -> Canceling Statement...\n");
                     currentStatement.cancel();
                 }
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 out.println("Error Canceling Statement: " + e.toString());
             }
         }
