@@ -372,7 +372,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .execRowDefinition(getExecRowDefinition())
                     .loadReplaceMode(loadReplaceMode)
                     .build();
-            return writer.write();
+
+            DataSet<ExecRow> written = writer.write();
+            return written;
 
         }
         catch (Exception e) {
