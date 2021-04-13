@@ -15,14 +15,13 @@
 package com.splicemachine.pipeline.foreignkey.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.stream.output.update.NonPkRowHash;
+import com.splicemachine.derby.stream.output.update.RowHash;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -69,7 +68,7 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
             heapSet.set(keyColumn + colCount);
         }
         DescriptorSerializer[] serializers = VersionedSerializers.forVersion(childTable.getTableVersion(), true).getSerializers(execRow);
-        EntryDataHash entryEncoder = new NonPkRowHash(oneBased, null, serializers, heapSet);
+        EntryDataHash entryEncoder = new RowHash(oneBased, null, serializers, heapSet);
         ValueRow rowToEncode = new ValueRow(execRow.getRowArray().length);
         rowToEncode.setRowArray(execRow.getRowArray());
         entryEncoder.setRow(rowToEncode);

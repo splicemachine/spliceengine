@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -103,11 +102,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             colPositionMap[i] = pos;
             colPositionMap[i+heapList.size()] = pos - heapList.getNumBitsSet();
         }
-        valuesList = (FormatableBitSet) heapList.clone();
-        valuesList.grow(heapList.size()*2);
-        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
-            valuesList.set(i + heapList.size());
-        }
         // Check for PK Modifications...
         if(pkColumns!=null){
             for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
@@ -116,6 +110,16 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                     break;
                 }
             }
+
+            // unset any pk columns
+            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
+                heapList.clear(pkCol+1);
+            }
+        }
+        valuesList = (FormatableBitSet) heapList.clone();
+        valuesList.grow(heapList.size()*2);
+        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
+            valuesList.set(i + heapList.size());
         }
         // Grab the final PK Columns
         if(pkCols!=null){
@@ -178,13 +182,8 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public DataHash getRowHash() throws StandardException{
-        //if we haven't modified any of our primary keys, then we can just change it directly
         DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        if(!modifiedPrimaryKeys){
-            return new NonPkRowHash(colPositionMap,null,serializers,valuesList);
-        }
-        ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
-        return new PkRowHash(finalPkColumns,null,valuesList,colPositionMap,resultSupplier,serializers);
+        return new RowHash(colPositionMap,null,serializers,valuesList);
     }
 
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
