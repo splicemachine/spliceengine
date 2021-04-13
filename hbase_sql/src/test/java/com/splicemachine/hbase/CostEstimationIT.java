@@ -19,6 +19,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
@@ -459,5 +460,45 @@ public class CostEstimationIT extends SpliceUnitTest {
         String sqlText = "explain select c1 from empty_table where b1 < 5";
 
         rowContainsQuery(new int[]{4, 5}, sqlText, methodWatcher, "IndexLookup", "IndexScan[EMPTY_IDX2");
+    }
+
+    // DB-11860
+    @Test
+    public void testPreferIndexOnSpecialColumns() throws Exception {
+        methodWatcher.execute("CREATE TABLE \"TP\" (\n" +
+                "\"BP#\" CHAR(36) NOT NULL\n" +
+                ",\"GF#\" CHAR(36) NOT NULL\n" +
+                ",\"TRS\" TIMESTAMP NOT NULL\n" +
+                ",\"GFAK\" CHAR(5) NOT NULL DEFAULT ''\n" +
+                ",\"A_G#\" CHAR(36) NOT NULL\n" +
+                ",\"SN\" CHAR(18) NOT NULL DEFAULT ''\n" +
+                ",\"K_A\" CHAR(1) NOT NULL DEFAULT ''\n" +
+                ",\"ST5\" DECIMAL(5,0) NOT NULL DEFAULT 0.0\n" +
+                ",\"ST\" CHAR(1) NOT NULL DEFAULT ''\n" +
+                ",\"VAK\" CHAR(1) NOT NULL DEFAULT ''\n" +
+                ",\"FK#\" CHAR(36) NOT NULL\n" +
+                ",\"D\" VARCHAR (32000) FOR BIT DATA NOT NULL DEFAULT X''\n" +
+                ", CONSTRAINT PK PRIMARY KEY(\"BP#\"))");
+
+        methodWatcher.execute("create index IDX1 on TP(GF#, TRS, ST, VAK, GFAK, SN, A_G#)");
+        methodWatcher.execute("create index IDX2 on TP(SN, VAK, GF#, ST, TRS, GFAK, A_G#)");
+
+        methodWatcher.execute("analyze table TP");
+
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        try (PreparedStatement ps = conn.prepareStatement("explain SELECT BP#\n" +
+                "FROM TP\n" +
+                "WHERE GF# = ?\n" +
+                "AND GFAK = 'ABCDE'\n" +
+                "AND SN = 'LMNOPQR'")) {
+            ps.setString(1, "7a7809d2-29e9-11e9-8f9b-005056b28b7b");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                for (int i = 0; i < 5; ++i) {
+                    rs.next();
+                }
+                Assert.assertTrue(rs.getString(1).contains("IndexScan[IDX1"));
+            }
+        }
     }
 }
