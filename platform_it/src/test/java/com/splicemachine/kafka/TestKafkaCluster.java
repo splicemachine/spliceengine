@@ -47,6 +47,9 @@ public class TestKafkaCluster {
         props.put("zookeeper.connect", zkConnectString);
         props.put("broker.id","0");
         props.put("port","9092");
+        props.put("advertised.listeners","PLAINTEXT://localhost:9092,EXTERNAL://localhost:19092");
+        props.put("listeners","PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092");
+        props.put("listener.security.protocol.map","PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT");
         props.put("offsets.topic.replication.factor", offsetsTopicReplicationFactor);  // helps splice standalone work on Kafka 2.2
         props.put("log.dir", System.getProperty("java.io.tmpdir", "target/tmp") + "/kafka-logs");
         return new KafkaConfig(props);
