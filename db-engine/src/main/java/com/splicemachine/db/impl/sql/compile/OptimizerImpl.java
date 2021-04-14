@@ -967,6 +967,18 @@ public class OptimizerImpl implements Optimizer{
 
                 CostEstimate addend = getAddendCost(bestCostEstimateSortAvoidance, currentCost);
                 addCost(addend, currentSortAvoidanceCost);
+                /* DB-11622 note
+                 * For join position 0, bestCostEstimate is just the scan cost of
+                 * optimizable 0 because there is no join yet. For a scan cost,
+                 * localCost = localCostPerParallelTask * parallelism. However,
+                 * For join position > 0, bestCostEstimates are join costs and
+                 * are always per parallel task cost. To make cost accumulation
+                 * consistent, we make currentCost and currentSortAvoidanceCost
+                 * always per parallel task costs.
+                 */
+                if (joinPosition == 0) {
+                    currentSortAvoidanceCost.setLocalCost(currentSortAvoidanceCost.getLocalCostPerParallelTask());
+                }
                 curOpt.setAccumulatedCostForSortAvoidancePlan(currentSortAvoidanceCost);
             }
 
@@ -984,6 +996,9 @@ public class OptimizerImpl implements Optimizer{
              */
             CostEstimate addend = getAddendCost(bestCostEstimate, currentCost);
             addCost(addend, currentCost);
+            if (joinPosition == 0) {
+                currentCost.setLocalCost(currentCost.getLocalCostPerParallelTask());
+            }
             // store accumulated cost in curOpt
             curOpt.setAccumulatedCost(currentCost);
 
