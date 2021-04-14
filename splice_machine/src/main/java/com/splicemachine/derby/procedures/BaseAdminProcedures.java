@@ -189,18 +189,23 @@ public abstract class BaseAdminProcedures {
     }
 
     public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        List<HostAndPort> servers = getServers();
 
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
                 function.accept(server, connection);
             }
         }
+    }
+
+    public static List<HostAndPort> getServers() throws SQLException {
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        return servers;
     }
 
     public static void executeOnAllServers(String sql,
@@ -219,6 +224,10 @@ public abstract class BaseAdminProcedures {
 
     public static void executeOnAllServers(String sql) throws SQLException {
 
-        executeOnAllServers(sql, (server, hostAndPort, connection) -> {} );
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(sql);
+            }
+        });
     }
 }

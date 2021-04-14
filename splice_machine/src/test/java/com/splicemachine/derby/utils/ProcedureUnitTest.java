@@ -199,4 +199,12 @@ public class ProcedureUnitTest {
         Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_GLOBAL_DATABASE_PROPERTY"),  RoutineAliasInfo.MODIFIES_SQL_DATA);
         testProcedures(p);
     }
+
+    @Test
+    public void testCheckSpliceSystemProcedures() {
+        List<Procedure> proc = new ArrayList<>();
+        SpliceSystemProcedures.createSysUtilProcedures(proc);
+        Assert.assertEquals(-630442100, proc.stream().map( procedure -> procedure.getName() ).sorted()
+                .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
+    }
 }

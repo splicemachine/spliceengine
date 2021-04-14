@@ -931,6 +931,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .catalog("procName")
                 .build();
         procedures.add(updateSystemProcedure);
+
+        UpgradeSystemProcedures.addProcedures(procedures);
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)

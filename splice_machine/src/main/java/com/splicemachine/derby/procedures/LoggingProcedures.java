@@ -28,7 +28,7 @@ public class LoggingProcedures extends BaseAdminProcedures {
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
                 .sqlControl(RoutineAliasInfo.NO_SQL)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(LoggingProcedures.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevel);
 
@@ -38,7 +38,7 @@ public class LoggingProcedures extends BaseAdminProcedures {
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
                 .sqlControl(RoutineAliasInfo.NO_SQL)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(LoggingProcedures.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevelLocal);
 
