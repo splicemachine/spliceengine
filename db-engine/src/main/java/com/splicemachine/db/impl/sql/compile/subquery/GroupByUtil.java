@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 
@@ -63,7 +64,8 @@ public class GroupByUtil {
      * one in the above example for clarity)
      */
     public static void addGroupByNodes(SelectNode subquerySelectNode,
-                                       List<BinaryRelationalOperatorNode> correlatedSubqueryPreds) throws StandardException {
+                                       List<BinaryRelationalOperatorNode> correlatedSubqueryPreds,
+                                       int outerNestingLevel) throws StandardException {
 
         /*
          * Nominal case: subquery is correlated, has one or more correlated predicates.  We will group by the subquery
@@ -78,7 +80,13 @@ public class GroupByUtil {
                 } else if (PredicateUtils.isRightColRef(bro, subqueryNestingLevel)) {
                     addGroupByNodes(subquerySelectNode, bro.getRightOperand());
                 } else {
-                    throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
+                    CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor
+                        = new CorrelatedColRefCollectingVisitor<>(1, outerNestingLevel);
+                    bro.accept(correlatedColRefCollectingVisitor);
+                    if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
+                        throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
+                    else
+                        addGroupByNodes(subquerySelectNode, (ValueNode)correlatedColRefCollectingVisitor.getCollected().get(0));
                 }
             }
         }
@@ -116,7 +124,7 @@ public class GroupByUtil {
                 rc.setSourceTableName(colRef.getTableNameNode().getTableName());
             }
         } else {
-            /* We are grouping by 1, give he column a name.  This just for the benefit of EXPLAIN plan readability. */
+            /* We are grouping by 1, give the column a name.  This is just for the benefit of EXPLAIN plan readability. */
             rc.setName("subqueryGroupByCol");
             rc.setNameGenerated(true);
         }

@@ -36,11 +36,9 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
+import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
 import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedBronPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedColumnPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedEqualityBronPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
+import com.splicemachine.db.impl.sql.compile.subquery.*;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Lists;
@@ -74,6 +72,8 @@ class ExistsSubqueryWhereVisitor implements Visitor {
     /* For EXISTS subqueries we can move this type of predicate up one level (but not for NOT EXISTS subqueries). */
     private final CorrelatedBronPredicate typeCPredicate;
 
+    private final CorrelatedInequalityBronPredicate typeD2Predicate;
+
     private final boolean isNotExistsSubquery;
 
     /* If true indicates that we found something in the subquery where clause that cannot be flattened in any case. */
@@ -88,6 +88,8 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
     private final CorrelatedColumnPredicate correlatedColumnPredicate;
 
+    private CorrelatedColRefCollectingVisitor<QueryTreeNode> correlatedColRefCollectingVisitor;
+
     /**
      * @param subqueryLevel       The level of the subquery we are considering flattening in the enclosing predicate
      * @param isNotExistsSubquery Are we looking at a NOT EXISTS subquery.
@@ -97,7 +99,10 @@ class ExistsSubqueryWhereVisitor implements Visitor {
         this.outerNestingLevel = subqueryLevel - 1;
         this.typeDPredicate = new CorrelatedEqualityBronPredicate(this.outerNestingLevel);
         this.typeCPredicate = new CorrelatedBronPredicate(this.outerNestingLevel);
+        this.typeD2Predicate = new CorrelatedInequalityBronPredicate(this.outerNestingLevel);
         this.correlatedColumnPredicate = new CorrelatedColumnPredicate(this.outerNestingLevel);
+        correlatedColRefCollectingVisitor =
+            new CorrelatedColRefCollectingVisitor<>(1, outerNestingLevel);
     }
 
     @Override
@@ -124,6 +129,12 @@ class ExistsSubqueryWhereVisitor implements Visitor {
              */
             if (typeDPredicate.apply(bron)) {
                 typeDCorrelatedColumnReference.add(FlatteningUtils.findColumnReference(bron, outerNestingLevel ));
+                return node;
+            }
+
+            if (typeD2Predicate.apply(bron)) {
+                bron.accept(correlatedColRefCollectingVisitor);
+                typeDCorrelatedColumnReference.add((ColumnReference)correlatedColRefCollectingVisitor.getCollected().remove(0));
                 return node;
             }
 

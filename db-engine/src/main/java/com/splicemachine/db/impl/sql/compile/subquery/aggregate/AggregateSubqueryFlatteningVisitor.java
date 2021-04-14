@@ -151,13 +151,17 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
                 subqueryWhereClause,
                 correlatedSubqueryPreds,
                 new CorrelatedEqualityBronPredicate(topSelectNode.getNestingLevel()));
+        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
+                subqueryWhereClause,
+                correlatedSubqueryPreds,
+                new CorrelatedInequalityBronPredicate(topSelectNode.getNestingLevel()));
         subquerySelectNode.setWhereClause(subqueryWhereClause);
         subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
 
         /*
          * For each correlated predicate generate a GroupByColumn
          */
-        GroupByUtil.addGroupByNodes(subquerySelectNode, correlatedSubqueryPreds);
+        GroupByUtil.addGroupByNodes(subquerySelectNode, correlatedSubqueryPreds, topSelectNode.getNestingLevel());
 
         ResultColumnList newRcl = subquerySelectNode.getResultColumns().copyListAndObjects();
         newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.getResultColumns());

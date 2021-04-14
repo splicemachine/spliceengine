@@ -234,6 +234,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             ValueNode subqueryWhereClause = sn.getWhereClause();
             subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsC, new CorrelatedBronPredicate(outerNestingLevel));
             subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsD, new CorrelatedEqualityBronPredicate(outerNestingLevel));
+            subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsD, new CorrelatedInequalityBronPredicate(outerNestingLevel));
             sn.setWhereClause(subqueryWhereClause);
             sn.setOriginalWhereClause(subqueryWhereClause);
 
@@ -244,7 +245,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
              * where exists (select 1 ... )].
              */
             sn.getResultColumns().getNodes().clear();
-            GroupByUtil.addGroupByNodes(sn, correlatedSubqueryPredsD);
+            GroupByUtil.addGroupByNodes(sn, correlatedSubqueryPredsD, originalNestingLevel);
 
         }
 
