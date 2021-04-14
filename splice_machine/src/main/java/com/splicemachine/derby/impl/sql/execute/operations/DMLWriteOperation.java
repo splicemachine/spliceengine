@@ -20,9 +20,11 @@ import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -58,6 +60,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -73,9 +76,11 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
@@ -562,14 +567,27 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             UUID tableID = cd.getTableID();
             TableDescriptor td = dd.getTableDescriptor(tableID);
 
-            StatementContext statementContext = lcc.pushStatementContext(false, false, "", null, false, 0L);
-            statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
-            StatisticsAdmin.COLLECT_TABLE_STATISTICS(td.getSchemaName(), td.getName(), false, new ResultSet[1]);
+//            StatementContext statementContext = lcc.pushStatementContext(false, false, "", null, false, 0L);
+//            statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
+            try (Connection connection = getCurrentConnection();
+                 Statement stmt = connection.createStatement()) {
+                stmt.execute(String.format("analyze table \"%s\".\"%s\"",td.getSchemaName(), td.getName()));
+            }
+
+            //StatisticsAdmin.COLLECT_TABLE_STATISTICS(td.getSchemaName(), td.getName(), false, new ResultSet[1]);
         } catch (SQLException e) {
             throw StandardException.plainWrapException(e);
         }
     }
 
+    public Connection getCurrentConnection() throws SQLException {
+
+        ContextManager cm = ContextService.getCurrentContextManager();
+        ConnectionContext cc =
+                (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
+
+        return cc.getNestedConnection(true);
+    }
     private long getModifiedRows() {
         long n = 0;
         if (modifiedRowCount != null && modifiedRowCount.length > 0) {
