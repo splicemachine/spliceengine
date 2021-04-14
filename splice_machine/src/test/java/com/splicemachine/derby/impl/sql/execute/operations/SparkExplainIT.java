@@ -868,4 +868,89 @@ public class SparkExplainIT extends SpliceUnitTest {
         testQueryContains(format(sqlText, ", useNativeSpark=false"), "ScrollInsensitive", methodWatcher, true);
         testQueryContains(format(sqlText, ""), "ScrollInsensitive", methodWatcher, true);
     }
+
+    @Test
+    public void testBroadcastNonEquijoinUsesNativeSpark() throws Exception {
+        String sqlText = "select * from t1 a\n" +
+                         ", t2 b --splice-properties joinStrategy=broadcast\n" +
+                         "where a.a1 between b.a2 and b.a2+1";
+        testQueryContains("sparkexplain " + sqlText, "+- BroadcastNestedLoopJoin", methodWatcher, true);
+        String expected =
+                "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 2 |20 | 2 | 2 |20 | 1 |\n" +
+                " 2 |20 | 2 | 2 |20 | 2 |\n" +
+                " 2 |20 | 3 | 2 |20 | 1 |\n" +
+                " 2 |20 | 3 | 2 |20 | 2 |\n" +
+                " 3 |30 | 4 | 2 |20 | 1 |\n" +
+                " 3 |30 | 4 | 2 |20 | 2 |\n" +
+                " 3 |30 | 4 | 3 |30 | 3 |\n" +
+                " 4 |40 | 5 | 3 |30 | 3 |\n" +
+                " 4 |40 | 5 | 4 |40 | 4 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = "select * from t1 a\n" +
+                  "where exists (select a2 from t2 b --splice-properties joinStrategy=broadcast\n" +
+                  "where a.a1 between b.a2 and b.a2+1\n" +
+                  ")";
+
+        testQueryContains("sparkexplain " + sqlText, "BroadcastNestedLoopJoin", methodWatcher, true);
+        expected =
+                "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 2 |20 | 2 |\n" +
+                " 2 |20 | 3 |\n" +
+                " 3 |30 | 4 |\n" +
+                " 4 |40 | 5 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = "select * from t1 a\n" +
+                  "where not exists (select a2 from t2 b --splice-properties joinStrategy=broadcast\n" +
+                  "where a.a1 between b.a2 and b.a2+1\n" +
+                  ")";
+        expected =
+                "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 |10 | 1 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = "select * from t1 a left outer join t2 b --splice-properties joinStrategy=broadcast\n" +
+                  "on a.a1 between b.a2 and b.a2+1";
+        expected =
+                "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
+                "------------------------------\n" +
+                " 1 |10 | 1 |NULL |NULL |NULL |\n" +
+                " 2 |20 | 2 |  2  | 20  |  1  |\n" +
+                " 2 |20 | 2 |  2  | 20  |  2  |\n" +
+                " 2 |20 | 3 |  2  | 20  |  1  |\n" +
+                " 2 |20 | 3 |  2  | 20  |  2  |\n" +
+                " 3 |30 | 4 |  2  | 20  |  1  |\n" +
+                " 3 |30 | 4 |  2  | 20  |  2  |\n" +
+                " 3 |30 | 4 |  3  | 30  |  3  |\n" +
+                " 4 |40 | 5 |  3  | 30  |  3  |\n" +
+                " 4 |40 | 5 |  4  | 40  |  4  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = "select * from t1 a full outer join t2 b --splice-properties joinStrategy=broadcast\n" +
+                  "on a.a1 between b.a2+1 and b.a2+2";
+        expected =
+                "A1  | B1  | C1  | A2  | B2  | C2  |\n" +
+                "------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  3  |NULL |NULL |NULL |\n" +
+                "  3  | 30  |  4  |  2  | 20  |  1  |\n" +
+                "  3  | 30  |  4  |  2  | 20  |  2  |\n" +
+                "  4  | 40  |  5  |  2  | 20  |  1  |\n" +
+                "  4  | 40  |  5  |  2  | 20  |  2  |\n" +
+                "  4  | 40  |  5  |  3  | 30  |  3  |\n" +
+                "NULL |NULL |NULL |  4  | 40  |  4  |\n" +
+                "NULL |NULL |NULL |  5  | 50  |  5  |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
 }
