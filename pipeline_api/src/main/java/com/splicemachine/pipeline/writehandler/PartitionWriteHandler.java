@@ -33,8 +33,11 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.Collections2;
 import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
+
 import java.io.IOException;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -56,7 +59,7 @@ public class PartitionWriteHandler implements WriteHandler {
      * original (i.e. the updated + old values) KVPair. This allows us to backtrack and identify the source for a given
      * destination write.
      */
-    protected final ObjectObjectHashMap<KVPair, KVPair> writeToOriginalMap= new ObjectObjectHashMap();
+    protected final IdentityHashMap<KVPair, KVPair> writeToOriginalMap= Maps.newIdentityHashMap();
 
     public PartitionWriteHandler(TransactionalRegion region,
                                  ResettableCountDownLatch writeLatch,
