@@ -1281,6 +1281,14 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void checkVarbitExpression(String input, byte[] output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertArrayEquals(output, rs.getBytes(1));
+        }
+    }
+
     protected void checkNullExpression(String input, TestConnection conn) throws SQLException {
         String sql = format("select %s", input);
         try (ResultSet rs = conn.query(sql)) {

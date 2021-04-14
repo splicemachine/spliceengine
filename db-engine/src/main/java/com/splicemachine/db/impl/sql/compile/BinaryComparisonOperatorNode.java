@@ -155,6 +155,12 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
         TypeId leftTypeId = getLeftOperand().getTypeId();
         TypeId rightTypeId = getRightOperand().getTypeId();
 
+        if (leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId() &&
+                (leftTypeId.isLongVarcharTypeId() || rightTypeId.isLongVarcharTypeId())) {
+            castLeftOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true));
+            castRightOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true));
+        }
+
         if (! leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId())
         {
             setRightOperand(addCastNodeForStringToNonStringComparison(getLeftOperand(), getRightOperand()));

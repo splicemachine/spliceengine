@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,9 +13,21 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.sql.{Connection, ResultSetMetaData}
+import java.sql.{Connection, ResultSetMetaData, Savepoint}
 import java.util.Properties
 
+import com.splicemachine.db.iapi.types.{DataType => _, _}
+import com.splicemachine.db.impl.sql.execute.ValueRow
+import com.splicemachine.derby.impl.kryo.KryoSerialization
+import com.splicemachine.derby.stream.spark.KafkaReadFunction
+import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine
+import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
+import org.apache.log4j.Logger
+import org.apache.spark.TaskContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -23,20 +35,6 @@ import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
-import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint, SQLVarchar}
-import com.splicemachine.db.impl.sql.execute.ValueRow
-import com.splicemachine.derby.impl.kryo.KryoSerialization
-import com.splicemachine.derby.stream.spark.KafkaReadFunction
-import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
-import com.splicemachine.spark2.splicemachine
-import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
-import org.apache.log4j.Logger
-import org.apache.spark.TaskContext
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
@@ -105,12 +103,11 @@ object Options {
   *                KafkaOptions.KAFKA_TOPIC_PARTITIONS, Options.USE_FLOW_MARKERS
   */
 @SerialVersionUID(20200517242L)
-@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
-@SuppressFBWarnings(value = Array("NP_LOAD_OF_KNOWN_NULL_VALUE"), justification = "These fields usually are not null")
-@SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The nonKeys value is needed and is used read-only")
-@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "The meta and itrRow objects are not used in serialization")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","NP_LOAD_OF_KNOWN_NULL_VALUE","EI_EXPOSE_REP2","SE_BAD_FIELD","SE_TRANSIENT_FIELD_NOT_RESTORED"), justification = "These fields usually are not null|These fields usually are not null|The nonKeys value is needed and is used read-only|The meta and itrRow objects are not used in serialization|connectionManager is not needed in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
+
+  @transient lazy private[this] val connectionManager = new ConnectionManager(url)
 
   private[this] val kafkaServers = options.getOrElse(KafkaOptions.KAFKA_SERVERS, "localhost:9092")
   println(s"Splice Kafka: $kafkaServers")
@@ -167,7 +164,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   // Check url validity, throws exception during instantiation if url is invalid
   try {
     if( options(JDBCOptions.JDBC_URL).isEmpty ) throw new Exception("JDBC Url is an empty string.")
-    getConnection()
+    val con = getConnection()
+    if( con == null ) { throw new Exception("Connection not created.") }
+    close(con)
   } catch {
     case e: Exception => throw new Exception(
       "Problem connecting to the DB. Verify that the input JDBC Url is correct."
@@ -181,6 +180,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   SparkSession.builder.getOrCreate.sparkContext.addSparkListener(new SparkListener {
     override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
       println(s"Cleaning up SplicemachineContext.")
+      try {
+        connectionManager.shutdown
+      } catch {
+        case e: Throwable => ;
+      }
       try {
         kafkaTopics.cleanup(60*1000)
       } catch {
@@ -205,6 +209,22 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def columnNamesCaseSensitive(caseSensitive: Boolean): Unit =
     splicemachine.columnNamesCaseSensitive(caseSensitive)
 
+  def setAutoCommitOn(): Unit = connectionManager.setAutoCommitOn
+  def setAutoCommitOff(): Unit = connectionManager.setAutoCommitOff
+  
+  /** true if AutoCommit is on. */
+  def autoCommitting(): Boolean = connectionManager.autoCommitting
+  
+  /** true if AutoCommit is off. */
+  def transactional(): Boolean = connectionManager.transactional
+  
+  def commit(): Unit = connectionManager.commit
+  def rollback(): Unit = connectionManager.rollback
+  def rollback(savepoint: Savepoint): Unit = connectionManager.rollback(savepoint)
+  def setSavepoint(): Savepoint = connectionManager.setSavepoint()
+  def setSavepoint(name: String): Savepoint = connectionManager.setSavepoint(name)
+  def releaseSavepoint(savepoint: Savepoint): Unit = connectionManager.releaseSavepoint(savepoint)
+
   /**
     *
     * Determine whether a table exists (uses JDBC).
@@ -212,10 +232,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     * @return true if the table exists, false otherwise
     */
-  def tableExists(schemaTableName: String): Boolean =
-    SpliceJDBCUtil.retrieveTableInfo(
-      getJdbcOptionsInWrite( schemaTableName )
-    ).nonEmpty
+  def tableExists(schemaTableName: String): Boolean = {
+    val con = getConnection
+    try {
+      SpliceJDBCUtil.retrieveTableInfo(
+        schemaTableName, con
+      ).nonEmpty
+    } finally {
+      close(con)
+    }
+  }
 
   /**
     * Determine whether a table exists given the schema name and table name.
@@ -245,14 +271,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * @param schemaTableName
     */
-  def dropTable(schemaTableName: String): Unit = {
-    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
-    try {
-      JdbcUtils.dropTable(conn, jdbcOptionsInWrite.table, jdbcOptionsInWrite)
-    } finally {
-      conn.close()
-    }
-  }
+  def dropTable(schemaTableName: String): Unit = executeUpdate(s"DROP TABLE $schemaTableName")
 
   /**
     *
@@ -267,10 +286,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   structType: StructType,
                   keys: Seq[String] = Seq(),
                   createTableOptions: String = ""): Unit = {
-    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
+    val conn = connectionManager.getConnection()
     val statement = conn.createStatement
     try {
-      val actSchemaString = schemaString(structType, jdbcOptionsInWrite.url)
+      val actSchemaString = schemaString(structType, url)
 
       val primaryKeyString = if( keys.isEmpty ) {""}
       else {
@@ -281,29 +300,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.executeUpdate(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
-  private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
-    new JdbcOptionsInWrite( Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
-    ))
-
   /**
    * Get JDBC connection
    */
-  def getConnection(): Connection = getConnection("placeholder")._1
+  def getConnection(): Connection = connectionManager.getConnection
 
-  /**
-   * Get JDBC connection
-   */
-  private[this] def getConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = {
-    val jdbcOptionsInWrite = getJdbcOptionsInWrite( schemaTableName )
-    val conn = JdbcUtils.createConnectionFactory( jdbcOptionsInWrite )()
-    (conn, jdbcOptionsInWrite)
-  }
+  def close(con: Connection): Unit = connectionManager.close(con)
 
   /**
     *
@@ -318,7 +324,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.executeUpdate(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -335,7 +341,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.execute(sql)
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -406,7 +412,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       statement.execute()
     } finally {
       statement.close()
-      conn.close()
+      close(conn)
     }
   }
 
@@ -458,6 +464,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schemaTableName
    * @param statusDirectory status directory where bad records file will be created
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
+   *                          
+   * @return Number of records inserted
    */
   def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(dataFrame.rdd, dataFrame.schema, schemaTableName, statusDirectory, badRecordsAllowed)
@@ -475,6 +483,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param statusDirectory status directory where bad records file will be created
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
    *
+   *
+   * @return Number of records inserted
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(rdd, schema, schemaTableName, Map("insertMode"->"INSERT","statusDirectory"->statusDirectory,"badRecordsAllowed"->badRecordsAllowed.toString) )
@@ -487,6 +497,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * @param dataFrame input data
     * @param schemaTableName output table
+    *
+    * @return Number of records inserted
     */
   def insert(dataFrame: DataFrame, schemaTableName: String): Long = insert(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
@@ -496,6 +508,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param rdd input data
    * @param schema
    * @param schemaTableName
+   *
+   * @return Number of records inserted
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Long = insert(rdd, schema, schemaTableName, Map[String,String]())
 
@@ -881,17 +895,28 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   }
 
-  def primaryKeys(schemaTableName: String): Array[String] =
-    SpliceJDBCUtil.retrievePrimaryKeys(
-      getJdbcOptionsInWrite( schemaTableName)
-    )
-  
+  def primaryKeys(schemaTableName: String): Array[String] = {
+    val con = getConnection
+    try {
+      SpliceJDBCUtil.retrievePrimaryKeys(
+        schemaTableName, con
+      )
+    } finally {
+      close(con)
+    }
+  }
+
   def columnInfo(schemaTableName: String): Array[Seq[String]] = {
-    val info = SpliceJDBCUtil.retrieveColumnInfo(
-      getJdbcOptionsInWrite( schemaTableName )
-    )
-    if( info.nonEmpty ) { info }
-    else{ throw new Exception(s"No column metadata found for $schemaTableName") }
+    val con = getConnection
+    try {
+      val info = SpliceJDBCUtil.retrieveColumnInfo(
+        schemaTableName, con
+      )
+      if( info.nonEmpty ) { info }
+      else{ throw new Exception(s"No column metadata found for $schemaTableName") }
+    } finally {
+      close(con)
+    }
   }
 
   /**
@@ -1043,9 +1068,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param dataFrame input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: java.util.Map[String, String]): Unit =
+                      options: java.util.Map[String, String]): Long =
     bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
@@ -1054,9 +1081,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param dataFrame input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit =
+                      options: scala.collection.mutable.Map[String, String]): Long =
     bulkImportHFile(dataFrame.rdd, dataFrame.schema, schemaTableName, options)
 
   /**
@@ -1065,9 +1094,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param rdd input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records inserted
    */
   def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit = {
+                      options: scala.collection.mutable.Map[String, String]): Long = {
 
     if( ! options.contains("bulkImportDirectory") ) {
       throw new IllegalArgumentException("bulkImportDirectory cannot be null")
@@ -1125,7 +1156,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
     ))
-    val schemaJdbcOpt = JdbcUtils.getSchemaOption(getConnection(), options)
+    val con = getConnection
+    val schemaJdbcOpt = try {
+      JdbcUtils.getSchemaOption(con, options)
+    } finally {
+      close(con)
+    }
 
     if( schemaJdbcOpt.isEmpty ) {
       if   ( tableExists(schemaTableName) ) { JDBCRDD.resolveTable( options ) }  // resolveTable should throw a descriptive exception
@@ -1153,7 +1189,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
   
   private[this] def getSchemaOfQuery(query: String): StructType = {
-    val stmt = getConnection.prepareStatement(query)
+    val con = getConnection
+    val stmt = con.prepareStatement(query)
     try {
       val meta = stmt.getMetaData() // might be jdbc driver dependent
       val colNames = for (c <- 1 to meta.getColumnCount) yield meta.getColumnLabel(c)
@@ -1175,6 +1212,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       StructType(fields)
     } finally {
       stmt.close
+      close(con)
     }
   }
 
@@ -1214,7 +1252,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
 
   private[this] def export(dataFrame: DataFrame, exportCmd: String): Unit = if( dataFrame.rdd.getNumPartitions > 0 ) {
-    if( dataFrame.isEmpty ) {
+    if( dataFrame.count < 1 ) {  // dataFrame.isEmpty supported in Spark2.4
       throw new IllegalArgumentException( "Dataframe is empty." )
     }
 

@@ -2,6 +2,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.test.framework.SpliceNetConnection.ConnectionBuilder;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -119,6 +120,38 @@ public class CreateAliasIT extends SpliceUnitTest {
             Assert.assertTrue(rs.next());
             Assert.assertEquals("NULL", rs.getString(1));
         }
+
+        try ( ResultSet rs = methodWatcher.executeQuery("select * from SYSVW.SYSALIASESVIEW where alias='DB10110'")) {
+            String res = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            String expected =
+                    "ALIASID§| ALIAS  |§SCHEMAID§| JAVACLASSNAME | ALIASTYPE | NAMESPACE | SYSTEMALIAS |§ALIASINFO§|§SPECIFICNAME§|\n" +
+                    "----------------------------------------------------------------------------------------------§\n" +
+                    "§|DB10110 |§|     NULL      |     S     |     S     |    false    |\"CREATEALIASIT\".\"T1\" |§|\n";
+
+            SpliceUnitTest.matchMultipleLines(res, SpliceUnitTest.escapeRegexp(expected) );
+        }
+
         methodWatcher.executeUpdate("drop alias DB10110");
+    }
+
+    // DB-11688
+    @Test
+    public void testSYSALIASESVIEW() throws Exception {
+        // test we can list every item
+        try ( ResultSet rs = methodWatcher.executeQuery("select * from SYSVW.SYSALIASESVIEW")) {
+            TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        }
+
+        // test SYSINDEXCOLUSE
+        try ( ResultSet rs = methodWatcher.executeQuery("select * from SYSVW.SYSALIASESVIEW WHERE ALIAS = 'SYSINDEXCOLUSE'")) {
+            String res = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            String expected =
+                    "ALIASID§|     ALIAS     |§SCHEMAID§| JAVACLASSNAME | ALIASTYPE | NAMESPACE | SYSTEMALIAS |§ALIASINFO§|§SPECIFICNAME§|\n" +
+                    "--------------------------------------------------------------------------------------------------------§\n" +
+                    "§|SYSINDEXCOLUSE |§|     NULL      |     S     |     S     |    true     |\"SYSCAT\".\"INDEXCOLUSE\" |§ |\n";
+
+            SpliceUnitTest.matchMultipleLines(res, SpliceUnitTest.escapeRegexp(expected) );
+        }
+
     }
 }

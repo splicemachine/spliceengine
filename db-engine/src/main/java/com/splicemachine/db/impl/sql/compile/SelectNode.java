@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
+import com.splicemachine.db.impl.ast.RepeatedPredicateVisitor;
 import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;
@@ -2162,7 +2163,13 @@ public class SelectNode extends ResultSetNode{
             wherePredicates=(PredicateList)wherePredicates.accept(v, this);
         }
         if(havingClause!=null){
+            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
+                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(havingAggregates);
+
             havingClause=(ValueNode)havingClause.accept(v, this);
+
+            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
+                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(null);
         }
     }
 

@@ -107,6 +107,7 @@ final class GenericStatementContext
     private boolean     statementWasInvalidated;
     private	String		stmtText;
     private	ParameterValueSet			pvs;
+    private long timeoutMillis;
 
 	/**
 		Set to one of RoutineAliasInfo.{MODIFIES_SQL_DATA, READS_SQL_DATA, CONTAINS_SQL, NO_SQL}
@@ -186,8 +187,10 @@ final class GenericStatementContext
         public void run()
         {
             synchronized (this) {
+            	LOG.info("Wake up to cancel the query");
                 if (statementContext != null) {
                     statementContext.cancel();
+					LOG.info("Canceled the query");
                 }
                 if (expirable != null) {
 					try {
@@ -248,12 +251,7 @@ final class GenericStatementContext
 		this.stmtText = stmtText;
 		this.pvs = pvs;
 		rollbackParentContext = false;
-        if (timeoutMillis > 0) {
-            TimerFactory factory = Monitor.getMonitor().getTimerFactory();
-            Timer timer = factory.getCancellationTimer();
-            cancelTask = new CancelQueryTask(this);
-            timer.schedule(cancelTask, timeoutMillis);
-        }
+		this.timeoutMillis = timeoutMillis;
 	}
 
 	public void clearInUse() {
@@ -271,11 +269,7 @@ final class GenericStatementContext
 		isSystemCode = false;
 		rollbackParentContext = false;
         statementWasInvalidated = false;
-
-        if (cancelTask != null) {
-            cancelTask.forgetContext();
-            cancelTask = null;
-        }
+        timeoutMillis = 0;
         cancellationFlag = false;
         activation = null;
 		sqlSessionContext = null;
@@ -737,7 +731,7 @@ final class GenericStatementContext
      */
     public void cancel()
     {
-        cancellationFlag = true;
+        throw new RuntimeException("Not implemented");
     }
 
 	public void setSQLAllowed(short allow, boolean force) {
@@ -861,4 +855,9 @@ final class GenericStatementContext
     public int getMaxCardinality() {
         return maxCardinality;
     }
+
+    @Override
+	public long getTimeoutMillis() {
+		return timeoutMillis;
+	}
 }

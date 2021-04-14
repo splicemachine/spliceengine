@@ -237,6 +237,10 @@ public class Procedure {
         return ads;
     }
 
+    public short getRoutineSqlControl() {
+        return routineSqlControl;
+    }
+
     public static class Builder{
         private List<Arg> args;
         private String name;

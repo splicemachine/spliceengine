@@ -31,6 +31,10 @@
 
 package com.splicemachine.db.iapi.util;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.StringDataValue;
+
 import java.util.Locale;
 import java.util.StringTokenizer;
 
@@ -588,6 +592,12 @@ public class StringUtil{
             result.append(padChar);
         }
         return result.toString();
+    }
+
+    public static void setIgnoreTrailingWhitespacesInVarcharComparison(Object dvd, boolean shouldIgnore) throws StandardException {
+        if(dvd instanceof StringDataValue) {
+            ((StringDataValue)dvd).setIgnoreTrailingWhitespacesInVarcharComparison(shouldIgnore);
+        }
     }
 }
 

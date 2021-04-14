@@ -15,8 +15,10 @@
 package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_dao.TriggerBuilder;
@@ -30,6 +32,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Properties;
@@ -146,6 +149,26 @@ public class Trigger_Create_IT {
         createTrigger(tb.on("T").named("t9").after().delete().row().referencing("OLD AS O").then("select O.a from sys.systables"));
         // DELETE BEFORE
         createTrigger(tb.on("T").named("t10").before().delete().row().referencing("OLD AS O").then("select O.a from sys.systables"));
+
+        try ( ResultSet rs = methodWatcher.executeQuery("select * from SYSVW.SYSTRIGGERSVIEW ORDER BY CREATIONTIMESTAMP")) {
+            String res = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            String expected =
+                    "TRIGGERID§| TRIGGERNAME | § SCHEMAID § | § CREATIONTIMESTAMP § | EVENT |FIRINGTIME |TYPE | STATE | § TABLEID § |WHENSTMTID | § ACTIONSTMTID § | REFERENCEDCOLUMNS | § TRIGGERDEFINITION § |REFERENCINGOLD |REFERENCINGNEW |OLDREFERENCINGNAME |NEWREFERENCINGNAME |WHENCLAUSETEXT | TRIGGERDEFINITIONLIST |ACTIONSTMTIDLIST |\n" +
+                     "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------§\n" +
+                    "§|§T1 §|§|§-§-§ §|   U   |     A     |  R  |   E   |§|   NULL    |§|       NULL        |  select N.a from sys.systables   |     false     |     true      |       NULL        |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T2 §|§|§-§-§ §|   U   |     A     |  R  |   E   |§|   NULL    |§|       NULL        |  select O.a from sys.systables   |     true      |     false     |         O         |       NULL        |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T3 §|§|§-§-§ §|   U   |     A     |  R  |   E   |§|   NULL    |§|       NULL        |select N.a,O.a from sys.systables |     true      |     true      |         O         |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T4 §|§|§-§-§ §|   U   |     B     |  R  |   E   |§|   NULL    |§|       NULL        |  select N.a from sys.systables   |     false     |     true      |       NULL        |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T5 §|§|§-§-§ §|   U   |     B     |  R  |   E   |§|   NULL    |§|       NULL        |  select O.a from sys.systables   |     true      |     false     |         O         |       NULL        |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T6 §|§|§-§-§ §|   U   |     B     |  R  |   E   |§|   NULL    |§|       NULL        |select N.a,O.a from sys.systables |     true      |     true      |         O         |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T7 §|§|§-§-§ §|   I   |     A     |  R  |   E   |§|   NULL    |§|       NULL        |  select N.a from sys.systables   |     false     |     true      |       NULL        |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T8 §|§|§-§-§ §|   I   |     B     |  R  |   E   |§|   NULL    |§|       NULL        |  select N.a from sys.systables   |     false     |     true      |       NULL        |         N         |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T9 §|§|§-§-§ §|   D   |     A     |  R  |   E   |§|   NULL    |§|       NULL        |  select O.a from sys.systables   |     true      |     false     |         O         |       NULL        |     NULL      |         NULL          |      NULL       |\n" +
+                    "§|§T10§|§|§-§-§ §|   D   |     B     |  R  |   E   |§|   NULL    |§|       NULL        |  select O.a from sys.systables   |     true      |     false     |         O         |       NULL        |     NULL      |         NULL          |      NULL       |";
+
+            SpliceUnitTest.matchMultipleLines(res, SpliceUnitTest.escapeRegexp(expected) );
+        }
+
     }
 
     @Test

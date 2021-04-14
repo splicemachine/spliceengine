@@ -9301,6 +9301,10 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Cannot connect because database is being restored.</text>
            </msg>
            <msg>
+               <name>BR027</name>
+               <text>Cannot restore metadata from this backup.</text>
+           </msg>
+           <msg>
                <name>RPL001</name>
                <text>Incorrect replication role '{0}'</text>
                <arg>role</arg>
