@@ -874,7 +874,7 @@ public class SparkExplainIT extends SpliceUnitTest {
         String sqlText = "select * from t1 a\n" +
                          ", t2 b --splice-properties joinStrategy=broadcast\n" +
                          "where a.a1 between b.a2 and b.a2+1";
-        testQueryContains("sparkexplain " + sqlText, "+- BroadcastNestedLoopJoin", methodWatcher, true);
+        testQueryContains("sparkexplain " + sqlText, "BroadcastNestedLoopJoin", methodWatcher, true);
         String expected =
                 "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
                 "------------------------\n" +
@@ -909,6 +909,7 @@ public class SparkExplainIT extends SpliceUnitTest {
                   "where not exists (select a2 from t2 b --splice-properties joinStrategy=broadcast\n" +
                   "where a.a1 between b.a2 and b.a2+1\n" +
                   ")";
+        testQueryContains("sparkexplain " + sqlText, "BroadcastNestedLoopJoin", methodWatcher, true);
         expected =
                 "A1 |B1 |C1 |\n" +
                 "------------\n" +
@@ -918,6 +919,7 @@ public class SparkExplainIT extends SpliceUnitTest {
 
         sqlText = "select * from t1 a left outer join t2 b --splice-properties joinStrategy=broadcast\n" +
                   "on a.a1 between b.a2 and b.a2+1";
+        testQueryContains("sparkexplain " + sqlText, "BroadcastNestedLoopJoin", methodWatcher, true);
         expected =
                 "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
                 "------------------------------\n" +
@@ -936,6 +938,7 @@ public class SparkExplainIT extends SpliceUnitTest {
 
         sqlText = "select * from t1 a full outer join t2 b --splice-properties joinStrategy=broadcast\n" +
                   "on a.a1 between b.a2+1 and b.a2+2";
+        testQueryContains("sparkexplain " + sqlText, "BroadcastNestedLoopJoin", methodWatcher, true);
         expected =
                 "A1  | B1  | C1  | A2  | B2  | C2  |\n" +
                 "------------------------------------\n" +
