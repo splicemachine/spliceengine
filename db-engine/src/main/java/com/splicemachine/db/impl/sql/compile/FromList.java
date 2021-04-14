@@ -258,7 +258,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @return The FromTable, if any, with the exposed name.
      * @throws StandardException Thrown on error
      */
-    protected FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
+    public FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
@@ -286,6 +286,17 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             fromTable=(FromTable)elementAt(index);
             fromTable.isJoinColumnForRightOuterJoin(rc);
         }
+    }
+
+    public FromTable bindExtraTableAndAddToFromClause(FromTable fromTable) throws StandardException{
+        DataDictionary dataDictionary = this.getDataDictionary();
+
+        FromTable newNode=(FromTable)fromTable.bindNonVTITables(dataDictionary, this);
+        newNode=(FromTable)newNode.bindVTITables(this);
+        this.addFromTable(newNode);
+        if(fromTable.referencesSessionSchema())
+            referencesSessionSchema=true;
+        return newNode;
     }
 
     public void bindTables(DataDictionary dataDictionary, FromList fromListParam) throws StandardException{

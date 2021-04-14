@@ -145,19 +145,27 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         /**
          * The following lines collect correlated predicates from the subquery where clause while removing them.
          */
+        List<BinaryRelationalOperatorNode> correlatedSubqueryInequalityPreds = new ArrayList<>();
         ValueNode subqueryWhereClause = subquerySelectNode.getWhereClause();
         List<BinaryRelationalOperatorNode> correlatedSubqueryPreds = new ArrayList<>();
         subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
                 subqueryWhereClause,
                 correlatedSubqueryPreds,
                 new CorrelatedEqualityBronPredicate(topSelectNode.getNestingLevel()));
+        // TODO: Support aggregate subquery flattening with inequality conditions.
+//        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
+//                subqueryWhereClause,
+//                correlatedSubqueryInequalityPreds,
+//                new CorrelatedInequalityBronPredicate(topSelectNode.getNestingLevel()));
         subquerySelectNode.setWhereClause(subqueryWhereClause);
         subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
 
         /*
          * For each correlated predicate generate a GroupByColumn
          */
-        GroupByUtil.addGroupByNodes(subquerySelectNode, correlatedSubqueryPreds);
+
+        GroupByUtil.addGroupByNodes(subquerySelectNode, correlatedSubqueryPreds,
+                                    correlatedSubqueryInequalityPreds, topSelectNode.getNestingLevel(), topSelectNode);
 
         ResultColumnList newRcl = subquerySelectNode.getResultColumns().copyListAndObjects();
         newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.getResultColumns());

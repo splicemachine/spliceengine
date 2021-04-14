@@ -463,6 +463,11 @@ public class SelectNode extends ResultSetNode{
         return this;
     }
 
+    public ValueNode bindExtraExpressions(ValueNode expressionToBind) throws StandardException {
+        expressionToBind = expressionToBind.bindExpression(fromList, whereSubquerys, whereAggregates);
+        return expressionToBind;
+    }
+
     /**
      * Bind the expressions in this SelectNode.  This means binding the
      * sub-expressions, as well as figuring out what the return type is
