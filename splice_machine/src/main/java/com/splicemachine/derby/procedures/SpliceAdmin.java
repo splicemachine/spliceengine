@@ -110,17 +110,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_CACHED_STATEMENTS(final ResultSet[] resultSet) throws SQLException{
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
         int maxLength = 0;
         int serverNameLength = 0;
         Map<String, List<Pair<String,Timestamp>>> cachedServerToStatementsMap = new HashMap<>();
-        for (HostAndPort server : servers) {
+        for (HostAndPort server : getServers() ) {
             List<Pair<String, Timestamp>> statements = new ArrayList<>();
             try (Connection connection = RemoteUser.getConnection(server.toString());
                  PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_CACHED_STATEMENTS_LOCAL()");
@@ -493,8 +486,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 colHost.set(ps.getHostname());
                 Set<PartitionLoad> partitionLoads=psLoad.getPartitionLoads();
                 colRegionCount.set(partitionLoads.size());
-                long storeFileSize = partitionLoads.stream()
-                        .map(PartitionLoad::getStorefileSize).reduce(Long::sum).get();
+                long storeFileSize = 0L;
+                for(PartitionLoad pLoad : partitionLoads){
+                    storeFileSize += pLoad.getStorefileSize();
+                }
                 colStoreFileSize.set(storeFileSize);
                 colWriteRequestCount.set(psLoad.totalWriteRequests());
                 colReadRequestCount.set(psLoad.totalReadRequests());
@@ -1737,15 +1732,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     private static List<ExecRow> getRunningOperations() throws SQLException {
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-
         List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : servers) {
+        for (HostAndPort server : getServers() ) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
                 try (Statement stmt = connection.createStatement()) {
                     try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
@@ -1917,14 +1905,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
         String[] parts = token.split("#");
         String uuidString = parts[0];
         String hostname = parts[1];
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
         HostAndPort needle = null;
-        for (HostAndPort hap : servers) {
+        for (HostAndPort hap : getServers() ) {
             if (hap.toString().equals(hostname)) {
                 needle = hap;
                 break;
