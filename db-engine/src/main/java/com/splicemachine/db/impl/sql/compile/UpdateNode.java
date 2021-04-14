@@ -1199,7 +1199,6 @@ public final class UpdateNode extends DMLModStatementNode
             {
                 columnMap.set(i);
             }
-            return columnMap;
         }
 
         /*

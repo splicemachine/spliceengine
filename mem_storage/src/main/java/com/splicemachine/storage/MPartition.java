@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.si.api.filter.TxnFilter;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.BiMap;
 import splice.com.google.common.collect.HashBiMap;
@@ -100,7 +101,13 @@ public class MPartition implements Partition{
             }
         });
         long curSeq = sequenceGen.get();
-        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
+        DataFilter dataFilter = get.filter();
+        TxnFilter txnFilter = null;
+        if (dataFilter instanceof TxnFilter) {
+            txnFilter = (TxnFilter) dataFilter;
+            dataFilter = null;
+        }
+        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),dataFilter,this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn.size()<=0) return null;
 
@@ -109,6 +116,14 @@ public class MPartition implements Partition{
             if(previous==null)
                 previous=new MResult();
             assert previous instanceof MResult:"Incorrect result type!";
+            if (txnFilter != null) {
+                for (DataCell cell : toReturn) {
+                    txnFilter.filterCell(cell);
+                }
+                DataCell result = txnFilter.produceAccumulatedResult();
+                if (result == null) return null;
+                toReturn = Arrays.asList(result);
+            }
             ((MResult)previous).set(toReturn);
 
             return previous;
