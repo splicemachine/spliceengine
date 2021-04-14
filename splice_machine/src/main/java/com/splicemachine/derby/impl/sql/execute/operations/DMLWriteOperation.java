@@ -19,6 +19,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -43,6 +44,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -74,6 +76,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
+import splice.com.google.common.net.HostAndPort;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -567,14 +570,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             UUID tableID = cd.getTableID();
             TableDescriptor td = dd.getTableDescriptor(tableID);
 
-//            StatementContext statementContext = lcc.pushStatementContext(false, false, "", null, false, 0L);
-//            statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
-            try (Connection connection = getCurrentConnection();
-                 Statement stmt = connection.createStatement()) {
-                stmt.execute(String.format("analyze table \"%s\".\"%s\"",td.getSchemaName(), td.getName()));
-            }
+            runAnalyzeInOwnThread(td.getQualifiedName());
 
-            //StatisticsAdmin.COLLECT_TABLE_STATISTICS(td.getSchemaName(), td.getName(), false, new ResultSet[1]);
         } catch (SQLException e) {
             throw StandardException.plainWrapException(e);
         }
@@ -583,11 +580,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     public Connection getCurrentConnection() throws SQLException {
 
         ContextManager cm = ContextService.getCurrentContextManager();
-        ConnectionContext cc =
-                (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
+        ConnectionContext cc = (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
 
         return cc.getNestedConnection(true);
     }
+
+    public void runAnalyzeInOwnThread(String tableQualifiedName) throws SQLException {
+        Thread thread = new Thread(() -> {
+            try (Connection connection = RemoteUser.getConnection("Arnauds-MacBook-Pro.local:1528");
+                 Statement stmt = connection.createStatement()) {
+                stmt.execute(String.format("analyze table %s", tableQualifiedName));
+            } catch (SQLException e) {
+                LOG.error(e);
+            }
+        });
+        thread.start();
+    }
+
     private long getModifiedRows() {
         long n = 0;
         if (modifiedRowCount != null && modifiedRowCount.length > 0) {
