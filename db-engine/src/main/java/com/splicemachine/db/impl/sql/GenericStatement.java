@@ -496,6 +496,7 @@ public class GenericStatement implements Statement{
         setNewMergeJoin(lcc, cc);
         setDisableParallelTaskJoinCosting(lcc, cc);
         setDisablePrefixIteratorMode(lcc, cc);
+        setDisableSubqueryFlattening(lcc, cc);
         setDisableUnionedIndexScans(lcc, cc);
         setfavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
@@ -757,6 +758,21 @@ public class GenericStatement implements Statement{
             disablePrefixIteratorMode =
             Boolean.parseBoolean(disablePrefixIteratorModeString);
         cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
+    private void setDisableSubqueryFlattening(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disableSubqueryFlatteningString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_SUBQUERY_FLATTENING);
+        boolean disableSubqueryFlattening = CompilerContext.DEFAULT_DISABLE_SUBQUERY_FLATTENING;
+        try {
+            if (disableSubqueryFlatteningString != null)
+                disableSubqueryFlattening =
+                Boolean.parseBoolean(disableSubqueryFlatteningString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisableSubqueryFlattening(disableSubqueryFlattening);
     }
 
     private void setDisableUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

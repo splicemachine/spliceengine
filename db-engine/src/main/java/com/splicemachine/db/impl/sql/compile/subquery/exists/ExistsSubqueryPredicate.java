@@ -90,9 +90,10 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
          * NOT FLATTENED: select * from A,B where not exists...
          *
          * */
-        if (notExistsSubquery && outerSelectNode.getFromList().size() > 1) {
-            return false;
-        }
+//        if (notExistsSubquery && outerSelectNode.getFromList().size() > 1) {
+//            return false;
+//        }  // msirek-temp
+        boolean multipleOuterTables = outerSelectNode.getFromList().size() > 1;
 
         /* Must be directly under an And in predicates */
         if (!subqueryNode.getUnderTopAndNode()) {
@@ -128,16 +129,17 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
 
         /* correlated subquery cannot contain a union */
         if (subqueryResultSet.getFromList().containsNode(UnionNode.class)) {
-            return isUnionSubqueryOk(subqueryNode, subquerySelectNode.getNestingLevel(), notExistsSubquery);
+            return isUnionSubqueryOk(subqueryNode, subquerySelectNode.getNestingLevel(), notExistsSubquery, multipleOuterTables);
         }
 
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
-        return whereClause == null || isWhereClauseOk(whereClause, notExistsSubquery, subquerySelectNode.getNestingLevel());
+
+        return whereClause == null || isWhereClauseOk(whereClause, notExistsSubquery, subquerySelectNode.getNestingLevel(), multipleOuterTables);
     }
 
-    private boolean isWhereClauseOk(ValueNode whereClause, boolean notExistsSubquery, int nestingLevel) throws StandardException {
-        ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(nestingLevel, notExistsSubquery);
+    private boolean isWhereClauseOk(ValueNode whereClause, boolean notExistsSubquery, int nestingLevel, boolean multipleOuterTables) throws StandardException {
+        ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(nestingLevel, notExistsSubquery, multipleOuterTables);
         whereClause.accept(subqueryWhereVisitor);
         return !subqueryWhereVisitor.isFoundUnsupported();
     }
@@ -196,15 +198,18 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
      * be handled without significant changes to how we join (we would have to select one column for each table or some
      * scheme like that).
      */
-    private boolean isUnionSubqueryOk(SubqueryNode subqueryNode, int subqueryNestingLevel, boolean notExistsSubquery) throws StandardException {
+    private boolean isUnionSubqueryOk(SubqueryNode subqueryNode, int subqueryNestingLevel,
+                                      boolean notExistsSubquery, boolean multipleOuterTables) throws StandardException {
         List<UnionNode> unionNodes = FlatteningUtils.findSameLevelUnionNodes(subqueryNode);
         List<SelectNode> selectNodes = FlatteningUtils.findSameLevelSelectNodes(subqueryNode);
 
         assert unionNodes.size() >= 1 && unionNodes.size() + 1 == selectNodes.size() : "Sanity check, one more select node than union node";
 
+        if (notExistsSubquery && multipleOuterTables)
+            return false;
         ColumnReference outerColumnReference = null;
         for (SelectNode selectNode : selectNodes) {
-            ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(subqueryNestingLevel, notExistsSubquery);
+            ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(subqueryNestingLevel, notExistsSubquery, multipleOuterTables);
             selectNode.getWhereClause().accept(subqueryWhereVisitor);
 
             /* No union subquery can have OR nodes, etc */
@@ -216,7 +221,7 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
                 return false;
             }
             /* None can have more than one type D predicate */
-            List<ColumnReference> foundTypeDColRefs = subqueryWhereVisitor.getTypeDCorrelatedColumnReference();
+            List<ColumnReference> foundTypeDColRefs = subqueryWhereVisitor.getCorrelatedColumnReferences();
             if (foundTypeDColRefs.size() != 1) {
                 return false;
             }

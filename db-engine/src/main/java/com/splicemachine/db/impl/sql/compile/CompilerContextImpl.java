@@ -309,6 +309,12 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
 
+    public void setDisableSubqueryFlattening(boolean newValue) {
+        disableSubqueryFlattening = newValue;
+    }
+
+    public boolean getDisableSubqueryFlattening() { return disableSubqueryFlattening; }
+
     public void setDisableUnionedIndexScans(boolean newValue) {
         disableUnionedIndexScans = newValue;
     }
@@ -1263,6 +1269,7 @@ public class CompilerContextImpl extends ContextImpl
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+    private       boolean                             disableSubqueryFlattening                    = DEFAULT_DISABLE_SUBQUERY_FLATTENING;
     private       boolean                             disableUnionedIndexScans                     = DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
     private       boolean                             favorUnionedIndexScans                       = DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;

@@ -198,6 +198,7 @@ public interface CompilerContext extends Context
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
     boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION = false;
+    boolean DEFAULT_DISABLE_SUBQUERY_FLATTENING = false;
     boolean DEFAULT_DISABLE_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_FAVOR_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
@@ -786,6 +787,10 @@ public interface CompilerContext extends Context
     void setDisablePrefixIteratorMode(boolean newValue);
 
     boolean getDisablePrefixIteratorMode();
+
+    void setDisableSubqueryFlattening(boolean newValue);
+
+    boolean getDisableSubqueryFlattening();
 
     void setDisableUnionedIndexScans(boolean newValue);
 
